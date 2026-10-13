@@ -5,10 +5,40 @@ namespace OfficeIMO.Reader;
 /// <summary>Counts operation work without retaining past streamed chunks or decoded inputs.</summary>
 internal sealed class ReaderOperationBudget {
     private readonly ReaderResourceLimits _limits;
+    private ReaderInspectionOptions? _inspection;
     private readonly object _gate = new object();
     private readonly ConditionalWeakTable<object, Entry> _seen = new ConditionalWeakTable<object, Entry>();
     private long _chunks, _characters, _blocks, _assets, _assetBytes, _nestedBytes, _nestedDocuments;
-    internal ReaderOperationBudget(ReaderResourceLimits limits) { _limits = limits.CloneValidated(); }
+    private long _inspectionRecords, _inspectionCharacters;
+    internal ReaderOperationBudget(ReaderResourceLimits limits, ReaderInspectionOptions? inspection = null) {
+        _limits = limits.CloneValidated(); _inspection = inspection?.CloneValidated();
+    }
+
+    internal void IncludeInspectionLimits(ReaderInspectionOptions inspection) {
+        ReaderInspectionOptions snapshot = inspection.CloneValidated();
+        lock (_gate) {
+            if (_inspection == null) _inspection = snapshot;
+            else {
+                _inspection.MaxRecords = Math.Min(_inspection.MaxRecords, snapshot.MaxRecords);
+                _inspection.MaxCharacters = Math.Min(_inspection.MaxCharacters, snapshot.MaxCharacters);
+            }
+        }
+    }
+
+    internal void AddInspectionRecord(OfficeDocumentMetadataEntry record) {
+        lock (_gate) {
+            if (_seen.TryGetValue(record, out _)) return;
+            long characters = (long)record.Id.Length + record.Category.Length + record.Name.Length +
+                (record.Value?.Length ?? 0) + (record.ValueType?.Length ?? 0) + (record.SourceObjectId?.Length ?? 0) +
+                (record.Location?.Path?.Length ?? 0) + (record.Location?.BlockAnchor?.Length ?? 0) +
+                (record.Location?.SourceBlockKind?.Length ?? 0) + (record.Location?.Sheet?.Length ?? 0) +
+                (record.Location?.A1Range?.Length ?? 0);
+            foreach (var attribute in record.Attributes) characters = checked(characters + attribute.Key.Length + attribute.Value.Length);
+            Add(ref _inspectionRecords, 1, _inspection?.MaxRecords, "Inspection.MaxRecords");
+            Add(ref _inspectionCharacters, characters, _inspection?.MaxCharacters, "Inspection.MaxCharacters");
+            _seen.Add(record, new Entry());
+        }
+    }
 
     internal long? NestedInputMaximum => _limits.MaxNestedInputBytes;
 

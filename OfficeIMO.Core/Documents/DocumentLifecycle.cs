@@ -32,4 +32,7 @@ public class DocumentLoadOptions : DocumentCreateOptions {
     /// the historical compatibility behavior.
     /// </summary>
     public OfficePackageSecurityOptions? PackageSecurity { get; set; }
+
+    /// <summary>Captures same-source structural package observations in Word, Excel and PowerPoint loaders without executing content. Other format owners may expose their native inspection separately.</summary>
+    public bool CaptureSourcePackageSecurity { get; set; }
 }

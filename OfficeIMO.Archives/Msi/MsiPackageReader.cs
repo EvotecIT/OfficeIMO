@@ -20,9 +20,9 @@ internal sealed partial class MsiPackageReader : IDisposable {
     private int _stringWidth;
     private Dictionary<string, MsiColumn[]> _schemas = new(StringComparer.OrdinalIgnoreCase);
 
-    internal MsiPackageReader(Stream source, ArchiveLimits limits, CancellationToken token) {
+    internal MsiPackageReader(Stream source, ArchiveLimits limits, CancellationToken token, int maxDirectoryEntries = 65536) {
         _limits = limits; _token = token;
-        var compoundOptions = new OfficeCompoundReadOptions(maxStreamBytes: limits.Input, maxTotalStreamBytes: limits.Input);
+        var compoundOptions = new OfficeCompoundReadOptions(maxDirectoryEntries: maxDirectoryEntries, maxStreamBytes: limits.Input, maxTotalStreamBytes: limits.Input);
         source.Position = 0;
         _compound = new OfficeCompoundFileReader.ReadSession(source, compoundOptions, leaveOpen: true, token,
             requireCanonicalHeader: true);
@@ -55,6 +55,8 @@ internal sealed partial class MsiPackageReader : IDisposable {
             LoadSchemas();
         } catch { _compound.Dispose(); throw; }
     }
+    internal IReadOnlyList<OfficeCompoundFileEntry> StorageStreams => _compound.Entries.Where(entry => entry.IsStream).OrderBy(entry => entry.DirectoryOrder).ToArray();
+    internal Stream OpenRawStream(string rawName, CancellationToken token) => _compound.OpenStream(rawName, token);
     internal Stream OpenCabinet(string name) => Open(name, table: false);
     internal long GetCabinetLength(string name) => _compound.GetStreamLength(StoredName(name, table: false));
     private Stream Open(string name, bool table = true) => _compound.OpenStream(StoredName(name, table));

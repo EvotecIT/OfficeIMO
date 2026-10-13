@@ -462,14 +462,17 @@ internal static partial class ResourceResolver {
         bool includeEmbeddedTrueTypeFont = true) {
         string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
         string encoding = GetDefaultEncodingForBaseFont(baseFont);
+        bool hasDeclaredEncoding = false;
         bool isVerticalWriting = false;
         IReadOnlyDictionary<int, string>? differences = null;
         if (fontVal.Items.TryGetValue("Encoding", out var encodingObj)) {
             PdfObject? resolvedEncoding = ResolveObject(encodingObj, objects);
             if (resolvedEncoding is PdfName encodingName) {
+                hasDeclaredEncoding = true;
                 encoding = encodingName.Name;
                 isVerticalWriting = IsVerticalCMapName(encoding);
             } else if (resolvedEncoding is PdfStream encodingStream) {
+                hasDeclaredEncoding = true;
                 encoding = encodingStream.Dictionary.Get<PdfName>("CMapName")?.Name ?? "CustomCMap";
                 byte[]? encodingData = toUnicodeDecoder == null
                     ? Filters.StreamDecoder.Decode(encodingStream, objects)
@@ -479,6 +482,7 @@ internal static partial class ResourceResolver {
                     objects) is PdfNumber { Value: 1D } ||
                     encodingData != null && DeclaresVerticalWritingMode(encodingData);
             } else if (resolvedEncoding is PdfDictionary encodingDict) {
+                hasDeclaredEncoding = encodingDict.Get<PdfName>("BaseEncoding") is not null;
                 encoding = encodingDict.Get<PdfName>("BaseEncoding")?.Name ?? encoding;
                 differences = BuildDifferencesMap(encodingDict.Items.TryGetValue("Differences", out var diffObj) ? diffObj : null, objects);
             }
@@ -523,7 +527,8 @@ internal static partial class ResourceResolver {
             isVerticalWriting,
             fontWeight,
             fontDescriptorFlags,
-            ResolvePredefinedCMap(fontVal, objects));
+            ResolvePredefinedCMap(fontVal, objects),
+            hasDeclaredEncoding);
         if (embeddedProgram == null) return resource;
         // Drawing scenes carry Unicode text. Programs that select glyphs by character code or CID
         // receive a Unicode cmap so rendering uses the embedded outlines instead of a substitute.

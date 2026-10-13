@@ -54,6 +54,7 @@ internal static class WordReaderAdapter {
     private static WordDocument Load(string path, ReaderOptions options) {
         var loadOptions = new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
@@ -67,6 +68,7 @@ internal static class WordReaderAdapter {
     private static WordDocument Load(Stream stream, ReaderOptions options) {
         var loadOptions = new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
@@ -165,7 +167,8 @@ internal static class WordReaderAdapter {
                 .Concat(legacyWarnings.Distinct(StringComparer.Ordinal).Select(warning => DocumentReaderEngine.BuildWarningDiagnostic(warning, warningLocation)))
                 .ToArray();
         }
-        return WordRichMapping.Apply(snapshot, pageSnapshots, readerOptions, options, result);
+        result = WordRichMapping.Apply(snapshot, pageSnapshots, readerOptions, options, result);
+        return WordInspectionProjection.Apply(document, readerOptions, result, cancellationToken);
     }
 
     private static IReadOnlyList<ParagraphRepresentation> BuildParagraphRepresentations(

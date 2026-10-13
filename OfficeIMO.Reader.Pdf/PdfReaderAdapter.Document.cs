@@ -103,10 +103,11 @@ internal static partial class PdfReaderAdapter {
         var effectivePdfOptions = ReaderPdfOptionsCloner.CloneOrDefault(pdfOptions);
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
-        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions));
-        PdfDocumentPreflight preflight = pdf.Preflight();
-        PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
-        return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
+        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions), cancellationToken);
+        PdfDocumentPreflight preflight = pdf.Preflight(null, cancellationToken);
+        PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectivePdfOptions, cancellationToken);
+        return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection);
     }
 
     /// <summary>
@@ -125,11 +126,12 @@ internal static partial class PdfReaderAdapter {
         };
 
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions, effectivePdfOptions);
+        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
-        PdfDocumentPreflight preflight = pdf.Preflight();
-        PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
-        return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
+        PdfDocumentPreflight preflight = pdf.Preflight(null, cancellationToken);
+        PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectivePdfOptions, cancellationToken);
+        return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection);
     }
 
     /// <summary>
@@ -160,12 +162,13 @@ internal static partial class PdfReaderAdapter {
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight: null, applyPageRanges: true, cancellationToken);
     }
 
-    private static OfficeDocumentReadResult BuildDocumentResult(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges, CancellationToken cancellationToken) {
+    private static OfficeDocumentReadResult BuildDocumentResult(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges, CancellationToken cancellationToken, PdfInspectionReadResult? inspection = null) {
         var markdownOptions = ReaderPdfOptions.CloneMarkdownOptions(pdfOptions.MarkdownOptions) ?? ReaderPdfOptions.CreateOfficeIMOProfile().MarkdownOptions!;
         markdownOptions.IncludePageSeparators = false;
         IReadOnlyList<PdfLogicalPage> pages = applyPageRanges ? GetReaderPages(document, pdfOptions) : document.Pages;
         string markdown = BuildMarkdown(pages, markdownOptions);
-        ReaderChunk[] chunks = Read(document, source, readerOptions, pdfOptions, applyPageRanges, cancellationToken).ToArray();
+        ReaderChunk[] chunks = Read(document, source, readerOptions, pdfOptions, applyPageRanges, cancellationToken)
+            .Concat(BuildInspectionWarningChunks(inspection, source)).ToArray();
         ReaderTable[] tables = DocumentReaderEngine.ExtractTables(chunks, cancellationToken).ToArray();
         OfficeDocumentBlock[] blocks = BuildDocumentBlocks(pages, source).ToArray();
         OfficeDocumentAsset[] assets = BuildDocumentAssets(pages, source).ToArray();
@@ -173,7 +176,7 @@ internal static partial class PdfReaderAdapter {
         OfficeDocumentFormField[] forms = BuildDocumentForms(pages, source).ToArray();
         OfficeDocumentOcrCandidate[] ocrCandidates = BuildDocumentOcrCandidates(pages, source, assets, pdfOptions, cancellationToken).ToArray();
 
-        return new OfficeDocumentReadResult {
+        var result = new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Pdf,
             Source = new OfficeDocumentSource {
                 Path = source.Path,
@@ -203,6 +206,7 @@ internal static partial class PdfReaderAdapter {
                 .ToArray(),
             Diagnostics = BuildDocumentDiagnostics(chunks, ocrCandidates, preflight)
         };
+        return AddInspectionEvidence(result, pages, inspection, readerOptions, source, cancellationToken);
     }
 
     private static IReadOnlyList<string> BuildCapabilitiesUsed(ReaderPdfOptions options) {

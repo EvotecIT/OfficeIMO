@@ -39,6 +39,30 @@ using var incoming = ExcelDocument.Load("upload.xlsx", ExcelLoadOptions.Untruste
 
 This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with workbooks containing those parts; `PackageSecurity` can be set explicitly for a different policy.
 
+Retain original-package evidence without a second file read:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Load("review.xlsx", new ExcelLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly,
+    PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = 64L * 1024 * 1024 },
+    CaptureSourcePackageSecurity = true
+});
+Console.WriteLine(workbook.SourcePackageSecurityReport?.ContainerKind);
+Console.WriteLine(workbook.SourcePackageSecurityScope);
+var loadedSafety = workbook.InspectLoadedContentSafety();
+```
+
+Capture uses the loader's source bytes and retains their physical scope, including
+an encrypted outer container where applicable. Later model edits do not rewrite
+that report. Loaded-content safety inspection examines the current workbook without
+reopening, saving, recalculating formulas or refreshing external links. Structural
+findings and saved values remain evidence; they do not verify signature validity
+or establish a safe workbook. Source capture is opt-in, and load/import budgets
+still apply.
+
 For ordinary workbook work, use `ExcelDocument.Create(...)` or
 `ExcelDocument.Load(...)`, edit the same document through its sheets, then call
 `Save()`. Use `ExcelDocument.OpenDataReader(...)` when you only need forward-only

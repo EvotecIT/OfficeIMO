@@ -85,6 +85,14 @@ foreach (OfficeDocumentAsset asset in document.Assets) {
 
 `reader.ReadDocument("form.rtf")` uses the same native rich mapping as the adapter-specific APIs.
 
+Enable `ReaderOptions.Inspection` to add bounded loaded-content safety and Unicode
+integrity observations. The adapter inspects the already parsed RTF model without
+reopening, saving or executing embedded content. The result includes native coverage
+and omissions rather than treating a missing finding as a safety guarantee.
+[Reader Core](../OfficeIMO.Reader.Core/README.md#inspect-review-and-saved-content)
+defines the operation-wide inspection budgets; exceeded native safety or inspection
+ceilings terminate the operation.
+
 ### Reconstruct explicit page locations
 
 ```csharp
@@ -114,7 +122,7 @@ it does not estimate page changes caused only by automatic text overflow.
 - Markdown-friendly table output plus `ReaderTable` payloads for parsed RTF tables.
 - Parser and binder diagnostics as reader warnings when requested.
 - A shared conversion report for flattened, omitted, and blocked features.
-- A schema-v5 rich result containing semantic blocks, tables, hyperlinks, form fields, image visuals and payloads, embedded-object assets, metadata, and structured diagnostics.
+- A versioned Reader rich result containing semantic blocks, tables, hyperlinks, form fields, image visuals and payloads, embedded-object assets, metadata, and structured diagnostics.
 - Optional explicit-break page membership compatible with Reader Core location, search, and page-Markdown helpers.
 
 ## Boundaries

@@ -18,17 +18,17 @@ internal sealed class ReaderReadScope : IDisposable {
     }
     internal static ReaderReadScope Enter(ReaderOptions? options, bool nested = false) {
         var previous = Current;
-        var budget = previous?.Budget ?? (options?.ResourceLimits == null ? null : new ReaderOperationBudget(options.ResourceLimits));
+        var budget = previous?.Budget ?? CreateBudget(options);
         int depth = (previous?.Depth ?? 0) + (nested ? 1 : 0);
         budget?.CheckDepth(depth);
         return new ReaderReadScope(budget, depth, activate: true);
     }
     internal static ReaderReadScope CreateDetached(ReaderOptions? options) => new ReaderReadScope(
-        Current?.Budget ?? (options?.ResourceLimits == null ? null : new ReaderOperationBudget(options.ResourceLimits)),
+        Current?.Budget ?? CreateBudget(options),
         Current?.Depth ?? 0, activate: false);
     internal static ReaderReadScope EnterContainer(ReaderOptions options) {
         var previous = Current;
-        var budget = previous?.Budget ?? (options.ResourceLimits == null ? null : new ReaderOperationBudget(options.ResourceLimits));
+        var budget = previous?.Budget ?? CreateBudget(options);
         int depth = (previous?.Depth ?? 0) + 1;
         budget?.CheckDepth(depth);
         return new ReaderReadScope(budget, depth, activate: true, nestedResults: previous?._nested);
@@ -36,6 +36,9 @@ internal sealed class ReaderReadScope : IDisposable {
     internal static IDisposable Use(ReaderReadScope scope) {
         var previous = Active.Value; Active.Value = scope; return new Restore(previous);
     }
+    private static ReaderOperationBudget? CreateBudget(ReaderOptions? options) =>
+        options?.ResourceLimits == null && options?.Inspection == null ? null :
+            new ReaderOperationBudget(options?.ResourceLimits ?? new ReaderResourceLimits(), options?.Inspection);
     internal static OfficeDocumentReadResult Complete(OfficeDocumentReadResult result) {
         var scope = Current;
         if (scope == null) return result;

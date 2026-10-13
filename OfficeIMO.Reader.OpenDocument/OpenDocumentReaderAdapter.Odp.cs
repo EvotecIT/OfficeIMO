@@ -41,9 +41,8 @@ internal static partial class OpenDocumentReaderAdapter {
         List<string> paragraphs, List<ReaderTable> tables, List<string> warnings, ProjectionBudget budget, CancellationToken cancellationToken) {
         foreach (OdpShape shape in shapes) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (shape is OdpTextBox textBox) {
-                paragraphs.AddRange(textBox.Paragraphs.Select(paragraph => budget.Read(paragraph.Text).Trim()).Where(text => text.Length > 0));
-            } else if (shape is OdpTable table) {
+            paragraphs.AddRange(shape.TextParagraphs.Select(paragraph => budget.Read(paragraph.Text).Trim()).Where(text => text.Length > 0));
+            if (shape is OdpTable table) {
                 tables.Add(BuildPresentationTable(table, sourceName, slideIndex, tables.Count, options, budget, cancellationToken,
                     out bool rowsTruncated, out bool columnsTruncated));
                 if (rowsTruncated && !warnings.Contains("Table rows were truncated due to MaxTableRows.")) {

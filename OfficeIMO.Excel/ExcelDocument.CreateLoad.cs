@@ -253,16 +253,12 @@ namespace OfficeIMO.Excel {
 
             ExcelFileFormat detectedFormat = ExcelDocumentLoadRouting.DetectFormat(bytes, filePath);
             if (detectedFormat == ExcelFileFormat.Xls) {
-                return LoadLegacyXlsFromNormalFlow(
-                    bytes,
-                    readOnly,
-                    saveOnDispose,
-                    filePath,
-                    CreateLegacyImportOptions(options));
+                return WithSourcePackageInspection(LoadLegacyXlsFromNormalFlow(
+                    bytes, readOnly, saveOnDispose, filePath, CreateLegacyImportOptions(options)), bytes, options);
             }
 
             if (detectedFormat == ExcelFileFormat.Xlsb) {
-                return LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions);
+                return WithSourcePackageInspection(LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions), bytes, options);
             }
 
             var effectiveOpenSettings = CreateOpenSettings(options.OpenSettings);
@@ -301,7 +297,7 @@ namespace OfficeIMO.Excel {
                 document._openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(bytes)
                     ? (byte[])bytes.Clone()
                     : null;
-                return document;
+                return WithSourcePackageInspection(document, bytes, options);
             } catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException) {
                 normalizedStream?.Dispose();
                 var contextMessage = filePath != null
@@ -476,11 +472,11 @@ namespace OfficeIMO.Excel {
                 OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
             }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
-                return LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly);
+                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly), encryptedBytes, resolved, "encrypted-source-container");
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, resolved, filePath: null);
+            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>
@@ -525,11 +521,11 @@ namespace OfficeIMO.Excel {
                 OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
             }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
-                return LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly);
+                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly), encryptedBytes, resolved, "encrypted-source-container");
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, resolved, filePath: null);
+            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>
@@ -610,11 +606,11 @@ namespace OfficeIMO.Excel {
                 OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
             }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
-                return LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly);
+                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly), encryptedBytes, resolved, "encrypted-source-container");
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, resolved, filePath: null);
+            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>
@@ -663,11 +659,11 @@ namespace OfficeIMO.Excel {
                 OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
             }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
-                return LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly);
+                return WithSourcePackageInspection(LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly), encryptedBytes, resolved, "encrypted-source-container");
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, resolved, filePath: null);
+            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly) {

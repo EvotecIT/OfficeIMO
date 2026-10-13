@@ -174,9 +174,14 @@ public abstract partial class OdfDocument {
         return OdfFeatureInspector.Inspect(this);
     }
 
+    /// <summary>Inspects native package features with cancellation between XML parts, without executing preserved content.</summary>
+    public OdfFeatureReport InspectFeatures(CancellationToken cancellationToken) => OdfFeatureInspector.Inspect(this, cancellationToken);
+
     internal XDocument GetXml(string partPath) {
         return Package.GetXml(partPath);
     }
+
+    internal XDocument? GetExistingXml(string partPath) => Package.Entries.Any(entry => entry.Name == partPath) ? GetXml(partPath) : null;
 
     /// <summary>Resolves the style scope of an XML-backed drawing or text element.</summary>
     internal string GetPartPath(XElement element) => Package.ContainsEntry("styles.xml") &&

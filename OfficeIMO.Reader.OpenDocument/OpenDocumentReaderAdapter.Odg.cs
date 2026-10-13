@@ -27,7 +27,7 @@ internal static partial class OpenDocumentReaderAdapter {
                 Id = BuildId(sourceName, "page", index), Kind = ReaderInputKind.OpenDocument,
                 Text = text, Markdown = "## Page " + (index + 1).ToString(CultureInfo.InvariantCulture) + ": " + name + Environment.NewLine + Environment.NewLine + text,
                 Location = new ReaderLocation { Path = sourceName, Page = index + 1, BlockIndex = index, SourceBlockIndex = index, SourceBlockKind = "drawing-page", HeadingPath = name },
-                Warnings = new[] { "Drawing extraction includes shape text in paint order, including hidden layers; master text, image OCR and embedded objects are not extracted." }
+                Warnings = new[] { "Drawing chunks include page-shape text in paint order, including hidden layers. The rich result separately retains master stories and image resources; image OCR and embedded object interpretation are not performed." }
             };
         }
     }

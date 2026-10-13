@@ -32,7 +32,9 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, path);
-        return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
+        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
+        return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(
@@ -54,7 +56,9 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, logicalName);
-        return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
+        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
+        return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
 
     internal static OfficeDocumentReadResult Project(
@@ -76,7 +80,9 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, sourceName);
-        return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
+        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
+        return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
 
     private static void AttachWarningsWhenEmpty(OfficeDocumentReadResult result, IReadOnlyList<ReaderChunk> chunks,
@@ -109,12 +115,9 @@ internal static partial class ExcelReaderAdapter {
     }
 
     private static ExcelDocument Load(string path, ReaderOptions options) {
-        string extension = Path.GetExtension(path);
-        if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(options.OpenPassword)) {
-            return ExcelDocument.LoadLegacyXls(path, new LegacyXlsImportOptions { Password = options.OpenPassword, ReportUnsupportedContent = true });
-        }
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
@@ -127,12 +130,9 @@ internal static partial class ExcelReaderAdapter {
     }
 
     private static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options) {
-        string extension = Path.GetExtension(sourceName ?? string.Empty);
-        if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(options.OpenPassword)) {
-            return ExcelDocument.LoadLegacyXls(stream, new LegacyXlsImportOptions { Password = options.OpenPassword, ReportUnsupportedContent = true });
-        }
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null

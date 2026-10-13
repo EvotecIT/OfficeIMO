@@ -1,5 +1,11 @@
 # Upgrading OfficeIMO
 
+## Typed inspection resource failures
+
+Content-safety collectors and input guards, and text-integrity character/finding ceilings, throw `OfficeInspectionResourceLimitException` when their admission budget is exhausted. The exception carries `Owner`, `LimitName`, and `Maximum`. Code that previously caught `InvalidDataException` for these limits should catch this type, or `IOException` when it handles resource failures together with I/O failures. Malformed XML and encoded content retain their parsing errors.
+
+Reader translates native safety ceilings into `ReaderResourceLimitException` and retains the native exception as `InnerException`. These failures terminate ZIP, folder, and batch operations; they do not become skipped members or failed per-file outcomes. The finding ceiling borrowed from `ReaderInspectionOptions.MaxRecords` reports `Inspection.MaxRecords`.
+
 ## Excel import cancellation and date conversion
 
 `ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.

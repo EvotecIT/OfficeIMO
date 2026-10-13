@@ -64,8 +64,12 @@ public static class EmailHtmlDataInspector {
                 report.BodyContentSafety = EmailBodyProjection.Create(opened.EmailDocument, new EmailBodyProjectionOptions {
                     IncludeResources = false, IncludeResourceReferences = false, InspectContentSafety = true
                 }).ContentSafety;
-            } catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException || exception is HtmlDomLimitException) {
-                report.BodyContentSafety = new EmailBodyContentSafetyReport { InspectionStatus = "Unavailable" };
+            } catch (Exception exception) when (exception is InvalidDataException || exception is OfficeInspectionResourceLimitException || exception is NotSupportedException || exception is HtmlDomLimitException) {
+                report.BodyContentSafety = new EmailBodyContentSafetyReport {
+                    InspectionStatus = "Unavailable",
+                    FindingLimitMayHaveBeenReached = exception is OfficeInspectionResourceLimitException limit
+                        && limit.Owner == "content-safety" && limit.LimitName == nameof(OfficeContentSafetyOptions.MaxFindings)
+                };
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -87,10 +91,12 @@ public static class EmailHtmlDataInspector {
                 finding.Kind.ToString(), finding.Risk.ToString(), finding.IsInstructionLike)).ToArray());
             report.FindingLimitMayHaveBeenReached = safety.Findings.Count >= policy.MaxSamples;
             report.HtmlInspectionStatus = "Completed";
-        } catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException || exception is HtmlDomLimitException) {
+        } catch (Exception exception) when (exception is InvalidDataException || exception is OfficeInspectionResourceLimitException || exception is NotSupportedException || exception is HtmlDomLimitException) {
             cancellationToken.ThrowIfCancellationRequested();
             report.HtmlInspectionStatus = "InspectionUnavailable";
             report.HtmlDiagnosticCode = "EMAIL_HTML_INSPECTION_UNAVAILABLE";
+            report.FindingLimitMayHaveBeenReached = exception is OfficeInspectionResourceLimitException limit
+                && limit.Owner == "content-safety" && limit.LimitName == nameof(OfficeContentSafetyOptions.MaxFindings);
         }
         return report;
     }

@@ -7,15 +7,16 @@ internal static class OdfFeatureInspector {
         OdfNamespaces.Number.NamespaceName, OdfNamespaces.Fo.NamespaceName, OdfNamespaces.Svg.NamespaceName,
         OdfNamespaces.XLink.NamespaceName, OdfNamespaces.Meta.NamespaceName, OdfNamespaces.Dc.NamespaceName,
         OdfNamespaces.Manifest.NamespaceName, OdfNamespaces.Config.NamespaceName, OdfNamespaces.Of.NamespaceName,
-        OdfNamespaces.Anim.NamespaceName, OdfNamespaces.Smil.NamespaceName, OdfNamespaces.Script.NamespaceName,
+        OdfNamespaces.Anim.NamespaceName, OdfNamespaces.Smil.NamespaceName, OdfNamespaces.Script.NamespaceName, OdfNamespaces.Form.NamespaceName,
         XNamespace.Xml.NamespaceName, XNamespace.Xmlns.NamespaceName, string.Empty
     };
 
-    internal static OdfFeatureReport Inspect(OdfDocument source) {
+    internal static OdfFeatureReport Inspect(OdfDocument source, CancellationToken cancellationToken = default) {
         OdfPackage package = source.Package;
         var findings = new List<OdfFeatureFinding>();
         var diagnostics = new List<OdfFeatureDiagnostic>();
         foreach (OdfPackageEntry entry in package.Entries.Where(entry => entry.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))) {
+            cancellationToken.ThrowIfCancellationRequested();
             XDocument document;
             try {
                 document = package.GetXml(entry.Name);
@@ -27,6 +28,8 @@ internal static class OdfFeatureInspector {
                 continue;
             }
             if (document.Root == null) continue;
+            int formElements = document.Descendants().Count(element => element.Name.Namespace == OdfNamespaces.Form);
+            if (formElements > 0) findings.Add(new OdfFeatureFinding("form-elements", OdfFeatureSupport.Preserved, entry.Name, formElements));
 
             int scripts = document.Descendants(OdfNamespaces.Office + "scripts")
                 .Sum(element => element.Elements().Count());

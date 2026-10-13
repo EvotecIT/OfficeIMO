@@ -95,7 +95,7 @@ public abstract partial class OdfDocument {
     private static OfficeContentSafetyReport InspectOdfContentSafety(
         OdfDocument document,
         OfficeContentSafetyOptions? options,
-        IDictionary<string, OdfContentSafetyTarget>? targets) {
+        IDictionary<string, OdfContentSafetyTarget>? targets, System.Threading.CancellationToken cancellationToken = default) {
         string format = document.Kind switch {
             OdfDocumentKind.Text => "OpenDocument Text",
             OdfDocumentKind.Spreadsheet => "OpenDocument Spreadsheet",
@@ -103,12 +103,13 @@ public abstract partial class OdfDocument {
             OdfDocumentKind.Graphics => "OpenDocument Graphics",
             _ => "OpenDocument"
         };
-        var builder = new OfficeContentSafetyBuilder(format, options);
+        var builder = new OfficeContentSafetyBuilder(format, options, cancellationToken);
         XDocument content = document.GetXml("content.xml");
         XElement body = content.Root?.Element(OdfNamespaces.Office + "body")
             ?? throw new InvalidDataException("OpenDocument content has no office:body.");
         int segmentIndex = 0;
         foreach (OdfTextSegment segment in EnumerateOdfTextSegments(body)) {
+            cancellationToken.ThrowIfCancellationRequested();
             string text = OdfTextCodec.ReadNodes(segment.Nodes);
             if (string.IsNullOrWhiteSpace(text)) continue;
             segmentIndex++;

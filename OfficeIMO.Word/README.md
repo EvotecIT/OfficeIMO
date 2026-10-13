@@ -72,6 +72,31 @@ using var incoming = WordDocument.Load("upload.docx", WordLoadOptions.UntrustedD
 
 This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with documents containing those parts; `PackageSecurity` can be set explicitly for a different policy.
 
+Capture structural observations from the exact loader input when an inspection
+workflow needs to retain original-package evidence:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("review.docx", new WordLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly,
+    PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = 64L * 1024 * 1024 },
+    CaptureSourcePackageSecurity = true
+});
+Console.WriteLine(document.SourcePackageSecurityReport?.ContainerKind);
+Console.WriteLine(document.SourcePackageSecurityScope);
+var loadedSafety = document.InspectLoadedContentSafety();
+```
+
+The captured report remains source evidence after model edits; it is not a report
+of a later save. `SourcePackageSecurityScope` identifies the source container,
+including an encrypted outer container when that load route supplies it. Loaded
+content-safety inspection examines the current model without reopening or saving
+the file. Package findings describe bounded structure and policy, not signature
+validity or a guarantee that content is safe. Capture is opt-in and does not replace
+the load policy or native import limits.
+
 `AsFluent()` wraps the same `WordDocument`; `End()` returns that document for
 direct object-model work:
 

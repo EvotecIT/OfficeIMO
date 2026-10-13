@@ -6,7 +6,7 @@ namespace OfficeIMO.Archives;
 
 internal sealed partial class MsiPackageReader {
     private MsiResolvedDirectory ResolveDirectory(string id, Dictionary<string, object?[]> directories,
-        Dictionary<string, MsiResolvedDirectory> cache) {
+        Dictionary<string, MsiResolvedDirectory> cache, bool inspection = false) {
         if (cache.TryGetValue(id, out MsiResolvedDirectory cached)) return cached;
         var chain = new List<KeyValuePair<string, object?[]>>();
         var visited = new HashSet<string>(StringComparer.Ordinal);
@@ -41,7 +41,7 @@ internal sealed partial class MsiPackageReader {
             bool root = parent == null || string.Equals(parent, entry.Key, StringComparison.Ordinal);
             int structuralDepth = resolved.StructuralDepth + 1;
             if (!root && target != ".") {
-                ArchivePaths.ValidateSegment(target);
+                if (!inspection) ArchivePaths.ValidateSegment(target);
                 int segments = resolved.PathSegments + 1;
                 long length = (long)resolved.Path.Length + (resolved.Path.Length == 0 ? 0 : 1) + target.Length;
                 if (segments > _limits.Depth || length > _limits.PathLength)

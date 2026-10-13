@@ -2007,17 +2007,9 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     private static string GetRepositoryPath(params string[] parts) {
-        DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            string candidate = Path.Combine(new[] { directory.FullName }.Concat(parts).ToArray());
-            if (File.Exists(candidate) || Directory.Exists(candidate)) {
-                return candidate;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate repository path: " + Path.Combine(parts));
+        string candidate = Path.Combine(new[] { RepositoryTestPaths.Find() }.Concat(parts).ToArray());
+        if (File.Exists(candidate) || Directory.Exists(candidate)) return candidate;
+        throw new DirectoryNotFoundException("Could not locate repository path: " + candidate);
     }
 
     private static string NormalizeWhitespace(string text) {

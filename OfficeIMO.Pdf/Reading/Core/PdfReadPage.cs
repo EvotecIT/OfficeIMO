@@ -15,6 +15,9 @@ public sealed partial class PdfReadPage {
     private readonly PdfReadLimits _limits;
     private readonly PdfFontResourceCache _fontResourceCache;
     private readonly bool _includeArtifactText;
+    private readonly bool _preferToUnicode;
+    private readonly bool _useWinAnsiFallback;
+    private readonly bool _adjustKerningFromTJ;
     private readonly Action? _demandTextExtraction;
     private readonly Action<string>? _demandContentExtraction;
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
@@ -36,13 +39,17 @@ public sealed partial class PdfReadPage {
         Action<string>? demandContentExtraction = null,
         bool includeArtifactText = false,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
-        PdfPageOptionalContentVisibility.DocumentState? optionalContentVisibilityState = null) {
+        PdfPageOptionalContentVisibility.DocumentState? optionalContentVisibilityState = null,
+        bool preferToUnicode = true, bool useWinAnsiFallback = true, bool adjustKerningFromTJ = true) {
         ObjectNumber = objectNumber;
         _pageDict = pageDict;
         _objects = objects;
         _limits = limits;
         _fontResourceCache = fontResourceCache;
         _includeArtifactText = includeArtifactText;
+        _preferToUnicode = preferToUnicode;
+        _useWinAnsiFallback = useWinAnsiFallback;
+        _adjustKerningFromTJ = adjustKerningFromTJ;
         _maxDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         _demandTextExtraction = demandTextExtraction;
         _demandContentExtraction = demandContentExtraction;
@@ -57,7 +64,7 @@ public sealed partial class PdfReadPage {
     internal PdfReadPage WithOptionalContentVisibility(PdfPageOptionalContentVisibility.DocumentState state) =>
         new PdfReadPage(ObjectNumber, _pageDict, _objects, _limits, _fontResourceCache,
             _demandTextExtraction, _demandContentExtraction, _includeArtifactText,
-            _outputIntentColorTransform, state);
+            _outputIntentColorTransform, state, _preferToUnicode, _useWinAnsiFallback, _adjustKerningFromTJ);
 
     private PdfOutputIntentColorTransform? EffectiveOutputIntentColorTransform =>
         _outputIntentColorTransform != null && !GetOutputIntentCompositionInteraction(CancellationToken.None)
@@ -223,7 +230,7 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfFontResource> pageFonts = pageFontResources.Fonts;
         var activeForms = new HashSet<PdfStream>();
         double pageHeight = GetPageSize().Height;
-        var pageContentBudget = new PageContentBudget(this);
+        var pageContentBudget = new PageContentBudget(this, cancellationToken);
 
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
         string content = contentSequence.Content;
@@ -760,15 +767,17 @@ public sealed partial class PdfReadPage {
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
     }
 
-    internal List<string> GetUnsupportedContentStreamFilters() {
+    internal List<string> GetUnsupportedContentStreamFilters(System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var unsupported = new List<string>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
-        var pageContentBudget = new PageContentBudget(this);
+        var pageContentBudget = new PageContentBudget(this, cancellationToken);
         bool mayContainForms = MayContainFormXObjects(pageResources);
         System.Text.StringBuilder? content = mayContainForms ? new System.Text.StringBuilder() : null;
         bool canInspectFormInvocations = mayContainForms;
         foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfStream stream = entry.Stream;
             if (AddUnsupportedFilters(stream, unsupported)) {
                 canInspectFormInvocations = false;
@@ -837,7 +846,9 @@ public sealed partial class PdfReadPage {
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
                      maxOperands: _limits.MaxContentOperands,
-                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name))) {
+                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
+                     cancellationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
+            pageContentBudget.CancellationToken.ThrowIfCancellationRequested();
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -933,8 +944,21 @@ public sealed partial class PdfReadPage {
             _limits.MaxActualTextCharacters,
             _limits.MaxDecodedTextCharacters);
         textClippingBudget ??= new PdfTextClippingBudget();
+        Dictionary<string, Func<byte[], int, string>>? configuredDecoders = null;
         string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) {
             try {
+                if (!_preferToUnicode || !_useWinAnsiFallback) {
+                    if (fonts.TryGetValue(fontRes, out PdfFontResource? resource)) {
+                        configuredDecoders ??= new Dictionary<string, Func<byte[], int, string>>(StringComparer.Ordinal);
+                        if (!configuredDecoders.TryGetValue(fontRes, out Func<byte[], int, string>? configured)) {
+                            configured = ResourceResolver.CreateBudgetedDecoder(resource, _preferToUnicode, _useWinAnsiFallback);
+                            configuredDecoders.Add(fontRes, configured);
+                        }
+                        return configured(bytes, maximumCharacters);
+                    }
+                    if (!_useWinAnsiFallback) throw new PdfUnsupportedTextMappingException(
+                        new PdfFontResource(fontRes, string.Empty, "UnresolvedFont", false));
+                }
                 return decoders.TryGetValue(fontRes, out var dec)
                     ? dec(bytes, maximumCharacters)
                     : PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
@@ -1005,6 +1029,7 @@ public sealed partial class PdfReadPage {
             content,
             DecodeWithFont,
             SumWidth1000,
+            adjustKerningFromTJ: _adjustKerningFromTJ,
             actualTextForProperty: ResolveActualTextProperty,
             mcidForProperty: ResolveMarkedContentMcid,
             graphicsStates: graphicsStates,
@@ -1041,6 +1066,9 @@ public sealed partial class PdfReadPage {
             textOutputBudget: textOutputBudget,
             textClippingBudget: textClippingBudget,
             decodeWithFontWithinLimit: DecodeWithFontWithinLimit,
+            decodingEvidenceForResource: (fontName, bytes) => fonts.TryGetValue(fontName, out PdfFontResource? resource)
+                ? ResourceResolver.GetDecodingEvidence(resource, bytes, cancellationCheck, _preferToUnicode, _useWinAnsiFallback)
+                : new PdfTextDecodingEvidence(_useWinAnsiFallback ? PdfTextDecodingSource.WinAnsiFallback : PdfTextDecodingSource.Unmappable),
             contentOrderPrefix: contentOrderPrefix,
             contentOrderOffset: contentOrderOffset,
             initialUnsupportedEffect: initialUnsupportedTextEffect,

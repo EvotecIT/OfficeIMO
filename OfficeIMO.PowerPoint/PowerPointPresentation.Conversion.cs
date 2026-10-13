@@ -404,6 +404,7 @@ public sealed partial class PowerPointPresentation {
             AccessMode = DocumentAccessMode.ReadWrite,
             PersistenceMode = DocumentPersistenceMode.Explicit,
             PackageSecurity = source?.PackageSecurity,
+            CaptureSourcePackageSecurity = source?.CaptureSourcePackageSecurity == true,
             OpenSettings = source?.OpenSettings,
             MaxInputBytes = source == null
                 ? 512L * 1024L * 1024L

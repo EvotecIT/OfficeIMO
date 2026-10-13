@@ -121,6 +121,10 @@ public sealed partial class PdfDocument {
     public PdfDocumentPreflight Preflight(PdfLoadOptions? options = null) =>
         GetPreflightSnapshot(options, CancellationToken.None).Preflight;
 
+    /// <summary>Reports read and rewrite capabilities with cooperative cancellation.</summary>
+    public PdfDocumentPreflight Preflight(PdfLoadOptions? options, CancellationToken cancellationToken) =>
+        GetPreflightSnapshot(options, cancellationToken).Preflight;
+
     /// <summary>Captures one byte snapshot while keeping parser failures inside diagnostic preflight.</summary>
     private (byte[] Bytes, PdfLoadOptions Options, PdfDocumentPreflight Preflight) GetPreflightSnapshot(
         PdfLoadOptions? options,

@@ -12,6 +12,9 @@ public sealed class ReaderOptions {
     /// <summary>Optional aggregate resource budgets for a read, including nested inputs.</summary>
     public ReaderResourceLimits? ResourceLimits { get; set; }
 
+    /// <summary>Opt-in native review, formula, visibility and inert package evidence. Null retains ordinary extraction.</summary>
+    public ReaderInspectionOptions? Inspection { get; set; }
+
     /// <summary>
     /// Creates explicit bounded ingestion defaults: 64 MiB input, 50,000 chunks, 32 Mi characters,
     /// 100,000 blocks, 512 assets/128 MiB asset payload, and 2,000 nested inputs/256 MiB at depth 8.

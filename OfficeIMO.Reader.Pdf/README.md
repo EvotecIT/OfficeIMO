@@ -30,6 +30,29 @@ IReadOnlyList<ReaderChunk> chunks = reader
 
 For an encrypted PDF, register `AddPdfHandler(new ReaderPdfOptions { Password = password })` with a password supplied by the caller. The password is used locally to open the PDF and is not included in extracted content or metadata. PDF content-extraction permissions still apply.
 
+### Inspect native decoding and incomplete pages
+
+Register full PDF parser settings through `ReaderPdfOptions.LoadOptions`. Registration and each read take independent option and resource-limit snapshots; `ReaderOptions.MaxInputBytes` can further restrict the PDF input budget.
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Pdf;
+
+var reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler(new ReaderPdfOptions {
+        LoadOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPages = 500, MaxDecodedStreamBytes = 16 * 1024 * 1024 }
+        }
+    })
+    .Build();
+OfficeDocumentReadResult document = reader.ReadDocument("input.pdf", new ReaderOptions {
+    Inspection = new ReaderInspectionOptions { MaxRecords = 4096, MaxCharacters = 1_000_000 }
+});
+```
+
+Inspection uses the canonical PDF page pipeline and returns successful pages with explicit failed-page warnings and diagnostics. Located metadata records in `pdf.page-outcome`, `pdf.text-decoding` and `pdf.repair` retain every selected occurrence, decoding source, fallback and parser recovery evidence. Unreadable pages retain source links, annotations, page actions and geometry as metadata. Resource, cancellation, authentication, permission and unexpected parser failures remain terminal. The existing Reader JSON schema is unchanged. Without `Inspection`, PDF reading retains its fail-fast behavior. Native inspection does not run OCR.
+
 ### Discover OCR needs on mixed pages
 
 The default policy emits candidates for image pages without native text. For a scanned body with a native footer, opt into mixed-page discovery:

@@ -235,16 +235,34 @@ public sealed partial class OfficeImageMetadata {
         return output.ToArray();
     }
 
-    private static void ReadPngProfiles(byte[] input, OfficeImageMetadata metadata, CancellationToken token) {
+    private static void ReadPngProfiles(byte[] input, OfficeImageMetadata? metadata, CancellationToken token,
+        int maximumProfileBytes = OfficeExifProfileCodec.MaximumProfileBytes, Action<string, byte[], int>? inspectProfile = null, Action<string>? inspectIssue = null) {
         for (int cursor = 8; cursor <= input.Length - 12;) {
             token.ThrowIfCancellationRequested(); int length = checked((int)OfficeExifProfileCodec.Read(input, cursor, 4, false)); string type = Encoding.ASCII.GetString(input, cursor + 4, 4); int payload = cursor + 8;
-            if (type == "eXIf") metadata.SetExifProfile(Slice(input, payload, length), token);
-            if (type == "iCCP") { int end = Array.IndexOf(input, (byte)0, payload, length); if (end < 0 || end + 2 > payload + length) throw new FormatException("Invalid PNG ICC profile framing."); metadata.IccProfile = OfficeZlibCodec.Decompress(Slice(input, end + 2, payload + length - end - 2), OfficeExifProfileCodec.MaximumProfileBytes, cancellationToken: token); }
+            if (length < 0 || length > input.Length - cursor - 12) throw new FormatException("Truncated PNG metadata chunk.");
+            try {
+            if (type == "eXIf") {
+                byte[] exif = ReadInspectionProfile(input, payload, length, maximumProfileBytes, false, token);
+                if (metadata != null) metadata.SetExifProfile(exif, token);
+                inspectProfile?.Invoke("Exif", exif, cursor);
+            }
+            if (type == "iCCP") {
+                int end = Array.IndexOf(input, (byte)0, payload, length);
+                if (end < 0 || end + 2 > payload + length || input[end + 1] != 0) throw new FormatException("Invalid PNG ICC profile framing.");
+                byte[] icc = ReadInspectionProfile(input, end + 2, payload + length - end - 2, maximumProfileBytes, true, token);
+                if (metadata != null) metadata.IccProfile = icc;
+                inspectProfile?.Invoke("ICC", icc, cursor);
+            }
             if (IsPngXmp(input, payload, length, type)) {
                 int end = Array.IndexOf(input, (byte)0, payload, length); int text = end + 1; bool compressed = type == "zTXt";
                 if (type == "zTXt") text++;
                 if (type == "iTXt") { compressed = input[text] == 1; text += 2; int languageEnd = Array.IndexOf(input, (byte)0, text, payload + length - text); if (languageEnd < 0) throw new FormatException("Invalid PNG XMP language field."); text = languageEnd + 1; int translatedEnd = Array.IndexOf(input, (byte)0, text, payload + length - text); if (translatedEnd < 0) throw new FormatException("Invalid PNG XMP keyword field."); text = translatedEnd + 1; }
-                byte[] xmp = Slice(input, text, payload + length - text); metadata.XmpProfile = compressed ? OfficeZlibCodec.Decompress(xmp, OfficeExifProfileCodec.MaximumProfileBytes, cancellationToken: token) : xmp;
+                byte[] xmp = ReadInspectionProfile(input, text, payload + length - text, maximumProfileBytes, compressed, token);
+                if (metadata != null) metadata.XmpProfile = xmp;
+                inspectProfile?.Invoke("XMP", xmp, cursor);
+            }
+            } catch (Exception exception) when (inspectProfile != null && (exception is FormatException || exception is IOException || exception is NotSupportedException || exception is OverflowException)) {
+                inspectIssue?.Invoke((type == "eXIf" ? "exif" : type == "iCCP" ? "icc" : "xmp") + ":malformed-or-over-limit-carrier");
             }
             cursor += length + 12;
         }
@@ -286,12 +304,33 @@ public sealed partial class OfficeImageMetadata {
         if (exif != null) WriteWebpChunk(output, "EXIF", exif); if (metadata?._xmp != null) WriteWebpChunk(output, "XMP ", metadata._xmp);
         byte[] result = output.ToArray(); OfficeExifProfileCodec.Write(result, 4, (uint)(result.Length - 8), 4, true); return result;
     }
-    private static void ReadWebpProfiles(byte[] input, OfficeImageMetadata metadata, CancellationToken token) {
+    private static void ReadWebpProfiles(byte[] input, OfficeImageMetadata? metadata, CancellationToken token,
+        int maximumProfileBytes = OfficeExifProfileCodec.MaximumProfileBytes, Action<string, byte[], int>? inspectProfile = null, Action<string>? inspectIssue = null) {
         for (int cursor = 12; cursor <= input.Length - 8;) {
             int length = checked((int)OfficeExifProfileCodec.Read(input, cursor + 4, 4, true)); string type = Encoding.ASCII.GetString(input, cursor, 4);
             token.ThrowIfCancellationRequested();
-            if (type == "EXIF") metadata.SetExifProfile(Slice(input, cursor + 8, length), token); if (type == "XMP ") metadata.XmpProfile = Slice(input, cursor + 8, length); if (type == "ICCP") metadata.IccProfile = Slice(input, cursor + 8, length); cursor += length + 8 + (length & 1);
+            if (length < 0 || length > input.Length - cursor - 8 || (long)cursor + length + 8 + (length & 1) > input.Length) throw new FormatException("Truncated WebP metadata chunk.");
+            if (type == "EXIF" || type == "XMP " || type == "ICCP") {
+                try {
+                byte[] profile = ReadInspectionProfile(input, cursor + 8, length, maximumProfileBytes, false, token);
+                if (metadata != null) {
+                    if (type == "EXIF") metadata.SetExifProfile(profile, token);
+                    else if (type == "XMP ") metadata.XmpProfile = profile;
+                    else metadata.IccProfile = profile;
+                }
+                inspectProfile?.Invoke(type == "EXIF" ? "Exif" : type == "XMP " ? "XMP" : "ICC", profile, cursor);
+                } catch (Exception exception) when (inspectProfile != null && (exception is FormatException || exception is IOException || exception is NotSupportedException || exception is OverflowException)) {
+                    inspectIssue?.Invoke((type == "EXIF" ? "exif" : type == "ICCP" ? "icc" : "xmp") + ":malformed-or-over-limit-carrier");
+                }
+            }
+            cursor += length + 8 + (length & 1);
         }
+    }
+    private static byte[] ReadInspectionProfile(byte[] input, int offset, int length, int maximum, bool compressed, CancellationToken token) {
+        if (offset < 0 || length < 0 || offset > input.Length - length) throw new FormatException("Truncated metadata profile.");
+        if (length > (long)maximum + (compressed ? 65536 : 0)) throw new FormatException("Metadata profile exceeds its byte limit.");
+        byte[] profile = Slice(input, offset, length);
+        return compressed ? OfficeZlibCodec.Decompress(profile, maximum, cancellationToken: token) : profile;
     }
     private static void WriteWebpChunk(Stream output, string type, byte[] payload) { byte[] header = new byte[8]; Buffer.BlockCopy(Encoding.ASCII.GetBytes(type), 0, header, 0, 4); OfficeExifProfileCodec.Write(header, 4, (uint)payload.Length, 4, true); output.Write(header, 0, 8); output.Write(payload, 0, payload.Length); if ((payload.Length & 1) != 0) output.WriteByte(0); }
     private static void WriteJpegSegment(Stream output, byte marker, byte[] payload) { if (payload.Length > 65533) throw new FormatException("Metadata exceeds the JPEG segment size limit."); output.WriteByte(255); output.WriteByte(marker); int length = payload.Length + 2; output.WriteByte((byte)(length >> 8)); output.WriteByte((byte)length); output.Write(payload, 0, payload.Length); }

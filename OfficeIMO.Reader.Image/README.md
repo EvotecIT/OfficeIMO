@@ -18,3 +18,16 @@ Console.WriteLine(result.Assets[0].MediaType);
 PNG, JPEG, GIF, BMP, TIFF, SVG, EMF, WMF, ICO, PCX, and WebP extensions are registered. Identification is local and header-only. OCR execution remains an explicit host choice through `OfficeIMO.Reader.Ocr` and the shared `OfficeIMO.Ocr.IOcrEngine` contract.
 
 The handler applies a 128 MiB default input ceiling when `ReaderOptions.MaxInputBytes` is not set. Set `IncludePayload = false` together with `CreateOcrCandidate = false` when only metadata is required.
+
+Enable detailed inspection to project the shared Core metadata evidence into located Reader metadata:
+
+```csharp
+OfficeDocumentReadResult inspected = reader.ReadDocument("photo.jpg", new ReaderOptions {
+    Inspection = new ReaderInspectionOptions()
+});
+foreach (OfficeDocumentMetadataEntry property in inspected.Metadata) {
+    Console.WriteLine($"{property.Category}: {property.Name} = {property.Value}");
+}
+```
+
+The `image.exif`, `image.exif.timestamp`, `image.exif.gps`, `image.xmp`, `image.icc` and `image.resolution` categories preserve source counts/offsets, raw timestamp components, timezone uncertainty, RDF collection/language qualifiers and separate ICC validity/transform-support facts. Coverage and diagnostics use the existing Reader document contract. `ReaderInspectionOptions` applies operation-wide record and character limits; `ReaderImageOptions.MetadataInspection` controls Core's finite image/profile limits. Its default detailed-metadata input limit is 16 MiB, independently of the handler's general input ceiling. Detailed metadata does not execute OCR or decode image pixels, and explicitly reports unsupported BigTIFF, private MakerNote and additional-IFD evidence.

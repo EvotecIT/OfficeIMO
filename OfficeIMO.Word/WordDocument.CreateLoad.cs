@@ -417,7 +417,7 @@ namespace OfficeIMO.Word {
                 ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
                 if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
-                    return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
+                    return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
                 }
 
                 MemoryStream memoryStream = CreateLegacyValidationPackageStream(
@@ -454,7 +454,7 @@ namespace OfficeIMO.Word {
 
                 // initialize abstract number id for lists to make sure those are unique
                 WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
-                return word;
+                return WithSourcePackageInspection(word, sourceBytes, resolved);
             }
         }
 
@@ -481,7 +481,7 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             using var decryptedSource = new MemoryStream(packageBytes, writable: false);
-            return Load(decryptedSource, resolved);
+            return WithSourcePackageInspection(Load(decryptedSource, resolved), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>
@@ -502,7 +502,7 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             using var decryptedSource = new MemoryStream(packageBytes, writable: false);
-            return Load(decryptedSource, resolved);
+            return WithSourcePackageInspection(Load(decryptedSource, resolved), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         private static void EnsureEncryptedLoadUsesExplicitPersistence(WordLoadOptions options) {
@@ -539,7 +539,7 @@ namespace OfficeIMO.Word {
             var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
-                return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
+                return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
             }
 
             MemoryStream memoryStream = CreateLegacyValidationPackageStream(
@@ -576,7 +576,7 @@ namespace OfficeIMO.Word {
             }
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
-            return word;
+            return WithSourcePackageInspection(word, sourceBytes, resolved);
         }
 
         /// <summary>Asynchronously loads a Word document from a readable stream.</summary>
@@ -634,7 +634,7 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
-                return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);
+                return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly), sourceBytes, resolved);
             }
 
             MemoryStream packageStream = CreateLegacyValidationPackageStream(
@@ -672,7 +672,7 @@ namespace OfficeIMO.Word {
 
                 WordChart.InitializeAxisIdSeed(wordDocument);
                 WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
-                return document;
+                return WithSourcePackageInspection(document, sourceBytes, resolved);
             } catch {
                 packageStream.Dispose();
                 throw;

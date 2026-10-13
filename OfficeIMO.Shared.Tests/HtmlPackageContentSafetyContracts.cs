@@ -1222,9 +1222,12 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, encryptedChapter: true)));
 
-        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+        var characterLimit = Assert.Throws<OfficeInspectionResourceLimitException>(() => EpubDocument.InspectContentSafety(
             input,
             new OfficeContentSafetyOptions { MaxCharacters = 64 }));
+        Assert.Equal("content-safety", characterLimit.Owner);
+        Assert.Equal(nameof(OfficeContentSafetyOptions.MaxCharacters), characterLimit.LimitName);
+        Assert.Equal(64L, characterLimit.Maximum);
 
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, multipleRootfiles: true)));

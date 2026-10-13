@@ -41,6 +41,46 @@ use known source positions or an unambiguous block anchor. Content without a kno
 content in the same page, slide, or sheet. The traversal preserves the source objects; copy values when an
 immutable snapshot is needed.
 
+## Inspect review and saved content
+
+Enable native inspection on rich document or structured reads:
+
+```csharp
+OfficeDocumentReadResult inspected = reader.ReadDocument("Review.docx", new ReaderOptions {
+    Inspection = new ReaderInspectionOptions {
+        MaxRecords = 4096,
+        MaxCharacters = 1_000_000
+    }
+});
+
+foreach (OfficeDocumentMetadataEntry entry in inspected.Metadata) {
+    if (entry.Category == OfficeDocumentInspectionCategories.Comment)
+        Console.WriteLine($"{entry.Value} ({entry.SourceObjectId})");
+}
+```
+
+Format owners supply comments and replies, revision text, authored formulas with saved caches, hidden source state, inert package descriptors, and bounded content-safety observations where supported. Located metadata keeps native identifiers and semantic attributes through `ExtractStructured`, JSON, and nested document results. Coverage entries state the requested flags, selection, native profile, and omissions. Formula inspection reads stored values without recalculation; package and safety observations do not validate signatures or execute content.
+
+`Inspection` is null by default. Its options are snapshotted, and record/character budgets span nested, folder, and batch reads. Exceeding an inspection or native safety admission ceiling throws terminal `ReaderResourceLimitException`; ordinary malformed inputs retain the existing recoverable per-file behavior. Unicode and concealment observations are heuristic evidence. See [migration guidance](../MIGRATION.md#typed-inspection-resource-failures) for the typed native owner exception.
+
+The six content flags default to true when inspection is enabled: `IncludeComments`,
+`IncludeRevisions`, `IncludeFormulas`, `IncludeVisibility`, `IncludePackageContent`,
+and `IncludeContentSafety`. Disable individual flags to omit that work. `MaxRecords`
+defaults to 4,096, including coverage records; `MaxCharacters` defaults to one million
+and counts retained names, values and attributes. Both must be positive. These are
+inspection-output budgets, not a bound on every allocation made by the format loader.
+
+`IncludePackageContent` requests original-package structural observations in Word,
+Excel and PowerPoint loaders, plus their inert payload/VBA descriptors. The metadata
+records its physical source scope and whether that import route captured a report.
+Presence of a macro or signature part does not establish execution or signature
+validity. Format-specific parser limits and qualified profiles still apply.
+
+Inspection uses the existing document metadata transport and does not introduce a
+new schema version or a dependency on FileInspectorX. The format owners and Reader
+adapters remain independently usable; mapping their evidence into another product
+and selecting that product's package graph are separate integration decisions.
+
 ## Find content by page
 
 Page-aware reading stays on `OfficeDocumentReadResult`; it is not a separate conversion path. A format adapter

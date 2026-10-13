@@ -3,7 +3,7 @@ using System.Text;
 
 namespace OfficeIMO.Reader.Image;
 
-internal static class ImageReaderAdapter {
+internal static partial class ImageReaderAdapter {
     internal static readonly string[] Extensions = {
         ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".svg",
         ".emf", ".wmf", ".ico", ".pcx", ".webp"
@@ -141,6 +141,7 @@ internal static class ImageReaderAdapter {
         result.Source.Title = Path.GetFileName(sourceName);
         result.Metadata = result.Metadata.Concat(BuildMetadata(info, input.Bytes.LongLength)).ToArray();
         result.Visuals = new[] { visual };
+        if (readerOptions.Inspection != null) ProjectMetadataEvidence(input.Bytes, result, readerOptions, imageOptions, assetLocation, cancellationToken);
         return result;
     }
 

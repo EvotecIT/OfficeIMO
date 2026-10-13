@@ -355,7 +355,8 @@ internal static partial class TextContentParser {
         MarkedContentState? inheritedActualTextState = null,
         Action<int, MarkedContentState>? onActualTextForm = null,
         bool preserveGlyphText = false,
-        bool requireMappedText = false) {
+        bool requireMappedText = false,
+        Func<string, byte[], PdfTextDecodingEvidence>? decodingEvidenceForResource = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -991,6 +992,9 @@ internal static partial class TextContentParser {
             bool hasUndecodableGlyph = false;
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
+            // A complete run is the mapping contract. Later glyph-width decoding can
+            // supply fragments of a composite code and must not change that outcome.
+            PdfUnsupportedTextMappingException? wholeRunMappingFailure = unsupportedMapping;
             int decodedGlyphCharacters = 0;
             int decodedGlyphCount = 0;
             bool eachDecodedGlyphIsOneTextElement = true;
@@ -1269,6 +1273,11 @@ internal static partial class TextContentParser {
                     fontWeight: fontWeightForResource?.Invoke(font),
                     fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font),
                     embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length));
+                PdfTextDecodingEvidence decodingEvidence = wholeRunMappingFailure is not null
+                    ? new PdfTextDecodingEvidence(PdfTextDecodingSource.Unmappable,
+                        wholeRunMappingFailure.EncodingName, wholeRunMappingFailure.HasDeclaredToUnicode)
+                    : decodingEvidenceForResource?.Invoke(font, bytes) ?? PdfTextDecodingEvidence.Unknown;
+                span.SetDecodingEvidence(actualTextState is not null ? decodingEvidence.WithActualText() : decodingEvidence);
                 if (actualTextState is not null) span.SetSourceActualText(rawText);
                 if (usesVisibleFill && !fillColorResolved || usesVisibleStroke &&
                     (!strokeColorResolved || !IsSolidTextDash(strokeDashIdentity))) {

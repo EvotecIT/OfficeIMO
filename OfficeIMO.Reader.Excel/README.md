@@ -43,6 +43,32 @@ Stream input and document processors retain the materialized contract.
 Registration snapshots `ReaderExcelOptions.ReadOptions`, its culture and execution thresholds.
 Caller-supplied delegates remain caller-owned and must be safe for concurrent use.
 
+## Inspect stored formulas, comments and hidden state
+
+```csharp
+OfficeDocumentReadResult workbook = reader.ReadDocument("review.xlsx", new ReaderOptions {
+    Inspection = new ReaderInspectionOptions()
+});
+foreach (OfficeDocumentMetadataEntry entry in workbook.Metadata) {
+    if (entry.Category == OfficeDocumentInspectionCategories.Formula)
+        Console.WriteLine($"{entry.SourceObjectId}: {entry.Value}");
+}
+```
+
+Formula records distinguish the stored formula declaration, projected expression,
+stored value/type and interpreted cached value. `hasStoredValue` distinguishes an
+absent cache from an available saved value; inspection never recalculates formulas.
+Cell notes and threaded comments retain available author, reply and resolution
+identifiers, including comments attached to otherwise empty cells. `SheetName` and
+`A1Range` select formula/comment evidence. Visibility records retain authored hidden
+sheet, row and column definitions for the selected sheets.
+
+Package and content-safety inspection use the loaded owner and original-package
+capture. Payload and VBA records remain inert. Inspection metadata is available on
+rich or structured reads; incremental row chunks do not carry a complete inspection
+record collection. [Reader Core](../OfficeIMO.Reader.Core/README.md#inspect-review-and-saved-content)
+defines the shared budgets and terminal resource failures.
+
 ## Targets and dependencies
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.

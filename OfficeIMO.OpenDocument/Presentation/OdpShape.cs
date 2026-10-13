@@ -1,7 +1,7 @@
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Base class for an XML-backed ODP drawing shape.</summary>
-public abstract class OdpShape : OdfShape {
+public abstract partial class OdpShape : OdfShape {
     internal OdpShape(OdpPresentation presentation, XElement element) : base(presentation, element) { Presentation = presentation; }
     internal OdpPresentation Presentation { get; }
     /// <summary>Whether the shape is hidden from the normal presentation view.</summary>

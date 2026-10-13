@@ -167,5 +167,5 @@ public sealed class OdpTableCell {
         if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") == null) return;
         _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
     }
-    private void Dirty() => _presentation.MarkPartDirty("content.xml");
+    private void Dirty() => _presentation.MarkPartDirty(_presentation.GetPartPath(_element));
 }

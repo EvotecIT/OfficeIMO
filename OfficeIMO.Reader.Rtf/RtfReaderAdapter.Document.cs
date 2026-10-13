@@ -112,6 +112,14 @@ internal static partial class RtfReaderAdapter {
                 ? BuildRtfPageDiagnostics(document, result.Pages, source.Path)
                 : Array.Empty<OfficeDocumentDiagnostic>())
             .ToArray();
+        if (readerOptions.Inspection != null) {
+            var inspection = new ReaderInspectionMetadataBuilder(readerOptions, "rtf", cancellationToken);
+            if (inspection.Options.IncludeContentSafety)
+                OfficeIMO.Reader.FormatInternals.NativeInspectionProjection.InspectContentSafety(inspection, safety =>
+                    document.InspectLoadedContentSafety(safety, cancellationToken), source.Path);
+            inspection.Coverage("rich-content", "native-profile", "Existing semantic blocks, forms, image and object assets; explicit page breaks retain their own provenance.", new ReaderLocation { Path = source.Path });
+            return inspection.Complete(result);
+        }
         return result;
     }
 

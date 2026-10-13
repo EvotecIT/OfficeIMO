@@ -804,6 +804,35 @@ Use `ParseExifProfile` and `EncodeExifProfile` for metadata-only workflows. They
 
 When re-encoding pixels into another format, call `PrepareForEncoding(destinationFormat, out omittedProfiles)` before `Apply`. The returned copy contains supported profile families and reports what the destination cannot carry. For example, JPEG IPTC IIM metadata is omitted when producing PNG, while Exif, XMP, and ICC are retained. This explicit projection leaves the source metadata intact; lossless replacement still rejects unsupported profiles.
 
+### Inspect source metadata and normalized values
+
+`OfficeImageMetadata.Inspect` returns passive metadata evidence without editing the image or decoding pixels. It retains Exif field identities, original counts, profile-relative directory/entry/value offsets and duplicate tags. Values omitted by a retention limit keep their descriptors. `InspectExifProfile` provides the same evidence for standalone classic TIFF Exif bytes, including the optional JPEG Exif prefix.
+
+```csharp
+OfficeImageMetadataInspection inspection = OfficeImageMetadata.Inspect(File.ReadAllBytes("photo.jpg"));
+foreach (OfficeExifTimestamp timestamp in inspection.Timestamps) {
+    Console.WriteLine($"{timestamp.FieldName}: {timestamp.RawValue}; explicit timezone: {timestamp.HasKnownTimezone}");
+}
+if (inspection.GpsCoordinate is OfficeExifGpsCoordinate coordinate) {
+    Console.WriteLine($"{coordinate.Latitude}, {coordinate.Longitude}");
+}
+Console.WriteLine($"Authored density: {inspection.Resolution.IsDeclared}");
+```
+
+Capture timestamps retain their raw date, offset and subseconds. A date without an offset, or with Exif's blank unknown-offset representation, remains a local wall-clock value with an unknown timezone; no machine timezone is assigned. The timestamp companions use the tag identities and unknown-value forms in the [CIPA Exif specification](https://www.cipa.jp/std/documents/e/DC-X008-Translation-2019-E.pdf). Fractions beyond .NET's seven-digit precision retain their source text and report truncation. GPS coordinates are derived only from complete, valid DMS rationals and cardinal references in one profile. Invalid or conflicting density carriers return no effective authored resolution, and absent density is never reported as an embedded 96-DPI value.
+
+XMP values retain namespace URIs, RDF sequence/bag/alternative identity, item order, language and resource qualifiers. The inspector uses the shared secure XML loader and the canonical digest-bound JPEG extended-XMP assembler. Arbitrary structured RDF remains an explicit omission. `OfficeXmpInspector.Inspect` also accepts standalone packets. `OfficeIccProfileInspector.Inspect` separates header/tag-range structural validity from support by the managed input-transform engine; a valid unsupported profile is not labeled corrupt.
+
+`OfficeImageMetadataInspectionOptions` bounds input, profiles, retained Exif descriptors/values, XML nodes and retained XMP characters, and ICC tag descriptors. Defaults are 16 MiB of encoded input, 4 MiB per profile, 512 Exif fields, 64 KiB per Exif value, 4 MiB of retained Exif value bytes, 4,096 XML nodes, 512 XMP values and one million retained XMP characters. Diagnostics identify malformed, ambiguous, omitted and unsupported evidence. Classic Exif inspection covers the primary image, camera, GPS and interoperability directories. Additional TIFF pages/private IFD trees, proprietary MakerNote interpretation and BigTIFF profile parsing remain outside this inspection profile. Structural metadata evidence does not establish pixel integrity, authorship or cryptographic provenance.
+
+The default XMP value ceiling is 4,096 characters and the retained ICC descriptor
+ceiling is 256 tags. Options are snapshotted and require finite positive values
+within their supported ceilings. An unreadable/unsupported image container or an
+exceeded encoded-input limit fails the operation; cancellation propagates. Individual
+profile and value-retention omissions appear in `Issues`, and oversized Exif values
+can retain only their source descriptors. Check those issues before treating the
+retained metadata as complete.
+
 ### Inspect and edit HEIF container metadata
 
 `OfficeHeifMetadataReader` reads HEIF/HEIC brands, primary image dimensions and transforms,

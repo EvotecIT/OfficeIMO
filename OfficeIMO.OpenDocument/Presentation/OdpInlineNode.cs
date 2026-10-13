@@ -200,23 +200,23 @@ public sealed class OdpHyperlink {
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
     /// <summary>Explicit or inherited text background color.</summary>
     public OdfColor? BackgroundColor {
-        get => OdfInlineStyleResolver.ResolveTextBackgroundColor(_presentation.Styles, _element, "content.xml");
+        get => OdfInlineStyleResolver.ResolveTextBackgroundColor(_presentation.Styles, _element, _presentation.GetPartPath(_element));
         set => EnsureStyle().TextBackgroundColor = value;
     }
     /// <summary>Whether an inline style sets a text background, including transparent.</summary>
     public bool HasTextBackgroundOverride => OdfInlineStyleResolver.TryResolveTextBackgroundColor(
-        _presentation.Styles, _element, "content.xml", out _);
+        _presentation.Styles, _element, _presentation.GetPartPath(_element), out _);
 
     private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(
-        _element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofLink");
+        EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofLink", _presentation.GetPartPath(_element));
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
-        OdfInlineStyleResolver.Resolve(_presentation.Styles, _element, "content.xml", selector);
+        OdfInlineStyleResolver.Resolve(_presentation.Styles, _element, _presentation.GetPartPath(_element), selector);
     private string? ResolveReference(Func<OdfStyle, string?> selector) =>
-        OdfInlineStyleResolver.ResolveReference(_presentation.Styles, _element, "content.xml", selector);
+        OdfInlineStyleResolver.ResolveReference(_presentation.Styles, _element, _presentation.GetPartPath(_element), selector);
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
     private XElement EnsureMaterialized() {
         if (_materializeForEdit != null) { _element = _materializeForEdit(); _materializeForEdit = null; }
         return _element;
     }
-    private void Dirty() => _presentation.MarkPartDirty("content.xml");
+    private void Dirty() => _presentation.MarkPartDirty(_presentation.GetPartPath(_element));
 }

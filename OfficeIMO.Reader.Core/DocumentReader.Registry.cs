@@ -132,6 +132,7 @@ internal static partial class DocumentReaderEngine {
             MaxInputBytes = source?.MaxInputBytes,
             InputByteBudget = source?.InputByteBudget,
             ResourceLimits = source?.ResourceLimits?.CloneValidated(),
+            Inspection = source?.Inspection?.CloneValidated(),
             TextEncoding = source?.TextEncoding == null ? null : (Encoding)source.TextEncoding.Clone(),
             ThrowOnInvalidTextBytes = source?.ThrowOnInvalidTextBytes ?? false,
             OpenXmlMaxCharactersInPart = source == null ? ReaderOptions.DefaultOpenXmlMaxCharactersInPart : source.OpenXmlMaxCharactersInPart,

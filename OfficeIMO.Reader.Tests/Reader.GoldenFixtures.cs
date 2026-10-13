@@ -208,19 +208,7 @@ public sealed class ReaderGoldenFixtureTests {
         return Path.Combine(expectedFolder, fixtureName + ".snapshot.txt");
     }
 
-    private static string GetTestsProjectRoot() {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null) {
-            var candidate = Path.Combine(dir.FullName, "OfficeIMO.Reader.Tests.csproj");
-            if (File.Exists(candidate)) {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate OfficeIMO.Tests project root from test runtime base directory.");
-    }
+    private static string GetTestsProjectRoot() => Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Reader.Tests");
 
     private static MemoryStream BuildZipFixtureStream() {
         var csv = File.ReadAllText(GetInputPath("sample.csv"), Encoding.UTF8);

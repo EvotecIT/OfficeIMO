@@ -17,13 +17,13 @@ internal sealed class PdfDocumentSource {
 
     private PdfDocumentSource(byte[] bytes, PdfLoadOptions options, bool canonicalRewrittenOutput = false) {
         _bytes = bytes;
-        Options = options;
+        Options = options.Clone();
         _canonicalRewrittenOutput = canonicalRewrittenOutput;
     }
 
     private PdfDocumentSource(byte[] bytes, PdfLoadOptions options, PdfReadDocument readDocument) {
         _bytes = bytes;
-        Options = options;
+        Options = options.Clone();
         _readCache = new PdfReadCache<PdfReadDocument>(readDocument);
     }
 
@@ -99,9 +99,9 @@ internal sealed class PdfDocumentSource {
     /// <summary>
     /// Reads and owns one bounded stream snapshot. Seekable streams are read from the beginning and restored.
     /// </summary>
-    internal static PdfDocumentSource FromStream(Stream stream, PdfLoadOptions? options) {
+    internal static PdfDocumentSource FromStream(Stream stream, PdfLoadOptions? options, CancellationToken cancellationToken = default) {
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
-        return FromBoundedStream(stream, effectiveOptions);
+        return FromBoundedStream(stream, effectiveOptions, cancellationToken);
     }
 
     /// <summary>

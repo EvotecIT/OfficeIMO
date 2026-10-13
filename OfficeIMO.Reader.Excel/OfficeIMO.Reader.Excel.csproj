@@ -44,4 +44,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
   </ItemGroup>
+  <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\NativeInspectionProjection.cs" Link="FormatInternals\NativeInspectionProjection.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\NativePackageInspectionProjection.cs" Link="FormatInternals\NativePackageInspectionProjection.cs" /></ItemGroup>
 </Project>

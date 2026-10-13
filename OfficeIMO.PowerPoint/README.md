@@ -45,6 +45,28 @@ using var incoming = PowerPointPresentation.Load("upload.pptx", PowerPointLoadOp
 
 It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with decks containing those parts; set `PackageSecurity` explicitly for another policy.
 
+Retain a structural report of the exact input used by the loader:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
+
+using var presentation = PowerPointPresentation.Load("review.pptx", new PowerPointLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly,
+    PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = 64L * 1024 * 1024 },
+    CaptureSourcePackageSecurity = true
+});
+Console.WriteLine(presentation.SourcePackageSecurityReport?.ContainerKind);
+Console.WriteLine(presentation.SourcePackageSecurityScope);
+var loadedSafety = presentation.InspectLoadedContentSafety();
+```
+
+The captured package report stays attached to the original source scope when the
+model is later edited. Loaded-content safety inspection examines that current model
+without reopening, saving or running presentation content. Capture is opt-in;
+native import and package limits remain necessary. A macro or signature part is
+an inert descriptor, not execution or cryptographic-validation evidence.
+
 Load operations are detached from their source. Persistence is explicit by default, and read-only intent or
 save-on-dispose behavior uses the same shared lifecycle options as Word and Excel:
 

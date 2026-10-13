@@ -1204,12 +1204,13 @@ public sealed partial class PdfDocumentReadResult {
         int[] pageNumbers,
         IReadOnlyList<PdfUnderstandingPageResult> analyses,
         PdfReadProfile profile,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool preserveDocumentWideObjects = false) {
         document.DemandContentExtraction("logical object");
         if (analyses.Count != pageNumbers.Length) {
             throw new ArgumentException("Semantic analysis count must match the selected page count.", nameof(analyses));
         }
-        bool useDocumentWideObjects = PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
+        bool useDocumentWideObjects = preserveDocumentWideObjects || PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
         IReadOnlyList<PdfFormField> formFields = useDocumentWideObjects
             ? document.FormFields
             : PdfPageRangeObjectFilter.FilterFormFieldsByPageNumbers(document.FormFields, pageNumbers, preservePageDuplicates: false);

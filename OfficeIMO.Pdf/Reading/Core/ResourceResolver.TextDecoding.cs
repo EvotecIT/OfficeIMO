@@ -18,6 +18,42 @@ internal static partial class ResourceResolver {
 
     internal static System.Func<byte[], int, string> CreateBudgetedDecoder(PdfFontResource font) => BuildBudgetedDecoderForFont(font);
 
+    /// <summary>Honors explicit mapping and fallback policy without changing the default decoder.</summary>
+    internal static Func<byte[], int, string> CreateBudgetedDecoder(PdfFontResource font,
+        bool preferToUnicode, bool useWinAnsiFallback) {
+        if (preferToUnicode && useWinAnsiFallback) return BuildBudgetedDecoderForFont(font);
+        if (UsesNamedCompositeEncoding(font)) {
+            return (bytes, maximum) => DecodeNamedComposite(font, bytes, maximum, preferToUnicode);
+        }
+        if (preferToUnicode && font.HasToUnicode && font.CMap is not null) {
+            return (bytes, maximum) => {
+                if (font.CMap.TryMapBytes(bytes, maximum, out string mapped)) return mapped;
+                throw new PdfUnsupportedTextMappingException(font);
+            };
+        }
+        return (bytes, maximum) => {
+            bool supportedEncoding = font.Encoding is "StandardEncoding" or "MacRomanEncoding" ||
+                font.HasDeclaredEncoding && font.Encoding == "WinAnsiEncoding";
+            if (!useWinAnsiFallback && !supportedEncoding) {
+                var text = new StringBuilder();
+                foreach (byte code in bytes) {
+                    if (font.Differences is null || !font.Differences.TryGetValue(code, out string? difference) || difference is null) {
+                        throw new PdfUnsupportedTextMappingException(font);
+                    }
+                    if ((long)text.Length + difference.Length > maximum) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maximum,
+                            (long)text.Length + difference.Length);
+                    }
+                    text.Append(difference);
+                }
+                return text.ToString();
+            }
+            return font.Differences is { Count: > 0 }
+                ? DecodeWithDifferences(bytes, font.Differences, BuildBaseEncodingDecoder(font.Encoding, maximum), maximum)
+                : BuildBudgetedBaseEncodingDecoder(font.Encoding)(bytes, maximum);
+        };
+    }
+
     /// <summary>Decodes one simple-font code through its encoding and Differences, ignoring ToUnicode.</summary>
     internal static System.Func<byte, string> CreateSimpleEncodingDecoder(PdfFontResource font) {
         System.Func<byte[], int, string> baseDecoder = BuildBudgetedBaseEncodingDecoder(font.Encoding);
@@ -55,9 +91,9 @@ internal static partial class ResourceResolver {
         !string.Equals(font.Encoding, "Identity-H", StringComparison.Ordinal) &&
         !string.Equals(font.Encoding, "Identity-V", StringComparison.Ordinal);
 
-    private static string DecodeNamedComposite(PdfFontResource font, byte[] bytes, int maximumCharacters) {
+    private static string DecodeNamedComposite(PdfFontResource font, byte[] bytes, int maximumCharacters, bool preferToUnicode = true) {
         if (bytes.Length == 0) return string.Empty;
-        if (font.HasToUnicode) {
+        if (preferToUnicode && font.HasToUnicode) {
             if (font.CMap != null && font.CMap.TryMapBytes(bytes, maximumCharacters, out string mapped)) return mapped;
         } else if (font.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined &&
             predefined.Value.TryDecode(bytes, maximumCharacters, out string decoded)) {

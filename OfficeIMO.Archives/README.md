@@ -1,12 +1,50 @@
 # OfficeIMO.Archives
 
-OfficeIMO.Archives extracts Microsoft Cabinet archives and payloads embedded in ordinary Windows Installer databases. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared archive validation. Extraction does not execute an installer, scripts or custom actions.
+OfficeIMO.Archives inspects Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete members into memory, and extracts selected payloads to disk. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared archive validation. These operations do not execute an installer, scripts or custom actions.
 
 ## Install
 
 ```powershell
 dotnet add package OfficeIMO.Archives
 ```
+
+## Inspect and read a member without extraction
+
+```csharp
+using OfficeIMO.Archives;
+
+using var inspection = ArchiveInspector.Open("AdministrativeTemplates.msi",
+    new ArchiveInspectionOptions {
+        MaxInputBytes = 128L * 1024 * 1024,
+        MaxEntryBytes = 16L * 1024 * 1024,
+        MaxExpandedBytes = 256L * 1024 * 1024
+    });
+
+foreach (var entry in inspection.Entries) {
+    Console.WriteLine($"{entry.Ordinal}: {entry.RawName}, {entry.Length} bytes, {entry.Compression}");
+    if (!entry.CanRead) {
+        Console.WriteLine(entry.Diagnostic?.Message);
+        continue;
+    }
+    if (entry.AuthoredPath?.EndsWith(".admx", StringComparison.OrdinalIgnoreCase) == true) {
+        using var payload = inspection.OpenRead(entry.Ordinal);
+        // The complete length-validated member is available for parsing or hashing here.
+        Console.WriteLine($"Read {payload.Length} bytes from {entry.AuthoredPath}");
+    }
+}
+```
+
+`Entries` preserves CAB CFFILE order or MSI File-table row order. `RawName` retains the CAB member name or MSI File identifier. MSI entries also retain the unmodified `FileName` field, File sequence, Media cabinet reference and assembled authored target path. Aliases and duplicate CAB names stay separate and are selected by ordinal. Inspection preserves names such as traversal paths because it never uses member names to write files. The filesystem safety checks below apply to extraction.
+
+The inventory checks bounded directory structure, declared sizes, member ranges and embedded MSI File/Media mappings. It does not decode payloads or verify their checksums. `CanRead` means the declared source and compression are supported. `OpenRead` verifies the complete containing folder, applicable checksums, decoded boundaries and member length before returning a read-only stream. `FolderFrameCount` and `FolderChecksumFrameCount` describe the containing folder and its nonzero checksum declarations. A successful read checks exactly those nonzero frame checksums; zero-checksum frames have no checksum verification. CAB checksums detect corruption and do not prove authenticity. It returns no prefix or partial member on failure. A caller can hash the complete returned stream; the inventory supplies no content hash.
+
+External Media cabinet references and loose MSI source rows remain visible with `MSI_EXTERNAL_CABINET` or `MSI_LOOSE_SOURCE` diagnostics. Their paths and URLs are never opened. Unsupported CAB compression, including Quantum or unsupported LZX parameters, remains visible with a per-member diagnostic. Cabinet sets, continued records, unsupported name encodings and unsupported MSI metadata profiles still fail explicitly.
+
+For MSI, `StorageStreams` exposes exact raw compound names and declared sizes, including metadata, Binary content and embedded cabinets. `OpenStorageStream(ordinal)` reads a complete inert raw stream under the same per-member and cumulative byte limits. It does not decode an embedded cabinet or interpret Binary content. Encoded MSI compound names remain encoded in this raw inventory.
+
+Inspection snapshots a bounded readable seekable input into memory. The stream overload reads from the beginning, restores the caller's position on success or failure, and leaves the source open. Subsequent reads use the immutable snapshot and their own cancellation tokens. Dispose the inspection to release its input and indexes; already returned streams remain caller-owned and usable. Calls on one inspection are serialized. The caller also owns memory held by returned streams.
+
+`ArchiveInspectionOptions` bounds input, entries, cabinets, individual member bytes, declared aggregate expansion, MSI metadata, table rows, string-pool entries, path structure and CAB directory records. `MaxDirectoryRecords` defaults to 1,000,000 and covers CAB folder, file and CFDATA records across all inventoried cabinets; MSI compound storage additionally retains its 65,536-slot and 32,768-stream bounds. Inventory checks file-byte and folder-byte sums separately against `MaxExpandedBytes`. Subsequent reads share a fresh cumulative expansion allowance of that size and one `MaxDecompressionWorkBytes` allowance. Each member read charges its entire folder again, including gaps and sibling files; raw storage reads charge their complete stream length. Failed attempted decodes retain their charge, while pre-canceled or rejected reads do not consume bytes. `ReadBytes` reports the cumulative charge. No temporary extraction or comparison files are created.
 
 ## Extract policy files
 

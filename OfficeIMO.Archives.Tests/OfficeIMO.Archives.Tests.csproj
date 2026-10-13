@@ -19,4 +19,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'"><Reference Include="System.IO.Compression" /></ItemGroup>
+  <ItemGroup>
+    <None Include="../OfficeIMO.OneNote.Tests/Fixtures/makecab-lzx-testOneNote2016.cab" Link="Fixtures/makecab-lzx-testOneNote2016.cab" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.OneNote.Tests/Fixtures/testOneNote2016.one" Link="Fixtures/testOneNote2016.one" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.OneNote.Tests/Fixtures/makecab-lzx-testOneNoteFromOffice365-2.cab" Link="Fixtures/makecab-lzx-testOneNoteFromOffice365-2.cab" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.OneNote.Tests/Fixtures/testOneNoteFromOffice365-2.one" Link="Fixtures/testOneNoteFromOffice365-2.one" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

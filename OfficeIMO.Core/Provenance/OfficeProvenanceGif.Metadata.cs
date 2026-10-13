@@ -9,7 +9,8 @@ namespace OfficeIMO.Provenance;
 internal static partial class OfficeProvenanceGif {
     internal static byte[] RewriteMetadataProfiles(byte[] input, byte[]? xmp, byte[]? icc,
         OfficeImageMetadataProfileKinds replace, bool writeReplacement, CancellationToken token,
-        out OfficeImageMetadataProfileKinds present, out byte[]? readXmp, out byte[]? readIcc, bool readOnly = false, long additionallyRetainedBytes = 0L) {
+        out OfficeImageMetadataProfileKinds present, out byte[]? readXmp, out byte[]? readIcc, bool readOnly = false, long additionallyRetainedBytes = 0L,
+        Action<OfficeImageMetadataProfileKinds, byte[]?, int>? profileObserver = null, int maximumRetainedProfileBytes = OfficeExifProfileCodec.MaximumProfileBytes) {
         const int maximumEntries = 100000;
         present = OfficeImageMetadataProfileKinds.None;
         readXmp = null;
@@ -65,18 +66,22 @@ internal static partial class OfficeProvenanceGif {
                 int payload = cursor;
                 if (isXmp) {
                     output?.CheckTransientBytes(2L * OfficeExifProfileCodec.MaximumProfileBytes);
+                    bool omitted = false;
                     if (!TryReadXmpApplicationData(input, payload, OfficeExifProfileCodec.MaximumProfileBytes,
                         ref entryCount, maximumEntries, token, ref nextRawTrailer, out byte[] packet,
-                        out int extensionEnd, out _, out _)) throw new FormatException("Malformed GIF XMP application data.");
-                    if (readXmp == null) { output?.AddRetainedBytes(packet.LongLength); readXmp = packet; }
+                        out int extensionEnd, out _, out _, maximumRetainedProfileBytes, _ => omitted = true)) throw new FormatException("Malformed GIF XMP application data.");
+                    if (profileObserver == null && readXmp == null) { output?.AddRetainedBytes(packet.LongLength); readXmp = packet; }
+                    profileObserver?.Invoke(OfficeImageMetadataProfileKinds.Xmp, omitted ? null : packet, start);
                     cursor = extensionEnd;
                     kind = OfficeImageMetadataProfileKinds.Xmp;
                 } else {
-                    cursor = SkipSubBlocks(input, payload, isIcc ? OfficeExifProfileCodec.MaximumProfileBytes : OfficeRasterGuards.MaximumEncodedBytes,
+                    cursor = SkipSubBlocks(input, payload, isIcc && profileObserver == null ? OfficeExifProfileCodec.MaximumProfileBytes : OfficeRasterGuards.MaximumEncodedBytes,
                         ref entryCount, maximumEntries, out int length, token);
                     if (isIcc) {
                         output?.CheckTransientBytes(length);
-                        if (readIcc == null) { output?.AddRetainedBytes(length); readIcc = CollectSubBlocks(input, payload, length, token); }
+                        if (profileObserver != null) profileObserver(OfficeImageMetadataProfileKinds.Icc,
+                            length > maximumRetainedProfileBytes ? null : CollectSubBlocks(input, payload, length, token), start);
+                        else if (readIcc == null) { output?.AddRetainedBytes(length); readIcc = CollectSubBlocks(input, payload, length, token); }
                         kind = OfficeImageMetadataProfileKinds.Icc;
                     }
                 }

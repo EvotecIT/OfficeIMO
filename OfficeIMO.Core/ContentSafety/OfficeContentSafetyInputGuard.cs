@@ -30,7 +30,7 @@ public static class OfficeContentSafetyInputGuard {
         byte[] bytes;
         using (FileStream stream = File.OpenRead(fullPath)) {
             long length = stream.Length;
-            if (length > options.MaxInputBytes) throw new InvalidDataException("The encoded asset exceeds the configured input-byte limit.");
+            if (length > options.MaxInputBytes) throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxInputBytes), options.MaxInputBytes);
             bytes = ReadExactFile(stream, length, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -43,7 +43,7 @@ public static class OfficeContentSafetyInputGuard {
         if (input == null) throw new ArgumentNullException(nameof(input));
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.Validate();
-        if (input.LongLength > options.MaxInputBytes) throw new InvalidDataException("The encoded asset exceeds the configured input-byte limit.");
+        if (input.LongLength > options.MaxInputBytes) throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxInputBytes), options.MaxInputBytes);
         if (inspectZipPackage && LooksLikeZip(input)) ValidateZipPackage(input, options);
     }
 
@@ -52,8 +52,8 @@ public static class OfficeContentSafetyInputGuard {
         if (text == null) throw new ArgumentNullException(nameof(text));
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.Validate();
-        if (text.Length > options.MaxCharacters) throw new InvalidDataException("The asset exceeds the configured decoded-character limit.");
-        if (Encoding.UTF8.GetByteCount(text) > options.MaxInputBytes) throw new InvalidDataException("The encoded asset exceeds the configured input-byte limit.");
+        if (text.Length > options.MaxCharacters) throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxCharacters), options.MaxCharacters);
+        if (Encoding.UTF8.GetByteCount(text) > options.MaxInputBytes) throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxInputBytes), options.MaxInputBytes);
     }
 
     /// <summary>Reads a BOM-aware UTF-8 text file through the encoded-input guard.</summary>
@@ -82,14 +82,17 @@ public static class OfficeContentSafetyInputGuard {
         try {
             using var stream = new MemoryStream(input, writable: false);
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-            if (archive.Entries.Count > options.MaxPackageEntries) throw new InvalidDataException("The package exceeds the configured entry-count limit.");
+            if (archive.Entries.Count > options.MaxPackageEntries) throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxPackageEntries), options.MaxPackageEntries);
             long expanded = 0;
             foreach (ZipArchiveEntry entry in archive.Entries) {
-                if (entry.Length < 0 || expanded > options.MaxExpandedPackageBytes - entry.Length) {
-                    throw new InvalidDataException("The package exceeds the configured expanded-byte limit.");
+                if (entry.Length < 0) throw new InvalidDataException("The ZIP entry has a negative decoded length.");
+                if (expanded > options.MaxExpandedPackageBytes - entry.Length) {
+                    throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxExpandedPackageBytes), options.MaxExpandedPackageBytes);
                 }
                 expanded += entry.Length;
             }
+        } catch (OfficeInspectionResourceLimitException) {
+            throw;
         } catch (InvalidDataException) {
             throw;
         } catch (Exception exception) when (exception is IOException || exception is NotSupportedException) {

@@ -294,7 +294,7 @@ namespace OfficeIMO.PowerPoint {
                 encryptedBytes, password, cancellationToken,
                 ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
-            return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>Asynchronously loads a password-encrypted presentation into detached memory.</summary>
@@ -337,7 +337,7 @@ namespace OfficeIMO.PowerPoint {
                 encryptedBytes, password, cancellationToken,
                 ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
-            return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>Asynchronously loads a password-encrypted presentation stream into detached memory.</summary>
@@ -369,7 +369,7 @@ namespace OfficeIMO.PowerPoint {
                 encryptedBytes, password, cancellationToken,
                 ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
-            return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>Loads a password-encrypted presentation stream into detached memory.</summary>
@@ -408,7 +408,7 @@ namespace OfficeIMO.PowerPoint {
                 encryptedBytes, password, cancellationToken,
                 ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
-            return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         private static void ThrowIfUnencryptedLegacyBinary(
@@ -451,7 +451,7 @@ namespace OfficeIMO.PowerPoint {
                     presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
                 }
                 presentation.MarkLoadedFromOpenXml(bytes);
-                return presentation;
+                return WithSourcePackageInspection(presentation, bytes, options);
             } catch {
                 packageStream.Dispose();
                 throw;
@@ -467,8 +467,8 @@ namespace OfficeIMO.PowerPoint {
             if (PowerPointPresentationLoadRouting.IsLegacyBinary(bytes,
                     filePath)) {
                 ValidatePackageSecurity(bytes, options);
-                return LoadLegacyPptFromNormalFlow(bytes, filePath,
-                    sourceStream, options, cancellationToken);
+                return WithSourcePackageInspection(LoadLegacyPptFromNormalFlow(bytes, filePath,
+                    sourceStream, options, cancellationToken), bytes, options);
             }
             cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(bytes, filePath, sourceStream, options);

@@ -21,11 +21,13 @@ internal static partial class PdfReaderAdapter {
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
 
-        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions));
-        PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
+        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions), cancellationToken);
+        PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
         }
+        foreach (ReaderChunk warning in BuildInspectionWarningChunks(inspection, source)) yield return warning;
     }
 
     /// <summary>
@@ -44,12 +46,14 @@ internal static partial class PdfReaderAdapter {
         };
 
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions, effectivePdfOptions);
+        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
-        PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
+        PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
         }
+        foreach (ReaderChunk warning in BuildInspectionWarningChunks(inspection, source)) yield return warning;
     }
 
     /// <summary>
@@ -868,22 +872,19 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static PdfLoadOptions? CreatePdfLoadOptions(ReaderOptions options, ReaderPdfOptions pdfOptions) {
-        return options.MaxInputBytes.HasValue || pdfOptions.Password is not null
-            ? new PdfLoadOptions {
-                Password = pdfOptions.Password,
-                Limits = options.MaxInputBytes.HasValue ? new PdfReadLimits {
-                    MaxInputBytes = options.MaxInputBytes.Value
-                } : PdfReadLimits.Default
-            }
-            : null;
+        PdfLoadOptions source = pdfOptions.LoadOptions ?? PdfLoadOptions.Default;
+        long inputLimit = options.MaxInputBytes.HasValue
+            ? Math.Min(options.MaxInputBytes.Value, source.Limits.MaxInputBytes)
+            : source.Limits.MaxInputBytes;
+        return source.Snapshot(inputLimit, pdfOptions.Password);
     }
 
-    private static PdfDocument OpenReaderPdf(Stream stream, ReaderOptions options, ReaderPdfOptions pdfOptions) {
+    private static PdfDocument OpenReaderPdf(Stream stream, ReaderOptions options, ReaderPdfOptions pdfOptions, CancellationToken cancellationToken) {
         try {
             PdfLoadOptions? readOptions = CreatePdfLoadOptions(options, pdfOptions);
             return ReaderInputLimits.TryGetOwnedSnapshotBytes(stream, out byte[] ownedBytes)
-                ? PdfDocument.LoadOwned(ownedBytes, readOptions)
-                : PdfDocument.Load(stream, readOptions);
+                ? PdfDocument.LoadOwned(ownedBytes, readOptions, cancellationToken)
+                : PdfDocument.Load(stream, readOptions, cancellationToken);
         } catch (PdfReadLimitException exception) when (exception.Kind == PdfReadLimitKind.InputBytes) {
             throw new IOException(
                 "Input exceeds MaxInputBytes (" +

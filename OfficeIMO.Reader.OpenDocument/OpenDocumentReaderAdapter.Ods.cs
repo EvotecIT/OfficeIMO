@@ -63,7 +63,7 @@ internal static partial class OpenDocumentReaderAdapter {
         }
     }
 
-    private static string ToA1(long row, long column) {
+    internal static string ToA1(long row, long column) {
         long value = checked(column + 1);
         var letters = new StringBuilder();
         while (value > 0) {
@@ -74,7 +74,7 @@ internal static partial class OpenDocumentReaderAdapter {
         return letters + checked(row + 1).ToString(CultureInfo.InvariantCulture);
     }
 
-    private static (int FirstRow, int FirstColumn, int LastRow, int LastColumn) ParseA1Range(string value) {
+    internal static (int FirstRow, int FirstColumn, int LastRow, int LastColumn) ParseA1Range(string value) {
         if (!SpreadsheetRangeReference.TryParse(value, SpreadsheetAddressDialect.UnboundedA1, out SpreadsheetRangeReference? reference)
             || !reference!.Start.IsCell
             || reference.Start.SheetName != null

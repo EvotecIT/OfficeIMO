@@ -81,6 +81,7 @@ internal static class PowerPointReaderAdapter {
         long legacyMaxInputBytes = options.MaxInputBytes ?? LegacyPptImportOptions.DefaultMaxInputBytes;
         return new PowerPointLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null,
@@ -140,7 +141,8 @@ internal static class PowerPointReaderAdapter {
             source: null,
             capabilities: new[] { OfficeDocumentReaderBuilderPowerPointExtensions.HandlerId },
             assets: assets);
-        return PowerPointRichMapping.Apply(presentation, readerOptions, options, result, cancellationToken);
+        result = PowerPointRichMapping.Apply(presentation, readerOptions, options, result, cancellationToken);
+        return PowerPointInspectionProjection.Apply(presentation, readerOptions, result, cancellationToken);
     }
 
     private static IReadOnlyList<string>? Combine(IReadOnlyList<string>? first, IReadOnlyList<string>? second) {

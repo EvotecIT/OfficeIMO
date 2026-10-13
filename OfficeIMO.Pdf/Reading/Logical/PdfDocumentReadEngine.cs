@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Single owner for parser-backed semantic reconstruction.</summary>
-internal static class PdfDocumentReadEngine {
+internal static partial class PdfDocumentReadEngine {
     internal static PdfLogicalPage ReadLogicalPage(
         PdfReadDocument document,
         int pageNumber,

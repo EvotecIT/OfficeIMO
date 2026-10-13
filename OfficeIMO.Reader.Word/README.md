@@ -54,6 +54,37 @@ The combined registration applies the same immutable legacy options to both the 
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes source macros or embedded code.
 
+## Inspect comments and tracked changes
+
+Use a rich read to retain native review and package evidence:
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
+var reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
+OfficeDocumentReadResult document = reader.ReadDocument("review.docx", new ReaderOptions {
+    Inspection = new ReaderInspectionOptions()
+});
+foreach (OfficeDocumentMetadataEntry entry in document.Metadata) {
+    if (entry.Category == OfficeDocumentInspectionCategories.Comment ||
+        entry.Category == OfficeDocumentInspectionCategories.Revision)
+        Console.WriteLine($"{entry.Category}: {entry.Value} ({entry.SourceObjectId})");
+}
+```
+
+Comment records retain available authors, dates, reply/resolution state, target text
+and story identifiers. Revision records retain affected text, source part and story;
+inspection does not accept or reject changes. Unsupported review metadata remains
+explicit in coverage and diagnostics. Visibility observations use the content-safety
+owner; requesting visibility while disabling content safety does not infer hidden
+state from the extracted text.
+
+Package inspection reads the loader's source bytes and retains inert payload/VBA
+descriptors. Loaded-content safety inspection does not reopen or serialize the
+document. [Reader Core](../OfficeIMO.Reader.Core/README.md#inspect-review-and-saved-content)
+defines the shared record/character ceilings and terminal resource failures.
+
 ## Targets and dependencies
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.

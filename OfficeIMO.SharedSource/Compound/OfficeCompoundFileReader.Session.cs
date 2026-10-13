@@ -122,18 +122,21 @@ namespace OfficeIMO.Core.Internal {
             }
 
             /// <summary>Opens an exact, case-sensitive path without rescanning the directory or buffering its payload.</summary>
-            internal Stream OpenStream(string path) {
-                ThrowIfDisposed(); _token.ThrowIfCancellationRequested();
+            internal Stream OpenStream(string path) => OpenStream(path, _token);
+
+            /// <summary>Opens a view with an independent read token after construction has completed.</summary>
+            internal Stream OpenStream(string path, CancellationToken token) {
+                ThrowIfDisposed(); token.ThrowIfCancellationRequested();
                 if (!_streams.TryGetValue(path, out DirectoryEntry? entry)) throw new InvalidDataException("Required compound stream is missing: " + path);
                 List<uint>? regular = null; List<uint>? mini = null;
                 if (_validatedRegularChains != null && _validatedMiniChains != null) {
                     _validatedRegularChains.TryGetValue(path, out regular);
                     _validatedMiniChains.TryGetValue(path, out mini);
                 } else if (entry.Size >= _miniCutoff) regular = GetRegularSectorChain(_source, _basePosition, entry.StartSector,
-                    entry.Size, _sectorSize, _physicalSectorCount, _fatSectorIds, _fatCache, _token);
+                    entry.Size, _sectorSize, _physicalSectorCount, _fatSectorIds, _fatCache, token);
                 else if (entry.Size > 0) mini = GetMiniSectorChain(entry.StartSector, entry.Size, _miniFat);
                 return new CompoundEntryStream(_source, _basePosition, _sectorSize, entry.Size, regular, mini,
-                    _rootChain, _rootSize, leaveOpen: true, _token, () => _disposed);
+                    _rootChain, _rootSize, leaveOpen: true, token, () => _disposed);
             }
 
             public void Dispose() {
