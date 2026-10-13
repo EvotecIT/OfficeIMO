@@ -33,11 +33,12 @@ public static partial class WordPdfConverterExtensions {
         WordToPdfOptions? options, NativeDocumentDefaults defaults, NativeFontMap fontMap,
         out NativeAnchoredRunningTextBoxParagraph? prepared) {
         prepared = null;
-        if (defaults.RunningContentSection == null || marker != null || WordDocumentTraversal.GetListInfo(paragraph).HasValue ||
+        if (defaults.RunningContentSection == null || defaults.RunningStoryHasDisallowedTextBoxPeers ||
+            marker != null || WordDocumentTraversal.GetListInfo(paragraph).HasValue ||
             WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0 ||
             ResolveNativeParagraphAlign(paragraph, allowJustify: false) != PdfCore.PdfAlign.Left) return false;
         options?.CancellationToken.ThrowIfCancellationRequested();
-        List<WordTextBox> boxes = runs.SelectMany(run => run.GetTextBoxes()).ToList();
+        List<WordTextBox> boxes = GetNativeVisibleTextBoxes(paragraph, runs);
         if (boxes.Count == 0 || boxes.Count > 1 &&
             boxes.Any(box => box.Anchor?.AllowOverlap?.Value != true)) return false;
 
