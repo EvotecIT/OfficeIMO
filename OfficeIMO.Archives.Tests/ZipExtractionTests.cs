@@ -27,6 +27,86 @@ public sealed class ZipExtractionTests {
         Assert.True(Directory.Exists(fixture.Destination));
     }
 
+    [Fact]
+    public void EmptyZip64ArchivesPublishAnEmptyDirectory() {
+        using var fixture = new ArchiveFixtures();
+        ArchiveExtractionResult result = ArchiveExtractor.Extract(fixture.Package(WithZip64Locator(Zip(), 0)), fixture.Destination);
+        Assert.Equal(ArchiveFormat.Zip, result.Format);
+        Assert.Empty(result.Files);
+        Assert.True(Directory.Exists(fixture.Destination));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MembersStartingOnAnotherDiskFailBeforeSelection(bool directory) {
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = Zip((directory ? "Templates/" : "Template.admx", directory ? null : "A", CompressionLevel.NoCompression));
+        int central = (int)BitConverter.ToUInt32(zip, zip.Length - 6);
+        WriteUInt16(zip, central + 34, 1);
+        int selectionCalls = 0;
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination,
+            new ArchiveExtractionOptions { IncludeFile = _ => { selectionCalls++; return false; } }));
+        Assert.Equal(0, selectionCalls);
+        Assert.False(Directory.Exists(fixture.Destination));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClassicArchivesAcceptExactly65535EntriesUnlessAnEarlierLocatorMakesThemAmbiguous(bool earlierLocator) {
+        // A small hand-authored directory exercises the actual classic count, without a ZIP64 locator.
+        using var fixture = new ArchiveFixtures();
+        using var bytes = new MemoryStream();
+        using (var writer = new BinaryWriter(bytes, Encoding.ASCII, leaveOpen: true)) {
+            var offsets = new uint[ushort.MaxValue];
+            for (int index = 0; index < ushort.MaxValue; index++) {
+                byte[] name = Encoding.ASCII.GetBytes("f" + index);
+                offsets[index] = (uint)bytes.Length;
+                writer.Write(0x04034b50U); writer.Write((ushort)20); writer.Write(new byte[20]);
+                writer.Write((ushort)name.Length); writer.Write((ushort)(earlierLocator && index == 0 ? 24 : 0)); writer.Write(name);
+                if (earlierLocator && index == 0) {
+                    writer.Write((ushort)0xabcd); writer.Write((ushort)20);
+                    writer.Write(0x07064b50U); writer.Write(0U); writer.Write(0UL); writer.Write(1U);
+                }
+            }
+            uint directory = (uint)bytes.Length;
+            for (int index = 0; index < ushort.MaxValue; index++) {
+                byte[] name = Encoding.ASCII.GetBytes("f" + index);
+                writer.Write(0x02014b50U); writer.Write((ushort)20); writer.Write((ushort)20);
+                writer.Write(new byte[20]);
+                writer.Write((ushort)name.Length); writer.Write(new byte[12]); writer.Write(offsets[index]); writer.Write(name);
+            }
+            uint size = (uint)bytes.Length - directory;
+            writer.Write(0x06054b50U); writer.Write(0U);
+            writer.Write(ushort.MaxValue); writer.Write(ushort.MaxValue);
+            writer.Write(size); writer.Write(directory); writer.Write((ushort)0);
+        }
+        string package = fixture.Package(bytes.ToArray());
+        var options = new ArchiveExtractionOptions { IncludeFile = _ => false };
+        if (earlierLocator) {
+            var error = Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(package, fixture.Destination, options));
+            Assert.Contains("earlier ZIP64 locator", error.Message, StringComparison.Ordinal);
+            Assert.False(Directory.Exists(fixture.Destination));
+            return;
+        }
+        var result = ArchiveExtractor.Extract(package, fixture.Destination, options);
+        Assert.Empty(result.Files);
+        Assert.True(Directory.Exists(fixture.Destination));
+    }
+
+    [Fact]
+    public void AllowedFormatsRejectDetectedContentBeforeSelectionOrStaging() {
+        using var fixture = new ArchiveFixtures();
+        int calls = 0;
+        Assert.Throws<NotSupportedException>(() => ArchiveExtractor.Extract(
+            fixture.Package(Zip(("Template.admx", "A", CompressionLevel.Optimal))), fixture.Destination,
+            new ArchiveExtractionOptions { AllowedFormats = new[] { ArchiveFormat.Cab }, IncludeFile = _ => { calls++; return true; } }));
+        Assert.Equal(0, calls);
+        Assert.False(Directory.Exists(fixture.Destination));
+        Assert.Empty(Directory.GetDirectories(fixture.Root, ".officeimo-archive-*"));
+    }
+
     [Theory]
     [InlineData("../escape.admx")]
     [InlineData("/rooted.admx")]
@@ -176,14 +256,14 @@ public sealed class ZipExtractionTests {
     }
 
     [Fact]
-    public void MaskedClassicFieldsRequireTheStandardZip64Locator() {
-        // .NET Framework would search the whole file for a locator and could select a planted directory.
+    public void SaturatedClassicCountMustMatchTheActualDirectory() {
+        // 65,535 can be a classic count, but must describe exactly that many file headers.
         using var fixture = new ArchiveFixtures();
         byte[] zip = Zip(("a.admx", "A", CompressionLevel.NoCompression));
         int end = zip.Length - 22;
         zip[end + 8] = 0xff; zip[end + 9] = 0xff; zip[end + 10] = 0xff; zip[end + 11] = 0xff;
         var error = Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
-        Assert.Contains("requires a ZIP64 locator", error.Message, StringComparison.Ordinal);
+        Assert.Contains("declares 65535 entries but contains 1", error.Message, StringComparison.Ordinal);
         Assert.False(Directory.Exists(fixture.Destination));
     }
 

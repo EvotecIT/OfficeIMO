@@ -212,10 +212,14 @@ internal static partial class OfficeArchiveSafety {
             bool zip64 = false;
             bool hasZip64Locator = HasZip64Locator(source,
                 originalPosition, endOfCentralDirectoryOffset);
+            if (!hasZip64Locator && totalEntries16 == ushort.MaxValue
+                && HasEarlierZip64Locator(source, originalPosition, endOfCentralDirectoryOffset, cancellationToken)) {
+                return ZipCentralDirectoryScanResult.Invalid("A saturated classic ZIP count has an earlier ZIP64 locator that readers may follow.");
+            }
             // .NET Framework searches backwards through the whole file for a locator when a classic field is masked,
             // so a masked layout must keep its locator in the standard position immediately before this record.
-            if (strict && !hasZip64Locator && (zip64Required || totalEntries16 == ushort.MaxValue
-                || entriesOnDisk16 == ushort.MaxValue || diskNumber == ushort.MaxValue
+            // A count of 65,535 is also a valid classic count; the exact scanned count below disambiguates it.
+            if (strict && !hasZip64Locator && (zip64Required || diskNumber == ushort.MaxValue
                 || centralDirectoryDisk == ushort.MaxValue)) {
                 return ZipCentralDirectoryScanResult.Invalid(
                     "A masked ZIP end-of-central-directory field requires a ZIP64 locator immediately before it.");
@@ -298,6 +302,9 @@ internal static partial class OfficeArchiveSafety {
                             "A ZIP central-directory file header is truncated.");
                     }
                     ReadExactlyAt(source, originalPosition + cursor, header, header.Length);
+                    if (ReadZipUInt16(header, 34) != 0) {
+                        return ZipCentralDirectoryScanResult.Invalid("Multi-disk ZIP members are not supported.");
+                    }
                     long recordLength = 46L
                         + ReadZipUInt16(header, 28)
                         + ReadZipUInt16(header, 30)
@@ -407,6 +414,10 @@ internal static partial class OfficeArchiveSafety {
         bool zip64 = false;
         bool hasZip64Locator = HasZip64Locator(bytes,
             archiveOffset, endOfCentralDirectory);
+        if (!hasZip64Locator && totalEntries16 == ushort.MaxValue
+            && HasEarlierZip64Locator(bytes, archiveOffset, endOfCentralDirectory)) {
+            return ZipCentralDirectoryScanResult.Invalid("A saturated classic ZIP count has an earlier ZIP64 locator that readers may follow.");
+        }
         if (zip64Required || hasZip64Locator) {
             bool parsedZip64 = TryReadZip64Directory(bytes, archiveOffset,
                 archiveLength, endOfCentralDirectory,
@@ -475,6 +486,9 @@ internal static partial class OfficeArchiveSafety {
                         "A ZIP central-directory file header is truncated.");
                 }
                 int headerOffset = checked((int)cursor);
+                if (ReadZipUInt16(bytes, headerOffset + 34) != 0) {
+                    return ZipCentralDirectoryScanResult.Invalid("Multi-disk ZIP members are not supported.");
+                }
                 long recordLength = 46L
                     + ReadZipUInt16(bytes, headerOffset + 28)
                     + ReadZipUInt16(bytes, headerOffset + 30)
