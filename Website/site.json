@@ -306,21 +306,7 @@
       "Enabled": true,
       "Description": "Agent-facing discovery metadata for OfficeIMO documentation, API reference, and support resources."
     },
-    "A2AAgentCard": {
-      "Enabled": true,
-      "Name": "OfficeIMO Documentation Discovery",
-      "Description": "Discover OfficeIMO documentation, API reference, llms summaries, sitemap, and project resources.",
-      "Url": "/",
-      "DocumentationUrl": "/docs/",
-      "Skills": [
-        {
-          "Id": "documentation-discovery",
-          "Name": "Documentation discovery",
-          "Description": "Find OfficeIMO product documentation, API reference, release resources, and support pages.",
-          "Tags": ["documentation", "api-reference", "sitemap", "llms"]
-        }
-      ]
-    },
+    "A2AAgentCard": { "Enabled": false },
     "McpServerCard": { "Enabled": false },
     "OpenApi": { "Enabled": false },
     "WebMcp": true,
