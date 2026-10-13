@@ -1928,6 +1928,28 @@
         }
       }
     },
+    "Continuous" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortlaufend"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continu"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciągły"
+          }
+        }
+      }
+    },
     "Convert" : {
       "localizations" : {
         "de" : {
@@ -3926,6 +3948,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Idź"
+          }
+        }
+      }
+    },
+    "Grid" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raster"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grille"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siatka"
           }
         }
       }
@@ -6636,6 +6680,28 @@
         }
       }
     },
+    "Reading Layout" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leselayout"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mise en page de lecture"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ czytania"
+          }
+        }
+      }
+    },
     "Reading text on page %lld of %lld" : {
       "localizations" : {
         "de" : {
@@ -7930,6 +7996,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Podpisano"
+          }
+        }
+      }
+    },
+    "Single Page" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einzelseite"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page unique"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pojedyncza strona"
           }
         }
       }
@@ -9360,6 +9448,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ściśle tajne"
+          }
+        }
+      }
+    },
+    "Two Pages" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwei Seiten"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deux pages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dwie strony"
           }
         }
       }

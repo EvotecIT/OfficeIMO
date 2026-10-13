@@ -121,7 +121,7 @@ final class TextSelectionView: NSView, NSMenuItemValidation {
     private func pageText(at location: CGPoint) -> (PageText, CGPoint)? {
         let pages = layout()
         guard !pages.frames.isEmpty else { return nil }
-        let page = pages.page(atY: location.y)
+        let page = pages.page(at: location)
         let frame = pages.frames[page - 1]
         guard frame.insetBy(dx: -8, dy: -8).contains(location), let text = session.pageText(page) else { return nil }
         return (text, CGPoint(x: location.x - frame.minX, y: location.y - frame.minY))

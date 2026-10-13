@@ -65,9 +65,9 @@
           "detail": "Single, continuous, two-page and grid views, view rotation",
           "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
           "notes": {
-            "mac": "Continuous pages with zoom.",
-            "ipad": "Continuous pages with zoom.",
-            "iphone": "Continuous pages with zoom."
+            "mac": "Single page, continuous, two-page and grid; view rotation is planned.",
+            "ipad": "Single page, continuous, two-page and grid; view rotation is planned.",
+            "iphone": "Single page, continuous, two-page and grid; view rotation is planned."
           },
           "roadmap": "phase-7-native-apple-apps"
         },

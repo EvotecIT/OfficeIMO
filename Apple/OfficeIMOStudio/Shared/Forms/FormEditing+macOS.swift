@@ -21,7 +21,7 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
     func click(at location: CGPoint) -> Bool {
         let frames = layout().frames
         guard !frames.isEmpty else { return false }
-        let page = layout().page(atY: location.y)
+        let page = layout().page(at: location)
         let frame = frames[page - 1]
         let point = CGPoint(x: location.x - frame.minX, y: location.y - frame.minY)
         if session.pendingSignature != nil, frame.contains(location) {
@@ -47,7 +47,7 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
     func isField(at location: CGPoint) -> FormField.Kind? {
         let pages = layout()
         guard !pages.frames.isEmpty else { return nil }
-        let page = pages.page(atY: location.y)
+        let page = pages.page(at: location)
         let frame = pages.frames[page - 1]
         return session.formField(at: CGPoint(x: location.x - frame.minX, y: location.y - frame.minY), page: page)?.0.kind
     }

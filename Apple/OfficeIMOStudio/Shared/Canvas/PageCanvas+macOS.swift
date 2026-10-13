@@ -14,6 +14,7 @@ struct PageCanvas: NSViewRepresentable {
     func updateNSView(_ view: PageScrollView, context: Context) {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
+        view.setReadingLayout(session.readingLayout, page: session.currentPage)
         if let request = session.canvasRequest { view.handle(request) }
         let dragTool = session.pageDragTool
         view.setMarkupActive(session.task == .markup && session.canEditAnnotations)
@@ -83,6 +84,16 @@ final class PageScrollView: NSScrollView {
             updateTiles()
             return
         }
+        layoutChanged()
+    }
+
+    /// Lays the pages out for reading: Single Page shows the given page, the others ignore it.
+    func setReadingLayout(_ mode: ReadingLayout, page: Int) {
+        if tiles.setLayout(mode, shownPage: page) { layoutChanged() }
+    }
+
+    /// Sizes the views to a new layout; the next layout pass fits the zoom and shows the current page.
+    private func layoutChanged() {
         pages.frame = CGRect(origin: .zero, size: tiles.layout.size)
         markup.frame = pages.bounds
         drag.frame = pages.bounds

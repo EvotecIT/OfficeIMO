@@ -181,6 +181,12 @@ struct DocumentToolbar: ToolbarContent {
                 ForEach(StudioTask.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
             }
             .pickerStyle(.inline)
+            Picker(selection: $session.readingLayout) {
+                ForEach(ReadingLayout.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
+            } label: {
+                Label("Reading Layout", systemImage: session.readingLayout.systemImage)
+            }
+            .pickerStyle(.menu)
             Section {
                 Button("Make Searchable", systemImage: "text.viewfinder") { session.makeSearchable() }
                     .disabled(!session.canMakeSearchable)

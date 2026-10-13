@@ -160,7 +160,7 @@ final class TextSelectionController: NSObject, @preconcurrency UIEditMenuInterac
         let location = gesture.location(in: scrollView.contentView)
         let layout = scrollView.tiles.layout
         guard !layout.frames.isEmpty else { return nil }
-        let page = layout.page(atY: location.y)
+        let page = layout.page(at: location)
         let frame = layout.frames[page - 1]
         guard frame.insetBy(dx: -8, dy: -8).contains(location) else { return nil }
         return (page, CGPoint(x: location.x - frame.minX, y: location.y - frame.minY))

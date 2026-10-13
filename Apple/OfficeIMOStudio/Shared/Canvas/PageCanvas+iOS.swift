@@ -14,6 +14,7 @@ struct PageCanvas: UIViewRepresentable {
     func updateUIView(_ view: PageScrollView, context: Context) {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
+        view.setReadingLayout(session.readingLayout, page: session.currentPage)
         if let request = session.canvasRequest { view.handle(request) }
         let dragTool = session.pageDragTool
         let drawing = session.task == .markup && session.canEditAnnotations && dragTool == nil
@@ -51,6 +52,8 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     var contentView: UIView { content }
     private(set) lazy var markup = MarkupController(session: session, scrollView: self)
     let doubleTap = UITapGestureRecognizer()
+    /// In Single Page, a swipe left shows the next page and a swipe right the previous one.
+    private let swipes = [UISwipeGestureRecognizer(), UISwipeGestureRecognizer()]
     private(set) lazy var textSelection = TextSelectionController(session: session, scrollView: self)
     private(set) lazy var forms = FormController(session: session, scrollView: self)
     private(set) lazy var drag = PageDragController(session: session, scrollView: self)
@@ -72,6 +75,13 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
             self?.markup.revisionShown(revision)
             self?.drag.revisionShown(revision)
         }
+        swipes[0].direction = .left
+        swipes[1].direction = .right
+        for swipe in swipes {
+            swipe.addTarget(self, action: #selector(swiped(_:)))
+            swipe.isEnabled = false
+            addGestureRecognizer(swipe)
+        }
         doubleTap.addTarget(self, action: #selector(doubleTapped(_:)))
         doubleTap.numberOfTapsRequired = 2
         addGestureRecognizer(doubleTap)
@@ -90,6 +100,17 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
             updateTiles(settled: true)
             return
         }
+        layoutChanged()
+    }
+
+    /// Lays the pages out for reading: Single Page shows the given page, which a swipe across it changes.
+    func setReadingLayout(_ mode: ReadingLayout, page: Int) {
+        for swipe in swipes { swipe.isEnabled = mode == .singlePage }
+        if tiles.setLayout(mode, shownPage: page) { layoutChanged() }
+    }
+
+    /// Sizes the content to a new layout; the next layout pass fits the width and shows the current page.
+    private func layoutChanged() {
         let zoom = zoomScale
         zoomScale = 1
         content.frame = CGRect(origin: .zero, size: tiles.layout.size)
@@ -185,6 +206,12 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     }
 
     // MARK: Zoom and position
+
+    @objc private func swiped(_ gesture: UISwipeGestureRecognizer) {
+        // Only while the page fits the width; zoomed in, a swipe scrolls across the page.
+        guard contentSize.width <= bounds.width - safeAreaInsets.left - safeAreaInsets.right + 1 else { return }
+        if gesture.direction == .left { session.showNextPage() } else { session.showPreviousPage() }
+    }
 
     @objc private func doubleTapped(_ gesture: UITapGestureRecognizer) {
         if zoomScale > fitZoom * 1.05 {

@@ -22,6 +22,9 @@ final class PageTiles {
     /// The pages, positioned in PDF points from the top left. The host adds it to its zooming view.
     let layer = CALayer()
     private(set) var layout = PageLayout(pages: [])
+    /// The reading layout, and the page Single Page shows.
+    private(set) var mode = ReadingLayout.continuous
+    private var shownPage = 1
 
     private var engine: EngineDocument?
     private var facts: DocumentFacts?
@@ -51,7 +54,7 @@ final class PageTiles {
     func show(_ engine: EngineDocument, facts: DocumentFacts) {
         guard engine !== self.engine || facts.revision != self.facts?.revision else { return }
         cancelAll()
-        let newLayout = PageLayout(pages: facts.pages)
+        let newLayout = PageLayout(pages: facts.pages, mode: mode, shownPage: shownPage)
         let keepsLayout = engine === self.engine && newLayout == layout
         self.engine = engine
         self.facts = facts
@@ -68,6 +71,25 @@ final class PageTiles {
             needed.removeAll()
             return
         }
+        apply(newLayout)
+    }
+
+    /// Lays the pages out in a reading layout, Single Page showing one page. Returns whether the layout changed, so
+    /// the host sizes its view again.
+    @discardableResult
+    func setLayout(_ mode: ReadingLayout, shownPage: Int) -> Bool {
+        self.mode = mode
+        self.shownPage = shownPage
+        guard let facts else { return false }
+        let newLayout = PageLayout(pages: facts.pages, mode: mode, shownPage: shownPage)
+        guard newLayout != layout else { return false }
+        cancelAll()
+        apply(newLayout)
+        lastVisible = .null
+        return true
+    }
+
+    private func apply(_ newLayout: PageLayout) {
         layout = newLayout
         withoutAnimation {
             staleLayers.forEach { $0.removeFromSuperlayer() }
@@ -208,7 +230,7 @@ final class PageTiles {
                 previews[page] = nil
             }
         }
-        for page in previewRange where previews[page] == nil && previewTasks[page] == nil {
+        for page in previewRange where previews[page] == nil && previewTasks[page] == nil && !layout.frames[page - 1].isEmpty {
             renderPreview(page, facts: facts)
         }
 
@@ -286,7 +308,7 @@ final class PageTiles {
         guard tileScale > 0, let range = layout.pages(in: rect) else { return [] }
         var keys = Set<TileKey>()
         let side = Double(Self.tileSize)
-        for page in range where tileScale > previewScale(page) * 1.15 {
+        for page in range where !layout.frames[page - 1].isEmpty && tileScale > previewScale(page) * 1.15 {
             let frame = layout.frames[page - 1]
             let local = rect.intersection(frame).offsetBy(dx: -frame.minX, dy: -frame.minY)
             guard !local.isNull, !local.isEmpty else { continue }

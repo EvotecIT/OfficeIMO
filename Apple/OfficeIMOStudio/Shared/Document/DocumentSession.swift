@@ -82,6 +82,13 @@ final class DocumentSession {
     var zoomToFit = 1.0
     /// Points on screen per PDF point, reported by the page view.
     var zoom = 1.0
+    /// How the pages are laid out for reading; the last choice is kept for new windows.
+    var readingLayout = ReadingLayout(rawValue: UserDefaults.standard.string(forKey: "ReadingLayout") ?? "") ?? .continuous {
+        didSet {
+            UserDefaults.standard.set(readingLayout.rawValue, forKey: "ReadingLayout")
+            zoomToFit = 1
+        }
+    }
     private(set) var canvasRequest: CanvasRequest?
     /// The window's undo manager, which the system's Edit menu, undo gestures and edited state follow.
     @ObservationIgnored weak var undoManager: UndoManager?
