@@ -93,7 +93,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         cancellationToken.ThrowIfCancellationRequested();
         rootObjectNumber = RequireRootObjectNumber(security, objects);
 
-        var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken);
+        var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken, undefinedReferencesAreNull: true);
         PdfIndirectObject root = objects[rootObjectNumber];
         collector.CollectObjectGraph(new PdfReference(root.ObjectNumber, root.Generation));
         if (infoObjectNumber.HasValue) {
@@ -123,7 +123,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, minimumVersion);
             if (root.Value is PdfDictionary catalog && catalog.Items.ContainsKey("Version")) {
                 catalog.Items["Version"] = new PdfName(PdfFileAssembler.GetHeaderVersion(minimumVersion));
-                collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken);
+                collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken, undefinedReferencesAreNull: true);
                 collector.CollectObjectGraph(new PdfReference(root.ObjectNumber, root.Generation));
                 if (infoObjectNumber.HasValue) {
                     PdfIndirectObject info = objects[infoObjectNumber.Value];
@@ -144,7 +144,8 @@ internal static class PdfDocumentObjectGraphRewriter {
             new Dictionary<int, Dictionary<string, PdfObject>>(),
             objects,
             preserveRawStringBytes: true,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            undefinedObjectNumbers: collector.UndefinedObjectNumbers);
         if (maximumOutputBytes.HasValue) {
             byte[] bounded = RewriteBounded(
                 objects,

@@ -57,4 +57,42 @@ public sealed class PdfDictionaryBoundaryTests {
         Assert.Equal(new[] { "Check", "Name" }, info.FormFields.Select(static field => field.Name).Order());
         Assert.Equal("a >> b", info.FormFields.Single(static field => field.Name == "Name").AlternateName);
     }
+
+    [Fact]
+    public void A_reference_to_an_undefined_object_reads_as_null_when_the_document_is_rewritten() {
+        // ISO 32000-2 7.3.10: an indirect reference to an object that is not defined is the null object, not an error.
+        // Producers such as PDFKit leave them behind; encrypting rewrites every object and keeps the reference as null.
+        string content = "BT /F1 12 Tf 50 700 Td (Kept) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<</Type/Catalog/Pages 2 0 R/PieceInfo<</Studio<</Data 99 0 R/LastModified(D:20260101000000)>>>>>>",
+            "endobj",
+            "2 0 obj",
+            "<</Type/Pages/Count 1/Kids[3 0 R]>>",
+            "endobj",
+            "3 0 obj",
+            "<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 300]/Resources<</Font<</F1 5 0 R>>>>/Contents 4 0 R>>",
+            "endobj",
+            "4 0 obj",
+            $"<</Length {content.Length}>>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>",
+            "endobj",
+            "trailer",
+            "<</Root 1 0 R/Size 6>>",
+            "%%EOF"
+        });
+
+        PdfSecurityMutationResult result = PdfDocument.Load(Encoding.ASCII.GetBytes(pdf)).Security
+            .Encrypt(new PdfStandardEncryptionOptions("open"));
+
+        PdfDocument encrypted = PdfDocument.Load(result.Pdf, new PdfLoadOptions { Password = "open" });
+        Assert.Single(encrypted.Text.Find("Kept"));
+        Assert.True(result.PreservationReport.IsPreserved);
+    }
 }

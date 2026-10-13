@@ -28,7 +28,7 @@ internal static partial class PdfPageExtractor {
         pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides,
             catalogState, copiedPageObjectIds, cancellationToken);
     
-        var collector = new ObjectCollector(sourceObjects, pageOverrides, cancellationToken);
+        var collector = new ObjectCollector(sourceObjects, pageOverrides, cancellationToken: cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {
             collector.CollectPage(pageObjectNumber);
         }
