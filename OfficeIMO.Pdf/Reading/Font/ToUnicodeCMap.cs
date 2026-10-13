@@ -47,8 +47,19 @@ internal sealed class ToUnicodeCMap {
     private int _processedMappings;
     private int _reverseMapNodeCount = 1;
     private bool _reverseMapBudgetExhausted;
+    private long _retainedMappingTextCharacters;
+    private long _retainedReverseCodeCharacters;
+    private int _reverseMapTerminalCount;
 
     internal int MappingCount => _map.Count;
+
+    /// <summary>Conservative retained-size estimate used when admitting a font to the document cache.</summary>
+    /// <remarks>Allowances cover mapping entries and strings, plus reverse nodes, sparse child dictionaries
+    /// and their capacity. Reverse terminal strings can outlive replacement of a forward mapping.</remarks>
+    internal long EstimatedRetainedBytes =>
+        _map.Count * 128L + _retainedMappingTextCharacters * sizeof(char) +
+        _reverseMapNodeCount * 256L + _reverseMapTerminalCount * 24L +
+        _retainedReverseCodeCharacters * sizeof(char);
 
     /// <summary>Source code hex strings and their mapped text.</summary>
     internal IEnumerable<KeyValuePair<string, string>> Mappings => _map;
@@ -161,6 +172,9 @@ internal sealed class ToUnicodeCMap {
         string key = srcHex.ToUpperInvariant();
         // dst may be multi-codepoints; keep as UTF-16 string
         string s = HexToString(dstHex);
+        if (_map.TryGetValue(key, out string? previous)) _retainedMappingTextCharacters -= previous.Length;
+        else _retainedMappingTextCharacters += key.Length;
+        _retainedMappingTextCharacters += s.Length;
         _map[key] = s;
         if (!_reverseMapBudgetExhausted && s.Length > 0 && s.Length <= MaxReverseMappingTextCharacters) {
             ReverseMapNode node = _reverseMapRoot;
@@ -171,7 +185,13 @@ internal sealed class ToUnicodeCMap {
                 }
             }
 
-            node.CodeHex ??= key;
+            if (node.CodeHex is null) {
+                node.CodeHex = key;
+                // Reverse terminals and partially created branches survive forward-map replacement.
+                // Charge their source strings separately, including conservative string-object overhead.
+                _retainedReverseCodeCharacters += key.Length;
+                _reverseMapTerminalCount++;
+            }
         }
     }
 

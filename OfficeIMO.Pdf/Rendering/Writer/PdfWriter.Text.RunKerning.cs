@@ -9,9 +9,9 @@ internal static partial class PdfWriter {
         private const long MaximumKerningWork = 1_000_000;
         private long _work;
         private readonly PdfOptions? _options;
-        private readonly Dictionary<RichSeg, PdfTextShowCommand> _commands = new();
-        private readonly Dictionary<(PdfStandardFont, PdfNamedFontFace?), RunKerningFont?> _fonts = new();
-        private readonly Dictionary<(RichSeg, RichSeg, int), double> _adjustments = new();
+        private Dictionary<RichSeg, PdfTextShowCommand>? _commands;
+        private Dictionary<(PdfStandardFont, PdfNamedFontFace?), RunKerningFont?>? _fonts;
+        private Dictionary<(RichSeg, RichSeg, int), double>? _adjustments;
 
         public RichRunKerning(PdfOptions? options) => _options = options;
 
@@ -44,6 +44,7 @@ internal static partial class PdfWriter {
 
         public double MeasureWordAdjustment(RichSeg first, IReadOnlyList<RichSeg>? remaining) {
             if (remaining == null || remaining.Count == 0) return 0D;
+            if (!HasKerningFeature(first) && !remaining.Any(HasKerningFeature)) return 0D;
             SpendWork((long)remaining.Count + 1);
             var segments = new RichSeg[remaining.Count + 1];
             segments[0] = first;
@@ -53,6 +54,8 @@ internal static partial class PdfWriter {
 
         private double GetAdjustment(IReadOnlyList<RichSeg> segments) {
             if (segments.Count < 2) return 0D;
+            if (!segments.Any(HasKerningFeature)) return 0D;
+            _adjustments ??= new();
             var key = (segments[0], segments[segments.Count - 1], segments.Count);
             if (!_adjustments.TryGetValue(key, out double adjustment)) {
                 adjustment = PositionSpans(segments, apply: false);
@@ -60,6 +63,9 @@ internal static partial class PdfWriter {
             }
             return adjustment;
         }
+
+        private static bool HasKerningFeature(RichSeg segment) =>
+            segment.FeatureSettings.TryGetValue("kern", out int kern) && kern > 0;
 
         private bool Compatible(RichSeg left, RichSeg right) {
             bool compatible = _options != null
@@ -163,6 +169,7 @@ internal static partial class PdfWriter {
         }
 
         private PdfTextShowCommand GetCommand(RichSeg segment) {
+            _commands ??= new();
             if (!_commands.TryGetValue(segment, out PdfTextShowCommand? command)) {
                 command = EncodeTextShowCommand(segment.Text, segment.Font, segment.NamedFont, _options,
                     segment.FeatureSettings, segment.TextDirection, segment.FontMetricScale, segment.HorizontalTextScaling);
@@ -173,6 +180,7 @@ internal static partial class PdfWriter {
 
         private RunKerningFont? GetFont(RichSeg segment) {
             var key = (segment.Font, segment.NamedFont);
+            _fonts ??= new();
             if (_fonts.TryGetValue(key, out RunKerningFont? state)) return state;
             byte[]? data = null;
             if (segment.NamedFont is PdfNamedFontFace named) {

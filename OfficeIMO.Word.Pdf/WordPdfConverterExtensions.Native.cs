@@ -220,6 +220,7 @@ namespace OfficeIMO.Word.Pdf {
                 cancellationToken.ThrowIfCancellationRequested();
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers);
                 WordSection firstSection = sections[sectionIndex];
+                bool preserveSectionPageCounts = UsesNativeSectionPageCounts(firstSection);
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
@@ -237,10 +238,16 @@ namespace OfficeIMO.Word.Pdf {
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         WordSection section = sections[currentSectionIndex];
+                        if (preserveSectionPageCounts) pdf.BeginRunningContentSection(currentSectionIndex);
                         footnoteNumbersById.BeginSection(section);
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById, documentEndnotes);
                         if (currentSectionIndex + 1 == sections.Count) footnotes.AddRange(documentEndnotes);
+
+                        if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap)) {
+                            RenderNativeFootnotes(flow, footnotes);
+                            continue;
+                        }
 
                         if (TryRenderNativeSectionColumns(
                             page,
@@ -318,20 +325,20 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (WordSection section in document.Sections) {
-                if (IsNativeDescendantOf(paragraph._paragraph, section.Header?.Default?._header) ||
-                    IsNativeDescendantOf(paragraph._paragraph, section.Footer?.Default?._footer)) {
+                if (IsNativeDescendantOf(paragraph._paragraph, section.ResolveDefaultHeader()?._header) ||
+                    IsNativeDescendantOf(paragraph._paragraph, section.ResolveDefaultFooter()?._footer)) {
                     return true;
                 }
 
                 if (section.DifferentFirstPage &&
-                    (IsNativeDescendantOf(paragraph._paragraph, section.Header?.First?._header) ||
-                     IsNativeDescendantOf(paragraph._paragraph, section.Footer?.First?._footer))) {
+                    (IsNativeDescendantOf(paragraph._paragraph, section.ResolveFirstHeader()?._header) ||
+                     IsNativeDescendantOf(paragraph._paragraph, section.ResolveFirstFooter()?._footer))) {
                     return true;
                 }
 
                 if (section.DifferentOddAndEvenPages &&
-                    (IsNativeDescendantOf(paragraph._paragraph, section.Header?.Even?._header) ||
-                     IsNativeDescendantOf(paragraph._paragraph, section.Footer?.Even?._footer))) {
+                    (IsNativeDescendantOf(paragraph._paragraph, section.ResolveEvenHeader()?._header) ||
+                     IsNativeDescendantOf(paragraph._paragraph, section.ResolveEvenFooter()?._footer))) {
                     return true;
                 }
             }
@@ -409,9 +416,15 @@ namespace OfficeIMO.Word.Pdf {
             Math.Abs(first - second) < 0.001D;
 
         private static bool NativeSectionHeaderFooterReferencesEquivalent(WordSection first, WordSection second) =>
-            NativeOpenXmlChildrenEquivalent<W.HeaderReference>(first, second) &&
-            NativeOpenXmlChildrenEquivalent<W.FooterReference>(first, second) &&
-            NativeOpenXmlChildEquivalent<W.TitlePage>(first, second);
+            first.DifferentFirstPage == second.DifferentFirstPage &&
+            ReferenceEquals(first.ResolveDefaultHeader()?._header, second.ResolveDefaultHeader()?._header) &&
+            ReferenceEquals(first.ResolveDefaultFooter()?._footer, second.ResolveDefaultFooter()?._footer) &&
+            (!first.DifferentFirstPage ||
+                (ReferenceEquals(first.ResolveFirstHeader()?._header, second.ResolveFirstHeader()?._header) &&
+                 ReferenceEquals(first.ResolveFirstFooter()?._footer, second.ResolveFirstFooter()?._footer))) &&
+            (!first.DocumentOddEvenSettingEnabled ||
+                (ReferenceEquals(first.ResolveEvenHeader()?._header, second.ResolveEvenHeader()?._header) &&
+                 ReferenceEquals(first.ResolveEvenFooter()?._footer, second.ResolveEvenFooter()?._footer)));
 
         private static bool NativeSectionPageNumberingEquivalent(WordSection first, WordSection second) =>
             NativeOpenXmlChildEquivalent<W.PageNumberType>(first, second);
@@ -422,13 +435,6 @@ namespace OfficeIMO.Word.Pdf {
                 first._sectionProperties?.GetFirstChild<T>()?.OuterXml,
                 second._sectionProperties?.GetFirstChild<T>()?.OuterXml,
                 StringComparison.Ordinal);
-
-        private static bool NativeOpenXmlChildrenEquivalent<T>(WordSection first, WordSection second)
-            where T : DocumentFormat.OpenXml.OpenXmlElement {
-            string[] firstValues = first._sectionProperties?.Elements<T>().Select(element => element.OuterXml).ToArray() ?? Array.Empty<string>();
-            string[] secondValues = second._sectionProperties?.Elements<T>().Select(element => element.OuterXml).ToArray() ?? Array.Empty<string>();
-            return firstValues.SequenceEqual(secondValues, StringComparer.Ordinal);
-        }
 
         private static IReadOnlyList<WordElement> CollapseNativeParagraphElements(IEnumerable<WordElement> elements) {
             var collapsed = new List<WordElement>();

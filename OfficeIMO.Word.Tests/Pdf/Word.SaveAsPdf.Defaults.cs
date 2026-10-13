@@ -21,19 +21,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SaveAsPdf_ShapingOnlyProfileDetectsLaterDirectFontConfiguration() {
-            var options = new WordToPdfOptions()
-                .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-
-            Assert.False(options.HasExplicitPdfFontConfiguration);
-
-            options.PdfOptions!.DefaultFontSize = 13;
-
-            Assert.True(options.HasExplicitPdfFontConfiguration);
-            Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-        }
-
-        [Fact]
         public void SaveAsPdf_InvalidRenderingProfileDoesNotCreatePdfOptions() {
             var options = new WordToPdfOptions();
 

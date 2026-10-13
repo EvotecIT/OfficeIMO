@@ -71,6 +71,7 @@ internal static partial class PdfWriter {
         private void AdvanceColumnFrame(bool forcePhysicalPage, bool preserveEmptyPage = false) {
             cancellationToken.ThrowIfCancellationRequested();
             ColumnFlowScope scope = activeColumnFlow ?? throw new InvalidOperationException("There is no active column frame.");
+            if (preserveEmptyPage) RecordRunningContentSection();
             PrepareActiveContainerScopesForPageBreak(scope.ContainerDepth);
             FinishColumnFrame(scope);
             currentOpts = scope.ParentOptions;
