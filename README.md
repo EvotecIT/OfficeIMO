@@ -89,6 +89,17 @@ The [feature table on the Studio page](https://officeimo.com/studio/#features) s
 
 The [OfficeIMO command-line tool](OfficeIMO.Tool/README.md) runs the same conversions, extraction and workflows from scripts, and serves them to AI agents over MCP.
 
+## OfficeIMO for AI agents
+
+Claude Code, Codex, VS Code with GitHub Copilot, Cursor and other MCP clients use OfficeIMO to inspect, search, fetch and convert local Word, Excel, PowerPoint, PDF and mail files, and to make separate PDF outputs. The [OfficeIMO Document Tools plugin](.agents/plugins/officeimo-document-tools/README.md) adds two Agent Skills and the MCP server, which runs on your computer and opens only the folders you allow:
+
+```text
+claude plugin marketplace add EvotecIT/OfficeIMO
+codex plugin marketplace add EvotecIT/OfficeIMO --ref master --sparse .agents/plugins
+```
+
+The [AI agents page](https://officeimo.com/agents/) has one-click installation for VS Code and Cursor, the configuration for other clients, every tool the server provides, and the directories that list OfficeIMO.
+
 ## Packages and tools
 
 Every checked item below is implemented today. Detailed behavior, examples, and fidelity boundaries live in each project README.

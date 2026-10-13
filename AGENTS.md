@@ -29,6 +29,12 @@
 - When planned work is delivered, update the matrix and remove the completed roadmap text in the same change. Keep the matrix's `roadmap` milestones as summaries of open `Docs/ROADMAP.md` sections, not a second backlog.
 - Run `Website/scripts/Test-StudioFeatureMatrix.ps1` after editing the matrix or renaming roadmap headings.
 
+## AI agent integrations page
+
+- `Website/data/agent_integrations.json` is the public record of how agents use OfficeIMO: the clients and how to install in each, the directories that list it, the MCP tools, the plugin's skills, and the website's agent-facing resources. The [AI agents page](https://officeimo.com/agents/) renders it.
+- Adding, renaming or removing an MCP tool or plugin skill updates the page's `tools` or `skills` in the same change. Mark a client ready only when it installs through the client's own documented plugin or MCP mechanism and the server starts with exactly that configuration; a directory is listed only once the listing is live, with its URL. Planned entries link to a `Docs/ROADMAP.md` section.
+- Install commands and configurations use `{version}`; the release binding updates `pluginVersion` with the plugin. Run `Website/scripts/Test-AgentIntegrations.ps1`, which checks the tools against the server's registrations, the skills against the plugin and the install configurations against its `mcp.json`.
+
 ## Testing evidence
 
 - Do not use product unit tests to pin human-authored README, roadmap, migration, compatibility, planning, or agent prose.

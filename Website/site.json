@@ -478,6 +478,14 @@
         ]
       },
       {
+        "Match": "/agents/",
+        "Bundles": [
+          "global",
+          "experience",
+          "applications"
+        ]
+      },
+      {
         "Match": "/libraries/",
         "Bundles": [
           "global",
@@ -768,6 +776,12 @@
           "Description": "Scripts, CI jobs and MCP"
         },
         {
+          "Title": "Agents",
+          "Url": "/agents/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "MCP server, plugin and skills for AI agents"
+        },
+        {
           "Title": ".NET",
           "Url": "/libraries/",
           "CssClass": "imo-nav__item--product",
@@ -864,6 +878,10 @@
         {
           "Title": "CLI",
           "Url": "/tool/"
+        },
+        {
+          "Title": "AI agents",
+          "Url": "/agents/"
         },
         {
           "Title": ".NET libraries",

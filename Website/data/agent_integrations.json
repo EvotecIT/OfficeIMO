@@ -1,0 +1,150 @@
+{
+  "pluginVersion": "3.4.5",
+  "roadmapBase": "https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/ROADMAP.md",
+  "pluginUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools",
+  "mcpConfig": "{\"name\":\"officeimo\",\"type\":\"stdio\",\"command\":\"dotnet\",\"args\":[\"dnx\",\"OfficeIMO.Tool@{version}\",\"mcp\",\"serve\",\"--stdio\"],\"env\":{\"OFFICEIMO_MCP_ALLOWED_ROOTS\":\"${workspaceFolder}\"}}",
+  "cursorConfig": "{\"command\":\"dotnet\",\"args\":[\"dnx\",\"OfficeIMO.Tool@{version}\",\"mcp\",\"serve\",\"--stdio\"],\"env\":{\"OFFICEIMO_MCP_ALLOWED_ROOTS\":\"${workspaceFolder}\"}}",
+  "states": [
+    { "id": "ready", "label": "Ready", "description": "Install with the client's own plugin or MCP commands" },
+    { "id": "manual", "label": "Manual setup", "description": "Add the MCP server to the client's configuration" },
+    { "id": "listed", "label": "Listed", "description": "Find OfficeIMO in the directory today" },
+    { "id": "planned", "label": "Planned", "description": "On the roadmap; follow the link for details" }
+  ],
+  "clients": [
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "kind": "Plugin with skills and MCP server",
+      "state": "ready",
+      "detail": "Adds the plugin marketplace from GitHub, then installs the plugin with its two skills and the MCP server.",
+      "commands": [
+        "claude plugin marketplace add EvotecIT/OfficeIMO",
+        "claude plugin install officeimo-document-tools@officeimo"
+      ]
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "kind": "Plugin with skills and MCP server",
+      "state": "ready",
+      "detail": "The Codex CLI and app read the same plugin from the repository's plugin marketplace.",
+      "commands": [
+        "codex plugin marketplace add EvotecIT/OfficeIMO --ref master --sparse .agents/plugins",
+        "codex plugin add officeimo-document-tools@officeimo"
+      ]
+    },
+    {
+      "id": "vscode",
+      "name": "VS Code with GitHub Copilot",
+      "kind": "MCP server",
+      "state": "ready",
+      "detail": "Installs the MCP server for agent mode, with the open workspace folder as the folder it may read and write.",
+      "link": "vscode",
+      "linkLabel": "Install in VS Code"
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "kind": "MCP server",
+      "state": "ready",
+      "detail": "Adds the MCP server to Cursor, with the open workspace folder as the folder it may read and write.",
+      "link": "cursor",
+      "linkLabel": "Add to Cursor"
+    },
+    {
+      "id": "claude-desktop",
+      "name": "Claude Desktop",
+      "kind": "MCP server",
+      "state": "manual",
+      "detail": "Add the server under mcpServers in Settings › Developer › Edit Config, with the folders it may use, then restart Claude.",
+      "config": "claude"
+    },
+    {
+      "id": "other",
+      "name": "Gemini CLI, JetBrains, Windsurf, Zed and other MCP clients",
+      "kind": "MCP server",
+      "state": "manual",
+      "detail": "Any client that starts local stdio MCP servers runs the same command; set the allowed folders in its environment.",
+      "commands": [
+        "dotnet dnx OfficeIMO.Tool@{version} mcp serve --stdio"
+      ]
+    }
+  ],
+  "directories": [
+    {
+      "id": "context7",
+      "name": "Context7",
+      "state": "listed",
+      "detail": "Up-to-date OfficeIMO documentation and code examples for agents that use Context7.",
+      "url": "https://context7.com/evotecit/officeimo"
+    },
+    {
+      "id": "gitmcp",
+      "name": "GitMCP",
+      "state": "listed",
+      "detail": "A documentation MCP server over this repository's README and llms.txt, at gitmcp.io/EvotecIT/OfficeIMO.",
+      "url": "https://gitmcp.io/EvotecIT/OfficeIMO"
+    },
+    {
+      "id": "mcp-registry",
+      "name": "Official MCP Registry",
+      "state": "planned",
+      "detail": "io.github.evotecit/officeimo, verified against the NuGet package. VS Code, GitHub Copilot and other registries list servers from it.",
+      "roadmap": "product-discovery-and-public-evidence"
+    },
+    {
+      "id": "claude-directory",
+      "name": "Claude plugin directory",
+      "state": "planned",
+      "detail": "The plugin with its skills, reviewed by Anthropic for Claude Code and the Claude apps.",
+      "roadmap": "product-discovery-and-public-evidence"
+    },
+    {
+      "id": "openai-directory",
+      "name": "ChatGPT and Codex plugin directory",
+      "state": "planned",
+      "detail": "The plugin reviewed by OpenAI for ChatGPT and Codex.",
+      "roadmap": "product-discovery-and-public-evidence"
+    },
+    {
+      "id": "cursor-marketplace",
+      "name": "Cursor Marketplace",
+      "state": "planned",
+      "detail": "The plugin reviewed by Cursor for one-click installation.",
+      "roadmap": "product-discovery-and-public-evidence"
+    }
+  ],
+  "skills": [
+    {
+      "name": "officeimo-document-operator",
+      "detail": "Inspect, search, summarize, extract or convert Word, Excel, PowerPoint, PDF, OpenDocument, OneNote, Markdown, HTML, CSV and EPUB files, and make separate PDF outputs."
+    },
+    {
+      "name": "officeimo-mailbox-operator",
+      "detail": "Search and inspect MSG, EML, PST, OST, OLM, EMLX and Mbox mail without loading a whole mailbox into the conversation."
+    }
+  ],
+  "tools": [
+    { "name": "officeimo_inspect", "writes": false, "detail": "Metadata and a structural summary of a document or mail store" },
+    { "name": "officeimo_inspect_email", "writes": false, "detail": "Mail metadata, charset and attachment diagnostics, and HTML safety findings" },
+    { "name": "officeimo_search", "writes": false, "detail": "Search a document or mailbox and return hits to fetch selectively" },
+    { "name": "officeimo_search_email", "writes": false, "detail": "Bounded search of mail bodies, recipients and attachment names" },
+    { "name": "officeimo_fetch", "writes": false, "detail": "Fetch one chosen result, a page at a time" },
+    { "name": "officeimo_capabilities", "writes": false, "detail": "Which formats and operations are supported" },
+    { "name": "officeimo_convert", "writes": true, "detail": "Write a document as Markdown or Reader JSON" },
+    { "name": "officeimo_pdf", "writes": true, "detail": "Extract pages, decrypt with the owner's password, flatten, optimize or sanitize into a new PDF" },
+    { "name": "officeimo_pdf_split", "writes": true, "detail": "Split a PDF into parts in a new folder" },
+    { "name": "officeimo_pdf_assemble", "writes": true, "detail": "Combine PDFs and images, in order, into one PDF" },
+    { "name": "officeimo_pdf_export_pages", "writes": true, "detail": "Save chosen pages as images" },
+    { "name": "officeimo_pdf_ocr_providers", "writes": false, "detail": "Text-recognition providers the host registered" },
+    { "name": "officeimo_pdf_ocr", "writes": true, "detail": "Make a searchable copy of a scanned PDF" },
+    { "name": "officeimo_pdf_print_plan", "writes": false, "detail": "Plan printed sheets without contacting a printer" },
+    { "name": "officeimo_pdf_compare", "writes": true, "detail": "Compare pages of two PDFs and save an HTML report" }
+  ],
+  "site": [
+    { "name": "llms.txt", "url": "/llms.txt", "detail": "A map of the documentation for language models, with llms-full.txt for the full text" },
+    { "name": "Agent skill", "url": "/.well-known/agent-skills/index.json", "detail": "A skill that teaches an agent how to use this site's documentation and API reference" },
+    { "name": "API catalog", "url": "/.well-known/api-catalog", "detail": "The site's machine-readable JSON indexes, such as packages, formats and capabilities" },
+    { "name": "WebMCP", "url": "/search/", "detail": "In browsers with WebMCP, agents can search the site and run the browser converters on a file you chose" }
+  ]
+}

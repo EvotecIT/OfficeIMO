@@ -109,6 +109,21 @@
     },
     {
       "task": "exec",
+      "id": "test-agent-integrations",
+      "dependsOn": [
+        "test-studio-feature-matrix"
+      ],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-AgentIntegrations.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
       "id": "test-content-layout-contracts",
       "dependsOn": [
         "test-capability-claims"

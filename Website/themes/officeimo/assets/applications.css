@@ -128,10 +128,14 @@
 .imo-studio-state[data-state="partial"] { --state: #b45309; }
 .imo-studio-state[data-state="planned"] { --state: #4f46e5; }
 .imo-studio-state[data-state="not-applicable"] { --state: #94a3b8; }
+.imo-studio-state[data-state="ready"], .imo-studio-state[data-state="listed"] { --state: #059669; }
+.imo-studio-state[data-state="manual"] { --state: #b45309; }
 a.imo-studio-state:hover, a.imo-studio-state:focus-visible { background: color-mix(in srgb, var(--state) 24%, transparent); }
 [data-theme="dark"] .imo-studio-state[data-state="available"] { --state: #34d399; }
 [data-theme="dark"] .imo-studio-state[data-state="partial"] { --state: #fbbf24; }
 [data-theme="dark"] .imo-studio-state[data-state="planned"] { --state: #a5b4fc; }
+[data-theme="dark"] .imo-studio-state[data-state="ready"], [data-theme="dark"] .imo-studio-state[data-state="listed"] { --state: #34d399; }
+[data-theme="dark"] .imo-studio-state[data-state="manual"] { --state: #fbbf24; }
 [data-theme="dark"] .imo-studio-features__apps article[data-status="in-development"] .imo-application-eyebrow { color: #fbbf24; }
 .imo-studio-matrix { overflow: auto; max-height: min(82vh, 1100px); border: 1px solid var(--imo-border); border-radius: 14px; background: var(--imo-surface); }
 .imo-studio-matrix:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
@@ -160,4 +164,31 @@ a.imo-studio-state:hover, a.imo-studio-state:focus-visible { background: color-m
   .imo-studio-matrix tbody th[scope="row"] { min-width: 150px; }
   .imo-studio-matrix tbody th[scope="row"] small { display: none; }
   .imo-studio-matrix td { min-width: 120px; }
+}
+/* AI agent integrations (partials/sections/agent-integrations.html, data/agent_integrations.json). */
+.imo-agents { padding-top: 3rem; scroll-margin-top: 6rem; }
+.imo-agents h2 { font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -.03em; margin-bottom: 1.2rem; }
+.imo-agents__clients { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.imo-agents__client { display: flex; flex-direction: column; gap: .6rem; min-width: 0; border: 1px solid var(--imo-glass-border); border-radius: 12px; padding: 1.3rem 1.4rem; background: var(--imo-surface); }
+.imo-agents__client header { display: flex; align-items: center; justify-content: space-between; gap: .8rem; }
+.imo-agents__client h3 { font-size: 1.05rem; margin: 0; }
+.imo-agents__client > p:not(.imo-application-eyebrow) { color: var(--imo-text-secondary); font-size: .92rem; line-height: 1.55; margin: 0; }
+.imo-agents__client .imo-application-eyebrow { margin: 0; }
+.imo-agents__client .imo-btn { align-self: flex-start; margin-top: .2rem; }
+.imo-agents__command { display: flex; align-items: center; gap: .5rem; min-width: 0; padding: .45rem .5rem .45rem .8rem; border-radius: 8px; background: var(--imo-terminal-bg); color: var(--imo-terminal-text); }
+.imo-agents .imo-agents__command code { flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 12.5px/1.6 var(--imo-font-mono); background: none; border: 0; color: var(--imo-terminal-text); padding: 0; }
+.imo-agents__copy { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: var(--imo-terminal-muted); cursor: pointer; }
+.imo-agents__copy:hover, .imo-agents__copy:focus-visible, .imo-agents__copy.is-copied { color: var(--imo-terminal-text); background: rgba(255, 255, 255, .08); }
+.imo-agents .imo-agents__config { margin: 0; max-width: 100%; overflow-x: auto; padding: .8rem 1rem; border-radius: 8px; background: var(--imo-terminal-bg); color: var(--imo-terminal-text); font: 12px/1.6 var(--imo-font-mono); }
+.imo-agents .imo-agents__config code { background: none; border: 0; color: var(--imo-terminal-text); padding: 0; }
+.imo-agents__note { margin-top: 1.1rem; color: var(--imo-text-secondary); font-size: .9rem; line-height: 1.6; max-width: 70ch; }
+.imo-agents__skills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.2rem; }
+.imo-agents__skills article { border: 1px solid var(--imo-glass-border); border-radius: 12px; padding: 1.2rem 1.4rem; background: var(--imo-surface); }
+.imo-agents__skills h3 { font-size: 1rem; margin-bottom: .4rem; }
+.imo-agents__skills article > p:not(.imo-application-eyebrow) { color: var(--imo-text-secondary); font-size: .92rem; line-height: 1.55; }
+.imo-agents__tools { max-height: none; }
+.imo-agents__tools td { text-align: left; }
+.imo-agents .imo-studio-roadmap__grid .imo-studio-state { align-self: flex-start; margin-bottom: .7rem; }
+@media (max-width: 720px) {
+  .imo-agents__clients, .imo-agents__skills { grid-template-columns: 1fr; }
 }
