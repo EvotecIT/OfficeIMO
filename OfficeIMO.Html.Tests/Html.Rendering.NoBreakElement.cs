@@ -65,6 +65,32 @@ public sealed partial class HtmlRenderingTests {
             + "'>AAAAAA BBBBBB</nobr></span>", wraps);
     }
 
+    [Theory]
+    [InlineData("revert", false)]
+    [InlineData("normal", true)]
+    [InlineData("inherit", true)]
+    [InlineData("initial", true)]
+    public void HtmlNobrCssWide_LayerRollbackRetainsTheEffectiveLowerOrigin(string lowerValue, bool wraps) {
+        AssertNobrLines("<style>@layer a,b;@layer a{nobr{white-space:" + lowerValue
+            + "}}@layer b{nobr{white-space:revert-layer}}</style>"
+            + "<span style='white-space:normal'><nobr>AAAAAA BBBBBB</nobr></span>", wraps);
+    }
+
+    [Theory]
+    [InlineData("revert", "normal")]
+    [InlineData("normal", "normal")]
+    [InlineData("inherit", "nowrap")]
+    [InlineData("nowrap", "nowrap")]
+    public void HtmlNobrCssWide_WbrLayerRollbackRetainsTheEffectiveLowerOrigin(string lowerValue, string expected) {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>@layer a,b;@layer a{wbr{white-space:" + lowerValue
+            + "}}@layer b{wbr{white-space:revert-layer}}</style><nobr>AA<wbr id='target'>BB</nobr>");
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("#target")!];
+
+        Assert.Equal(expected, style.GetValue("white-space"));
+    }
+
     private static void AssertNobrLines(string content, bool wraps) {
         HtmlRenderText[] text = RenderNobrFixture(content);
         Assert.Equal("AAAAAABBBBBB", string.Concat(text.Select(item => item.Text)).Replace(" ", string.Empty));
