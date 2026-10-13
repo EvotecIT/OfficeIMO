@@ -12,6 +12,10 @@ public static partial class WordPdfConverterExtensions {
         out bool behindDocument) {
         x = y = width = height = 0D;
         behindDocument = false;
+        var properties = box.DrawingShapeProperties;
+        if (properties?.GetFirstChild<A.CustomGeometry>() != null ||
+            !string.Equals(properties?.GetFirstChild<A.PresetGeometry>()?.Preset?.InnerText,
+                "rect", StringComparison.Ordinal)) return false;
         if (!WordDrawingLayoutReader.TryRead(box.Drawing, out WordDrawingLayoutSnapshot layout) ||
             layout.Placement != WordDrawingPlacementKind.Anchored || layout.Wrap != WordDrawingWrapKind.Square ||
             layout.HorizontalRelativeFrom != "page" || layout.VerticalRelativeFrom != "page" ||

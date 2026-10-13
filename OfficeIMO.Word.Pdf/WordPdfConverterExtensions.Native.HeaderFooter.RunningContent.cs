@@ -157,6 +157,7 @@ public static partial class WordPdfConverterExtensions {
         WordHeaderFooter? story, WordSection section, WordToPdfOptions? options, NativeFontMap fontMap,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults, bool isFooter,
         bool includeGeneratedPageNumber = true) {
+        defaults = defaults with { RunningStoryHasDisallowedTextBoxPeers = HasNativeRunningStoryPeerConstraint(story, defaults) };
         IReadOnlyList<WordElement> elements = story == null ? Array.Empty<WordElement>() : CollapseNativeParagraphElements(story.Elements);
         RecordNativeRunningStoryJoinDiagnostics(elements, listMarkers, defaults, fontMap, options);
         // Running callbacks are evaluated while the PDF is written, after the
@@ -164,6 +165,7 @@ public static partial class WordPdfConverterExtensions {
         if (story != null)
             foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
+                if (source.Ancestors<W.TextBoxContent>().Any()) continue;
                 var paragraph = new WordParagraph(story.Document, source);
                 List<WordParagraph> runs = GetNativeRuns(paragraph);
                 // Context-dependent fields are assessed when materialized. Keep
@@ -171,7 +173,7 @@ public static partial class WordPdfConverterExtensions {
                 if (source.Descendants<W.SimpleField>().Any() || source.Descendants<W.FieldChar>().Any() ||
                     !TryPrepareNativeAnchoredRunningTextBoxParagraph(GetNativePageSize(section, options), paragraph,
                         runs, null, null, options, defaults with { RunningContentSection = section }, fontMap, out _))
-                    RecordNativeMixedTextBoxDiagnostic(runs, options, "header/footer paragraph");
+                    RecordNativeMixedTextBoxDiagnostic(paragraph, runs, options, "header/footer paragraph");
             }
         // A text-free source footer owns blank geometry; its generated number
         // keeps the established text projection and physical margin. Missing

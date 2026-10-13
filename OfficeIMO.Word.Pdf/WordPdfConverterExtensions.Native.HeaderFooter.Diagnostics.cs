@@ -385,7 +385,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool HasNativeUnsupportedHeaderFooterTextBox(WordParagraph paragraph) =>
-            paragraph.TextBox != null &&
+            FindNativeParagraphTextBox(paragraph) != null &&
             string.IsNullOrWhiteSpace(GetNativeParagraphTextBoxPlainText(paragraph));
 
         private static void RecordNativeBodyTableDiagnostics(WordTable table, WordToPdfOptions? options, string source) {

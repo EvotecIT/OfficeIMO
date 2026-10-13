@@ -17,7 +17,7 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph? nextParagraph = null) {
         CancellationToken cancellationToken = options?.CancellationToken ?? default;
         cancellationToken.ThrowIfCancellationRequested();
-        RecordNativeMixedTextBoxDiagnostic(runs, options,
+        RecordNativeMixedTextBoxDiagnostic(paragraph, runs, options,
             defaults.RunningContentContext == null ? "body paragraph" : "header/footer paragraph");
         int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
         if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
@@ -178,11 +178,11 @@ public static partial class WordPdfConverterExtensions {
         return ordered.OrderBy(item => item.Position).Select(item => item.Run).ToList();
     }
 
-    private static void RecordNativeMixedTextBoxDiagnostic(IReadOnlyList<WordParagraph> runs,
+    private static void RecordNativeMixedTextBoxDiagnostic(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs,
         WordToPdfOptions? options, string source) {
-        if (options != null && runs.Any(run => run.GetTextBoxes().Any()) &&
-            runs.Any(run => run.EnumerateEffectiveRunContent().OfType<W.Text>().Any()))
+        if (options != null && GetNativeVisibleTextBoxes(paragraph, runs).Count > 0 &&
+            runs.Any(run => !IsNativeHiddenTextRun(run, paragraph) && run.EnumerateEffectiveRunContent().OfType<W.Text>().Any()))
             AddNativeExportWarning(options, "NativeMixedTextBoxLayoutApproximated", source,
-                "Text surrounding peer or nested text boxes is retained in source order; anchored box positioning, wrapping and pagination across boxes are approximated by bounded flow.");
+                "Text around text boxes is retained in source order; anchored positioning, shape geometry, wrapping and pagination are approximated by bounded flow.");
     }
 }
