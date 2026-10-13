@@ -1,0 +1,388 @@
+{
+  "schema": "officeimo.html.static-text-table-qualification/v1",
+  "status": "qualified bounded static checkpoint; broader milestones remain open",
+  "recordedUtc": "2026-10-13T22:08:38.259222+00:00",
+  "qualifiedSourceCommit": "caa435cb9041b70de73bdadf5b5fd6c600e8bf45",
+  "scope": "Fixed absolute table track minima, shared intrinsic and paint preparation, contiguous styled-word fitting, empty inline edges, later and middle-run hyphenation, and srcset numeric reliability.",
+  "contracts": {
+    "html": "OfficeIMO.Html/README.md",
+    "roadmap": "Docs/ROADMAP.md",
+    "newPublicApi": false,
+    "newProductionDependency": false,
+    "srcsetNumericOwner": "OfficeIMO.Core/OfficeCssNumber.cs",
+    "productionOwnerChanges": [
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Tables.FixedColumns.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Tables.Columns.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Tables.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Overflow.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineWordFitting.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineEdges.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Floats.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.FirstLine.cs",
+      "OfficeIMO.Html/Images/HtmlSrcSetParser.cs"
+    ]
+  },
+  "boundedBehavior": {
+    "tables": [
+      "Absolute column and first-row cell requests remain minima when their total exceeds a definite table width. Declared columns take precedence; percentage requests use the remaining space.",
+      "Used width propagates through margins, inline and nested sizing, clipping and continuation layout.",
+      "Intrinsic and paint preparation share row order, effective legacy border insets and empty-row column eligibility."
+    ],
+    "styledWords": [
+      "Ordinary and script runs without separators retain word adjacency. Prefixes relocate the joined word; an unbreakable word may overflow an empty line.",
+      "Authored separators, preferred breaks, emergency wrapping, nowrap, cascade importance and valid-value filtering retain their policies.",
+      "Ordinary flow, float exclusion and first-line preparation use the shared fitting boundary; combined float and first-line appearance remains outside the broadly qualified profile."
+    ],
+    "emptyEdges": "Empty decorated inline siblings contribute their advances when deciding whether a joined word must relocate.",
+    "hyphenation": "Later and middle runs consider the current remainder, every joined suffix, inserted hyphen glyph width and applicable character/consecutive-line constraints. Root closure repairs the initial hyphenation guard in ordinary, float and first-line routes.",
+    "srcset": "The observed uncaught 100ms regex timeout on numeric input 1 is removed by reusing the linear shared finite-number scanner. Leading plus and nonpositive values remain invalid; decimal and exponent forms retain the existing reachable grammar."
+  },
+  "sourceProof": {
+    "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/root-final-source-and-tests-caa435cb9041.json",
+    "bytes": 66773,
+    "sha256": "43aac81c3b3229e4ee2e2286420bc481ea4947781d3bc46c3beab34658e2bcc3"
+  },
+  "productionTrees": {
+    "OfficeIMO.Html": "3562d732ece89fb6a4539bce5b225d662f5b8413",
+    "OfficeIMO.Core": "7df2a39412ff2009b36f1d94ebe5cd1ec76e69f3",
+    "OfficeIMO.Pdf": "6f6422424630f0d1822a90140c9b06b2b451fe4f",
+    "OfficeIMO.Html.Pdf": "905855bc9782935edd90290abe206289c34e6264"
+  },
+  "managedCorrectness": {
+    "runs": [
+      {
+        "stage": "styled-owner-closure-focused-net10",
+        "passed": 102,
+        "failed": 0,
+        "command": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/fixed-table-working-validation/styled-owner-closure-focused-net10/command.json",
+          "bytes": 129493,
+          "sha256": "d0fc25657ca03fb3b9b6f66c69899e819ab0ec7876289a17071bf650c982c7e0"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/fixed-table-working-validation/styled-owner-closure-focused-net10/results/styled-owner-closure-focused-net10.trx",
+          "bytes": 174364,
+          "sha256": "b120b144812aabc6c1529c33ee4506dd868759a57d75ef4bba4112f86d9e9878"
+        }
+      },
+      {
+        "stage": "styled-owner-closure-broad-net10",
+        "passed": 6150,
+        "failed": 0,
+        "command": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/fixed-table-working-validation/styled-owner-closure-broad-net10/command.json",
+          "bytes": 129101,
+          "sha256": "14941162ae1fb1a21cefc48dcd09378e1216dcc643b59109f466546b395b1446"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/fixed-table-working-validation/styled-owner-closure-broad-net10/results/styled-owner-closure-broad-net10.trx",
+          "bytes": 10300133,
+          "sha256": "64d720d2f568aaa424ae54b65725ddd07183a1d567b6cc361e9cef26fe031a4c"
+        }
+      },
+      {
+        "stage": "styled-owner-closure-broad-net8",
+        "passed": 6150,
+        "failed": 0,
+        "command": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/fixed-table-working-validation/styled-owner-closure-broad-net8/command.json",
+          "bytes": 129098,
+          "sha256": "78b6489519a9f7afc35551151b30b621343bd6f617696dba42cb8c9ff8d412ef"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/fixed-table-working-validation/styled-owner-closure-broad-net8/results/styled-owner-closure-broad-net8.trx",
+          "bytes": 10287832,
+          "sha256": "cece0db79e34c653e6e183f70bd795b02422bc82f324f3b719e996f9455d9f4b"
+        }
+      }
+    ],
+    "performanceCategoryExcluded": true,
+    "binding": "Full suites ran on unchanged pre-commit source bytes under b77 assembly informational versions; the executed patch equals committed caa435 byte-for-byte. Fresh normal render owners were subsequently built from clean caa435 committed source."
+  },
+  "normalRenderProducer": {
+    "build": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/static-cost-inline-review-remediated-source-only/execution-effect-caa435cb9041/build-stage.json",
+      "bytes": 135465,
+      "sha256": "cb02a25009deeb83294749643744d191350f56061f2755eeeae56f68f63625a8"
+    },
+    "loadedIdentities": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/static-cost-inline-review-remediated-source-only/execution-effect-caa435cb9041/normal-producer-identities.json",
+      "bytes": 7603,
+      "sha256": "956055a3326b2a08fba6850c1e231f80a3c9deed9db621253dcb5cc5d17ebf3f"
+    },
+    "referenceDlls": 12,
+    "officeOwners": 10,
+    "normalProjectReferences": true,
+    "frozenOverlay": false,
+    "dependencySuppression": false
+  },
+  "h4ArtifactPreservation": {
+    "referenceReceipt": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/static-cost-inline-review-remediated-source-only/execution-effect-caa435cb9041/reference-receipt.json",
+      "bytes": 4024,
+      "sha256": "2daa5c863205825210c57fdadcb19b562400f386cebea6a04627ca0c38c39631"
+    },
+    "replayReceipt": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/static-cost-inline-review-remediated-source-only/execution-effect-caa435cb9041/replay-receipt.json",
+      "bytes": 4127,
+      "sha256": "5335dccb01624f58e56bbf4e1e63df140386267cfeba9cf46d22c910d52ba789"
+    },
+    "outputCount": 76,
+    "splitPngs": 30,
+    "completePdfs": 16,
+    "outputBytes": 2599978,
+    "fingerprintSha256": "1843b460fb2c388e20d9fd351745d589e862cd9a7f15f2057b82740aa4f2ae16",
+    "perOutputExact": true,
+    "splitExact": true,
+    "boundary": "Strict original output preservation only; elapsed/allocation/retained/peak-memory budgets are unqualified on this shared host. Windows profiling is deferred."
+  },
+  "publicRenderedCases": [
+    {
+      "contract": "styledWords",
+      "caseCount": 14,
+      "passed": true,
+      "sourceSeal": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/styled-inline-word-remediated-public-review-final-source-only/source-seal.json",
+        "bytes": 23786,
+        "sha256": "d239127cc6ada3ad51b53f9503543a3f905880cd3b66c29f8f2421ccdf1eb927"
+      },
+      "runtimeBinding": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/styled-inline-word-remediated-public-review-final-source-only/bound-runtime-source.json",
+        "bytes": 14382,
+        "sha256": "a762b4bfafd1fb1b945197af4d479398d84d228cf1d2754174952248cfe51c8c"
+      },
+      "receipt": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/styled-inline-word-remediated-public-review-final-source-only/execution-caa435cb9041/run-receipt.json",
+        "bytes": 35011,
+        "sha256": "cd5c3a16d6261c70f1ab97c21c38a43df1aa4631bfece15bc068b2d8769f2464"
+      },
+      "rootVisualReviewComplete": true
+    },
+    {
+      "contract": "fixedTableTracks",
+      "caseCount": 8,
+      "passed": true,
+      "sourceSeal": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/fixed-table-column-minimum-source-only/final-public-replay-review-final-source-only/source-seal.json",
+        "bytes": 18977,
+        "sha256": "a55c17ae9c089ba01252643f0e87c2fbfc9aaf54c2c05620ef23eb10619856d9"
+      },
+      "runtimeBinding": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/fixed-table-column-minimum-source-only/final-public-replay-review-final-source-only/bound-runtime-source.json",
+        "bytes": 15127,
+        "sha256": "b13f3b279ebd97ed49f442b4785c36812c3a6196f64c5573d1180f64daee4403"
+      },
+      "receipt": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/fixed-table-column-minimum-source-only/final-public-replay-review-final-source-only/execution-caa435cb9041/run-receipt.json",
+        "bytes": 11829,
+        "sha256": "39c611fcb61b920fe26d9f2ba7d3152dd5bd0c2957c02e26d722da949e617e3a"
+      },
+      "rootVisualReviewComplete": true
+    },
+    {
+      "contract": "sharedIntrinsicPaint",
+      "caseCount": 3,
+      "passed": true,
+      "sourceSeal": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/fixed-table-column-minimum-source-only/intrinsic-paint-remediated-review-final-v2-source-only/source-seal.json",
+        "bytes": 19449,
+        "sha256": "f4d1dc4a2b6dbab4daf1a1f348ae948fcd0000c1d371e109f2aff58131b6cd8e"
+      },
+      "runtimeBinding": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/fixed-table-column-minimum-source-only/intrinsic-paint-remediated-review-final-v2-source-only/bound-runtime-source.json",
+        "bytes": 14440,
+        "sha256": "ac5a667737008bc8f7bda7317b11be804c51d39cd1a509f3b198366f053b3497"
+      },
+      "receipt": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/fixed-table-column-minimum-source-only/intrinsic-paint-remediated-review-final-v2-source-only/execution-caa435cb9041/run-receipt.json",
+        "bytes": 5472,
+        "sha256": "922e835310ba3d21ccc8b3aa66f4cb6c0d3b843763ee2a40cdcb892dba70fe84"
+      },
+      "rootVisualReviewComplete": true
+    },
+    {
+      "contract": "inlineReviewReproductions",
+      "caseCount": 10,
+      "passed": true,
+      "sourceSeal": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/inline-review-repro-final-v2-source-only/source-seal.json",
+        "bytes": 21883,
+        "sha256": "6fc0e61aae9f883d729740fefa9de1a35f940f0159e1e9ba2986d9ceed081696"
+      },
+      "runtimeBinding": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/inline-review-repro-final-v2-source-only/bound-runtime-source.json",
+        "bytes": 14303,
+        "sha256": "7b4f9558bc82c17b60085dd2c9630c764aa589503580ffa5fbdf60ae67d6a91c"
+      },
+      "receipt": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/inline-review-repro-final-v2-source-only/execution-caa435cb9041/run-receipt.json",
+        "bytes": 18128,
+        "sha256": "46d15b59b58ca9ae155af23de92578b36c5abb477eca7c77950da9361df6d82c"
+      },
+      "rootVisualReviewComplete": true
+    }
+  ],
+  "rootVisualReview": {
+    "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/root-final-caa435-visual-adjudication.json",
+    "bytes": 5688,
+    "sha256": "a96e24a8da225b3c2a8d219b1114c3dd2061cd7eea1b7a1a587ec877f3de0f0b"
+  },
+  "nistFrozenPage": {
+    "freshNativePages": 28,
+    "allRastersEqualPriorViewedB77": true,
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "pages": 9,
+        "pdf": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nist-styled-word-remediated-three-profile-review-final-source-only/execution-caa435cb9041/nist/print-paged.pdf",
+          "bytes": 1504811,
+          "sha256": "6303fdb5e6af0dbf3a9e3a99331544744e8243adf9e4dcecb5e1770f2e44e033"
+        },
+        "sourceRows": 86,
+        "sourceCells": 364,
+        "cellAssociations": {
+          "source-empty-no-observed-text": 13,
+          "exact-source-cell-text-assembled": 347,
+          "ambiguous-line-or-column-geometry": 2,
+          "missing-or-extra-cell-text-association": 2
+        },
+        "sectionsLocated": 6,
+        "articleLinkSourceAnchorsLocated": 26,
+        "reportRecords": 22,
+        "warnings": 6,
+        "hasErrors": false,
+        "hasLoss": true,
+        "steradianFootnoteOnSameObservedLine": true,
+        "scriptOrNobrLineSplitSourcePointers": []
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 10,
+        "pdf": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nist-styled-word-remediated-three-profile-review-final-source-only/execution-caa435cb9041/nist/screen-media-paged.pdf",
+          "bytes": 1031562,
+          "sha256": "154c6283b49a41e7a2d3418707ae64534f049174032e607787c89376a3f68b53"
+        },
+        "sourceRows": 86,
+        "sourceCells": 364,
+        "cellAssociations": {
+          "source-empty-no-observed-text": 13,
+          "exact-source-cell-text-assembled": 347,
+          "ambiguous-line-or-column-geometry": 2,
+          "missing-or-extra-cell-text-association": 2
+        },
+        "sectionsLocated": 6,
+        "articleLinkSourceAnchorsLocated": 26,
+        "reportRecords": 233,
+        "warnings": 83,
+        "hasErrors": false,
+        "hasLoss": true,
+        "steradianFootnoteOnSameObservedLine": true,
+        "scriptOrNobrLineSplitSourcePointers": []
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 9,
+        "pdf": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nist-styled-word-remediated-three-profile-review-final-source-only/execution-caa435cb9041/nist/screen-snapshot-paged.pdf",
+          "bytes": 951601,
+          "sha256": "acd460ebd21b3efbbd14e7058c756db5d3937881e4ed3de6f294ddeb7477a259"
+        },
+        "sourceRows": 86,
+        "sourceCells": 364,
+        "cellAssociations": {
+          "source-empty-no-observed-text": 13,
+          "exact-source-cell-text-assembled": 351
+        },
+        "sectionsLocated": 6,
+        "articleLinkSourceAnchorsLocated": 26,
+        "reportRecords": 190,
+        "warnings": 41,
+        "hasErrors": false,
+        "hasLoss": true,
+        "steradianFootnoteOnSameObservedLine": true,
+        "scriptOrNobrLineSplitSourcePointers": []
+      }
+    ],
+    "adjudication": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/root-nist-caa435-adjudication.json",
+      "bytes": 12861,
+      "sha256": "7a431e07057c9dcc94606bf2865ecd415903047318def279d38a0a6a11f1991d"
+    },
+    "boundary": "Fresh caa435 PDFs, native text/geometry, all-page rasters and authored-source associations. Declared fallback faces isolate placement; original font appearance remains unqualified. Print and screen-media retain two ambiguous and two missing/extra page-boundary cell associations. Snapshot raw pypdf has two extra clipped minus carriers. Complete table and clip fidelity are not accepted."
+  },
+  "retainedFailedCollectorAttempts": [
+    {
+      "command": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/h10-next-defect-source-selection/fixed-table-column-minimum-source-only/intrinsic-paint-remediated-review-final-source-only/execution-caa435cb9041/measure-command.json",
+        "bytes": 3095,
+        "sha256": "b0666fd5ebbe6c99ab037543e918845854e05643795aba7658bde0f2950c35dc"
+      },
+      "cause": "Stale embedded hash after input-binding path clone; stopped before rendering. Fresh v2 changes only that hash; same three fixtures/predicates pass."
+    },
+    {
+      "command": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/inline-review-repro-final-source-only/execution-caa435cb9041/measure-command.json",
+        "bytes": 2270,
+        "sha256": "376f72b2e0db20c08badcb14f21017e5bb6fbe984aa5a3d64a637473fb552c43"
+      },
+      "cause": "Two empty-paint assertions expected20px, but canonical minimum positive content paint produces20.01px. Fresh v2 corrects only paint assertion; exact20px advance retained, ten checks pass and all PNGs equal viewed predecessor."
+    }
+  ],
+  "remainingAcceptance": [
+    "Decorated RTL/bidi and vertical inline geometry, mixed-face/atomic baselines and percentage insets.",
+    "Combined first-line style membership against actual float exclusions.",
+    "Original-font appearance and captured-font admission on unfamiliar pages.",
+    "Complete page-boundary cell association, repeated headers, formulas and clipped-copy multiplicity.",
+    "Current-master receiving-candidate package/framework/platform proof; Windows profiling remains deferred.",
+    "Host-isolated resource/timing budgets, manual assistive-technology qualification and PDF/UA."
+  ],
+  "storage": {
+    "logicalBytesRemoved": 2727181483,
+    "receipt": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/val-final-retirement-source-only/root-removal-and-ledger-receipt.json",
+      "bytes": 2106,
+      "sha256": "57a75ad456c2112cb6f413896fc9c4f78d169e41f4f3e25a4a75f051d60856e4"
+    },
+    "protectedArchive": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/val-final-retirement-source-only/protected-terminal-evidence/terminal-selected-evidence.tar.gz",
+      "bytes": 10786713,
+      "sha256": "4e14cc39edfa329cb006c295db5fa1f56435ea43f910cba3a77a4a2f78a9df3f",
+      "mode": 420
+    },
+    "retainedExecutionManifest": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/root-final-retained-executions-storage.json",
+      "bytes": 3770,
+      "sha256": "eefd15d1c8acbe54da2e8f3f65a98ec6a5c71201c3922dd717bfab90d466f38b"
+    },
+    "retainedExecutionLogicalBytes": 473049861,
+    "purpose": "Retain source-bound normal/public/native runtime and rendered proof, including original failed collector attempts. Shared caches/history/other worktrees untouched; owned maintenance lock released. Logical bytes are not a measured volume free-space delta."
+  },
+  "releaseBoundary": "Source checkpoint only; no PR, merge, package release, deployment, browser-runtime parity or parser replacement is established.",
+  "inlineReview": {
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "findings": [
+      {
+        "priority": "P2",
+        "issue": "Later-run manual/automatic hyphenation missing from lookahead",
+        "disposition": "Fixed through canonical prepared hyphenation, glyph width and limits; tests/public repro passed."
+      },
+      {
+        "priority": "P2",
+        "issue": "Empty decorated inline edges missing from continuation fitting",
+        "disposition": "Fixed through a nonmutating preview of canonical inline advance state; tests/public painted repro passed."
+      },
+      {
+        "priority": "P2",
+        "issue": "Middle fragment skipped hyphenation when only that fragment fit",
+        "disposition": "Targeted review exposed it; root reproduced overflow, fixed normal/float/first-line guards, added eight regressions and passed full suites/painted repro."
+      }
+    ],
+    "boundary": "The targeted independent confirmation preceded the third-finding correction. Final closure is root-owned source/defect-class inspection plus tests and rendered proof; no additional independent final-green pass is claimed.",
+    "scope": "Styled-word continuation and review remediation; selected table review was completed separately."
+  }
+}
