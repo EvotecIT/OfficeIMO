@@ -28,6 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Schemas\officeimo.document.read-result.v14.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v14.schema.json" />
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v14.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v14.schema.json" />
     <None Include="Schemas\officeimo.document.read-result.v13.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v13.schema.json" />
     <EmbeddedResource Include="Schemas\officeimo.document.read-result.v13.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v13.schema.json" />
     <None Include="Schemas\officeimo.document.read-result.v12.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v12.schema.json" />
@@ -113,9 +115,11 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Markdown" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.AsciiDoc" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Dbf" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Chm" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Publisher" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Json" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Notebook" />

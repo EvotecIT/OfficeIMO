@@ -617,6 +617,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.ParagraphLineSpacingPoints.HasValue &&
                 !conditionalStyle.ParagraphLineSpacingRule.HasValue &&
                 !conditionalStyle.LineSpacing.Value.HasValue && !conditionalStyle.LineSpacing.Rule.HasValue &&
+                !conditionalStyle.LineSpacing.FontAlignment.HasValue &&
                 conditionalStyle.ParagraphSpacing == default &&
                 !conditionalStyle.ParagraphSpacingBefore.HasValue &&
                 !conditionalStyle.ParagraphSpacingAfter.HasValue &&

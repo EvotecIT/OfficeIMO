@@ -51,7 +51,13 @@ public partial class Word {
     public void SaveAsPdf_TallRunningFooterPreservesHeaderAroundFirstLineFitBoundary(bool nativeDoc, int lineHeight) =>
         AssertTallRunningFooterAllowsOneBodyLine(nativeDoc, lineHeight);
 
-    private static void AssertTallRunningFooterAllowsOneBodyLine(bool nativeDoc, int lineHeight) {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_TallRunningFooterPreservesHeaderWhenKeptBodyMustSplitAtPhysicalMargins(bool nativeDoc) =>
+        AssertTallRunningFooterAllowsOneBodyLine(nativeDoc, 64, keepLinesTogether: true);
+
+    private static void AssertTallRunningFooterAllowsOneBodyLine(bool nativeDoc, int lineHeight, bool keepLinesTogether = false) {
         using WordDocument source = CreateJoinedParagraphDocument();
         W.PageSize size = source.Sections[0]._sectionProperties.GetFirstChild<W.PageSize>()!;
         size.Width = 5200U; size.Height = 6000U;
@@ -67,6 +73,7 @@ public partial class Word {
         body._paragraph.Append(new W.Run(new W.Break(), new W.Text("BETA")));
         body._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
             Before = "0", After = "0", Line = (lineHeight * 20).ToString(), LineRule = W.LineSpacingRuleValues.Exact });
+        if (keepLinesTogether) body.KeepLinesTogetherOverride = true;
         Assert.Empty(source.ValidateDocument());
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         using var pdf = OpenJoinedParagraphPdf(document);

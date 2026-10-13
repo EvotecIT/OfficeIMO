@@ -35,15 +35,8 @@ internal static partial class PdfWriter {
         }
 
         private string? EnsureOpacityState(OfficeIMO.Drawing.OfficeShape shape) {
-            bool hasFill = (shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null) && shape.Kind != OfficeIMO.Drawing.OfficeShapeKind.Line;
-            bool hasStroke = shape.StrokeColor.HasValue && shape.StrokeWidth > 0;
-            double fillColorOpacity = shape.FillGradient == null && shape.FillRadialGradient == null && shape.FillColor.HasValue
-                ? shape.FillColor.Value.A / 255D
-                : 1D;
-            double strokeColorOpacity = shape.StrokeColor.HasValue ? shape.StrokeColor.Value.A / 255D : 1D;
-            double fillOpacity = hasFill ? (shape.FillOpacity ?? 1D) * fillColorOpacity : 1D;
-            double strokeOpacity = hasStroke ? (shape.StrokeOpacity ?? 1D) * strokeColorOpacity : 1D;
-            return EnsureGraphicsState(fillOpacity, strokeOpacity);
+            var opacity = ResolveShapePaintOpacity(shape);
+            return EnsureGraphicsState(opacity.Fill, opacity.Stroke);
         }
 
         private string? EnsureFillGradient(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
@@ -114,6 +107,7 @@ internal static partial class PdfWriter {
                 DrawShapeGeometryAt(fill, xShape, bottomY);
                 OfficeShape? stroke = CreateGradientStrokeShape(shape);
                 if (stroke != null) DrawShapeGeometryAt(stroke, xShape, bottomY);
+                DrawShapeMarkersAt(shape, xShape, bottomY);
                 return;
             }
 
@@ -177,6 +171,7 @@ internal static partial class PdfWriter {
                 new ContentStreamBuilder(sb)
                     .RestoreState();
             }
+            DrawShapeMarkersAt(shape, xShape, bottomY);
         }
 
         private int? DrawShapeAt(ShapeBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
@@ -189,7 +184,8 @@ internal static partial class PdfWriter {
         }
 
         private int? DrawDrawingAt(DrawingBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
-            double xDrawing = GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align);
+            OfficeDrawing drawing = ResolveDrawingFlowScene(block, style, containerWidth);
+            double xDrawing = GetAlignedObjectX(containerX, containerWidth, drawing.Width, style.Align);
             bool markedContent;
             int? structElementIndex = AppendDrawingMarkedContentBegin(
                 style,
@@ -200,7 +196,7 @@ internal static partial class PdfWriter {
                 _suppressCanvasAccessibilityWrappers = true;
             }
             try {
-                DrawDrawingElements(block.Drawing, xDrawing, topY);
+                DrawDrawingElements(drawing, xDrawing, topY);
             } finally {
                 _suppressCanvasAccessibilityWrappers = previousSuppressAccessibilityWrappers;
                 AppendDrawingMarkedContentEnd(markedContent);
@@ -440,15 +436,14 @@ internal static partial class PdfWriter {
             double frameMarginLeft = currentOpts.MarginLeft;
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Drawing");
-            double spacingBefore = PlaceFixedFlowBlock("Drawing", block.Drawing.Width, block.Drawing.Height,
-                style.SpacingBefore, style.SpacingAfter, ref containerWidth);
-            if (spacingBefore > 0) y -= spacingBefore;
+            var box = PlaceDrawingFlowBlock(block, style, ref containerWidth);
+            if (box.SpacingBefore > 0) y -= box.SpacingBefore;
             RecordFlowPlacement(y);
             containerX += currentOpts.MarginLeft - frameMarginLeft;
             int? structElementIndex = DrawDrawingAt(block, style, containerX, containerWidth, y);
             AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
-            DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align), y - block.Drawing.Height, block.Drawing.Width, block.Drawing.Height);
-            y -= block.Drawing.Height + style.SpacingAfter;
+            DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, box.Width, style.Align), y - box.Height, box.Width, box.Height);
+            y -= box.Height + style.SpacingAfter;
         }
 
         private void KeepFixedBlockWithNext(double objectWidth, double objectHeight, double spacingBefore, double spacingAfter,
@@ -480,10 +475,12 @@ internal static partial class PdfWriter {
             }
 
             double x = GetAlignedObjectX(containerX, containerWidth, shape.Shape.Width, style.Align);
-            double x1 = x;
-            double x2 = x + shape.Shape.Width;
-            double y1 = topY - shape.Shape.Height;
-            double y2 = topY;
+            var canvas = (shape.Shape.Transform ?? OfficeTransform.Identity)
+                .TransformRectangleBounds(0, 0, shape.Shape.Width, shape.Shape.Height);
+            double x1 = x + canvas.Left;
+            double x2 = x + canvas.Right;
+            double y1 = topY - canvas.Bottom;
+            double y2 = topY - canvas.Top;
             double halfStroke = Math.Max(0.5D, Math.Max(0D, shape.Shape.StrokeWidth) / 2D);
             if (x2 <= x1) {
                 x1 -= halfStroke;
@@ -495,6 +492,19 @@ internal static partial class PdfWriter {
                 y2 += halfStroke;
             }
 
+            if (TryGetShapePaintBounds(shape.Shape, x, topY - shape.Shape.Height, null, "Body", "shape",
+                    out double paintX, out double paintY, out double paintWidth, out double paintHeight, conservativeWhenUnmeasured: true)) {
+                x1 = Math.Min(x1, paintX); x2 = Math.Max(x2, paintX + paintWidth);
+                y1 = Math.Min(y1, paintY); y2 = Math.Max(y2, paintY + paintHeight);
+            }
+
+            foreach (OfficeShape marker in CreateLineMarkerShapes(shape.Shape)) {
+                if (!TryGetShapePaintBounds(marker, x, topY - marker.Height, null, "Body", "marker",
+                        out double markerX, out double markerY, out double markerWidth, out double markerHeight, conservativeWhenUnmeasured: true)) continue;
+                x1 = Math.Min(x1, markerX); x2 = Math.Max(x2, markerX + markerWidth);
+                y1 = Math.Min(y1, markerY); y2 = Math.Max(y2, markerY + markerHeight);
+            }
+
             currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = shape.LinkUri!, Contents = shape.LinkContents, StructElementIndex = structElementIndex });
         }
 
@@ -503,8 +513,9 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            double x = GetAlignedObjectX(containerX, containerWidth, drawing.Drawing.Width, style.Align);
-            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x, Y1 = topY - drawing.Drawing.Height, X2 = x + drawing.Drawing.Width, Y2 = topY, Uri = drawing.LinkUri!, Contents = drawing.LinkContents, StructElementIndex = structElementIndex });
+            var box = ResolveDrawingFlowBox(drawing, style, containerWidth);
+            double x = GetAlignedObjectX(containerX, containerWidth, box.Width, style.Align);
+            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x, Y1 = topY - box.Height, X2 = x + box.Width, Y2 = topY, Uri = drawing.LinkUri!, Contents = drawing.LinkContents, StructElementIndex = structElementIndex });
         }
 
     }

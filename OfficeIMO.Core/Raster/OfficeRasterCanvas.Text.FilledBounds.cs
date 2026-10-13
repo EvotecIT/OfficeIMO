@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -12,8 +13,15 @@ public sealed partial class OfficeRasterCanvas {
     // This measures nominal flattened geometry, not raster pixel coverage.
     internal (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
         MeasureFilledContourBounds(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
-            IReadOnlyList<OfficeTextInkClip>? clips = null) {
-        _cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<OfficeTextInkClip>? clips = null) =>
+        MeasureNominalFilledContourBounds(contours, rule, clips, _cancellationToken);
+
+    // Geometry inspection retains the painter's winding, edge tolerance,
+    // cancellation and bounded intersection work without allocating a surface.
+    internal static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
+        MeasureNominalFilledContourBounds(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
+            IReadOnlyList<OfficeTextInkClip>? clips = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var edges = new List<InkBoundEdge>();
         var boundaries = new List<double>();
         var rules = new List<OfficeFillRule> { rule };
@@ -26,10 +34,10 @@ public sealed partial class OfficeRasterCanvas {
         }
         long work = 4_000_000;
         for (int i = 0; i < edges.Count; i++) {
-            _cancellationToken.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
             for (int j = i + 1; j < edges.Count; j++) {
                 if (--work < 0) return Unmeasured();
-                if ((j & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
+                if ((j & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 InkBoundEdge a = edges[i], b = edges[j];
                 double low = Math.Max(a.LowY, b.LowY), high = Math.Min(a.HighY, b.HighY);
                 if (high <= low || Math.Max(a.Start.X, a.End.X) < Math.Min(b.Start.X, b.End.X)
@@ -52,7 +60,7 @@ public sealed partial class OfficeRasterCanvas {
         bool hasInk = false, isClipped = false;
         var winding = new int[rules.Count];
         for (int band = 1; band < boundaries.Count; band++) {
-            _cancellationToken.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
             double low = boundaries[band - 1], high = boundaries[band];
             if (high - low <= ContourCrossingTolerance) continue;
             if ((work -= edges.Count) < 0) return Unmeasured();
@@ -99,7 +107,7 @@ public sealed partial class OfficeRasterCanvas {
 
         bool AddContours(IEnumerable<IReadOnlyList<OfficePoint>> source, int group) {
             foreach (var contour in source) {
-                _cancellationToken.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
                 if (contour.Count < 3) continue;
                 OfficePoint start = contour[contour.Count - 1];
                 foreach (OfficePoint end in contour) {

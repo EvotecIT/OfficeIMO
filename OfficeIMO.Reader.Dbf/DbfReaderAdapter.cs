@@ -86,14 +86,9 @@ namespace OfficeIMO.Reader.Dbf {
             };
             var text = new StringBuilder().AppendLine(string.Join("\t", columns));
             foreach (IReadOnlyList<string> row in rows) text.AppendLine(string.Join("\t", row));
-            string? markdownText = null;
-            if (markdown) {
-                var builder = new StringBuilder();
-                AppendMarkdownRow(builder, columns);
-                AppendMarkdownRow(builder, columns.Select(_ => "---"));
-                foreach (IReadOnlyList<string> row in rows) AppendMarkdownRow(builder, row);
-                markdownText = builder.ToString();
-            }
+            string? markdownText = markdown
+                ? ReaderMarkdownTableWriter.Write(columns, rows, ReaderMarkdownTableWriter.CellStyle.Literal)
+                : null;
             return new ReaderChunk {
                 Id = "dbf-" + chunkIndex.ToString("D4", CultureInfo.InvariantCulture), Kind = ReaderInputKind.Dbf,
                 Location = location, Text = text.ToString(), Markdown = markdownText, Tables = new[] { table },
@@ -101,19 +96,5 @@ namespace OfficeIMO.Reader.Dbf {
             };
         }
 
-        private static void AppendMarkdownRow(StringBuilder builder, IEnumerable<string> cells) {
-            builder.Append('|');
-            foreach (string cell in cells) {
-                builder.Append(' ');
-                foreach (char value in cell) {
-                    if (value == '\r') continue;
-                    if (value == '\n') { builder.Append(" "); continue; }
-                    if (value is >= '!' and <= '/' or >= ':' and <= '@' or >= '[' and <= '`' or >= '{' and <= '~') builder.Append('\\');
-                    builder.Append(value);
-                }
-                builder.Append(" |");
-            }
-            builder.Append('\n');
-        }
     }
 }

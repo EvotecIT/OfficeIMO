@@ -28,6 +28,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Archives" />
+    <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Html" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote" />
     <InternalsVisibleTo Include="OfficeIMO.Chm" />
@@ -61,6 +63,8 @@
     <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.Project" />
+    <InternalsVisibleTo Include="OfficeIMO.Publisher" />
+    <InternalsVisibleTo Include="OfficeIMO.Publisher.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Access" />
     <InternalsVisibleTo Include="OfficeIMO.Project.Verification" />
     <InternalsVisibleTo Include="OfficeIMO.Project.Tests" />
@@ -84,6 +88,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 

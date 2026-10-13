@@ -53,7 +53,7 @@ public sealed class ReaderInstanceAdapterTests {
     }
 
     [Fact]
-    public void VisioAdapter_AdvertisesOnlyFormatsAcceptedByTheDocumentLoader() {
+    public void VisioAdapter_AdvertisesSupportedPackageXmlAndBinaryFormats() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddVisioHandler()
             .Build();
@@ -62,7 +62,7 @@ public sealed class ReaderInstanceAdapterTests {
             reader.GetCapabilities(),
             item => item.Id == OfficeDocumentReaderBuilderVisioExtensions.HandlerId);
         Assert.Equal(
-            new[] { ".vdx", ".vsdm", ".vsdx", ".vssm", ".vssx", ".vstm", ".vstx", ".vsx", ".vtx" },
+            new[] { ".vdx", ".vsd", ".vsdm", ".vsdx", ".vss", ".vssm", ".vssx", ".vst", ".vstm", ".vstx", ".vsx", ".vtx" },
             capability.Extensions);
     }
 

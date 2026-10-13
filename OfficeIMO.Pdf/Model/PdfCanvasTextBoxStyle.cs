@@ -21,6 +21,9 @@ public sealed class PdfCanvasTextBoxStyle {
     private PdfStandardFont? _font;
     private PdfVerticalAlign _verticalAlign = PdfVerticalAlign.Top;
 
+    // Format adapters can retain their native line-box baseline on fixed canvas text.
+    internal PdfLineSpacing? LineSpacing { get; set; }
+
     /// <summary>Background fill color. Set to null for a transparent text box.</summary>
     public PdfColor? Background { get; set; } = PdfColor.White;
 
@@ -198,6 +201,7 @@ public sealed class PdfCanvasTextBoxStyle {
             VerticalAlign = VerticalAlign,
             FontSize = FontSize,
             LineHeight = LineHeight,
+            LineSpacing = LineSpacing,
             Font = Font
         };
     }

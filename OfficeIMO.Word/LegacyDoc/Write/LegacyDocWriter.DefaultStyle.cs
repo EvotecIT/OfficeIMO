@@ -43,8 +43,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : ResolveDefaultThemeFont(scheme, inheritedSelector) ?? inheritedName;
 
         private static void MaterializeDocumentDefaultSpacing(Dictionary<string, Style> paragraphStyles, Styles? styles) {
-            SpacingBetweenLines? defaults = styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.SpacingBetweenLines;
-            if (defaults == null) return;
+            ParagraphPropertiesBaseStyle? paragraphDefaults = styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle;
+            SpacingBetweenLines? defaults = paragraphDefaults?.SpacingBetweenLines;
+            TextAlignment? alignment = paragraphDefaults?.GetFirstChild<TextAlignment>();
+            if (defaults == null && alignment == null) return;
             // DOC has no docDefaults record. Put the defaults on roots of the style
             // hierarchy; derived styles continue to inherit their base's overrides.
             foreach (string styleId in paragraphStyles.Keys.ToArray()) {
@@ -53,6 +55,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 if (!string.IsNullOrWhiteSpace(baseId) && paragraphStyles.ContainsKey(baseId!)) continue;
                 Style style = (Style)original.CloneNode(true);
                 StyleParagraphProperties properties = style.StyleParagraphProperties ??= new StyleParagraphProperties();
+                if (alignment != null && properties.GetFirstChild<TextAlignment>() == null)
+                    properties.AddChild(alignment.CloneNode(true), true);
+                if (defaults == null) {
+                    paragraphStyles[styleId] = style;
+                    continue;
+                }
                 SpacingBetweenLines spacing = properties.SpacingBetweenLines ??= new SpacingBetweenLines();
                 bool authoredLine = !string.IsNullOrWhiteSpace(spacing.Line?.Value);
                 if (!authoredLine && !string.IsNullOrWhiteSpace(defaults.Line?.Value)) {

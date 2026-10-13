@@ -4,7 +4,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) ConvertChm(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token, bool emitHtmlTaggedStructure) {
+        OfficeWorkflowConversionOptions settings, CancellationToken token, bool emitHtmlTaggedStructure) {
         var reading = new ChmReadOptions(); reading.MaxInputBytes = Math.Min(reading.MaxInputBytes, request.Limits.MaximumInputBytes);
         ChmDocument source = ChmDocument.Load(input, reading, token);
         ChmConversionOptions conversion = settings.Chm?.Clone() ?? new ChmConversionOptions();
@@ -28,10 +28,6 @@ public sealed partial class OfficeWorkflowRunner {
             ["sourceContainer"] = "ITSF", ["topicCount"] = source.Topics.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["resourcePolicy"] = "Embedded archive resources only"
         });
-        foreach (OfficeConversionFidelityDiagnostic finding in evidence.FidelityDiagnostics)
-            diagnostics.Add(new OfficeWorkflowDiagnostic(finding.Code, finding.Message,
-                finding.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
-                "convert", new Dictionary<string, string> { ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString() }));
         return (bytes, evidence);
     }
 }
