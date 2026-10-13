@@ -10,6 +10,7 @@ namespace OfficeIMO.Archives;
 internal sealed class ArchivePaths {
     private readonly HashSet<string> _files = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _directories = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _explicitDirectories = new(StringComparer.OrdinalIgnoreCase);
     private readonly ArchiveLimits _limits;
     internal ArchivePaths(ArchiveLimits limits) => _limits = limits;
     internal string Add(string authored) {
@@ -22,6 +23,8 @@ internal sealed class ArchivePaths {
     /// <summary>Registers an explicit directory record, such as a ZIP entry ending in '/', without publishing a file.</summary>
     internal void AddDirectory(string authored) {
         string path = Validate(authored);
+        if (!_explicitDirectories.Add(path.Normalize(NormalizationForm.FormC)))
+            throw new InvalidDataException("Archive directory records collide: " + authored);
         AddParents(path + "/", authored);
     }
     private string Validate(string authored) {

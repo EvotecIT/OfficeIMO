@@ -3,7 +3,7 @@ using System.Text;
 
 namespace OfficeIMO.Archives.Tests;
 
-public sealed class ZipExtractionTests {
+public sealed partial class ZipExtractionTests {
     [Fact]
     public void StoredAndDeflateMembersAreVerifiedAndPublished() {
         using var fixture = new ArchiveFixtures();
@@ -490,6 +490,102 @@ public sealed class ZipExtractionTests {
 
     private static void WriteUInt32(byte[] bytes, int offset, uint value) {
         WriteUInt16(bytes, offset, (ushort)value); WriteUInt16(bytes, offset + 2, (ushort)(value >> 16));
+    }
+
+    [Theory]
+    [InlineData(14)]
+    [InlineData(18)]
+    [InlineData(22)]
+    public void NonDescriptorLocalCrcAndSizesMustMatchTheCentralRecord(int field) {
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = Zip(("Example.admx", "A", CompressionLevel.Optimal));
+        WriteUInt32(zip, field, BitConverter.ToUInt32(zip, field) ^ 1);
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination,
+            new ArchiveExtractionOptions { IncludeFile = _ => false }));
+        Assert.False(Directory.Exists(fixture.Destination));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ExplicitDirectoriesAreUniqueButMayFollowAnImplicitParent(bool duplicate) {
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = duplicate ? Zip(("Templates/", null, CompressionLevel.Optimal), ("Templates/", null, CompressionLevel.Optimal))
+            : Zip(("Templates/Example.admx", "A", CompressionLevel.Optimal), ("Templates/", null, CompressionLevel.Optimal));
+        if (duplicate) Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
+        else Assert.Single(ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination).Files);
+    }
+
+    [Fact]
+    public void AClassicDirectoryInsideTheEndRecordCommentIsRejected() {
+        using var fixture = new ArchiveFixtures();
+        byte[] original = Zip(("Example.admx", "A", CompressionLevel.Optimal));
+        int end = original.Length - 22;
+        int central = (int)BitConverter.ToUInt32(original, end + 16);
+        byte[] directory = original.Skip(central).Take(end - central).ToArray();
+        byte[] zip = original.Take(central).Concat(original.Skip(end)).Concat(directory).ToArray();
+        WriteUInt32(zip, central + 16, (uint)(central + 22));
+        WriteUInt16(zip, central + 20, (ushort)directory.Length);
+        Assert.False(OfficeIMO.Core.Internal.OfficeArchiveSafety.ScanZipCentralDirectory(zip, 10).IsValid);
+        using var stream = new MemoryStream(zip, writable: false);
+        Assert.False(OfficeIMO.Core.Internal.OfficeArchiveSafety.ScanZipCentralDirectory(stream, stream.Length, 10).IsValid);
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void DescriptorMetadataMaySupplySizesButMustMatchTheCentralRecord(bool zip64, bool signature) {
+        byte[] original = Zip(("Example.admx", "A", CompressionLevel.Optimal));
+        int central = (int)BitConverter.ToUInt32(original, original.Length - 6);
+        using var descriptor = new MemoryStream();
+        using (var writer = new BinaryWriter(descriptor, Encoding.ASCII, leaveOpen: true)) {
+            if (signature) writer.Write(0x08074b50U);
+            writer.Write(BitConverter.ToUInt32(original, central + 16));
+            if (zip64) { writer.Write((ulong)BitConverter.ToUInt32(original, central + 20)); writer.Write((ulong)BitConverter.ToUInt32(original, central + 24)); }
+            else { writer.Write(BitConverter.ToUInt32(original, central + 20)); writer.Write(BitConverter.ToUInt32(original, central + 24)); }
+        }
+        int count = (int)descriptor.Length;
+        byte[] zip = original.Take(central).Concat(descriptor.ToArray()).Concat(original.Skip(central)).ToArray();
+        WriteUInt16(zip, 6, 8); WriteUInt16(zip, central + count + 8, 8);
+        WriteUInt32(zip, 14, 0); WriteUInt32(zip, 18, 0); WriteUInt32(zip, 22, 0);
+        WriteUInt32(zip, zip.Length - 6, (uint)(central + count));
+        if (zip64) {
+            int extraOffset = 30 + BitConverter.ToUInt16(zip, 26);
+            zip = zip.Take(extraOffset).Concat(new byte[20]).Concat(zip.Skip(extraOffset)).ToArray();
+            WriteUInt16(zip, 28, 20); WriteUInt16(zip, extraOffset, 1); WriteUInt16(zip, extraOffset + 2, 16);
+            WriteUInt32(zip, extraOffset + 4, BitConverter.ToUInt32(original, central + 24));
+            WriteUInt32(zip, extraOffset + 12, BitConverter.ToUInt32(original, central + 20));
+            central += 20;
+            WriteUInt32(zip, zip.Length - 6, (uint)(central + count));
+        }
+        using (var valid = new ArchiveFixtures()) Assert.Single(ArchiveExtractor.Extract(valid.Package(zip), valid.Destination).Files);
+        zip[central + (signature ? 4 : 0)] ^= 1;
+        using var invalid = new ArchiveFixtures();
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(invalid.Package(zip), invalid.Destination,
+            new ArchiveExtractionOptions { IncludeFile = _ => false }));
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void LocalZip64SizesAreResolvedInConditionalOrder(bool compressed, bool expanded) {
+        byte[] original = Zip(("Example.admx", "A", CompressionLevel.Optimal));
+        int extra = 30 + BitConverter.ToUInt16(original, 26);
+        int extraLength = 4 + (compressed ? 8 : 0) + (expanded ? 8 : 0);
+        byte[] zip = original.Take(extra).Concat(new byte[extraLength]).Concat(original.Skip(extra)).ToArray();
+        WriteUInt16(zip, 28, (ushort)extraLength); WriteUInt16(zip, extra, 1); WriteUInt16(zip, extra + 2, (ushort)(extraLength - 4));
+        int cursor = extra + 4;
+        if (expanded) { WriteUInt32(zip, cursor, BitConverter.ToUInt32(original, 22)); cursor += 8; WriteUInt32(zip, 22, uint.MaxValue); }
+        if (compressed) { WriteUInt32(zip, cursor, BitConverter.ToUInt32(original, 18)); WriteUInt32(zip, 18, uint.MaxValue); }
+        WriteUInt32(zip, zip.Length - 6, BitConverter.ToUInt32(original, original.Length - 6) + (uint)extraLength);
+        using (var valid = new ArchiveFixtures()) Assert.Single(ArchiveExtractor.Extract(valid.Package(zip), valid.Destination).Files);
+        zip[extra + 4] ^= 1;
+        using var invalid = new ArchiveFixtures();
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(invalid.Package(zip), invalid.Destination));
     }
 
     private static byte[] WithZip64Locator(byte[] zip, int offsetSkew) {
