@@ -158,6 +158,9 @@ struct StudioCommands: Commands {
             Divider()
             Button("Make Searchable") { session?.makeSearchable() }
                 .disabled(session?.canMakeSearchable != true)
+            if let session {
+                SignatureMenu(session: session)
+            }
         }
     }
 
