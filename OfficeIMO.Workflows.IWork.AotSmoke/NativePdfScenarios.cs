@@ -21,7 +21,10 @@ internal static class NativePdfScenarios {
         }
 
         await RejectAsync(root, NativeNumbers, "native-padding", PortableSettings(), "padding");
-        await RejectAsync(root, Body, "missing-font", new IWorkWorkflowSettings(), "font", requireStages: true);
+        var missingFont = new IWorkWorkflowSettings();
+        missingFont.PagesPdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
+        missingFont.PagesPdfOptions.TextFallbacks = PdfTextFallbackFeatures.None;
+        await RejectAsync(root, Body, "missing-font", missingFont, "font", requireStages: true);
         IWorkWorkflowSettings partial = PortableSettings(); partial.ConversionOptions.AllowPartialEditableReconstruction = true;
         await RejectAsync(root, Body, "partial-policy", partial, "complete editable");
         IWorkWorkflowSettings preview = PortableSettings(); preview.ConversionOptions.Mode = OfficeIMO.IWork.IWorkConversionMode.VisualOnly;
