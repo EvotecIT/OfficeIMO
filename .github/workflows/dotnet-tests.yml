@@ -2101,7 +2101,14 @@ jobs:
 
       - name: Publish and run supported NativeAOT scenarios
         shell: pwsh
+        env:
+          DOTNET_PROCESSOR_COUNT: 2
+          MSBUILDDISABLENODEREUSE: 1
+          DOTNET_CLI_USE_MSBUILD_SERVER: 0
         run: |
+          # This hosted runner belongs to this job. Release analyzer servers
+          # before publishing the isolated native graphs.
+          dotnet build-server shutdown
           ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
           ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -JsonOutputPath ./artifacts/aot/linux-x64.json
 

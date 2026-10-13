@@ -101,7 +101,10 @@ try {
 
         Write-Host "[$($scenarioDefinition.id)] restore and publish NativeAOT in isolated SDK state" -ForegroundColor Cyan
         $publishArguments = [System.Collections.Generic.List[string]]::new()
-        @('publish', $projectPath, '--configuration', $Configuration, '--runtime', $RuntimeIdentifier, '--artifacts-path', $sdkArtifactsPath, '--output', $publishPath) |
+        # Keep each isolated graph in foreground compiler processes so completed
+        # scenarios do not leave build servers competing with the next publisher.
+        @('publish', $projectPath, '--configuration', $Configuration, '--runtime', $RuntimeIdentifier, '--artifacts-path', $sdkArtifactsPath, '--output', $publishPath,
+            '--disable-build-servers', '-m:1', '-nodeReuse:false', '-p:UseSharedCompilation=false') |
             ForEach-Object { $publishArguments.Add($_) }
         if ($scenarioDefinition.targetFramework) {
             $publishArguments.Add('--framework')
