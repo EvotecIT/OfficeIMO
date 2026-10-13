@@ -28,6 +28,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Archives" />
+    <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Html" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote" />
     <InternalsVisibleTo Include="OfficeIMO.Chm" />

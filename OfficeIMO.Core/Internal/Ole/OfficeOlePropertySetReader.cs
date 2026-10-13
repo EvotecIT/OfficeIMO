@@ -162,8 +162,7 @@ namespace OfficeIMO.Core.Internal {
                     EnsureAvailable(bytes, valueOffset, 8);
                     return new OfficeOlePropertyValue(type, BitConverter.ToDouble(bytes, valueOffset));
                 case 0x0007:
-                    EnsureAvailable(bytes, valueOffset, 8);
-                    return new OfficeOlePropertyValue(type, DateTime.FromOADate(BitConverter.ToDouble(bytes, valueOffset)).ToUniversalTime());
+                    return new OfficeOlePropertyValue(type, ReadDateTime(bytes, valueOffset, fileTime: false));
                 case 0x000b:
                     return new OfficeOlePropertyValue(type, ReadInt16(bytes, valueOffset) != 0);
                 case 0x0010:
@@ -187,11 +186,22 @@ namespace OfficeIMO.Core.Internal {
                 case 0x001f:
                     return new OfficeOlePropertyValue(type, ReadLengthPrefixedUnicodeString(bytes, valueOffset));
                 case 0x0040:
-                    return new OfficeOlePropertyValue(type, DateTime.FromFileTimeUtc(unchecked((long)ReadUInt64(bytes, valueOffset))));
+                    return new OfficeOlePropertyValue(type, ReadDateTime(bytes, valueOffset, fileTime: true));
                 case 0x0041:
                     return new OfficeOlePropertyValue(type, ReadBlob(bytes, valueOffset));
                 default:
                     return new OfficeOlePropertyValue(type, null);
+            }
+        }
+
+        private static DateTime ReadDateTime(byte[] bytes, int offset, bool fileTime) {
+            EnsureAvailable(bytes, offset, 8);
+            try {
+                return fileTime
+                    ? DateTime.FromFileTimeUtc(unchecked((long)ReadUInt64(bytes, offset)))
+                    : DateTime.FromOADate(BitConverter.ToDouble(bytes, offset)).ToUniversalTime();
+            } catch (ArgumentException exception) {
+                throw new InvalidDataException("The OLE property timestamp is outside the supported date range.", exception);
             }
         }
 

@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 304,
-    "productionComponentCount": 152,
-    "testProjectCount": 59,
+    "projectCount": 306,
+    "productionComponentCount": 153,
+    "testProjectCount": 60,
     "benchmarkProjectCount": 36,
     "validationProjectCount": 58,
     "apiReferenceCount": 122,
     "conceptualPageCount": 129,
-    "conceptualWordCount": 58316
+    "conceptualWordCount": 58354
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 34,
       "componentIndexes": [
-        95,
         96,
         97,
         98,
@@ -49,27 +48,27 @@
         125,
         126,
         127,
-        128
+        128,
+        129
       ]
     },
     {
       "name": "Formats and interoperability",
       "componentCount": 26,
       "componentIndexes": [
-        12,
         13,
         14,
         15,
-        18,
-        21,
+        16,
+        19,
         22,
-        26,
+        23,
         27,
         28,
         29,
         30,
-        53,
-        73,
+        31,
+        54,
         74,
         75,
         76,
@@ -78,77 +77,78 @@
         79,
         80,
         81,
-        93,
+        82,
         94,
-        137,
-        138
+        95,
+        138,
+        139
       ]
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 14,
+      "componentCount": 15,
       "componentIndexes": [
         1,
-        16,
-        24,
+        5,
+        17,
         25,
-        63,
+        26,
         64,
         65,
         66,
-        69,
+        67,
         70,
         71,
-        92,
-        132,
-        151
+        72,
+        93,
+        133,
+        152
       ]
     },
     {
       "name": "Google Workspace",
       "componentCount": 4,
       "componentIndexes": [
-        38,
         39,
         40,
-        41
+        41,
+        42
       ]
     },
     {
       "name": "Office documents",
       "componentCount": 21,
       "componentIndexes": [
-        31,
         32,
         33,
         34,
         35,
         36,
         37,
-        85,
+        38,
         86,
         87,
         88,
         89,
         90,
-        139,
+        91,
         140,
         141,
         142,
         143,
         144,
         145,
-        146
+        146,
+        147
       ]
     },
     {
       "name": "Publishing and conversion",
       "componentCount": 25,
       "componentIndexes": [
-        5,
         6,
         7,
-        42,
+        8,
         43,
         44,
         45,
@@ -159,26 +159,27 @@
         50,
         51,
         52,
-        54,
+        53,
         55,
         56,
         57,
         58,
         59,
-        83,
+        60,
         84,
-        129,
+        85,
         130,
-        131
+        131,
+        132
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        60,
         61,
-        62
+        62,
+        63
       ]
     },
     {
@@ -189,27 +190,27 @@
         2,
         3,
         4,
-        8,
         9,
         10,
         11,
-        17,
-        19,
+        12,
+        18,
         20,
-        23,
-        67,
+        21,
+        24,
         68,
-        72,
-        82,
-        91,
-        133,
+        69,
+        73,
+        83,
+        92,
         134,
         135,
         136,
-        147,
+        137,
         148,
         149,
-        150
+        150,
+        151
       ]
     }
   ],
@@ -278,6 +279,19 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ai-intelligence-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI.IntelligenceX"
+    },
+    {
+      "name": "OfficeIMO.Archives",
+      "packageId": "OfficeIMO.Archives",
+      "category": "Foundations and integrations",
+      "description": "Managed, bounded Cabinet and passive Windows Installer payload extraction.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Archives/OfficeIMO.Archives.csproj",
+      "sourceFileCount": 14,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Archives"
     },
     {
       "name": "OfficeIMO.AsciiDoc",
@@ -442,7 +456,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1059,
+      "sourceFileCount": 1065,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -624,7 +638,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1145,
+      "sourceFileCount": 1147,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1170,7 +1184,7 @@
       "description": "Managed, cross-platform Microsoft OneNote file-format engine for .one, .onetoc2, and .onepkg artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.OneNote/OfficeIMO.OneNote.csproj",
-      "sourceFileCount": 87,
+      "sourceFileCount": 86,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/onenote/",
       "apiUrl": "/api/onenote/",
