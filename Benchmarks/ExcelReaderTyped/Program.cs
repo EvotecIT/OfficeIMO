@@ -60,6 +60,15 @@ if (args is ["--validate-bdn"]) {
     return;
 }
 
+if (args is ["--validate-native-xlsb-controls"]) {
+#if OFFICEIMO_BENCHMARK_NEW_APIS
+    NativeXlsbSaveControlQualification.Run();
+    return;
+#else
+    throw new InvalidOperationException("Native XLSB save controls require -p:OfficeIMOBenchmarkNewApis=true.");
+#endif
+}
+
 if (args is ["--validate-ado"]) {
     foreach (int rows in new AdoReadBenchmarks().RowCounts())
         foreach (AdoAccess access in Enum.GetValues<AdoAccess>())
@@ -118,6 +127,10 @@ if (args is ["--validate-shared-stages"]) {
 }
 
 #if OFFICEIMO_BENCHMARK_CSV
+if (args is ["--validate-csv-struct"]) {
+    CsvBenchmarkQualification.ValidateTypedStruct();
+    return;
+}
 #if OFFICEIMO_BENCHMARK_NEW_APIS
 if (args is ["--validate-csv-borrowed-async"]) {
     await CsvBenchmarkQualification.ValidateBorrowedAsyncReadAsync();

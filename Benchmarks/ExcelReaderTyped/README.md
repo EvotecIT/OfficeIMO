@@ -344,6 +344,27 @@ operations finish and dispose the workbook before returning the output length.
 `ConfiguredXlsbWriterBenchmarks` preserves the peer's shared-string and write-
 prefetch variants without inventing equivalent OfficeIMO options.
 
+The current-API build also provides `NativeXlsbWarmSaveControlBenchmarks` and
+`NativeXlsbFirstSaveControlBenchmarks` for 50,000-row mixed-value and all-text
+inputs, each with inline and shared string storage. These OfficeIMO controls
+prepare the source records and a fixed 4 MiB destination outside measurement.
+Every operation resets that destination, creates the document and worksheet,
+inserts the objects, saves, and disposes the document. The all-text selectors
+perform invariant number and date conversion inside the measured insertion.
+Destination growth invalidates a result. Keep these controls separate from the
+ordinary writer comparison, which allocates its destination inside measurement.
+
+The warm control uses one launch, four warmups, eight measured iterations, and
+one invocation per iteration, with allocation diagnostics. The first-save
+control uses sixteen fresh-process launches, no warmups, and one measured save
+per launch. Its setup calls neither a document writer nor an output reader.
+It omits `MemoryDiagnoser`, whose additional workload invocation would be a
+later save in that process. First-save timing excludes process launch and does
+not establish cold disk-cache performance. `--validate-native-xlsb-controls`
+checks the first and second outputs of all four combinations in a separate
+process, including every field and native type through ExcelReader and Sylvan,
+string storage, ZIP payloads, and relationships.
+
 Every native output is read field by field through ExcelReader and Sylvan outside
 timing. XLSB also checks ZIP payload CRCs, required parts, and relationships.
 `NativeXlsWriterDiagnosticBenchmarks` preserves the original manual XLS methods
@@ -365,6 +386,8 @@ cell-value checks through ExcelReader and Sylvan.
 ```powershell
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-write-options
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*SharedStringWriterBenchmarks*' '*CompactWriterBenchmarks*' '*NativeWriterBenchmarks*' '*ConfiguredXlsbWriterBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/writer-options-dry --noOverwrite
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --validate-native-xlsb-controls
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --filter '*NativeXlsbWarmSaveControlBenchmarks*' '*NativeXlsbFirstSaveControlBenchmarks*' --artifacts ./Ignore/Benchmarks/native-save-controls --noOverwrite
 ```
 
 Set `-p:OfficeIMOBenchmarkNewApis=true` when compiling optional cases that call
@@ -427,6 +450,12 @@ version and SHA-256 hash are printed and checked against saved inputs.
 The CSV suite covers raw, materialized, typed, async, 32-column text, and writing
 work. `--validate-csv` checks every field and count outside timing. The parallel
 suite compares complete typed records separately from native aggregate work.
+`CsvTypedStructReadBenchmarks` maps the same headered four-field input into a
+materialized value record using each library's automatic property mapping.
+Both methods open and dispose a fresh memory-backed reader, consume all four
+properties, and check the row count and checksum. Setup and
+`--validate-csv-struct` additionally check every native field and row order.
+The class-model lane remains available separately.
 `CsvBorrowedAsyncReadBenchmarks` consumes the same headerless four-field ASCII
 fixture through a native asynchronous UTF-8 row loop and OfficeIMO's public
 `AggregateRowsAsParallelAsync(Stream, ...)` callback at DOP 1. OfficeIMO consumes
@@ -531,6 +560,7 @@ this opt-in comparison project.
 
 ```powershell
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -- --validate-csv
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -- --validate-csv-struct
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -- --validate-csv-borrowed-async
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -- --validate-csv-parallel
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -p:OfficeIMOBenchmarkArrow=true -- --validate-arrow
