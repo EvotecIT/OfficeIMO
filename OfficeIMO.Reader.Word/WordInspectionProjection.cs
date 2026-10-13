@@ -41,8 +41,13 @@ internal static class WordInspectionProjection {
         }
         if (builder.Options.IncludePackageContent) {
             NativePackageInspectionProjection.Add(builder, document.SourcePackageSecurityReport, document.SourcePackageSecurityScope, path);
-            NativeInspectionProjection.AddPayloads(builder, document.GetEmbeddedPayloads(), path);
-            NativeInspectionProjection.AddVba(builder, document.InspectVbaProject(), path);
+            if (options.Projection == ReaderProjection.TextAndMetadata) {
+                NativeInspectionProjection.AddBoundedPayloads(builder, document.InspectEmbeddedPayloads, path, cancellationToken);
+                NativeInspectionProjection.AddVba(builder, document.InspectVbaProjectMetadata(), path);
+            } else {
+                NativeInspectionProjection.AddPayloads(builder, document.GetEmbeddedPayloads(), path);
+                NativeInspectionProjection.AddVba(builder, document.InspectVbaProject(), path);
+            }
         }
         if (builder.Options.IncludeContentSafety)
             NativeInspectionProjection.InspectContentSafety(builder, safety =>

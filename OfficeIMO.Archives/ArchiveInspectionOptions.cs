@@ -11,7 +11,8 @@ public sealed class ArchiveInspectionOptions {
     /// <summary>Maximum declared size of a file member or bytes returned by one storage-stream read.</summary>
     public long MaxEntryBytes { get; set; } = 256L * 1024 * 1024;
     /// <summary>Maximum declared aggregate CAB folder/file expansion at inventory time, and cumulative
-    /// decoded folder or raw storage-stream bytes across subsequent reads. Repeated reads consume this budget again.</summary>
+    /// decoded folder or raw storage-stream bytes across subsequent reads. A grouped read charges each selected folder once;
+    /// reading it in another call consumes this budget again.</summary>
     public long MaxExpandedBytes { get; set; } = 1024L * 1024 * 1024;
     /// <summary>Maximum cumulative CAB frame-processing work. Defaults to 2 GiB and uses the same frame charges as extraction.</summary>
     public long MaxDecompressionWorkBytes { get; set; } = 2L * 1024 * 1024 * 1024;

@@ -43,6 +43,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public long? MaxInputBytes { get; set; } = DefaultMaxInputBytes;
 
+        /// <summary>Allows native XLS and XLSB projection into an XML workbook model. Default: true. False rejects those source families before secondary payload projection, including mislabeled input.</summary>
+        public bool AllowBinaryProjection { get; set; } = true;
+
         /// <summary>Provides optional low-level Open XML package settings.</summary>
         public OfficeOpenXmlLoadSettings? OpenSettings { get; set; }
 

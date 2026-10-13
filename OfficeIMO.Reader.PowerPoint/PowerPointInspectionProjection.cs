@@ -38,8 +38,13 @@ internal static class PowerPointInspectionProjection {
         }
         if (builder.Options.IncludePackageContent) {
             NativePackageInspectionProjection.Add(builder, presentation.SourcePackageSecurityReport, presentation.SourcePackageSecurityScope, path);
-            NativeInspectionProjection.AddPayloads(builder, presentation.GetEmbeddedPayloads(), path);
-            NativeInspectionProjection.AddVba(builder, presentation.InspectVbaProject(), path);
+            if (options.Projection == ReaderProjection.TextAndMetadata) {
+                NativeInspectionProjection.AddBoundedPayloads(builder, presentation.InspectEmbeddedPayloads, path, cancellationToken);
+                NativeInspectionProjection.AddVba(builder, presentation.InspectVbaProjectMetadata(), path);
+            } else {
+                NativeInspectionProjection.AddPayloads(builder, presentation.GetEmbeddedPayloads(), path);
+                NativeInspectionProjection.AddVba(builder, presentation.InspectVbaProject(), path);
+            }
         }
         if (builder.Options.IncludeContentSafety)
             NativeInspectionProjection.InspectContentSafety(builder, safety =>

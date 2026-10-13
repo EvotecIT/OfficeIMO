@@ -17,11 +17,12 @@ internal static partial class OpenDocumentReaderAdapter {
                 : null;
             if (notes != null && notes.Length > 0) paragraphs.AddRange(notes.Select(text => "Notes: " + text));
             string text = string.Join(Environment.NewLine, paragraphs);
-            var markdown = new StringBuilder();
-            markdown.Append("## Slide ").Append(slideIndex + 1).Append(": ").AppendLine(budget.Read(slide.Name));
-            if (paragraphs.Count > 0) markdown.AppendLine().AppendLine(string.Join(Environment.NewLine + Environment.NewLine, paragraphs));
-            foreach (ReaderTable table in tables) {
-                markdown.AppendLine().AppendLine(BuildTableMarkdown(table.Columns, table.Rows));
+            StringBuilder? markdown = null;
+            if (options.Projection != ReaderProjection.TextAndMetadata) {
+                markdown = new StringBuilder();
+                markdown.Append("## Slide ").Append(slideIndex + 1).Append(": ").AppendLine(budget.Read(slide.Name));
+                if (paragraphs.Count > 0) markdown.AppendLine().AppendLine(string.Join(Environment.NewLine + Environment.NewLine, paragraphs));
+                foreach (ReaderTable table in tables) markdown.AppendLine().AppendLine(BuildTableMarkdown(table.Columns, table.Rows));
             }
             if (slide.Hidden) warnings.Add("Slide is hidden in the source presentation.");
             if (!formatOptions.IncludeSpeakerNotes && slide.SpeakerNotes != null) warnings.Add("Speaker notes were omitted by ReaderOpenDocumentOptions.");
@@ -31,7 +32,7 @@ internal static partial class OpenDocumentReaderAdapter {
                     Path = sourceName, BlockIndex = slideIndex, SourceBlockIndex = slideIndex,
                     SourceBlockKind = "slide", Slide = slideIndex + 1, HeadingPath = slide.Name
                 },
-                Text = text, Markdown = markdown.ToString().TrimEnd(), Tables = tables.Count == 0 ? null : tables,
+                Text = text, Markdown = markdown?.ToString().TrimEnd(), Tables = tables.Count == 0 ? null : tables,
                 Warnings = warnings.Count == 0 ? null : warnings
             };
         }

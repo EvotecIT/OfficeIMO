@@ -16,6 +16,8 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
         ReaderExcelOptions configured = ExcelReaderAdapter.Clone(options);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
+            SupportsTextAndMetadata = true,
+            TextAndMetadataExtensions = global::OfficeIMO.Excel.ExcelFormatCatalog.All.Where(format => format.Encoding == OfficeFormatEncoding.OpenXml).Select(format => format.Extension).ToArray(),
             Id = HandlerId,
             DisplayName = "Excel Reader",
             Description = "OfficeIMO.Excel workbook projection with bounded row and table extraction.",
@@ -59,6 +61,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
         long legacyMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes;
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
+            SupportsTextAndMetadata = false,
             Id = LegacyHandlerId,
             DisplayName = "Legacy Spreadsheet Reader",
             Description = "Bounded Lotus 1-2-3, Quattro Pro, Multiplan, Works, SYLK and DIF spreadsheet import.",

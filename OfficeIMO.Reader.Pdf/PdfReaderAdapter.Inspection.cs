@@ -5,7 +5,7 @@ namespace OfficeIMO.Reader.Pdf;
 internal static partial class PdfReaderAdapter {
     private static PdfInspectionReadResult? LoadInspection(PdfDocument pdf, ReaderOptions readerOptions,
         ReaderPdfOptions pdfOptions, CancellationToken cancellationToken) => readerOptions.Inspection is null
-        ? null : pdf.ReadForInspection(pdfOptions.ReadOptions, cancellationToken);
+        ? null : pdf.ReadForInspection(GetEffectiveReadOptions(readerOptions, pdfOptions), cancellationToken);
 
     private static IEnumerable<ReaderChunk> BuildInspectionWarningChunks(PdfInspectionReadResult? inspection,
         SourceMetadata source) {
@@ -56,7 +56,10 @@ internal static partial class PdfReaderAdapter {
                         Location = location,
                         Attributes = attributes
                     });
-                    AddUnreadablePageStructure(evidence, inspection.SourceInfo.Pages[outcome.PageNumber - 1], location);
+                    AddSourcePageStructure(evidence, inspection.SourceInfo.Pages[outcome.PageNumber - 1], location);
+                }
+                else if (options.Projection == ReaderProjection.TextAndMetadata) {
+                    AddSourcePageStructure(evidence, inspection.SourceInfo.Pages[outcome.PageNumber - 1], location);
                 }
             }
             foreach (PdfRepairDiagnostic repair in inspection.RepairReport.Diagnostics) {
@@ -116,7 +119,7 @@ internal static partial class PdfReaderAdapter {
         return evidence.Complete(result);
     }
 
-    private static void AddUnreadablePageStructure(ReaderInspectionMetadataBuilder evidence, PdfPageInfo page,
+    private static void AddSourcePageStructure(ReaderInspectionMetadataBuilder evidence, PdfPageInfo page,
         ReaderLocation location) {
         evidence.Add("pdf.source.page", "Geometry", "retained", "source-structure", location,
             attributes: new Dictionary<string, string>(StringComparer.Ordinal) {
@@ -143,6 +146,10 @@ internal static partial class PdfReaderAdapter {
             evidence.Add("pdf.source.annotation", annotation.Subtype, annotation.Contents, "annotation", location,
                 annotation.ObjectNumber?.ToString(CultureInfo.InvariantCulture),
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["actionType"] = annotation.ActionType ?? string.Empty });
+        }
+        foreach (PdfFormWidget widget in page.FormWidgets) {
+            evidence.Add("pdf.source.form-widget", "Field", widget.FieldName, "form-descriptor", location,
+                widget.ObjectNumber?.ToString(CultureInfo.InvariantCulture));
         }
         foreach (PdfPageAction action in page.PageActions) {
             evidence.Add("pdf.source.page-action", action.TriggerName, action.ActionType, "inert-action", location,

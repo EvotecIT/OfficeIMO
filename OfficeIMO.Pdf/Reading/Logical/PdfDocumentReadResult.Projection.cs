@@ -63,6 +63,6 @@ public sealed partial class PdfDocumentReadResult {
             CatalogLanguage,
             sourceFidelityFacts,
             SourcePageCount,
-            Profile);
+            Profile, IncludesImages, IncludesFormWidgets);
     }
 }

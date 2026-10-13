@@ -9,6 +9,10 @@ namespace OfficeIMO.Reader;
 /// Options controlling extraction behavior for <see cref="OfficeDocumentReader"/>.
 /// </summary>
 public sealed class ReaderOptions {
+    /// <summary>Requested derived representations. Unsupported handlers reject TextAndMetadata before parsing.
+    /// The ordinary rich projection is the default.</summary>
+    public ReaderProjection Projection { get; set; }
+
     /// <summary>Optional aggregate resource budgets for a read, including nested inputs.</summary>
     public ReaderResourceLimits? ResourceLimits { get; set; }
 
@@ -22,6 +26,8 @@ public sealed class ReaderOptions {
     /// </summary>
     public static ReaderOptions CreateSafeIngestion() => new ReaderOptions {
         MaxInputBytes = 64L * 1024 * 1024,
+        OpenXmlMaxPartUncompressedBytes = 32L * 1024 * 1024,
+        OpenXmlMaxTotalUncompressedBytes = 128L * 1024 * 1024,
         ResourceLimits = new ReaderResourceLimits {
             MaxChunks = 50_000, MaxChunkCharacters = 32L * 1024 * 1024, MaxBlocks = 100_000,
             MaxAssets = 512, MaxAssetBytes = 128L * 1024 * 1024,
@@ -64,6 +70,16 @@ public sealed class ReaderOptions {
     /// When null, the OpenXML SDK default is used.
     /// </summary>
     public long? OpenXmlMaxCharactersInPart { get; set; } = DefaultOpenXmlMaxCharactersInPart;
+
+    /// <summary>Optional admission ceiling for one uncompressed part in Word, Excel and PowerPoint package loading.
+    /// The native policy applies to ZIP parts and compound streams, including encrypted envelopes.
+    /// Null retains the owner's default policy. This is distinct from compressed input and output character limits.</summary>
+    public long? OpenXmlMaxPartUncompressedBytes { get; set; }
+
+    /// <summary>Optional admission ceiling for aggregate uncompressed part sizes in Word, Excel and PowerPoint packages.
+    /// Native package declarations are checked before model construction; this is not a hard process-memory or
+    /// total repeated decoding-work guarantee. Null retains the owner's default policy.</summary>
+    public long? OpenXmlMaxTotalUncompressedBytes { get; set; }
 
     /// <summary>
     /// OpenXML security: maximum image asset entries emitted from an Office package.

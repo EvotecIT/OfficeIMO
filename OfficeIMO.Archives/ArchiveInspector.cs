@@ -7,7 +7,8 @@ namespace OfficeIMO.Archives;
 /// <summary>Creates passive CAB/MSI inventories and bounded whole-member reads without filesystem extraction or installer execution.</summary>
 public static class ArchiveInspector {
     /// <summary>Snapshots one package into bounded memory and indexes its authored members without decoding their payloads.</summary>
-    /// <exception cref="InvalidDataException">The input is malformed, inconsistent or exceeds a configured bound.</exception>
+    /// <exception cref="OfficeInspectionResourceLimitException">A configured or fixed managed admission ceiling is exhausted.</exception>
+    /// <exception cref="InvalidDataException">The input is malformed or inconsistent.</exception>
     /// <exception cref="NotSupportedException">The input uses an unsupported container or metadata profile.</exception>
     public static ArchiveInspection Open(string packagePath, ArchiveInspectionOptions? options = null,
         CancellationToken cancellationToken = default) {
@@ -18,7 +19,8 @@ public static class ArchiveInspector {
 
     /// <summary>Snapshots a readable seekable stream from its beginning, restores its original position on success or failure,
     /// and leaves it open. Later reads use the immutable snapshot and their own cancellation tokens.</summary>
-    /// <exception cref="InvalidDataException">The input is malformed, inconsistent or exceeds a configured bound.</exception>
+    /// <exception cref="OfficeInspectionResourceLimitException">A configured or fixed managed admission ceiling is exhausted.</exception>
+    /// <exception cref="InvalidDataException">The input is malformed or inconsistent.</exception>
     /// <exception cref="NotSupportedException">The input uses an unsupported container or metadata profile.</exception>
     public static ArchiveInspection Open(Stream source, ArchiveInspectionOptions? options = null,
         CancellationToken cancellationToken = default) {
@@ -40,8 +42,7 @@ public static class ArchiveInspector {
         ArchiveInspection? inspection = null;
         try {
             long length = source.Length;
-            if (length < 0 || length > limits.Input || length > int.MaxValue)
-                throw new InvalidDataException("Package exceeds the configured input or managed buffer limit.");
+            ArchiveLimits.Check(length, Math.Min(limits.Input, int.MaxValue), nameof(requested.MaxInputBytes));
             source.Position = 0;
             var data = new byte[(int)length];
             int offset = 0;

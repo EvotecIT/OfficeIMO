@@ -75,8 +75,8 @@ public sealed class OpenDocumentRepeatedTableRowTests {
         presentationTable.Element.Descendants(OdfNamespaces.Table + "table-row").Single()
             .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 1000001);
 
-        Assert.Throws<InvalidDataException>(() => _ = textTable.Rows);
-        Assert.Throws<InvalidDataException>(() => _ = presentationTable.Rows);
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = textTable.Rows);
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = presentationTable.Rows);
     }
 
     [Fact]

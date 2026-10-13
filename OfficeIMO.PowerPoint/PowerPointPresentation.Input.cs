@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
                     EnsureSeekableInputWithinDetectionLimit(source,
                         detectionLimit, cancellationToken);
                     OfficeCompoundDocumentDetector.DocumentKind kind =
-                        OfficeCompoundDocumentDetector.Detect(source,
+                        PowerPointPresentationLoadRouting.DetectCompound(source,
                             detectionLimit,
                             CompoundDetectionDirectoryLimit,
                             cancellationToken, out _);
@@ -87,7 +87,7 @@ namespace OfficeIMO.PowerPoint {
                     EnsureSeekableInputWithinDetectionLimit(source,
                         detectionLimit, cancellationToken);
                     OfficeCompoundDocumentDetector.DocumentKind kind =
-                        OfficeCompoundDocumentDetector.Detect(source,
+                        PowerPointPresentationLoadRouting.DetectCompound(source,
                             detectionLimit,
                             CompoundDetectionDirectoryLimit,
                             cancellationToken, out _);
@@ -132,7 +132,7 @@ namespace OfficeIMO.PowerPoint {
                 options.PackageSecurity);
             temporary.Position = 0;
             OfficeCompoundDocumentDetector.DocumentKind kind =
-                OfficeCompoundDocumentDetector.Detect(temporary,
+                PowerPointPresentationLoadRouting.DetectCompound(temporary,
                     ResolveCompoundDetectionLimit(options),
                     CompoundDetectionDirectoryLimit,
                     cancellationToken, out _);
@@ -159,7 +159,7 @@ namespace OfficeIMO.PowerPoint {
                 .ConfigureAwait(false);
             temporary.Position = 0;
             OfficeCompoundDocumentDetector.DocumentKind kind =
-                OfficeCompoundDocumentDetector.Detect(temporary,
+                PowerPointPresentationLoadRouting.DetectCompound(temporary,
                     ResolveCompoundDetectionLimit(options),
                     CompoundDetectionDirectoryLimit,
                     cancellationToken, out _);

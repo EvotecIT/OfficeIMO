@@ -47,8 +47,13 @@ internal static class ExcelInspectionProjection {
         builder.Coverage("workbook-inspection", "complete", "Selected worksheet/cell range; visibility covers authored sheet, row and column definitions. Values are saved caches from the loaded model, not recalculated results.", new ReaderLocation { Path = path });
         if (builder.Options.IncludePackageContent) {
             NativePackageInspectionProjection.Add(builder, document.SourcePackageSecurityReport, document.SourcePackageSecurityScope, path);
-            NativeInspectionProjection.AddPayloads(builder, document.GetEmbeddedPayloads(), path);
-            NativeInspectionProjection.AddVba(builder, document.InspectVbaProject(), path);
+            if (options.Projection == ReaderProjection.TextAndMetadata) {
+                NativeInspectionProjection.AddBoundedPayloads(builder, document.InspectEmbeddedPayloads, path, cancellationToken);
+                NativeInspectionProjection.AddVba(builder, document.InspectVbaProjectMetadata(), path);
+            } else {
+                NativeInspectionProjection.AddPayloads(builder, document.GetEmbeddedPayloads(), path);
+                NativeInspectionProjection.AddVba(builder, document.InspectVbaProject(), path);
+            }
         }
         if (builder.Options.IncludeContentSafety)
             NativeInspectionProjection.InspectContentSafety(builder, safety =>

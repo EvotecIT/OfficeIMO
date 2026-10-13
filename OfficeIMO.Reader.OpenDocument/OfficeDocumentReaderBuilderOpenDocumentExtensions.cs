@@ -32,7 +32,8 @@ public static class OfficeDocumentReaderBuilderOpenDocumentExtensions {
                 OpenDocumentReaderAdapter.ReadDocument(path, options, formatOptions, cancellationToken),
             ReadDocumentStream = (stream, sourceName, options, cancellationToken) =>
                 OpenDocumentReaderAdapter.ReadDocument(stream, sourceName, options, formatOptions, cancellationToken),
-            DeterministicOutput = true
+            DeterministicOutput = true,
+            SupportsTextAndMetadata = true
         };
     }
 }

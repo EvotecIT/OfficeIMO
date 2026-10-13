@@ -15,6 +15,45 @@ For CSV import and export, install the separate `OfficeIMO.Excel.Csv` adapter.
 Keeping conversion outside the Reader package avoids pulling CSV behavior into
 applications that only need generic Excel document extraction.
 
+## Project an open workbook
+
+With `OfficeIMO.Reader.Excel` imported, call `document.ReadDocument(sourceName,
+options, formatOptions, cancellationToken)` on a caller-owned `ExcelDocument`.
+It uses the canonical Reader mapping, snapshots both option sets, including
+native read options, and enforces the projection's output budgets. `Full` is the
+default. The workbook remains open for subsequent `InspectEmbeddedPayloads` reads.
+
+The source name supplies citations without reopening a file or inventing its
+byte hash, length or timestamp. Input and package admission settings cannot
+retroactively constrain the earlier native load; configure them when loading
+the workbook. Lean projection still requires a modern XML source model.
+
+## Text and metadata projection
+
+`ReaderOptions.Projection = ReaderProjection.TextAndMetadata` supports XLSX,
+XLSM, XLTX, XLTM and XLAM. It retains table text, saved values, links and requested
+formula/comment/visibility evidence while skipping Markdown rendering and image
+asset reads before allocation. Formula inspection does not calculate results or
+refresh external connections.
+
+Requested package evidence uses bounded inert payload descriptors. Unknown sizes
+remain explicit without an unrequested scan. VBA part/signature-relationship
+metadata is retained; binary module decoding is marked
+`module-payload-unrequested`.
+
+XLSB, binary XLS families and the separate legacy spreadsheet handlers require
+`Full`. The lean profile refuses their native binary-to-XML projection, including
+mislabeled modern filenames. Ordinary reads keep their existing format support.
+Native parser limits remain separate from Reader's aggregate result budgets.
+
+`OpenXmlMaxPartUncompressedBytes` and `OpenXmlMaxTotalUncompressedBytes` apply
+native declared part/aggregate expansion admission before model loading, even
+when `Inspection` is null. Configured ceilings produce terminal
+`ReaderResourceLimitException` with the native failure retained; they are not
+retried as password failures. These are package admission bounds, not a hard
+limit on process memory or every decoder's actual work.
+
+
 Selected Lotus 1-2-3, Quattro Pro, Multiplan, Works, SYLK (`.slk`), and DIF (`.dif`) spreadsheet sources are included in `OfficeIMO.Excel` but remain opt-in at the Reader registration boundary:
 
 ```csharp

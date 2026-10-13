@@ -26,7 +26,9 @@ internal static partial class OpenDocumentInspectionProjection {
         }
         if (builder.Options.IncludeContentSafety)
             NativeInspectionProjection.InspectContentSafety(builder, safety => document.InspectLoadedContentSafety(safety, token), path);
-        builder.Coverage("rich-content", "native-profile", "Bounded native text, tables, links and image resources; ODT header/footer/note stories and ODP/ODG masters retain separate source locations. Source transforms are not evaluated.", new ReaderLocation { Path = path });
+        if (options.Projection == ReaderProjection.TextAndMetadata)
+            builder.Coverage("rich-content", "not-requested", "Text and native metadata were requested; secondary Markdown, image assets, visual resources and rich story projections were omitted.", new ReaderLocation { Path = path });
+        else builder.Coverage("rich-content", "native-profile", "Bounded native text, tables, links and image resources; ODT header/footer/note stories and ODP/ODG masters retain separate source locations. Source transforms are not evaluated.", new ReaderLocation { Path = path });
         builder.Coverage("form-widgets", "owner-model-unavailable", "The current native OpenDocument owner preserves form XML but exposes no typed widget reading surface.", new ReaderLocation { Path = path });
         return builder.Complete(result);
     }

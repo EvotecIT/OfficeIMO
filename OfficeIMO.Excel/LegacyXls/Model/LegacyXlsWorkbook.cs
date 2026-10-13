@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Neutral workbook model produced from a legacy BIFF `.xls` stream.
     /// </summary>
-    public sealed class LegacyXlsWorkbook {
+    public sealed partial class LegacyXlsWorkbook {
         private readonly List<LegacyXlsWorksheet> _worksheets = new();
         private readonly List<LegacyXlsNumberFormat> _numberFormats = new();
         private readonly List<LegacyXlsFont> _fonts = new();
@@ -642,7 +642,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>
         /// Loads a legacy `.xls` workbook from a byte array.
         /// </summary>
-        public static LegacyXlsWorkbook Load(byte[] bytes, LegacyXlsImportOptions? options = null) {
+        private static LegacyXlsWorkbook LoadCore(byte[] bytes, LegacyXlsImportOptions? options) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
             options ??= new LegacyXlsImportOptions();
@@ -650,6 +650,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (!OfficeCompoundFileReader.TryRead(
                     bytes,
+                    new OfficeCompoundReadOptions(preserveResourceLimits: true),
                     options.CancellationToken,
                     out OfficeCompoundFile? compoundFile,
                     out string? compoundError)) {

@@ -5,6 +5,24 @@
 
 `OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, converts, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed. It also opens BIFF8 `.xls` and BIFF12 `.xlsb` workbooks, projects supported content into the normal OfficeIMO model, and provides first-party native writer subsets with explicit preservation and loss diagnostics.
 
+## Bounded native inspection
+
+`ExcelLoadOptions.AllowBinaryProjection = false` accepts XML workbook packages
+and rejects XLS/XLSB before their secondary payload/model projection. The default
+keeps existing binary import behavior. The inspection snapshot retains saved
+values, authored formulas, comments and worksheet state without evaluating formulas.
+
+`InspectEmbeddedPayloads(options, cancellationToken)` inventories inert package,
+OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
+streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` is the direct
+single-payload convenience API. Keep the workbook open while requesting reads;
+returned complete read-only streams are caller-owned and survive workbook
+disposal. The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
+defines count, member, aggregate and cumulative work limits, unknown lengths and
+optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
+relationship without reading binary module content, with
+`ModuleInspectionRequested = false`.
+
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
 ## Install

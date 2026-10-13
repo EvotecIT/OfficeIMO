@@ -5,6 +5,48 @@
 
 `OfficeIMO.Core` is the zero-dependency shared foundation for OfficeIMO packages. It owns common document lifecycle and package-safety contracts, neutral tabular row mapping, color conversion, image metadata, font and text measurement, vector scenes, reusable ink and math models, chart snapshots, SVG, raster canvases, PNG/JPEG/TIFF/WebP encoding, and drawing-quality primitives. Format packages keep their file-format behavior while reusing these document-agnostic models and renderers.
 
+## Bounded embedded payload reads
+
+Native document owners create `OfficeEmbeddedPayloadInspection` sessions through
+`InspectEmbeddedPayloads(options, cancellationToken)`. Core owns their common
+descriptor and cumulative read contract; the format owner discovers and opens its
+own payloads. No consumer needs to reopen private package parts.
+
+```csharp
+using OfficeIMO;
+
+using OfficeEmbeddedPayloadInspection payloads = document.InspectEmbeddedPayloads(
+    new OfficeEmbeddedPayloadInspectionOptions {
+        MaxPayloads = 128,
+        MaxPayloadBytes = 16L * 1024 * 1024,
+        MaxTotalPayloadBytes = 64L * 1024 * 1024,
+        MaxReadBytes = 64L * 1024 * 1024
+    });
+foreach (OfficeEmbeddedPayloadInfo payload in payloads.Payloads) {
+    Console.WriteLine($"{payload.Id}: {payload.ContentType}");
+    if (payload.SuggestedFileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) {
+        using Stream bytes = payloads.OpenRead(payload.Ordinal);
+        // Pass the selected document to the application's bounded consumer.
+    }
+}
+```
+
+Hashing is off by default. An inventory can report `Length = -1` and
+`HasKnownLength = false` when the native owner cannot obtain the decoded size
+without reading the payload. Unknown sizes are admitted during a selected read;
+they never bypass the member or aggregate limits. `IncludeSha256 = true` requests
+a bounded scan, and that scan shares `MaxReadBytes` with subsequent and repeated
+reads. Distinct owner relationships remain distinct descriptors.
+
+Keep the native document open while requesting new reads. Each returned stream
+is a complete read-only detached copy; the caller disposes it, and it remains
+usable after either the document or inspection session is disposed. Disposing a
+session rejects new reads and releases its source callbacks. Limit failures retain
+the `embedded-payload` owner, limit name and maximum in
+`OfficeInspectionResourceLimitException`. External references are never fetched
+and payloads are never executed. Native source, parser and expansion limits apply
+separately; these byte ceilings do not measure all managed model allocations.
+
 The assembly was previously named `OfficeIMO.Drawing`. Drawing became the original shared foundation because keeping these primitives together avoided a separate Core → Drawing → format dependency chain. As lifecycle, security, package, and data contracts accumulated, the package name stopped describing its actual responsibility. That same single zero-dependency foundation is now named `OfficeIMO.Core`; it was not split into another runtime dependency. Actual drawing APIs remain in `OfficeIMO.Drawing`, neutral data and flattening contracts use `OfficeIMO.Data`, security APIs remain in `OfficeIMO.Security`, and cross-document lifecycle, compatibility, capability, and conversion-report contracts use the root `OfficeIMO` namespace.
 
 The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT license. It was ported from the same author's CodeGlyphX implementation. The lossy VP8 encoder is adapted from CodeGlyphX under Apache-2.0 and retains its source notices. Both implementations run inside Core without a CodeGlyphX runtime dependency. The [third-party notices](THIRD-PARTY-NOTICES.md) identify the incorporated code and its license files.

@@ -15,7 +15,7 @@ internal static partial class RtfReaderAdapter {
         ReaderRtfOptions effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
         ReaderInputLimits.EnforceFileSize(rtfPath, effectiveReaderOptions.MaxInputBytes);
         SourceMetadata source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes, cancellationToken);
-        RtfReadResult readResult = RtfDocument.LoadResult(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding, cancellationToken);
+        RtfReadResult readResult = RtfDocument.LoadResult(rtfPath, GetEffectiveReadOptions(effectiveReaderOptions, effectiveRtfOptions), encoding, cancellationToken);
         return BuildRtfDocumentResult(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken);
     }
 
@@ -32,7 +32,7 @@ internal static partial class RtfReaderAdapter {
             long start = parseStream.CanSeek ? parseStream.Position : 0L;
             UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, start, cancellationToken);
             if (parseStream.CanSeek) parseStream.Position = start;
-            RtfReadResult readResult = RtfDocument.LoadResult(parseStream, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding, cancellationToken);
+            RtfReadResult readResult = RtfDocument.LoadResult(parseStream, GetEffectiveReadOptions(effectiveReaderOptions, effectiveRtfOptions), encoding, cancellationToken);
             return BuildRtfDocumentResult(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken);
         } finally {
             if (ownsParseStream) parseStream.Dispose();
@@ -65,11 +65,20 @@ internal static partial class RtfReaderAdapter {
         return OfficeDocumentReadResultJson.Serialize(ReadDocument(document, sourceName, readerOptions, rtfOptions, cancellationToken), indented);
     }
 
+    internal static OfficeDocumentReadResult ProjectDocument(RtfReadResult readResult, string sourceName,
+        ReaderOptions readerOptions, ReaderRtfOptions rtfOptions, CancellationToken cancellationToken) {
+        string name = NormalizeLogicalSourceName(sourceName, "document.rtf");
+        var source = new SourceMetadata { Path = name, SourceId = BuildSourceId(name) };
+        return BuildRtfDocumentResult(readResult, source, readerOptions, rtfOptions, cancellationToken);
+    }
+
     private static OfficeDocumentReadResult BuildRtfDocumentResult(RtfReadResult readResult, SourceMetadata source, ReaderOptions readerOptions, ReaderRtfOptions rtfOptions, CancellationToken cancellationToken) {
         return BuildRtfDocumentResult(readResult.Document, readResult.Diagnostics, source, readerOptions, rtfOptions, cancellationToken);
     }
 
     private static OfficeDocumentReadResult BuildRtfDocumentResult(RtfDocument document, IReadOnlyList<RtfDiagnostic> sourceDiagnostics, SourceMetadata source, ReaderOptions readerOptions, ReaderRtfOptions rtfOptions, CancellationToken cancellationToken) {
+        if (readerOptions.Projection == ReaderProjection.TextAndMetadata)
+            return BuildTextAndMetadataResult(document, sourceDiagnostics, source, readerOptions, rtfOptions, cancellationToken);
         IReadOnlyList<RtfDiagnostic> includedDiagnostics = rtfOptions.IncludeDiagnostics ? sourceDiagnostics : Array.Empty<RtfDiagnostic>();
         ReaderChunk[] chunks = Read(document, source, readerOptions, rtfOptions, includedDiagnostics, cancellationToken).ToArray();
         RtfRichProjection projection = ProjectRtfDocument(document, source.Path, readerOptions.MaxTableRows, rtfOptions, cancellationToken);

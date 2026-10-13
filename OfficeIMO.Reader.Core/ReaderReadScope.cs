@@ -10,9 +10,10 @@ internal sealed class ReaderReadScope : IDisposable {
     internal static ReaderReadScope? Current => Active.Value;
     internal ReaderOperationBudget? Budget { get; }
     internal int Depth { get; }
+    internal ReaderProjection Projection { get; }
     private ReaderReadScope(ReaderOperationBudget? budget, int depth, bool activate,
-        List<OfficeDocumentNestedResult>? nestedResults = null) {
-        Budget = budget; Depth = depth;
+        List<OfficeDocumentNestedResult>? nestedResults = null, ReaderProjection projection = ReaderProjection.Full) {
+        Budget = budget; Depth = depth; Projection = projection;
         _nested = nestedResults ?? new List<OfficeDocumentNestedResult>();
         if (activate) { _previous = Active.Value; Active.Value = this; }
     }
@@ -21,17 +22,20 @@ internal sealed class ReaderReadScope : IDisposable {
         var budget = previous?.Budget ?? CreateBudget(options);
         int depth = (previous?.Depth ?? 0) + (nested ? 1 : 0);
         budget?.CheckDepth(depth);
-        return new ReaderReadScope(budget, depth, activate: true);
+        return new ReaderReadScope(budget, depth, activate: true,
+            projection: ResolveProjection(options));
     }
     internal static ReaderReadScope CreateDetached(ReaderOptions? options) => new ReaderReadScope(
         Current?.Budget ?? CreateBudget(options),
-        Current?.Depth ?? 0, activate: false);
+        Current?.Depth ?? 0, activate: false,
+        projection: ResolveProjection(options));
     internal static ReaderReadScope EnterContainer(ReaderOptions options) {
         var previous = Current;
         var budget = previous?.Budget ?? CreateBudget(options);
         int depth = (previous?.Depth ?? 0) + 1;
         budget?.CheckDepth(depth);
-        return new ReaderReadScope(budget, depth, activate: true, nestedResults: previous?._nested);
+        return new ReaderReadScope(budget, depth, activate: true, nestedResults: previous?._nested,
+            projection: ResolveProjection(options));
     }
     internal static IDisposable Use(ReaderReadScope scope) {
         var previous = Active.Value; Active.Value = scope; return new Restore(previous);
@@ -39,9 +43,13 @@ internal sealed class ReaderReadScope : IDisposable {
     private static ReaderOperationBudget? CreateBudget(ReaderOptions? options) =>
         options?.ResourceLimits == null && options?.Inspection == null ? null :
             new ReaderOperationBudget(options?.ResourceLimits ?? new ReaderResourceLimits(), options?.Inspection);
+    private static ReaderProjection ResolveProjection(ReaderOptions? options) =>
+        Current?.Projection == ReaderProjection.TextAndMetadata
+            ? ReaderProjection.TextAndMetadata : options?.Projection ?? ReaderProjection.Full;
     internal static OfficeDocumentReadResult Complete(OfficeDocumentReadResult result) {
         var scope = Current;
         if (scope == null) return result;
+        DocumentReaderEngine.ApplyProjectionCapability(result, scope.Projection);
         lock (scope._nested) if (scope._nested.Count > 0)
             result.NestedDocuments = result.NestedDocuments.Concat(scope._nested).Distinct().ToArray();
         scope.Budget?.AddDocument(result);

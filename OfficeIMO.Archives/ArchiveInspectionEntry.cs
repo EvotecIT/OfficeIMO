@@ -67,7 +67,7 @@ public sealed class ArchiveInspectionEntry {
     /// <summary>Number of CFDATA frames in the complete containing folder.</summary>
     public int? FolderFrameCount { get; }
     /// <summary>Number of containing-folder frames declaring a nonzero CAB checksum. Inventory does not check these values.
-    /// A successful OpenRead verifies these frame checksums; zero-checksum frames have no checksum verification.
+    /// A successful OpenRead or ReadMembers verifies these frame checksums; zero-checksum frames have no checksum verification.
     /// CAB frame checksums are corruption checks, not cryptographic hashes or authenticity evidence.</summary>
     public int? FolderChecksumFrameCount { get; }
     /// <summary>True when the declared source and codec can be read. Checksums and decoded integrity are verified by OpenRead.</summary>

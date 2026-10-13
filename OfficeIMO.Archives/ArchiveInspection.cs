@@ -11,6 +11,7 @@ namespace OfficeIMO.Archives;
 public sealed partial class ArchiveInspection : IDisposable {
     private readonly object _gate = new();
     private readonly ArchiveLimits _limits;
+    private readonly int _directoryRecords;
     private readonly Dictionary<string, OfficeCabinetArchiveReader.Inspection> _cabinets = new(StringComparer.Ordinal);
     private MsiPackageReader? _database;
     private MemoryStream? _databaseSource;
@@ -18,7 +19,7 @@ public sealed partial class ArchiveInspection : IDisposable {
     private bool _disposed;
 
     internal ArchiveInspection(byte[] input, ArchiveLimits limits, int directoryRecords, CancellationToken token) {
-        _limits = limits; InputLength = input.LongLength;
+        _limits = limits; _directoryRecords = directoryRecords; InputLength = input.LongLength;
         using var source = new MemoryStream(input, writable: false);
         Format = ArchiveExtractor.Detect(source, token);
         StorageStreams = Array.Empty<ArchiveStorageStream>();
@@ -35,7 +36,7 @@ public sealed partial class ArchiveInspection : IDisposable {
                 Entries = entries.AsReadOnly();
             } else Entries = ReadMsiInventory(input, budget, directoryRecords, token);
             token.ThrowIfCancellationRequested();
-        } catch (OfficeCabinetException exception) { Dispose(); throw Translate(exception); }
+        } catch (OfficeCabinetException exception) { Dispose(); throw _limits.Translate(exception, directoryMaximum: _directoryRecords); }
         catch { Dispose(); throw; }
     }
 
@@ -49,13 +50,17 @@ public sealed partial class ArchiveInspection : IDisposable {
     public IReadOnlyList<ArchiveStorageStream> StorageStreams { get; private set; }
     /// <summary>Cumulative charged expanded folder and raw stream bytes, including attempted reads that fail.</summary>
     public long ReadBytes { get { lock (_gate) return _readBytes; } }
+    /// <summary>Cumulative CAB frame-processing work charged across member reads, including failed attempts after charging.
+    /// Units bound frame setup and processing rather than exact CPU time or expanded payload size.</summary>
+    public long DecompressionWorkBytes { get { lock (_gate) return _limits.DecompressionWork.ConsumedBytes; } }
 
     /// <summary>Returns a read-only stream containing one complete length-validated member. Every nonzero CAB frame checksum
     /// in its containing folder is checked; absent checksums do not establish authenticity. The source ordinal selects duplicate names
     /// independently. The entire containing CAB folder is decoded and charged before returning; no prefix or partial bytes escape.
     /// The returned stream is caller-owned and remains valid after this inspection is disposed.</summary>
     /// <exception cref="NotSupportedException">The entry's declared source or compression cannot be read.</exception>
-    /// <exception cref="InvalidDataException">Decoded content is corrupt or exceeds the remaining inspection budget.</exception>
+    /// <exception cref="OfficeInspectionResourceLimitException">A configured or fixed managed admission ceiling is exhausted.</exception>
+    /// <exception cref="InvalidDataException">Decoded content is corrupt.</exception>
     public Stream OpenRead(int ordinal, CancellationToken cancellationToken = default) {
         lock (_gate) {
             ThrowIfDisposed(); cancellationToken.ThrowIfCancellationRequested();
@@ -67,12 +72,12 @@ public sealed partial class ArchiveInspection : IDisposable {
             long bytes = entry.FolderExpandedBytes!.Value;
             long remaining = _limits.Expanded - _readBytes;
             // Reserve the full attempted decode, including gaps and sibling files, before invoking the decoder.
-            ArchiveLimits.Add(ref _readBytes, bytes, _limits.Expanded, "Cumulative inspection expansion");
+            ArchiveLimits.Add(ref _readBytes, bytes, _limits.Expanded, "MaxExpandedBytes");
             try {
                 byte[] payload = cabinet.ReadMember(entry.CabinetOrdinal!.Value, remaining, _limits.DecompressionWork, cancellationToken);
                 if (payload.LongLength != entry.Length) throw new InvalidDataException("Member length differs from its declared complete size.");
                 return new MemoryStream(payload, writable: false);
-            } catch (OfficeCabinetException exception) { throw Translate(exception); }
+            } catch (OfficeCabinetException exception) { throw _limits.Translate(exception, remaining, directoryMaximum: _directoryRecords); }
         }
     }
 
@@ -84,8 +89,9 @@ public sealed partial class ArchiveInspection : IDisposable {
             if (ordinal < 0 || ordinal >= StorageStreams.Count) throw new ArgumentOutOfRangeException(nameof(ordinal));
             ArchiveStorageStream entry = StorageStreams[ordinal];
             _limits.CheckEntry(entry.Length);
-            ArchiveLimits.Add(ref _readBytes, entry.Length, _limits.Expanded, "Cumulative inspection expansion");
+            ArchiveLimits.Add(ref _readBytes, entry.Length, _limits.Expanded, "MaxExpandedBytes");
             using Stream source = _database!.OpenRawStream(entry.RawName, cancellationToken);
+            ArchiveLimits.Check(entry.Length, Math.Min(_limits.Entry, int.MaxValue), "MaxEntryBytes");
             byte[] payload = OfficeArchiveSafety.ReadEntryBytes(source, entry.Length, _limits.Entry, cancellationToken);
             if (payload.LongLength != entry.Length) throw new InvalidDataException("MSI raw stream length differs from its declared complete size.");
             cancellationToken.ThrowIfCancellationRequested();
@@ -102,10 +108,6 @@ public sealed partial class ArchiveInspection : IDisposable {
         }
     }
     private void ThrowIfDisposed() { if (_disposed) throw new ObjectDisposedException(nameof(ArchiveInspection)); }
-    private static Exception Translate(OfficeCabinetException exception) =>
-        exception.Code == "CAB_COMPRESSION" || exception.Code == "CAB_MULTIPART" || exception.Code == "CAB_LZX_WINDOW" || exception.Code == "CAB_NAME_ENCODING"
-            ? new NotSupportedException(exception.Code + ": " + exception.Message, exception)
-            : new InvalidDataException(exception.Code + ": " + exception.Message, exception);
     private static ArchiveInspectionEntry Entry(OfficeCabinetMemberInfo member, int ordinal, string? rawFileName,
         string? path, string? cabinet, int? sequence) {
         int method = member.Compression & 15;

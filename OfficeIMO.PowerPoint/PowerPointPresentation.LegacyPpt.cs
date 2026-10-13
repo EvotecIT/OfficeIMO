@@ -70,6 +70,7 @@ namespace OfficeIMO.PowerPoint {
             CancellationToken cancellationToken = default) {
             LegacyPptImportOptions sourceOptions = options.LegacyPptImportOptions
                 ?? new LegacyPptImportOptions();
+            if (!options.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML presentations only; encrypted binary PPT projection is disabled.");
             var importOptions = new LegacyPptImportOptions {
                 MaxInputBytes = sourceOptions.MaxInputBytes,
                 ReportUnsupportedContent = sourceOptions.ReportUnsupportedContent,

@@ -56,7 +56,7 @@ internal static partial class OpenDocumentReaderAdapter {
                 Id = BuildId(sourceName, "sheet", blockIndex), Kind = ReaderInputKind.OpenDocument,
                 Location = location,
                 Text = string.Join(Environment.NewLine, rows.Select(row => string.Join("\t", row))),
-                Markdown = BuildTableMarkdown(columns, rows), Tables = new[] { table },
+                Markdown = options.Projection == ReaderProjection.TextAndMetadata ? null : BuildTableMarkdown(columns, rows), Tables = new[] { table },
                 Warnings = warnings.Count == 0 ? null : warnings
             };
             blockIndex++;

@@ -3,8 +3,10 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Archives.Tests;
 
 public sealed class ArchiveInspectionTests {
-    [Fact]
-    public void PublicMemberReadUsesTheExistingMsZipDecoderForACompleteFrame() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PublicMemberReadUsesTheExistingMsZipDecoderForACompleteFrame(bool grouped) {
         // CAB CK marker followed by a final stored-DEFLATE block containing the independent text "hello".
         byte[] frame = { 0x43, 0x4b, 1, 5, 0, 0xfa, 0xff, (byte)'h', (byte)'e', (byte)'l', (byte)'l', (byte)'o' };
         byte[] cabinet = ArchiveFixtures.StoredCab("message.txt", frame);
@@ -15,7 +17,8 @@ public sealed class ArchiveInspectionTests {
         using var source = new MemoryStream(cabinet);
         using ArchiveInspection inspection = ArchiveInspector.Open(source);
         Assert.Equal(ArchiveCompression.MsZip, Assert.Single(inspection.Entries).Compression);
-        using Stream member = inspection.OpenRead(0);
+        using ArchiveReadBatch? batch = grouped ? inspection.ReadMembers(new[] { 0 }, 5) : null;
+        using Stream member = batch == null ? inspection.OpenRead(0) : batch.Members[0].Content;
         Assert.Equal("hello", Text(member));
     }
 

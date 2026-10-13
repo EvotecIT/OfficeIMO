@@ -15,12 +15,16 @@ internal sealed class OdfRepeatedElementCollection<T> : IReadOnlyList<T> {
         _factory = factory;
         long count = 0;
         foreach (XElement element in elements) {
-            count = checked(count + OdsRepeatModel.Read(element, repeatAttribute));
-            if (count > MaximumLogicalItems) {
-                throw new InvalidDataException($"ODF collection exceeds the supported logical item limit of {MaximumLogicalItems}.");
-            }
+            count = AddCount(count, OdsRepeatModel.Read(element, repeatAttribute));
         }
         _count = (int)count;
+    }
+
+    /// <summary>Admits a repeat before adding it, keeping oversized counts out of overflow paths.</summary>
+    internal static long AddCount(long count, long repeat) {
+        if (repeat > MaximumLogicalItems - count)
+            throw OdfTextCodec.Limit(nameof(MaximumLogicalItems), MaximumLogicalItems);
+        return count + repeat;
     }
 
     public int Count => _count;

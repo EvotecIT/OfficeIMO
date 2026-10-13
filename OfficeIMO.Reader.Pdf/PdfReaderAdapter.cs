@@ -23,7 +23,7 @@ internal static partial class PdfReaderAdapter {
 
         PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions), cancellationToken);
         PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
-        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectivePdfOptions, cancellationToken);
+        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
         }
@@ -49,7 +49,7 @@ internal static partial class PdfReaderAdapter {
         PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
         PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
-        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectivePdfOptions, cancellationToken);
+        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
         }
@@ -89,6 +89,11 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static IEnumerable<ReaderChunk> Read(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken) {
+        if (readerOptions.Projection == ReaderProjection.TextAndMetadata) {
+            foreach (ReaderChunk chunk in ReadTextAndMetadataChunks(applyPageRanges ? GetReaderPages(document, pdfOptions) : document.Pages,
+                source, readerOptions, cancellationToken, pdfOptions.ChunkByPage)) yield return chunk;
+            yield break;
+        }
         int maxChars = readerOptions.MaxChars > 0 ? readerOptions.MaxChars : 8_000;
         var markdownOptions = ReaderPdfOptions.CloneMarkdownOptions(pdfOptions.MarkdownOptions) ?? ReaderPdfOptions.CreateOfficeIMOProfile().MarkdownOptions!;
         markdownOptions.IncludePageSeparators = false;
@@ -866,9 +871,9 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static PdfDocumentReadResult LoadDocument(PdfDocument document, ReaderPdfOptions options, CancellationToken cancellationToken) {
+    private static PdfDocumentReadResult LoadDocument(PdfDocument document, ReaderOptions readerOptions, ReaderPdfOptions options, CancellationToken cancellationToken) {
         if (document is null) throw new ArgumentNullException(nameof(document));
-        return document.Read(options.ReadOptions, cancellationToken);
+        return document.Read(GetEffectiveReadOptions(readerOptions, options), cancellationToken);
     }
 
     private static PdfLoadOptions? CreatePdfLoadOptions(ReaderOptions options, ReaderPdfOptions pdfOptions) {

@@ -74,6 +74,35 @@ The profile caps input bytes and characters, group depth/count, token count, tex
 
 The core never fetches external resources. `RtfReadOptions.CreateCompatibilityProfile()` restores the former unbounded, object-materializing, all-schemes behavior for trusted legacy inputs only.
 
+## Defer picture and object bytes
+
+Set `RtfReadOptions.DeferBinaryPayloads` to keep picture and object data as immutable source fragments during parsing. The parser still enforces source, group, token, binary declaration and semantic payload limits. Native `RtfImage.Data`, `RtfObject.Data` and semantic writing decode bytes when needed. The option defaults to `false` and does not enable `ReadEmbeddedObjects`, which remains `false` by default.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Rtf;
+
+RtfReadResult read = RtfDocument.LoadResult("report.rtf", new RtfReadOptions {
+    DeferBinaryPayloads = true
+});
+using OfficeEmbeddedPayloadInspection payloads = read.InspectEmbeddedPayloads(
+    new OfficeEmbeddedPayloadInspectionOptions {
+        MaxPayloadBytes = 8L * 1024 * 1024,
+        MaxTotalPayloadBytes = 32L * 1024 * 1024,
+        MaxReadBytes = 64L * 1024 * 1024
+    });
+foreach (OfficeEmbeddedPayloadInfo payload in payloads.Payloads) {
+    Console.WriteLine($"{payload.Ordinal}: {payload.Id}");
+}
+using Stream selected = payloads.OpenRead(0, cancellationToken);
+```
+
+The session inventories `pict` and `objdata` groups retained in the original syntax, including objects omitted from the semantic document. Its `rtf-source:` locators identify source character positions, not physical byte offsets or OPC relationships. Hexadecimal lengths remain explicitly unknown until a selected read or requested hash completes. Native parser diagnostics still describe source truncation or unsupported syntax; this inventory does not restore groups the parser omitted.
+
+Selected streams and `IncludeSha256` require complete data. Missing, negative, overflowing or truncated `bin` declarations, odd hexadecimal nibbles and non-hexadecimal garbage are refused instead of publishing partial payloads or full hashes. Semantic getters retain their ordinary compatibility behavior. `MaxReadBytes` charges repeated selected reads and hash scans. Session creation snapshots exact source fragments; subsequent semantic or lossless edits do not replace those original-source bytes. Returned streams are read-only, independent buffers that survive session disposal. Objects are never activated, and external content is never fetched. Source and selected-payload limits do not establish a peak-memory guarantee.
+
+Deferred reading rejects `fromhtml` sources containing `pict` or `objdata` before binding because their existing HTML baseline serializes binary semantic content. The default eager profile preserves that behavior; a caller requesting deferral receives `NotSupportedException` for this profile.
+
 ## Inspect and remove concealed content
 
 Use `RtfDocument.InspectContentSafety(...)` before sending an untrusted document to a model or automated reviewer. It reports native hidden runs (`\\v`), deleted revisions, tiny or near-zero-scaled text, resolved low-contrast text, non-primary destinations, and suspicious Unicode controls. These findings describe concealment risk; they do not prove that AI authored the document.

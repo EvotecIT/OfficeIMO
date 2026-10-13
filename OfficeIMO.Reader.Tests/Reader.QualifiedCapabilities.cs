@@ -25,7 +25,7 @@ public sealed class ReaderQualifiedCapabilityTests {
         var word = reader.GetCapabilities().Single(c => c.Id == OfficeDocumentReaderBuilderWordExtensions.HandlerId);
         Assert.Equal(global::OfficeIMO.Word.WordFormatCatalog.All.Select(f => f.Id).OrderBy(id => id, StringComparer.Ordinal), word.FormatQualifications.Select(f => f.FormatId).OrderBy(id => id, StringComparer.Ordinal));
         using var json = JsonDocument.Parse(reader.GetCapabilityManifestJson());
-        Assert.Equal(6, json.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(7, json.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Contains(json.RootElement.GetProperty("handlers").EnumerateArray(), h => h.GetProperty("formatQualifications").GetArrayLength() > 0);
     }
 

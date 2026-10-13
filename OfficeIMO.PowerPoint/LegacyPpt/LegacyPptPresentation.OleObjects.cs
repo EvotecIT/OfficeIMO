@@ -193,7 +193,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     out storageReason)
                 && LegacyPptCompoundStorageValidator.TryRead(storageBytes,
                     options,
-                    out OfficeCompoundFile? compound, out compoundReason)
+                    out OfficeCompoundFile? compound, out compoundReason, preserveResourceLimits: true)
                 && compound != null;
             if (valid) return true;
             AddDiagnostic(diagnosticCode,

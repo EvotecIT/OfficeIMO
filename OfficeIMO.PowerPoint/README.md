@@ -6,6 +6,25 @@
 `OfficeIMO.PowerPoint` creates, reads, edits, and writes `.pptx` presentations and PowerPoint 97-2003
 `.ppt`, `.pot`, and `.pps` files. It works without COM automation and without Microsoft PowerPoint installed.
 
+## Inspection without export payloads
+
+`PowerPointExtractOptions.IncludeMarkdown = false` makes `ExtractMarkdownChunks`
+emit plain slide/table/note text without constructing Markdown. Extraction options
+are snapshotted when the enumerable is created. `PowerPointLoadOptions.AllowLegacyProjection = false`
+rejects binary PPT before secondary payload/model projection, including encrypted
+legacy input; ordinary loads keep the default import behavior.
+
+`InspectEmbeddedPayloads(options, cancellationToken)` inventories inert package,
+OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
+streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` opens one
+payload directly. Keep the presentation open while requesting reads; returned
+complete read-only streams are caller-owned and survive presentation disposal.
+The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
+defines count, member, aggregate and cumulative work limits, unknown lengths and
+optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
+relationship without reading binary module content, with
+`ModuleInspectionRequested = false`.
+
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
 ## Install

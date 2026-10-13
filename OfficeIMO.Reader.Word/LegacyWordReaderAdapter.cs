@@ -1,3 +1,4 @@
+using OfficeIMO.Reader.FormatInternals;
 using OfficeIMO.Word.Legacy;
 
 namespace OfficeIMO.Reader.Word;
@@ -18,7 +19,7 @@ internal static class LegacyWordReaderAdapter {
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderWordOptions options,
         LegacyWordImportOptions? importOptions, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        using LegacyWordImportResult imported = LegacyWordImporter.Import(path, Prepare(importOptions, path, readerOptions), cancellationToken);
+        using LegacyWordImportResult imported = NativeReaderAdmission.Load(() => LegacyWordImporter.Import(path, Prepare(importOptions, path, readerOptions), cancellationToken));
         return WordReaderAdapter.Project(imported.Value, path, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 
@@ -26,7 +27,7 @@ internal static class LegacyWordReaderAdapter {
         LegacyWordImportOptions? importOptions, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "legacy-document" : sourceName!;
-        using LegacyWordImportResult imported = LegacyWordImporter.Import(stream, Prepare(importOptions, sourceName, readerOptions), cancellationToken);
+        using LegacyWordImportResult imported = NativeReaderAdmission.Load(() => LegacyWordImporter.Import(stream, Prepare(importOptions, sourceName, readerOptions), cancellationToken));
         return WordReaderAdapter.Project(imported.Value, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 
@@ -53,6 +54,8 @@ internal static class LegacyWordReaderAdapter {
             throw;
         } catch (InvalidDataException) {
             return false;
+        } catch (OfficeInspectionResourceLimitException exception) {
+            throw NativeReaderAdmission.TranslateLimit(exception);
         } catch (IOException) {
             return false;
         } catch (NotSupportedException) {
@@ -97,7 +100,7 @@ internal static class LegacyWordReaderAdapter {
         LegacyWordImportOptions? importOptions, CancellationToken cancellationToken) {
         LegacyWordImportOptions configured = Prepare(importOptions, path, readerOptions);
         configured.FormatHint = LegacyWordFormat.WordForDos;
-        using LegacyWordImportResult imported = LegacyWordImporter.Import(path, configured, cancellationToken);
+        using LegacyWordImportResult imported = NativeReaderAdmission.Load(() => LegacyWordImporter.Import(path, configured, cancellationToken));
         return WordReaderAdapter.Project(imported.Value, path, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 
@@ -106,7 +109,7 @@ internal static class LegacyWordReaderAdapter {
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "legacy-document.doc" : sourceName!;
         LegacyWordImportOptions configured = Prepare(importOptions, sourceName, readerOptions);
         configured.FormatHint = LegacyWordFormat.WordForDos;
-        using LegacyWordImportResult imported = LegacyWordImporter.Import(stream, configured, cancellationToken);
+        using LegacyWordImportResult imported = NativeReaderAdmission.Load(() => LegacyWordImporter.Import(stream, configured, cancellationToken));
         return WordReaderAdapter.Project(imported.Value, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 

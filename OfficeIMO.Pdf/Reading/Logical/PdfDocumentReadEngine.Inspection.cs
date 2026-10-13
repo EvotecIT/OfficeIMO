@@ -11,7 +11,7 @@ internal static partial class PdfDocumentReadEngine {
         if (selected.Length > pipelineOptions.MaxPages) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, pipelineOptions.MaxPages, selected.Length);
         }
-        var pipeline = new PdfUnderstandingPipeline(options.LayoutOptions, pipelineOptions);
+        var pipeline = new PdfUnderstandingPipeline(options.LayoutOptions, pipelineOptions, options.IncludeImages);
         var numbers = new List<int>();
         var analyses = new List<PdfUnderstandingPageResult>();
         var failures = new Dictionary<int, PdfPageReadOutcome>();
@@ -42,7 +42,8 @@ internal static partial class PdfDocumentReadEngine {
                     pipelineOptions.MaxRegionsPerPage, pipelineOptions.MaxDocumentWorkUnits, cancellationToken)
                 : analyses;
             PdfDocumentReadResult result = PdfDocumentReadResult.FromPageNumbers(document, options.LayoutOptions,
-                successfulNumbers, enriched, options.Profile, cancellationToken, preserveDocumentWideObjects: true);
+                successfulNumbers, enriched, options.Profile, cancellationToken, preserveDocumentWideObjects: true,
+                includeImages: options.IncludeImages, includeFormWidgets: options.IncludeFormWidgets);
             var outcomes = new List<PdfPageReadOutcome>(selected.Length);
             int successfulIndex = 0;
             for (int index = 0; index < selected.Length; index++) {

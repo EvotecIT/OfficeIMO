@@ -122,7 +122,8 @@ public static class RtfSyntaxParser {
                     return new RtfText(token.Position, token.Text ?? string.Empty, token.RawText);
                 case RtfTokenKind.Binary:
                     _index++;
-                    return new RtfBinary(token.Position, token.BinaryData ?? Array.Empty<byte>(), token.RawText);
+                    return new RtfBinary(token.Position, token.IsBinaryDeferred ? null : token.BinaryData,
+                        token.RawText, token.IsBinaryDeferred, token.DeclaredBinaryLength);
                 default:
                     _index++;
                     return new RtfText(token.Position, string.Empty, string.Empty);

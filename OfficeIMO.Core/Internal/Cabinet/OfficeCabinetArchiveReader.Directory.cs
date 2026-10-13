@@ -7,20 +7,14 @@ internal static partial class OfficeCabinetArchiveReader {
     private sealed partial class Reader {
         /// <summary>Parses the canonical CAB directory once for extraction and passive inspection.</summary>
         internal Directory ReadDirectory() {
-            if (_length < 36 || _data[0] != (byte)'M' || _data[1] != (byte)'S' || _data[2] != (byte)'C' || _data[3] != (byte)'F') {
-                throw Error("CAB_SIGNATURE", "The file is not a Microsoft Cabinet archive.");
-            }
+            ValidateHeader();
             uint declaredSize = UInt32(8);
             uint filesOffset = UInt32(16);
             int folderCount = UInt16(26);
             int fileCount = UInt16(28);
             // MS-CAB requires readers to ignore reserved CFHEADER flag bits.
             ushort flags = (ushort)(UInt16(30) & 7);
-            if (UInt32(4) != 0 || UInt32(12) != 0 || UInt32(20) != 0 ||
-                declaredSize < 36 || declaredSize > _length || folderCount < 1 || fileCount > _maxEntries ||
-                _data[24] != 3 || _data[25] != 1) {
-                throw Error("CAB_HEADER", "The CAB header contains invalid reserved fields, sizes, version or entry counts.");
-            }
+            if (fileCount > _maxEntries) throw Error("CAB_ENTRY_COUNT_LIMIT", "CAB file records exceed the configured entry count.");
             // Signed cabinets may have an appended signature, but offsets must
             // remain within the size declared by CFHEADER.
             _length = (int)declaredSize;
@@ -69,6 +63,19 @@ internal static partial class OfficeCabinetArchiveReader {
             }
 
             return new Directory(folders, files, dataReserve, offset, _length);
+        }
+
+        /// <summary>Checks intrinsic fixed-header facts before authored counts can consume a configured budget.</summary>
+        internal void ValidateHeader() {
+            if (_length < 36 || _data[0] != (byte)'M' || _data[1] != (byte)'S' || _data[2] != (byte)'C' || _data[3] != (byte)'F') {
+                throw Error("CAB_SIGNATURE", "The file is not a Microsoft Cabinet archive.");
+            }
+            uint declaredSize = UInt32(8);
+            if (UInt32(4) != 0 || UInt32(12) != 0 || UInt32(20) != 0 ||
+                declaredSize < 36 || declaredSize > _length || UInt16(26) < 1 ||
+                _data[24] != 3 || _data[25] != 1) {
+                throw Error("CAB_HEADER", "The CAB header contains invalid reserved fields, sizes, version or entry counts.");
+            }
         }
     }
     internal sealed class Directory {

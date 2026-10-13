@@ -417,6 +417,7 @@ namespace OfficeIMO.Word {
                 ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
                 if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
+                    if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
                     return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
                 }
 
@@ -539,6 +540,7 @@ namespace OfficeIMO.Word {
             var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
+                    if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
                 return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
             }
 
@@ -638,6 +640,7 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
+                    if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
                 WordDocument document = LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
             }

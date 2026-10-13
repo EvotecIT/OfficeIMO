@@ -32,6 +32,7 @@ internal static class PowerPointRichMapping {
         int tableIndex = 0;
         int linkIndex = 0;
         int shapeCount = 0;
+        int chartCount = 0;
         for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PowerPointSlide slide = presentation.Slides[slideIndex];
@@ -64,8 +65,9 @@ internal static class PowerPointRichMapping {
                     });
                     AddPowerPointTableLinks(table, location, slideLinks, ref linkIndex);
                 } else if (shape is PowerPointChart chart) {
+                    chartCount++;
                     string chartText = shape.Name ?? "Chart";
-                    if (chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot)) {
+                    if (readerOptions.Projection == ReaderProjection.Full && chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot)) {
                         chartText = snapshot.Title ?? snapshot.Name;
                         string payload = BuildPowerPointChartPayload(snapshot);
                         visuals.Add(new ReaderVisual {
@@ -136,11 +138,13 @@ internal static class PowerPointRichMapping {
 
         var metadata = new[] {
             DocumentReaderEngine.BuildCountMetadataEntry("powerpoint-shape-count", "powerpoint.structure", "ShapeCount", shapeCount),
-            DocumentReaderEngine.BuildCountMetadataEntry("powerpoint-chart-count", "powerpoint.structure", "ChartCount", visuals.Count)
+            DocumentReaderEngine.BuildCountMetadataEntry("powerpoint-chart-count", "powerpoint.structure", "ChartCount", readerOptions.Projection == ReaderProjection.Full ? visuals.Count : chartCount)
         };
         return DocumentReaderEngine.EnrichDocumentResult(
             result,
-            new[] { "officeimo.powerpoint.shape-model", "officeimo.powerpoint.chart-snapshot", "officeimo.reader.powerpoint.rich-v5" },
+            readerOptions.Projection == ReaderProjection.Full
+                ? new[] { "officeimo.powerpoint.shape-model", "officeimo.powerpoint.chart-snapshot", "officeimo.reader.powerpoint.rich-v5" }
+                : new[] { "officeimo.powerpoint.shape-model", "officeimo.reader.powerpoint.rich-v5" },
             blocks,
             tables,
             links,

@@ -7,9 +7,9 @@ internal static partial class OpenDocumentReaderAdapter {
         ReaderOpenDocumentOptions formatOptions, CancellationToken token) {
         ReaderInputLimits.EnforceFileSize(path, options.MaxInputBytes);
         token.ThrowIfCancellationRequested();
-        OdfDocument document = string.Equals(Path.GetExtension(path), ".fodg", StringComparison.OrdinalIgnoreCase)
+        OdfDocument document = OdfReaderAdmission.Run(() => string.Equals(Path.GetExtension(path), ".fodg", StringComparison.OrdinalIgnoreCase)
             ? OdgDocument.LoadFlatXml(path, CreateOpenOptions(options, formatOptions))
-            : OdfDocument.Load(path, CreateOpenOptions(options, formatOptions));
+            : OdfDocument.Load(path, CreateOpenOptions(options, formatOptions)));
         return ProjectDocument(document, Path.GetFullPath(path), options, formatOptions, token);
     }
 
@@ -19,14 +19,18 @@ internal static partial class OpenDocumentReaderAdapter {
         try {
             token.ThrowIfCancellationRequested();
             string source = string.IsNullOrWhiteSpace(name) ? "document.odf" : name!;
-            OdfDocument document = string.Equals(Path.GetExtension(source), ".fodg", StringComparison.OrdinalIgnoreCase)
+            OdfDocument document = OdfReaderAdmission.Run(() => string.Equals(Path.GetExtension(source), ".fodg", StringComparison.OrdinalIgnoreCase)
                 ? OdgDocument.LoadFlatXml(input, CreateOpenOptions(options, formatOptions))
-                : OdfDocument.Load(input, CreateOpenOptions(options, formatOptions));
+                : OdfDocument.Load(input, CreateOpenOptions(options, formatOptions)));
             return ProjectDocument(document, source, options, formatOptions, token);
         } finally { if (owns) input.Dispose(); }
     }
 
-    private static OfficeDocumentReadResult ProjectDocument(OdfDocument document, string path, ReaderOptions options,
+    internal static OfficeDocumentReadResult ProjectDocument(OdfDocument document, string path, ReaderOptions options,
+        ReaderOpenDocumentOptions formatOptions, CancellationToken token) =>
+        OdfReaderAdmission.Run(() => ProjectDocumentCore(document, path, options, formatOptions, token));
+
+    private static OfficeDocumentReadResult ProjectDocumentCore(OdfDocument document, string path, ReaderOptions options,
         ReaderOpenDocumentOptions formatOptions, CancellationToken token) {
         ReaderChunk[] chunks = ReadDocument(document, path, options, formatOptions, token).ToArray();
         var result = DocumentReaderEngine.CreateDocumentResult(chunks, ReaderInputKind.OpenDocument,
@@ -41,6 +45,8 @@ internal static partial class OpenDocumentReaderAdapter {
             Location = new ReaderLocation { Path = path, StartLine = diagnostic.LineNumber },
             Attributes = ReaderInspectionMetadataBuilder.Attributes(("partPath", diagnostic.PartPath), ("linePosition", diagnostic.LinePosition?.ToString(CultureInfo.InvariantCulture)))
         })).ToArray();
+        if (options.Projection == ReaderProjection.TextAndMetadata)
+            return CompleteTextAndMetadata(document, path, options, formatOptions, result, token);
         var resources = new OpenDocumentRichResources(document, formatOptions, result, token);
         var rich = new OpenDocumentRichBlocks(formatOptions, token);
         if (document is OdtDocument text) {

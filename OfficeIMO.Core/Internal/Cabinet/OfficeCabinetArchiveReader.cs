@@ -168,16 +168,11 @@ internal static partial class OfficeCabinetArchiveReader {
                 int expandedLength = UInt16(offset + 6);
                 int dataOffset = offset + 8 + dataReserve;
                 Ensure(dataOffset, compressedLength, "CFDATA payload");
-                if (expandedLength > maxExpandedBytes - total || total + expandedLength > int.MaxValue) {
+                ValidateFrame(dataOffset, compressedLength, expandedLength, method);
+                if (expandedLength > maxExpandedBytes - total) {
                     throw Error("CAB_EXPANDED_LIMIT", "The expanded CAB folder exceeds the configured size or managed buffer limit.");
                 }
-                if (expandedLength > OfficeMsZipDecoder.WindowBytes) throw Error("CAB_BLOCK_SIZE", "A CAB frame exceeds the 32 KiB expanded size limit.");
-                if (expandedLength == 0) throw Error("CAB_MULTIPART", "Split CFDATA records are not supported.");
-                if (method == 0 && compressedLength != expandedLength) throw Error("CAB_UNCOMPRESSED", "An uncompressed CAB block has inconsistent sizes.");
-                if (method == 1 && (compressedLength < 2 || compressedLength > OfficeMsZipDecoder.MaximumCompressedBytes ||
-                    _data[dataOffset] != 0x43 || _data[dataOffset + 1] != 0x4B)) {
-                    throw Error("CAB_MSZIP_HEADER", "The CAB contains an invalid MSZIP frame header or size.", dataOffset);
-                }
+                if (total + expandedLength > int.MaxValue) throw Error("CAB_FOLDER_BUFFER_LIMIT", "The expanded CAB folder exceeds the managed buffer limit.");
                 // Charge every validated CFDATA record, including repeated folder offsets,
                 // unselected members and gaps. MSZIP replays prior history for each new frame.
                 int dictionaryLength = method == 1 ? (int)Math.Min(total, OfficeMsZipDecoder.WindowBytes) : 0;
@@ -226,6 +221,17 @@ internal static partial class OfficeCabinetArchiveReader {
                 outputOffset += block.ExpandedLength;
             }
             return output;
+        }
+
+        /// <summary>Checks cheap intrinsic frame facts without decoding or checksumming the payload.</summary>
+        internal void ValidateFrame(int dataOffset, int compressedLength, int expandedLength, int method) {
+            if (expandedLength > OfficeMsZipDecoder.WindowBytes) throw Error("CAB_BLOCK_SIZE", "A CAB frame exceeds the 32 KiB expanded size limit.");
+            if (expandedLength == 0) throw Error("CAB_MULTIPART", "Split CFDATA records are not supported.");
+            if (method == 0 && compressedLength != expandedLength) throw Error("CAB_UNCOMPRESSED", "An uncompressed CAB block has inconsistent sizes.");
+            if (method == 1 && (compressedLength < 2 || compressedLength > OfficeMsZipDecoder.MaximumCompressedBytes ||
+                _data[dataOffset] != 0x43 || _data[dataOffset + 1] != 0x4B)) {
+                throw Error("CAB_MSZIP_HEADER", "The CAB contains an invalid MSZIP frame header or size.", dataOffset);
+            }
         }
 
         private string ReadCString(int offset, bool utf8, out int nextOffset) {

@@ -3,6 +3,10 @@ namespace OfficeIMO.OpenDocument;
 internal static partial class OdfTextCodec {
     internal const int MaximumDecodedCharacters = 16 * 1024 * 1024;
 
+    /// <summary>Classifies native text admission separately from malformed XML and unsupported text syntax.</summary>
+    internal static OfficeInspectionResourceLimitException Limit(string name, long maximum) =>
+        new("opendocument", name, maximum);
+
     internal static string Read(XElement element) {
         if (element == null) throw new ArgumentNullException(nameof(element));
         XNode? first = element.FirstNode;
@@ -10,7 +14,7 @@ internal static partial class OdfTextCodec {
         if (first is XText text && first.NextNode == null && !text.Value.Any(IsXmlSpace)) {
             string value = text.Value;
             if (value.Length > MaximumDecodedCharacters) {
-                throw new InvalidDataException($"Decoded OpenDocument text exceeds the {MaximumDecodedCharacters}-character safety limit.");
+                throw Limit(nameof(MaximumDecodedCharacters), MaximumDecodedCharacters);
             }
             return value;
         }
@@ -58,7 +62,7 @@ internal static partial class OdfTextCodec {
             if (element == null) throw new ArgumentException("Text elements cannot contain null entries.", nameof(elements));
             if (!first) {
                 EnsureCapacity(builder, 1, MaximumDecodedCharacters);
-                if (remaining == 0) throw new InvalidDataException("Decoded OpenDocument text exceeds the character safety limit.");
+                if (remaining == 0) throw Limit(nameof(MaximumDecodedCharacters), remaining);
                 builder.Append('\n');
                 remaining--;
             }
@@ -300,7 +304,7 @@ internal static partial class OdfTextCodec {
                     continue;
                 }
                 if (++visited > OdfTextTraversal.MaximumVisitedElements)
-                    throw new NotSupportedException($"OpenDocument text decoding exceeds the {OdfTextTraversal.MaximumVisitedElements}-node safety limit.");
+                    throw Limit(nameof(OdfTextTraversal.MaximumVisitedElements), OdfTextTraversal.MaximumVisitedElements);
                 onVisit?.Invoke();
 
                 XNode node = current.Current;
@@ -322,7 +326,7 @@ internal static partial class OdfTextCodec {
                     if (element.Name != OdfNamespaces.Text + "s" && element.Name != OdfNamespaces.Text + "tab" &&
                         element.Name != OdfNamespaces.Text + "line-break") {
                         if (pending.Count > OdfTextTraversal.MaximumContainerDepth)
-                            throw new NotSupportedException($"OpenDocument text decoding exceeds the {OdfTextTraversal.MaximumContainerDepth}-container nesting limit.");
+                            throw Limit(nameof(OdfTextTraversal.MaximumContainerDepth), OdfTextTraversal.MaximumContainerDepth);
                         pending.Push(element.Nodes().GetEnumerator());
                         continue;
                     }
@@ -341,7 +345,7 @@ internal static partial class OdfTextCodec {
 
     private static void EnsureCapacity(StringBuilder builder, int additionalCharacters, int maximumCharacters) {
         if (additionalCharacters > maximumCharacters - builder.Length) {
-            throw new InvalidDataException($"Decoded OpenDocument text exceeds the {maximumCharacters}-character safety limit.");
+            throw Limit(nameof(MaximumDecodedCharacters), maximumCharacters);
         }
     }
 

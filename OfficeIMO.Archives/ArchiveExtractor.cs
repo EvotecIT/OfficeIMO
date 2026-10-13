@@ -11,7 +11,8 @@ namespace OfficeIMO.Archives;
 public static partial class ArchiveExtractor {
     /// <summary>Verifies and extracts selected files from a CAB or ordinary MSI package.
     /// The destination must be absent or empty. A completed staging directory is published by a same-volume move.</summary>
-    /// <exception cref="InvalidDataException">The input is corrupt, unsafe, conflicting or exceeds a configured limit.</exception>
+    /// <exception cref="OfficeInspectionResourceLimitException">A configured or fixed managed admission ceiling is exhausted.</exception>
+    /// <exception cref="InvalidDataException">The input is corrupt, unsafe or conflicting.</exception>
     /// <exception cref="NotSupportedException">The input uses an unsupported format or extraction feature.</exception>
     /// <exception cref="IOException">The destination is occupied, contains links, or cannot be published.</exception>
     public static ArchiveExtractionResult Extract(string packagePath, string destinationDirectory,
@@ -26,7 +27,7 @@ public static partial class ArchiveExtractor {
         ArchivePaths.RejectLinks(destination);
         CheckDestination(destination);
         using var source = new FileStream(package, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (source.Length > limits.Input) throw new InvalidDataException("Package exceeds the configured input-byte limit.");
+        ArchiveLimits.Check(source.Length, limits.Input, nameof(ArchiveExtractionOptions.MaxInputBytes));
         ArchiveFormat format = Detect(source, cancellationToken);
         Directory.CreateDirectory(parent);
         string staging = Path.Combine(parent, ".officeimo-archive-" + Guid.NewGuid().ToString("N"));
@@ -48,10 +49,7 @@ public static partial class ArchiveExtractor {
             staging = string.Empty;
             return new ArchiveExtractionResult(format, Array.AsReadOnly(files.OrderBy(file => file.RelativePath, StringComparer.Ordinal).ToArray()), total);
         } catch (OfficeCabinetException exception) {
-            if (exception.Code == "CAB_COMPRESSION" || exception.Code == "CAB_MULTIPART" ||
-                exception.Code == "CAB_LZX_WINDOW" || exception.Code == "CAB_NAME_ENCODING")
-                throw new NotSupportedException(exception.Code + ": " + exception.Message, exception);
-            throw new InvalidDataException(exception.Code + ": " + exception.Message, exception);
+            throw limits.Translate(exception);
         } finally {
             if (staging.Length != 0 && Directory.Exists(staging)) Directory.Delete(staging, recursive: true);
         }
@@ -107,7 +105,7 @@ public static partial class ArchiveExtractor {
     private static void WriteStream(string staging, string path, Stream payload, long length, ArchiveLimits limits,
         List<ExtractedArchiveFile> files, ref long total, CancellationToken token) {
         limits.CheckEntry(length);
-        ArchiveLimits.Add(ref total, length, limits.Expanded, "Extracted content");
+        ArchiveLimits.Add(ref total, length, limits.Expanded, "MaxExpandedBytes");
         string target = Path.Combine(staging, path.Replace('/', Path.DirectorySeparatorChar));
         ArchivePaths.RejectLinks(target, staging);
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);

@@ -133,6 +133,7 @@ namespace OfficeIMO.Excel.Pdf {
             if (document == null) throw new ArgumentNullException(nameof(document));
             PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).Clone();
             operation.CancellationToken = cancellationToken;
+            PdfCore.PdfLogicalContentProjection.RequireComplete(document, cancellationToken);
             ExcelDocument workbook = ExcelDocument.Create();
             try {
                 IReadOnlyList<PdfExcelTableImportEntry> entries = ImportTables(document, workbook, operation);

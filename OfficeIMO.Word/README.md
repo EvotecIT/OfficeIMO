@@ -5,6 +5,25 @@
 
 `OfficeIMO.Word` is the main Word document package in the OfficeIMO family. It creates, edits, inspects, converts, and saves `.docx` files, and can import and write supported legacy `.doc` files, without COM automation and without Microsoft Office installed.
 
+## Inspection without image copies
+
+`CreateInspectionSnapshot(includeImageBytes: false, cancellationToken)` keeps the
+native semantic document and image descriptors while leaving their `Bytes` null.
+The ordinary parameterless snapshot still includes embedded image bytes.
+`WordLoadOptions.AllowLegacyProjection = false` rejects binary DOC before its
+picture/model projection; the default continues to support that import.
+
+`InspectEmbeddedPayloads(options, cancellationToken)` inventories inert package,
+OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
+streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` is the direct
+single-payload convenience API. Streams are complete, read-only and caller-owned;
+they survive disposal of the Word document. Keep the document open while
+requesting a read. The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
+defines count, member, aggregate and cumulative work limits, unknown lengths and
+optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
+relationship without reading binary module content; `ModuleInspectionRequested`
+distinguishes this from full VBA metadata inspection.
+
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
 ## Install

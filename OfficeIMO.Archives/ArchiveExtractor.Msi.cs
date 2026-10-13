@@ -13,10 +13,10 @@ public static partial class ArchiveExtractor {
         using var database = new MsiPackageReader(source, limits, token);
         IReadOnlyList<MsiPayloadFile> payload = database.ReadFiles(out IReadOnlyList<string> cabinets);
         var groups = payload.ToLookup(file => file.Cabinet, StringComparer.Ordinal);
-        if (cabinets.Count > limits.Cabinets) throw new InvalidDataException("MSI exceeds the configured embedded-cabinet count.");
+        ArchiveLimits.Check(cabinets.Count, limits.Cabinets, "MaxCabinetCount");
         long cabinetInputBytes = 0;
         foreach (string name in cabinets) {
-            ArchiveLimits.Add(ref cabinetInputBytes, database.GetCabinetLength(name), limits.Input, "Aggregate MSI cabinet input");
+            ArchiveLimits.Add(ref cabinetInputBytes, database.GetCabinetLength(name), limits.Input, "MaxInputBytes");
         }
         long decodedBudget = limits.Expanded;
         int remainingEntries = limits.Entries;
@@ -24,14 +24,17 @@ public static partial class ArchiveExtractor {
         foreach (string name in cabinets) {
             token.ThrowIfCancellationRequested();
             var expected = groups[name].ToDictionary(file => file.Id, StringComparer.Ordinal);
-            if (expected.Count > remainingEntries) throw new InvalidDataException("MSI cabinets exceed the configured aggregate member count.");
+            ArchiveLimits.Check(expected.Count, remainingEntries, "MaxEntryCount");
             remainingEntries -= expected.Count;
             var found = new HashSet<string>(StringComparer.Ordinal);
             int previousSequence = 0;
             using Stream cabinet = database.OpenCabinet(name);
             // A Media-only cabinet may be empty; any actual member is rejected by the validator.
-            IReadOnlyList<OfficeCabinetEntry> entries = OfficeCabinetArchiveReader.Read(cabinet, limits.Input,
-                decodedBudget, limits.Entry, Math.Max(1, expected.Count), out long decodedBytes, token, memberName => {
+            IReadOnlyList<OfficeCabinetEntry> entries;
+            long decodedBytes;
+            try {
+                entries = OfficeCabinetArchiveReader.Read(cabinet, limits.Input,
+                decodedBudget, limits.Entry, Math.Max(1, expected.Count), out decodedBytes, token, memberName => {
                     if (!expected.TryGetValue(memberName, out MsiPayloadFile? file))
                         throw new InvalidDataException("MSI cabinet contains a member absent from its File/Media mapping.");
                     if (!found.Add(memberName)) throw new InvalidDataException("MSI cabinet repeats a File identifier.");
@@ -45,6 +48,11 @@ public static partial class ArchiveExtractor {
                         throw new InvalidDataException("MSI cabinet member order differs from File sequence order.");
                     previousSequence = file.Sequence;
                 });
+            } catch (OfficeCabinetException error) {
+                if (error.Code == "CAB_ENTRY_COUNT_LIMIT")
+                    throw new InvalidDataException("MSI cabinet has more members than its File/Media mapping.", error);
+                throw limits.Translate(error, decodedBudget);
+            }
             if (found.Count != expected.Count) throw new InvalidDataException("MSI cabinet is missing a declared File member.");
             foreach (OfficeCabinetEntry entry in entries) {
                 MsiPayloadFile file = expected[entry.Name];

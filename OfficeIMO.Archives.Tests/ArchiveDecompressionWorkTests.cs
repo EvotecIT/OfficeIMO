@@ -144,10 +144,12 @@ public sealed class ArchiveDecompressionWorkTests {
     }
 
     private static void AssertWorkLimit(ArchiveFixtures fixture, byte[] package, long work, long maxExpandedBytes, bool selected = true) {
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+        OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(
             fixture.Package(package), fixture.Destination,
             new ArchiveExtractionOptions { MaxExpandedBytes = maxExpandedBytes, MaxDecompressionWorkBytes = work, IncludeFile = _ => selected }));
-        Assert.Contains("CAB_WORK_LIMIT", exception.Message);
+        Assert.Equal("MaxDecompressionWorkBytes", exception.LimitName);
+        Assert.Equal(work, exception.Maximum);
+        Assert.Equal("CAB_WORK_LIMIT", Assert.IsType<OfficeIMO.Core.Internal.Cabinet.OfficeCabinetException>(exception.InnerException).Code);
         Assert.False(Directory.Exists(fixture.Destination));
         Assert.DoesNotContain(Directory.EnumerateDirectories(fixture.Root), path => Path.GetFileName(path).StartsWith(".officeimo-archive-", StringComparison.Ordinal));
     }

@@ -19,7 +19,7 @@ dotnet add package OfficeIMO.Reader.Email
 
 Use `OfficeIMO.Reader.All` only when the complete local managed format graph is intentional.
 
-Format handlers can register `ReaderHandlerRegistration.ReadDirectoryBundle` for directory packages with their exact registered extensions. Reader dispatches these paths as individual documents and excludes their resources from recursive folder ingestion. The handler owns bounded traversal, physical-root validation, cancellation, and snapshot hashing, and must report aggregate physical file bytes in `Source.LengthBytes`. Reader supplies the effective input-byte limit and verifies the reported size. Capability schema version 6 exposes this support through `SupportsDirectoryBundle`; ordinary directories retain the folder-ingestion path. Bundle detection reports extension/handler evidence without claiming content inspection.
+Format handlers can register `ReaderHandlerRegistration.ReadDirectoryBundle` for directory packages with their exact registered extensions. Reader dispatches these paths as individual documents and excludes their resources from recursive folder ingestion. The handler owns bounded traversal, physical-root validation, cancellation, and snapshot hashing, and must report aggregate physical file bytes in `Source.LengthBytes`. Reader supplies the effective input-byte limit and verifies the reported size. Capability schema version 7 exposes this support through `SupportsDirectoryBundle`; ordinary directories retain the folder-ingestion path. Bundle detection reports extension/handler evidence without claiming content inspection.
 
 ## Build a reader
 
@@ -179,6 +179,33 @@ Plain-text handlers recognize UTF-8, UTF-16 and UTF-32 BOMs. Without a BOM they 
 BOMs override `TextEncoding`. These options apply to plain-text handlers; other formats use their own
 codec policies. Chunk boundaries preserve Unicode surrogate pairs, and line breaks normalize to LF.
 
+## Text and metadata projection
+
+Supporting handlers can read text and metadata without building secondary Markdown, asset, visual,
+form or OCR projections:
+
+```csharp
+var options = ReaderOptions.CreateSafeIngestion();
+options.Projection = ReaderProjection.TextAndMetadata;
+OfficeDocumentReadResult document = reader.ReadDocument("Policy.docx", options);
+```
+
+The default is `ReaderProjection.Full`. Check each handler's `SupportsTextAndMetadata` capability
+and `TextAndMetadataExtensions` before requesting the lean projection. An empty extension list means
+no extension restriction for a supporting handler; a nonempty list identifies its qualified subset.
+Unsupported handlers and formats reject the request before parsing rather than silently running a full read.
+Several legacy Office imports reconstruct pictures as part of loading and therefore remain Full-only.
+
+The lean result retains text, source locations, metadata and configured native inspection evidence.
+Its `CapabilitiesUsed` includes `officeimo.reader.projection.text-and-metadata`; an empty asset collection
+in that profile means asset projection was not requested, rather than proving the source contains no images.
+Options are snapshotted, and nested reads inherit the lean operation profile. Core does not reconstruct
+unrequested Markdown when refreshing a text processor's changes.
+
+This projection avoids secondary work; it is not a hard process-memory limit. Keep native parser,
+package expansion and input limits alongside aggregate output budgets. Format owners document
+any source structures that must still be decoded or validated during loading.
+
 ## Nested results and qualified capabilities
 
 ZIP and email reads keep each delegated source's rich result in `NestedDocuments`, alongside the existing
@@ -197,7 +224,7 @@ carry nested documents, below 10 cannot carry XPS input kinds, below 11 cannot c
 CHM input kinds, below 12 cannot carry DjVu input kinds, below 13 cannot carry DBF input kinds,
 and below 14 cannot carry Publisher input kinds.
 
-Capability manifest version 6 includes incremental route flags and per-extension `FormatQualifications`.
+Capability manifest version 7 includes incremental route flags, per-extension `FormatQualifications`, and lean-projection support.
 A qualification records a format ID, extraction maturity, profile, preservation, limitations and evidence
 references. Word, Excel and modern PowerPoint reuse their owner's format IDs. Other undeclared profiles
 remain `Unqualified`; an available handler is not a claim of complete format preservation. Applications can

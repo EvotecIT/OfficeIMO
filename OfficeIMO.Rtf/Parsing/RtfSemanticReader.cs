@@ -7,12 +7,26 @@ internal static partial class RtfSemanticReader {
     public static RtfReadResult Read(RtfSyntaxTree tree, RtfReadOptions options, CancellationToken cancellationToken = default) {
         if (tree == null) throw new ArgumentNullException(nameof(tree));
         options ??= new RtfReadOptions();
+        if (options.DeferBinaryPayloads && tree.Root.Children.OfType<RtfControlWord>().Any(control => control.Name == "fromhtml")
+            && HasBinaryDestinations(tree.Root, cancellationToken))
+            throw new NotSupportedException("Deferred RTF binary payloads do not support fromhtml sources with pict or objdata destinations; the ordinary profile preserves their HTML baseline eagerly.");
 
         var diagnostics = new List<RtfDiagnostic>(tree.Diagnostics);
         var binder = new Binder(options, diagnostics, cancellationToken);
         RtfDocument document = binder.Bind(tree.Root);
         document.RecordReadNormalizationDiagnostics(diagnostics);
         return new RtfReadResult(document, tree, diagnostics.AsReadOnly());
+    }
+
+    private static bool HasBinaryDestinations(RtfGroup root, CancellationToken token) {
+        var pending = new Stack<RtfGroup>(); pending.Push(root);
+        while (pending.Count > 0) {
+            token.ThrowIfCancellationRequested();
+            RtfGroup group = pending.Pop();
+            if (group.Destination == "pict" || group.Destination == "objdata") return true;
+            foreach (RtfGroup child in group.Children.OfType<RtfGroup>()) pending.Push(child);
+        }
+        return false;
     }
 
     private sealed partial class Binder {
@@ -504,7 +518,7 @@ internal static partial class RtfSemanticReader {
             int? desiredWidth = null;
             int? desiredHeight = null;
             int? scaleX = null, scaleY = null, cropLeft = null, cropTop = null, cropRight = null, cropBottom = null;
-            var data = new List<byte>();
+            List<byte>? data = _options.DeferBinaryPayloads ? null : new List<byte>();
             long imageBytes = 0;
 
             foreach (RtfNode node in group.Children) {
@@ -546,14 +560,22 @@ internal static partial class RtfSemanticReader {
                         case "piccropb": cropBottom = control.Parameter; break;
                     }
                 } else if (node is RtfBinary binary) {
-                    _limits.AddImageBytes(ref imageBytes, binary.Data.Length, binary.Position);
-                    data.AddRange(binary.Data);
+                    if (data != null) {
+                        _limits.AddImageBytes(ref imageBytes, binary.Length, binary.Position);
+                        data.AddRange(binary.Data);
+                    }
                 } else if (node is RtfText text) {
-                    AppendHexBytes(text.Text, data, count => _limits.AddImageBytes(ref imageBytes, count, text.Position));
+                    if (data != null) AppendHexBytes(text.Text, data, count => _limits.AddImageBytes(ref imageBytes, count, text.Position));
                 }
             }
 
-            if (data.Count == 0) {
+            RtfPayloadSource? deferred = null;
+            if (data == null) {
+                deferred = RtfPayloadSource.FromGroup(group, recursive: false, _limits.CheckCancellation);
+                deferred.VisitLengths((count, position) => _limits.AddImageBytes(ref imageBytes, count, position));
+            }
+
+            if (imageBytes == 0) {
                 return null;
             }
 
@@ -561,14 +583,13 @@ internal static partial class RtfSemanticReader {
                 _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF102", "Picture payload was read, but the picture format is unknown.", group.Position));
             }
 
-            return new RtfImage(format, data.ToArray()) {
-                SourceWidth = sourceWidth,
-                SourceHeight = sourceHeight,
-                DesiredWidthTwips = desiredWidth,
-                DesiredHeightTwips = desiredHeight,
-                ScaleXPercent = scaleX, ScaleYPercent = scaleY,
-                CropLeftTwips = cropLeft, CropTopTwips = cropTop, CropRightTwips = cropRight, CropBottomTwips = cropBottom
-            };
+            RtfImage image = deferred == null ? new RtfImage(format, data!.ToArray()) : new RtfImage(format, deferred);
+            image.SourceWidth = sourceWidth; image.SourceHeight = sourceHeight;
+            image.DesiredWidthTwips = desiredWidth; image.DesiredHeightTwips = desiredHeight;
+            image.ScaleXPercent = scaleX; image.ScaleYPercent = scaleY;
+            image.CropLeftTwips = cropLeft; image.CropTopTwips = cropTop;
+            image.CropRightTwips = cropRight; image.CropBottomTwips = cropBottom;
+            return image;
         }
 
         private static void AppendHexBytes(string text, List<byte> data, Action<int>? beforeAppend = null) {

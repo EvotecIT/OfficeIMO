@@ -43,6 +43,9 @@ internal static partial class ImageReaderAdapter {
             info.Format == OfficeImageFormat.Unknown) {
             throw new NotSupportedException("Image format is not supported: " + sourceName);
         }
+        cancellationToken.ThrowIfCancellationRequested();
+        if (readerOptions.Projection == ReaderProjection.TextAndMetadata)
+            return BuildTextAndMetadataResult(input, info, readerOptions, imageOptions, cancellationToken);
 
         string assetId = "image-0000";
         string extension = OfficeImageInfo.GetDefaultExtension(info.Format);

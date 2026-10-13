@@ -93,6 +93,30 @@ and omissions rather than treating a missing finding as a safety guarantee.
 defines the operation-wide inspection budgets; exceeded native safety or inspection
 ceilings terminate the operation.
 
+### Read text and metadata
+
+```csharp
+OfficeDocumentReadResult document = reader.ReadDocument("policy.rtf", new ReaderOptions {
+    Projection = ReaderProjection.TextAndMetadata
+});
+```
+
+This projection retains located text, source metadata, bounded table text and parser diagnostics while omitting secondary Markdown, image/object assets, visual and form projections. It enables native source-backed binary deferral and reports those payloads as `not-requested`. Native input and parser limits remain in effect; Reader output limits are separate. The capability manifest advertises `SupportsTextAndMetadata` for this qualified profile.
+
+RTF declaring `fromhtml` with `pict` or `objdata` is refused before semantic binding because its HTML baseline requires eager binary serialization. The adapter does not fall back to `Full`. The default `Full` projection retains rich extraction. To inventory original `pict`/`objdata` source groups and explicitly read bounded inert bytes, use `RtfReadResult.InspectEmbeddedPayloads`; source locators are character positions and remain distinct from edited semantic content.
+
+The loaded-result extension shares one native parse between Reader projection and payload inspection:
+
+```csharp
+RtfReadResult native = RtfDocument.LoadResult("policy.rtf", new RtfReadOptions { DeferBinaryPayloads = true });
+OfficeDocumentReadResult projected = native.ReadDocument("policy.rtf", new ReaderOptions {
+    Projection = ReaderProjection.TextAndMetadata
+});
+using var payloads = native.InspectEmbeddedPayloads();
+```
+
+The caller retains the native result and its original parser diagnostics. The extension applies Reader projection and output budgets without reopening the source or synthesizing a source-file hash. Input and parser limits apply during the preceding native load; already decoded bytes cannot be deferred retroactively.
+
 ### Reconstruct explicit page locations
 
 ```csharp
@@ -114,6 +138,8 @@ RTF is flow content rather than a fixed-page format. This option reconstructs me
 `\softpage`, `\pagebb`, and page-starting section controls. A saved `\nofpages` value contributes the total
 page count when present. Reader emits `OfficeDocumentPageProvenance.ExplicitBreak` and an informational diagnostic;
 it does not estimate page changes caused only by automatic text overflow.
+
+`TextAndMetadata` reconstructs pages from complete native text blocks, independently of `MaxChars` and `ChunkByBlock`. Splitting or combining output chunks does not discard explicit breaks or the text following them. Page text does not request Markdown or binary assets.
 
 ## What it emits
 

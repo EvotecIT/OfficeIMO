@@ -86,7 +86,8 @@ public sealed class OpenDocumentHardeningTests {
     public void PlainTextFastPathPreservesTheDecodedCharacterLimit() {
         var paragraph = new XElement(OdfNamespaces.Text + "p", new string('x', (16 * 1024 * 1024) + 1));
 
-        Assert.Throws<InvalidDataException>(() => OdfTextCodec.Read(paragraph));
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => OdfTextCodec.Read(paragraph));
+        Assert.Equal("MaximumDecodedCharacters", error.LimitName); Assert.Equal(16 * 1024 * 1024, error.Maximum);
     }
 
     [Fact]
@@ -116,7 +117,8 @@ public sealed class OpenDocumentHardeningTests {
         OdtDocument deep = OdtDocument.Load(new MemoryStream(RewritePackage(valid,
             replacements: new[] { new OdfTestPackageEntry("content.xml", Encoding.UTF8.GetBytes(deepXml)) })),
             new OdfLoadOptions { MaxXmlDepth = 8 });
-        Assert.Throws<InvalidDataException>(() => deep.ContentBlocks.ToArray());
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => deep.ContentBlocks.ToArray());
+        Assert.Equal("MaxXmlDepth", error.LimitName); Assert.Equal(8, error.Maximum);
     }
 
     [Fact]

@@ -22,10 +22,12 @@ internal sealed partial class MsiPackageReader : IDisposable {
 
     internal MsiPackageReader(Stream source, ArchiveLimits limits, CancellationToken token, int maxDirectoryEntries = 65536) {
         _limits = limits; _token = token;
-        var compoundOptions = new OfficeCompoundReadOptions(maxDirectoryEntries: maxDirectoryEntries, maxStreamBytes: limits.Input, maxTotalStreamBytes: limits.Input);
+        var compoundOptions = new OfficeCompoundReadOptions(maxDirectoryEntries: maxDirectoryEntries, maxStreamBytes: limits.Input, maxTotalStreamBytes: limits.Input, preserveResourceLimits: true);
         source.Position = 0;
-        _compound = new OfficeCompoundFileReader.ReadSession(source, compoundOptions, leaveOpen: true, token,
-            requireCanonicalHeader: true);
+        try {
+            _compound = new OfficeCompoundFileReader.ReadSession(source, compoundOptions, leaveOpen: true, token,
+                requireCanonicalHeader: true);
+        } catch (OfficeCompoundStreamLimitExceededException error) { throw ArchiveLimits.Translate(error); }
         _streams = new Dictionary<string, string>(StringComparer.Ordinal);
         try {
             if (!_compound.HasCanonicalRootDirectory || _compound.HasInvalidDirectoryTree)
@@ -69,7 +71,8 @@ internal sealed partial class MsiPackageReader : IDisposable {
     public void Dispose() => _compound.Dispose();
     private byte[] ReadMetadata(string name) {
         using Stream payload = Open(name);
-        ArchiveLimits.Add(ref _metadataBytes, payload.Length, _limits.Metadata, "MSI metadata");
+        ArchiveLimits.Add(ref _metadataBytes, payload.Length, _limits.Metadata, "MaxMetadataBytes");
+        ArchiveLimits.Check(payload.Length, Math.Min(_limits.Metadata, int.MaxValue), "MaxMetadataBytes");
         return OfficeArchiveSafety.ReadEntryBytes(payload, payload.Length, _limits.Metadata, _token);
     }
     internal static string EncodeStreamName(string name, bool table) {

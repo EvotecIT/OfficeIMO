@@ -31,6 +31,9 @@ public static class PowerPointExtractionExtensions {
         /// When true, include hidden shapes in output. Default: true.
         /// </summary>
         public bool IncludeHiddenShapes { get; set; } = true;
+
+        /// <summary>When false, projects plain text without building Markdown. Default: true.</summary>
+        public bool IncludeMarkdown { get; set; } = true;
     }
 
     /// <summary>
@@ -43,9 +46,17 @@ public static class PowerPointExtractionExtensions {
         string? sourcePath = null,
         CancellationToken cancellationToken = default) {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-        extract ??= new PowerPointExtractOptions();
-        chunking ??= new PowerPointExtractChunkingOptions();
-        if (chunking.MaxChars < 256) chunking.MaxChars = 256;
+        var snapshot = new PowerPointExtractOptions {
+            IncludeNotes = extract?.IncludeNotes ?? true,
+            IncludeTables = extract?.IncludeTables ?? true,
+            IncludeHiddenShapes = extract?.IncludeHiddenShapes ?? true,
+            IncludeMarkdown = extract?.IncludeMarkdown ?? true
+        };
+        return ExtractChunksCore(presentation, snapshot, Math.Max(256, chunking?.MaxChars ?? 8000), sourcePath, cancellationToken);
+    }
+
+    private static IEnumerable<PowerPointExtractChunk> ExtractChunksCore(PowerPointPresentation presentation,
+        PowerPointExtractOptions extract, int maxChars, string? sourcePath, CancellationToken cancellationToken) {
 
         for (int i = 0; i < presentation.Slides.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -53,6 +64,22 @@ public static class PowerPointExtractionExtensions {
             var slide = presentation.Slides[i];
             int slideNumber = i + 1;
             List<string>? warnings = null;
+
+            if (!extract.IncludeMarkdown) {
+                string plain = BuildSlidePlainText(slide, extract, cancellationToken);
+                for (int offset = 0, fragment = 0; offset < plain.Length; fragment++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int length = Math.Min(maxChars, plain.Length - offset);
+                    if (offset + length < plain.Length && char.IsHighSurrogate(plain[offset + length - 1]) && char.IsLowSurrogate(plain[offset + length])) length--;
+                    yield return new PowerPointExtractChunk {
+                        Id = BuildStableId("ppt-text", sourcePath, slideNumber) + ":" + fragment.ToString(CultureInfo.InvariantCulture),
+                        Location = new PowerPointExtractLocation { Path = sourcePath, Slide = slideNumber, BlockIndex = i },
+                        Text = plain.Substring(offset, length), Markdown = null
+                    };
+                    offset += length;
+                }
+                continue;
+            }
 
             var md = new StringBuilder();
             md.Append("## Slide ").AppendLine(slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -80,8 +107,8 @@ public static class PowerPointExtractionExtensions {
             }
 
             var markdown = NormalizeLineEndings(md.ToString()).TrimEnd();
-            if (markdown.Length > chunking.MaxChars) {
-                int truncationLength = chunking.MaxChars;
+            if (markdown.Length > maxChars) {
+                int truncationLength = maxChars;
                 if (truncationLength > 0
                     && char.IsHighSurrogate(markdown[truncationLength - 1])
                     && char.IsLowSurrogate(markdown[truncationLength])) {
@@ -109,6 +136,23 @@ public static class PowerPointExtractionExtensions {
 
     private static string NormalizeLineEndings(string value) =>
         value.Replace("\r\n", "\n").Replace('\r', '\n');
+
+    private static string BuildSlidePlainText(PowerPointSlide slide, PowerPointExtractOptions options, CancellationToken token) {
+        var text = new StringBuilder();
+        foreach (PowerPointShape shape in slide.EnumerateShapesDeep(slide.Shapes, options.IncludeHiddenShapes)) {
+            token.ThrowIfCancellationRequested();
+            if (shape is PowerPointTextBox box) {
+                foreach (PowerPointParagraph paragraph in box.Paragraphs) text.AppendLine(RenderParagraphText(paragraph, renderMarkdown: false));
+            } else if (options.IncludeTables && shape is PowerPointTable table) {
+                foreach (PowerPointTableRow row in table.RowItems) {
+                    token.ThrowIfCancellationRequested();
+                    text.AppendLine(string.Join("\t", row.Cells.Select(cell => string.Join(" ", cell.Paragraphs.Select(paragraph => RenderParagraphText(paragraph, renderMarkdown: false))))));
+                }
+            }
+        }
+        if (options.IncludeNotes && slide.Notes.TryGetExistingText(out string notes)) text.AppendLine(notes);
+        return NormalizeLineEndings(text.ToString()).TrimEnd();
+    }
 
     private static void AppendTextBoxMarkdown(StringBuilder markdown, PowerPointTextBox textBox) {
         bool isTitle = textBox.ShapePlaceholderType == PowerPointPlaceholderType.Title
@@ -223,7 +267,7 @@ public static class PowerPointExtractionExtensions {
     private static bool IsListKind(ParagraphMarkdownKind kind) =>
         kind == ParagraphMarkdownKind.BulletList || kind == ParagraphMarkdownKind.NumberedList;
 
-    private static string RenderParagraphText(PowerPointParagraph paragraph) {
+    private static string RenderParagraphText(PowerPointParagraph paragraph, bool renderMarkdown = true) {
         IReadOnlyList<PowerPointTextRun> runs = paragraph.Runs;
         int runIndex = 0;
         var text = new StringBuilder();
@@ -232,14 +276,14 @@ public static class PowerPointExtractionExtensions {
                 PowerPointTextRun? run = runIndex < runs.Count ? runs[runIndex] : null;
                 runIndex++;
                 string runText = run?.Text ?? child.InnerText ?? string.Empty;
-                if (run?.Hyperlink != null && runText.Length > 0) {
+                if (renderMarkdown && run?.Hyperlink != null && runText.Length > 0) {
                     text.Append('[').Append(EscapeMarkdownLinkLabel(runText)).Append("](<")
                         .Append(EscapeMarkdownLinkDestination(run.Hyperlink.ToString())).Append(">)");
                 } else {
                     text.Append(runText);
                 }
             } else if (child is A.Break) {
-                text.Append("<br />");
+                text.Append(renderMarkdown ? "<br />" : "\n");
             } else if (child is A.Field field) {
                 text.Append(field.Text?.Text ?? field.InnerText ?? string.Empty);
             }

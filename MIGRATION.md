@@ -6,6 +6,22 @@ Content-safety collectors and input guards, and text-integrity character/finding
 
 Reader translates native safety ceilings into `ReaderResourceLimitException` and retains the native exception as `InnerException`. These failures terminate ZIP, folder, and batch operations; they do not become skipped members or failed per-file outcomes. The finding ceiling borrowed from `ReaderInspectionOptions.MaxRecords` reports `Inspection.MaxRecords`.
 
+Archives uses the same public `OfficeInspectionResourceLimitException` for configured input, member, directory, expansion and decoder-work ceilings. Its `Owner` is `archives`; `Maximum` is the effective allowance, which can be zero after earlier work or smaller than the requested limit for array-backed reads. Corrupt or unsafe input still throws `InvalidDataException`, and unsupported archive profiles throw `NotSupportedException`. Catch quota failures separately and keep them terminal.
+
+Compound-file admission retains its structured quota failure through public Word, Excel and PowerPoint load boundaries and Core legacy inspection. Reader compound detection translates it to `ReaderResourceLimitException` with a `Detection.` limit prefix. Modular Reader native and legacy imports and probes also translate native quota failures, keeping them terminal across folder and batch operations. These inspection paths explicitly request terminal quotas from the internal compound helpers; other callers retain their existing `false`/error behavior. Malformed input keeps its parsing result. Quota failures retain their native cause in `InnerException`.
+
+OpenDocument package, depth and native text admission ceilings use `OfficeInspectionResourceLimitException` with owner `opendocument`. Compression-ratio admission uses `OfficePackageSecurityException` and its exact fractional `ObservedValue` and `Limit`. Reader preserves integer ceilings as `ReaderResourceLimitException`; fractional admission and native encrypted-resource failures use `ReaderAdmissionLimitException`. Its nullable `Maximum` and `Actual` stay unknown when the native engine does not expose them. Both Reader exception types terminate nested, folder, batch and processor operations rather than becoming ordinary warnings.
+
+System.Xml's own character ceiling still reports an XML parsing exception. Callers that require distinct admission evidence can bound admitted XML source bytes at or below the XML character ceiling while keeping DTD processing prohibited. The byte envelope does not bound semantic text expansion such as repeated ODF spaces; the native text ceilings apply separately.
+
+## Text and metadata inspection
+
+`ReaderOptions.Projection = ReaderProjection.TextAndMetadata` selects the qualified text and metadata profile. `Full` remains the default. Consult the handler capability manifest for the supported source extensions: a registered handler can support the profile for only part of its format family. Unsupported profiles fail before native loading rather than silently using a full projection.
+
+The text and metadata profile omits Markdown, visual assets and layout projections. Native deferred-payload options and embedded-payload inspection sessions let callers select bounded inert payloads while the source owner is alive. Loaded-model Reader extensions reuse that owner; they do not reload the source or retroactively enforce its original load limits.
+
+PDF reads record whether image and form-widget inspection was requested. Logical conversions that require complete visual inspection reject a model whose visual counts were omitted. Use a complete native read for those conversions; zero counts on an omitted projection do not establish that the source has no visual content.
+
 ## Excel import cancellation and date conversion
 
 `ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
@@ -611,12 +627,64 @@ Reconvert iWork tables to retain supported selected, region and alternating body
 
 Supported currency selections retain editable numeric values and currency metadata instead of requiring partial reconstruction for the format alone. The Excel adapter displays the source identifier as a prefix and reports `IWORK_NUMBERS_CURRENCY_DISPLAY_APPROXIMATED`; `RequireNoLoss()` rejects this display approximation. Inspect `IWorkTableCell.NumberFormat.CurrencyCode` and `UseAccountingStyle` when the source format matters. Currency symbols, locale placement, and accounting alignment are not reconstructed. Unsupported currency metadata still requires the partial-reconstruction policy.
 
-## Reader capability schema version 6
+## Reader capability schema version 7
 
-Reader capability manifests use schema version 6 and add `SupportsDirectoryBundle`.
-Applications that validate capability schema versions must accept version 6.
-Directory-package handlers register `ReadDirectoryBundle`; ordinary path handlers
-continue to accept files. Document results use schema version 9 as described below.
+Reader capability manifests use schema version 7. Applications validating capability versions
+must accept version 7 and can inspect `SupportsTextAndMetadata` and `TextAndMetadataExtensions`
+before requesting `ReaderOptions.Projection = ReaderProjection.TextAndMetadata`.
+An unsupported handler or source format rejects this opt-in projection before parsing.
+Ordinary reads retain `ReaderProjection.Full` behavior. Native parser and input limits still apply.
+
+`OpenXmlMaxPartUncompressedBytes` and `OpenXmlMaxTotalUncompressedBytes` apply native
+package admission before constructing the Word, Excel or PowerPoint model. Null preserves
+the native default policy; `CreateSafeIngestion()` sets 32 MiB per part and 128 MiB in total.
+These declared expansion limits are separate from compressed input size and retained text.
+Their failures are terminal `ReaderResourceLimitException` values, even when optional
+inspection is disabled, and are not retried as password failures.
+
+Word and PowerPoint load options expose `AllowLegacyProjection`; Excel exposes
+`AllowBinaryProjection`. They default to true. Setting them to false refuses imports
+that reconstruct a binary source into an editable package, including mislabeled and
+encrypted inputs. Reader's lean projection uses this refusal: legacy sources and XLSB
+retain their ordinary Full read path.
+
+Native `InspectEmbeddedPayloads()` sessions inventory payloads without scanning them
+merely to determine a length or hash. `Length = -1` and `HasKnownLength = false` mean the
+length is unknown. Select a payload by ordinal through `OpenRead`; the session enforces
+member, aggregate and cumulative read-work limits, including hashes and repeated reads.
+New reads require the document and session to remain open. Returned streams are detached,
+read-only and caller-owned, and remain readable after either owner is disposed.
+VBA metadata inspection similarly sets `ModuleInspectionRequested = false` when module
+parsing was not requested; an empty module list in that case is not evidence of absence.
+
+Selected Reader packages also expose `ReadDocument()` extensions for caller-owned native
+Word, Excel, PowerPoint, PDF, OpenDocument and RTF read-result models. These use the same
+format projection as the ordinary Reader route without reopening the input. Load with
+the native admission policy first, keep the owner open for payload inspection, and dispose
+it after consuming its sessions. Projection output budgets do not retroactively bound an
+earlier load, and a logical source name does not create a physical source hash or length.
+
+OpenDocument and RTF native load options add `DeferBinaryPayloads`, defaulting to false.
+Reader's lean profile enables it. OpenDocument reports each entry as Deferred, Loaded or
+Decrypted; Deferred records declared preflight evidence, while the other states describe
+actual native work. Deferred encrypted non-XML entries and flat inline binary data are
+unsupported. RTF deferred reads reject HTML-encapsulated sources with binary content.
+These profiles fail explicitly and do not fall back to eager loading.
+
+RTF payload sessions inspect the original retained syntax, independently of later model
+edits. Their locations are character positions in that source profile, not physical byte
+offsets. Selected reads and hashes reject malformed or truncated binary fragments even
+where the ordinary semantic getter retains its compatibility behavior.
+
+PDF omission analysis and logical conversions that report source-content loss require
+the optional native projections to have been inspected. They reject a result produced
+with `IncludeImages = false` or `IncludeFormWidgets = false` rather than treating its
+empty collections as evidence that the source has no such content. Text and table
+extraction remain available from the reduced result.
+
+`SupportsDirectoryBundle` remains available: directory-package handlers register `ReadDirectoryBundle`,
+while ordinary path handlers continue to accept files. Capability and document transport schemas
+have independent versions.
 
 ## OpenDocument independent saves and formula results
 

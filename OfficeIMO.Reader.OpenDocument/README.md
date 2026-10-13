@@ -25,7 +25,36 @@ The handler emits:
 
 Pass `ReaderOpenDocumentOptions` to `AddOpenDocumentHandler(...)` to select `SheetName`, `A1Range`, `HeadersInFirstRow`, and `IncludeSpeakerNotes`. ODS extraction caps a sheet at 256 columns. Set `ReaderOptions.OpenPassword` to read supported encrypted ODF packages.
 
-`ReaderOpenDocumentOptions.MaxExtractedCharacters` defaults to 16,000,000 characters across one document, including every logical occurrence of repeated cells. Extraction rejects inputs exceeding that budget before building joined text and Markdown. Raise it explicitly for trusted larger workloads; `MaxXmlCharacters` separately bounds the parsed XML.
+`ReaderOpenDocumentOptions.MaxExtractedCharacters` defaults to 16,000,000 characters across one document, including every logical occurrence of repeated cells. Extraction rejects inputs exceeding that budget before building joined text and Markdown. Raise it explicitly for trusted larger workloads; `MaxXmlCharacters` separately bounds the parsed XML. Integer native admission and extraction failures throw `ReaderResourceLimitException` with the effective maximum. Native compression-ratio and encrypted-package resource failures throw `ReaderAdmissionLimitException`, retaining the structured native cause. Ratio measurements remain exact doubles; encrypted failures leave numeric fields null when the native owner does not expose them. Both exception types remain terminal during lazy enumeration, folder, batch and nested ZIP reads. Malformed files keep their ordinary per-file failure behavior.
+
+The platform XML-character ceiling remains a malformed-XML boundary. For a separate native load shared with Reader projection, an ingestion profile can keep XML entry and decrypted-entry byte limits at or below `MaxXmlCharacters`; flat XML additionally requires the input-byte limit at or below that character limit. DTDs are prohibited. Reader's ordinary character policy is not raised automatically.
+
+## Text and metadata projection
+
+```csharp
+OfficeDocumentReadResult document = reader.ReadDocument("report.odt", new ReaderOptions {
+    Projection = ReaderProjection.TextAndMetadata
+});
+```
+
+This projection emits located native text and metadata while omitting secondary Markdown, image/object assets, visual and form projections. It uses the native deferred binary profile and reports binary entry paths, declared lengths and payload state with `not-requested` coverage. `SupportsTextAndMetadata` in the capability manifest describes this qualified profile. Native input, ZIP expansion and XML limits still apply; Reader output limits are separate.
+
+Encrypted ODF containing non-XML binary entries is refused with the native `UnsupportedProfile` classification before key derivation. Encrypted XML/RDF-only input retains ordinary decryption checks. FODG with inline `office:binary-data` is refused before Base64 decoding. The adapter does not fall back to `Full` when this projection is requested. Use the native document's bounded embedded-payload session for explicit selected reads. The default `Full` projection retains rich extraction.
+
+For one native load shared by Reader projection and selected payload reads, call the loaded model extension:
+
+```csharp
+using OfficeIMO.OpenDocument;
+using OfficeIMO.Reader.OpenDocument;
+
+OdtDocument native = OdtDocument.Load("report.odt", new OdfLoadOptions { DeferBinaryPayloads = true });
+OfficeDocumentReadResult projected = native.ReadDocument("report.odt", new ReaderOptions {
+    Projection = ReaderProjection.TextAndMetadata
+});
+using var payloads = native.InspectEmbeddedPayloads();
+```
+
+The caller retains the native model. This entrypoint applies Reader projection and output budgets without reopening the source; its logical source name is not read or hashed as a file. Input and native loading limits apply at the preceding load, and already expanded payloads cannot be deferred retroactively.
 
 ## Rich document inspection
 

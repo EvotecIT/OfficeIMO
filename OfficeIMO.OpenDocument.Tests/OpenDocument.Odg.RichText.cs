@@ -114,9 +114,11 @@ public class OpenDocumentOdgRichTextTests {
     public void ShapeTextAndInlineViewsShareAnAggregateDecodedCharacterLimit() {
         var document = OdgDocument.Create(); var shape = document.AddPage().Shapes.AddRectangle(OdfRect.FromCentimeters(1, 1, 8, 4));
         for (int i = 0; i < 2; i++) shape.AddParagraph().Element.Add(new XElement(OdfNamespaces.Text + "s", new XAttribute(OdfNamespaces.Text + "c", OdfTextCodec.MaximumDecodedCharacters / 2)));
-        Assert.Throws<InvalidDataException>(() => shape.Text);
+        OfficeInspectionResourceLimitException joined = Assert.Throws<OfficeInspectionResourceLimitException>(() => shape.Text);
+        Assert.Equal("opendocument", joined.Owner); Assert.Equal("MaximumDecodedCharacters", joined.LimitName); Assert.Equal(OdfTextCodec.MaximumDecodedCharacters / 2 - 1, joined.Maximum);
         var paragraph = shape.Paragraphs[0]; paragraph.AddRun().Element.Add(new XElement(OdfNamespaces.Text + "s", new XAttribute(OdfNamespaces.Text + "c", OdfTextCodec.MaximumDecodedCharacters / 2 + 1)));
-        Assert.Throws<InvalidDataException>(() => paragraph.InlineNodes);
+        OfficeInspectionResourceLimitException inlines = Assert.Throws<OfficeInspectionResourceLimitException>(() => paragraph.InlineNodes);
+        Assert.Equal("opendocument", inlines.Owner); Assert.Equal("MaximumDecodedCharacters", inlines.LimitName); Assert.Equal(OdfTextCodec.MaximumDecodedCharacters, inlines.Maximum);
     }
 
     [Theory]

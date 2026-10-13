@@ -28,6 +28,7 @@ public static class OfficeDocumentReaderBuilderRtfExtensions {
             DisplayName = "RTF Reader Adapter",
             Description = "Modular RTF adapter using OfficeIMO.Rtf semantic read model.",
             Kind = ReaderInputKind.Rtf,
+            SupportsTextAndMetadata = true,
             Extensions = new[] { ".rtf" },
             ReadPath = (path, readerOptions, ct) => RtfReaderAdapter.Read(
                 rtfPath: path,

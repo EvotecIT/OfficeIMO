@@ -112,7 +112,8 @@ public class OpenDocumentPackageKernelTests {
         byte[] bytes = document.ToBytes();
         var options = new OdfLoadOptions { MaxPackageBytes = bytes.Length - 1 };
 
-        Assert.Throws<InvalidDataException>(() => OdtDocument.Load(new MemoryStream(bytes), options));
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => OdtDocument.Load(new MemoryStream(bytes), options));
+        Assert.Equal("opendocument", error.Owner); Assert.Equal("MaxPackageBytes", error.LimitName); Assert.Equal(bytes.Length - 1, error.Maximum);
     }
 
     [Fact]

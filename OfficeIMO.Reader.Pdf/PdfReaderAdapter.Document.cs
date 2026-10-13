@@ -106,7 +106,7 @@ internal static partial class PdfReaderAdapter {
         PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions), cancellationToken);
         PdfDocumentPreflight preflight = pdf.Preflight(null, cancellationToken);
         PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
-        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectivePdfOptions, cancellationToken);
+        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection);
     }
 
@@ -130,7 +130,7 @@ internal static partial class PdfReaderAdapter {
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
         PdfDocumentPreflight preflight = pdf.Preflight(null, cancellationToken);
         PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
-        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectivePdfOptions, cancellationToken);
+        PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection);
     }
 
@@ -163,6 +163,8 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static OfficeDocumentReadResult BuildDocumentResult(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges, CancellationToken cancellationToken, PdfInspectionReadResult? inspection = null) {
+        if (readerOptions.Projection == ReaderProjection.TextAndMetadata)
+            return BuildTextAndMetadataResult(document, source, readerOptions, pdfOptions, preflight, applyPageRanges, cancellationToken, inspection);
         var markdownOptions = ReaderPdfOptions.CloneMarkdownOptions(pdfOptions.MarkdownOptions) ?? ReaderPdfOptions.CreateOfficeIMOProfile().MarkdownOptions!;
         markdownOptions.IncludePageSeparators = false;
         IReadOnlyList<PdfLogicalPage> pages = applyPageRanges ? GetReaderPages(document, pdfOptions) : document.Pages;
@@ -501,7 +503,7 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfDocumentReadResult document, SourceMetadata source, PdfDocumentPreflight? preflight, IReadOnlyList<PdfLogicalPage>? selectedPages, IReadOnlyList<ReaderTable> tables, IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates, ReaderPdfOptions pdfOptions) {
+    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfDocumentReadResult document, SourceMetadata source, PdfDocumentPreflight? preflight, IReadOnlyList<PdfLogicalPage>? selectedPages, IReadOnlyList<ReaderTable> tables, IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates, ReaderPdfOptions pdfOptions, bool textAndMetadata = false) {
         var entries = new List<OfficeDocumentMetadataEntry>();
         HashSet<int>? selectedPageNumbers = BuildSelectedPageNumberSet(selectedPages);
         AddMetadata(entries, "pdf-catalog-page-mode", "pdf.catalog", "PageMode", document.CatalogPageMode);
@@ -518,15 +520,15 @@ internal static partial class PdfReaderAdapter {
         AddSecurityMetadata(entries, document.Security);
         AddCountMetadata(entries, "pdf-catalog-action-count", "pdf.catalog.action", "Count", document.CatalogActions.Count);
         AddCountMetadata(entries, "pdf-form-field-count", "pdf.form", "Count", CountFormFields(document.FormFields, selectedPageNumbers));
-        AddImageGeometryMetadata(entries, selectedPages ?? document.Pages);
-        AddTableQualityMetadata(entries, tables);
-        if (pdfOptions.IncludeParagraphContinuationMetadata) {
+        if (!textAndMetadata) AddImageGeometryMetadata(entries, selectedPages ?? document.Pages);
+        if (!textAndMetadata) AddTableQualityMetadata(entries, tables);
+        if (!textAndMetadata && pdfOptions.IncludeParagraphContinuationMetadata) {
             AddParagraphContinuationMetadata(entries, document, source, selectedPages, pdfOptions.ParagraphContinuationOptions);
         }
-        AddOcrCandidateMetadata(entries, ocrCandidates);
+        if (!textAndMetadata) AddOcrCandidateMetadata(entries, ocrCandidates);
         AddLinkMetadata(entries, selectedPages ?? document.Pages);
         AddAnnotationMetadata(entries, source, selectedPages ?? document.Pages);
-        AddFormWidgetMetadata(entries, selectedPages ?? document.Pages);
+        if (!textAndMetadata) AddFormWidgetMetadata(entries, selectedPages ?? document.Pages);
         AddActionMetadata(entries, document, selectedPages ?? document.Pages);
         AddMetadata(entries, "pdf-acroform-need-appearances", "pdf.form", "NeedAppearances", ToMetadataText(document.AcroFormNeedAppearances), "boolean");
         AddMetadata(entries, "pdf-acroform-signature-flags", "pdf.form", "SignatureFlags", ToMetadataText(document.AcroFormSignatureFlags), "number");

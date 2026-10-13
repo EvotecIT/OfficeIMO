@@ -14,7 +14,7 @@ internal static partial class OfficeCabinetArchiveReader {
     }
 
     /// <summary>Retains the validated directory; complete member reads use the existing codecs and frame validation.</summary>
-    internal sealed class Inspection {
+    internal sealed partial class Inspection {
         private readonly byte[] _data;
         private readonly Directory _directory;
         private readonly long _maxEntryBytes;
@@ -23,8 +23,9 @@ internal static partial class OfficeCabinetArchiveReader {
             OfficeCabinetDirectoryBudget directoryBudget, CancellationToken token) {
             _data = data; _maxEntryBytes = maxEntryBytes; _maxEntries = maxEntries;
             var reader = new Reader(data, maxExpandedBytes, maxEntryBytes, maxEntries, token, new OfficeCabinetWorkBudget());
+            reader.ValidateHeader();
             // Charge authored counts before allocating/parsing their tables.
-            if (data.Length >= 30) directoryBudget.Consume(reader.UInt16(26) + (long)reader.UInt16(28));
+            directoryBudget.Consume(reader.UInt16(26) + (long)reader.UInt16(28));
             _directory = reader.ReadDirectory();
             var compressed = new long[_directory.Folders.Length];
             var expanded = new long[_directory.Folders.Length];
@@ -46,11 +47,14 @@ internal static partial class OfficeCabinetArchiveReader {
                     if (reader.UInt32(offset) != 0) checksumFrames[index]++;
                     int compressedLength = reader.UInt16(offset + 4);
                     int expandedLength = reader.UInt16(offset + 6);
-                    reader.Ensure(offset + 8 + _directory.DataReserve, compressedLength, "CFDATA payload");
-                    if (expandedLength == 0) throw Error("CAB_MULTIPART", "Split CFDATA records are not supported.");
-                    if (expandedLength > OfficeMsZipDecoder.WindowBytes) throw Error("CAB_BLOCK_SIZE", "A CAB frame exceeds the 32 KiB expanded size limit.");
-                    if (expandedLength > maxExpandedBytes - total || expanded[index] + expandedLength > int.MaxValue)
-                        throw Error("CAB_EXPANDED_LIMIT", "Declared CAB folder expansion exceeds the configured or managed buffer limit.");
+                    int dataOffset = offset + 8 + _directory.DataReserve;
+                    reader.Ensure(dataOffset, compressedLength, "CFDATA payload");
+                    reader.ValidateFrame(dataOffset, compressedLength, expandedLength,
+                        unsupported[index] == null ? folder.Compression & 15 : -1);
+                    if (expandedLength > maxExpandedBytes - total)
+                        throw Error("CAB_EXPANDED_LIMIT", "Declared CAB folder expansion exceeds the configured limit.");
+                    if (expanded[index] + expandedLength > int.MaxValue)
+                        throw Error("CAB_FOLDER_BUFFER_LIMIT", "Declared CAB folder expansion exceeds the managed buffer limit.");
                     compressed[index] += compressedLength; expanded[index] += expandedLength; total += expandedLength;
                     offset += 8 + _directory.DataReserve + compressedLength;
                 }

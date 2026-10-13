@@ -11,6 +11,19 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderPdfManagedInspectionEvidenceTests {
     [Fact]
+    public void TextAndMetadataRetainsMappingFailuresAndTerminalEvidenceLimits() {
+        var reader = new OfficeDocumentReaderBuilder().AddPdfHandler().Build();
+        var options = new ReaderOptions { Projection = ReaderProjection.TextAndMetadata, Inspection = new ReaderInspectionOptions() };
+        OfficeDocumentReadResult result = reader.ReadDocument(BuildMixedPdf(), "mixed.pdf", options);
+        Assert.Null(result.Markdown); Assert.Empty(result.Assets); Assert.Empty(result.OcrCandidates);
+        Assert.Contains(result.Chunks, chunk => chunk.Location.Page == 2 && chunk.Warnings?.Count > 0);
+        Assert.Contains(result.Metadata, entry => entry.Category == "pdf.page-outcome" && entry.Value == "UnmappableText");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "pdf-page-unmappable-text");
+        options.Inspection = new ReaderInspectionOptions { MaxRecords = 1 };
+        Assert.Throws<ReaderResourceLimitException>(() => reader.ReadDocument(BuildMixedPdf(), "mixed.pdf", options));
+    }
+
+    [Fact]
     public void OptInInspectionRetainsReadableTextFailedPageStructureAndV14Evidence() {
         byte[] bytes = BuildMixedPdf();
         var reader = new OfficeDocumentReaderBuilder().AddPdfHandler().Build();

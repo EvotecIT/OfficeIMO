@@ -12,6 +12,7 @@ dotnet add package OfficeIMO.Archives
 
 ```csharp
 using OfficeIMO.Archives;
+using System.Linq;
 
 using var inspection = ArchiveInspector.Open("AdministrativeTemplates.msi",
     new ArchiveInspectionOptions {
@@ -26,11 +27,15 @@ foreach (var entry in inspection.Entries) {
         Console.WriteLine(entry.Diagnostic?.Message);
         continue;
     }
-    if (entry.AuthoredPath?.EndsWith(".admx", StringComparison.OrdinalIgnoreCase) == true) {
-        using var payload = inspection.OpenRead(entry.Ordinal);
-        // The complete length-validated member is available for parsing or hashing here.
-        Console.WriteLine($"Read {payload.Length} bytes from {entry.AuthoredPath}");
-    }
+}
+
+var ordinals = inspection.Entries
+    .Where(entry => entry.CanRead && entry.AuthoredPath?.EndsWith(".admx", StringComparison.OrdinalIgnoreCase) == true)
+    .Select(entry => entry.Ordinal).ToArray();
+using var batch = inspection.ReadMembers(ordinals, maxSelectedBytes: 64L * 1024 * 1024);
+foreach (var member in batch.Members) {
+    // Each stream contains a complete length-validated member for parsing or hashing.
+    Console.WriteLine($"Read {member.Content.Length} bytes from {member.Entry.AuthoredPath}");
 }
 ```
 
@@ -38,13 +43,17 @@ foreach (var entry in inspection.Entries) {
 
 The inventory checks bounded directory structure, declared sizes, member ranges and embedded MSI File/Media mappings. It does not decode payloads or verify their checksums. `CanRead` means the declared source and compression are supported. `OpenRead` verifies the complete containing folder, applicable checksums, decoded boundaries and member length before returning a read-only stream. `FolderFrameCount` and `FolderChecksumFrameCount` describe the containing folder and its nonzero checksum declarations. A successful read checks exactly those nonzero frame checksums; zero-checksum frames have no checksum verification. CAB checksums detect corruption and do not prove authenticity. It returns no prefix or partial member on failure. A caller can hash the complete returned stream; the inventory supplies no content hash.
 
+`ReadMembers(ordinals, maxSelectedBytes, cancellationToken)` reads selected members together. It decodes each selected cabinet folder once, including its gaps and unselected siblings, and preserves the requested ordinal order. The selected payload byte sum, distinct ordinals, supported sources and remaining expansion allowance are checked before decoding. Duplicate names and aliases retain their separate inventory identities; repeating the same ordinal in a request is an error. A corruption, cancellation or work-limit failure returns no batch or partial member. Each call retains its complete selected payloads in memory under the explicit `maxSelectedBytes` bound. `SelectedBytes`, `DecodedFolderBytes` and `DecompressionWorkBytes` report retained payload, complete folder expansion and charged frame-processing work respectively. These limits bound parser buffers and retained payloads; they do not establish a hard process peak-memory limit.
+
 External Media cabinet references and loose MSI source rows remain visible with `MSI_EXTERNAL_CABINET` or `MSI_LOOSE_SOURCE` diagnostics. Their paths and URLs are never opened. Unsupported CAB compression, including Quantum or unsupported LZX parameters, remains visible with a per-member diagnostic. Cabinet sets, continued records, unsupported name encodings and unsupported MSI metadata profiles still fail explicitly.
 
 For MSI, `StorageStreams` exposes exact raw compound names and declared sizes, including metadata, Binary content and embedded cabinets. `OpenStorageStream(ordinal)` reads a complete inert raw stream under the same per-member and cumulative byte limits. It does not decode an embedded cabinet or interpret Binary content. Encoded MSI compound names remain encoded in this raw inventory.
 
 Inspection snapshots a bounded readable seekable input into memory. The stream overload reads from the beginning, restores the caller's position on success or failure, and leaves the source open. Subsequent reads use the immutable snapshot and their own cancellation tokens. Dispose the inspection to release its input and indexes; already returned streams remain caller-owned and usable. Calls on one inspection are serialized. The caller also owns memory held by returned streams.
 
-`ArchiveInspectionOptions` bounds input, entries, cabinets, individual member bytes, declared aggregate expansion, MSI metadata, table rows, string-pool entries, path structure and CAB directory records. `MaxDirectoryRecords` defaults to 1,000,000 and covers CAB folder, file and CFDATA records across all inventoried cabinets; MSI compound storage additionally retains its 65,536-slot and 32,768-stream bounds. Inventory checks file-byte and folder-byte sums separately against `MaxExpandedBytes`. Subsequent reads share a fresh cumulative expansion allowance of that size and one `MaxDecompressionWorkBytes` allowance. Each member read charges its entire folder again, including gaps and sibling files; raw storage reads charge their complete stream length. Failed attempted decodes retain their charge, while pre-canceled or rejected reads do not consume bytes. `ReadBytes` reports the cumulative charge. No temporary extraction or comparison files are created.
+Dispose a returned batch to close all its member streams and release its member collection. Its streams remain usable after inspection disposal and may also be closed individually. Captured inventory records and batch byte/work totals remain available after disposal. Reading the same folder in another batch consumes expansion and work again; there is no retained decoded-folder cache.
+
+`ArchiveInspectionOptions` bounds input, entries, cabinets, individual member bytes, declared aggregate expansion, MSI metadata, table rows, string-pool entries, path structure and CAB directory records. `MaxDirectoryRecords` defaults to 1,000,000 and covers CAB folder, file and CFDATA records across all inventoried cabinets; MSI compound storage additionally retains its 65,536-slot and 32,768-stream bounds. Inventory checks file-byte and folder-byte sums separately against `MaxExpandedBytes`. Subsequent reads share a fresh cumulative expansion allowance of that size and one `MaxDecompressionWorkBytes` allowance. Each `OpenRead` charges its entire folder again; each batch charges each selected folder once, including gaps and sibling files. Raw storage reads charge their complete stream length. Failed attempted decodes retain their folder charge, while pre-canceled or preflight-rejected reads do not consume bytes. `ReadBytes` reports that cumulative charge; inspection `DecompressionWorkBytes` reports frame work actually charged, including attempts that fail after charging. No temporary extraction or comparison files are created.
 
 ## Extract policy files
 
@@ -80,3 +89,5 @@ CAB folder decompression counts toward expansion and work bounds even when its f
 `MaxDecompressionWorkBytes` defaults to 2 GiB and is separate from `MaxExpandedBytes`. Before processing each CAB data frame, the extractor charges the greatest of 32 KiB, the complete frame record size, and the expanded bytes plus any MSZIP history replay. One budget covers every folder and embedded MSI cabinet, including repeated data offsets, gaps and unselected files. A cabinet with no data frames consumes no decompression work. For example, four one-byte MSZIP frames consume 128 KiB of work despite expanding to four bytes. The default permits at most 65,536 frames; larger frames or dictionary replay can exhaust it sooner. These units bound processing and frame setup rather than measuring exact CPU time.
 
 See [SUPPORT.md](SUPPORT.md) for supported compression and MSI profiles. There are no native archive executables to install or download.
+
+Configured quota exhaustion throws `OfficeIMO.OfficeInspectionResourceLimitException` with `Owner = "archives"`, the stable limit property or parameter name in `LimitName`, and its effective `Maximum`. This includes `maxSelectedBytes` for a batch and fixed MSI compound ceilings (`MaxDirectoryRecords` and `MaxStorageStreamCount`). A reduced native remaining allowance can report zero; an array-backed read reports the smaller of its requested byte limit and `Int32.MaxValue`. Native structured failures remain in `InnerException`. Catch this type separately when resource failures must stop a larger operation. `InvalidDataException` continues to mean malformed, inconsistent or unsafe content; `NotSupportedException` identifies unsupported source profiles. Callers that previously caught `InvalidDataException` for quotas must update that catch. Quota failures keep extraction rollback and input-position restoration behavior.

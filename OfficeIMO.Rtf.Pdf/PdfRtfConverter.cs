@@ -14,6 +14,7 @@ internal static class PdfRtfConverter {
 
         PdfToRtfOptions readOptions = options ?? new PdfToRtfOptions();
         readOptions.CancellationToken.ThrowIfCancellationRequested();
+        PdfCore.PdfLogicalContentProjection.RequireComplete(source, readOptions.CancellationToken);
         RtfDocument document = RtfDocument.Create();
         var runStyles = new RunStyleCatalog(document);
         AddUnsupportedContentDiagnostics(source, readOptions);

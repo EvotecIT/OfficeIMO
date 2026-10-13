@@ -19,7 +19,7 @@ internal sealed partial class MsiPackageReader {
             if (row[5] != null) RequiredIdentifier(row[5], "Component.KeyPath");
         }
         foreach (object?[] row in fileRows) RequiredIdentifier(row[1], "File.Component_");
-        if (fileRows.Length > _limits.Entries) throw new InvalidDataException("MSI exceeds the configured file count.");
+        ArchiveLimits.Check(fileRows.Length, _limits.Entries, "MaxEntryCount");
         bool compressedByDefault = ReadDefaultCompression();
         var looseFiles = new HashSet<string>(StringComparer.Ordinal);
         foreach (object?[] row in fileRows) {
@@ -74,8 +74,8 @@ internal sealed partial class MsiPackageReader {
             string filename = LongName(rawFileName);
             if (!inspection) ArchivePaths.ValidateSegment(filename);
             long pathLength = (long)directory.Length + (directory.Length == 0 ? 0 : 1) + filename.Length;
-            if (resolved.PathSegments >= _limits.Depth || pathLength > _limits.PathLength)
-                throw new InvalidDataException("MSI authored file path exceeds configured bounds.");
+            ArchiveLimits.Check((long)resolved.PathSegments + 1, _limits.Depth, "MaxPathDepth");
+            ArchiveLimits.Check(pathLength, _limits.PathLength, "MaxPathLength");
             // A pool string may be reused by many File rows. Check bounds before
             // allocating each target; only collision registration waits for aliases.
             string path = directory.Length == 0 ? filename : directory + "/" + filename;

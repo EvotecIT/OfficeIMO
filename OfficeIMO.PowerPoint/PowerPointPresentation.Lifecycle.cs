@@ -468,6 +468,7 @@ namespace OfficeIMO.PowerPoint {
             if (PowerPointPresentationLoadRouting.IsLegacyBinary(bytes,
                     filePath)) {
                 ValidatePackageSecurity(bytes, options);
+                if (!options.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML presentations only; binary PPT projection is disabled.");
                 return WithSourcePackageInspection(LoadLegacyPptFromNormalFlow(bytes, filePath,
                     sourceStream, options, cancellationToken), bytes, options);
             }

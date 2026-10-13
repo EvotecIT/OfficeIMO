@@ -13,7 +13,7 @@ public sealed class ArchiveInspectionLimitsTests {
     [Fact]
     public void InputLimitPrecedesAllocationAndReadAndPreservesCallerPosition() {
         using var source = new RejectReadStream(new byte[128]); source.Position = 9;
-        Assert.Throws<InvalidDataException>(() => ArchiveInspector.Open(source, new ArchiveInspectionOptions { MaxInputBytes = 64 }));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveInspector.Open(source, new ArchiveInspectionOptions { MaxInputBytes = 64 }));
         Assert.Equal(9, source.Position); Assert.True(source.CanRead);
     }
 
@@ -32,7 +32,7 @@ public sealed class ArchiveInspectionLimitsTests {
             case "directory": options.MaxDirectoryRecords = 3; break;
         }
         using var source = new MemoryStream(bytes);
-        Assert.Throws<InvalidDataException>(() => ArchiveInspector.Open(source, options));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveInspector.Open(source, options));
     }
 
     [Theory]
@@ -55,7 +55,7 @@ public sealed class ArchiveInspectionLimitsTests {
             case "expansion": options.MaxExpandedBytes = 9; break;
             case "depth": options.MaxPathDepth = 2; break;
         }
-        Assert.Throws<InvalidDataException>(() => ArchiveInspector.Open(source, options));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveInspector.Open(source, options));
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class ArchiveInspectionLimitsTests {
         using ArchiveInspection inspection = ArchiveInspector.Open(source, new ArchiveInspectionOptions { MaxExpandedBytes = 4 });
         using Stream first = inspection.OpenRead(0);
         Assert.Equal(new byte[] { 1 }, ArchiveInspectionTests.Bytes(first)); Assert.Equal(4, inspection.ReadBytes);
-        Assert.Throws<InvalidDataException>(() => inspection.OpenRead(1));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => inspection.OpenRead(1));
         Assert.Equal(4, inspection.ReadBytes);
     }
 
@@ -76,7 +76,7 @@ public sealed class ArchiveInspectionLimitsTests {
             new ArchiveInspectionOptions { MaxDecompressionWorkBytes = 32768 });
         using Stream first = inspection.OpenRead(0);
         Assert.Equal(5, first.Length);
-        Assert.StartsWith("CAB_WORK_LIMIT:", Assert.Throws<InvalidDataException>(() => inspection.OpenRead(1)).Message);
+        Assert.Equal("MaxDecompressionWorkBytes", Assert.Throws<OfficeInspectionResourceLimitException>(() => inspection.OpenRead(1)).LimitName);
         Assert.Equal(10, inspection.ReadBytes);
     }
 
@@ -86,13 +86,13 @@ public sealed class ArchiveInspectionLimitsTests {
         using ArchiveInspection inspection = ArchiveInspector.Open(source,
             new ArchiveInspectionOptions { MaxEntryBytes = 5, MaxExpandedBytes = 5 });
         ArchiveStorageStream cabinet = Assert.Single(inspection.StorageStreams, stream => stream.RawName == MsiPackageReader.EncodeStreamName("payload.cab", false));
-        Assert.Throws<InvalidDataException>(() => inspection.OpenStorageStream(cabinet.Ordinal)); Assert.Equal(0, inspection.ReadBytes);
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => inspection.OpenStorageStream(cabinet.Ordinal)); Assert.Equal(0, inspection.ReadBytes);
         using Stream member = inspection.OpenRead(0); Assert.Equal(5, member.Length);
         using var secondSource = new MemoryStream(ArchiveFixtures.Msi());
         using ArchiveInspection second = ArchiveInspector.Open(secondSource, new ArchiveInspectionOptions { MaxExpandedBytes = 5 });
         using Stream complete = second.OpenRead(0);
         ArchiveStorageStream raw = second.StorageStreams.First(stream => stream.Length > 0);
-        Assert.Throws<InvalidDataException>(() => second.OpenStorageStream(raw.Ordinal)); Assert.Equal(5, second.ReadBytes);
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => second.OpenStorageStream(raw.Ordinal)); Assert.Equal(5, second.ReadBytes);
     }
 
     [Theory]

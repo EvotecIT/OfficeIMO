@@ -18,9 +18,9 @@ public sealed partial class ArchiveInspection {
         StorageStreams = Array.AsReadOnly(streams.Select((stream, index) =>
             new ArchiveStorageStream(index, stream.DirectoryOrder, stream.Name, stream.Size)).ToArray());
         IReadOnlyList<MsiPayloadFile> files = _database.ReadFiles(out IReadOnlyList<string> cabinetNames, inspection: true);
-        if (cabinetNames.Count > _limits.Cabinets) throw new InvalidDataException("MSI exceeds the configured embedded-cabinet count.");
+        ArchiveLimits.Check(cabinetNames.Count, _limits.Cabinets, "MaxCabinetCount");
         long declaredFileBytes = 0;
-        foreach (MsiPayloadFile file in files) ArchiveLimits.Add(ref declaredFileBytes, file.Length, _limits.Expanded, "Declared MSI member content");
+        foreach (MsiPayloadFile file in files) ArchiveLimits.Add(ref declaredFileBytes, file.Length, _limits.Expanded, "MaxExpandedBytes");
         long cabinetInput = 0;
         long declaredFolderBytes = 0;
         var mappings = new Dictionary<string, OfficeCabinetMemberInfo>(StringComparer.Ordinal);
@@ -30,15 +30,23 @@ public sealed partial class ArchiveInspection {
         foreach (string name in cabinetNames) {
             token.ThrowIfCancellationRequested();
             long length = _database.GetCabinetLength(name);
-            ArchiveLimits.Add(ref cabinetInput, length, _limits.Input, "Aggregate MSI cabinet input");
+            ArchiveLimits.Add(ref cabinetInput, length, _limits.Input, "MaxInputBytes");
             using Stream source = _database.OpenCabinet(name);
+            ArchiveLimits.Check(length, Math.Min(_limits.Input, int.MaxValue), "MaxInputBytes");
             byte[] bytes = OfficeArchiveSafety.ReadEntryBytes(source, length, _limits.Input, token);
-            var cabinet = OfficeCabinetArchiveReader.Inspect(bytes, _limits.Expanded - declaredFolderBytes,
-                _limits.Entry, Math.Max(1, _limits.Entries - actualEntries), budget, token);
+            long remainingExpansion = _limits.Expanded - declaredFolderBytes;
+            int remainingEntries = Math.Max(1, _limits.Entries - actualEntries);
+            OfficeCabinetArchiveReader.Inspection cabinet;
+            try {
+                cabinet = OfficeCabinetArchiveReader.Inspect(bytes, remainingExpansion,
+                    _limits.Entry, remainingEntries, budget, token);
+            } catch (OfficeCabinetException error) {
+                throw _limits.Translate(error, remainingExpansion, remainingEntries, directoryRecords);
+            }
             _cabinets.Add(name, cabinet);
             actualEntries = checked(actualEntries + cabinet.Members.Count);
-            if (actualEntries > _limits.Entries) throw new InvalidDataException("MSI cabinets exceed the configured aggregate member count.");
-            ArchiveLimits.Add(ref declaredFolderBytes, cabinet.ExpandedBytes, _limits.Expanded, "Declared MSI folder expansion");
+            ArchiveLimits.Check(actualEntries, _limits.Entries, "MaxEntryCount");
+            ArchiveLimits.Add(ref declaredFolderBytes, cabinet.ExpandedBytes, _limits.Expanded, "MaxExpandedBytes");
             var expected = groups[name].ToDictionary(file => file.Id, StringComparer.Ordinal);
             var found = new HashSet<string>(StringComparer.Ordinal);
             int previousSequence = 0;

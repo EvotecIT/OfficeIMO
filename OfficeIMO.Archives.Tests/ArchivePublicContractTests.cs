@@ -96,8 +96,8 @@ public sealed class ArchivePublicContractTests {
             ArchiveExtractionResult result = ArchiveExtractor.Extract(package, fixture.Destination, options);
             Assert.Empty(result.Files); Assert.Equal(0, result.TotalBytes);
         } else {
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(package, fixture.Destination, options));
-            Assert.Contains("embedded-cabinet count", exception.Message);
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(package, fixture.Destination, options));
+            Assert.Equal("MaxCabinetCount", exception.LimitName);
             Assert.False(Directory.Exists(fixture.Destination));
         }
     }

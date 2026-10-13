@@ -8,7 +8,10 @@ internal static partial class OpenDocumentReaderAdapter {
 
     /// <summary>Reads an ODT, ODS, or ODP file and emits format-aligned chunks.</summary>
     public static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? options = null, ReaderOpenDocumentOptions? openDocumentOptions = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) => OdfReaderAdmission.Enumerate(() => ReadPathCore(path, options, openDocumentOptions, cancellationToken));
+
+    private static IEnumerable<ReaderChunk> ReadPathCore(string path, ReaderOptions? options, ReaderOpenDocumentOptions? openDocumentOptions,
+        CancellationToken cancellationToken) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException($"OpenDocument file '{path}' doesn't exist.", path);
         ReaderOptions effective = options ?? new ReaderOptions();
@@ -22,7 +25,10 @@ internal static partial class OpenDocumentReaderAdapter {
 
     /// <summary>Reads an ODT, ODS, or ODP stream without closing the caller's stream.</summary>
     public static IEnumerable<ReaderChunk> Read(Stream stream, string? sourceName = null, ReaderOptions? options = null, ReaderOpenDocumentOptions? openDocumentOptions = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) => OdfReaderAdmission.Enumerate(() => ReadStreamCore(stream, sourceName, options, openDocumentOptions, cancellationToken));
+
+    private static IEnumerable<ReaderChunk> ReadStreamCore(Stream stream, string? sourceName, ReaderOptions? options, ReaderOpenDocumentOptions? openDocumentOptions,
+        CancellationToken cancellationToken) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("OpenDocument stream must be readable.", nameof(stream));
         ReaderOptions effective = options ?? new ReaderOptions();
@@ -47,12 +53,13 @@ internal static partial class OpenDocumentReaderAdapter {
                 yield return source;
                 continue;
             }
-            ReaderChunkHierarchyResult split = ReaderHierarchicalChunker.Chunk(new[] { source }, new ReaderHierarchicalChunkingOptions {
+            var chunking = new ReaderHierarchicalChunkingOptions {
                 MaxTokens = limit, OverlapTokens = 0, MaxInputChunks = 1,
                 IncludeContextInText = false, TokenCounter = CharacterCounter.Instance
-            }, cancellationToken);
+            };
+            ReaderChunkHierarchyResult split = ReaderHierarchicalChunker.Chunk(new[] { source }, chunking, cancellationToken);
             if (split.Diagnostics.Any(diagnostic => diagnostic.Code == "hierarchical-output-chunk-limit")) {
-                throw new InvalidDataException("OpenDocument character chunking exceeded the output chunk limit.");
+                throw new ReaderResourceLimitException("OpenDocument.MaxOutputChunks", chunking.MaxOutputChunks);
             }
             foreach (ReaderChunk chunk in split.Chunks) {
                 chunk.TokenEstimate = ReaderHeuristicTokenCounter.Instance.CountTokens(chunk.Text ?? string.Empty);
@@ -62,13 +69,14 @@ internal static partial class OpenDocumentReaderAdapter {
     }
 
     private sealed class ProjectionBudget {
+        private readonly long _maximum;
         private long _remaining;
         internal ProjectionBudget(long maximum) {
             if (maximum < 1) throw new ArgumentOutOfRangeException(nameof(ReaderOpenDocumentOptions.MaxExtractedCharacters));
-            _remaining = maximum;
+            _remaining = _maximum = maximum;
         }
         internal string Read(string text) {
-            if (text.Length > _remaining) throw new InvalidDataException("OpenDocument extraction exceeds MaxExtractedCharacters.");
+            if (text.Length > _remaining) throw new ReaderResourceLimitException("OpenDocument.MaxExtractedCharacters", _maximum);
             _remaining -= text.Length;
             return text;
         }
@@ -89,12 +97,13 @@ internal static partial class OpenDocumentReaderAdapter {
         } else if (document is OdpPresentation presentation) {
             foreach (ReaderChunk chunk in ReadPresentation(presentation, sourceName, options, formatOptions, budget, cancellationToken)) yield return chunk;
         } else if (document is OdgDocument drawing) {
-            foreach (ReaderChunk chunk in ReadDrawing(drawing, sourceName, budget, cancellationToken)) yield return chunk;
+            foreach (ReaderChunk chunk in ReadDrawing(drawing, sourceName, options, budget, cancellationToken)) yield return chunk;
         }
     }
 
     private static OdfLoadOptions CreateOpenOptions(ReaderOptions options, ReaderOpenDocumentOptions formatOptions) {
-        var result = new OdfLoadOptions { Password = options.OpenPassword };
+        var result = new OdfLoadOptions { Password = options.OpenPassword,
+            DeferBinaryPayloads = options.Projection == ReaderProjection.TextAndMetadata };
         if (options.MaxInputBytes.HasValue) result.MaxPackageBytes = options.MaxInputBytes.Value;
         if (formatOptions.MaxXmlCharacters.HasValue) result.MaxXmlCharacters = formatOptions.MaxXmlCharacters.Value;
         return result;

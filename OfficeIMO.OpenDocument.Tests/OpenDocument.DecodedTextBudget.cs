@@ -15,7 +15,7 @@ public sealed class OpenDocumentDecodedTextBudgetTests {
         XElement first = ParagraphWithSpaces(HalfLimit);
         XElement second = ParagraphWithSpaces(HalfLimit);
 
-        Assert.Throws<InvalidDataException>(() => OdfTextCodec.ReadJoined(new[] { first, second }));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => OdfTextCodec.ReadJoined(new[] { first, second }));
         Assert.Equal("one\ntwo  ", OdfTextCodec.ReadJoined(new[] {
             new XElement(OdfNamespaces.Text + "p", "one"),
             new XElement(OdfNamespaces.Text + "p", "two", new XElement(OdfNamespaces.Text + "s",
@@ -29,7 +29,7 @@ public sealed class OpenDocumentDecodedTextBudgetTests {
         OdtParagraph odtParagraph = text.AddParagraph("visible");
         AddLargeAnnotations(odtParagraph.Element);
         Assert.Equal("visible", odtParagraph.Text);
-        Assert.Throws<InvalidDataException>(() => _ = odtParagraph.InlineNodes);
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = odtParagraph.InlineNodes);
 
         OdpPresentation presentation = OdpPresentation.Create();
         OdpParagraph odpParagraph = presentation.AddSlide("Slide")
@@ -39,7 +39,7 @@ public sealed class OpenDocumentDecodedTextBudgetTests {
             .Descendants(OdfNamespaces.Text + "p").Single(element => element.Value == "visible");
         AddLargeAnnotations(odpElement);
         Assert.Equal("visible", odpParagraph.Text);
-        Assert.Throws<InvalidDataException>(() => _ = odpParagraph.InlineNodes);
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = odpParagraph.InlineNodes);
     }
 
     [Fact]
@@ -51,9 +51,9 @@ public sealed class OpenDocumentDecodedTextBudgetTests {
         cell.Element.Elements(OdfNamespaces.Text + "p").Remove();
         cell.Element.Add(ParagraphWithSpaces(HalfLimit), ParagraphWithSpaces(HalfLimit));
 
-        Assert.Throws<InvalidDataException>(() => _ = cell.Text);
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = cell.Text);
         OdsDataPilotTable pivot = document.AddDataPilotTable("Pivot", "Data.A1:Data.A2", "Data.C1:Data.D2");
-        Assert.Throws<InvalidDataException>(() => pivot.AddField("Header", "row"));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => pivot.AddField("Header", "row"));
     }
 
     [Fact]

@@ -34,7 +34,8 @@ internal static partial class OpenDocumentReaderAdapter {
                     HeadingPath = headingPath
                 },
                 Text = text,
-                Markdown = paragraph.IsHeading ? new string('#', Math.Min(6, headingLevel)) + " " + text : text
+                Markdown = options.Projection == ReaderProjection.TextAndMetadata ? null
+                    : paragraph.IsHeading ? new string('#', Math.Min(6, headingLevel)) + " " + text : text
             };
             blockIndex++;
         }
@@ -67,7 +68,7 @@ internal static partial class OpenDocumentReaderAdapter {
             Location = new ReaderLocation { Path = sourceName, BlockIndex = blockIndex, SourceBlockIndex = blockIndex, SourceBlockKind = "table" }
         };
         string text = string.Join(Environment.NewLine, values.Select(row => string.Join("\t", row)));
-        string markdown = BuildTableMarkdown(columns, values);
+        string? markdown = options.Projection == ReaderProjection.TextAndMetadata ? null : BuildTableMarkdown(columns, values);
         return new ReaderChunk {
             Id = BuildId(sourceName, "table", blockIndex),
             Kind = ReaderInputKind.OpenDocument,

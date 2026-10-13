@@ -55,10 +55,24 @@ internal static class NativeInspectionProjection {
                 ReaderInspectionMetadataBuilder.Attributes(
                     ("kind", payload.Kind.ToString()), ("ownerPartUri", payload.OwnerPartUri),
                     ("partUri", payload.PartUri), ("relationshipId", payload.RelationshipId),
-                    ("contentType", payload.ContentType), ("lengthBytes", payload.Length.ToString(CultureInfo.InvariantCulture)),
+                    ("contentType", payload.ContentType), ("lengthBytes", payload.HasKnownLength ? payload.Length.ToString(CultureInfo.InvariantCulture) : null),
+                    ("lengthKnown", payload.HasKnownLength ? "true" : "false"), ("ordinal", payload.Ordinal >= 0 ? payload.Ordinal.ToString(CultureInfo.InvariantCulture) : null),
                     ("sha256", payload.Sha256), ("executed", "false")));
         }
         builder.Coverage("embedded-payloads", "complete", "Descriptors in the loaded package model; payloads were not executed or recursively interpreted.", new ReaderLocation { Path = path });
+    }
+
+    internal static void AddBoundedPayloads(ReaderInspectionMetadataBuilder builder,
+        Func<OfficeEmbeddedPayloadInspectionOptions, CancellationToken, OfficeEmbeddedPayloadInspection> inspect,
+        string? path, CancellationToken token) {
+        try {
+            using OfficeEmbeddedPayloadInspection inventory = inspect(new OfficeEmbeddedPayloadInspectionOptions {
+                MaxPayloads = (int)Math.Min(int.MaxValue, builder.Options.MaxRecords), IncludeSha256 = false
+            }, token);
+            AddPayloads(builder, inventory.Payloads, path);
+        } catch (OfficeInspectionResourceLimitException limit) {
+            throw new ReaderResourceLimitException(limit.Owner + "." + limit.LimitName, limit.Maximum, limit);
+        }
     }
 
     internal static void AddVba(ReaderInspectionMetadataBuilder builder, OfficeVbaProjectInfo? vba, string? path) {
@@ -66,9 +80,13 @@ internal static class NativeInspectionProjection {
             new ReaderLocation { Path = path, SourceBlockKind = "vba-project" }, vba.PartUri,
             ReaderInspectionMetadataBuilder.Attributes(
                 ("partUri", vba.PartUri), ("contentType", vba.ContentType),
-                ("lengthBytes", vba.Length.ToString(CultureInfo.InvariantCulture)),
+                ("lengthBytes", vba.HasKnownLength ? vba.Length.ToString(CultureInfo.InvariantCulture) : null),
+                ("lengthKnown", vba.HasKnownLength ? "true" : "false"),
+                ("moduleInspectionRequested", vba.ModuleInspectionRequested ? "true" : "false"),
                 ("sha256", vba.Sha256), ("moduleNames", string.Join(",", vba.ModuleNames)),
                 ("hasSignatureRelationship", vba.HasSignature ? "true" : "false"), ("executed", "false")));
-        builder.Coverage("vba-project", "metadata-only", "Module names are best effort; a signature relationship is not signature validation.", new ReaderLocation { Path = path });
+        builder.Coverage("vba-project", vba?.ModuleInspectionRequested == false ? "module-payload-unrequested" : "metadata-only",
+            vba?.ModuleInspectionRequested == false ? "Part and signature relationship only; project bytes and module names were not requested. A signature relationship is not signature validation."
+                : "Module names are best effort; a signature relationship is not signature validation.", new ReaderLocation { Path = path });
     }
 }

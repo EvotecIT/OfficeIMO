@@ -8,6 +8,21 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfManagedInspectionEvidenceTests {
     [Fact]
+    public void TextOnlyInspectionPreservesFailureKindsAndRepeatedSelectionOrder() {
+        PdfInspectionReadResult result = PdfDocument.Load(BuildMixedDocument()).ReadForInspection(new PdfReadOptions {
+            IncludeImages = false, IncludeFormWidgets = false, PageSelection = PdfPageSelection.Parse("3,2,1,3")
+        });
+        Assert.Equal(new[] { 3, 2, 1, 3 }, result.PageOutcomes.Select(outcome => outcome.PageNumber));
+        Assert.Equal(PdfPageReadStatus.UnmappableText, result.PageOutcomes[1].Status);
+        Assert.False(result.CompletedAllSelectedPages); Assert.Null(result.PageOutcomes[1].Page);
+        Assert.Equal(new[] { 3, 1, 3 }, result.Document.Pages.Select(page => page.PageNumber));
+        Assert.NotEmpty(result.Document.Pages[0].Analysis.DecodedRuns);
+        Assert.False(result.Document.IncludesImages); Assert.False(result.Document.IncludesFormWidgets);
+        PdfInspectionReadResult filtered = PdfDocument.Load(BuildMixedDocument(unsupportedFilter: true)).ReadForInspection(new PdfReadOptions { IncludeImages = false });
+        Assert.Equal(PdfPageReadStatus.UnsupportedContentStreamFilter, filtered.PageOutcomes[1].Status);
+    }
+
+    [Fact]
     public void InspectionRetainsSuccessfulOccurrencesSourceLinksAndExplicitMappingFailures() {
         PdfDocument pdf = PdfDocument.Load(BuildMixedDocument());
         Assert.Throws<PdfUnsupportedTextMappingException>(() => pdf.Read());

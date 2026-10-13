@@ -52,7 +52,7 @@ public sealed class OdpTable : OdpShape {
         long index = 0;
         foreach (XElement element in elements) {
             starts.Add(element, index);
-            index = checked(index + OdsRepeatModel.Read(element, repeatAttribute));
+            index = OdfRepeatedElementCollection<XElement>.AddCount(index, OdsRepeatModel.Read(element, repeatAttribute));
         }
         return starts;
     }

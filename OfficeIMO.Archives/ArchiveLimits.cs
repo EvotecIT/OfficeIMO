@@ -4,7 +4,7 @@ using OfficeIMO.Core.Internal.Cabinet;
 
 namespace OfficeIMO.Archives;
 
-internal sealed class ArchiveLimits {
+internal sealed partial class ArchiveLimits {
     internal ArchiveLimits(ArchiveExtractionOptions options) {
         Input = Positive(options.MaxInputBytes, nameof(options.MaxInputBytes));
         Entries = checked((int)Positive(options.MaxEntryCount, nameof(options.MaxEntryCount)));
@@ -33,10 +33,17 @@ internal sealed class ArchiveLimits {
     internal Func<string, bool>? Include { get; }
     internal bool Select(string path) => Include?.Invoke(path) ?? true;
     internal void CheckEntry(long bytes) {
-        if (bytes < 0 || bytes > Entry) throw new InvalidDataException("Archive member exceeds the configured byte limit.");
+        Check(bytes, Entry, nameof(ArchiveExtractionOptions.MaxEntryBytes));
     }
-    internal static void Add(ref long total, long bytes, long maximum, string description) {
-        if (bytes < 0 || total > maximum - bytes) throw new InvalidDataException(description + " exceeds the configured byte limit.");
+    internal static void Check(long value, long maximum, string limitName) {
+        if (value < 0 || maximum < 0) throw new InvalidDataException("Archive sizes or counts cannot be negative.");
+        if (value > maximum) throw Exceeded(limitName, maximum);
+    }
+    internal static OfficeInspectionResourceLimitException Exceeded(string limitName, long maximum, Exception? inner = null) =>
+        new("archives", limitName, maximum, inner);
+    internal static void Add(ref long total, long bytes, long maximum, string limitName) {
+        if (bytes < 0 || total < 0 || maximum < 0) throw new InvalidDataException("Archive aggregate sizes cannot be negative.");
+        if (total > maximum || bytes > maximum - total) throw Exceeded(limitName, maximum);
         total += bytes;
     }
     private static long Positive(long value, string name) => value > 0 ? value : throw new ArgumentOutOfRangeException(name);
