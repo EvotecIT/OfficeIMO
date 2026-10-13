@@ -1,0 +1,68 @@
+using OfficeIMO.Pdf;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public sealed class PdfEmptyColumnPageBreakTests {
+    [Theory]
+    [InlineData(2, 1, false)]
+    [InlineData(2, 1, true)]
+    [InlineData(3, 2, false)]
+    [InlineData(3, 2, true)]
+    public void PageBreakAfterAnEmptyLaterColumnReturnsToTheFirstColumn(int columns, int breaks, bool header) {
+        using var pdf = PdfPigDocument.Open(Render(columns, breaks, header, preserve: false));
+        int expectedPages = header ? 2 : 1;
+        Assert.Equal(expectedPages, pdf.NumberOfPages);
+        var marker = Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()).Where(word => word.Text == "AFTER"));
+        Assert.InRange(marker.BoundingBox.Left, 39.9, 40.1);
+        Assert.Contains("AFTER", pdf.GetPage(expectedPages).Text);
+        if (header) {
+            Assert.Contains("HEADER", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("AFTER", pdf.GetPage(1).Text);
+            Assert.Contains("HEADER", pdf.GetPage(2).Text);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PageBreakOnAFreshFirstColumnDoesNotEmitAnotherHeaderOnlyPage(bool rollover) {
+        using var pdf = PdfPigDocument.Open(Render(2, rollover ? 2 : 0, header: true, preserve: false));
+        int expectedPages = rollover ? 2 : 1;
+        Assert.Equal(expectedPages, pdf.NumberOfPages);
+        var marker = Assert.Single(pdf.GetPage(expectedPages).GetWords().Where(word => word.Text == "AFTER"));
+        Assert.InRange(marker.BoundingBox.Left, 39.9, 40.1);
+        if (rollover) Assert.DoesNotContain("AFTER", pdf.GetPage(1).Text);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void PreservedPageBreakRetainsTheEmptyPhysicalPage(int breaks) {
+        using var pdf = PdfPigDocument.Open(Render(2, breaks, header: false, preserve: true));
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Empty(pdf.GetPage(1).Letters);
+        var marker = Assert.Single(pdf.GetPage(2).GetWords());
+        Assert.Equal("AFTER", marker.Text);
+        Assert.InRange(marker.BoundingBox.Left, 39.9, 40.1);
+    }
+
+    private static byte[] Render(int columns, int breaks, bool header, bool preserve) {
+        var document = PdfDocument.Create(new PdfOptions {
+            PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
+            MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, CompressContentStreams = false
+        });
+        document.Compose(builder => builder.Page(page => {
+            if (header) page.Header(running => running.Content(content => content.Paragraph(paragraph => paragraph.Text("HEADER")), 18));
+            page.Content(body => body.Columns(content => {
+                for (int index = 0; index < breaks; index++) content.ColumnBreak();
+                content.PageBreak(preserve);
+                content.Paragraph(paragraph => paragraph.Text("AFTER"), style: new PdfParagraphStyle {
+                    LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+                });
+            }, new PdfMultiColumnOptions { ColumnCount = columns, Gap = 20, BalanceLastPage = false }));
+        }));
+        return document.ToBytes();
+    }
+}
