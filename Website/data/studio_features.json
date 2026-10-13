@@ -75,12 +75,7 @@
           "id": "outline",
           "title": "Bookmarks and outline",
           "detail": "Navigate, add, rename and reorder bookmarks",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
-          "notes": {
-            "mac": "Navigate, add, rename, re-point and delete bookmarks, or make them from headings; reordering is planned.",
-            "ipad": "Navigate, add, rename, re-point and delete bookmarks, or make them from headings; reordering is planned.",
-            "iphone": "Navigate, add, rename, re-point and delete bookmarks, or make them from headings; reordering is planned."
-          },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
@@ -122,7 +117,12 @@
           "id": "shapes",
           "title": "Shapes, text boxes and stamps",
           "detail": "Rectangles, ellipses, lines, polygons, callouts and stamps",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Standard stamps; drawing shapes and text boxes is planned.",
+            "ipad": "Standard stamps; drawing shapes and text boxes is planned.",
+            "iphone": "Standard stamps; drawing shapes and text boxes is planned."
+          },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
@@ -232,12 +232,7 @@
           "id": "links",
           "title": "Links and attachments",
           "detail": "Add web and page links; add, save and remove attachments",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
-          "notes": {
-            "mac": "Add, save and delete attachments; adding links is planned.",
-            "ipad": "Add, save and delete attachments; adding links is planned.",
-            "iphone": "Add, save and delete attachments; adding links is planned."
-          },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "roadmap": "phase-7-native-apple-apps"
         }
       ]
@@ -353,7 +348,12 @@
           "id": "redact",
           "title": "Redaction",
           "detail": "Mark, review and permanently remove content",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Text you find or select, verified after removal; marking areas of images and drawings is planned.",
+            "ipad": "Text you find or select, verified after removal; marking areas of images and drawings is planned.",
+            "iphone": "Text you find or select, verified after removal; marking areas of images and drawings is planned."
+          },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
@@ -384,14 +384,14 @@
           "id": "validate",
           "title": "Validate signatures and standards",
           "detail": "Check existing signatures, PDF/A, PDF/UA and PDF/X",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
           "id": "document-health",
           "title": "Repair, optimize and sanitize",
           "detail": "Inspect and clean a document into a copy",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "roadmap": "phase-7-native-apple-apps"
         }
       ]

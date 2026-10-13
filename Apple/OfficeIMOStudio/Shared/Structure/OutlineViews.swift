@@ -66,6 +66,15 @@ struct OutlineList: View {
             Button("Use Page \(session.currentPage)", systemImage: "arrow.uturn.right") { session.retargetBookmark(node) }
                 .disabled(node.page == session.currentPage)
             Divider()
+            Button("Move Up", systemImage: "arrow.up") { session.moveBookmark(node, .up) }
+                .disabled(!session.canMoveBookmark(node, .up))
+            Button("Move Down", systemImage: "arrow.down") { session.moveBookmark(node, .down) }
+                .disabled(!session.canMoveBookmark(node, .down))
+            Button("Indent", systemImage: "increase.indent") { session.moveBookmark(node, .indent) }
+                .disabled(!session.canMoveBookmark(node, .indent))
+            Button("Outdent", systemImage: "decrease.indent") { session.moveBookmark(node, .outdent) }
+                .disabled(!session.canMoveBookmark(node, .outdent))
+            Divider()
             Button("Delete", systemImage: "trash", role: .destructive) { session.removeBookmark(node) }
         }
     }

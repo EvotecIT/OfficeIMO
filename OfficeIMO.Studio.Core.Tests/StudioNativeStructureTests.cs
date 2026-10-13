@@ -77,6 +77,37 @@ public sealed class StudioNativeStructureTests : IDisposable {
     }
 
     [Fact]
+    public async Task Bookmarks_move_down_into_the_one_before_and_back_out() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("order.pdf", "One", "Two", "Three"), null, default);
+        await document.EditAsync(new StudioNativeEditRequest(Outline: [
+            new StudioNativeOutlineEdit("add", Title: "A", Page: 1), new StudioNativeOutlineEdit("add", Title: "B", Page: 2),
+            new StudioNativeOutlineEdit("add", Title: "C", Page: 3)
+        ]), default);
+        StudioNativeStructure structure = await document.GetStructureAsync(default);
+        string Id(string title) => Find(structure.Outline, title)!.Id!;
+
+        // Down past the next sibling: removed first, then inserted at the next position.
+        await document.EditAsync(new StudioNativeEditRequest(Outline: [new StudioNativeOutlineEdit("move", Id: Id("A"), Index: 1)]), default);
+        structure = await document.GetStructureAsync(default);
+        Assert.Equal(new[] { "B", "A", "C" }, structure.Outline.Select(item => item.Title));
+
+        // Indent C under A, the bookmark before it, then outdent it to follow A again.
+        await document.EditAsync(new StudioNativeEditRequest(Outline: [new StudioNativeOutlineEdit("move", Id: Id("C"), ParentId: Id("A"), Index: -1)]), default);
+        structure = await document.GetStructureAsync(default);
+        Assert.Equal(new[] { "B", "A" }, structure.Outline.Select(item => item.Title));
+        Assert.Equal("C", Assert.Single(Find(structure.Outline, "A")!.Children).Title);
+        await document.EditAsync(new StudioNativeEditRequest(Outline: [new StudioNativeOutlineEdit("move", Id: Id("C"), Index: 2)]), default);
+        structure = await document.GetStructureAsync(default);
+        Assert.Equal(new[] { "B", "A", "C" }, structure.Outline.Select(item => item.Title));
+
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            document.EditAsync(new StudioNativeEditRequest(Outline: [new StudioNativeOutlineEdit("move", Id: Id("A"), ParentId: Id("A"))]), default));
+
+        static StudioNativeOutlineItem? Find(IReadOnlyList<StudioNativeOutlineItem> items, string title) =>
+            items.FirstOrDefault(item => item.Title == title) ?? items.Select(item => Find(item.Children, title)).FirstOrDefault(found => found is not null);
+    }
+
+    [Fact]
     public async Task Bookmark_changes_outside_the_document_are_refused() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("refuse.pdf", "One"), null, default);
         await Assert.ThrowsAnyAsync<ArgumentException>(() =>

@@ -50,7 +50,8 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_make_searchable_json) X(officeimo_conversion_sources_json) X(officeimo_convert_to_pdf_json) \
     X(officeimo_document_form_fields_json) X(officeimo_document_fill_form_json) X(officeimo_document_search_stream_json) \
     X(officeimo_document_save_copy) X(officeimo_document_save_protected_copy_json) X(officeimo_document_save_signed_copy_json) \
-    X(officeimo_document_structure_json) X(officeimo_document_edit_json) X(officeimo_document_write_json)
+    X(officeimo_document_structure_json) X(officeimo_document_edit_json) X(officeimo_document_write_json) \
+    X(officeimo_document_check_json) X(officeimo_document_redact_json)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(&name) engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -379,6 +380,28 @@ int main(int argc, char **argv) {
         expect(exported != NULL, "the Markdown export was not written", NULL);
         if (exported) fclose(exported);
     }
+
+    /* Checks read the document without changing it; redaction finds nothing for text the document lacks and refuses
+       a request that marks nothing. */
+    CHECK("check health", engine_officeimo_document_check_json(document, "{\"health\":true}", 0, &json, &error), OFFICEIMO_OK);
+    expect(json && strstr(json, "\"health\":{") && strstr(json, "\"canRead\":true"), "the health report is missing", json);
+    engine_officeimo_free(json);
+    CHECK("check signatures", engine_officeimo_document_check_json(document, "{\"signatures\":true}", 0, &json, &error), OFFICEIMO_OK);
+    expect(json && strstr(json, "\"signatures\":{"), "the signature report is missing", json);
+    engine_officeimo_free(json);
+    CHECK("check standard", engine_officeimo_document_check_json(document, "{\"standard\":\"pdfa2b\"}", 0, &json, &error), OFFICEIMO_OK);
+    expect(json && strstr(json, "\"requirements\":["), "the standard report is missing", json);
+    engine_officeimo_free(json);
+    CHECK("check unknown standard", engine_officeimo_document_check_json(document, "{\"standard\":\"iso9001\"}", 0, &json, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
+    if (can_read_text) {
+        CHECK("find nothing to redact", engine_officeimo_document_redact_json(document, "{\"find\":{\"text\":\"zzqq no such words\"}}", 0, &json, &error),
+              OFFICEIMO_OK);
+        expect(json && strstr(json, "\"marks\":[]"), "redaction found text the document lacks", json);
+        engine_officeimo_free(json);
+    }
+    CHECK("redact nothing", engine_officeimo_document_redact_json(document, "{\"apply\":{\"areas\":[]}}", 0, &json, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
 
     char shared[4096];
     path_in(shared, sizeof shared, work, "shared.pdf");

@@ -182,14 +182,24 @@ struct WriteRequest: Encodable, Sendable {
         var format: String
         var path: String
     }
+    /// A health copy at path; profile chooses an optimization: balanced, smallest, web or archival.
+    struct HealthCopy: Encodable, Sendable {
+        var path: String
+        var profile: String?
+    }
     var split: Split?
     var attachment: AttachmentSave?
     var export: Export?
+    var optimize: HealthCopy?
+    var repair: HealthCopy?
+    var sanitize: HealthCopy?
 }
 
 struct WriteResult: Decodable, Sendable {
     let revision: Int64
     let files: [String]
+    /// What a health copy changed.
+    let summary: String?
 }
 
 extension EngineDocument {
@@ -214,6 +224,11 @@ extension EngineDocument {
 
     /// Writes an output beside the document and returns the files written, in order.
     func write(_ request: WriteRequest) async throws -> [URL] {
+        try await writeResult(request).files.map { URL(filePath: $0) }
+    }
+
+    /// Writes an output beside the document and returns the files and, for a health copy, what changed.
+    func writeResult(_ request: WriteRequest) async throws -> WriteResult {
         let body = String(decoding: try JSONEncoder().encode(request), as: UTF8.self)
         let json: String = try await withEngineCancellation { cancellation in
             var json: UnsafeMutablePointer<CChar>?
@@ -221,6 +236,6 @@ extension EngineDocument {
             try check(body.withCString { officeimo_document_write_json(handle, $0, cancellation, &json, &error) }, error)
             return takeString(json) ?? "{}"
         }
-        return try JSONDecoder().decode(WriteResult.self, from: Data(json.utf8)).files.map { URL(filePath: $0) }
+        return try JSONDecoder().decode(WriteResult.self, from: Data(json.utf8))
     }
 }

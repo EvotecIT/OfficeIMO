@@ -202,8 +202,17 @@ final class TextSelectionController: NSObject, @preconcurrency UIEditMenuInterac
                 },
                 UIAction(title: String(localized: "Strikethrough"), image: UIImage(systemName: "strikethrough")) { [weak self] _ in
                     self?.session.markUpSelection(.strikeOut)
+                },
+                UIAction(title: String(localized: "Add Link…"), image: UIImage(systemName: "link")) { [weak self] _ in
+                    self?.session.structureSheet = .link
                 }
             ])
+        }
+        if session.canRedact {
+            actions.append(UIAction(title: String(localized: "Redact"), image: UIImage(systemName: "rectangle.fill.badge.xmark"),
+                                    attributes: .destructive) { [weak self] _ in
+                self?.session.redactSelection()
+            })
         }
         return UIMenu(children: actions)
     }

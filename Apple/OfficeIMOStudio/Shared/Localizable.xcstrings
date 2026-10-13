@@ -33,6 +33,34 @@
         }
       }
     },
+    "%@ – %@.pdf" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ – %2$@.pdf"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ – %2$@.pdf"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ – %2$@.pdf"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ – %2$@.pdf"
+          }
+        }
+      }
+    },
     "%@ – Pages %@" : {
       "localizations" : {
         "de" : {
@@ -187,6 +215,34 @@
         }
       }
     },
+    "%lld problem(s) were worked around while reading; %lld couldn’t be." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Lesen umgangene Probleme: %1$lld; nicht umgehbar: %2$lld."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld problem(s) were worked around while reading; %2$lld couldn’t be."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problèmes contournés à la lecture : %1$lld ; impossibles à contourner : %2$lld."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podczas odczytu obejściem objęto problemy: %1$lld; nie dało się obejść: %2$lld."
+          }
+        }
+      }
+    },
     "A .p12 or .pfx file with your certificate and its private key, such as one exported from Keychain Access or issued by your organization." : {
       "localizations" : {
         "de" : {
@@ -271,6 +327,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A5"
+          }
+        }
+      }
+    },
+    "Accessibility Tags" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barrierefreiheits-Tags"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balises d’accessibilité"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znaczniki dostępności"
           }
         }
       }
@@ -429,6 +507,50 @@
         }
       }
     },
+    "Add Link" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link hinzufügen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un lien"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj łącze"
+          }
+        }
+      }
+    },
+    "Add Link…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link hinzufügen …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un lien…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj łącze…"
+          }
+        }
+      }
+    },
     "Add Note" : {
       "localizations" : {
         "de" : {
@@ -473,6 +595,28 @@
         }
       }
     },
+    "Add Stamp" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stempel hinzufügen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un tampon"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj pieczątkę"
+          }
+        }
+      }
+    },
     "Add Watermark" : {
       "localizations" : {
         "de" : {
@@ -491,6 +635,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dodaj znak wodny"
+          }
+        }
+      }
+    },
+    "Address" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adres"
           }
         }
       }
@@ -535,6 +701,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zezwalaj"
+          }
+        }
+      }
+    },
+    "Also Remove Hidden Information" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auch versteckte Informationen entfernen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer aussi les informations masquées"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń też ukryte informacje"
+          }
+        }
+      }
+    },
+    "An earlier version" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine frühere Version"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une version antérieure"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wcześniejszą wersję"
           }
         }
       }
@@ -605,6 +815,28 @@
         }
       }
     },
+    "Approved" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genehmigt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approuvé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatwierdzone"
+          }
+        }
+      }
+    },
     "Apps that respect permissions ask for the permissions password before allowing what is turned off. It must differ from the password to open." : {
       "localizations" : {
         "de" : {
@@ -623,6 +855,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplikacje respektujące uprawnienia proszą o hasło uprawnień, zanim pozwolą na to, co jest wyłączone. Musi się ono różnić od hasła otwarcia."
+          }
+        }
+      }
+    },
+    "Archiving" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivierung"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivage"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archiwizacja"
+          }
+        }
+      }
+    },
+    "As Is" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie besehen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En l’état"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bez zmian"
           }
         }
       }
@@ -711,6 +987,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Autor"
+          }
+        }
+      }
+    },
+    "Balanced" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgewogen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Équilibrée"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zrównoważona"
           }
         }
       }
@@ -1133,6 +1431,50 @@
         }
       }
     },
+    "Check Standard" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard prüfen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier une norme"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź standard"
+          }
+        }
+      }
+    },
+    "Check Standard…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard prüfen …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier une norme…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź standard…"
+          }
+        }
+      }
+    },
     "Choose Photos" : {
       "localizations" : {
         "de" : {
@@ -1375,6 +1717,28 @@
         }
       }
     },
+    "Confidential" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertraulich"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confidentiel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poufne"
+          }
+        }
+      }
+    },
     "Content" : {
       "localizations" : {
         "de" : {
@@ -1507,6 +1871,28 @@
         }
       }
     },
+    "Copies" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopien"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copies"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopie"
+          }
+        }
+      }
+    },
     "Copy" : {
       "localizations" : {
         "de" : {
@@ -1569,6 +1955,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kopiowanie tekstu i obrazów"
+          }
+        }
+      }
+    },
+    "Covers" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umfasst"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couvre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obejmuje"
           }
         }
       }
@@ -1837,6 +2245,28 @@
         }
       }
     },
+    "Departmental" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abteilungsintern"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interne au service"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wewnętrzne"
+          }
+        }
+      }
+    },
     "Deselect All" : {
       "localizations" : {
         "de" : {
@@ -1903,6 +2333,72 @@
         }
       }
     },
+    "Document Health" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokumentzustand"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "État du document"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kondycja dokumentu"
+          }
+        }
+      }
+    },
+    "Document Health…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokumentzustand …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "État du document…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kondycja dokumentu…"
+          }
+        }
+      }
+    },
+    "Doesn’t meet %@ yet" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfüllt %@ noch nicht"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas encore conforme à %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie spełnia jeszcze %@"
+          }
+        }
+      }
+    },
     "Done" : {
       "localizations" : {
         "de" : {
@@ -1921,6 +2417,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gotowe"
+          }
+        }
+      }
+    },
+    "Draft" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entwurf"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brouillon"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szkic"
           }
         }
       }
@@ -2097,6 +2615,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Co kilka stron"
+          }
+        }
+      }
+    },
+    "Experimental" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Experimentell"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expérimental"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksperymentalne"
+          }
+        }
+      }
+    },
+    "Expired" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgelaufen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expiré"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wygasłe"
           }
         }
       }
@@ -2343,6 +2905,50 @@
         }
       }
     },
+    "Final" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endgültig"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Définitif"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ostateczne"
+          }
+        }
+      }
+    },
+    "Find" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znajdź"
+          }
+        }
+      }
+    },
     "Find Next" : {
       "localizations" : {
         "de" : {
@@ -2383,6 +2989,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Znajdź poprzedni"
+          }
+        }
+      }
+    },
+    "Findings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Befunde"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Constats"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustalenia"
           }
         }
       }
@@ -2537,6 +3165,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stopka"
+          }
+        }
+      }
+    },
+    "For Comment" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zur Kommentierung"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour commentaire"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do komentarza"
+          }
+        }
+      }
+    },
+    "For Public Release" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zur Veröffentlichung"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour diffusion publique"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do publikacji"
           }
         }
       }
@@ -2827,6 +3499,28 @@
         }
       }
     },
+    "Indent" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einrücken"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Augmenter le retrait"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwiększ wcięcie"
+          }
+        }
+      }
+    },
     "Insert" : {
       "localizations" : {
         "de" : {
@@ -3065,6 +3759,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Linia"
+          }
+        }
+      }
+    },
+    "Link" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lien"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Łącze"
+          }
+        }
+      }
+    },
+    "Link To" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link zu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lien vers"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Łącze do"
           }
         }
       }
@@ -3355,6 +4093,72 @@
         }
       }
     },
+    "Match Case" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groß-/Kleinschreibung beachten"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respecter la casse"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uwzględnij wielkość liter"
+          }
+        }
+      }
+    },
+    "Matches (%lld)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Treffer (%lld)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correspondances (%lld)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dopasowania (%lld)"
+          }
+        }
+      }
+    },
+    "Meets %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfüllt %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conforme à %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spełnia %@"
+          }
+        }
+      }
+    },
     "Modified" : {
       "localizations" : {
         "de" : {
@@ -3399,6 +4203,50 @@
         }
       }
     },
+    "Move Bookmark" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesezeichen bewegen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer le signet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś zakładkę"
+          }
+        }
+      }
+    },
+    "Move Down" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach unten"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descendre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś w dół"
+          }
+        }
+      }
+    },
     "Move Earlier" : {
       "localizations" : {
         "de" : {
@@ -3439,6 +4287,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przenieś dalej"
+          }
+        }
+      }
+    },
+    "Move Up" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach oben"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monter"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś w górę"
           }
         }
       }
@@ -3685,6 +4555,50 @@
         }
       }
     },
+    "No matches." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Treffer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune correspondance."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dopasowań."
+          }
+        }
+      }
+    },
+    "No structural problems found." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine strukturellen Probleme gefunden."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun problème de structure trouvé."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono problemów ze strukturą."
+          }
+        }
+      }
+    },
     "No text was found that the document doesn’t already have." : {
       "localizations" : {
         "de" : {
@@ -3747,6 +4661,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Żaden z plików nie jest obrazem, który OfficeIMO Studio może odczytać."
+          }
+        }
+      }
+    },
+    "Not Approved" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht genehmigt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non approuvé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niezatwierdzone"
+          }
+        }
+      }
+    },
+    "Not for Public Release" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht zur Veröffentlichung"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non destiné à la diffusion"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie do publikacji"
+          }
+        }
+      }
+    },
+    "Not valid: the document changed after signing, or the signature is damaged" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungültig: Das Dokument wurde nach dem Signieren geändert oder die Signatur ist beschädigt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non valide : le document a été modifié après la signature ou la signature est endommagée"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieprawidłowy: dokument zmieniono po podpisaniu albo podpis jest uszkodzony"
           }
         }
       }
@@ -3861,6 +4841,72 @@
         }
       }
     },
+    "Optimize For" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimieren für"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimiser pour"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optymalizuj pod kątem"
+          }
+        }
+      }
+    },
+    "Optimized" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "optimiert"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "optimisé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zoptymalizowany"
+          }
+        }
+      }
+    },
+    "Optimizing makes the file smaller without changing what it shows. Repairing writes out the problems worked around while reading. Sanitizing removes scripts, actions, attachments and other hidden content. This document stays as it is." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimieren verkleinert die Datei, ohne ihre Darstellung zu ändern. Reparieren schreibt die beim Lesen umgangenen Probleme fest. Bereinigen entfernt Skripte, Aktionen, Anhänge und andere versteckte Inhalte. Dieses Dokument bleibt unverändert."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’optimisation réduit le fichier sans changer son affichage. La réparation corrige durablement les problèmes contournés à la lecture. Le nettoyage supprime scripts, actions, pièces jointes et autres contenus masqués. Ce document reste inchangé."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optymalizacja zmniejsza plik bez zmiany wyglądu. Naprawa utrwala poprawki problemów obchodzonych podczas odczytu. Oczyszczanie usuwa skrypty, akcje, załączniki i inne ukryte treści. Ten dokument pozostaje bez zmian."
+          }
+        }
+      }
+    },
     "Optional" : {
       "localizations" : {
         "de" : {
@@ -3901,6 +4947,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Orientacja"
+          }
+        }
+      }
+    },
+    "Outdent" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausrücken"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diminuer le retrait"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmniejsz wcięcie"
           }
         }
       }
@@ -3949,6 +5017,28 @@
         }
       }
     },
+    "PDF Version" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF-Version"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version PDF"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja PDF"
+          }
+        }
+      }
+    },
     "PDF from Images" : {
       "localizations" : {
         "de" : {
@@ -3989,6 +5079,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PDF ze zdjęć"
+          }
+        }
+      }
+    },
+    "PDF/A is for archiving, PDF/UA for accessibility and PDF/X for printing." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF/A dient der Archivierung, PDF/UA der Barrierefreiheit und PDF/X dem Druck."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF/A sert à l’archivage, PDF/UA à l’accessibilité et PDF/X à l’impression."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF/A służy do archiwizacji, PDF/UA do dostępności, a PDF/X do druku."
           }
         }
       }
@@ -4121,6 +5233,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rozmiar strony…"
+          }
+        }
+      }
+    },
+    "Page in This Document" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite in diesem Dokument"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page de ce document"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strona w tym dokumencie"
           }
         }
       }
@@ -4477,6 +5611,28 @@
         }
       }
     },
+    "Present" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorhanden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Présent"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obecne"
+          }
+        }
+      }
+    },
     "Previous" : {
       "localizations" : {
         "de" : {
@@ -4675,6 +5831,28 @@
         }
       }
     },
+    "Protected" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschützt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protégé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chroniony"
+          }
+        }
+      }
+    },
     "Puts the pages of PDFs together into one PDF, in the order given." : {
       "localizations" : {
         "de" : {
@@ -4807,6 +5985,116 @@
         }
       }
     },
+    "Redact" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schwärzen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caviarder"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utajnij"
+          }
+        }
+      }
+    },
+    "Redacted" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschwärzt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caviardé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utajniono"
+          }
+        }
+      }
+    },
+    "Redaction Not Verified" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schwärzung nicht bestätigt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caviardage non vérifié"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie potwierdzono utajnienia"
+          }
+        }
+      }
+    },
+    "Redaction removes the text, images and drawings under each match and covers it in black. Select text on a page to redact just that." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schwärzen entfernt Text, Bilder und Zeichnungen unter jedem Treffer und deckt ihn schwarz ab. Wähle Text auf einer Seite aus, um nur diesen zu schwärzen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le caviardage supprime le texte, les images et les dessins sous chaque correspondance et les recouvre de noir. Sélectionnez du texte sur une page pour ne caviarder que celui-ci."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utajnienie usuwa tekst, obrazy i rysunki pod każdym dopasowaniem i zakrywa je na czarno. Aby utajnić tylko fragment, zaznacz tekst na stronie."
+          }
+        }
+      }
+    },
+    "Redact…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schwärzen …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caviarder…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utajnij…"
+          }
+        }
+      }
+    },
     "Redo" : {
       "localizations" : {
         "de" : {
@@ -4825,6 +6113,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ponów"
+          }
+        }
+      }
+    },
+    "Regular Expression" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regulärer Ausdruck"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expression régulière"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyrażenie regularne"
           }
         }
       }
@@ -4939,6 +6249,28 @@
         }
       }
     },
+    "Removes the document’s properties, attachments, scripts and comments too." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernt auch Eigenschaften, Anhänge, Skripte und Kommentare des Dokuments."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprime aussi les propriétés, pièces jointes, scripts et commentaires du document."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuwa też właściwości, załączniki, skrypty i komentarze dokumentu."
+          }
+        }
+      }
+    },
     "Rename" : {
       "localizations" : {
         "de" : {
@@ -5001,6 +6333,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zmień nazwę…"
+          }
+        }
+      }
+    },
+    "Repaired" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "repariert"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "réparé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "naprawiony"
+          }
+        }
+      }
+    },
+    "Requirements" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anforderungen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exigences"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymagania"
           }
         }
       }
@@ -5159,6 +6535,28 @@
         }
       }
     },
+    "Sanitized" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bereinigt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nettoyé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "oczyszczony"
+          }
+        }
+      }
+    },
     "Save" : {
       "localizations" : {
         "de" : {
@@ -5177,6 +6575,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zachowaj"
+          }
+        }
+      }
+    },
+    "Save Optimized Copy…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimierte Kopie sichern …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer une copie optimisée…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz zoptymalizowaną kopię…"
+          }
+        }
+      }
+    },
+    "Save Repaired Copy…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reparierte Kopie sichern …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer une copie réparée…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz naprawioną kopię…"
+          }
+        }
+      }
+    },
+    "Save Sanitized Copy…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereinigte Kopie sichern …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer une copie nettoyée…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz oczyszczoną kopię…"
           }
         }
       }
@@ -5243,6 +6707,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skanuj dokument"
+          }
+        }
+      }
+    },
+    "Scripts and Actions" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skripte und Aktionen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scripts et actions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skrypty i akcje"
           }
         }
       }
@@ -5555,6 +7041,72 @@
         }
       }
     },
+    "Signatures" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signaturen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signatures"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpisy"
+          }
+        }
+      }
+    },
+    "Signatures…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signaturen …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signatures…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpisy…"
+          }
+        }
+      }
+    },
+    "Signed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signiert"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpisano"
+          }
+        }
+      }
+    },
     "Size" : {
       "localizations" : {
         "de" : {
@@ -5573,6 +7125,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rozmiar"
+          }
+        }
+      }
+    },
+    "Smallest File" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kleinste Datei"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fichier le plus petit"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najmniejszy plik"
+          }
+        }
+      }
+    },
+    "Sold" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verkauft"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vendu"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprzedane"
+          }
+        }
+      }
+    },
+    "Some of the marked content is still in the document or couldn’t be checked. Undo the redaction and mark a larger area." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Teil des markierten Inhalts ist noch im Dokument oder konnte nicht geprüft werden. Widerrufe die Schwärzung und markiere einen größeren Bereich."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une partie du contenu marqué reste dans le document ou n’a pas pu être vérifiée. Annulez le caviardage et marquez une zone plus grande."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Część zaznaczonej treści nadal jest w dokumencie albo nie dało się jej sprawdzić. Cofnij utajnienie i zaznacz większy obszar."
           }
         }
       }
@@ -5687,6 +7305,28 @@
         }
       }
     },
+    "Standard" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Norme"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        }
+      }
+    },
     "Start At" : {
       "localizations" : {
         "de" : {
@@ -5749,6 +7389,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przekreślenie"
+          }
+        }
+      }
+    },
+    "Structure" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Struktur"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Structure"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Struktura"
           }
         }
       }
@@ -5995,6 +7657,28 @@
         }
       }
     },
+    "Text to Remove" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu entfernender Text"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte à supprimer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst do usunięcia"
+          }
+        }
+      }
+    },
     "The Change Couldn’t Be Made" : {
       "localizations" : {
         "de" : {
@@ -6083,6 +7767,28 @@
         }
       }
     },
+    "The content was removed from %lld page(s) and checked. Save to keep the change; until then Undo restores it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Inhalt wurde von %lld Seite(n) entfernt und geprüft. Sichere, um die Änderung zu behalten; bis dahin stellt Widerrufen ihn wieder her."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le contenu a été supprimé de %lld page(s) et vérifié. Enregistrez pour conserver la modification ; d’ici là, Annuler le rétablit."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Treść usunięto ze stron (%lld) i sprawdzono. Zapisz, aby zachować zmianę; do tego czasu Cofnij ją przywraca."
+          }
+        }
+      }
+    },
     "The copy opens without a password, and anyone can print, copy and change it." : {
       "localizations" : {
         "de" : {
@@ -6101,6 +7807,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kopia otwiera się bez hasła i każdy może ją drukować, kopiować i zmieniać."
+          }
+        }
+      }
+    },
+    "The document hasn’t changed since it was signed; the certificate isn’t trusted on this device" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Dokument wurde seit dem Signieren nicht geändert; das Zertifikat ist auf diesem Gerät nicht vertrauenswürdig"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le document n’a pas changé depuis sa signature ; le certificat n’est pas approuvé sur cet appareil"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokument nie zmienił się od podpisania; certyfikat nie jest zaufany na tym urządzeniu"
           }
         }
       }
@@ -6237,6 +7965,50 @@
         }
       }
     },
+    "The signature couldn’t be checked" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Signatur konnte nicht geprüft werden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La signature n’a pas pu être vérifiée"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można sprawdzić podpisu"
+          }
+        }
+      }
+    },
+    "The signature couldn’t be fully checked" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Signatur konnte nicht vollständig geprüft werden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La signature n’a pas pu être entièrement vérifiée"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można w pełni sprawdzić podpisu"
+          }
+        }
+      }
+    },
     "The text only, in reading order." : {
       "localizations" : {
         "de" : {
@@ -6281,6 +8053,28 @@
         }
       }
     },
+    "The whole document" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das ganze Dokument"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout le document"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cały dokument"
+          }
+        }
+      }
+    },
     "These pages could not be drawn and printed blank: %@." : {
       "localizations" : {
         "de" : {
@@ -6299,6 +8093,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tych stron nie udało się narysować i zostały wydrukowane jako puste: %@."
+          }
+        }
+      }
+    },
+    "This document has no certificate signatures." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Dokument hat keine Zertifikatssignaturen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce document n’a aucune signature par certificat."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten dokument nie ma podpisów certyfikatem."
           }
         }
       }
@@ -6567,6 +8383,28 @@
         }
       }
     },
+    "Top Secret" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streng geheim"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Très secret"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ściśle tajne"
+          }
+        }
+      }
+    },
     "Type a Value…" : {
       "localizations" : {
         "de" : {
@@ -6699,6 +8537,28 @@
         }
       }
     },
+    "Valid, and the document hasn’t changed since it was signed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gültig, und das Dokument wurde seit dem Signieren nicht geändert"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valide, et le document n’a pas changé depuis sa signature"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prawidłowy, a dokument nie zmienił się od podpisania"
+          }
+        }
+      }
+    },
     "Verify" : {
       "localizations" : {
         "de" : {
@@ -6761,6 +8621,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Znak wodny…"
+          }
+        }
+      }
+    },
+    "Web" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Internet"
+          }
+        }
+      }
+    },
+    "Web or Email Address" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web- oder E-Mail-Adresse"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse web ou e-mail"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adres internetowy lub e-mail"
           }
         }
       }
@@ -6937,6 +8841,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "„%@” jest chroniony"
+          }
+        }
+      }
+    },
+    "“%@” becomes a link." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ wird zum Link."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« %@ » devient un lien."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@” stanie się łączem."
           }
         }
       }

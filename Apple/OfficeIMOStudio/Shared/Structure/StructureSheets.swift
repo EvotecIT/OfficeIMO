@@ -16,6 +16,11 @@ struct StructureSheetView: View {
         case .split: SplitSheet(session: session)
         case .export: ExportTextSheet(session: session)
         case .flatten: FlattenSheet(session: session)
+        case .signatures: SignaturesSheet(session: session)
+        case .standard: StandardSheet(session: session)
+        case .health: HealthSheet(session: session)
+        case .redact: RedactSheet(session: session)
+        case .link: LinkSheet(session: session)
         }
     }
 }

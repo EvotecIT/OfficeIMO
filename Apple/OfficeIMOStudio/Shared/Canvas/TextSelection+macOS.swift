@@ -86,9 +86,17 @@ final class TextSelectionView: NSView, NSMenuItemValidation {
             menu.addItem(withTitle: String(localized: "Highlight"), action: #selector(highlightSelection(_:)), keyEquivalent: "")
             menu.addItem(withTitle: String(localized: "Underline"), action: #selector(underlineSelection(_:)), keyEquivalent: "")
             menu.addItem(withTitle: String(localized: "Strikethrough"), action: #selector(strikeSelection(_:)), keyEquivalent: "")
+            menu.addItem(.separator())
+            menu.addItem(withTitle: String(localized: "Add Link…"), action: #selector(linkSelection(_:)), keyEquivalent: "")
+        }
+        if session.canRedact {
+            menu.addItem(withTitle: String(localized: "Redact"), action: #selector(redactSelection(_:)), keyEquivalent: "")
         }
         return menu
     }
+
+    @objc func linkSelection(_ sender: Any?) { session.structureSheet = .link }
+    @objc func redactSelection(_ sender: Any?) { session.redactSelection() }
 
     @objc func copy(_ sender: Any?) { session.copySelection() }
     @objc func highlightSelection(_ sender: Any?) { session.markUpSelection(.highlight) }
@@ -104,6 +112,7 @@ final class TextSelectionView: NSView, NSMenuItemValidation {
         switch menuItem.action {
         case #selector(copy(_:)): session.selectedText != nil
         case #selector(selectAll(_:)): session.pageText(session.currentPage) != nil
+        case #selector(redactSelection(_:)): session.textSelection != nil && session.canRedact
         default: session.textSelection != nil && session.canEditAnnotations
         }
     }

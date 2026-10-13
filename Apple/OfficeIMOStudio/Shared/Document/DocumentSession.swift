@@ -120,6 +120,8 @@ final class DocumentSession {
     private(set) var recognitionProgress: RecognitionProgress?
     /// The outcome of a change that turned out to change nothing, to tell the user.
     var notice: String?
+    /// The title of the notice's alert, when it reports something other than text recognition.
+    var noticeTitle: String?
     /// Form fields of pages near the one in view, for the revision they were read from.
     @ObservationIgnored var formPages: [Int: FormFields] = [:]
     @ObservationIgnored var formLoads: [Int: Task<FormFields?, Never>] = [:]

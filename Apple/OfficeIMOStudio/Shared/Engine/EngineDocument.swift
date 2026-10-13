@@ -174,7 +174,7 @@ struct EnginePoint: Codable, Sendable, Hashable {
 /// A markup annotation to add, as officeimo_document_add_annotation_json takes it.
 struct AnnotationRequest: Encodable, Sendable {
     enum Tool: String, Encodable, Sendable {
-        case ink, note, freeText, highlight, underline, strikeOut, squiggly, rectangle, ellipse, line, polygon
+        case ink, note, freeText, highlight, underline, strikeOut, squiggly, rectangle, ellipse, line, polygon, link, stamp
     }
 
     var tool: Tool
@@ -188,6 +188,11 @@ struct AnnotationRequest: Encodable, Sendable {
     var opacity: Double?
     /// Text markup's lines, in the displayed page's points.
     var quads: [SearchResult.Rectangle]?
+    /// Where a link goes: a web or mail address, or a page of this document.
+    var linkUri: String?
+    var linkPage: Int?
+    /// A standard stamp's name, such as Approved or Draft.
+    var stamp: String?
 }
 
 /// The markup annotations on a page, from officeimo_document_annotations_json.

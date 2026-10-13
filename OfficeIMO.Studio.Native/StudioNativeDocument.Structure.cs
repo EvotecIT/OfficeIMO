@@ -233,14 +233,23 @@ internal sealed partial class StudioNativeDocument {
 
     /// <summary>
     /// Writes an output beside the open document, which is unchanged: the request names exactly one of <c>split</c>,
-    /// <c>attachment</c> or <c>export</c>. Returns the files written, in order.
+    /// <c>attachment</c>, <c>export</c>, <c>optimize</c>, <c>repair</c> or <c>sanitize</c>. Returns the files written, in order.
     /// </summary>
     internal async Task<StudioNativeWriteResult> WriteAsync(StudioNativeWriteRequest request, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(request);
-        int named = new object?[] { request.Split, request.Attachment, request.Export }.Count(static output => output is not null);
+        int named = new object?[] { request.Split, request.Attachment, request.Export, request.Optimize, request.Repair, request.Sanitize }
+            .Count(static output => output is not null);
         if (named != 1) throw new ArgumentException("Name exactly one output.", nameof(request));
+        StudioNativeHealthCopy? health = request.Optimize ?? request.Repair ?? request.Sanitize;
+        if (health?.Path is { } healthPath && string.Equals(Path.GetFullPath(healthPath), Path.GetFullPath(_workspace.Path), StringComparison.Ordinal))
+            throw new ArgumentException("Write the copy to another file than the document.", nameof(request));
         await EnterAsync(cancellationToken).ConfigureAwait(false);
         try {
+            if (health is not null) {
+                string kind = request.Optimize is not null ? "optimize" : request.Repair is not null ? "repair" : "sanitize";
+                (IReadOnlyList<string> copies, string summary) = await WriteHealthCopyAsync(health, kind, cancellationToken).ConfigureAwait(false);
+                return new StudioNativeWriteResult(StudioNativeAbi.Version, _workspace.Revision, copies, summary);
+            }
             IReadOnlyList<string> files = request switch {
                 { Split: { } split } => await SplitAsync(split, cancellationToken).ConfigureAwait(false),
                 { Attachment: { } attachment } => await SaveAttachmentAsync(attachment, cancellationToken).ConfigureAwait(false),
@@ -371,6 +380,8 @@ internal sealed record StudioNativeAttachmentSave(string? FileName, string? Path
 internal sealed record StudioNativeExport(string? Format, string? Path);
 
 internal sealed record StudioNativeWriteRequest(StudioNativeSplit? Split = null, StudioNativeAttachmentSave? Attachment = null,
-    StudioNativeExport? Export = null);
+    StudioNativeExport? Export = null, StudioNativeHealthCopy? Optimize = null, StudioNativeHealthCopy? Repair = null,
+    StudioNativeHealthCopy? Sanitize = null);
 
-internal sealed record StudioNativeWriteResult(int AbiVersion, long Revision, IReadOnlyList<string> Files);
+/// <summary>The files written, in order, and for a health copy what changed.</summary>
+internal sealed record StudioNativeWriteResult(int AbiVersion, long Revision, IReadOnlyList<string> Files, string? Summary = null);

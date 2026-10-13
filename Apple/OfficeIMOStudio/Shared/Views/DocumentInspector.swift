@@ -119,6 +119,7 @@ private struct AnnotationSection: View {
         case "Line": "Line"
         case "Polygon": "Shape"
         case "Stamp": "Stamp"
+        case "Link": "Link"
         default: LocalizedStringKey(subtype)
         }
     }
@@ -134,6 +135,8 @@ private struct AnnotationSection: View {
         case "Square": "rectangle"
         case "Circle": "circle"
         case "Line": "line.diagonal"
+        case "Link": "link"
+        case "Stamp": "seal"
         default: "pencil.tip.crop.circle"
         }
     }

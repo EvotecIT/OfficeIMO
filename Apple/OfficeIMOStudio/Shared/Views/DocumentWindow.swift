@@ -105,8 +105,11 @@ struct DocumentWindow: View {
                     RecognitionProgressBar(progress: progress) { session.cancelEdit() }
                 }
             }
-            .alert("No Text Added", isPresented: noticeShown) {
-                Button("OK") { session.notice = nil }
+            .alert(session.noticeTitle ?? String(localized: "No Text Added"), isPresented: noticeShown) {
+                Button("OK") {
+                    session.notice = nil
+                    session.noticeTitle = nil
+                }
             } message: {
                 Text(session.notice ?? "")
             }

@@ -125,6 +125,7 @@ final class PageScrollView: NSScrollView {
             maxMagnification = max(fitZoom * 4, 8)
             magnification = min(max(fitZoom * session.zoomToFit, minMagnification), maxMagnification)
             scroll(toPage: page)
+            viewChanged()
         }
         updateTiles()
     }
@@ -178,6 +179,11 @@ final class PageScrollView: NSScrollView {
         visible.size.height -= hidden
         let page = tiles.layout.mostVisiblePage(in: visible)
         if page != session.currentPage { session.currentPage = page }
+        // Notes and stamps go in the middle of the part of the page in view.
+        guard tiles.layout.frames.indices.contains(page - 1) else { return }
+        let frame = tiles.layout.frames[page - 1]
+        let middle = CGPoint(x: min(max(visible.midX, frame.minX + 24), frame.maxX - 24), y: min(max(visible.midY, frame.minY + 24), frame.maxY - 24))
+        session.viewCenterOnPage = CGPoint(x: middle.x - frame.minX, y: middle.y - frame.minY)
     }
 
     private func setZoom(_ scale: CGFloat) {

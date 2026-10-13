@@ -188,6 +188,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
         return (byte[])_bytes.Clone();
     }
 
+    /// <summary>The options the document was opened with, including its password, for reading copies of its bytes.</summary>
+    internal PdfLoadOptions ReadOptions => _readOptions;
+
     internal Task ReorderAsync(IReadOnlyList<int> pageNumbers, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
         ReorderWithIdentitiesAsync(pageNumbers, cancellationToken, progress);
 
