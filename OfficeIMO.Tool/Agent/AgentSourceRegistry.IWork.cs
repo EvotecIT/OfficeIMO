@@ -1,4 +1,5 @@
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 using OfficeIMO.Tool.Commands.Reader;
 using System.Security.Cryptography;
 
@@ -48,16 +49,20 @@ internal sealed partial class AgentSourceRegistry {
     internal static bool IsIWorkPackagePath(string path) => Path.GetExtension(path).ToLowerInvariant() is ".pages" or ".numbers" or ".key";
 
     private static string ComputeIWorkSourceHash(string path, bool directoryPackage, long? maximumPackageBytes, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
         long maximum = maximumPackageBytes ?? ReaderToolArguments.DefaultMaxInputBytes;
         if (directoryPackage)
             return IWorkSourceDocument.Open(path, new IWorkReadOptions {
                 MaximumPackageBytes = maximum, PreserveSourceRecords = false
             }, token).ComputePackageContentHash();
-        using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var input = IWorkContainerReader.OpenPackageFileForRead(path);
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        var buffer = new byte[64 * 1024]; long total = 0; int read;
-        while ((read = input.Read(buffer, 0, buffer.Length)) != 0) {
-            token.ThrowIfCancellationRequested(); total = checked(total + read);
+        var buffer = new byte[64 * 1024]; long total = 0;
+        while (true) {
+            token.ThrowIfCancellationRequested();
+            int read = input.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            total = checked(total + read);
             if (total > maximum) throw new AgentUsageException("The iWork source exceeds its admitted identity-read limit. Inspect or search it again.");
             hash.AppendData(buffer, 0, read);
         }

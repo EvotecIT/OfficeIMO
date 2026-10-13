@@ -49,7 +49,7 @@ internal sealed partial class AgentSourceRegistry {
                 "Unknown source id. Inspect or search the source again before fetching content.");
         }
         AgentSourceRegistration current = Create(registered.Path, cancellationToken, registered.EmailDataOptions,
-            registered.EmailContentSearch, registered.IWorkMaximumPackageBytes);
+            registered.EmailContentSearch, registered.IWorkMaximumPackageBytes, registered.Path);
         if (!string.Equals(current.SourceId, sourceId, StringComparison.Ordinal)) {
             _sources.TryRemove(sourceId, out _);
             throw new AgentUsageException(
@@ -73,7 +73,8 @@ internal sealed partial class AgentSourceRegistry {
             ? registered.EmailDataOptions : contentSearch
                 ? new EmailDataOpenOptions(store: OfficeImoAgentService.CreateEmailStoreOptions(), expectedKind: EmailDataArtifactKind.Store)
                 : sourceId.StartsWith(EmailDataPrefix, StringComparison.Ordinal) ? new EmailDataInspectionOptions().OpenOptions : null;
-        AgentSourceRegistration current = Create(path, cancellationToken, dataOptions, contentSearch, registered?.IWorkMaximumPackageBytes);
+        AgentSourceRegistration current = Create(path, cancellationToken, dataOptions, contentSearch,
+            registered?.IWorkMaximumPackageBytes, registered?.Path);
         if (!string.Equals(current.SourceId, sourceId, StringComparison.Ordinal)) {
             throw new AgentUsageException(
                 "The supplied path does not match the source id, or the source changed. Search it again.");
@@ -85,8 +86,12 @@ internal sealed partial class AgentSourceRegistry {
     private static AgentSourceRegistration Create(
         string path,
         CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions = null, bool emailContentSearch = false,
-        long? iworkMaximumPackageBytes = null) {
+        long? iworkMaximumPackageBytes = null, string? expectedPath = null) {
         string fullPath = OfficeImoToolPathSafety.ResolveExistingLinks(path);
+        // Reject relocated registered paths before inspecting their new targets.
+        // The caller's prior authorization cannot admit a later link replacement.
+        if (expectedPath != null && !string.Equals(fullPath, expectedPath, StringComparison.Ordinal))
+            throw new AgentUsageException("The source path changed after the id was issued. Inspect or search it again.");
         bool isDirectory = Directory.Exists(fullPath);
         long? length = isDirectory ? null : new FileInfo(fullPath).Length;
         DateTime lastWriteUtc = isDirectory
