@@ -275,6 +275,7 @@ internal static partial class PdfIncrementalUpdater {
         var signaturePreparationBlockers = new List<string>();
         var longTermValidationBlockers = new List<string>();
         var annotationBlockers = new List<string>();
+        var pageAttributeBlockers = new List<string>();
         var warnings = new List<string>();
         if (security.HasEncryption && !security.HasOwnerAuthorization) {
             commonBlockers.Add("Encrypted");
@@ -297,6 +298,10 @@ internal static partial class PdfIncrementalUpdater {
         formBlockers.AddRange(commonBlockers);
         signaturePreparationBlockers.AddRange(commonBlockers);
         longTermValidationBlockers.AddRange(commonBlockers);
+        pageAttributeBlockers.AddRange(commonBlockers.Where(static blocker => blocker != "Encrypted"));
+        if (security.HasEncryption && !security.HasOwnerAuthorization && security.AllowsDocumentAssembly != true) {
+            pageAttributeBlockers.Add("PageAssemblyPermission");
+        }
         annotationBlockers.AddRange(commonBlockers.Where(static blocker => blocker != "Encrypted"));
         if (security.HasEncryption &&
             !security.HasOwnerAuthorization &&
@@ -325,6 +330,8 @@ internal static partial class PdfIncrementalUpdater {
 
         if (security.HasDocMDPPermissions) {
             metadataBlockers.Add("DocMDP");
+            // None of the DocMDP permission levels permit page rotation or boundary changes.
+            pageAttributeBlockers.Add("DocMDP");
             if (!CanAppendFormFieldsWithDocMDP(security, null)) {
                 formBlockers.Add("DocMDP");
             } else {
@@ -368,6 +375,11 @@ internal static partial class PdfIncrementalUpdater {
             supported.Add("Annotations");
         }
 
+        if (pageAttributeBlockers.Count == 0) {
+            supported.Add("PageAttributes");
+            if (hasSignatureContent) warnings.Add("SignedApprovalPageAttributeChange");
+        }
+
         if (security.HasDocMDPPermissions && !CanAppendFormFieldsWithDocMDP(security, null)) {
             signaturePreparationBlockers.Add("DocMDP");
         } else if (blockedBySignatureFieldLock) {
@@ -403,6 +415,9 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         blocked.Add("PageTree");
+        if (pageAttributeBlockers.Count > 0) {
+            blocked.Add("PageAttributes");
+        }
         blocked.Add("Attachments");
 
         var blockers = metadataBlockers

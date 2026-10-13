@@ -6,6 +6,9 @@ using OfficeIMO.Studio.Features.Editor;
 namespace OfficeIMO.Studio.Features.Reader;
 
 public sealed partial class PdfPageCanvas {
+    public static readonly StyledProperty<int> ViewRotationDegreesProperty =
+        AvaloniaProperty.Register<PdfPageCanvas, int>(nameof(ViewRotationDegrees));
+    public int ViewRotationDegrees { get => GetValue(ViewRotationDegreesProperty); set => SetValue(ViewRotationDegreesProperty, value); }
     private PdfEditorSelection? _transformSelection;
     private Point _transformStart;
     private Point _transformPointerStart;
@@ -30,11 +33,27 @@ public sealed partial class PdfPageCanvas {
         double amount = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? 10D : 1D;
         (double dx, double dy) = e.Key switch { Key.Left => (-amount, 0D), Key.Right => (amount, 0D), Key.Up => (0D, -amount), _ => (0D, amount) };
         var bounds = selected.Bounds;
-        var target = resize
-            ? KeyboardResize(bounds, dx, dy, keepAspect: selected.Kind == PdfEditorSelectionKind.Image)
-            : new PdfEditorVisualBounds(bounds.Left + dx, bounds.Top + dy, bounds.Right + dx, bounds.Bottom + dy);
+        PdfEditorVisualBounds target;
+        if (resize) {
+            PdfEditorVisualBounds visual = TurnKeyboardBounds(bounds, ViewRotationDegrees);
+            PdfEditorVisualBounds resized = KeyboardResize(visual, dx, dy, keepAspect: selected.Kind == PdfEditorSelectionKind.Image);
+            target = TurnKeyboardBounds(resized, -ViewRotationDegrees);
+        } else {
+            (dx, dy) = TurnKeyboardPoint(dx, dy, -ViewRotationDegrees);
+            target = new PdfEditorVisualBounds(bounds.Left + dx, bounds.Top + dy, bounds.Right + dx, bounds.Bottom + dy);
+        }
         ObjectTransformCompleted?.Invoke(new(selected, target, SelectedAnnotations.ToArray()));
         return true;
+    }
+
+    private static (double X, double Y) TurnKeyboardPoint(double x, double y, int degrees) => ((degrees % 360 + 360) % 360) switch {
+        90 => (-y, x), 180 => (-x, -y), 270 => (y, -x), _ => (x, y)
+    };
+
+    private static PdfEditorVisualBounds TurnKeyboardBounds(PdfEditorVisualBounds bounds, int degrees) {
+        var a = TurnKeyboardPoint(bounds.Left, bounds.Top, degrees);
+        var b = TurnKeyboardPoint(bounds.Right, bounds.Bottom, degrees);
+        return new PdfEditorVisualBounds(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
     }
 
     /// <summary>

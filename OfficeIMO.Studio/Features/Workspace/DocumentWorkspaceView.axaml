@@ -364,6 +364,10 @@
               </StackPanel>
               <Button.Flyout>
                 <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem Header="{loc:Loc Commands.RotateViewLeft.Title}" Command="{Binding Commands[RotateViewLeft]}" />
+                  <MenuItem Header="{loc:Loc Commands.RotateViewRight.Title}" Command="{Binding Commands[RotateViewRight]}" />
+                  <MenuItem Header="{loc:Loc Commands.ResetViewRotation.Title}" Command="{Binding Commands[ResetViewRotation]}" />
+                  <Separator />
                   <MenuItem Header="{loc:Loc DocumentWorkspace.PageNightMode}" ToggleType="CheckBox" IsChecked="{Binding IsPageNightMode, Mode=TwoWay}">
                     <MenuItem.Icon><PathIcon Data="{StaticResource IconNight}" Width="14" Height="14" /></MenuItem.Icon>
                   </MenuItem>
@@ -720,7 +724,9 @@
 
         <Panel Grid.Row="1" Grid.Column="2" IsVisible="{Binding IsComparisonOpen}" Background="{DynamicResource StudioCanvasBrush}">
           <ScrollViewer IsVisible="{Binding ShowComparisonDifferenceImage}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Image Source="{Binding ComparisonDifferenceImage}" Width="{Binding ComparisonDifferenceWidth}" Height="{Binding ComparisonDifferenceHeight}" Stretch="Uniform" Margin="12" HorizontalAlignment="Center" VerticalAlignment="Top" AutomationProperties.Name="{loc:Loc Comparison.Highlight}" />
+            <LayoutTransformControl LayoutTransform="{Binding ViewRotationTransform}" Margin="12" HorizontalAlignment="Center" VerticalAlignment="Top">
+              <Image Source="{Binding ComparisonDifferenceImage}" Width="{Binding ComparisonDifferenceWidth}" Height="{Binding ComparisonDifferenceHeight}" Stretch="Uniform" AutomationProperties.Name="{loc:Loc Comparison.Highlight}" />
+            </LayoutTransformControl>
           </ScrollViewer>
           <ListBox ItemsSource="{Binding ComparisonReaderPages}"
                    ItemContainerTheme="{StaticResource ReaderPageContainerTheme}"
@@ -1028,13 +1034,37 @@
               <StackPanel IsVisible="{Binding IsPagesDocumentMode}" Spacing="{StaticResource StudioSpaceS}">
                 <TextBlock Text="{loc:Loc DocumentWorkspace.PageActions}" Classes="paneTitle" />
                 <TextBlock Text="{Binding OrganizerSelectionLabel}" Classes="muted" TextWrapping="Wrap" />
+                <Button Classes="tool" Command="{Binding Commands[NormalizePageRotation]}" Content="{loc:Loc Commands.NormalizePageRotation.Title}"
+                        ToolTip.Tip="{Binding Commands[NormalizePageRotation].StatusToolTip}" ToolTip.ShowOnDisabled="True"
+                        AutomationProperties.Name="{loc:Loc Commands.NormalizePageRotation.Title}" />
+                <Button Classes="tool" Command="{Binding Commands[DetectPageOrientation]}" Content="{loc:Loc Commands.DetectPageOrientation.Title}"
+                        ToolTip.Tip="{Binding Commands[DetectPageOrientation].StatusToolTip}" ToolTip.ShowOnDisabled="True" />
+                <StackPanel IsVisible="{Binding HasOrientationReview}" Spacing="{StaticResource StudioSpaceS}">
+                  <TextBlock Text="{loc:Loc Orientation.Hint}" TextWrapping="Wrap" Classes="muted" />
+                  <ComboBox ItemsSource="{Binding OrientationChoices}" SelectedItem="{Binding SelectedOrientationChoice, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:PageOrientationChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <Button Content="{loc:Loc Orientation.Preview}" Command="{Binding PreviewPageOrientationCommand}" />
+                  <StackPanel IsVisible="{Binding HasOrientationPreview}" Spacing="4">
+                    <TextBlock Text="{loc:Loc Orientation.Before}" Classes="groupLabel" />
+                    <Border Background="{DynamicResource StudioPanelMutedBrush}" Padding="6" CornerRadius="4"><Image Source="{Binding OrientationBefore}" Height="160" Stretch="Uniform" /></Border>
+                    <TextBlock Text="{loc:Loc Orientation.After}" Classes="groupLabel" />
+                    <Border Background="{DynamicResource StudioPanelMutedBrush}" Padding="6" CornerRadius="4"><Image Source="{Binding OrientationAfter}" Height="160" Stretch="Uniform" /></Border>
+                  </StackPanel>
+                  <TextBlock Text="{Binding SelectedOrientationChoice.Diagnostics}" TextWrapping="Wrap" Classes="muted" />
+                  <CheckBox Content="{loc:Loc Orientation.Accept}" IsChecked="{Binding SelectedOrientationChoice.IsAccepted, Mode=TwoWay}" IsEnabled="{Binding SelectedOrientationChoice.CanAccept}" />
+                  <Button Content="{loc:Loc Orientation.Apply}" Command="{Binding ApplyPageOrientationReviewCommand}" IsEnabled="{Binding CanApplyOrientationReview}" />
+                  <Button Content="{loc:Loc Inspector.Cancel}" Command="{Binding DismissPageOrientationReviewCommand}" />
+                </StackPanel>
                 <TextBlock Text="{loc:Loc DocumentWorkspace.CropMargin}" Classes="groupLabel" Margin="0,4,0,0" /><TextBox Text="{Binding CropMargin}" PlaceholderText="{loc:Loc DocumentWorkspace.Points}" />
                 <TextBlock Text="{loc:Loc Crop.PreviewHint}" IsVisible="{Binding HasPendingCrop}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
+                <TextBlock Text="{loc:Loc Crop.VisibilityHint}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
                 <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}">
                   <Button Classes="tool" Content="{loc:Loc Inspector.Cancel}" IsVisible="{Binding HasPendingCrop}" Command="{Binding CancelCropCommand}" AutomationProperties.Name="{loc:Loc Crop.Cancel}" />
-                  <Button Classes="tool" Command="{Binding CropSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CropSelectedPages}">
+                  <Button Classes="tool" Command="{Binding CropSelectedCommand}" IsEnabled="{Binding CanCropSelection}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CropSelectedPages}">
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}"><PathIcon Data="{StaticResource IconCrop}" Width="14" Height="14" /><TextBlock Text="{loc:Loc DocumentWorkspace.CropSelectedPages}" /></StackPanel>
                   </Button>
+                  <Button Classes="tool" Command="{Binding ResetCropSelectedCommand}" IsEnabled="{Binding CanCropSelection}" Content="{loc:Loc Crop.Reset}" AutomationProperties.Name="{loc:Loc Crop.Reset}" />
                 </WrapPanel>
                 <TextBlock Text="{loc:Loc Resize.Title}" Classes="groupLabel" Margin="0,6,0,0" />
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource StudioSpaceSM}">
@@ -1045,7 +1075,7 @@
                     <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:ResizeModeChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                   </ComboBox>
                 </Grid>
-                <Button Classes="tool" Command="{Binding ResizeSelectedPagesCommand}" IsEnabled="{Binding CanMutateSelection}" Content="{loc:Loc Resize.Apply}" AutomationProperties.Name="{loc:Loc Resize.Apply}" />
+                <Button Classes="tool" Command="{Binding ResizeSelectedPagesCommand}" IsEnabled="{Binding CanResizeSelection}" Content="{loc:Loc Resize.Apply}" AutomationProperties.Name="{loc:Loc Resize.Apply}" />
                 <TextBlock Text="{loc:Loc DocumentWorkspace.PagesPerSplitFile}" Classes="groupLabel" Margin="0,6,0,0" /><NumericUpDown Minimum="1" Maximum="9999" Value="{Binding SplitPagesPerDocument}" />
                 <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.SplitToFolder}" Content="{loc:Loc DocumentWorkspace.SplitToFolder}" Command="{Binding SplitCommand}" IsEnabled="{Binding CanExtractPages}" />
                 <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="8" Padding="12,8" Margin="0,6,0,0">

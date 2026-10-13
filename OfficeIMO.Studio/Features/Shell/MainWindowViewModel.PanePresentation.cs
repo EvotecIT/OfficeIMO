@@ -14,6 +14,7 @@ public sealed partial class MainWindowViewModel {
         return _session.Pages.Select(page => {
             var presentation = new PdfPageViewModel(page.PageNumber, page.Width, page.Height, page.RotationDegrees,
                 Zoom, _sceneCoordinator, _renderCoordinator, _localizer, page.Geometry);
+            presentation.SetViewRotation(_viewRotationDegrees);
             presentation.LinkActivated += target => { activatePage(page.PageNumber); OnPageLinkActivated(target); };
             presentation.EditorGestureCompleted += gesture => { activatePage(page.PageNumber); OnPageEditorGestureCompleted(gesture); };
             presentation.MarkupRequested += (tool, gesture) => { activatePage(page.PageNumber); OnPageMarkupRequested(tool, gesture); };

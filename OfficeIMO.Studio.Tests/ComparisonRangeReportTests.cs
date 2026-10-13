@@ -1,6 +1,8 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using System.Globalization;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Shell;
@@ -52,6 +54,16 @@ public sealed class ComparisonRangeReportTests {
                 window.UpdateLayout();
                 for (int attempt = 0; attempt < 100 && (model.SelectedPage!.IsRendering || model.ComparisonSelectedPage!.IsRendering); attempt++)
                     await Task.Delay(20);
+                var differenceImage = model.ComparisonDifferenceImage;
+                Assert.NotNull(differenceImage);
+                model.RotateViewRightCommand.Execute(null);
+                window.UpdateLayout();
+                var image = window.GetVisualDescendants().OfType<Image>().Single(item => ReferenceEquals(item.Source, differenceImage));
+                var rotated = Assert.IsType<LayoutTransformControl>(image.Parent);
+                Assert.InRange(rotated.Bounds.Width - image.Bounds.Height, -1, 1);
+                Assert.InRange(rotated.Bounds.Height - image.Bounds.Width, -1, 1);
+                Assert.Same(differenceImage, model.ComparisonDifferenceImage);
+                Assert.True(model.CanExportComparisonReport);
                 window.UpdateLayout(); Capture(window, "comparison-range-" + culture + "-" + width + (dark ? "-dark" : "-light"));
                 // An editable scope is a live input: changing it invalidates the existing gallery and navigation evidence.
                 model.ComparisonActualRange = "109";

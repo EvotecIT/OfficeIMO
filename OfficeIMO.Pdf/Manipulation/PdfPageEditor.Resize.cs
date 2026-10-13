@@ -505,7 +505,7 @@ internal static partial class PdfPageEditor {
         PdfObject? value,
         IReadOnlyDictionary<int, PageResizeTransform> transformsByPageObjectNumber,
         HashSet<int> visitedReferences,
-        HashSet<PdfArray> transformedArrays) {
+        HashSet<PdfArray> transformedArrays, bool preserveDestinationSemantics = false) {
         switch (value) {
             case PdfReference reference:
                 if (!visitedReferences.Add(reference.ObjectNumber) ||
@@ -514,23 +514,23 @@ internal static partial class PdfPageEditor {
                     return;
                 }
 
-                TransformDestinationsInObject(objects, indirect.Value, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+                TransformDestinationsInObject(objects, indirect.Value, transformsByPageObjectNumber, visitedReferences, transformedArrays, preserveDestinationSemantics);
                 return;
             case PdfArray array:
-                TransformDestinationArray(array, transformsByPageObjectNumber, transformedArrays);
+                TransformDestinationArray(array, transformsByPageObjectNumber, transformedArrays, preserveDestinationSemantics, objects);
                 foreach (PdfObject item in array.Items) {
-                    TransformDestinationsInObject(objects, item, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+                    TransformDestinationsInObject(objects, item, transformsByPageObjectNumber, visitedReferences, transformedArrays, preserveDestinationSemantics);
                 }
 
                 return;
             case PdfDictionary dictionary:
                 foreach (PdfObject item in dictionary.Items.Values) {
-                    TransformDestinationsInObject(objects, item, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+                    TransformDestinationsInObject(objects, item, transformsByPageObjectNumber, visitedReferences, transformedArrays, preserveDestinationSemantics);
                 }
 
                 return;
             case PdfStream stream:
-                TransformDestinationsInObject(objects, stream.Dictionary, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+                TransformDestinationsInObject(objects, stream.Dictionary, transformsByPageObjectNumber, visitedReferences, transformedArrays, preserveDestinationSemantics);
                 return;
         }
     }
@@ -542,13 +542,21 @@ internal static partial class PdfPageEditor {
     private static void TransformDestinationArray(
         PdfArray array,
         IReadOnlyDictionary<int, PageResizeTransform> transformsByPageObjectNumber,
-        HashSet<PdfArray> transformedArrays) {
+        HashSet<PdfArray> transformedArrays, bool preserveDestinationSemantics = false,
+        Dictionary<int, PdfIndirectObject>? objects = null) {
         if (!transformedArrays.Add(array) ||
             array.Items.Count < 2 ||
             array.Items[0] is not PdfReference pageReference ||
             !transformsByPageObjectNumber.TryGetValue(pageReference.ObjectNumber, out PageResizeTransform transform) ||
             array.Items[1] is not PdfName destinationMode) {
             return;
+        }
+
+        if (preserveDestinationSemantics) {
+            if (objects is not null)
+                for (int index = 2; index < array.Items.Count; index++)
+                    array.Items[index] = PdfObjectLookup.Resolve(objects, array.Items[index]) ?? array.Items[index];
+            if (TransformNormalizationDestination(array, destinationMode.Name, transform)) return;
         }
 
         switch (destinationMode.Name) {

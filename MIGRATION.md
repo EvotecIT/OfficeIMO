@@ -19,6 +19,15 @@ to use `Scale` for percentage-based printing. To enable page fitting, configure
 it through `sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U)` for one page wide
 with no height limit, instead of relying on cached dimensions in the worksheet XML.
 
+## PDF clockwise visual coordinates
+
+Page rendering and visual-coordinate APIs interpret `/Rotate 90` as clockwise,
+as required by PDF. Earlier versions mapped 90 and 270 degrees in the opposite
+direction. Remove application-level compensations that swap those angles when
+using search bounds, annotation or image placement, crop margins, or
+`MapVisualPointToUserSpace` / `MapVisualRectangleToUserSpace`. Saved `/Rotate`
+values are unchanged; existing PDFs display according to their stored rotation.
+
 ## PDF form value assessment
 
 `PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,

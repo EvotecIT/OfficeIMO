@@ -27,8 +27,11 @@ internal static class PdfPermissionAuthorization {
         switch (operation) {
             case PdfMutationOperation.ExtractPages:
             case PdfMutationOperation.MergeDocuments:
+            case PdfMutationOperation.ImportPages:
                 return security.AllowsCopying == true && security.AllowsDocumentAssembly == true;
             case PdfMutationOperation.ModifyPageTree:
+            case PdfMutationOperation.OrganizePages:
+            case PdfMutationOperation.ModifyPageAttributes:
                 return security.AllowsDocumentAssembly == true;
             case PdfMutationOperation.ModifyAnnotations:
                 return security.AllowsAnnotationChanges == true || security.AllowsModification == true;

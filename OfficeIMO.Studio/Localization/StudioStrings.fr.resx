@@ -413,7 +413,7 @@
   <data name="Recent.FileSize" xml:space="preserve"><value>{0} {1}</value></data>
   <data name="Common.Unavailable" xml:space="preserve"><value>Indisponible</value></data>
   <data name="Common.Close" xml:space="preserve"><value>Fermer</value></data>
-  <data name="Capability.SignedDocument" xml:space="preserve"><value>Ce PDF contient des signatures. Restez en mode Afficher pour préserver les octets signés, ou travaillez sur une copie non signée avant toute modification.</value></data>
+  <data name="Capability.SignedDocument" xml:space="preserve"><value>Ce PDF contient des signatures. Seules les actions autorisées par les règles des signatures sont disponibles.</value></data>
   <data name="Capability.EncryptedDocument" xml:space="preserve"><value>Ce PDF est chiffré. Saisissez le mot de passe du propriétaire dans Protéger, ou enregistrez une copie autorisée avant de modifier le contenu du document.</value></data>
   <data name="Capability.RestrictedDocument" xml:space="preserve"><value>Ce PDF impose des restrictions de certification ou de droits d'utilisation. Examinez ses autorisations dans Protéger avant toute modification.</value></data>
   <data name="Capability.AnnotationsUnavailable" xml:space="preserve"><value>Les annotations de ce document ne peuvent pas être modifiées sans risque. Utilisez le mode Afficher ou créez une copie de travail sans restrictions.</value></data>
@@ -2210,4 +2210,23 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Sélectionner toutes les annotations</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Terminé</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Échec</value></data>
+  <data name="Crop.Reset" xml:space="preserve"><value>Réinitialiser le recadrage</value></data>
+  <data name="Crop.VisibilityHint" xml:space="preserve"><value>Le recadrage masque les marges et conserve le contenu. Réinitialiser le recadrage affiche de nouveau la page entière.</value></data>
+  <data name="Commands.RotateViewLeft.Title" xml:space="preserve"><value>Tourner la vue à gauche</value></data>
+  <data name="Commands.RotateViewLeft.Description" xml:space="preserve"><value>Tourner la vue de lecture à gauche sans modifier le PDF.</value></data>
+  <data name="Commands.RotateViewRight.Title" xml:space="preserve"><value>Tourner la vue à droite</value></data>
+  <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Tourner la vue de lecture à droite sans modifier le PDF.</value></data>
+  <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Réinitialiser la rotation de la vue</value></data>
+  <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Rétablir l'orientation de page enregistrée dans le PDF.</value></data>
+  <data name="Commands.NormalizePageRotation.Title" xml:space="preserve"><value>Normaliser la rotation enregistrée</value></data>
+  <data name="Commands.NormalizePageRotation.Description" xml:space="preserve"><value>Conserver l’apparence des pages sélectionnées en intégrant la rotation enregistrée au contenu et à la géométrie.</value></data>
+  <data name="Commands.DetectPageOrientation.Title" xml:space="preserve"><value>Vérifier l’orientation des pages</value></data>
+  <data name="Commands.DetectPageOrientation.Description" xml:space="preserve"><value>Détecter les corrections proposées, afficher leur aperçu et accepter les pages avant de faire pivoter le document.</value></data>
+  <data name="Orientation.Hint" xml:space="preserve"><value>Examinez chaque correction avant de l’accepter. La confiance dépend du fournisseur ; aucune page n’est sélectionnée automatiquement.</value></data>
+  <data name="Orientation.Page" xml:space="preserve"><value>Page {0} : {1}° dans le sens horaire · confiance {2}</value></data>
+  <data name="Orientation.Preview" xml:space="preserve"><value>Aperçu de cette page</value></data>
+  <data name="Orientation.Before" xml:space="preserve"><value>Original</value></data>
+  <data name="Orientation.After" xml:space="preserve"><value>Correction proposée</value></data>
+  <data name="Orientation.Accept" xml:space="preserve"><value>Accepter la correction de cette page</value></data>
+  <data name="Orientation.Apply" xml:space="preserve"><value>Appliquer les corrections acceptées</value></data>
 </root>

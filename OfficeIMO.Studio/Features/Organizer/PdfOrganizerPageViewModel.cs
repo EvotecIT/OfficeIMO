@@ -39,12 +39,15 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
         int rotationDegrees,
         PageSceneCoordinator sceneCoordinator,
         PageRenderCoordinator renderCoordinator,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        OfficeIMO.Pdf.PdfPageGeometry? geometry = null) {
         PageNumber = pageNumber;
         RotationDegrees = rotationDegrees;
         bool swapsAxes = Math.Abs(rotationDegrees) % 180 == 90;
-        double visualWidth = Math.Max(1D, swapsAxes ? height : width);
-        double visualHeight = Math.Max(1D, swapsAxes ? width : height);
+        double physicalWidth = (geometry?.EffectiveBox?.Width ?? width) * (geometry?.UserUnit ?? 1D);
+        double physicalHeight = (geometry?.EffectiveBox?.Height ?? height) * (geometry?.UserUnit ?? 1D);
+        double visualWidth = Math.Max(1D, swapsAxes ? physicalHeight : physicalWidth);
+        double visualHeight = Math.Max(1D, swapsAxes ? physicalWidth : physicalHeight);
         double scale = Math.Min(112D / visualWidth, 142D / visualHeight);
         ThumbnailWidth = Math.Round(visualWidth * scale, 2);
         ThumbnailHeight = Math.Round(visualHeight * scale, 2);

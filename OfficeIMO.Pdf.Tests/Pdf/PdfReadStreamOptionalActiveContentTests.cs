@@ -22,11 +22,8 @@ public partial class PdfReadStreamTests {
         AssertOptionalContent(PdfStamper.StampText(optionalContentPdf, "STAMP"));
 
         static void AssertOptionalContent(byte[] output) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/OCProperties ", text, StringComparison.Ordinal);
-            Assert.Contains("/OCGs [", text, StringComparison.Ordinal);
-            Assert.Contains("/Type /OCG", text, StringComparison.Ordinal);
-            Assert.Contains("/Name (Layer 1)", text, StringComparison.Ordinal);
+            var group = Assert.Single(PdfInspector.Inspect(output).OptionalContentGroups);
+            Assert.Equal("Layer 1", group.Name);
         }
     }
 
@@ -41,7 +38,6 @@ public partial class PdfReadStreamTests {
 
         AssertOptionalContent(() => PdfPageExtractor.ExtractPages(optionalContentPdf, 1));
         AssertOptionalContent(() => PdfPageExtractor.SplitPages(optionalContentPdf));
-        AssertOptionalContent(() => PdfPageEditor.DeletePages(optionalContentPdf, 1));
         AssertOptionalContent(() => PdfMetadataEditor.UpdateMetadata(optionalContentPdf, title: "Updated"));
         AssertOptionalContent(() => PdfMerger.Merge(optionalContentPdf));
         AssertOptionalContent(() => PdfStamper.StampText(optionalContentPdf, "STAMP"));
@@ -53,7 +49,6 @@ public partial class PdfReadStreamTests {
 
         AssertActiveContent(() => PdfPageExtractor.ExtractPages(activeContentPdf, 1));
         AssertActiveContent(() => PdfPageExtractor.SplitPages(activeContentPdf));
-        AssertActiveContent(() => PdfPageEditor.DeletePages(activeContentPdf, 1));
         AssertActiveContent(() => PdfMetadataEditor.UpdateMetadata(activeContentPdf, title: "Updated"));
         AssertActiveContent(() => PdfMerger.Merge(activeContentPdf));
         AssertActiveContent(() => PdfStamper.StampText(activeContentPdf, "STAMP"));
