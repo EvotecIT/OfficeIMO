@@ -572,6 +572,8 @@ public static partial class HtmlComputedStyleEngine {
         // Store the HTML default in the computed snapshot so an explicit
         // display:inherit can copy a parent's tag default or hidden state.
         if (!resolvedProperties.ContainsKey("display")) resolvedProperties["display"] = HtmlElementDisplay.GetDefaultValue(element);
+        ApplyHtmlWhiteSpaceDefaults(element, properties.ContainsKey("white-space"), resolvedProperties,
+            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
             specifiedProperties, cascadePriorities, cascadeTraces);
