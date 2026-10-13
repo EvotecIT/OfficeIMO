@@ -57,7 +57,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_NearestInheritedOffRunningTextBoxRunEffectKeepsPreciseAdmission() {
+    public void SaveAsPdf_InheritedOffRunningTextBoxRunEffectRetainsWarnedContent() {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
         ConfigureRunningTextBoxInheritedShadow(document, "character");
         W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -68,7 +68,8 @@ public partial class Word {
         W.Run run = document.Sections[1].Header!.First!.TextBoxes.Single().Content!
             .Elements<W.Paragraph>().Single().Elements<W.Run>().Single();
         run.RunProperties!.RunStyle!.Val = "BoxRunShadowOff";
-        AssertRunningTextBoxRunPaintKeepsPreciseAdmission(document);
+        // A false style toggle does not qualify cancellation of the enabled base.
+        AssertRunningTextBoxPaintIsExplicitlyApproximated(document);
     }
 
     [Theory]
