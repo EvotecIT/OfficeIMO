@@ -500,6 +500,68 @@ public sealed class PdfImportedLineFrameFitTests {
         if (split) Assert.Equal("F", pdf.GetPage(3).Text);
     }
 
+    [Theory]
+    [InlineData("table", false)]
+    [InlineData("table", true)]
+    [InlineData("row", false)]
+    [InlineData("row", true)]
+    [InlineData("column-paragraph", false)]
+    [InlineData("column-paragraph", true)]
+    [InlineData("column-table", false)]
+    [InlineData("column-table", true)]
+    [InlineData("column-list-item", false)]
+    [InlineData("column-list-item", true)]
+    [InlineData("column-list-items", false)]
+    [InlineData("column-list-items", true)]
+    public void StrictContainerAdmitsKeptContentThatFitsItsContinuationFrame(string kind, bool spacingBefore) {
+        double advance = spacingBefore ? 30D : 34.5D;
+        double before = spacingBefore ? 9D : 0D;
+        var paragraphStyle = new PdfParagraphStyle {
+            FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(advance), KeepTogether = true,
+            WidowControl = false, SpacingBefore = before, SpacingAfter = 0D
+        };
+        var tableStyle = new PdfTableStyle {
+            HeaderRowCount = 0, FontSize = 10D, LineHeight = advance / 10D,
+            CellPaddingX = 0D, CellPaddingY = 0D, BorderWidth = 0D,
+            KeepTogether = true, SpacingBefore = before, SpacingAfter = 0D
+        };
+        var listStyle = new PdfListStyle {
+            FontSize = 10D, MarkerFontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(advance),
+            KeepTogether = true, SpacingBefore = before, SpacingAfter = 0D, ItemSpacing = 0D
+        };
+        var leadStyle = new PdfParagraphStyle {
+            FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(29D), SpacingBefore = 0D, SpacingAfter = 0D
+        };
+        var document = PdfDocument.Create(Options(70D)).Panel(panel => {
+            if (kind.StartsWith("column-", StringComparison.Ordinal)) panel.Row(row => row
+                .Style(new PdfRowStyle { Gap = 0D, KeepTogether = false, SpacingBefore = 0D, SpacingAfter = 0D })
+                .PercentColumn(100D, column => {
+                    column.Paragraph(p => p.Text("Lead"), style: leadStyle);
+                    if (kind == "column-paragraph") column.Paragraph(p => p.Text("A\nB"), style: paragraphStyle);
+                    else if (kind == "column-table") column.Table(new[] { new[] { "A" }, new[] { "B" } }, style: tableStyle);
+                    else column.Numbered(kind == "column-list-item" ? new[] { "A\nB" } : new[] { "A", "B" }, style: listStyle);
+                }));
+            else {
+                panel.Paragraph(p => p.Text("Lead"), style: leadStyle);
+                if (kind == "table") panel.Table(new[] { new[] { "A" }, new[] { "B" } }, style: tableStyle);
+                else panel.Row(row => row.Style(new PdfRowStyle {
+                    Gap = 0D, KeepTogether = true, SpacingBefore = before, SpacingAfter = 0D
+                }).PercentColumn(100D, column => column.Paragraph(p => p.Text("A\nB"), style: new PdfParagraphStyle {
+                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(advance), KeepTogether = false,
+                    WidowControl = false, SpacingBefore = 0D, SpacingAfter = 0D
+                })));
+            }
+        }, StrictPanel(1D));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal("Lead", pdf.GetPage(1).Text);
+        Assert.Equal("AB", string.Concat(pdf.GetPage(2).Letters.Where(letter => letter.Value is "A" or "B")
+            .Select(letter => letter.Value)));
+        Assert.All(pdf.GetPages().SelectMany(page => page.Paths).Where(path => path.IsStroked), path =>
+            Assert.True(path.GetBoundingRectangle() is { } bounds && bounds.Bottom >= 20D - .001D));
+    }
+
     private static void AssertPanelTopBorder(PdfPigDocument document, int pageNumber, double y) =>
         Assert.Contains(document.GetPage(pageNumber).Paths.Where(path => path.IsStroked)
             .SelectMany(path => path).SelectMany(subpath => subpath.Commands).OfType<UglyToad.PdfPig.Core.PdfSubpath.Line>(),
