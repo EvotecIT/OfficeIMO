@@ -56,7 +56,7 @@ internal static partial class TextLayoutEngine {
                 var coordinates = new PdfTextBaselineCoordinates(RotationKey(spans[0]));
                 BaselineNormal = baselineNormal ?? spans.Average(coordinates.Normal);
                 BaselineStart = spans.Min(coordinates.Along);
-                BaselineEnd = spans.Max(span => coordinates.Along(span) + Math.Max(0D, span.Advance));
+                BaselineEnd = spans.Max(span => coordinates.Along(span) + Math.Max(0D, span.LogicalLayoutAdvance));
             }
         }
     }
@@ -296,7 +296,7 @@ internal static partial class TextLayoutEngine {
         for (int i = 1; i < ordered.Count; i++) {
             var previous = ordered[i - 1];
             var span = ordered[i];
-            double previousEnd = coordinates.Along(previous) + Math.Max(0, previous.Advance);
+            double previousEnd = coordinates.Along(previous) + Math.Max(0, previous.LogicalLayoutAdvance);
             double gap = coordinates.Along(span) - previousEnd;
             if (gap >= minimumRunGap) {
                 runs.Add(current);
@@ -339,7 +339,7 @@ internal static partial class TextLayoutEngine {
             span.LogicalLeadingSpace ||
             span.LogicalTrailingSpace);
         double xs = spans.Min(static span => span.X);
-        double xe = spans.Max(static span => span.X + Math.Max(0D, span.Advance));
+        double xe = spans.Max(static span => span.X + Math.Max(0D, span.LogicalLayoutAdvance));
         var text = new StringBuilder();
         for (int i = 0; i < textSpans.Count; i++) {
             var s = textSpans[i];
@@ -358,8 +358,8 @@ internal static partial class TextLayoutEngine {
                 // Add a space heuristically if the gap along the baseline is large.
                 var prev = previous;
                 double previousAlong = coordinates.Along(prev), along = coordinates.Along(s);
-                double gap = Math.Max(previousAlong - (along + Math.Max(0D, s.Advance)),
-                    along - (previousAlong + Math.Max(0D, prev.Advance)));
+                double gap = Math.Max(previousAlong - (along + Math.Max(0D, s.LogicalLayoutAdvance)),
+                    along - (previousAlong + Math.Max(0D, prev.LogicalLayoutAdvance)));
                 // dynamic threshold based on previous span's average glyph advance
                 double prevAvg = SafeAvgAdvance(prev);
                 double glyphFactor = options?.GapGlyphFactor ?? 0.6;
@@ -480,8 +480,8 @@ internal static partial class TextLayoutEngine {
         for (int i = 0; i < len; i++) if (sb[sb.Length - len + i] != s[i]) return false; return true;
     }
     private static bool IsSubstantiallyOverlapping(PdfTextSpan previous, PdfTextSpan current, PdfTextBaselineCoordinates coordinates) {
-        double previousWidth = Math.Max(0, previous.Advance);
-        double currentWidth = Math.Max(0, current.Advance);
+        double previousWidth = Math.Max(0, previous.LogicalLayoutAdvance);
+        double currentWidth = Math.Max(0, current.LogicalLayoutAdvance);
         double previousAlong = coordinates.Along(previous), currentAlong = coordinates.Along(current);
         if (previousWidth <= 0 || currentWidth <= 0) {
             return Math.Abs(previousAlong - currentAlong) <= 0.8;
@@ -519,9 +519,9 @@ internal static partial class TextLayoutEngine {
         return System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
     }
     private static double SafeAvgAdvance(PdfTextSpan span) {
-        if (span.Advance <= 0) return span.FontSize * 0.5;
+        if (span.LogicalLayoutAdvance <= 0) return span.FontSize * 0.5;
         int len = PdfUnicodeScalarAnalysis.CountScalars(span.Text ?? string.Empty); if (len <= 0) return span.FontSize * 0.5;
-        return span.Advance / len;
+        return span.LogicalLayoutAdvance / len;
     }
 }
 

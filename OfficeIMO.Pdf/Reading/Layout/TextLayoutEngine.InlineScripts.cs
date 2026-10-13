@@ -21,7 +21,7 @@ internal static partial class TextLayoutEngine {
             foreach (PdfTextSpan span in spans) {
                 cancellationCheck?.Invoke();
                 consumeWork?.Invoke(1L);
-                End = Math.Max(End, coordinates.Along(span) + Math.Max(0D, span.Advance));
+                End = Math.Max(End, coordinates.Along(span) + Math.Max(0D, span.LogicalLayoutAdvance));
                 TryGetInlineScriptEm(span, out _, out double normalEm);
                 NormalEm = Math.Max(NormalEm, normalEm);
                 double normal = coordinates.Normal(span);
@@ -142,7 +142,7 @@ internal static partial class TextLayoutEngine {
             cancellationCheck?.Invoke();
             consumeWork?.Invoke(1L);
             PdfTextSpan previous = spans[index - 1], span = spans[index];
-            double gap = coordinates.Along(span) - coordinates.Along(previous) - Math.Max(0D, previous.Advance);
+            double gap = coordinates.Along(span) - coordinates.Along(previous) - Math.Max(0D, previous.LogicalLayoutAdvance);
             TryGetInlineScriptEm(previous, out double previousAlongEm, out _);
             TryGetInlineScriptEm(span, out double alongEm, out _);
             double threshold = Math.Max(0.5D, Math.Min(previousAlongEm, alongEm) * 0.25D);
@@ -202,7 +202,7 @@ internal static partial class TextLayoutEngine {
         if (run.NormalEm > anchorNormalEm * 0.9D ||
             Math.Max(Math.Abs(run.MinimumNormal - normal), Math.Abs(run.MaximumNormal - normal)) > anchorNormalEm * 0.5D) return false;
         double gap = anchorPrecedesRun
-            ? run.Start - coordinates.Along(anchor) - Math.Max(0D, anchor.Advance)
+            ? run.Start - coordinates.Along(anchor) - Math.Max(0D, anchor.LogicalLayoutAdvance)
             : coordinates.Along(anchor) - run.End;
         if (gap < -0.5D || gap > anchorAlongEm * 0.25D) return false;
         return anchorPrecedesRun

@@ -47,11 +47,8 @@ public sealed partial class OfficeManagedTextShapingProvider {
             (OfficeTextElements.ContainsJoiningScript(request.Text) &&
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text)))) return false;
 
-        LatinFont? latinFont = request.ApplyDefaultLatinLigatures
-            ? LatinFonts.GetValue(request.FontDataForShaping, data => new LatinFont(data, request.IsOpenTypeCff)) : null;
-        IOfficeFontProgram? loadedFont = latinFont?.Font ?? (request.IsOpenTypeCff
-            ? OfficeOpenTypeCffFont.TryLoad(request.FontDataForShaping, request.VariationCoordinatesForShaping, out _)
-            : OfficeTrueTypeFont.TryLoad(request.FontDataForShaping, request.FontCollectionIndex));
+        LatinFont? latinFont = ResolveLatinFont(request);
+        IOfficeFontProgram? loadedFont = latinFont != null ? latinFont.Font : LoadShapingFont(request);
         if (loadedFont == null) return false;
         font = loadedFont;
         resolvedDirection = request.Direction == OfficeTextDirection.Auto

@@ -6,6 +6,81 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfInlineScriptExtractionTests {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PublicPointActualTextKeepsItsScriptBesideTheCompletePaint(bool split) {
+        PdfReadPage page = CreateTransformedCanvas(1D, 1D, 0D, canvas => {
+            canvas.ActualText("mass", 100D, 100D, paint => {
+                if (split) paint.Text("m", 100D, 100D, 60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier)
+                    .Text("ass", 110.8D, 100D, 60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
+                else paint.Text("mass", 100D, 100D, 80D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
+            });
+            AddMassScript(canvas);
+        });
+
+        Assert.Equal("mass-2", page.ExtractText());
+        Assert.Equal("mass-2", page.ExtractTextWithColumns(new PdfTextLayoutOptions { ForceSingleColumn = true }));
+        // Selection/OCR still sees the first native paint, rather than a widened synthetic glyph.
+        PdfTextSpan mass = Assert.Single(page.GetTextSpans(), span => span.Text == "mass");
+        Assert.Equal(split ? 10.8D : 43.2D, mass.Advance, 6);
+        Assert.Equal(18D, mass.FontSize);
+        Assert.True(mass.IsVisible);
+        Assert.False(mass.TryGetGlyphs(out _));
+    }
+
+    [Fact]
+    public void PublicTransformedPointActualTextKeepsItsScriptAndPaintGeometry() {
+        PdfReadPage page = CreateTransformedCanvas(2D, 3D, 30D, canvas => {
+            canvas.ActualText("mass", 100D, 100D, paint => paint
+                .Text("m", 100D, 100D, 43.2D, 40D, fontSize: 18D, font: PdfStandardFont.Courier)
+                .Text("ass", 100D, 100D, 43.2D, 40D, fontSize: 18D, align: PdfAlign.Right, font: PdfStandardFont.Courier));
+            AddMassScript(canvas);
+        });
+        PdfTextSpan mass = Assert.Single(page.GetTextSpans(), span => span.Text == "mass");
+        PdfReadPage paintControl = CreateTransformedCanvas(2D, 3D, 30D, canvas => canvas
+            .Text("m", 100D, 100D, 43.2D, 40D, fontSize: 18D, font: PdfStandardFont.Courier));
+        PdfTextSpan firstPaint = Assert.Single(paintControl.GetTextSpans());
+
+        Assert.Equal("mass-2", page.ExtractText());
+        Assert.Equal("mass-2", page.ExtractTextWithColumns(new PdfTextLayoutOptions { ForceSingleColumn = true }));
+        Assert.Equal(firstPaint.X, mass.X, 6);
+        Assert.Equal(firstPaint.Y, mass.Y, 6);
+        Assert.Equal(firstPaint.Advance, mass.Advance, 6);
+        Assert.Equal(18D, mass.FontSize);
+        Assert.Equal(firstPaint.RotationDegrees, mass.RotationDegrees, 6);
+    }
+
+    [Theory]
+    [InlineData("multiline")]
+    [InlineData("backward")]
+    [InlineData("extra-paint")]
+    [InlineData("cropped")]
+    public void IncompatibleActualTextPaintDoesNotInventAnAdjacentScript(string incompatibility) {
+        PdfReadPage page = CreateTransformedCanvas(1D, 1D, 0D, canvas => {
+            canvas.ActualText("mass", 100D, 100D, paint => {
+                paint.Text("m", 100D, 100D, 60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
+                if (incompatibility == "cropped") paint.Clip(110.8D, 100D, 10.8D, 40D, clipped =>
+                    clipped.Text("ass", 110.8D, 100D, 60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier));
+                else paint.Text("ass", incompatibility == "backward" ? 90D : 110.8D,
+                    incompatibility == "multiline" ? 130D : 100D,
+                    60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
+                // Even a complete early paint match is discarded when later paint contradicts it.
+                if (incompatibility == "extra-paint") paint.Text("X", 143.2D, 100D,
+                    30D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
+            });
+            AddMassScript(canvas);
+        });
+
+        Assert.Equal("-2\nmass", page.ExtractText());
+        Assert.Equal("-2\nmass", page.ExtractTextWithColumns(new PdfTextLayoutOptions { ForceSingleColumn = true }));
+        Assert.Equal(10.8D, Assert.Single(page.GetTextSpans(), span => span.Text == "mass").Advance, 6);
+    }
+
+    private static void AddMassScript(PdfPageCanvas canvas) => canvas.Text(new[] {
+        new PdfTextRun("-2", fontSize: 18D, font: PdfStandardFont.Courier, baseline: PdfTextBaseline.Superscript)
+    }, 143.2D, 100D, 60D, 40D, fontSize: 18D);
+
     [Fact]
     public void PublicExtractionKeepsRaisedAndLoweredTextInTheirAuthoredLines() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
