@@ -1,0 +1,239 @@
+{
+  "schema": "officeimo.effect-allocation.qualification/v1",
+  "status": "Raster-limit correctness and selected output preservation verified. Timing, peak-memory and platform acceptance remain open.",
+  "source": {
+    "baselineCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+    "candidateCommit": "737320d1626315f9c17b71775055fc728b1bd629",
+    "candidateTrackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "context": "The corpus comparison used normal project-reference builds at the recorded commits."
+  },
+  "contracts": {
+    "rasterPixelLimit": "HTML image export and managed PDF raster fallback pass MaximumRasterPixels to the drawing renderer. Root and cumulative intermediate-surface limits remain enforced.",
+    "primitiveAllocation": "Eligible effect layers keep their original scene coordinates, paint, opacity and isolation while allocating fewer trailing transparent rows and columns.",
+    "eligibility": [
+      "Every layer element is a filled rectangle, rounded rectangle or ellipse. Solid, linear-gradient and radial-gradient fills qualify.",
+      "Shapes have finite positive dimensions, finite positions and opacities, zero stroke width, and no shadow, glow, local clip or nonidentity shape transform.",
+      "The effect uses normal blending without a soft mask. Sampling is uniform, and the final device transform is exactly unit scale with integer pixel translation.",
+      "Text, images, nested groups, paths, filter-expanded paint, special marker or text surfaces, and other sampling transforms retain the existing full-layer path."
+    ],
+    "allocationGuard": "The original dimension and overflow checks remain active. Cropped pixels are charged to the shared cumulative budget before allocation.",
+    "publicApiChanged": false,
+    "productionDependencyAdded": false
+  },
+  "causalTests": {
+    "pixelLimitForwarding": {
+      "red": {
+        "project": "OfficeIMO.Html.Tests",
+        "framework": "net10.0",
+        "sourceCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+        "trackedDiffSha256": "fc98420efc74cc32ef483380f34afb7069231e3492e3f2b14eaed691d66a25a1",
+        "passed": 0,
+        "failed": 3,
+        "skipped": 0,
+        "executionRecordSha256": "cb5a782d54791be3b93a05af4a365a136bee029a914f8809c1ec2aa1a99969dc",
+        "trxSha256": "a2a8799c467f23972f517dd1549cd2102f5fe188da6fe649da2c082d1b5ca3bb"
+      },
+      "redObservation": "Three selected cases expected OfficeImageExportLimitException, but no exception was thrown.",
+      "green": {
+        "project": "OfficeIMO.Html.Tests",
+        "framework": "net10.0",
+        "sourceCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+        "trackedDiffSha256": "6ba91d27ccf0b7c2a9b98d087b769c22517c566496ff2e73e0706e0da1be1450",
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0,
+        "executionRecordSha256": "f0569ada4732ad41983c1d727254c2d22ebf29403140fb9cdc3da2d68d3ebf22",
+        "trxSha256": "3ecbe5410d770b1ee47a109061647bdad6d2e908970e68145d2a2e16a527c537"
+      },
+      "selection": "GREEN includes the three RED cases and two aggregate encoded-byte-limit controls."
+    },
+    "sparsePrimitiveAllocation": {
+      "red": {
+        "project": "OfficeIMO.Drawing.Tests",
+        "framework": "net10.0",
+        "sourceCommit": "2ff5ca9f4c9968d66ab08ff65ebaba343617a90e",
+        "trackedDiffSha256": "31d67f83150e8ffd68ed4d001faf83b12b4ab68c7949ef57fd2fb17ffe2a9004",
+        "passed": 0,
+        "failed": 6,
+        "skipped": 0,
+        "executionRecordSha256": "26151fba37c6c5858770ad36a5fa4a0201440c3a378265a172d312e43a97cf23",
+        "trxSha256": "1d0f0031cf97812b07797ecf838f1247ac28459f714874ba7282f2b0feab3ba6"
+      },
+      "redObservation": "All six primitive and scale cases exceeded the limit when two complete effect canvases were charged.",
+      "green": [
+        {
+          "project": "OfficeIMO.Drawing.Tests",
+          "framework": "net10.0",
+          "sourceCommit": "2ff5ca9f4c9968d66ab08ff65ebaba343617a90e",
+          "trackedDiffSha256": "48921c642018fa317151cd0013e8cfbf00fc585c16114ddec9caa713b8c09042",
+          "passed": 67,
+          "failed": 0,
+          "skipped": 0,
+          "executionRecordSha256": "d9109281e1c63fd334b48a53ddd49911e8a3b9fde45eda3d95f6d1f435c04c1d",
+          "trxSha256": "41345dabc7d027802cf81b2f8cee63d27094b79477e39bcae6b67cef490f8bb8"
+        },
+        {
+          "project": "OfficeIMO.Drawing.Tests",
+          "framework": "net8.0",
+          "sourceCommit": "2ff5ca9f4c9968d66ab08ff65ebaba343617a90e",
+          "trackedDiffSha256": "48921c642018fa317151cd0013e8cfbf00fc585c16114ddec9caa713b8c09042",
+          "passed": 67,
+          "failed": 0,
+          "skipped": 0,
+          "executionRecordSha256": "fb5d2684cdd903bc067caa7a9a634d4bc5c1e79ed233436fa918f2203fe5e4c7",
+          "trxSha256": "4bcd038d9f578c118ab12a073a9ed1b6caae9d15a1be37201dda3cbd786d2549"
+        }
+      ],
+      "selection": "67 effect-layer, effect-group and transformed-text cases per framework, including the six sparse primitive cases.",
+      "sourceBoundary": "The crop GREEN records use the recorded source commit plus the uncommitted crop patch.",
+      "untrackedHelperSha256": "4320fbdac9a096021d9f5eff512e97cc43524c8203b88047a37a21aef9e81c51"
+    }
+  },
+  "broadCorrectnessTests": {
+    "sourceCommit": "737320d1626315f9c17b71775055fc728b1bd629",
+    "filter": "Category!=Performance",
+    "results": [
+      {
+        "project": "OfficeIMO.Drawing.Tests",
+        "framework": "net10.0",
+        "sourceCommit": "737320d1626315f9c17b71775055fc728b1bd629",
+        "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "passed": 5552,
+        "failed": 0,
+        "skipped": 4,
+        "executionRecordSha256": "f114609995a6ef101d2a6b58fe7b84b44caa53577d8cbf8687bce65e059d2383",
+        "trxSha256": "61631246da7d3da70d6de61054aa8040700d55aa093dddee2acf426a6538ae45"
+      },
+      {
+        "project": "OfficeIMO.Drawing.Tests",
+        "framework": "net8.0",
+        "sourceCommit": "737320d1626315f9c17b71775055fc728b1bd629",
+        "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "passed": 5552,
+        "failed": 0,
+        "skipped": 4,
+        "executionRecordSha256": "5a6b877ad156d84534577cd24658161e147e885d1191171ce89cc21fb7fbca11",
+        "trxSha256": "fc54375e98c5b0ae7ac7f780cdd05c41ca39553d45717e138a68c71ade9d6e81"
+      },
+      {
+        "project": "OfficeIMO.Html.Tests",
+        "framework": "net10.0",
+        "sourceCommit": "737320d1626315f9c17b71775055fc728b1bd629",
+        "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "passed": 6066,
+        "failed": 0,
+        "skipped": 0,
+        "executionRecordSha256": "f5a4237855ebca74a480e84eaa171e9c269d952dd84a37edfd1c210945662836",
+        "trxSha256": "60f358569c5b0be3e09f09f9086db1c28aabd8bad16f06bb2a9a035392dd9aa7"
+      },
+      {
+        "project": "OfficeIMO.Html.Tests",
+        "framework": "net8.0",
+        "sourceCommit": "737320d1626315f9c17b71775055fc728b1bd629",
+        "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "passed": 6066,
+        "failed": 0,
+        "skipped": 0,
+        "executionRecordSha256": "f48b5bbef3abadefee9b9cf249f9211d5516b206e1780ee9684b8f17382a3a10",
+        "trxSha256": "c814191f3f20d1f9cb791ae52e310d7ee4b77149f39867079a1b15424a2b9024"
+      }
+    ]
+  },
+  "corpusPreservation": {
+    "baselineCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+    "candidateCommit": "737320d1626315f9c17b71775055fc728b1bd629",
+    "comparisonSha256": "a407ff85809c26bd529f81290b573875c27d52455611b856db7dda0b5be66483",
+    "orderedOutputsCompared": 76,
+    "actualFilesRehashedAndEqual": true,
+    "completeSplitWitnessesCompared": 30,
+    "completeSplitWitnessesEqual": true,
+    "completePdfArtifacts": 16,
+    "totalOutputBytes": 2599978,
+    "outputFingerprintSha256": "1843b460fb2c388e20d9fd351745d589e862cd9a7f15f2057b82740aa4f2ae16",
+    "reports": [
+      {
+        "role": "Baseline diagnostic replay",
+        "sha256": "59eccc546cecfa08f0ae79c0d5c54ee4815797798d348cd4338e95f667404a23"
+      },
+      {
+        "role": "Candidate diagnostic replay",
+        "sha256": "a390ad741bcf9239c1cf6ea0f56ff61f7ded4c9776ed90eb775ec56608a44de8"
+      }
+    ],
+    "artifactManifests": [
+      {
+        "role": "Baseline actual-file manifest",
+        "sha256": "9174559726f70d191d24e87ac7f661aa40006572a0f63d2dad1a698889f6c7c9"
+      },
+      {
+        "role": "Candidate actual-file manifest",
+        "sha256": "66a17501dd7e6fae117063cdcf7796ede256369d4713c505fca22c416a4731f9"
+      }
+    ],
+    "representativePngViewed": "stacking-clipping-board--PrintPaged--Png--1.png"
+  },
+  "primitiveImagePreservation": {
+    "sourceCommit": "2ff5ca9f4c9968d66ab08ff65ebaba343617a90e",
+    "sourceState": "This proof covers the uncommitted crop patch at the recorded source commit. It is separate from the later clean-commit corpus comparison.",
+    "caseCount": 6,
+    "primitiveKinds": [
+      "Rectangle",
+      "RoundedRectangle",
+      "Ellipse"
+    ],
+    "scales": [
+      1,
+      1.5
+    ],
+    "equalDimensionsAndWholeRgbaPngSvgHashes": true,
+    "retainedPngFilesByteIdentical": true,
+    "comparisonSha256": "b479753706b08be42d3b6ab006ed905640e2e822b4ed074be5c24affd5f164d5",
+    "loadedOwners": {
+      "baseline": {
+        "sha256": "8f1c1356f597f79ee38c73f01d3e55fad3b109e6e5d158fe9d0b9dadeaabfa0d",
+        "mvid": "330c1591-6877-4624-9a95-6d3f1f58a002"
+      },
+      "candidate": {
+        "sha256": "b4893ce954a850147985222a25623e4e8964c65188133e320e82d724dfc9d14d",
+        "mvid": "285694fd-cd64-4130-9b23-3752a1038c4b"
+      }
+    },
+    "rejectedEarlierComparison": {
+      "sha256": "192127e61f07e244441519404432ccdb697b5dd4d3667ea64f2b3f07a873c765",
+      "status": "Rejected: both sides loaded the baseline Core.",
+      "dispositionSha256": "7e0bcfe9cdb584d6ec68cb92c19ff3f3507a4b866505ff210c3cf6af2aacbda4"
+    },
+    "representativePngViewed": true
+  },
+  "allocationDiagnostics": {
+    "context": "One diagnostic replay per source with the same observer, options and workload. Preloads, warmup, retained witnesses, split work and export I/O differ from the canonical acceptance run.",
+    "normal": {
+      "baselineBytes": 817609184,
+      "candidateBytes": 817481672,
+      "candidateMinusBaselineBytes": -127512,
+      "reductionPercent": 0.0156
+    },
+    "splitRaster": {
+      "baselineBytes": 363771272,
+      "candidateBytes": 364012192,
+      "candidateMinusBaselineBytes": 240920
+    },
+    "conclusion": "Normal allocation fell by 127,512 bytes (0.0156%), while split raster allocation rose by 240,920 bytes. This does not establish a meaningful allocation gain for the measured corpus.",
+    "meaningfulBroadCorpusAllocationGainEstablished": false
+  },
+  "independentReview": {
+    "sourceCommit": "2ff5ca9f4c9968d66ab08ff65ebaba343617a90e",
+    "sourceState": "Uncommitted crop candidate",
+    "fullPasses": 1,
+    "actionableSourceFindings": 0,
+    "targetedConfirmations": 1,
+    "targetedConfirmationScope": "The rejected preservation comparison and its pinned-binary replacement.",
+    "evidenceFindingStatus": "Closed after verifying distinct loaded owners and matching complete outputs."
+  },
+  "remainingAcceptance": {
+    "canonicalTiming": "Open",
+    "peakMemory": "Open",
+    "platformQualification": "Open"
+  },
+  "qualificationComplete": false
+}

@@ -1,0 +1,164 @@
+{
+  "schema": "officeimo.html.raster-font-snapshot-qualification/v1",
+  "recordedUtc": "2026-10-13T06:17:30.960076+00:00",
+  "sourceCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+  "baselineCommit": "71a216266c229b39b3937cf5ac722cd6dbc16de1",
+  "implementation": {
+    "owner": "OfficeIMO.Core/Raster/OfficeRasterCanvas.TextShaping.cs",
+    "behavior": "Raster requests for built-in TrueType fonts reuse the existing internal immutable snapshot. Public request and font access remains defensive; custom and CFF paths are unchanged.",
+    "publicApiChanged": false,
+    "runtimeDependenciesChanged": false
+  },
+  "normalConsumer": {
+    "framework": "net10.0",
+    "normalProjectReferenceBuild": true,
+    "frozenOverlay": false,
+    "dependencySuppression": false,
+    "actualOwnerAssemblies": 10,
+    "compiledSourceCommitBound": true
+  },
+  "workload": {
+    "corpusId": "officeimo-html-h4-advanced-held-out",
+    "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+    "caseCount": 8,
+    "outputs": 76,
+    "splitPngWitnesses": 30,
+    "outputBytes": 2599978,
+    "fingerprintSha256": "1843b460fb2c388e20d9fd351745d589e862cd9a7f15f2057b82740aa4f2ae16",
+    "allOrderedOutputsAndActualFilesEqual": true,
+    "allSplitBytesGeometryExportAndLayoutDiagnosticsEqual": true,
+    "encoderDefaultsAndCanonicalBudgetsChanged": false
+  },
+  "diagnosticAllocation": {
+    "baselineNormalWindowBytes": 822925800,
+    "candidateNormalWindowBytes": 817609184,
+    "observedBytesRemoved": 5316616,
+    "comparisonSha256": "297ceb8f37b643d2b0e8409a152e85a003b74b1b801e933903ce7e6c30fe124c",
+    "boundary": "One diagnostic replay per source. Explicit preloads, full warmup, retained PNG witnesses, split work, export I/O and host sampling differ from canonical cold/three-warm acceptance. Unrelated host activity remained. No causal elapsed-time, peak-memory or platform acceptance."
+  },
+  "correctness": [
+    {
+      "scope": "focus-net10.0",
+      "sourceCommit": "71a216266c229b39b3937cf5ac722cd6dbc16de1",
+      "trackedDiffSha256": "c16e3f6b1a3570443ed06ce47c488b488ad6c5a558f8851dded7cb86952c488c",
+      "commandExitCode": 0,
+      "counters": {
+        "total": "14",
+        "executed": "14",
+        "passed": "14",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "3fd2c01767ea42771a95bc93c0de161334501e54eaac481ac68b28db9b1da36a"
+    },
+    {
+      "scope": "focus-net8.0",
+      "sourceCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+      "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandExitCode": 0,
+      "counters": {
+        "total": "14",
+        "executed": "14",
+        "passed": "14",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "fddccd312d4c26fc1724da96fa6c5c88c459d67e6dceffcaa2b4316e6f736ab4"
+    },
+    {
+      "scope": "full-net10.0",
+      "sourceCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+      "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandExitCode": 0,
+      "counters": {
+        "total": "5550",
+        "executed": "5546",
+        "passed": "5546",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "dda48d0ba610c1a6c00b828b7a22a9ef208748485ac436c7af628e23bc5588fd"
+    },
+    {
+      "scope": "full-net8.0",
+      "sourceCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+      "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandExitCode": 0,
+      "counters": {
+        "total": "5550",
+        "executed": "5546",
+        "passed": "5546",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "4881706cd93f4484a6be1e126631b83253f663a43463373d896fe766f60676d3"
+    }
+  ],
+  "correctnessLimits": [
+    "Initial NET10 focused proof used baseline71 with the recorded candidate source diff; final full NET10/NET8 and focused NET8 proof used the clean committed candidate.",
+    "Four existing delayed in-flight cancellation sampling tests are opt-in and skipped in each full Drawing run; no failures.",
+    "The first focused NET10 DLL was superseded by the later stable build without a captured executed DLL SHA or MVID. Its commands, TRX and source diff remain distinct."
+  ],
+  "independentReview": {
+    "scope": "Font/requestimmutabledata ownership, managed/native readers, custom/CFF/variable/collection/RTL boundaries",
+    "technicalFindings": 0,
+    "productApiDisposition": "accept-as-shaped",
+    "fullPasses": 1,
+    "targetedConfirmations": 0,
+    "buildsOrTestsByReviewer": false
+  },
+  "renderedEvidence": {
+    "representativeArtifact": "typography-specimen--PrintPaged--Png--1.png",
+    "viewed": true,
+    "baselineCandidateActual76ArtifactEquality": true
+  },
+  "remaining": [
+    "Canonical cold/three-warm elapsed-time and peak-memory acceptance on current source across Windows, macOS and Linux.",
+    "Further measured typography and raster cost reduction; the CFF proposal is unselected without a reachable workload.",
+    "Named H10 native/browser font and geometry acceptance remains separate."
+  ]
+}

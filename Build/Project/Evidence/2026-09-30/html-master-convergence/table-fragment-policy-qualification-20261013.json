@@ -1,0 +1,158 @@
+{
+  "schema": "officeimo.html.table-fragment-policy-qualification/v1",
+  "recordedUtc": "2026-10-13T08:28:13.654530+00:00",
+  "sourceCommit": "737320d1626315f9c17b71775055fc728b1bd629",
+  "sourcePacketDeclaredCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+  "sourceBoundary": "Inspected layout hashes match the earlier packet. Execution uses verified candidate owner DLLs from the fresh normal project-reference corpus build; the small control consumer uses explicit frozen assembly references. The two source boundaries remain distinct.",
+  "classification": "Current keep policy reproduced; no NASA standards defect established.",
+  "policies": [
+    "Non-empty tables that fit a page receive a keep range even with break-inside:auto.",
+    "Auto or scroll overflow independently gives its normal-flow box a keep range. Legal boundaries still serve oversized boxes."
+  ],
+  "controls": [
+    {
+      "name": "table-visible",
+      "inputSha256": "212de041a413ab6d5ffd209f0839d801f9f103c2399b63f6a662b29c7d7455ef",
+      "pdfSha256": "9c93df9decdbe5c66929147073c445b30692c44cd55bb042abcbfacb89c79097",
+      "pages": [
+        {
+          "page": 1,
+          "widthCssPx": 160,
+          "heightCssPx": 120,
+          "stripePaint": []
+        },
+        {
+          "page": 2,
+          "widthCssPx": 160,
+          "heightCssPx": 120,
+          "stripePaint": [
+            {
+              "source": "td#stripe-a",
+              "yCssPx": 0,
+              "heightCssPx": 20
+            },
+            {
+              "source": "td#stripe-b",
+              "yCssPx": 20,
+              "heightCssPx": 20
+            },
+            {
+              "source": "td#stripe-c",
+              "yCssPx": 40,
+              "heightCssPx": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "blocks-visible",
+      "inputSha256": "f0aadba2a883a46a94e7031e0a225bc53109f4052e9fd34d9e41908029c6510b",
+      "pdfSha256": "1f48a869d167ea45b56a8f37270337c70c26cd060c0b60916fd9ad69270b57b8",
+      "pages": [
+        {
+          "page": 1,
+          "widthCssPx": 160,
+          "heightCssPx": 120,
+          "stripePaint": [
+            {
+              "source": "div#stripe-a",
+              "yCssPx": 80,
+              "heightCssPx": 20
+            },
+            {
+              "source": "div#stripe-b",
+              "yCssPx": 100,
+              "heightCssPx": 20
+            }
+          ]
+        },
+        {
+          "page": 2,
+          "widthCssPx": 160,
+          "heightCssPx": 120,
+          "stripePaint": [
+            {
+              "source": "div#stripe-c",
+              "yCssPx": 0,
+              "heightCssPx": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "blocks-auto-overflow",
+      "inputSha256": "d3b8b00069699b8b824c1e7d2c4a30e7864d160cc56f4180ee7a70f391ade318",
+      "pdfSha256": "ac5557b27c1fe53801b24ab8d756c2e8c8683ee6df2a0fce00770b7ba0001a22",
+      "pages": [
+        {
+          "page": 1,
+          "widthCssPx": 160,
+          "heightCssPx": 120,
+          "stripePaint": []
+        },
+        {
+          "page": 2,
+          "widthCssPx": 160,
+          "heightCssPx": 120,
+          "stripePaint": [
+            {
+              "source": "div#stripe-a",
+              "yCssPx": 0,
+              "heightCssPx": 20
+            },
+            {
+              "source": "div#stripe-b",
+              "yCssPx": 20,
+              "heightCssPx": 20
+            },
+            {
+              "source": "div#stripe-c",
+              "yCssPx": 40,
+              "heightCssPx": 20
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "glyphsAndExternalResourcesUsed": false,
+  "paintPagesNativelyRenderedAndViewed": 6,
+  "nativePdfPageSizePoints": [
+    120,
+    90
+  ],
+  "warningsErrorsOrLoss": false,
+  "reports": {
+    "rootBindingSha256": "5ecb9a70fec9636fb09fbcc141dc7c662caee5fe90dcaf8987ee8e3eb8d3c229",
+    "managedReportSha256": "e3f65bf9e8cbcb4a1d8d73138555e3ae66c001634714f7ac259a1e7cf4a6c83b",
+    "nativeReceiptSha256": "15caa4c8d7faa7345c9c2cc5504a554688d78678b666093450c7c25c27b96be2"
+  },
+  "standards": [
+    "https://www.w3.org/TR/css-break-3/#possible-breaks",
+    "https://www.w3.org/TR/css-break-3/#best-breaks"
+  ],
+  "planetaryComparison": {
+    "producerSourceCommit": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+    "officeTableAndCaptionPage": 10,
+    "browserHeaderAndFirstDataRowPage": 9,
+    "browserRemainingRowsAndCaptionPage": 10,
+    "officePdfPageSizePoints": [
+      595.276,
+      841.89
+    ],
+    "browserPdfPageSizePoints": [
+      595.91998,
+      842.88
+    ],
+    "browserFontGuard": "Original run remains rejected: five Inter roles report the custom face Inter-Regular_Bold rather than the expected base PostScript name. Frozen resource39 was served; missing font or host fallback is not established. Variable coordinates and per-glyph font resource identity are not proven.",
+    "fullBrowserAppearanceAdmitted": false,
+    "remaining": [
+      "Admit the actual captured variable Inter instance.",
+      "Compare equivalent physical page geometry and preceding flow placement.",
+      "Measure physical table row boxes before choosing a different keep policy."
+    ],
+    "boundary": "The authored 160 by 120 CSS-pixel controls are separate from NASA. Their dimensions and geometry are not a measured reduction of that page."
+  }
+}
