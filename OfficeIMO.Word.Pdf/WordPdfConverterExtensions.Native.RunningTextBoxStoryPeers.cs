@@ -6,8 +6,9 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
-    private readonly record struct NativeRunningTextBoxStoryPeers(int VisibleBoxCount, bool HasDisallowedOverlap) {
-        public bool RequiresApproximation => VisibleBoxCount > 1 && HasDisallowedOverlap;
+    private readonly record struct NativeRunningTextBoxStoryPeers(int VisibleBoxCount, bool HasDisallowedOverlap,
+        bool HasUnsupportedPaintOrder) {
+        public bool RequiresApproximation => VisibleBoxCount > 1 && (HasDisallowedOverlap || HasUnsupportedPaintOrder);
     }
 
     /// <summary>Captures each underlying header/footer part once while operation visibility scopes are active.</summary>
@@ -22,19 +23,30 @@ public static partial class WordPdfConverterExtensions {
                 if (result.ContainsKey(root)) continue;
                 int count = 0;
                 bool disallowed = false;
+                bool unsupportedPaintOrder = false;
+                uint? precedingParagraphMaxZOrder = null;
                 foreach (W.Paragraph source in root.Descendants<W.Paragraph>()) {
                     options?.CancellationToken.ThrowIfCancellationRequested();
                     // Nested textbox content belongs to its outer box, including
                     // when that outer hosting run is hidden. It is not a story peer.
                     if (source.Ancestors<W.TextBoxContent>().Any()) continue;
                     var paragraph = new WordParagraph(document, source);
+                    uint? paragraphMaxZOrder = null;
                     foreach (WordTextBox box in GetNativeVisibleTextBoxes(paragraph, GetNativeRuns(paragraph))) {
                         options?.CancellationToken.ThrowIfCancellationRequested();
                         count = Math.Min(2, count + 1);
                         disallowed |= box.Anchor?.AllowOverlap?.Value != true;
+                        // Each paragraph owns a separate canvas, painted in story order.
+                        // Its local z-order sort cannot move a lower-depth box before a
+                        // preceding paragraph. Equal-depth peers retain source order.
+                        unsupportedPaintOrder |= precedingParagraphMaxZOrder.HasValue &&
+                            box.ZOrder < precedingParagraphMaxZOrder.Value;
+                        paragraphMaxZOrder = Math.Max(paragraphMaxZOrder ?? 0U, box.ZOrder);
                     }
+                    if (paragraphMaxZOrder.HasValue)
+                        precedingParagraphMaxZOrder = Math.Max(precedingParagraphMaxZOrder ?? 0U, paragraphMaxZOrder.Value);
                 }
-                result.Add(root, new NativeRunningTextBoxStoryPeers(count, disallowed));
+                result.Add(root, new NativeRunningTextBoxStoryPeers(count, disallowed, unsupportedPaintOrder));
             }
         return new ReadOnlyDictionary<OpenXmlElement, NativeRunningTextBoxStoryPeers>(result);
     }

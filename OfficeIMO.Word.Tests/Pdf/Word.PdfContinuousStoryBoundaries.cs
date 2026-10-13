@@ -140,7 +140,7 @@ public partial class Word {
         var suffix = AnchoredRunningLetters(page, "SUFFIX");
         AnchoredRunningLetters(page, "BOX");
         Assert.Equal(prefix[0].StartBaseLine.Y, suffix[0].StartBaseLine.Y, 3);
-        Assert.True(suffix[0].StartBaseLine.X >= prefix.Last().EndBaseLine.X);
+        Assert.Equal(prefix.Last().EndBaseLine.X, suffix[0].StartBaseLine.X, 3);
         Assert.DoesNotContain(page.Paths, path => path.IsStroked);
         Assert.Contains(table ? "TABLE" : "COUNT 2", pdf.GetPage(3).Text);
         Assert.DoesNotContain("{sectionpages}", pdf.GetPage(3).Text);
