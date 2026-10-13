@@ -5,10 +5,11 @@ import UniformTypeIdentifiers
 /// Shortcuts actions over the same engine as the document windows. Each runs without opening the app, works on
 /// copies of the files it is given, and returns a new file or text.
 struct CombinePDFsIntent: AppIntent {
-    static let title: LocalizedStringResource = "Combine PDFs"
-    static let description = IntentDescription("Puts the pages of PDFs together into one PDF, in the order given.")
+    static let title: LocalizedStringResource = "Combine into PDF"
+    static let description = IntentDescription(
+        "Puts PDFs, images and Word, Excel, PowerPoint and other documents together into one PDF, in the order given.")
 
-    @Parameter(title: "PDFs", supportedContentTypes: [.pdf])
+    @Parameter(title: "Files", supportedContentTypes: PageSources.contentTypes)
     var files: [IntentFile]
 
     @Parameter(title: "Name", default: "Combined")
@@ -20,7 +21,11 @@ struct CombinePDFsIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
         let work = try await ActionFolder.prepare()
-        let inputs = try files.enumerated().map { try work.copy($0.element, as: "\($0.offset + 1).pdf") }
+        // Each copy keeps its extension, so it is read as what it is: a PDF, an image or a document to convert.
+        let inputs = try files.enumerated().map { index, file in
+            let fileExtension = (file.filename as NSString).pathExtension
+            return try work.copy(file, as: fileExtension.isEmpty ? "\(index + 1).pdf" : "\(index + 1).\(fileExtension)")
+        }
         let output = try await DocumentActions.combine(inputs, names: files.map(\.filename), into: work.output(named: name))
         return .result(value: IntentFile(fileURL: output, filename: output.lastPathComponent, type: .pdf))
     }
@@ -130,8 +135,9 @@ struct ConvertToPDFIntent: AppIntent {
 /// The phrases Siri and Spotlight offer for the actions.
 struct StudioShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
-        AppShortcut(intent: CombinePDFsIntent(), phrases: ["Combine PDFs with \(.applicationName)"],
-                    shortTitle: "Combine PDFs", systemImageName: "doc.on.doc")
+        AppShortcut(intent: CombinePDFsIntent(), phrases: ["Combine PDFs with \(.applicationName)",
+                                                           "Combine files into a PDF with \(.applicationName)"],
+                    shortTitle: "Combine into PDF", systemImageName: "doc.on.doc")
         AppShortcut(intent: MakePDFFromImagesIntent(), phrases: ["Make a PDF from images with \(.applicationName)"],
                     shortTitle: "PDF from Images", systemImageName: "doc.viewfinder")
         AppShortcut(intent: ExtractPagesIntent(), phrases: ["Extract PDF pages with \(.applicationName)"],
@@ -172,12 +178,15 @@ enum PageRange {
 
 /// The work behind the actions, on files the caller owns, so the journey runs it as Shortcuts does.
 enum DocumentActions {
-    /// Puts the pages of PDFs together, in order, into a new PDF at output.
+    /// Puts the pages of files together, in order, into a new PDF at output: PDFs, images and documents the engine
+    /// converts.
     static func combine(_ inputs: [URL], names: [String], into output: URL) async throws -> URL {
-        guard inputs.count >= 2 else { throw IntentProblem.message(String(localized: "Choose at least two PDFs to combine.")) }
-        let document = try await open(inputs[0], named: names[0])
+        guard inputs.count >= 2 else { throw IntentProblem.message(String(localized: "Choose at least two files to combine.")) }
+        var pdfs: [URL] = []
+        for input in inputs { pdfs.append(try await PageSources.pdf(for: input)) }
+        let document = try await open(pdfs[0], named: names[0])
         do {
-            _ = try await document.importPages(inputs.dropFirst().map { ImportSource(url: $0) }, before: try await document.facts().pages.count + 1)
+            _ = try await document.importPages(pdfs.dropFirst().map { ImportSource(url: $0) }, before: try await document.facts().pages.count + 1)
         } catch let needed as ImportPasswordNeeded {
             throw IntentProblem.message(protected(names[needed.source + 1]))
         }

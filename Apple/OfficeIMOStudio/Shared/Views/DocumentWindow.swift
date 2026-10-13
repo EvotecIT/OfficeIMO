@@ -79,7 +79,8 @@ struct DocumentWindow: View {
             .sheet(isPresented: $session.isCreatingSignature) {
                 SignaturePad(session: session)
             }
-            .fileImporter(isPresented: $session.isChoosingPagesToImport, allowedContentTypes: [.pdf], allowsMultipleSelection: true) { result in
+            .fileImporter(isPresented: $session.isChoosingPagesToImport, allowedContentTypes: PageSources.contentTypes,
+                          allowsMultipleSelection: true) { result in
                 switch result {
                 case .success(let urls): session.importPages(from: urls)
                 case .failure(let error): session.errorMessage = error.localizedDescription

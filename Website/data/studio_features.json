@@ -177,13 +177,12 @@
           "id": "combine",
           "title": "Combine documents",
           "detail": "PDFs, Office files and images into one PDF",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "mac": "PDFs, through the Combine PDFs shortcut and Insert Pages from File.",
-            "ipad": "PDFs, through the Combine PDFs shortcut and Insert Pages from File.",
-            "iphone": "PDFs, through the Combine PDFs shortcut and Insert Pages from File."
-          },
-          "roadmap": "phase-7-native-apple-apps"
+            "mac": "Through the Combine into PDF shortcut and Insert Pages from File.",
+            "ipad": "Through the Combine into PDF shortcut and Insert Pages from File.",
+            "iphone": "Through the Combine into PDF shortcut and Insert Pages from File."
+          }
         },
         {
           "id": "crop",

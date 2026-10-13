@@ -278,10 +278,23 @@ final class DocumentSession {
         }
     }
 
-    /// Inserts the pages of PDFs the user chose after the target pages, as one undoable change.
+    /// Inserts the pages of files the user chose after the target pages, as one undoable change: PDFs, images and
+    /// documents the engine converts, which become PDFs first.
     func importPages(from urls: [URL]) {
         guard !urls.isEmpty, let after = targetPages.last else { return }
-        importPages(urls.map { ImportSource(url: $0) }, before: after + 1)
+        Task {
+            isWorking = true
+            var sources: [ImportSource] = []
+            do {
+                for url in urls { sources.append(ImportSource(url: try await PageSources.pdf(for: url))) }
+            } catch {
+                isWorking = false
+                errorMessage = error.localizedDescription
+                return
+            }
+            isWorking = false
+            importPages(sources, before: after + 1)
+        }
     }
 
     /// Supplies the password a pending import asked for and tries again.

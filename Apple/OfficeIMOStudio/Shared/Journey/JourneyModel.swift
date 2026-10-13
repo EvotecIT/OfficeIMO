@@ -114,6 +114,19 @@ final class JourneyModel {
         let combinedPages = try await EngineDocument.open(combined).facts().pages.count
         record("combine PDFs", combineTime, combinedPages == count * 2, "\(combinedPages) page(s)")
 
+        // A PDF, an image and a Markdown note combine as one PDF: the image becomes a page, the note is converted.
+        let pageImage = folders.journey.appending(path: "page.png")
+        try await EngineDocument.open(first).renderPage(1, scale: 1).png.write(to: pageImage)
+        let note = folders.journey.appending(path: "note.md")
+        try Data("# Notes\n\nCombined with the page image.\n".utf8).write(to: note)
+        let mixed = folders.journey.appending(path: "combined-mixed.pdf")
+        try? FileManager.default.removeItem(at: mixed)
+        let (_, mixedTime) = try await measure {
+            try await DocumentActions.combine([first, pageImage, note], names: ["first.pdf", "page.png", "note.md"], into: mixed)
+        }
+        let mixedPages = try await EngineDocument.open(mixed).facts().pages.count
+        record("combine PDF, image and document", mixedTime, mixedPages >= count + 2, "\(mixedPages) page(s)")
+
         let extracted = folders.journey.appending(path: "extracted.pdf")
         try? FileManager.default.removeItem(at: extracted)
         let (_, extractTime) = try await measure { try await DocumentActions.extract("1", from: first, named: "first.pdf", into: extracted) }

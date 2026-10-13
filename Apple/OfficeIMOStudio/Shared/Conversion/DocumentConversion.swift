@@ -55,3 +55,45 @@ enum DocumentConversion {
         return (output, result)
     }
 }
+
+/// Files that become pages, when inserting pages or combining files: a PDF as it is, an image as a page with its
+/// text recognized on this device, and a Word, Excel, PowerPoint or other document converted by the engine.
+enum PageSources {
+    /// The extensions of the documents the engine converts, known without asking it, for Shortcuts' fixed file types.
+    static let documentExtensions = ["doc", "docx", "docm", "dotx", "dotm", "xlsx", "xlsm", "xltx", "xltm", "pptx", "pptm", "potx",
+                                     "potm", "ppsx", "ppsm", "rtf", "txt", "md", "markdown", "html", "htm", "xps", "oxps", "vsdx",
+                                     "vdx", "odg", "fodg", "pub", "chm", "djvu", "djv"]
+
+    /// PDFs, images and the documents above, as file types.
+    static var contentTypes: [UTType] {
+        [.pdf, .image] + DocumentConversion.types(for: Set(documentExtensions))
+    }
+
+    /// A PDF of the file: the file itself, or a new PDF in the app's temporary folder.
+    static func pdf(for url: URL) async throws -> URL {
+        let name = url.lastPathComponent
+        let type = UTType(filenameExtension: url.pathExtension)
+        if type?.conforms(to: .pdf) == true { return url }
+        if type?.conforms(to: .image) == true {
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            guard let image = ScanBuilder.image(from: try Data(contentsOf: url)) else {
+                throw PageSourceProblem(message: String(localized: "“\(name)” isn’t an image OfficeIMO Studio can read."))
+            }
+            return try await ScanBuilder.makePDF(from: [image], named: url.deletingPathExtension().lastPathComponent)
+        }
+        do {
+            return try await DocumentConversion.convert(url).url
+        } catch let error as EngineError where error.status == .unsupported {
+            throw PageSourceProblem(message: String(localized: "“\(name)” isn’t a format OfficeIMO Studio converts to PDF."))
+        }
+    }
+}
+
+/// A file that can't become pages, said in the app's windows and in Shortcuts.
+struct PageSourceProblem: LocalizedError, CustomLocalizedStringResourceConvertible {
+    let message: String
+
+    var errorDescription: String? { message }
+    var localizedStringResource: LocalizedStringResource { "\(message)" }
+}
