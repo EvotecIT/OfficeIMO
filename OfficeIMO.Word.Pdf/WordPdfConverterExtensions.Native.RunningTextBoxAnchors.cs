@@ -38,7 +38,8 @@ public static partial class WordPdfConverterExtensions {
             ResolveNativeParagraphAlign(paragraph, allowJustify: false) != PdfCore.PdfAlign.Left) return false;
         options?.CancellationToken.ThrowIfCancellationRequested();
         List<WordTextBox> boxes = runs.SelectMany(run => run.GetTextBoxes()).ToList();
-        if (boxes.Count == 0) return false;
+        if (boxes.Count == 0 || boxes.Count > 1 &&
+            boxes.Any(box => box.Anchor?.AllowOverlap?.Value != true)) return false;
 
         var surrounding = new List<WordParagraph>();
         foreach (WordParagraph run in runs) {
