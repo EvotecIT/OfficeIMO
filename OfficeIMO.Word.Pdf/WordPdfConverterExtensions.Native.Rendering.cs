@@ -108,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.Bookmark(paragraph.Bookmark!.Name!);
             }
 
-            List<WordTextBox> textBoxes = runs.SelectMany(run => run.GetTextBoxes()).ToList();
+            List<WordTextBox> textBoxes = GetNativeVisibleTextBoxes(paragraph, runs);
             if (textBoxes.Count > 0) {
                 if (TryRenderNativeAnchoredRunningTextBoxParagraph(pdf, paragraph, runs, marker,
                         footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) return;
@@ -817,7 +817,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static WordTextBox? FindNativeParagraphTextBox(WordParagraph paragraph) {
-            return GetNativeRuns(paragraph).Select(run => run.TextBox).FirstOrDefault(textBox => textBox != null);
+            return GetNativeVisibleTextBoxes(paragraph, GetNativeRuns(paragraph)).FirstOrDefault();
         }
 
         private static string? GetNativeParagraphTextBoxPlainText(WordParagraph paragraph) {
@@ -855,7 +855,7 @@ namespace OfficeIMO.Word.Pdf {
                 for (int index = 0; index < paragraphs.Count; index++) {
                     WordParagraph paragraph = paragraphs[index];
                     List<WordParagraph> runs = GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
-                    if (runs.Any(run => run.GetTextBoxes().Any())) {
+                    if (GetNativeVisibleTextBoxes(paragraph, runs).Count > 0) {
                         RenderNativeMixedTextBoxes(new NativePdfColumnFlow(contentBuilder, pdf.PageSize),
                             paragraph, runs, getMarker(paragraph), getMarker, footnoteNumbersById,
                             options, nativeDefaults, nativeFontMap, depth);
