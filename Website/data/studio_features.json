@@ -239,11 +239,11 @@
           "detail": "Text fields, check boxes, radio buttons and choices",
           "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "windows": "Tab order and XFDF import and export.",
-            "linux": "Tab order and XFDF import and export.",
-            "mac": "Tab between fields and AutoFill.",
-            "ipad": "Keyboard, Scribble with Apple Pencil and AutoFill.",
-            "iphone": "Keyboard and AutoFill."
+            "windows": "Tab order and XFDF import and export. Reader-extended forms with fill-in rights use appended revisions; hybrid XFA data stays unchanged.",
+            "linux": "Tab order and XFDF import and export. Reader-extended forms with fill-in rights use appended revisions; hybrid XFA data stays unchanged.",
+            "mac": "Tab between fields and AutoFill. Reader-extended forms with fill-in rights use appended revisions; hybrid XFA data stays unchanged.",
+            "ipad": "Keyboard, Scribble with Apple Pencil and AutoFill. Reader-extended forms with fill-in rights use appended revisions; hybrid XFA data stays unchanged.",
+            "iphone": "Keyboard and AutoFill. Reader-extended forms with fill-in rights use appended revisions; hybrid XFA data stays unchanged."
           }
         },
         {

@@ -282,6 +282,10 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         bool hasSignatureContent = security.SignatureFieldCount > 0 || security.SignatureCount > 0 || security.HasByteRange;
+        // Reader-extension (UR/UR3) signatures cover the original bytes and grant viewers the
+        // listed rights for later revisions. A form value revision stays within a /Form /FillIn
+        // grant; every other append-only change would exceed the rights and stays blocked.
+        bool usageRightsFormFillIn = AllowsUsageRightsFormFillIn(security);
         if (security.HasUsageRights) {
             commonBlockers.Add("UsageRights");
         }
@@ -295,7 +299,9 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         metadataBlockers.AddRange(commonBlockers);
-        formBlockers.AddRange(commonBlockers);
+        formBlockers.AddRange(usageRightsFormFillIn
+            ? commonBlockers.Where(static blocker => blocker != "UsageRights")
+            : commonBlockers);
         signaturePreparationBlockers.AddRange(commonBlockers);
         longTermValidationBlockers.AddRange(commonBlockers);
         pageAttributeBlockers.AddRange(commonBlockers.Where(static blocker => blocker != "Encrypted"));
@@ -313,13 +319,15 @@ internal static partial class PdfIncrementalUpdater {
 
         if (hasSignatureContent) {
             metadataBlockers.Add("Signed");
-            if (!CanAppendFormFieldsWithDocMDP(security, null)) {
+            if (usageRightsFormFillIn) {
+                warnings.Add("UsageRightsFormFillIn");
+            } else if (!CanAppendFormFieldsWithDocMDP(security, null)) {
                 formBlockers.Add("Signed");
             } else {
                 warnings.Add("SignedDocMDPFormFill");
             }
 
-            if (!security.HasDocMDPPermissions) {
+            if (!security.HasDocMDPPermissions && !usageRightsFormFillIn) {
                 warnings.Add("SignedApprovalAnnotationChange");
             }
         }
@@ -384,7 +392,7 @@ internal static partial class PdfIncrementalUpdater {
             signaturePreparationBlockers.Add("DocMDP");
         } else if (blockedBySignatureFieldLock) {
             signaturePreparationBlockers.Add("SignatureFieldLock");
-        } else if (hasSignatureContent) {
+        } else if (hasSignatureContent && !usageRightsFormFillIn) {
             warnings.Add("SignedAdditionalSignature");
         }
 
@@ -432,6 +440,9 @@ internal static partial class PdfIncrementalUpdater {
             blockers,
             warnings.Distinct(StringComparer.Ordinal).ToArray());
     }
+
+    internal static bool AllowsUsageRightsFormFillIn(PdfDocumentSecurityInfo security) =>
+        security.HasOnlyUsageRightsSignatures && security.UsageRightsAllowFormFillIn;
 
     private static bool CanAppendFormFieldsWithDocMDP(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
         if (!security.HasDocMDPPermissions ||

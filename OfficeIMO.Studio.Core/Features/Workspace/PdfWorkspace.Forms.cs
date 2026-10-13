@@ -34,14 +34,15 @@ internal sealed partial class PdfWorkspace {
             bytes => LoadDocument(bytes).Forms.Edit(edit => edit.SetTabOrder(pageNumber, order)).ToBytes(), token, progress);
 
     internal Task FillFormFieldsAsync(IReadOnlyDictionary<string, PdfFormFieldValue> values,
-        CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
+        CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null,
+        PdfFormXfaHandling xfaHandling = PdfFormXfaHandling.Preserve) {
         var snapshot = values.ToDictionary(pair => pair.Key, pair => PdfFormFieldValue.FromValues(pair.Value.Values), StringComparer.Ordinal);
         return MutateBytesAsync(PdfWorkspaceOperationKind.FormFill, "Applied form field edits", [], bytes => {
             var document = LoadDocument(bytes);
             var plan = document.PlanMutation(PdfMutationOperation.FillFormFields, snapshot.Keys);
             return (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly
                 ? document.Forms.AppendRevision(snapshot, new PdfIncrementalFormFieldUpdateOptions {
-                    GenerateAppearanceStreams = true, KeepNeedAppearances = false
+                    GenerateAppearanceStreams = true, KeepNeedAppearances = false, XfaHandling = xfaHandling
                 }) : document.Forms.Fill(snapshot)).ToBytes();
         }, cancellationToken, progress);
     }

@@ -134,7 +134,8 @@ internal sealed partial class StudioNativeDocument : IDisposable {
                     boxes[number] = new StudioNativeRectangle(region.Quad.Left, region.Quad.Top, region.Quad.Width, region.Quad.Height);
             }
             var fields = new List<StudioNativeFormField>();
-            foreach (PdfFormField field in snapshot.Inspect().FormFields) {
+            PdfDocumentInfo info = snapshot.Inspect();
+            foreach (PdfFormField field in info.FormFields) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(field.Name)) continue;
                 var widgets = field.Widgets
@@ -150,13 +151,16 @@ internal sealed partial class StudioNativeDocument : IDisposable {
                     field.IsReadOnly, field.IsRequired, field.IsMultiline, field.IsPassword, field.IsComb, field.MaxLength,
                     field.AllowsMultipleSelection, field.IsEditableChoice, field.AlternateName, widgets));
             }
-            return new StudioNativeFormFields(StudioNativeAbi.Version, _workspace.Revision, pageNumber, _workspace.CanFillForms, fields);
+            return new StudioNativeFormFields(StudioNativeAbi.Version, _workspace.Revision, pageNumber, _workspace.CanFillForms,
+                info.AcroFormXfa is not null, fields);
         } finally { _gate.Release(); }
     }
 
     /// <summary>
     /// Sets form field values as one undoable change: text, the selected options of a choice, or the on state of a check
     /// box or radio button ("Off" to clear it). A signed or certified document takes the values as an appended revision.
+    /// A form that also carries Adobe XFA data keeps it unchanged unless the request removes it; removing it lets Adobe
+    /// Acrobat use the AcroForm values and can invalidate Adobe Reader's extended rights for the changed form.
     /// </summary>
     internal Task FillFormAsync(StudioNativeFormFill request, CancellationToken cancellationToken) {
         IReadOnlyDictionary<string, IReadOnlyList<string>> values = request.Values is { Count: > 0 } given
@@ -172,7 +176,8 @@ internal sealed partial class StudioNativeDocument : IDisposable {
                 if (field.IsSignatureField || field.IsPushButton) throw new ArgumentException($"The field “{name}” doesn't take a value.", nameof(request));
                 fill[name] = PdfFormFieldValue.FromValues(fieldValues ?? []);
             }
-            return _workspace.FillFormFieldsAsync(fill, cancellationToken);
+            return _workspace.FillFormFieldsAsync(fill, cancellationToken,
+                xfaHandling: request.RemoveXfa ? PdfFormXfaHandling.Remove : PdfFormXfaHandling.Preserve);
         }, cancellationToken);
     }
 
@@ -650,9 +655,9 @@ internal sealed record StudioNativeFormField(string Name, string Kind, IReadOnly
     bool ReadOnly, bool Required, bool Multiline, bool Password, bool Comb, int? MaxLength, bool MultipleSelection, bool Editable, string? Label,
     IReadOnlyList<StudioNativeFormWidget> Widgets);
 
-internal sealed record StudioNativeFormFields(int AbiVersion, long Revision, int Page, bool CanFill, IReadOnlyList<StudioNativeFormField> Fields);
+internal sealed record StudioNativeFormFields(int AbiVersion, long Revision, int Page, bool CanFill, bool HasXfa, IReadOnlyList<StudioNativeFormField> Fields);
 
-internal sealed record StudioNativeFormFill(IReadOnlyDictionary<string, IReadOnlyList<string>>? Values);
+internal sealed record StudioNativeFormFill(IReadOnlyDictionary<string, IReadOnlyList<string>>? Values, bool RemoveXfa = false);
 
 internal sealed record StudioNativeSearchableResult(int AbiVersion, int Pages, int Words, long Revision);
 

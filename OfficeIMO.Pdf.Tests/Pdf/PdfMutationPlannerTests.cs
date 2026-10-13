@@ -94,7 +94,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void ActiveContentBlocksMetadataAndFormFillUntilItCanBePreservedSafely() {
+    public void ActiveContentBlocksMetadataButFormFillAppendsAndPreservesIt() {
         byte[] metadataSource = WithCatalogAction(
             PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Active metadata source")).ToBytes());
         byte[] formSource = WithCatalogAction(
@@ -114,12 +114,18 @@ public class PdfMutationPlannerTests {
 
         Assert.False(metadataPlan.CanExecute);
         Assert.False(metadataPlan.AppendOnlyAvailable);
-        Assert.False(formPlan.CanExecute);
-        Assert.Equal(PdfMutationExecutionMode.Blocked, formPlan.ExecutionMode);
-        Assert.False(formPlan.AppendOnlyAvailable);
         Assert.False(metadataResult.Succeeded);
-        Assert.False(formResult.Succeeded);
-        Assert.Contains(formPlan.BlockerCodes, static code => code == "FullRewrite.OpenActions");
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, formPlan.ExecutionMode);
+        Assert.False(formPlan.FullRewriteAvailable);
+        Assert.Contains("Input.ActiveContentPreserved", formPlan.Warnings);
+        Assert.True(formResult.Succeeded, string.Join(" ", formResult.Diagnostics));
+        byte[] filled = formResult.Value!.ToBytes();
+        Assert.True(filled.AsSpan(0, formSource.Length).SequenceEqual(formSource));
+        PdfDocumentInfo filledInfo = PdfInspector.Inspect(filled);
+        Assert.Equal("after", filledInfo.FormFieldsByName["Account"].Value);
+        PdfDocumentProbe filledProbe = PdfInspector.Probe(filled);
+        Assert.True(filledProbe.HasOpenActions);
+        Assert.True(filledProbe.HasActiveContent);
     }
 
     [Fact]

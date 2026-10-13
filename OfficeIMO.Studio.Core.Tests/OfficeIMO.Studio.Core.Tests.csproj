@@ -17,5 +17,6 @@
           Link="Fixtures/openpreserve-pdfa1b-text.pdf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/MultilingualLayout/latin-0-native.pdf"
           Link="Fixtures/latin-0-native.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/OcrQuality/fw9.pdf" Link="Fixtures/fw9.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -2258,6 +2258,38 @@ PdfDocument.Load("application-form.pdf")
     .Save("application-form-filled.pdf");
 ```
 
+`Forms.FillResult` chooses the revision itself. When a full rewrite would break a
+signature, it appends the values as a new revision after the original bytes. This
+covers certified forms whose DocMDP level allows fill-in, and Reader-extended forms
+such as IRS and other government forms whose only signature is a usage-rights
+(`/UR3`) signature granting `/Form /FillIn`. Other changes to those forms stay
+blocked. Existing JavaScript and other actions are kept unchanged, and the plan
+reports `Input.ActiveContentPreserved`. On a hybrid AcroForm/XFA form the revision
+fills the AcroForm fields and reports `Input.XfaDataNotSynchronized`, because
+XFA-aware viewers such as Adobe Acrobat may keep showing the unchanged XFA data.
+Set `XfaHandling` to remove the XFA packet in the appended revision so XFA-aware
+viewers can use the AcroForm values. Removal can invalidate Adobe Reader usage
+rights; preserving the original signed bytes does not establish viewer acceptance
+of the changed form. Certified forms retain their XFA packet: removing it changes
+the form definition and is refused under DocMDP.
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocument form = PdfDocument.Load("fw9.pdf");
+var values = new Dictionary<string, PdfFormFieldValue> {
+    ["topmostSubform[0].Page1[0].f1_01[0]"] = PdfFormFieldValue.From("Adele Vance")
+};
+PdfMutationPlan plan = form.PlanMutation(PdfMutationOperation.FillFormFields, values.Keys);
+Console.WriteLine($"{plan.ExecutionMode}: {string.Join(", ", plan.Warnings)}");
+
+form.Forms.AppendRevision(values, new PdfIncrementalFormFieldUpdateOptions {
+    GenerateAppearanceStreams = true,
+    KeepNeedAppearances = false,
+    XfaHandling = PdfFormXfaHandling.Remove
+}).Save("fw9-filled.pdf");
+```
+
 For an interactive editor, `PdfFormFieldValueAssessment.Assess(field, value)` checks
 the proposed value against declared field metadata before applying it. It reports
 read-only fields, scalar/multiple-value conflicts, text length, radio clearing,

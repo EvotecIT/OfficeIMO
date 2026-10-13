@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO for AI agents"
-description: "Add OfficeIMO's MCP server, plugin and Agent Skills to Claude, Codex, GitHub Copilot, Cursor and other agents to inspect, search and convert local documents and mail."
+description: "Add OfficeIMO's MCP server, plugin and skills to Claude, Codex, GitHub Copilot, Cursor and other agents to inspect, search and convert local documents and mail."
 meta.seo_title: "OfficeIMO for AI agents: MCP server, plugin and skills"
 layout: application
 meta.application: "agents"
