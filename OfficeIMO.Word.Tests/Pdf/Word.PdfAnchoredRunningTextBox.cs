@@ -153,6 +153,8 @@ public partial class Word {
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
         DW.Anchor anchor = document.Sections[1].Header!.First!.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).Single();
+        // Foreground fill and outline must clear the body, including stroke ink.
+        anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
         Wps.ShapeProperties shape = anchor.Descendants<Wps.ShapeProperties>().Single();
         shape.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = "FFFF00" }), true);
         shape.AddChild(new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" })) {
@@ -168,7 +170,7 @@ public partial class Word {
         using var controlPdf = PdfPigDocument.Open(control.ToPdfBytes(EmptyRunningOptions()));
         Page page = pdf.GetPage(2);
         const double width = 468D * 0.585D;
-        const double height = 648D * 0.2D;
+        const double height = 648D * 0.08D;
         const double left = (612D - width) / 2D;
         var frames = page.Paths.Where(path => path.GetBoundingRectangle() is { } bounds &&
             Math.Abs(bounds.Left - left) < 0.001D && Math.Abs(bounds.Top - (792D - 14.4D)) < 0.001D &&
