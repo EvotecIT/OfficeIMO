@@ -121,6 +121,27 @@ public partial class Word {
         Assert.Equal(before, AnchoredRunningStoryXml(document));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_ObjectOnlyRunningTextBoxReportsBoundedFlowBeforeSerialization(bool nonRectangular) {
+        using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
+        W.Header header = document.Sections[1].Header!.First!._header!;
+        foreach (W.Text text in header.Descendants<W.Text>()
+            .Where(text => !text.Ancestors<W.TextBoxContent>().Any()).ToArray()) text.Remove();
+        if (nonRectangular)
+            header.Descendants<A.PresetGeometry>().Single().Preset = A.ShapeTypeValues.RoundRectangle;
+        Assert.Empty(header.Descendants<W.Text>().Where(text => !text.Ancestors<W.TextBoxContent>().Any()));
+        string[] before = AnchoredRunningStoryXml(document);
+
+        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        foreach (string token in new[] { "BOX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
+        Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
+        Assert.Equal(before, AnchoredRunningStoryXml(document));
+    }
+
     [Fact]
     public void SaveAsPdf_SingleNonOverlapAnchorsInDistinctInheritedVariantsRemainIndependent() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
