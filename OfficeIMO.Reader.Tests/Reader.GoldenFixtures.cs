@@ -10,6 +10,7 @@ using OfficeIMO.Epub;
 using OfficeIMO.Zip;
 using System.Globalization;
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -208,8 +209,9 @@ public sealed class ReaderGoldenFixtureTests {
         return Path.Combine(expectedFolder, fixtureName + ".snapshot.txt");
     }
 
-    private static string GetTestsProjectRoot() {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+    private static string GetTestsProjectRoot([CallerFilePath] string sourceFile = "") {
+        string? sourceDirectory = Path.GetDirectoryName(sourceFile);
+        var dir = new DirectoryInfo(Directory.Exists(sourceDirectory) ? sourceDirectory! : AppContext.BaseDirectory);
         while (dir != null) {
             var candidate = Path.Combine(dir.FullName, "OfficeIMO.Reader.Tests.csproj");
             if (File.Exists(candidate)) {
@@ -219,7 +221,7 @@ public sealed class ReaderGoldenFixtureTests {
             dir = dir.Parent;
         }
 
-        throw new DirectoryNotFoundException("Could not locate OfficeIMO.Tests project root from test runtime base directory.");
+        throw new DirectoryNotFoundException("Could not locate OfficeIMO.Reader.Tests project root from the source or test runtime directory.");
     }
 
     private static MemoryStream BuildZipFixtureStream() {
