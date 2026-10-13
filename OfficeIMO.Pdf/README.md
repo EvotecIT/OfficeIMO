@@ -1294,6 +1294,131 @@ actual progression axis. For OCR providers that merge columns into one line, opt
 The [Pango/Cairo layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md)
 records exact fixture coverage and recognition limits.
 
+### Rotate pages and change page boxes
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocument source = PdfDocument.Load("packet.pdf");
+PdfOperationResult<PdfDocument> rotation = source.Pages.RotateResult(90, "1,3-5");
+PdfDocument rotated = rotation.RequireValue();
+Console.WriteLine(rotation.MutationPlan!.ExecutionMode);
+foreach (string reason in rotation.MutationPlan.Diagnostics) {
+    Console.WriteLine(reason);
+}
+rotated.Save("packet-rotated.pdf");
+
+PdfOperationResult<PdfDocument> crop = rotated.Pages.SetPageBoxResult(
+    PdfPageBoundaryBox.CropBox, 20, 20, 575, 822, PdfPageSelection.From(1));
+crop.RequireValue().Save("packet-cropped.pdf");
+```
+
+Rotation sets an absolute angle in multiples of 90 degrees, normalized to
+0, 90, 180, or 270. A page that inherits rotation receives its own override;
+other pages keep their rotation. `Pages.Rotate(...)` provides the same behavior
+when you only need the resulting document.
+
+Use `Pages.RotateBy(90, 1, 3)` to turn pages relative to their current effective
+rotation. Repeated clockwise turns advance through 90, 180, 270, and 0 degrees.
+Each selected page resolves its own inherited angle, and an append-only turn
+writes all selected page overrides in one revision. Studio's rotate buttons and
+native engine use this relative-turn behavior.
+
+Selectors such as `"odd"`, `"last"`, and `PdfPageSelection` work with
+`RotateBy` and `RotateByResult`. Use an ordered batch for several corrections:
+
+```csharp
+PdfOperationResult<PdfDocument> edits = source.Pages.ApplyAttributesResult(new[] {
+    PdfPageAttributeEdit.RotateBy(90, PdfPageSelection.From(1, 3)),
+    PdfPageAttributeEdit.CropMargins(20, 20, 20, 20),
+});
+edits.RequireValue().Save("packet-edited.pdf");
+```
+
+Each edit sees the geometry produced by the preceding edits. The batch validates
+and writes once; a failed or cancelled batch leaves the source document unchanged.
+`ApplyAttributesResult` accepts a cancellation token for planning, writing, and
+output readback; requested cancellation throws `OperationCanceledException`.
+
+Rotation and page-box setters use a full rewrite when supported. When source
+preservation prevents rewriting, they can append a revision containing only the
+changed page dictionaries and cross-reference data. This supports cross-reference
+streams, object streams, and tagged PDFs while retaining every original byte and
+the structure tree. The appended cross-reference section follows the final source
+section's format and links to it through `/Prev`. The operation result exposes
+the selected route, reasons, and blockers.
+
+`SetPageBoxResult` supports `MediaBox`, `CropBox`, `TrimBox`, `BleedBox`, and
+`ArtBox`; convenience methods include `SetCropBox` and `SetMediaBox`. Coordinates
+are in PDF page space. Setting a box leaves source content in the file.
+`PdfPageAttributeEdit.CropMargins` measures physical points (1/72 inch) from the
+displayed left, bottom, right, and top edges. It accounts for inherited rotation,
+page-box origins, and `/UserUnit`. `ResetCrop` restores the current media box.
+Studio's margin crop and reset use these page-box edits and create one undoable
+operation for all selected pages. Hidden content remains recoverable.
+`CropAndTranslate` also changes content and annotation geometry, so it requires
+a supported full rewrite.
+
+Append-only page attributes retain the bytes covered by earlier approval
+signatures. Signature trust and later-change policy remain separate validation
+results. Certification/DocMDP restrictions forbid rotation and page-box changes
+at every permission level; password permissions and usage rights also apply.
+Deleting, reordering, inserting, and duplicating pages use their own preservation
+checks. Page attributes preserve existing tags, but changing page geometry does not by itself establish PDF/A or
+PDF/UA conformance; validate the saved artifact against the required profile.
+
+Deletion, reordering, and duplication can normalize cross-reference and object
+streams through a full rewrite when the remaining document structures can be
+preserved. The plan reports `Input.CrossReferenceAndObjectStreamsWillBeNormalized`.
+These operations do not use the page-attribute append-only route.
+
+Tagged page organization uses a catalog-preserving full rewrite. `Delete`,
+`Reorder`, `Move`, `Duplicate`, `Extract`, and `Split` retain surviving structure
+elements and update page ownership, parent-tree entries, IDs, fields and navigation.
+Copies receive separate page objects, structure elements, parent-tree keys and IDs,
+including across successive copy operations. Marked-content references retain
+their ownership whether their optional `/Type /MCR` entry is present or omitted.
+`ReorderWithMapping` returns mappings for surviving original objects, including
+annotations used by a host's selection state. The operation plan reports
+`OrganizePages` and the required structure, form and annotation readback proofs.
+
+`Insert`, `Append` and `Prepend` use `ImportPages` when combining tagged page
+graphs. The target catalog and metadata remain, imported structure keys and IDs
+are made distinct across successive imports, and role/class mappings are
+namespaced. Imported structure roots retain their source language inheritance
+and explicit language overrides. Incoming form fields,
+layers, document name trees other than destinations, and unknown structure-root
+extensions need explicit collision policies and currently fail with a specific
+error. XFA, ambiguous ownership and unsupported surviving references to deleted
+pages also fail before an output is adopted. Untagged content cannot be inserted
+into a declared PDF/UA document without accessible tagging. These operations do
+not infer a new semantic reading order for structure groups spanning several
+pages. Import retains the target's metadata and color policy; it does not embed
+missing fonts or reconcile conformance requirements for arbitrary incoming pages.
+Validate accessibility and the declared conformance profile on the saved
+artifact. The broad `ModifyPageTree` gate remains for other writers, including
+content-changing crop and resize operations.
+
+Use `Pages.NormalizeRotation()` to remove saved quarter-turn rotation while
+keeping the pages' displayed appearance. Pass `PdfPageSelection.From(1, 3)` to
+normalize selected pages, or use `NormalizeRotationResult` for the execution
+plan. Normalization performs a full rewrite of the catalog-rooted graph: it
+transforms content, boundary boxes, page pattern matrices, annotation appearances,
+destinations, and page-associated tag layout bounds, then sets each selected page's `/Rotate` to
+zero. Text and vector content remain editable, and cropped content remains in
+the file. `/UserUnit`, tagged content, metadata, and standard AcroForm fields
+are retained. Signed, certified, and usage-rights documents keep their rewrite
+restrictions. Unsigned signature placeholders are retained, including invisible
+widgets. Destination coordinates and fit axes follow the transformed default
+page coordinate system; nullable coordinates and zoom values remain nullable.
+Visible annotations require readable appearances; unassociated
+tag layout bounds and shared page annotations produce explicit errors.
+
+PDF page rotation is clockwise. Rendering, search results, interaction regions,
+and visual-coordinate APIs use the same crop-, rotation-, and `/UserUnit`-aware
+mapping. View-only rotation in Studio changes presentation and does not change
+the saved `/Rotate` value.
+
 ### Split and extract pages
 
 ```csharp
@@ -2581,7 +2706,7 @@ Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 ```
 
 The strict PDF quality scorecard runs every public inspection and semantic stage,
-the complete 21-operation mutation portfolio, managed rendering, and declared
+the complete mutation portfolio, managed rendering, and declared
 compliance claim gating against hash-pinned Open Preservation Foundation and
 veraPDF fixtures. The real-world corpus lane applies the same deep PDF stages to
 a deterministic sample of a checksum-pinned public GovDocs archive in isolated

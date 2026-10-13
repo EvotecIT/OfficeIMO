@@ -30,5 +30,8 @@ public enum PdfMutationCapabilityKind {
     SignatureChanges,
 
     /// <summary>Executable catalog, page, annotation, or form actions.</summary>
-    ActiveContentChanges
+    ActiveContentChanges,
+
+    /// <summary>Page dictionary rotation and boundary boxes without page membership or content changes.</summary>
+    PageAttributeChanges
 }

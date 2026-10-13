@@ -26,6 +26,7 @@ The `Shared` folder is synchronized with both targets, so new files need no proj
 | `Shared/Views` | The document window, toolbar, page list, Pages task and inspector. |
 | `Shared/Conversion` | Converting Word, Excel, PowerPoint and other documents to PDF with the engine, from the launch screen, the File menu and Shortcuts. |
 | `Shared/Forms` | Filling form fields in the Read task: the engine's fields per page, the text, check box, radio and choice editors over the page in UIKit and AppKit, and each value as one undoable change. |
+| `Shared/Signatures` | Handwritten signatures kept on the device, the pad for drawing one, and placing one on a page as ink. |
 | `Shared/Intents` | Shortcuts actions and their Siri and Spotlight phrases, over `DocumentActions`, which the unattended journey also runs. |
 | `Shared/Printing` | Printing the engine's page renderings through the system print panel and sheet. |
 | `Shared/Scan` | Scanning paper into a searchable PDF: the VisionKit document camera and the photo picker on iPad and iPhone, image files and Continuity Camera on the Mac, and Vision text recognition passed to the engine. |

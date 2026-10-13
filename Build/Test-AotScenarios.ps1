@@ -42,7 +42,11 @@ $scenarios = @(
     [ordered]@{ id = 'reader-all'; title = 'Reader all-formats registration and representative extraction'; project = 'OfficeIMO.Reader.All.AotSmoke/OfficeIMO.Reader.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
     [ordered]@{ id = 'html-pdf-image'; title = 'HTML to SVG, PNG, and searchable PDF'; project = 'OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj' },
     [ordered]@{ id = 'officeimo-tool'; title = 'Unified production CLI startup and command discovery'; project = 'OfficeIMO.Tool/OfficeIMO.Tool.csproj'; targetFramework = 'net10.0'; aotValidation = $true; runArguments = @('--help') },
-    [ordered]@{ id = 'studio-engine-library'; title = 'Studio engine shared library: open, render, rotate, undo, redo and save through its C interface'; project = 'OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj'; targetFramework = 'net10.0'; nativeLibrary = 'OfficeIMOStudioEngine'; journey = 'OfficeIMO.Studio.Native/Test-NativeEngine.ps1'; fixture = 'OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf' }
+    [ordered]@{ id = 'studio-engine-library'; title = 'Studio engine shared library: open, render, rotate, undo, redo and save through its C interface'; project = 'OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj'; targetFramework = 'net10.0'; nativeLibrary = 'OfficeIMOStudioEngine'; journey = 'OfficeIMO.Studio.Native/Test-NativeEngine.ps1'; fixtures = @(
+        'OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf',
+        'OfficeIMO.TestAssets/MultilingualLayout/latin-0-native.pdf',
+        'OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf'
+    ) }
 )
 
 if ($Scenario.Count -gt 0) {
@@ -123,11 +127,17 @@ try {
                 $executablePath = Join-Path $publishPath ($scenarioDefinition.nativeLibrary + $extension)
                 $executableSha256 = (Get-FileHash -LiteralPath $executablePath -Algorithm SHA256).Hash
                 Write-Host "[$($scenarioDefinition.id)] drive the native library through its C interface" -ForegroundColor Cyan
-                $journeyArguments = @('-NoLogo', '-NoProfile', '-File', (Join-Path $RepositoryRoot $scenarioDefinition.journey),
-                    '-Library', $executablePath, '-Pdf', (Join-Path $RepositoryRoot $scenarioDefinition.fixture),
-                    '-WorkDirectory', (Join-Path $artifactRoot ($scenarioDefinition.id + '-journey')))
-                $runOutput = @(& ([Environment]::ProcessPath) @journeyArguments 2>&1)
-                $runExit = $LASTEXITCODE
+                $runOutput = @()
+                $runExit = 0
+                foreach ($fixture in $scenarioDefinition.fixtures) {
+                    $fixtureName = [System.IO.Path]::GetFileNameWithoutExtension($fixture)
+                    $journeyArguments = @('-NoLogo', '-NoProfile', '-File', (Join-Path $RepositoryRoot $scenarioDefinition.journey),
+                        '-Library', $executablePath, '-Pdf', (Join-Path $RepositoryRoot $fixture),
+                        '-WorkDirectory', (Join-Path $artifactRoot ($scenarioDefinition.id + '-journey-' + $fixtureName)))
+                    $runOutput += "Fixture: $fixture"
+                    $runOutput += @(& ([Environment]::ProcessPath) @journeyArguments 2>&1)
+                    if ($LASTEXITCODE -ne 0) { $runExit = $LASTEXITCODE }
+                }
             } else {
                 $executablePath = Join-Path $publishPath ($projectName + $(if ($RuntimeIdentifier -like 'win-*') { '.exe' } else { '' }))
                 $executableSha256 = (Get-FileHash -LiteralPath $executablePath -Algorithm SHA256).Hash

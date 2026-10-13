@@ -129,6 +129,10 @@ struct DocumentToolbar: ToolbarContent {
                 Button("Make Searchable", systemImage: "text.viewfinder") { session.makeSearchable() }
                     .disabled(!session.canMakeSearchable)
             }
+            Section {
+                SignatureMenu(session: session)
+                SecurityCommands(session: session)
+            }
         } label: {
             HStack(spacing: 4) {
                 Text(session.task.title)
@@ -148,7 +152,8 @@ struct DocumentToolbar: ToolbarContent {
             #if os(iOS)
             DocumentShareButton(session: session, fileURL: fileURL)
             #else
-            ShareLink(item: fileURL)
+            ShareLink(item: SharedDocument(session: session, fileURL: fileURL),
+                      preview: SharePreview(fileURL.deletingPathExtension().lastPathComponent))
             #endif
         }
     }

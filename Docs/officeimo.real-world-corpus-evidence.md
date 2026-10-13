@@ -15,7 +15,7 @@ Each report records:
 - every discovered file's size, extension, content hash when read, content kind and confidence, effective kind, stable detection evidence, and separate classification/read timings;
 - exact eligible, duplicate, selected, completed, diagnostic, failure, timeout, and oversize counts;
 - stable diagnostic codes and exception types, without extracted document content or exception messages.
-- per-PDF stage results and timings, logical paragraph and table counts, cross-page continuation counts, font and image facts, first-page managed-render evidence, all 21 mutation plan modes, and declared compliance claim states.
+- per-PDF stage results and timings, logical paragraph and table counts, cross-page continuation counts, font and image facts, first-page managed-render evidence, every mutation plan mode, and declared compliance claim states.
 
 Raw corpus files and generated document content are never uploaded. Source names are withheld by default. The maintained Govdocs1 workflow opts in to its public numeric corpus paths so an observation can be reproduced without rescanning every hash. Reports are retained as workflow artifacts for 30 days.
 

@@ -51,9 +51,13 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("MovePagesDown", "Move selected pages down", "Move selected runs one position toward the end.", "Organize", document.MoveSelectedDownCommand,
             () => Allowed(document.CanMutateSelection), shortcut: StudioShortcutLabels.Format("Alt+↓"));
         Add("RotatePagesLeft", "Rotate selected pages left", "Turn the selected pages 90 degrees counterclockwise.", "Organize", document.RotateLeftCommand,
-            () => Allowed(document.CanMutateSelection));
+            () => Allowed(document.CanRotateSelection));
         Add("RotatePagesRight", "Rotate selected pages right", "Turn the selected pages 90 degrees clockwise.", "Organize", document.RotateRightCommand,
-            () => Allowed(document.CanMutateSelection));
+            () => Allowed(document.CanRotateSelection));
+        Add("NormalizePageRotation", "Normalize saved rotation", "Keep the selected pages' appearance while baking saved rotation into content and page geometry.", "Organize", document.NormalizePageRotationCommand,
+            () => Allowed(document.CanNormalizePageRotation));
+        Add("DetectPageOrientation", "Review page orientation", "Detect suggested corrections, preview them, and accept individual pages before rotating the document.", "Organize", document.DetectPageOrientationCommand,
+            () => Loaded() ?? Infrastructure.StudioOcrProvider.UnavailableReason ?? Allowed(document.CanDetectPageOrientation));
         Add("DuplicatePages", "Duplicate selected pages", "Insert copies of the selected pages after them.", "Organize", document.DuplicateSelectedCommand,
             () => Allowed(document.CanMutateSelection));
         Add("ExtractPages", "Extract selected pages", "Save the selected pages as a new PDF.", "Organize", document.ExtractSelectedCommand,
@@ -63,7 +67,7 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("ImportPages", "Add pages from PDFs", "Insert pages from other PDFs after the current page.", "Organize", document.ImportPagesCommand,
             () => Allowed(document.CanImportPages));
         Add("InsertBlankPage", "Insert a blank page", "Add an empty page after the current page.", "Organize", document.InsertBlankCommand,
-            () => Allowed(document.CanMutatePages));
+            () => Allowed(document.CanImportPages));
         Add("Forms", "Fill and edit forms", "Fill fields or author supported AcroForm controls.", "Edit", document.ShowFormsModeCommand, Loaded, true, workspace: true);
         Add("PreviousFormField", "Previous form field", "Select the previous field and show its page, keeping unapplied values.", "Edit", document.SelectPreviousFormFieldCommand,
             () => Loaded() ?? (!document.HasFormFields ? Text("NoFormFields", "This document has no named form fields.") :
@@ -99,6 +103,9 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("CompareSideBySide", "Compare side by side", "Open another PDF next to this one with synchronized scrolling.", "Review", document.OpenComparisonCommand, Loaded);
         Add("ValidateSignatures", "Validate signatures", "Check the digital signatures in this document and report their status.", "Security", document.ValidateSignaturesCommand, Loaded);
         Add("PageNightMode", "Page night mode", "Show pages with dark backgrounds for low-light reading; the document is unchanged.", "Read", document.TogglePageNightModeCommand, Loaded);
+        Add("RotateViewLeft", "Rotate view left", "Turn the reader view left without changing the PDF.", "Read", document.RotateViewLeftCommand, Loaded);
+        Add("RotateViewRight", "Rotate view right", "Turn the reader view right without changing the PDF.", "Read", document.RotateViewRightCommand, Loaded);
+        Add("ResetViewRotation", "Reset view rotation", "Return the reader to the PDF's saved page orientation.", "Read", document.ResetViewRotationCommand, Loaded);
         Add("Assistant", "Document assistant", "Show or hide the assistant that answers questions about this document.", "Navigate", document.ToggleAssistantCommand);        // Fill and sign: these open the Forms task so the placement hint and the page are where the user expects.
         CommunityToolkit.Mvvm.Input.RelayCommand InForms(System.Windows.Input.ICommand operation, string? parameter = null) => new(() => {
             document.ShowFormsModeCommand.Execute(null);

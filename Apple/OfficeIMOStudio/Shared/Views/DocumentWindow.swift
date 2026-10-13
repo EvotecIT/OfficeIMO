@@ -67,6 +67,12 @@ struct DocumentWindow: View {
                 session.extractedPages = nil
                 if case .failure(let error) = result { session.errorMessage = error.localizedDescription }
             }
+            .sheet(item: $session.securitySheet, onDismiss: { session.presentPendingExport() }) { sheet in
+                SecuritySheetView(session: session, sheet: sheet)
+            }
+            .sheet(isPresented: $session.isCreatingSignature) {
+                SignaturePad(session: session)
+            }
             .fileImporter(isPresented: $session.isChoosingPagesToImport, allowedContentTypes: [.pdf], allowsMultipleSelection: true) { result in
                 switch result {
                 case .success(let urls): session.importPages(from: urls)
@@ -241,7 +247,9 @@ struct ReadView: View {
                                 .transition(.opacity)
                                 .accessibilityHidden(true)
                         }
-                        if session.isSearching || session.searchResult != nil {
+                        if session.pendingSignature != nil {
+                            SigningBanner(session: session)
+                        } else if session.isSearching || session.searchResult != nil {
                             FindBar(session: session)
                         }
                     }
@@ -279,10 +287,14 @@ struct FindBar: View {
         HStack(spacing: 4) {
             Group {
                 if session.isSearching {
-                    ProgressView().controlSize(.small)
-                    Text("Searching…")
-                } else if let index = session.currentHitIndex {
+                    ProgressView(value: session.searchProgress ?? 0)
+                        .progressViewStyle(.circular)
+                        .controlSize(.small)
+                }
+                if let index = session.currentHitIndex, !session.searchHits.isEmpty {
                     Text("\(index + 1) of \(session.searchHits.count)").monospacedDigit()
+                } else if session.isSearching {
+                    Text("Searching…")
                 } else {
                     Text("No Results")
                 }

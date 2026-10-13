@@ -185,9 +185,9 @@ public sealed class StudioAnnotationSelectionTests {
 
     [Theory]
     [InlineData(0, 13, -7)]
-    [InlineData(90, -7, -13)]
+    [InlineData(90, 7, 13)]
     [InlineData(180, -13, 7)]
-    [InlineData(270, 7, 13)]
+    [InlineData(270, -7, -13)]
     public async Task MultiSelectionGestureMapsVisualMovementOnCroppedRotatedPages(int rotation, double expectedX, double expectedY) {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-annotation-geometry-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

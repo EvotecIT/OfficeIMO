@@ -67,7 +67,7 @@ final class DocumentSession {
     private(set) var engine: EngineDocument?
     private(set) var facts: DocumentFacts?
     private(set) var state = LoadState.loading
-    private(set) var isWorking = false
+    var isWorking = false
     var errorMessage: String?
 
     var task = StudioTask.read
@@ -91,6 +91,14 @@ final class DocumentSession {
 
     /// Pages written to a new PDF, waiting for the user to choose where to save them.
     var extractedPages: ExtractedPages?
+    /// A protected or signed copy, offered for saving once the sheet that wrote it closes.
+    var pendingExport: ExtractedPages?
+    /// The protection or signing sheet shown.
+    var securitySheet: SecuritySheet?
+    /// A signature waiting for a tap or click on a page to place it.
+    var pendingSignature: Signature?
+    /// Whether the sheet for drawing a new signature is shown.
+    var isCreatingSignature = false
     /// Whether the panel for choosing PDFs to insert pages from is shown.
     var isChoosingPagesToImport = false
     /// An import waiting for the password of one of its PDFs.
@@ -132,6 +140,8 @@ final class DocumentSession {
     var isSearchFocused = false
     private(set) var searchResult: SearchResult?
     private(set) var isSearching = false
+    /// The share of pages searched while a search runs.
+    private(set) var searchProgress: Double?
     /// The hit shown, as an index into the current result's hits.
     private(set) var currentHitIndex: Int?
     @ObservationIgnored private var searchTask: Task<Void, Never>?
@@ -541,6 +551,8 @@ final class DocumentSession {
     }
 
     /// Finds the search text and shows the first hit at or after the current page.
+    /// Searches the document, showing hits as their pages are searched: the first hit at or after the page in view
+    /// becomes current as soon as it is found. Searching again for the same text keeps the current hit.
     func runSearch() {
         searchTask?.cancel()
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -549,25 +561,56 @@ final class DocumentSession {
             return
         }
         isSearching = true
+        searchProgress = 0
         let startPage = currentPage
+        let isRepeat = searchResult?.query == query
+        let keep = isRepeat ? currentHitIndex : nil
+        if !isRepeat {
+            searchResult = nil
+            currentHitIndex = nil
+        }
+        let (pages, sink) = AsyncStream.makeStream(of: SearchPage.self)
         searchTask = Task {
+            let streaming = Task {
+                var hits: [SearchResult.Hit] = []
+                for await page in pages where !Task.isCancelled {
+                    searchProgress = Double(page.pagesSearched) / Double(max(page.pageCount, 1))
+                    // A repeated search keeps its hits until it completes, so the current one stays put.
+                    guard !isRepeat, !page.hits.isEmpty else { continue }
+                    hits += page.hits
+                    searchResult = SearchResult(query: page.query, revision: page.revision, hits: hits)
+                    if currentHitIndex == nil, let first = hits.firstIndex(where: { $0.page >= startPage }) {
+                        currentHitIndex = first
+                        revealCurrentHit()
+                    }
+                }
+            }
             let result: SearchResult
             do {
-                result = try await engine.search(query)
+                result = try await engine.search(query) { sink.yield($0) }
+                sink.finish()
+                await streaming.value
             } catch {
+                sink.finish()
+                streaming.cancel()
                 if !Task.isCancelled {
                     isSearching = false
+                    searchProgress = nil
                     errorMessage = error.localizedDescription
                 }
                 return
             }
             guard !Task.isCancelled else { return }
             isSearching = false
-            let keep = searchResult?.query == result.query ? currentHitIndex : nil
+            searchProgress = nil
             searchResult = result
-            currentHitIndex = keep.flatMap { result.hits.indices.contains($0) ? $0 : nil }
-                ?? result.hits.firstIndex { $0.page >= startPage } ?? (result.hits.isEmpty ? nil : 0)
-            if keep == nil { revealCurrentHit() }
+            if let keep, result.hits.indices.contains(keep) {
+                currentHitIndex = keep
+            } else if !(currentHitIndex.map(result.hits.indices.contains) ?? false) {
+                // No hit after the page in view: the search wraps to the first.
+                currentHitIndex = result.hits.isEmpty ? nil : 0
+                revealCurrentHit()
+            }
         }
     }
 
@@ -584,6 +627,7 @@ final class DocumentSession {
         searchResult = nil
         currentHitIndex = nil
         isSearching = false
+        searchProgress = nil
     }
 
     /// Scrolls a rectangle of a page, in its displayed points, into view without changing the zoom.

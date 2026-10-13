@@ -131,7 +131,6 @@ public partial class PdfReadStreamTests {
 
         AssertFormBlocked(() => PdfPageExtractor.ExtractPages(form, 1));
         AssertFormBlocked(() => PdfPageExtractor.SplitPages(form));
-        AssertFormBlocked(() => PdfPageEditor.DeletePages(form, 1));
         AssertFormBlocked(() => PdfMetadataEditor.UpdateMetadata(form, title: "Updated"));
         AssertFormPreserved(PdfMerger.Merge(form));
         AssertFormBlocked(() => PdfStamper.StampText(form, "STAMP"));

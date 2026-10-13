@@ -57,11 +57,13 @@
             BorderThickness="1"
             CornerRadius="2"
             BoxShadow="{DynamicResource StudioPageShadow}">
-      <Grid>
+      <LayoutTransformControl LayoutTransform="{Binding ViewRotationTransform}">
+      <Grid Width="{Binding ContentDisplayWidth}" Height="{Binding ContentDisplayHeight}">
         <reader:PdfPageCanvas x:Name="PageCanvas" ContextRequested="OnCanvasContextRequested"
                               AutomationProperties.Name="{Binding PageLabel}"
                               AutomationProperties.HelpText="{loc:Loc PdfPage.KeyboardHelp}"
                               Scene="{Binding Scene}"
+                              ViewRotationDegrees="{Binding ViewRotationDegrees}"
                               SearchHighlights="{Binding SearchHighlights}"
                               ActiveSearchHighlight="{Binding ActiveSearchHighlight}"
                               ActiveSearchHighlights="{Binding ActiveSearchHighlights}"
@@ -129,6 +131,7 @@
           </StackPanel>
         </Border>
       </Grid>
+      </LayoutTransformControl>
     </Border>
 
     <Grid Classes="pageCaption" ColumnDefinitions="Auto,Auto" HorizontalAlignment="Center" MinHeight="22">

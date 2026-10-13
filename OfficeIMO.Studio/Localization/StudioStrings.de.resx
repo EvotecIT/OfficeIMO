@@ -1216,7 +1216,7 @@
     <value>Schließen</value>
   </data>
   <data name="Capability.SignedDocument" xml:space="preserve">
-    <value>Diese PDF enthält Signaturen. Bleiben Sie im Modus „Ansicht“, um die signierten Bytes zu erhalten, oder bearbeiten Sie vor Änderungen eine unsignierte Kopie.</value>
+    <value>Dieses PDF enthält Signaturen. Verfügbar sind nur Aktionen, die die Signaturrichtlinien erlauben.</value>
   </data>
   <data name="Capability.EncryptedDocument" xml:space="preserve">
     <value>Diese PDF ist verschlüsselt. Geben Sie das Eigentümerkennwort unter „Schützen“ ein oder speichern Sie eine zulässige Kopie, bevor Sie den Dokumentinhalt ändern.</value>
@@ -5682,4 +5682,23 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Alle Anmerkungen auswählen</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Abgeschlossen</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Fehlgeschlagen</value></data>
+  <data name="Crop.Reset" xml:space="preserve"><value>Zuschnitt zurücksetzen</value></data>
+  <data name="Crop.VisibilityHint" xml:space="preserve"><value>Zuschneiden blendet die Ränder aus und behält den Seiteninhalt. Zurücksetzen zeigt wieder die ganze Seite.</value></data>
+  <data name="Commands.RotateViewLeft.Title" xml:space="preserve"><value>Ansicht nach links drehen</value></data>
+  <data name="Commands.RotateViewLeft.Description" xml:space="preserve"><value>Die Leseansicht nach links drehen, ohne die PDF zu ändern.</value></data>
+  <data name="Commands.RotateViewRight.Title" xml:space="preserve"><value>Ansicht nach rechts drehen</value></data>
+  <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Die Leseansicht nach rechts drehen, ohne die PDF zu ändern.</value></data>
+  <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Ansichtsdrehung zurücksetzen</value></data>
+  <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Die Leseansicht auf die in der PDF gespeicherte Ausrichtung zurücksetzen.</value></data>
+  <data name="Commands.NormalizePageRotation.Title" xml:space="preserve"><value>Gespeicherte Drehung normalisieren</value></data>
+  <data name="Commands.NormalizePageRotation.Description" xml:space="preserve"><value>Das Aussehen ausgewählter Seiten beibehalten und die gespeicherte Drehung in Inhalt und Seitengeometrie übernehmen.</value></data>
+  <data name="Commands.DetectPageOrientation.Title" xml:space="preserve"><value>Seitenausrichtung prüfen</value></data>
+  <data name="Commands.DetectPageOrientation.Description" xml:space="preserve"><value>Vorgeschlagene Korrekturen erkennen, in der Vorschau prüfen und einzelne Seiten vor dem Drehen bestätigen.</value></data>
+  <data name="Orientation.Hint" xml:space="preserve"><value>Prüfen Sie jede vorgeschlagene Korrektur vor dem Bestätigen. Die Konfidenz hängt vom Anbieter ab; keine Seite wird automatisch ausgewählt.</value></data>
+  <data name="Orientation.Page" xml:space="preserve"><value>Seite {0}: {1}° im Uhrzeigersinn · Konfidenz {2}</value></data>
+  <data name="Orientation.Preview" xml:space="preserve"><value>Vorschau dieser Seite</value></data>
+  <data name="Orientation.Before" xml:space="preserve"><value>Original</value></data>
+  <data name="Orientation.After" xml:space="preserve"><value>Vorgeschlagene Korrektur</value></data>
+  <data name="Orientation.Accept" xml:space="preserve"><value>Korrektur dieser Seite bestätigen</value></data>
+  <data name="Orientation.Apply" xml:space="preserve"><value>Bestätigte Korrekturen anwenden</value></data>
 </root>

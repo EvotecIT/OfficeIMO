@@ -30,6 +30,10 @@ final class TextSelectionView: NSView, NSMenuItemValidation {
     }
 
     override func mouseMoved(with event: NSEvent) {
+        if session.pendingSignature != nil {
+            NSCursor.crosshair.set()
+            return
+        }
         if let kind = forms?.isField(at: convert(event.locationInWindow, from: nil)) {
             (kind == .text ? NSCursor.iBeam : NSCursor.pointingHand).set()
             return

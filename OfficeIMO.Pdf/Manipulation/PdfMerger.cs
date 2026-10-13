@@ -589,7 +589,7 @@ internal static partial class PdfMerger {
                 catalogState,
                 copiedPageObjectIds,
                 cancellationToken);
-        var collector = new PdfPageExtractor.ObjectCollector(objects, pageOverrides, cancellationToken);
+        var collector = new PdfPageExtractor.ObjectCollector(objects, pageOverrides, cancellationToken: cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {
             cancellationToken.ThrowIfCancellationRequested();
             collector.CollectPage(pageObjectNumber);

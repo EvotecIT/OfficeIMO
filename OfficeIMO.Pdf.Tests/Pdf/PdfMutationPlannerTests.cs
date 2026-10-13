@@ -182,7 +182,7 @@ public class PdfMutationPlannerTests {
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfPageEditor.DeletePages(source, 1));
 
-        Assert.Equal(PdfMutationOperation.ModifyPageTree, exception.Plan.Operation);
+        Assert.Equal(PdfMutationOperation.OrganizePages, exception.Plan.Operation);
         Assert.Equal(PdfMutationExecutionMode.Blocked, exception.Plan.ExecutionMode);
         PdfMutationCapabilityRecord pageTree = Assert.Single(
             exception.Plan.CapabilityRecords,
@@ -277,7 +277,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void TryPageImports_UseMergePolicyForFormBearingTarget() {
+    public void TryPageImports_UseImportPolicyForFormBearingTarget() {
         byte[] target = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
         byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
 
@@ -287,7 +287,7 @@ public class PdfMutationPlannerTests {
 
         Assert.All(new[] { appended, prepended, inserted }, result => {
             Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
-            Assert.Equal(PdfMutationOperation.MergeDocuments, result.MutationPlan!.Operation);
+            Assert.Equal(PdfMutationOperation.ImportPages, result.MutationPlan!.Operation);
             Assert.Equal(2, result.RequireValue().Inspect().PageCount);
             Assert.Single(result.RequireValue().Inspect().FormFields, static field => field.Name == "Name");
         });
@@ -329,7 +329,7 @@ public class PdfMutationPlannerTests {
 
         Assert.All(new[] { appended, prepended, inserted }, result => {
             Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
-            Assert.Equal(PdfMutationOperation.MergeDocuments, result.MutationPlan!.Operation);
+            Assert.Equal(PdfMutationOperation.ImportPages, result.MutationPlan!.Operation);
             Assert.DoesNotContain("Output.EncryptionWillBeRemoved", result.MutationPlan.Warnings);
             Assert.True(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
         });
@@ -354,15 +354,14 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void Plan_BlocksPageTreeMutationWhenSourceStructureCannotBePreserved() {
+    public void Plan_NormalizesStreamStructureForSupportedPageTreeRewrites() {
         byte[] source = PdfRewritePreservationTestSupport.BuildSourceStructurePreservationProofPdf();
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.ModifyPageTree);
 
-        Assert.False(plan.CanExecute);
-        Assert.Equal(PdfMutationExecutionMode.Blocked, plan.ExecutionMode);
-        Assert.Contains("FullRewrite.XrefStreamPreservation", plan.BlockerCodes);
-        Assert.Contains("FullRewrite.ObjectStreamPreservation", plan.BlockerCodes);
+        Assert.True(plan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.FullRewrite, plan.ExecutionMode);
+        Assert.Contains("Input.CrossReferenceAndObjectStreamsWillBeNormalized", plan.Warnings);
     }
 
     [Fact]

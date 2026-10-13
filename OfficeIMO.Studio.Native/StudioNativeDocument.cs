@@ -472,8 +472,13 @@ internal sealed class StudioNativeDocument : IDisposable {
             case OfficeWorkflowStatus.Completed: return;
             case OfficeWorkflowStatus.Cancelled: throw new OperationCanceledException(cancellationToken);
             default:
-                throw new InvalidOperationException(result.Diagnostics
-                    .FirstOrDefault(static diagnostic => diagnostic.Severity == OfficeWorkflowDiagnosticSeverity.Error)?.Message ?? result.Summary);
+                string message = result.Diagnostics
+                    .FirstOrDefault(static diagnostic => diagnostic.Severity == OfficeWorkflowDiagnosticSeverity.Error)?.Message ?? result.Summary;
+                // A preservation report lists every difference it found; people need the outcome, not the list.
+                if (message.StartsWith("PDF rewrite preservation failed", StringComparison.Ordinal)) {
+                    message = "The copy wasn't written: OfficeIMO couldn't confirm it would keep everything this document contains, such as its accessibility structure.";
+                }
+                throw new InvalidOperationException(message);
         }
     }
 

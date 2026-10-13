@@ -1186,7 +1186,7 @@
     <value>Close</value>
   </data>
   <data name="Capability.SignedDocument" xml:space="preserve">
-    <value>This PDF contains signatures. Stay in View mode to preserve signed bytes, or work on an unsigned copy before making changes.</value>
+    <value>This PDF contains signatures. Only actions permitted by its signature policy are available.</value>
   </data>
   <data name="Capability.EncryptedDocument" xml:space="preserve">
     <value>This PDF is encrypted. Enter the owner password in Protect, or save a permitted copy before changing document content.</value>
@@ -3030,4 +3030,23 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Select all annotations</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Completed</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Crop.Reset" xml:space="preserve"><value>Reset crop</value></data>
+  <data name="Crop.VisibilityHint" xml:space="preserve"><value>Cropping hides the margins and keeps the page content. Reset crop reveals the full page again.</value></data>
+  <data name="Commands.RotateViewLeft.Title" xml:space="preserve"><value>Rotate view left</value></data>
+  <data name="Commands.RotateViewLeft.Description" xml:space="preserve"><value>Turn the reader view left without changing the PDF.</value></data>
+  <data name="Commands.RotateViewRight.Title" xml:space="preserve"><value>Rotate view right</value></data>
+  <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Turn the reader view right without changing the PDF.</value></data>
+  <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Reset view rotation</value></data>
+  <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Return the reader to the PDF's saved page orientation.</value></data>
+  <data name="Commands.NormalizePageRotation.Title" xml:space="preserve"><value>Normalize saved rotation</value></data>
+  <data name="Commands.NormalizePageRotation.Description" xml:space="preserve"><value>Keep the selected pages' appearance while baking saved rotation into content and page geometry.</value></data>
+  <data name="Commands.DetectPageOrientation.Title" xml:space="preserve"><value>Review page orientation</value></data>
+  <data name="Commands.DetectPageOrientation.Description" xml:space="preserve"><value>Detect suggested corrections, preview them, and accept individual pages before rotating the document.</value></data>
+  <data name="Orientation.Hint" xml:space="preserve"><value>Preview each suggested correction before accepting it. Confidence is provider-specific; no page is selected automatically.</value></data>
+  <data name="Orientation.Page" xml:space="preserve"><value>Page {0}: {1}° clockwise · confidence {2}</value></data>
+  <data name="Orientation.Preview" xml:space="preserve"><value>Preview this page</value></data>
+  <data name="Orientation.Before" xml:space="preserve"><value>Original</value></data>
+  <data name="Orientation.After" xml:space="preserve"><value>Proposed correction</value></data>
+  <data name="Orientation.Accept" xml:space="preserve"><value>Accept this page correction</value></data>
+  <data name="Orientation.Apply" xml:space="preserve"><value>Apply accepted corrections</value></data>
 </root>

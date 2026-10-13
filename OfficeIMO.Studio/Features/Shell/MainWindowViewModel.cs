@@ -131,8 +131,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null,
         bool supportsFolderNavigation = true,
         Func<CancellationToken, Task<string?>>? pickSaveComparisonReport = null,
-        MainWindowViewModel? sharedWorkbenches = null) {
+        MainWindowViewModel? sharedWorkbenches = null,
+        Func<CancellationToken, Task<OfficeIMO.Ocr.IOcrEngine>>? orientationEngineFactory = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
+        _createOrientationEngine = orientationEngineFactory ?? CreateOrientationEngineAsync;
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -290,6 +292,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanMutatePages => _workspace?.CanMutatePages == true;
 
+    public bool CanRotatePages => _workspace?.CanRotatePages == true;
+
+    public bool CanCropPages => _workspace?.CanCropPages == true;
+
     public bool CanExtractPages => _workspace?.CanExtractPages == true;
 
     public bool CanImportPages => _workspace?.CanImportPages == true;
@@ -312,7 +318,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             return DocumentMode switch {
                 StudioDocumentMode.Annotate when !CanEditAnnotations => _localizer.Get("Capability.AnnotationsUnavailable"),
                 StudioDocumentMode.Edit when !CanEditPageContent => _localizer.Get("Capability.ContentEditingUnavailable"),
-                StudioDocumentMode.Pages when !CanMutatePages => _localizer.Get("Capability.PageEditingUnavailable"),
+                StudioDocumentMode.Pages when !CanMutatePages && !CanRotatePages => _localizer.Get("Capability.PageEditingUnavailable"),
                 StudioDocumentMode.Forms when !CanFillForms && !CanFlattenForms && !CanAuthorForms => _localizer.Get("Capability.FormsUnavailable"),
                 StudioDocumentMode.Protect when !CanRedact && !CanChangeProtection => _localizer.Get("Capability.ProtectionUnavailable"),
                 _ => null
@@ -417,7 +423,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                      page.RotationDegrees,
                      candidateSceneCoordinator,
                      candidateRenderCoordinator,
-                     _localizer))
+                     _localizer, page.Geometry))
                 .ToArray();
 
             if (!ReferenceEquals(currentCancellation, _openCancellation)) return;
@@ -660,6 +666,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.Signatures.Changed -= OnSavedSignaturesChanged;
         DisposeSavedSignaturePreviews();
         ClearTextReview();
+        ClearOrientationReview();
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         _services.DocumentHistory.RecentDocumentsChanged -= OnRecentDocumentsChanged;
@@ -707,6 +714,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyCollection<int>? organizerSelection = null) {
         IsReplacingReaderPresentation = true;
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
+        ClearOrientationReview();
         ClearFormPreview();
         if (isDocumentTransition) SaveDocumentViewState();
         CancelPendingRedaction();
@@ -737,6 +745,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ApplyPresentationCachePolicy();
 
         if (isDocumentTransition) {
+            _viewRotationDegrees = 0;
+            OnPropertyChanged(nameof(ViewRotationDegrees));
             OrganizerPageRange = string.Empty;
             IsOrganizerRangeExpanded = false;
             OrganizerRangeError = null;
@@ -760,6 +770,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             page.EditorTool = ActiveEditorTool;
             page.SelectionMode = GetEditorSelectionMode();
             page.IsNightMode = IsPageNightMode;
+            page.SetViewRotation(_viewRotationDegrees);
             TrackRenderingNotices(page);
             Pages.Add(page);
         }

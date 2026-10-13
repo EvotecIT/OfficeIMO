@@ -8,17 +8,28 @@ import UIKit
 struct DocumentShareButton: View {
     let session: DocumentSession
     let fileURL: URL
+    /// The file being shared: the saved document, or a copy of it with unsaved changes.
+    @State private var shared: URL?
     @State private var isPresented = false
 
     var body: some View {
-        Button("Share", systemImage: "square.and.arrow.up") { isPresented = true }
-            .popover(isPresented: $isPresented) {
-                ActivityView(items: [fileURL],
-                             activities: session.canPrint ? [PrintActivity { session.print() }] : [],
-                             excluded: [.print]) { isPresented = false }
-                    .presentationCompactAdaptation(.sheet)
-                    .presentationDetents([.medium, .large])
+        Button("Share", systemImage: "square.and.arrow.up") {
+            Task {
+                do {
+                    shared = try await session.shareableFile(saved: fileURL)
+                    isPresented = true
+                } catch {
+                    session.errorMessage = error.localizedDescription
+                }
             }
+        }
+        .popover(isPresented: $isPresented) {
+            ActivityView(items: [shared ?? fileURL],
+                         activities: session.canPrint ? [PrintActivity { session.print() }] : [],
+                         excluded: [.print]) { isPresented = false }
+                .presentationCompactAdaptation(.sheet)
+                .presentationDetents([.medium, .large])
+        }
     }
 }
 
