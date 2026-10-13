@@ -105,19 +105,6 @@ static int32_t recognize_page(void *context, int32_t page, int32_t page_count, c
     return OFFICEIMO_OK;
 }
 
-/* Writes a path as a JSON string, escaping the backslashes of Windows paths and quotes. */
-static void json_string(char *buffer, size_t size, const char *value) {
-    size_t used = 0;
-    if (size < 3) return;
-    buffer[used++] = '"';
-    for (; *value && used + 3 < size; value++) {
-        if (*value == '\\' || *value == '"') buffer[used++] = '\\';
-        buffer[used++] = *value;
-    }
-    buffer[used++] = '"';
-    buffer[used] = '\0';
-}
-
 static void path_in(char *buffer, size_t size, const char *directory, const char *name) {
     snprintf(buffer, size, "%s%s%s", directory, PATH_SEPARATOR, name);
 }
@@ -278,9 +265,9 @@ int main(int argc, char **argv) {
     }
 
     /* Import: the extracted page goes back in at the start as one change, then is undone. */
-    char quoted[2200], import_request[2400];
-    json_string(quoted, sizeof quoted, extracted);
-    snprintf(import_request, sizeof import_request, "{\"insertBefore\":1,\"sources\":[{\"path\":%s}]}", quoted);
+    char escaped_extracted[6 * sizeof extracted], import_request[sizeof escaped_extracted + 64];
+    if (!json_escape(escaped_extracted, sizeof escaped_extracted, extracted)) escaped_extracted[0] = '\0';
+    snprintf(import_request, sizeof import_request, "{\"insertBefore\":1,\"sources\":[{\"path\":\"%s\"}]}", escaped_extracted);
     CHECK("import pages", engine_officeimo_document_import_pages_json(document, import_request, 0, &json, &error), OFFICEIMO_OK);
     expect(has(json, "imported", "1"), "the page was not imported", json);
     engine_officeimo_free(json);
