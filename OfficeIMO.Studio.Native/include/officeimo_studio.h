@@ -173,7 +173,7 @@ int32_t officeimo_document_form_fields_json(officeimo_document document, int32_t
  * it. A read-only, push-button or signature field, or a name the form doesn't have, fails with OFFICEIMO_INVALID_ARGUMENT.
  * removeXfa defaults to false, preserving the XFA packet without synchronizing its data. Set it to true to remove
  * XFA in the appended revision so XFA-aware viewers use the AcroForm values; this can invalidate Reader usage rights.
- * Removing XFA from a DocMDP-certified form is refused; its form values can still be filled while preserving XFA.
+ * Removing XFA from a DocMDP-certified form is refused. Fill requests must preserve XFA and satisfy certification permissions.
  */
 int32_t officeimo_document_fill_form_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
                                           char **error);

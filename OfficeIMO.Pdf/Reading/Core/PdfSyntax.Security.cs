@@ -459,6 +459,13 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
+            // ISO 32000-1 Table 255 defaults an absent V to /2.2; an unknown or
+            // incorrectly typed version enables no usage rights.
+            if (transformParams.Items.ContainsKey("V") &&
+                !string.Equals(TryReadName(objects, transformParams, "V"), "2.2", StringComparison.Ordinal)) {
+                continue;
+            }
+
             IReadOnlyList<string> granted = ReadNameOrTextArray(objects, transformParams, "Form", cancellationToken);
             for (int j = 0; j < granted.Count; j++) {
                 if (!formPermissions.Contains(granted[j])) {

@@ -176,9 +176,6 @@ public class PdfUsageRightsFormFillTests {
         Assert.True(reopened.Security.HasUsageRights);
     }
 
-    private static string GovernmentForm(string name) =>
-        Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "OcrQuality", name);
-
     [Theory]
     [InlineData(2)]
     [InlineData(3)]
@@ -197,9 +194,35 @@ public class PdfUsageRightsFormFillTests {
             new PdfIncrementalFormFieldUpdateOptions { XfaHandling = PdfFormXfaHandling.Remove }));
     }
 
+    [Theory]
+    [InlineData("UR3", "/9.9", false)]
+    [InlineData("UR", "/9.9", false)]
+    [InlineData("UR3", "2.2", false)]
+    [InlineData("UR3", "(2.2)", false)]
+    [InlineData("UR3", null, true)]
+    [InlineData("UR", null, true)]
+    public void UsageRightsTransformVersion_EnablesOnlyTheSupportedOrDefaultVersion(string key, string? version, bool canFill) {
+        byte[] original = BuildUsageRightsFormPdf("[/FillIn]", documentSignature: false, usageRightsKey: key, transformVersion: version);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(original);
+
+        Assert.Equal(canFill, preflight.Probe.Security.UsageRightsAllowFormFillIn);
+        Assert.Equal(canFill, PdfSyntax.ReadDocumentSecurityInfo(original).UsageRightsAllowFormFillIn);
+        Assert.Equal(canFill, preflight.CanAppendFormFieldRevision);
+        Assert.Equal(canFill, PdfDocument.Load(original).Forms.FillResult(AfterValues).Succeeded);
+        if (!canFill) {
+            Assert.Empty(preflight.Probe.Security.UsageRightsFormPermissions);
+            Assert.Equal(PdfMutationExecutionMode.Blocked,
+                PdfMutationPlanner.Plan(original, PdfMutationOperation.FillFormFields, fieldNames: AfterValues.Keys).ExecutionMode);
+            Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(original).Forms.AppendRevision(AfterValues));
+        }
+    }
+
+    private static string GovernmentForm(string name) =>
+        Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "OcrQuality", name);
+
     private static byte[] BuildUsageRightsFormPdf(string? formRights, bool documentSignature,
-        string? legacyFormRights = null, string usageRightsKey = "UR3") {
-        string transformParams = "<< /Type /TransformParams /V /2.2" +
+        string? legacyFormRights = null, string usageRightsKey = "UR3", string? transformVersion = "/2.2") {
+        string transformParams = "<< /Type /TransformParams" + (transformVersion is null ? string.Empty : " /V " + transformVersion) +
             (formRights is null ? string.Empty : " /Form " + formRights) +
             " /Document [/FullSave] >>";
         string fields = documentSignature ? "[4 0 R 8 0 R]" : "[4 0 R]";
