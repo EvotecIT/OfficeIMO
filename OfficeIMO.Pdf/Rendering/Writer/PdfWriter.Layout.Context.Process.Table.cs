@@ -271,15 +271,22 @@ internal static partial class PdfWriter {
                     MaximumContinuationHeight() > maxContentHeight + 0.001D) advance();
             }
             if (style.KeepTogether) {
-                double KeepHeight() => tableSpacingBefore + tableContentHeight +
+                double ContinuationKeepHeight() => tableContentHeight +
                     (style.Position == null ? style.SpacingAfter + GetClosingContainerPadding() : 0D);
-                MovePastShortTableFrames(KeepHeight, () => { NewInitialTablePage(); tableSpacingBefore = 0D; });
+                double KeepHeight() => tableSpacingBefore + ContinuationKeepHeight();
+                MovePastShortTableFrames(ContinuationKeepHeight, () => { NewInitialTablePage(); tableSpacingBefore = 0D; });
+                while (style.Position == null && ShouldAdvanceForBlockHeight(KeepHeight())) {
+                    if (ContinuationKeepHeight() > GetMeasuredContinuationFrameHeight() + .001D)
+                        throw new ArgumentException("Table height exceeds the available page content height.");
+                    NewInitialTablePage();
+                    tableSpacingBefore = 0D;
+                }
                 double keepHeight = KeepHeight();
                 if (keepHeight > maxContentHeight + 0.001) {
                     throw new ArgumentException("Table height exceeds the available page content height.");
                 }
 
-                if (y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < TableBottom()) {
+                if (style.Position != null && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < TableBottom()) {
                     NewInitialTablePage();
                     tableSpacingBefore = 0D;
                 }

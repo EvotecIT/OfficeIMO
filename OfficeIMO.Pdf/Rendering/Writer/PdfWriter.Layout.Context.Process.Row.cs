@@ -86,14 +86,16 @@ internal static partial class PdfWriter {
             if (rowStyle?.KeepTogether == true) {
                 double rowContentHeight = GetRowContentHeight();
                 double rowKeepHeight = rowSpacingBefore + rowContentHeight + rowSpacingAfter + GetClosingContainerPadding();
-                double availableHeight = GetFullPageContentHeight();
-                if (rowKeepHeight > availableHeight + 0.001) {
-                    throw new ArgumentException("Row height exceeds the available page content height.");
-                }
-
-                if (y < GetCurrentFramePageStartY() - 0.001 && y - rowKeepHeight < currentOpts.MarginBottom) {
+                while (ShouldAdvanceForBlockHeight(rowKeepHeight)) {
+                    double continuationKeepHeight = rowContentHeight + rowSpacingAfter + GetClosingContainerPadding();
+                    if (continuationKeepHeight > GetMeasuredContinuationFrameHeight() + .001D)
+                        throw new ArgumentException("Row height exceeds the available page content height.");
                     NewPage();
                     rowSpacingBefore = 0D;
+                    rowKeepHeight = rowContentHeight + rowSpacingAfter + GetClosingContainerPadding();
+                }
+                if (rowKeepHeight > GetFullPageContentHeight() + 0.001) {
+                    throw new ArgumentException("Row height exceeds the available page content height.");
                 }
             }
 
@@ -203,12 +205,12 @@ internal static partial class PdfWriter {
 
                             if (paragraphStyle?.KeepTogether == true && line == 0) {
                                 double paragraphHeight = spacingBefore + heights.Sum() + spacingAfter + closingPadding;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
-                                if (paragraphHeight > availableHeight + 0.001) {
-                                    throw new ArgumentException("Paragraph height exceeds the available page content height.");
-                                }
-
                                 if (paragraphHeight > remain + 0.001) {
+                                    var continuationFrame = GetRowColumnContinuationFrame(activeGroups);
+                                    double continuationHeight = paragraphHeight - spacingBefore +
+                                        ResolveColumnSpacingBefore(GetParagraphSpacingBefore(paragraphStyle), continuationFrame.ConsumedBefore);
+                                    if (continuationHeight > continuationFrame.Height + 0.001)
+                                        throw new ArgumentException("Paragraph height exceeds the available page content height.");
                                     if (consumed > 0) break;
                                     remain = 0;
                                     break;
@@ -325,12 +327,12 @@ internal static partial class PdfWriter {
                             if (line == 0 && listItem.KeepTogether && listItem.IsFirstInKeepGroup) {
                                 double keepGroupHeight = listItem.KeepGroupHeight - listItem.SpacingBefore + spacingBefore +
                                     GetClosingColumnGroupSpace(items, idx + listItem.KeepGroupItemCount - 1, rowSpacingAfter).Padding;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
-                                if (keepGroupHeight > availableHeight + 0.001) {
-                                    throw new ArgumentException("List height exceeds the available page content height.");
-                                }
-
                                 if (keepGroupHeight > remain + 0.001) {
+                                    var continuationFrame = GetRowColumnContinuationFrame(activeGroups);
+                                    double continuationHeight = keepGroupHeight - spacingBefore +
+                                        ResolveColumnSpacingBefore(listItem.SpacingBefore, continuationFrame.ConsumedBefore);
+                                    if (continuationHeight > continuationFrame.Height + 0.001)
+                                        throw new ArgumentException("List height exceeds the available page content height.");
                                     if (consumed > 0) break;
                                     remain = 0;
                                     break;
@@ -446,7 +448,7 @@ internal static partial class PdfWriter {
                             var state = new ColumnTableCursor { Index = idx, Line = line, Subline = subline, Y = yCol, Remaining = remain, Consumed = consumed };
                             bool completed = RenderColumnTable(table, items, state, xCol, wCol,
                                 GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)),
-                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), closingSpace);
+                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), activeGroups, closingSpace);
                             // A merged-cell tail can advance within the same physical row and line cursor.
                             if (state.Consumed > consumed + .001D) anyColumnAdvanced = true;
                             (idx, line, subline) = (state.Index, state.Line, state.Subline);

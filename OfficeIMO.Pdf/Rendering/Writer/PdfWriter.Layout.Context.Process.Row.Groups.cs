@@ -128,9 +128,21 @@ internal static partial class PdfWriter {
             if (group.Semantic != null) flowSemanticScopes.RemoveAt(flowSemanticScopes.Count - 1);
         }
 
+        /// <summary>Uses continuation top padding for spacing suppression and includes bottom reservations for available height.</summary>
+        private static (double Top, double Total) MeasureColumnGroupContinuationPadding(IReadOnlyList<ColumnGroup> groups) {
+            double top = 0D;
+            double total = 0D;
+            foreach (ColumnGroup group in groups) {
+                double groupTop = group.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D;
+                top += groupTop;
+                total += groupTop + (group.Style?.FragmentPaddingReservation ?? 0D) +
+                    (group.Style?.FragmentBottomInset ?? 0D);
+            }
+            return (top, total);
+        }
+
         private void ResumeColumnGroups(List<ColumnGroup> groups, double columnX, ref double cursor, ref double remaining, ref double consumed) {
-            double padding = groups.Sum(group => (group.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D)
-                + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D));
+            double padding = MeasureColumnGroupContinuationPadding(groups).Total;
             if (padding > remaining + 0.001D) {
                 throw new ArgumentException("Nested element padding exceeds the available column height.");
             }

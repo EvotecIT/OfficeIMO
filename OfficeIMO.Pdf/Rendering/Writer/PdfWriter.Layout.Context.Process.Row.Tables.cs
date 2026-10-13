@@ -10,7 +10,7 @@ internal static partial class PdfWriter {
             public double Y, Remaining, Consumed;
         }
 
-        private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY, ContainerClosingSpace closingSpace = default) {
+        private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY, IReadOnlyList<ColumnGroup> activeGroups, ContainerClosingSpace closingSpace = default) {
         var tbColumn = table.Block;
         double closingPadding = closingSpace.Padding + (closingSpace.RequiresFullAdvance ? table.Style.SpacingAfter : 0D);
         var tableStyle = table.Style;
@@ -41,11 +41,12 @@ internal static partial class PdfWriter {
         if (state.Line == 0 && tableStyle.KeepTogether) {
             double keepHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) +
                 tableStyle.SpacingAfter + closingSpace.Padding;
-            if (keepHeight > maxContentHeight + 0.001) {
-                throw new ArgumentException("Table height exceeds the available page content height.");
-            }
-
             if (keepHeight > state.Remaining + 0.001) {
+                var continuationFrame = GetRowColumnContinuationFrame(activeGroups);
+                double continuationHeight = keepHeight - tableSpacingBefore +
+                    ResolveColumnSpacingBefore(tableStyle.SpacingBefore, continuationFrame.ConsumedBefore);
+                if (continuationHeight > continuationFrame.Height + 0.001)
+                    throw new ArgumentException("Table height exceeds the available page content height.");
                 if (state.Consumed > 0) return false;
                 state.Remaining = 0;
                 return false;
