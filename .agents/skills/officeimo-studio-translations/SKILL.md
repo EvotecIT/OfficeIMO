@@ -48,8 +48,11 @@ already accepted in preferences.
 - Use the operating system's own terms for standard commands (Undo, Save, Share, Print) in that language, and stay close
   to the English length: menus, toolbars and sheets have limited room.
 - Translate whole sentences naturally; counts such as "(%lld)" may move within the sentence.
-- Right-to-left languages (`ar`, `he`) also need layout and document-text checks in both apps before they ship; translate
-  them only when that work is planned.
+- Right-to-left languages (`ar`, `he`, `fa`, `ur`) mirror both apps: desktop windows, menus and dialogs follow the
+  culture (`App.ApplyFlowDirection`), and the Apple apps follow the system language. PDF pages, scans, signatures,
+  images and file locations keep their own direction. After importing one, run `StudioRightToLeftLayoutTests` with
+  `OFFICEIMO_STUDIO_VISUAL_OUTPUT` set and look at the screenshots; on a Mac, launch the app with
+  `-AppleTextDirection YES -NSForceRightToLeftWritingDirection YES` to see the mirrored Apple layout.
 - Languages are translated and reviewed by AI agents; no human translation is required. A pack ships when the check
   passes and a second agent pass has reviewed the whole language in the export file (`-All`) for meaning, consistent
   terminology, the platform's standard terms and length, with its corrections imported.

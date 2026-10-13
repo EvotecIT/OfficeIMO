@@ -31,6 +31,7 @@ public sealed partial class App : Application {
         AvaloniaXamlLoader.Load(this);
         InitializeNativeApplicationMenu();
         ApplyLocationPolicy(Styles, StudioDistributionPolicy.RequiresPickedLocations);
+        ApplyFlowDirection(Styles, Services.Localizer.Culture);
         ApplyDensity();
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
             StudioThemePreference.Light => Avalonia.Styling.ThemeVariant.Light,
@@ -59,6 +60,26 @@ public sealed partial class App : Application {
         if (!requiresPickedLocations) return;
         styles.Add(new Style(selector => selector!.OfType<Avalonia.Controls.TextBox>().Class("path")) {
             Setters = { new Setter(Avalonia.Controls.TextBox.IsReadOnlyProperty, true) }
+        });
+    }
+
+    /// <summary>
+    /// A right-to-left interface language mirrors every window, menu and dialog. Documents keep their own direction:
+    /// PDF pages, scans, signatures, previews and images are never mirrored, and file locations read left to right.
+    /// </summary>
+    internal static void ApplyFlowDirection(Styles styles, System.Globalization.CultureInfo culture) {
+        if (!culture.TextInfo.IsRightToLeft) return;
+        styles.Add(new Style(selector => selector!.Is<Avalonia.Controls.TopLevel>()) {
+            Setters = { new Setter(Visual.FlowDirectionProperty, Avalonia.Media.FlowDirection.RightToLeft) }
+        });
+        styles.Add(new Style(selector => Selectors.Or(
+            selector!.OfType<Features.Reader.PdfPageCanvas>(),
+            selector!.OfType<Features.Workflows.ScanSelectionCanvas>(),
+            selector!.OfType<Features.Sign.SignaturePad>(),
+            selector!.OfType<Features.Editor.TextEditPreview>(),
+            selector!.OfType<Avalonia.Controls.Image>(),
+            selector!.OfType<Avalonia.Controls.TextBox>().Class("path"))) {
+            Setters = { new Setter(Visual.FlowDirectionProperty, Avalonia.Media.FlowDirection.LeftToRight) }
         });
     }
 
