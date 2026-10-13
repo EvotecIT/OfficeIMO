@@ -55,15 +55,15 @@ public static partial class WordPdfConverterExtensions {
         if (boxTextWidth > width - style.PaddingLeft - style.PaddingRight) return false;
         PdfCore.PdfWriter.CanvasTextBoxMeasurement? measuredBox = fontMap.MeasureCanvasTextBox(boxRuns, width, height, style);
         if (measuredBox == null || !measuredBox.TextFits) return false;
+        if (!behindDocument && !defaults.BodyTextInkTopOffset.HasValue) return false;
         // Running canvas paints before body content. A foreground box is safe
-        // only when its visible paint clears the canonical body frame. Running
-        // reservations can shrink that frame further, never enlarge it. Extend
-        // its bottom to the physical page: imported exact lines may paint into
-        // the footer margin and this route has no actual body-ink inventory.
+        // only when its visible paint clears a conservative body envelope. Use
+        // the once-measured top ink offset, the physical width for negative
+        // indents, and the page bottom for imported exact-line footer overflow.
         if (!behindDocument && measuredBox.PaintWidth > 0D && measuredBox.PaintHeight > 0D &&
-            x + measuredBox.PaintLeft + measuredBox.PaintWidth > margins.Left &&
-            x + measuredBox.PaintLeft < pageSize.Width - margins.Right &&
-            y + measuredBox.PaintTop + measuredBox.PaintHeight > margins.Top &&
+            x + measuredBox.PaintLeft + measuredBox.PaintWidth > 0D &&
+            x + measuredBox.PaintLeft < pageSize.Width &&
+            y + measuredBox.PaintTop + measuredBox.PaintHeight > margins.Top + defaults.BodyTextInkTopOffset.GetValueOrDefault() &&
             y + measuredBox.PaintTop < pageSize.Height) return false;
         canvas.TextBox(boxRuns, x, y, width, height, style);
         return true;
