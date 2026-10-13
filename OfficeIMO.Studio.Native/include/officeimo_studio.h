@@ -80,14 +80,16 @@ void officeimo_document_close(officeimo_document document);
  * { "abiVersion", "fileName", "path", "fileSize", "revision", "isDirty", "canUndo", "canRedo",
  *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
  *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations", "canPrint", "canImportPages",
- *   "canMakeSearchable", "canFillForms" }
+ *   "canMakeSearchable", "canFillForms", "isEncrypted", "canChangeProtection", "canSign" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
  * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows rotating, deleting,
  * duplicating, reordering and inserting pages; canExtractPages allows officeimo_document_extract_pages; canEditAnnotations
  * allows adding, changing and removing annotations, which a tagged or signed document may take as an appended revision.
  * canPrint is false when the document's permissions forbid printing and it was not opened with its owner password;
  * canImportPages allows officeimo_document_import_pages_json; canMakeSearchable allows officeimo_document_make_searchable_json;
- * canFillForms allows officeimo_document_fill_form_json.
+ * canFillForms allows officeimo_document_fill_form_json. isEncrypted reports a password-protected document;
+ * canChangeProtection allows officeimo_document_save_protected_copy_json without the owner password; canSign allows
+ * officeimo_document_save_signed_copy_json.
  * Width and height are in points (1/72 inch) before rotation: the page's visible box at its user unit, the size that
  * render scales apply to. The revision changes with every edit, undo and redo.
  */
@@ -218,6 +220,23 @@ int32_t officeimo_document_search_json(officeimo_document document, const char *
                                        char **json, char **error);
 
 /*
+ * Receives one page's search results while officeimo_document_search_stream_json runs. It receives the context given
+ * to that call and UTF-8 JSON valid only during the call:
+ * { "abiVersion", "query", "revision", "pagesSearched", "pageCount", "hits": [ ... ] }
+ * hits are the hits on the page just searched, as officeimo_document_search_json describes them, numbered in document
+ * order; a page without hits reports an empty array. It runs on the engine's thread, once per page in order.
+ */
+typedef void (*officeimo_search_progress)(void *context, const char *page_json);
+
+/*
+ * Finds text as officeimo_document_search_json does, passing each page's hits to progress as soon as the page is
+ * searched, so a host shows hits and progress while a long document is searched. Cancelling stops between pages. The
+ * returned JSON is the complete result.
+ */
+int32_t officeimo_document_search_stream_json(officeimo_document document, const char *query, officeimo_search_progress progress,
+                                              void *context, officeimo_cancellation cancellation, char **json, char **error);
+
+/*
  * Adds a markup annotation as one undoable change, described as JSON:
  * { "tool", "page", "bounds": { "x", "y", "width", "height" }, "strokes": [ [ { "x", "y" } ] ],
  *   "quads": [ { "x", "y", "width", "height" } ], "text", "author", "color": { "red", "green", "blue" },
@@ -273,6 +292,33 @@ int32_t officeimo_document_redo(officeimo_document document, officeimo_cancellat
  */
 int32_t officeimo_document_save(officeimo_document document, const char *path, officeimo_cancellation cancellation,
                                 char **error);
+
+/*
+ * Writes the open revision, including unsaved changes, to path, as a share or an export needs. The document keeps its
+ * location and saved state. path must not be the document's own file.
+ */
+int32_t officeimo_document_save_copy(officeimo_document document, const char *path, officeimo_cancellation cancellation,
+                                     char **error);
+
+/*
+ * Writes the open revision with a password to open it, described as JSON:
+ * { "path", "userPassword", "ownerPassword", "currentOwnerPassword", "allowPrinting", "allowCopying", "allowChanges" }
+ * ownerPassword, when given, unlocks the permissions; the allow flags default to true. An empty userPassword writes the
+ * document without the password it has instead. currentOwnerPassword is needed when the document was opened with its
+ * user password and its permissions forbid changing security. The document itself keeps its protection and location.
+ */
+int32_t officeimo_document_save_protected_copy_json(officeimo_document document, const char *request,
+                                                    officeimo_cancellation cancellation, char **error);
+
+/*
+ * Writes the open revision with an invisible certificate signature, described as JSON:
+ * { "path", "certificatePath", "certificatePassword", "reason", "location" }
+ * certificatePath is a PKCS #12 (.p12 or .pfx) file with the signer's certificate and private key; a password it doesn't
+ * accept fails with OFFICEIMO_INVALID_PASSWORD. The signature covers the whole copy, so a reader can verify who signed it
+ * and that it hasn't changed since. The document itself is unchanged.
+ */
+int32_t officeimo_document_save_signed_copy_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
+                                                 char **error);
 
 #ifdef __cplusplus
 }

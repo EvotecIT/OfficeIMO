@@ -48,7 +48,8 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation) \
     X(officeimo_document_page_text_json) X(officeimo_create_pdf_from_scan_json) X(officeimo_document_import_pages_json) \
     X(officeimo_document_make_searchable_json) X(officeimo_conversion_sources_json) X(officeimo_convert_to_pdf_json) \
-    X(officeimo_document_form_fields_json) X(officeimo_document_fill_form_json)
+    X(officeimo_document_form_fields_json) X(officeimo_document_fill_form_json) X(officeimo_document_search_stream_json) \
+    X(officeimo_document_save_copy) X(officeimo_document_save_protected_copy_json) X(officeimo_document_save_signed_copy_json)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -104,6 +105,14 @@ static int32_t recognize_page(void *context, int32_t page, int32_t page_count, c
     memcpy(*words_json, words, sizeof words);
     (*(int *)context)++;
     return OFFICEIMO_OK;
+}
+
+/* Counts the pages a streamed search reports and those with hits. */
+struct search_pages { int count, with_hits; };
+static void search_page(void *context, const char *page_json) {
+    struct search_pages *pages = context;
+    pages->count++;
+    if (page_json && strstr(page_json, "\"hits\":[{")) pages->with_hits++;
 }
 
 static void path_in(char *buffer, size_t size, const char *directory, const char *name) {
@@ -287,6 +296,12 @@ int main(int argc, char **argv) {
     expect(json && strstr(json, "\"page\":1") != NULL && strstr(json, "\"page\":2") != NULL, "the recognized words are not searchable",
            json);
     engine_officeimo_free(json);
+    struct search_pages pages = { 0, 0 };
+    CHECK("search stream", engine_officeimo_document_search_stream_json(document, "journeyword", search_page, &pages, 0, &json, &error),
+          OFFICEIMO_OK);
+    expect(pages.count == 2 && pages.with_hits == 2 && json && strstr(json, "\"page\":2") != NULL,
+           "the streamed search did not report both pages", json);
+    engine_officeimo_free(json);
     CHECK("undo searchable", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
 
     for (int edit = 0; edit < 4; edit++) CHECK("undo page edit", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
@@ -336,8 +351,62 @@ int main(int argc, char **argv) {
     expect(has(json, "annotations", "[]"), "markup not undone", json);
     engine_officeimo_free(json);
 
+    char shared[4096];
+    path_in(shared, sizeof shared, work, "shared.pdf");
+    CHECK("share copy", engine_officeimo_document_save_copy(document, shared, 0, &error), OFFICEIMO_OK);
+    json = facts(document);
+    expect(has(json, "isDirty", "true"), "sharing a copy changed the document's saved state", json);
+    engine_officeimo_free(json);
+    CHECK("share onto itself", engine_officeimo_document_save_copy(document, source, 0, &error), OFFICEIMO_INVALID_ARGUMENT);
+
+    /* Protection and signing write copies: a locked one that needs its password, and one signed with the script's
+       throwaway certificate, refused first with a wrong certificate password. */
+    char locked[4096], signed_copy[4096], identity[4096], escaped_locked[6 * sizeof locked], escaped_signed[6 * sizeof signed_copy],
+         escaped_identity[6 * sizeof identity], request[3 * sizeof escaped_locked];
+    path_in(locked, sizeof locked, work, "locked.pdf");
+    path_in(signed_copy, sizeof signed_copy, work, "signed.pdf");
+    path_in(identity, sizeof identity, work, "signer.p12");
+    json_escape(escaped_locked, sizeof escaped_locked, locked);
+    json_escape(escaped_signed, sizeof escaped_signed, signed_copy);
+    json_escape(escaped_identity, sizeof escaped_identity, identity);
+    snprintf(request, sizeof request, "{\"path\":\"%s\",\"userPassword\":\"journey\",\"allowCopying\":false}", escaped_locked);
+    CHECK("protect copy", engine_officeimo_document_save_protected_copy_json(document, request, 0, &error), OFFICEIMO_OK);
+    officeimo_document locked_document = 0;
+    CHECK("open locked without password", engine_officeimo_document_open(locked, NULL, 0, &locked_document, &error),
+          OFFICEIMO_PASSWORD_REQUIRED);
+    CHECK("open locked", engine_officeimo_document_open(locked, "journey", 0, &locked_document, &error), OFFICEIMO_OK);
+    if (locked_document) {
+        json = facts(locked_document);
+        expect(has(json, "isEncrypted", "true"), "the locked copy is not protected", json);
+        engine_officeimo_free(json);
+        engine_officeimo_document_close(locked_document);
+    }
+    snprintf(request, sizeof request, "{\"path\":\"%s\",\"certificatePath\":\"%s\",\"certificatePassword\":\"wrong\"}",
+             escaped_signed, escaped_identity);
+    CHECK("sign with wrong password", engine_officeimo_document_save_signed_copy_json(document, request, 0, &error),
+          OFFICEIMO_INVALID_PASSWORD);
+    snprintf(request, sizeof request, "{\"path\":\"%s\",\"certificatePath\":\"%s\",\"certificatePassword\":\"journey\","
+             "\"reason\":\"Journey\"}", escaped_signed, escaped_identity);
+    CHECK("sign copy", engine_officeimo_document_save_signed_copy_json(document, request, 0, &error), OFFICEIMO_OK);
+    officeimo_document signed_document = 0;
+    CHECK("open signed", engine_officeimo_document_open(signed_copy, NULL, 0, &signed_document, &error), OFFICEIMO_OK);
+    if (signed_document) {
+        json = facts(signed_document);
+        expect(has(json, "canMutatePages", "false"), "the signed copy's pages can still be rewritten", json);
+        engine_officeimo_free(json);
+        engine_officeimo_document_close(signed_document);
+    }
     CHECK("save copy", engine_officeimo_document_save(document, copy, 0, &error), OFFICEIMO_OK);
     engine_officeimo_document_close(document);
+
+    officeimo_document shared_document = 0;
+    CHECK("open shared copy", engine_officeimo_document_open(shared, NULL, 0, &shared_document, &error), OFFICEIMO_OK);
+    if (shared_document) {
+        json = facts(shared_document);
+        expect(has(json, "rotation", "90"), "the shared copy lacks the unsaved rotation", json);
+        engine_officeimo_free(json);
+        engine_officeimo_document_close(shared_document);
+    }
 
     officeimo_document reopened = 0;
     CHECK("reopen copy", engine_officeimo_document_open(copy, NULL, 0, &reopened, &error), OFFICEIMO_OK);

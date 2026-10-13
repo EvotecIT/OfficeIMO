@@ -59,38 +59,36 @@ internal sealed class PdfDocumentSession {
         return _document.Render.Interactions(pageNumber, SelectionOptions).TextRegions;
     }
 
+    /// <summary>
+    /// Finds text, ignoring case, page by page. <paramref name="pageSearched"/> receives each page as it is searched,
+    /// the number of pages and that page's hits, numbered in document order, so a host can show hits as they are found.
+    /// </summary>
     internal async Task<IReadOnlyList<PdfSearchHit>> SearchAsync(
         string query,
         CancellationToken cancellationToken,
-        IProgress<double>? progress = null) {
+        IProgress<double>? progress = null,
+        Action<int, int, IReadOnlyList<PdfSearchHit>>? pageSearched = null) {
         if (string.IsNullOrWhiteSpace(query)) return Array.Empty<PdfSearchHit>();
         if (!CanSearch) throw new InvalidOperationException("Text search is restricted by this document's permissions.");
         string needle = query.Trim();
         return await Task.Run<IReadOnlyList<PdfSearchHit>>(() => {
             var matches = new List<PdfSearchHit>();
-            int pageCount = Pages.Count;
             cancellationToken.ThrowIfCancellationRequested();
-            var pageMatches = _document.Text.Find(needle, new PdfTextSearchOptions { IncludeTextRenderingMode3 = true })
-                .GroupBy(static match => match.PageNumber)
-                .ToDictionary(static group => group.Key, static group => group.ToArray());
-            cancellationToken.ThrowIfCancellationRequested();
-            for (int index = 0; index < pageCount; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (pageMatches.TryGetValue(index + 1, out var occurrences)) {
-                    foreach (var occurrence in occurrences) {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        var bounds = occurrence.VisualBounds;
-                        matches.Add(new PdfSearchHit(index + 1, occurrence.Text) {
-                            Bounds = new StudioRectangle(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
-                            LineBounds = occurrence.VisualLineBounds
-                                .Select(static line => new StudioRectangle(line.Left, line.Top, line.Width, line.Height))
-                                .ToArray(),
-                            OccurrenceNumber = matches.Count + 1
-                        });
-                    }
+            _document.Text.Find(needle, new PdfTextSearchOptions { IncludeTextRenderingMode3 = true }, (searched, count, occurrences) => {
+                int first = matches.Count;
+                foreach (PdfTextMatch occurrence in occurrences) {
+                    var bounds = occurrence.VisualBounds;
+                    matches.Add(new PdfSearchHit(occurrence.PageNumber, occurrence.Text) {
+                        Bounds = new StudioRectangle(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
+                        LineBounds = occurrence.VisualLineBounds
+                            .Select(static line => new StudioRectangle(line.Left, line.Top, line.Width, line.Height))
+                            .ToArray(),
+                        OccurrenceNumber = matches.Count + 1
+                    });
                 }
-                progress?.Report((index + 1D) / pageCount);
-            }
+                progress?.Report((double)searched / count);
+                pageSearched?.Invoke(searched, count, matches.GetRange(first, matches.Count - first).AsReadOnly());
+            }, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return matches.AsReadOnly();
         }, cancellationToken).ConfigureAwait(false);

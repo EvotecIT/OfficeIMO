@@ -29,6 +29,7 @@ internal static class StudioNativeAbi {
         PdfImportPasswordException => PasswordRequired,
         PdfPasswordRequiredException => PasswordRequired,
         PdfInvalidPasswordException => InvalidPassword,
+        StudioNativeCertificatePasswordException => InvalidPassword,
         PdfUnsupportedEncryptionException => Unsupported,
         FileNotFoundException or DirectoryNotFoundException => NotFound,
         NotSupportedException => Unsupported,
@@ -61,6 +62,9 @@ internal static class StudioNativeAbi {
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(StudioNativeDocumentInfo))]
 [JsonSerializable(typeof(StudioNativeSearchResult))]
+[JsonSerializable(typeof(StudioNativeSearchPage))]
+[JsonSerializable(typeof(StudioNativeProtectionRequest))]
+[JsonSerializable(typeof(StudioNativeSigningRequest))]
 [JsonSerializable(typeof(StudioNativeAnnotationRequest))]
 [JsonSerializable(typeof(StudioNativeAnnotationList))]
 [JsonSerializable(typeof(StudioNativeAnnotationUpdate))]

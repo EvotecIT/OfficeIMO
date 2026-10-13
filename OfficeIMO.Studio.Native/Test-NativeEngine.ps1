@@ -26,6 +26,16 @@ $WorkDirectory = (Resolve-Path $WorkDirectory).Path
 $source = Join-Path $WorkDirectory 'source.pdf'
 Copy-Item $Pdf $source -Force
 
+# A throwaway signing identity for the journey's certificate signature.
+$key = [System.Security.Cryptography.RSA]::Create(2048)
+$request = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new('CN=OfficeIMO Journey', $key,
+    [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+$certificate = $request.CreateSelfSigned([DateTimeOffset]::Now.AddDays(-1), [DateTimeOffset]::Now.AddDays(30))
+[IO.File]::WriteAllBytes((Join-Path $WorkDirectory 'signer.p12'),
+    $certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pkcs12, 'journey'))
+$certificate.Dispose()
+$key.Dispose()
+
 $journeySource = Join-Path $PSScriptRoot 'journey/officeimo_journey.c'
 $include = Join-Path $PSScriptRoot 'include'
 $journey = Join-Path $WorkDirectory $(if ($IsWindows) { 'officeimo_journey.exe' } else { 'officeimo_journey' })

@@ -16,6 +16,13 @@ internal static partial class PdfTextEditor {
         return FindHits(pdf, text, options, readOptions).Select(static hit => hit.Match).ToArray();
     }
 
+    /// <summary>Finds text page by page, reporting each page's matches, in order, as soon as the page is searched.</summary>
+    internal static IReadOnlyList<PdfTextMatch> Find(byte[] pdf, string text, PdfTextSearchOptions? options, PdfLoadOptions? readOptions,
+        Action<int, int, IReadOnlyList<PdfTextMatch>> pageSearched, System.Threading.CancellationToken cancellationToken) =>
+        FindHits(pdf, text, options, readOptions, cancellationToken: cancellationToken,
+            pageSearched: (searched, count, hits) => pageSearched(searched, count, hits.Select(static hit => hit.Match).ToArray()))
+            .Select(static hit => hit.Match).ToArray();
+
     internal static IReadOnlyList<PdfTextMatch> Find(byte[] pdf, string text, PdfTextSearchOptions? options,
         PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget workBudget) =>
         FindHits(pdf, text, options, readOptions, workBudget).Select(static hit => hit.Match).ToArray();

@@ -1,9 +1,12 @@
+using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
+using OfficeIMO.Security;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Scan;
 using OfficeIMO.Studio.Features.Workspace;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Native;
 
@@ -44,7 +47,8 @@ internal sealed class StudioNativeDocument : IDisposable {
                 }).ToArray(),
                 StudioPdfSecurityPolicy.MaximumRasterPixels, _workspace.CanMutatePages, _workspace.CanExtractPages, _workspace.CanEditAnnotations,
                 !view.Security.HasEncryption || view.Security.HasOwnerAuthorization || view.Security.AllowsPrinting == true,
-                _workspace.CanImportPages, _workspace.CanEditPageContent && view.CanExtractText, _workspace.CanFillForms);
+                _workspace.CanImportPages, _workspace.CanEditPageContent && view.CanExtractText, _workspace.CanFillForms,
+                _workspace.IsEncrypted, _workspace.CanChangeEncryption(null), _workspace.CanSign);
         } finally { _gate.Release(); }
     }
 
@@ -235,16 +239,23 @@ internal sealed class StudioNativeDocument : IDisposable {
     /// Finds text, ignoring case. Each hit's rectangles are in points of the page as displayed: from its top-left corner,
     /// after rotation and user unit, the same space as the page sizes the host lays out.
     /// </summary>
-    internal async Task<StudioNativeSearchResult> SearchAsync(string query, CancellationToken cancellationToken) {
+    /// <remarks><paramref name="pageSearched"/> receives each page's hits as soon as the page is searched.</remarks>
+    internal async Task<StudioNativeSearchResult> SearchAsync(string query, CancellationToken cancellationToken,
+        Action<StudioNativeSearchPage>? pageSearched = null) {
         await EnterAsync(cancellationToken).ConfigureAwait(false);
         try {
             PdfDocumentSession session = CurrentSession();
             if (!session.CanSearch) throw new NotSupportedException("Text search is restricted by this document's permissions.");
-            IReadOnlyList<PdfSearchHit> hits = await session.SearchAsync(query, cancellationToken).ConfigureAwait(false);
-            return new StudioNativeSearchResult(StudioNativeAbi.Version, query.Trim(), _workspace.Revision, hits.Select(hit => new StudioNativeSearchHit(
-                hit.PageNumber, hit.OccurrenceNumber, hit.Snippet, StudioNativeRectangle.From(hit.Bounds),
-                hit.LineBounds.Select(StudioNativeRectangle.From).ToArray())).ToArray());
+            string needle = query.Trim();
+            long revision = _workspace.Revision;
+            IReadOnlyList<PdfSearchHit> hits = await session.SearchAsync(query, cancellationToken, pageSearched: pageSearched is null ? null
+                : (searched, count, pageHits) => pageSearched(new StudioNativeSearchPage(StudioNativeAbi.Version, needle, revision, searched, count,
+                    pageHits.Select(ToNative).ToArray()))).ConfigureAwait(false);
+            return new StudioNativeSearchResult(StudioNativeAbi.Version, needle, revision, hits.Select(ToNative).ToArray());
         } finally { _gate.Release(); }
+
+        static StudioNativeSearchHit ToNative(PdfSearchHit hit) => new(hit.PageNumber, hit.OccurrenceNumber, hit.Snippet,
+            StudioNativeRectangle.From(hit.Bounds), hit.LineBounds.Select(StudioNativeRectangle.From).ToArray());
     }
 
     // The markup tools a host may add. Text, images, stamps, links and redaction have their own journeys.
@@ -379,6 +390,92 @@ internal sealed class StudioNativeDocument : IDisposable {
     internal Task SaveAsync(string? path, CancellationToken cancellationToken) =>
         RunAsync(() => _workspace.SaveAsync(path, cancellationToken), cancellationToken);
 
+    /// <summary>
+    /// Writes the open revision with a password to open it, or without the password protection it has when
+    /// <c>UserPassword</c> is empty. The document itself is unchanged, as a protected export is.
+    /// </summary>
+    internal async Task SaveProtectedCopyAsync(StudioNativeProtectionRequest request, CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Path)) throw new ArgumentException("A destination is required.", nameof(request));
+        await EnterAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            OfficeWorkflowResult result;
+            if (string.IsNullOrEmpty(request.UserPassword)) {
+                if (!_workspace.IsEncrypted) throw new ArgumentException("This PDF has no password to remove.", nameof(request));
+                result = await _workspace.SaveDecryptedCopyAsync(request.Path, request.CurrentOwnerPassword, cancellationToken).ConfigureAwait(false);
+            } else {
+                PdfStandardPermissions allowed = PdfStandardPermissions.All;
+                if (!request.AllowPrinting) allowed &= ~(PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint);
+                if (!request.AllowCopying) allowed &= ~PdfStandardPermissions.CopyContents;
+                if (!request.AllowChanges) {
+                    allowed &= ~(PdfStandardPermissions.ModifyContents | PdfStandardPermissions.ModifyAnnotations |
+                        PdfStandardPermissions.FillForms | PdfStandardPermissions.AssembleDocument);
+                }
+                var encryption = new PdfStandardEncryptionOptions(request.UserPassword) {
+                    OwnerPassword = string.IsNullOrEmpty(request.OwnerPassword) ? null : request.OwnerPassword,
+                    AllowedPermissions = allowed
+                };
+                result = await _workspace.SaveProtectedCopyAsync(request.Path, encryption, request.CurrentOwnerPassword, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            ThrowUnlessCompleted(result, cancellationToken);
+        } finally { _gate.Release(); }
+    }
+
+    /// <summary>
+    /// Writes the open revision with a certificate signature from a PKCS #12 file, so a reader can verify who signed it
+    /// and that it hasn't changed since. The document itself is unchanged.
+    /// </summary>
+    internal async Task SaveSignedCopyAsync(StudioNativeSigningRequest request, CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Path)) throw new ArgumentException("A destination is required.", nameof(request));
+        if (string.IsNullOrWhiteSpace(request.CertificatePath)) throw new ArgumentException("A certificate is required.", nameof(request));
+        await EnterAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            if (!_workspace.CanSign) throw new NotSupportedException("This document's security policy prevents signing.");
+            using X509Certificate2 certificate = LoadSigningCertificate(request.CertificatePath, request.CertificatePassword);
+            using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate);
+            var verifier = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default);
+            var options = new PdfExternalSignatureOptions {
+                Name = certificate.GetNameInfo(X509NameType.SimpleName, forIssuer: false),
+                Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+                Location = string.IsNullOrWhiteSpace(request.Location) ? null : request.Location.Trim()
+            };
+            OfficeWorkflowResult result = await _workspace.SaveSignedCopyAsync(request.Path, signer, options, verifier, cancellationToken)
+                .ConfigureAwait(false);
+            ThrowUnlessCompleted(result, cancellationToken);
+        } finally { _gate.Release(); }
+    }
+
+    private static X509Certificate2 LoadSigningCertificate(string path, string? password) {
+        X509Certificate2 certificate;
+        try {
+            certificate = X509CertificateLoader.LoadPkcs12FromFile(path, password, X509KeyStorageFlags.Exportable);
+        } catch (System.Security.Cryptography.CryptographicException exception) {
+            throw new StudioNativeCertificatePasswordException(exception);
+        }
+        DateTime now = DateTime.Now;
+        if (!certificate.HasPrivateKey || certificate.NotBefore > now || certificate.NotAfter < now) {
+            certificate.Dispose();
+            throw new ArgumentException("The certificate has no private key or isn't valid today.", nameof(path));
+        }
+        return certificate;
+    }
+
+    private static void ThrowUnlessCompleted(OfficeWorkflowResult result, CancellationToken cancellationToken) {
+        switch (result.Status) {
+            case OfficeWorkflowStatus.Completed: return;
+            case OfficeWorkflowStatus.Cancelled: throw new OperationCanceledException(cancellationToken);
+            default:
+                throw new InvalidOperationException(result.Diagnostics
+                    .FirstOrDefault(static diagnostic => diagnostic.Severity == OfficeWorkflowDiagnosticSeverity.Error)?.Message ?? result.Summary);
+        }
+    }
+
+    /// <summary>Writes the open revision to <paramref name="path"/>; the document keeps its location and saved state.</summary>
+    internal Task SaveCopyAsync(string path, CancellationToken cancellationToken) =>
+        RunAsync(() => _workspace.SaveCopyAsync(path, cancellationToken), cancellationToken);
+
     // A reader session is a snapshot of one revision, with its rendering caches; edits create a new one on the next render.
     private PdfDocumentSession CurrentSession() {
         if (_session is null || _sessionRevision != _workspace.Revision) {
@@ -430,11 +527,28 @@ internal sealed class StudioNativeDocument : IDisposable {
 internal sealed record StudioNativeDocumentInfo(
     int AbiVersion, string FileName, string Path, long FileSize, long Revision, bool IsDirty, bool CanUndo, bool CanRedo, bool HasRecovery,
     bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages, long MaxRenderPixels, bool CanMutatePages,
-    bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages, bool CanMakeSearchable, bool CanFillForms);
+    bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages, bool CanMakeSearchable, bool CanFillForms,
+    bool IsEncrypted, bool CanChangeProtection, bool CanSign);
 
 internal sealed record StudioNativePageInfo(int Number, double Width, double Height, int Rotation);
 
 internal sealed record StudioNativeSearchResult(int AbiVersion, string Query, long Revision, IReadOnlyList<StudioNativeSearchHit> Hits);
+
+/// <summary>One searched page's hits while a search runs: <c>PagesSearched</c> of <c>PageCount</c> are done.</summary>
+internal sealed record StudioNativeSearchPage(int AbiVersion, string Query, long Revision, int PagesSearched, int PageCount,
+    IReadOnlyList<StudioNativeSearchHit> Hits);
+
+/// <summary>A PKCS #12 file that its password doesn't open.</summary>
+internal sealed class StudioNativeCertificatePasswordException(Exception inner)
+    : Exception("The certificate's password is incorrect, or the file isn't a certificate with its private key.", inner);
+
+/// <summary>A protected or unprotected copy: an empty <c>UserPassword</c> removes the password the document has.</summary>
+internal sealed record StudioNativeProtectionRequest(string? Path, string? UserPassword, string? OwnerPassword, string? CurrentOwnerPassword,
+    bool AllowPrinting = true, bool AllowCopying = true, bool AllowChanges = true);
+
+/// <summary>A certificate-signed copy from a PKCS #12 file and its password.</summary>
+internal sealed record StudioNativeSigningRequest(string? Path, string? CertificatePath, string? CertificatePassword, string? Reason,
+    string? Location);
 
 internal sealed record StudioNativeSearchHit(int Page, int Occurrence, string Text, StudioNativeRectangle Bounds, IReadOnlyList<StudioNativeRectangle> LineBounds);
 

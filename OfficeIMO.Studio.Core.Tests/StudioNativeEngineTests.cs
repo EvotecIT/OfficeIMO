@@ -1,9 +1,12 @@
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using OfficeIMO.Studio.Features.Conversion;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Pdf;
+using OfficeIMO.Security;
 using OfficeIMO.Studio.Features.Scan;
 using OfficeIMO.Studio.Features.Workspace;
 using OfficeIMO.Studio.Native;
@@ -327,6 +330,89 @@ public sealed class StudioNativeEngineTests : IDisposable {
         StudioNativeSearchHit rotated = (await document.SearchAsync("needle", default)).Hits[0];
         Assert.True(rotated.Bounds.Height > rotated.Bounds.Width);
         Assert.InRange(rotated.Bounds.Y + rotated.Bounds.Height, 0D, 400D);
+    }
+
+    [Fact]
+    public async Task Streamed_search_reports_each_page_in_order_with_the_hits_of_the_full_result() {
+        string path = Path.Combine(_root, "text.pdf");
+        PdfDocument.Create(document => {
+            foreach (string text in new[] { "Alpha needle here", "Nothing to see", "Another NEEDLE and a needle" })
+                document.Page(page => page.Size(400, 300).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+        }).Save(path);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+        var pages = new List<StudioNativeSearchPage>();
+
+        StudioNativeSearchResult result = await document.SearchAsync("needle", default, pages.Add);
+
+        Assert.Equal(new[] { 1, 2, 3 }, pages.Select(static page => page.PagesSearched));
+        Assert.All(pages, static page => Assert.Equal(3, page.PageCount));
+        Assert.Equal(new[] { 1, 0, 2 }, pages.Select(static page => page.Hits.Count));
+        Assert.Equal(result.Hits.Select(static hit => (hit.Page, hit.Occurrence)),
+            pages.SelectMany(static page => page.Hits).Select(static hit => (hit.Page, hit.Occurrence)));
+        Assert.Equal(new[] { (1, 1), (3, 2), (3, 3) }, result.Hits.Select(static hit => (hit.Page, hit.Occurrence)));
+    }
+
+    [Fact]
+    public async Task A_copy_carries_unsaved_changes_and_leaves_the_document_where_it_is() {
+        string source = CreatePdf();
+        byte[] original = File.ReadAllBytes(source);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(source, null, default);
+        await document.RotatePagesAsync([1], 90, default);
+        string copy = Path.Combine(_root, "copy.pdf");
+
+        await document.SaveCopyAsync(copy, default);
+
+        StudioNativeDocumentInfo info = await document.GetInfoAsync(default);
+        Assert.True(info.IsDirty);
+        Assert.Equal(source, info.Path);
+        using (StudioNativeDocument reopened = await StudioNativeDocument.OpenAsync(copy, null, default))
+            Assert.Equal(90, (await reopened.GetInfoAsync(default)).Pages[0].Rotation);
+        Assert.Equal(original, File.ReadAllBytes(source));
+        await Assert.ThrowsAsync<ArgumentException>(() => document.SaveCopyAsync(source, default));
+    }
+
+    [Fact]
+    public async Task A_protected_copy_needs_its_password_and_an_unprotected_copy_of_it_does_not() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePdf(), null, default);
+        Assert.False((await document.GetInfoAsync(default)).IsEncrypted);
+        string locked = Path.Combine(_root, "locked.pdf");
+
+        await document.SaveProtectedCopyAsync(new StudioNativeProtectionRequest(locked, "open sesame", "owner", null), default);
+
+        await Assert.ThrowsAsync<PdfPasswordRequiredException>(() => StudioNativeDocument.OpenAsync(locked, null, default));
+        await Assert.ThrowsAsync<PdfInvalidPasswordException>(() => StudioNativeDocument.OpenAsync(locked, "wrong", default));
+        using StudioNativeDocument opened = await StudioNativeDocument.OpenAsync(locked, "open sesame", default);
+        Assert.True((await opened.GetInfoAsync(default)).IsEncrypted);
+
+        string unlocked = Path.Combine(_root, "unlocked.pdf");
+        await opened.SaveProtectedCopyAsync(new StudioNativeProtectionRequest(unlocked, null, null, "owner"), default);
+        using StudioNativeDocument plain = await StudioNativeDocument.OpenAsync(unlocked, null, default);
+        Assert.False((await plain.GetInfoAsync(default)).IsEncrypted);
+        await Assert.ThrowsAsync<ArgumentException>(() => plain.SaveProtectedCopyAsync(new StudioNativeProtectionRequest(locked, null, null, null), default));
+    }
+
+    [Fact]
+    public async Task A_signed_copy_verifies_and_a_wrong_certificate_password_is_reported() {
+        using RSA key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=Studio Signer", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation, true));
+        using X509Certificate2 certificate = request.CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddYears(1));
+        string identity = Path.Combine(_root, "signer.p12");
+        File.WriteAllBytes(identity, certificate.Export(X509ContentType.Pkcs12, "p12 password"));
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePdf(), null, default);
+        Assert.True((await document.GetInfoAsync(default)).CanSign);
+        string signed = Path.Combine(_root, "signed.pdf");
+
+        await Assert.ThrowsAsync<StudioNativeCertificatePasswordException>(() =>
+            document.SaveSignedCopyAsync(new StudioNativeSigningRequest(signed, identity, "wrong", null, null), default));
+        await document.SaveSignedCopyAsync(new StudioNativeSigningRequest(signed, identity, "p12 password", "Approved", "Kraków"), default);
+
+        PdfSignatureValidationReport report = PdfDocument.Load(signed).Security
+            .ValidateSignatures(new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default));
+        PdfSignatureValidationResult signature = Assert.Single(report.Signatures);
+        Assert.True(signature.IsStructurallyValid);
+        Assert.True(signature.CryptographicResult?.IsMathematicallyValid);
+        Assert.False((await document.GetInfoAsync(default)).IsDirty);
     }
 
     [Fact]

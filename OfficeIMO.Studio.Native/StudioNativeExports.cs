@@ -308,6 +308,27 @@ internal static unsafe class StudioNativeExports {
         });
     }
 
+    /// <summary>
+    /// Finds text like <see cref="DocumentSearchJson"/>, passing each page's hits to the host as UTF-8 JSON as soon as the
+    /// page is searched. The JSON is valid only during the callback.
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_search_stream_json")]
+    internal static int DocumentSearchStreamJson(nint document, byte* query, delegate* unmanaged<nint, byte*, void> pageSearched, nint context,
+        nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        if (pageSearched is null) return Fail(error, new ArgumentNullException(nameof(pageSearched)));
+        string text = StudioNativeAbi.FromUtf8(query) ?? string.Empty;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeSearchResult result = target.SearchAsync(text, token, page => {
+                byte* pageJson = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(page, StudioNativeJson.Default.StudioNativeSearchPage));
+                try { pageSearched(context, pageJson); }
+                finally { NativeMemory.Free(pageJson); }
+            }).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeSearchResult));
+        });
+    }
+
     /// <summary>Adds a markup annotation described by a UTF-8 JSON request as one undoable change.</summary>
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_add_annotation_json")]
     internal static int DocumentAddAnnotationJson(nint document, byte* request, nint cancellation, byte** error) {
@@ -371,6 +392,33 @@ internal static unsafe class StudioNativeExports {
     internal static int DocumentSave(nint document, byte* path, nint cancellation, byte** error) {
         string? destination = StudioNativeAbi.FromUtf8(path);
         return WithDocument(document, error, cancellation, (target, token) => target.SaveAsync(destination, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Writes the open revision to another path, leaving the document's location and saved state as they are.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_save_copy")]
+    internal static int DocumentSaveCopy(nint document, byte* path, nint cancellation, byte** error) {
+        string destination = StudioNativeAbi.FromUtf8(path) ?? string.Empty;
+        return WithDocument(document, error, cancellation, (target, token) => target.SaveCopyAsync(destination, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Writes a password-protected copy, or one without the document's password, described by UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_save_protected_copy_json")]
+    internal static int DocumentSaveProtectedCopyJson(nint document, byte* request, nint cancellation, byte** error) {
+        StudioNativeProtectionRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeProtectionRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The protection request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => target.SaveProtectedCopyAsync(parsed, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Writes a certificate-signed copy described by UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_save_signed_copy_json")]
+    internal static int DocumentSaveSignedCopyJson(nint document, byte* request, nint cancellation, byte** error) {
+        StudioNativeSigningRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeSigningRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The signing request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => target.SaveSignedCopyAsync(parsed, token).GetAwaiter().GetResult());
     }
 
     // Plumbing ---------------------------------------------------------------------------------------------------

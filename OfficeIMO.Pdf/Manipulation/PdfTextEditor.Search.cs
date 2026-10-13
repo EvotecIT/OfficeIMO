@@ -7,6 +7,7 @@ internal static partial class PdfTextEditor {
         PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget? workBudget = null,
         Func<TextSearchUnit, IEnumerable<TextSearchRange>>? findRanges = null,
         bool includeUnsafeSpans = false, int maximumHits = int.MaxValue,
+        Action<int, int, IReadOnlyList<TextSearchHit>>? pageSearched = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
@@ -91,10 +92,13 @@ internal static partial class PdfTextEditor {
                     pageHits.Add((flow[touchedLines[0]], range.Start, new TextSearchHit(pageNumber, segments, hitLines, match)));
                 }
             }
-            hits.AddRange(pageHits
+            TextSearchHit[] ordered = pageHits
                 .OrderBy(static hit => hit.LineOrder)
                 .ThenBy(static hit => hit.Offset)
-                .Select(static hit => hit.Hit));
+                .Select(static hit => hit.Hit)
+                .ToArray();
+            hits.AddRange(ordered);
+            pageSearched?.Invoke(pageIndex + 1, pages.Length, ordered);
         }
         return hits;
     }
