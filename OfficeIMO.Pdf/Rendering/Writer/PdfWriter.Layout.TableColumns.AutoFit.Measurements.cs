@@ -156,7 +156,8 @@ internal static partial class PdfWriter {
         var minimumWidths = new double[cols];
         var paddingWidths = new double[cols];
         var precedingAbsolutePreferences = new bool[cols];
-        bool automaticImportedSpans = style.AutoFitUnspecifiedWidthToContent &&
+        var trailingAutomaticPreferences = new double[cols];
+        bool automaticImportedPreferences = style.AutoFitUnspecifiedWidthToContent &&
             style.AutoFitColumnPreferredWidthPoints != null;
         var importedSpanMinimums = new System.Collections.Generic.List<(int Column, int Span, double Width, double PreferredWidth, bool HasAbsolutePreference)>();
         if (style.AutoFitWidthUsesContentMinimum) {
@@ -222,7 +223,16 @@ internal static partial class PdfWriter {
                     requestedWidth = Math.Ceiling(requestedWidth * 20D - 1e-9D) / 20D;
                 double requestedPerColumn = requestedWidth / cell.ColumnSpan;
                 for (int c = cell.Column; c < cell.Column + cell.ColumnSpan && c < cols &&
-                    (!automaticImportedSpans || cell.ColumnSpan == 1); c++) {
+                    (!automaticImportedPreferences || cell.ColumnSpan == 1); c++) {
+                    if (cell.ColumnSpan == 1 && automaticImportedPreferences &&
+                        !(style.ImportedColumnWidthFractions != null &&
+                          c < style.ImportedColumnWidthFractions.Count && style.ImportedColumnWidthFractions[c].HasValue)) {
+                        // An automatic cell after an absolute preference can
+                        // grow the column to its unwrapped content. A following
+                        // absolute cell restores the authored wrapping frame.
+                        bool absolute = style.AutoFitCellPreferredWidthPoints?.ContainsKey((rowIndex, cell.Column)) == true;
+                        trailingAutomaticPreferences[c] = absolute ? 0D : Math.Max(trailingAutomaticPreferences[c], requestedPerColumn);
+                    }
                     if (cell.ColumnSpan == 1 && style.ImportedColumnWidthFractions != null &&
                         c < style.ImportedColumnWidthFractions.Count && style.ImportedColumnWidthFractions[c].HasValue) {
                         bool absolute = style.AutoFitCellPreferredWidthPoints != null &&
@@ -346,9 +356,10 @@ internal static partial class PdfWriter {
                 "Table preferred column widths must be positive finite values.");
             if (authoredPreference.HasValue && !(style.ImportedColumnWidthFractions != null &&
                 columnIndex < style.ImportedColumnWidthFractions.Count && style.ImportedColumnWidthFractions[columnIndex].HasValue))
-                // An absolute cell preference can wrap its content. Only the
-                // unbreakable minimum can force it above the authored value.
-                preferredWidths[columnIndex] = Math.Max(minimumWidths[columnIndex], authoredPreference.Value);
+                // Absolute cells can wrap their own content. Later automatic
+                // cells retain a larger unwrapped preference when needed.
+                preferredWidths[columnIndex] = Math.Max(minimumWidths[columnIndex],
+                    Math.Max(authoredPreference.Value, trailingAutomaticPreferences[columnIndex]));
             if (preferredWidths[columnIndex] <= 0D) {
                 preferredWidths[columnIndex] = 1D;
             }
@@ -362,7 +373,7 @@ internal static partial class PdfWriter {
         // single-column minima so unequal authored grids grow only by a deficit.
         foreach (var span in importedSpanMinimums) {
             int endColumn = Math.Min(cols, span.Column + span.Span);
-            if (automaticImportedSpans) {
+            if (automaticImportedPreferences) {
                 ApplyImportedAutomaticSpanMinimum(minimumWidths, preferredWidths, span.Column, endColumn,
                     span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
                 // A merged cell's own absolute preference permits wrapping,
