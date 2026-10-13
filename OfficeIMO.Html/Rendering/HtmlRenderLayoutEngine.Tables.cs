@@ -15,6 +15,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (legacyBorderWidth > 0 && !style.BorderDeclared) {
             style.Borders = HtmlRenderBorderEdges.Uniform(legacyBorderWidth, "solid", OfficeColor.FromRgb(128, 128, 128));
         }
+        // Ordinary block placement may have centered the authored width already.
+        // Columns determine the table's final width, so resolve auto margins there.
+        if (style.MarginLeftAuto) style.MarginLeft = 0D;
+        if (style.MarginRightAuto) style.MarginRight = 0D;
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double tableWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
@@ -75,6 +79,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double bottomCaptionHeight;
         double tableY;
         if (rowColumnCount == 0) {
+            ResolveUsedTableHorizontalAutoMargins(table, style, containingWidth, tableWidth, formatting.Anonymous);
             caption = LayoutTableCaption(formatting.Caption, tableWidth, style, depth);
             if (continuationTarget != null && caption != null && caption.Side == "top") caption = null;
             topCaptionHeight = caption != null && caption.Side == "top" ? caption.Height : 0D;
@@ -110,22 +115,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             MeasureTableCaptionMinimumWidth(formatting.Caption, contentWidth, style)
             - style.HorizontalInsets - horizontalSpacing * (columnCount + 1));
         IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(sizingRows, table, columnCount, trackWidth, captionMinimumWidth, style, depth, legacyBorderWidth, out double usedTrackWidth);
-        if (!style.ExplicitWidth.HasValue && style.TableLayout != "fixed") {
+        if ((!style.ExplicitWidth.HasValue && style.TableLayout != "fixed") || usedTrackWidth > trackWidth + 0.0001D) {
             contentWidth = usedTrackWidth + horizontalSpacing * (columnCount + 1);
             tableWidth = contentWidth + style.HorizontalInsets;
-            if (style.MarginLeftAuto || style.MarginRightAuto) {
-                double freeSpace = Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - tableWidth);
-                if (style.MarginLeftAuto && style.MarginRightAuto) {
-                    style.MarginLeft += freeSpace / 2D;
-                    style.MarginRight += freeSpace / 2D;
-                } else if (style.MarginLeftAuto) {
-                    style.MarginLeft += freeSpace;
-                } else {
-                    style.MarginRight += freeSpace;
-                }
-                if (!formatting.Anonymous) _layoutStyles[table] = style.Clone();
-            }
         }
+        ResolveUsedTableHorizontalAutoMargins(table, style, containingWidth, tableWidth, formatting.Anonymous);
         caption = LayoutTableCaption(formatting.Caption, tableWidth, style, depth);
         if (continuationTarget != null && caption != null && caption.Side == "top") caption = null;
         topCaptionHeight = caption != null && caption.Side == "top" ? caption.Height : 0D;

@@ -60,7 +60,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (IsReplacedImageElementTag(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "math" && TryLayoutMath(element, containingWidth, style, inheritedLink: null, shrinkToFit: false, out HtmlRenderFlowBlock mathBlock, out _)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(mathBlock, element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (IsFormControlElement(tag) && !UsesButtonChildLayout(element)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (style.Display is "table" or "inline-table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutTable(element, containingWidth, style, depth, continuationTarget), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (style.Display is "table" or "inline-table") {
+            HtmlRenderFlowBlock table = LayoutTable(element, containingWidth, style, depth, continuationTarget);
+            // The table envelope owns its used border box before optional semantic
+            // wrapping. Its fixed columns can enlarge the authored width.
+            double tableWidth = table.Visuals.OfType<HtmlRenderSemanticGroup>().First().Width;
+            return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(
+                ApplySpecializedElementSemantics(table, element, style), style, element, containingWidth, tableWidth),
+                style, containingWidth, containingHeight, element), style, element));
+        }
         if (tag == "hr") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutHorizontalRule(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, pageBoundary, out HtmlRenderFlowBlock flexBlock)) {
             flexBlock = ApplyElementSemantics(flexBlock, element, style);

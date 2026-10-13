@@ -5,11 +5,7 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<double> ResolveTableColumnWidths(IReadOnlyList<TableFormattingRow> rows, IElement table, int columnCount, double contentWidth, double captionMinimumWidth, HtmlRenderBoxStyle tableStyle, int depth, int legacyBorderWidth, out double usedWidth) {
         if (tableStyle.TableLayout == "fixed") {
-            var fixedWidths = new double[columnCount];
-            ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, fixedWidths, fixedWidths);
-            ApplyFirstRowAuthoredWidths(rows, tableStyle, fixedWidths, contentWidth);
-            usedWidth = contentWidth;
-            return AllocateFixedColumnWidths(fixedWidths, contentWidth);
+            return ResolveFixedTableColumnWidths(rows, table, columnCount, contentWidth, tableStyle, out usedWidth);
         }
 
         ResolveAutoTableColumnContributions(rows, table, columnCount, contentWidth, tableStyle, depth, legacyBorderWidth,
@@ -68,6 +64,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style, double availableWidth, int depth) {
         EnsureDepth(depth, table);
         style = _styleResolver.ResolveIntrinsicMeasurementStyle(table, style);
+        if (style.TableLayout == "fixed" && style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage) {
+            double fixedWidth = ResolveFixedTableIntrinsicOuterWidth(table, style, availableWidth, depth);
+            return (fixedWidth, fixedWidth);
+        }
         if (!style.HasIntrinsicWidths && style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage
             && TryResolveDefiniteGridContribution(new FlexItem(table, style, 0), availableWidth, out double definite)) return (definite, definite);
         TableFormattingStructure formatting = BuildTableFormattingStructure(table, availableWidth, style, depth);
@@ -102,23 +102,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return minimum + captionStyle.MarginLeft + captionStyle.MarginRight;
     }
 
-    private void ApplyFirstRowAuthoredWidths(IReadOnlyList<TableFormattingRow> rows, HtmlRenderBoxStyle tableStyle, double[] widths, double contentWidth) {
-        if (rows.Count == 0) return;
-        int column = 0;
-        foreach (TableFormattingCell cell in rows[0].Cells) {
-            int span = Math.Min(cell.ColumnSpan, widths.Length - column);
-            if (span <= 0) break;
-            HtmlRenderBoxStyle style = ResolveFormattingCellStyle(cell, contentWidth);
-            if (style.ExplicitWidth.HasValue) {
-                double authored = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
-                ApplySpanningWidth(widths, column, span, authored);
-            }
-            column += span;
-            if (column >= widths.Length) break;
-        }
-    }
-
-    private void ApplyDeclaredColumnWidths(IElement table, double contentWidth, HtmlRenderBoxStyle tableStyle, double[] minimums, double[] preferred, bool[]? authoredWidths = null) {
+    private void ApplyDeclaredColumnWidths(IElement table, double contentWidth, HtmlRenderBoxStyle tableStyle, double[] minimums, double[] preferred, bool[]? authoredWidths = null, bool[]? declaredWidths = null, bool[]? percentageWidths = null) {
         int column = 0;
         foreach (IElement element in table.QuerySelectorAll("col").Where(candidate => BelongsToTableColumn(candidate, table))) {
             int span = Math.Min(ReadSpan(element.GetAttribute("span"), minimums.Length), minimums.Length - column);
@@ -132,6 +116,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     minimums[column + offset] = Math.Max(minimums[column + offset], width);
                     preferred[column + offset] = Math.Max(preferred[column + offset], width);
                     if (authoredWidths != null && !style.ExplicitWidthUsesPercentage) authoredWidths[column + offset] = true;
+                    if (declaredWidths != null) declaredWidths[column + offset] = true;
+                    if (percentageWidths != null) percentageWidths[column + offset] = style.ExplicitWidthUsesPercentage;
                 }
             }
             column += span;
@@ -197,24 +183,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static IReadOnlyList<double> AllocateFixedColumnWidths(IReadOnlyList<double> requested, double totalWidth) {
-        var result = requested.Select(value => Math.Max(0D, value)).ToArray();
-        int unspecified = result.Count(value => value <= 0.0001D);
-        double specifiedTotal = result.Sum();
-        if (specifiedTotal > totalWidth && specifiedTotal > 0D) {
-            double scale = totalWidth / specifiedTotal;
-            for (int index = 0; index < result.Length; index++) result[index] = result[index] > 0D ? result[index] * scale : 0.01D;
-        } else if (unspecified > 0) {
-            double share = Math.Max(0.01D, (totalWidth - specifiedTotal) / unspecified);
-            for (int index = 0; index < result.Length; index++) if (result[index] <= 0.0001D) result[index] = share;
-        } else if (result.Length > 0) {
-            double extra = (totalWidth - specifiedTotal) / result.Length;
-            for (int index = 0; index < result.Length; index++) result[index] += extra;
-        }
-        NormalizeColumnWidthTotal(result, totalWidth);
-        return result;
-    }
-
     private static IReadOnlyList<double> AllocateAutoColumnWidths(IReadOnlyList<double> minimums, IReadOnlyList<double> preferred, IReadOnlyList<bool> authoredWidths, double totalWidth) {
         var result = new double[minimums.Count];
         double minimumTotal = minimums.Sum();
@@ -235,14 +203,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         NormalizeColumnWidthTotal(result, totalWidth);
         return result;
-    }
-
-    private static void ApplySpanningWidth(double[] widths, int start, int span, double required) {
-        double current = SumColumnWidths(widths, start, span);
-        double deficit = required - current;
-        if (deficit <= 0.0001D) return;
-        double addition = deficit / span;
-        for (int offset = 0; offset < span; offset++) widths[start + offset] += addition;
     }
 
     private static void NormalizeColumnWidthTotal(double[] widths, double totalWidth) {
