@@ -1,0 +1,231 @@
+{
+  "schema": "officeimo.html.shared-flow-qualification/v1",
+  "recordedUtc": "2026-10-13T03:20:21.911056+00:00",
+  "sourceCommit": "1a0ae4046d2554626d6b4248cda4326e8ad1546c",
+  "scope": "Shared PDF flow consumed by imported HTML/Word content, terminal container spacing, destination continuation admission and panel paint; current static HTML/PDF/browser regression qualification.",
+  "contracts": {
+    "pdf": "OfficeIMO.Pdf/README.md",
+    "html": "OfficeIMO.Html/README.md",
+    "roadmap": "Docs/ROADMAP.md",
+    "newPublicApi": false,
+    "newProductionDependency": false
+  },
+  "runtimeSourceTrees": {
+    "OfficeIMO.Core": "06c9909ac8d3e6c65c78bfa17043dfaf2569a729",
+    "OfficeIMO.Html.Core": "4dfc9a202431898a7036f0d53bf1d6d9ee424153",
+    "OfficeIMO.Html.AngleSharp": "9e3d4b1d3f14d5759af55d42e86ab4ccef9b5b16",
+    "OfficeIMO.Html": "0aa74da4e5dd69c5e39fd0728c81cda1e180d840",
+    "OfficeIMO.Pdf": "dca09a657abaaddecc10ff0033c7f4e58e24f04d",
+    "OfficeIMO.Rtf": "36722ffc652d4de3eb78ab6eb1cc528ee12c562e",
+    "OfficeIMO.Email": "7a976d6b40910e377517817ca60edd193e143165",
+    "OfficeIMO.Mhtml": "162eac0219a9e2b53a63cdca0d795b25213ab548",
+    "OfficeIMO.Html.Pdf": "dbfc691287d5034ac5f559e5ffab77aea09e136d",
+    "OfficeIMO.Mhtml.Pdf": "846942bd19fbf8f6a2e69c6f580e12091c115f48"
+  },
+  "frameworkCorrectness": {
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "normalProjectReferenceBuild": true,
+    "aggregate": {
+      "total": 44076,
+      "passed": 44068,
+      "notExecuted": 8,
+      "failed": 0
+    },
+    "htmlPassedEachFramework": 6043,
+    "drawingPassedEachFramework": 5546,
+    "pdfPassedEachFramework": 10445,
+    "declaredOptInExclusions": 8,
+    "explicitDrawingCancellationPassed": 8,
+    "boundary": "Eight declared opt-in exclusions remain excluded; separate eight cancellation executions passed. Host-dependent measurements are separate."
+  },
+  "sharedFlow": {
+    "causalContinuationCases": 12,
+    "earlierCandidateAll12Failed": true,
+    "focusedPdfPassedEachFramework": 485,
+    "wordCompatibilityPassedEachFramework": 282,
+    "publicComposeCases": 26,
+    "nativePages": 54,
+    "allNativePageBytesEqualPredecessorA976": true,
+    "qualifiedBehaviors": [
+      "Terminal line advance, closing padding and table/row spacing participate in fragment admission",
+      "Kept paragraphs, lists, tables and rows account for closing space inside row columns",
+      "Kept content is measured against the destination continuation frame, including continuation top padding and spacing suppression",
+      "Intermediate fragments retain their normal capacity; content too large for a fresh frame still fails",
+      "Panel borders paint after shaded table cells and flow images"
+    ]
+  },
+  "controlledHtml": {
+    "scenes": 33,
+    "lossFreeRatios": 14,
+    "cellCases": 34,
+    "cellExports": 104,
+    "h4Exports": 76,
+    "rootClassifiedRawObservations": 33,
+    "nativeSceneControlPairs": 3,
+    "correctedFootnoteCalls": "A single font reduction with the intended raised baseline; complete text retained"
+  },
+  "nativeCorpus": {
+    "fixtures": 110,
+    "conversionReports": 185,
+    "additionalCoreReports": 35,
+    "nativeArtifacts": 855,
+    "serializedPrintPdfs": 110,
+    "currentArtifactPairsByteEqualQualifiedV5": 965,
+    "completeNonOwnerReportsEqual": 220,
+    "rootClassifiedObservations": 4542,
+    "boundary": "Byte identity to the previously qualified source and current independent PDF readback. No new arbitrary-page or every-script appearance claim."
+  },
+  "frozenUnfamiliarPages": {
+    "profiles": 23,
+    "successful": 20,
+    "originalBareNistFontFailures": 3,
+    "successfulPdfPages": 151,
+    "currentPdfAndNativeRasterBytesEqualQualifiedV5": true,
+    "freshDecisive144DpiPairs": 12,
+    "textRunReplacementsAgainstOriginalPredecessor": 78,
+    "linkRectangleChangesAgainstOriginalPredecessor": 20,
+    "diagnosticMultiplicity": {
+      "baselineOccurrences": 113,
+      "currentOccurrences": 110,
+      "unchangedDistinctUnsupportedSourceIdentities": 109,
+      "removedExtraPageCopies": 4,
+      "addedExtraPageCopies": 1,
+      "lostUnsupportedSourceIdentities": 0,
+      "frozenSourceSha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa",
+      "boundary": "109 same distinct unsupported source identities. Changed page-split rectangle multiplicity explains 113 to 110. No PDF encoding or final painted-ink acceptance; all three original bare-font failures remain failures. Broader text/appearance acceptance stays separate."
+    },
+    "boundary": "Twenty successful profiles remain bounded regression evidence. All three bare-font failures, missing resources, unsupported features and wider appearance criteria remain explicit."
+  },
+  "packedConsumers": {
+    "unsignedPrivateArchives": 19,
+    "qualificationVersion": "3.3.0",
+    "frameworks": [
+      "net8.0",
+      "net10.0",
+      "netstandard2.0",
+      "net472"
+    ],
+    "actualRuntimeConsumers": 4,
+    "mathConsumers": 2,
+    "normalAssets": 21,
+    "originalReceiptSerializationFailureRetained": true,
+    "boundary": "Actual isolated archives and restored consumers at the recorded source; no package publication. NET472 compilation on macOS does not prove native .NET Framework execution."
+  },
+  "browser": {
+    "managedHostTests": 86,
+    "diagnosticCases": 6,
+    "fullMatrixCases": 19,
+    "normalAssets": 112,
+    "sourceBuiltWasmModules": 22,
+    "nativeHarfBuzzLinked": true,
+    "rootVisuallyInspectedPreviewCases": 8,
+    "allOwnedBrowserSessionsDisposed": true,
+    "boundary": "Exact current served publication and fixed HtmlTinkerX matrix. WebCIL MVIDs are static artifact identities; no instrumented loaded-browser assembly claim or universal script/layout qualification."
+  },
+  "nativeAot": {
+    "scenario": "html-pdf-image",
+    "runtimeIdentifier": "osx-arm64",
+    "sdk": "10.0.303",
+    "publishExitCode": 0,
+    "runExitCode": 0,
+    "state": "passed",
+    "boundary": "Canonical normal-project NativeAOT smoke. The canonical script retained executable hash and run receipt; its successful inner publish graph/log is self-cleaned. This is one bounded smoke, not all trimming/runtime criteria."
+  },
+  "site": {
+    "powerForgeSourceCommit": "00ed44c6c321d47e02d29890d673364060f1a272",
+    "staticSourceLeaves": 9,
+    "identicalPublishedWasmFiles": 87,
+    "toolPagesValidated": 26,
+    "state": "passed-source-bound-current-site-overlay",
+    "boundary": "Local source-bound site build/overlay/publish validator; no deployment."
+  },
+  "evidence": {
+    "privateEvidenceRoot": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next",
+    "receipts": [
+      {
+        "artifact": "current-master-combined-run-v7-closing-complete-1a0ae404/framework-qualification.json",
+        "bytes": 786357,
+        "sha256": "e4101152881878a2d2fc4e19ad3d503761f4b9007b923d70bc41f2732e7f91e6"
+      },
+      {
+        "artifact": "current-master-combined-run-v7-closing-complete-1a0ae404/drawing-cancellation-opt-in.json",
+        "bytes": 54561,
+        "sha256": "254e2b9a152444f2413543ef19ff29af2457e803ed5fa82ae20fe58cc9686ada"
+      },
+      {
+        "artifact": "current-master-combined-run-v7-closing-complete-1a0ae404/producer-freeze-receipt.json",
+        "bytes": 8607,
+        "sha256": "f95535670f066f8553bcd515454dc053fbfff7be0bf29c2cd962030b1d23cd0a"
+      },
+      {
+        "artifact": "current-master-combined-run-v7-closing-complete-1a0ae404/root-raw-artifact-acceptance.json",
+        "bytes": 3974,
+        "sha256": "136585d22832b7b901f472b81f6201d5ba56d36412ecc67cf262988e50f7832e"
+      },
+      {
+        "artifact": "current-master-combined-run-v7-closing-complete-1a0ae404/native110-closing-corrected/classification-status.json",
+        "bytes": 1114,
+        "sha256": "b3ff61256f71b757f8e713c477c6f28c50cc1f8c5e59fee7c57ff880de19557d"
+      },
+      {
+        "artifact": "combined-seven-current/private-replay/profile-comparison/current-master-v7-closing-complete-1a0ae404/root-seven-native-classification.json",
+        "bytes": 214792,
+        "sha256": "e9de08c8f3c1694fad0cbb896658ad56e337788fdb1f102f72fcdb3338c0dde6"
+      },
+      {
+        "artifact": "current-master-combined-run-v7-closing-complete-1a0ae404/root-package-receipt-resume/qualification.json",
+        "bytes": 84909,
+        "sha256": "7ea1b4e6bed3ad88f40e30bdfe4cc6d49d4b3fa5267fa8ed6a022ef9989f2277"
+      },
+      {
+        "artifact": "current-master-browser-closing-complete-1a0ae404/root-browser-current-qualification.json",
+        "bytes": 231647,
+        "sha256": "76fb459f574db4b7d1b663647c7844d1f10da7b6374f8530d0d592de69211a51"
+      },
+      {
+        "artifact": "current-master-browser-closing-complete-1a0ae404/native-aot-html.json",
+        "bytes": 540,
+        "sha256": "691f417a5fc3ac158692f171e9d7d32aa16406077c1ccca50afd5eb5bf530457"
+      },
+      {
+        "artifact": "current-master-browser-closing-complete-1a0ae404/root-native-aot-execution.json",
+        "bytes": 8018,
+        "sha256": "fd784e5707ae9efe5eb8de264c2752a8a630941a735664efb534e4135527c36f"
+      },
+      {
+        "artifact": "current-master-browser-closing-complete-1a0ae404/root-site-current-qualification.json",
+        "bytes": 5092,
+        "sha256": "bc2b0a63dae21f4fc897ca9123f15dfa5257062273ff1baf0455d2a135db3feb"
+      },
+      {
+        "artifact": "qualification-remediation-next/nist-three-occurrences-current-investigation/root-nist-diagnostic-acceptance.json",
+        "bytes": 19584,
+        "sha256": "a49f02ed8495ad6b1e86c05234a988250ac099429aa1ce3b5a72250ccaaca075"
+      },
+      {
+        "artifact": "current-master-browser-closing-complete-1a0ae404/artifact-protection-output-next/root-independent-verification.json",
+        "bytes": 1139,
+        "sha256": "6ea02c140b8c6806116068db167818592f87fe3378323cc3b0a17ed918c32f0a"
+      },
+      {
+        "artifact": "current-master-browser-closing-complete-1a0ae404/platform-protected-evidence/protection-receipt.json",
+        "bytes": 3002,
+        "sha256": "1d86e3ea01e7a2aea2b658f57ad4a3b3d67ae9e5e2046c45118195b224769a0c"
+      },
+      {
+        "artifact": "qualification-remediation-next/V7-framework-protection-source-next/protected-output/root-independent-verification.json",
+        "bytes": 233351,
+        "sha256": "88eaa46fd097ecfef8f33339e64480bba5d182c15723316794339d8abd8081c7"
+      }
+    ],
+    "retention": "Actual complete framework, browser/package and platform/diagnostic runtime/compiler evidence is protected by independently full-readback-verified archives; disposable normal build graphs removed."
+  },
+  "remainingAcceptance": [
+    "Current-source three-platform timing and peak-memory ceilings, with original failures retained and budgets unchanged",
+    "Wider H10 resources, authored fonts, all-page appearance and editable-target acceptance",
+    "Retained-provider upgrade and runtime adoption through their separate release/consumer boundaries"
+  ]
+}

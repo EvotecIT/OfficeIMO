@@ -349,6 +349,9 @@ fresh page or column moves there as needed.
 Kept paragraphs, lists, tables and rows include closing padding after earlier
 content and inside row columns. Terminal column tables retain their trailing
 spacing even when the panel has zero padding.
+Keep admission uses the destination page or column's continuation padding and
+spacing rules, so content that fits that frame can move there without being
+rejected against the first fragment's height.
 Intermediate fragments keep their normal capacity. Content that cannot leave
 closing space even in a fresh frame is rejected.
 
