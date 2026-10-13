@@ -97,20 +97,25 @@ static void path_in(char *buffer, size_t size, const char *directory, const char
     snprintf(buffer, size, "%s%s%s", directory, PATH_SEPARATOR, name);
 }
 
-/* Quotes a filesystem path for the scan request, including Windows separators and JSON control characters. */
-static char *quote_json_path(const char *value) {
-    char *quoted = malloc(strlen(value) * 6 + 3);
-    if (!quoted) return NULL;
-    char *at = quoted;
-    *at++ = '"';
-    for (const unsigned char *ch = (const unsigned char *)value; *ch; ch++) {
-        if (*ch == '"' || *ch == '\\') { *at++ = '\\'; *at++ = (char)*ch; }
-        else if (*ch < 32) { snprintf(at, 7, "\\u%04x", (unsigned int)*ch); at += 6; }
-        else *at++ = (char)*ch;
+/* Escapes UTF-8 string contents for JSON without changing the referenced path. */
+static int json_escape(char *buffer, size_t size, const char *text) {
+    static const char hex[] = "0123456789abcdef";
+    size_t used = 0;
+    for (const unsigned char *p = (const unsigned char *)text; *p; p++) {
+        size_t needed = *p < 0x20 ? 6 : (*p == '"' || *p == '\\') ? 2 : 1;
+        if (used >= size || needed >= size - used) return 0;
+        if (*p < 0x20) {
+            buffer[used++] = '\\'; buffer[used++] = 'u';
+            buffer[used++] = '0'; buffer[used++] = '0';
+            buffer[used++] = hex[*p >> 4]; buffer[used++] = hex[*p & 15];
+        } else {
+            if (needed == 2) buffer[used++] = '\\';
+            buffer[used++] = (char)*p;
+        }
     }
-    *at++ = '"';
-    *at = '\0';
-    return quoted;
+    if (used >= size) return 0;
+    buffer[used] = '\0';
+    return 1;
 }
 
 int main(int argc, char **argv) {
@@ -286,14 +291,15 @@ int main(int argc, char **argv) {
     }
 
     /* A scan: the rendered page image becomes a PDF page with a recognized word as searchable text. */
-    char scan[1024], scan_request[32768];
+    char scan[1024], escaped_page_png[6 * sizeof page_png], scan_request[sizeof escaped_page_png + 256];
     path_in(scan, sizeof scan, work, "scan.pdf");
-    char *image_path = quote_json_path(page_png);
-    if (!image_path) { fprintf(stderr, "Could not allocate the scan request path.\n"); return 1; }
+    if (!json_escape(escaped_page_png, sizeof escaped_page_png, page_png)) {
+        fprintf(stderr, "The scan image path exceeds the JSON request buffer.\n");
+        return 1;
+    }
     snprintf(scan_request, sizeof scan_request,
-             "{\"pages\":[{\"image\":%s,\"words\":[{\"text\":\"Journey\",\"x\":0.1,\"y\":0.1,\"width\":0.3,\"height\":0.1}]}]}",
-             image_path);
-    free(image_path);
+             "{\"pages\":[{\"image\":\"%s\",\"words\":[{\"text\":\"Journey\",\"x\":0.1,\"y\":0.1,\"width\":0.3,\"height\":0.1}]}]}",
+             escaped_page_png);
     CHECK("scan to pdf", engine_officeimo_create_pdf_from_scan_json(scan_request, scan, 0, &json, &error), OFFICEIMO_OK);
     expect(has(json, "searchablePages", "1"), "the scan is not searchable", json);
     engine_officeimo_free(json);
