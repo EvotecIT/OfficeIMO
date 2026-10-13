@@ -78,6 +78,7 @@
       {{ end }}
     </section>
     <div class="imo-container" id="application-guide"><article class="imo-application-guide imo-prose">{{ content }}</article></div>
+    {{ if page.meta.application == "studio" }}{{ include "sections/studio-features" }}{{ end }}
     <section class="imo-container imo-application-channels" aria-labelledby="channels-title">
       <h2 id="channels-title">Installation channels</h2>
       {{ if app.stores }}{{ stores = app.stores }}{{ store_filter = "all" }}<div class="imo-application-stores">{{ include "sections/store-badges" }}</div>{{ end }}

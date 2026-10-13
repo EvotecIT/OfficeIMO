@@ -21,6 +21,14 @@
 - Before removing a stale review or planning document, move current behavior to its public owner and open work to `Docs/ROADMAP.md`.
 - Keep user-facing install commands on the latest version actually published to NuGet. Validate install examples through a representative restore/build consumer or release tool rather than unit-test substring assertions over documentation prose.
 
+## Studio feature matrix
+
+- `Website/data/studio_features.json` is the public record of what OfficeIMO Studio does on Windows, Linux, Mac, iPad and iPhone. The Studio page renders it, with a roadmap summary.
+- Any change that adds, removes or limits a Studio capability on any system updates the matrix in the same change: the support state on each affected platform, a note for partial support, and a `roadmap` section of `Docs/ROADMAP.md` for planned support.
+- Mark a cell available only when the capability works in that system's app; describe limits in the note instead of rounding up. Columns describe the native app on Mac, iPad and iPhone, and the desktop app on Windows and Linux.
+- When planned work is delivered, update the matrix and remove the completed roadmap text in the same change. Keep the matrix's `roadmap` milestones as summaries of open `Docs/ROADMAP.md` sections, not a second backlog.
+- Run `Website/scripts/Test-StudioFeatureMatrix.ps1` after editing the matrix or renaming roadmap headings.
+
 ## Testing evidence
 
 - Do not use product unit tests to pin human-authored README, roadmap, migration, compatibility, planning, or agent prose.

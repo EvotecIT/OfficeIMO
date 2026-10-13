@@ -1,0 +1,508 @@
+{
+  "roadmapBase": "https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/ROADMAP.md",
+  "apps": [
+    {
+      "id": "desktop",
+      "name": "Studio for Windows and Linux",
+      "detail": "The desktop workspace, with tabs, panes and the full tool catalog.",
+      "status": "available",
+      "statusLabel": "Available"
+    },
+    {
+      "id": "apple",
+      "name": "Studio for Mac, iPad and iPhone",
+      "detail": "A native app for each Apple platform on the same document engine, following each platform's conventions.",
+      "status": "in-development",
+      "statusLabel": "In development"
+    }
+  ],
+  "platforms": [
+    { "id": "windows", "label": "Windows", "app": "desktop" },
+    { "id": "linux", "label": "Linux", "app": "desktop" },
+    { "id": "mac", "label": "Mac", "app": "apple" },
+    { "id": "ipad", "label": "iPad", "app": "apple" },
+    { "id": "iphone", "label": "iPhone", "app": "apple" }
+  ],
+  "states": [
+    { "id": "available", "label": "Yes", "description": "Available in the app." },
+    { "id": "partial", "label": "Partial", "description": "Available with the limits described." },
+    { "id": "planned", "label": "Planned", "description": "On the roadmap." },
+    { "id": "not-applicable", "label": "—", "description": "Not part of the app on this system." }
+  ],
+  "groups": [
+    {
+      "id": "read",
+      "title": "Read and find",
+      "features": [
+        {
+          "id": "open",
+          "title": "Open PDFs",
+          "detail": "Including password-protected documents",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "windows": "Documents open in tabs, with side-by-side panes.",
+            "linux": "Documents open in tabs, with side-by-side panes.",
+            "mac": "One document per window, with system window tabs.",
+            "ipad": "Through the Files document browser, one document per window.",
+            "iphone": "Through the Files document browser."
+          }
+        },
+        {
+          "id": "search",
+          "title": "Search",
+          "detail": "Hits highlighted on the page, next and previous",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "select-text",
+          "title": "Select and copy text",
+          "detail": "Respects the document's copy permission",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "reading-layouts",
+          "title": "Reading layouts",
+          "detail": "Single, continuous, two-page and grid views, view rotation",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Continuous pages with zoom.",
+            "ipad": "Continuous pages with zoom.",
+            "iphone": "Continuous pages with zoom."
+          },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "outline",
+          "title": "Bookmarks and outline",
+          "detail": "Navigate, add, rename and reorder bookmarks",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "properties",
+          "title": "Document properties",
+          "detail": "Title, author, subject and keywords, attachments",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Shown in the inspector; editing is planned.",
+            "ipad": "Shown in the inspector; editing is planned.",
+            "iphone": "Shown in the inspector; editing is planned."
+          },
+          "roadmap": "phase-7-native-apple-apps"
+        }
+      ]
+    },
+    {
+      "id": "markup",
+      "title": "Mark up and review",
+      "features": [
+        {
+          "id": "text-markup",
+          "title": "Highlight, underline and strike through",
+          "detail": "From a text selection",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "drawing",
+          "title": "Freehand drawing",
+          "detail": "Pen and highlighter",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "ipad": "Apple Pencil or a finger, with the system tool picker.",
+            "iphone": "A finger, with the system tool picker."
+          }
+        },
+        {
+          "id": "notes",
+          "title": "Notes",
+          "detail": "Add, edit and delete",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "shapes",
+          "title": "Shapes, text boxes and stamps",
+          "detail": "Rectangles, ellipses, lines, polygons, callouts and stamps",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "comments",
+          "title": "Comment threads",
+          "detail": "Reply, resolve, filter and export a summary",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "compare",
+          "title": "Compare documents",
+          "detail": "Side by side with a list of differences",
+          "support": { "windows": "partial", "linux": "partial", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "notes": {
+            "windows": "Visual comparison; text edits and moved pages are not detected yet.",
+            "linux": "Visual comparison; text edits and moved pages are not detected yet."
+          },
+          "roadmap": "phase-4-advanced-review-and-production"
+        }
+      ]
+    },
+    {
+      "id": "pages",
+      "title": "Organize pages",
+      "features": [
+        {
+          "id": "page-edits",
+          "title": "Rotate, reorder, duplicate and delete pages",
+          "detail": "Each change can be undone",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "insert-pages",
+          "title": "Insert pages",
+          "detail": "Blank pages, or pages from other PDFs",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "extract-pages",
+          "title": "Extract pages",
+          "detail": "Selected pages to a new PDF",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "split",
+          "title": "Split a document",
+          "detail": "Every few pages or at each bookmark",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "combine",
+          "title": "Combine documents",
+          "detail": "PDFs, Office files and images into one PDF",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "PDFs, through the Combine PDFs shortcut and Insert Pages from File.",
+            "ipad": "PDFs, through the Combine PDFs shortcut and Insert Pages from File.",
+            "iphone": "PDFs, through the Combine PDFs shortcut and Insert Pages from File."
+          },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "crop",
+          "title": "Crop and resize pages",
+          "detail": "Crop boxes and paper sizes",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "page-stamps",
+          "title": "Page numbers, headers and watermarks",
+          "detail": "Including Bates numbering",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        }
+      ]
+    },
+    {
+      "id": "edit",
+      "title": "Edit content",
+      "features": [
+        {
+          "id": "edit-text",
+          "title": "Edit existing text",
+          "detail": "Replace text in place and review before applying",
+          "support": { "windows": "partial", "linux": "partial", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "notes": {
+            "windows": "Object-level edits with standard PDF fonts; paragraphs do not reflow.",
+            "linux": "Object-level edits with standard PDF fonts; paragraphs do not reflow."
+          },
+          "roadmap": "phase-3-complete-everyday-document-work"
+        },
+        {
+          "id": "images",
+          "title": "Add and replace images",
+          "detail": "Move, resize and remove page objects",
+          "support": { "windows": "partial", "linux": "partial", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "notes": {
+            "windows": "PNG and JPEG images.",
+            "linux": "PNG and JPEG images."
+          },
+          "roadmap": "phase-3-complete-everyday-document-work"
+        },
+        {
+          "id": "links",
+          "title": "Links and attachments",
+          "detail": "Add web and page links; add, save and remove attachments",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        }
+      ]
+    },
+    {
+      "id": "forms",
+      "title": "Forms",
+      "features": [
+        {
+          "id": "fill-forms",
+          "title": "Fill forms",
+          "detail": "Text fields, check boxes, radio buttons and choices",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "windows": "Tab order and XFDF import and export.",
+            "linux": "Tab order and XFDF import and export.",
+            "mac": "Tab between fields and AutoFill.",
+            "ipad": "Keyboard, Scribble with Apple Pencil and AutoFill.",
+            "iphone": "Keyboard and AutoFill."
+          }
+        },
+        {
+          "id": "create-fields",
+          "title": "Create form fields",
+          "detail": "Text, check box, choice and radio fields",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "flatten",
+          "title": "Flatten forms and annotations",
+          "detail": "Make values and markup part of the page",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        }
+      ]
+    },
+    {
+      "id": "scan",
+      "title": "Scan and recognize text",
+      "features": [
+        {
+          "id": "make-searchable",
+          "title": "Make scans searchable",
+          "detail": "Recognized text becomes searchable and selectable",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "windows": "Uses an installed Tesseract, with a word-by-word review.",
+            "linux": "Uses an installed Tesseract, with a word-by-word review.",
+            "mac": "Recognized on the device with the Vision framework.",
+            "ipad": "Recognized on the device with the Vision framework.",
+            "iphone": "Recognized on the device with the Vision framework."
+          }
+        },
+        {
+          "id": "scan-paper",
+          "title": "Scan paper",
+          "detail": "Capture pages into a new searchable PDF",
+          "support": { "windows": "planned", "linux": "planned", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "mac": "Continuity Camera with a nearby iPhone or iPad, or image files.",
+            "ipad": "The document camera, or photos.",
+            "iphone": "The document camera, or photos."
+          },
+          "roadmap": "phase-6-optional-desktop-integrations"
+        }
+      ]
+    },
+    {
+      "id": "convert",
+      "title": "Convert",
+      "features": [
+        {
+          "id": "to-pdf",
+          "title": "Convert to PDF",
+          "detail": "Word, Excel, PowerPoint, RTF, text, HTML, Markdown, XPS, Visio and Publisher",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "windows": "Also DjVu, CHM and OpenDocument Draw, with conversion diagnostics.",
+            "linux": "Also DjVu, CHM and OpenDocument Draw, with conversion diagnostics."
+          }
+        },
+        {
+          "id": "from-pdf",
+          "title": "Convert from PDF",
+          "detail": "Word, Excel, PowerPoint, HTML, Markdown, text and page images",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Text, through the Get Text from PDF shortcut.",
+            "ipad": "Text, through the Get Text from PDF shortcut.",
+            "iphone": "Text, through the Get Text from PDF shortcut."
+          },
+          "roadmap": "phase-7-native-apple-apps"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Protect and sign",
+      "features": [
+        {
+          "id": "protect",
+          "title": "Password protection",
+          "detail": "Add or remove a password and set permissions, as a copy",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "redact",
+          "title": "Redaction",
+          "detail": "Mark, review and permanently remove content",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "handwritten-signature",
+          "title": "Handwritten signature",
+          "detail": "Draw a signature once and place it on the page",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "windows": "Typed, drawn or picture signatures and initials, with a date stamp.",
+            "linux": "Typed, drawn or picture signatures and initials, with a date stamp."
+          }
+        },
+        {
+          "id": "certificate-signature",
+          "title": "Certificate signature",
+          "detail": "Sign or certify so readers can verify the signer",
+          "support": { "windows": "available", "linux": "planned", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "windows": "With a certificate from the Windows certificate store, visible or invisible.",
+            "linux": "Signing with a certificate file is planned.",
+            "mac": "An invisible signature with a .p12 or .pfx certificate file.",
+            "ipad": "An invisible signature with a .p12 or .pfx certificate file.",
+            "iphone": "An invisible signature with a .p12 or .pfx certificate file."
+          },
+          "roadmap": "phase-3-complete-everyday-document-work"
+        },
+        {
+          "id": "validate",
+          "title": "Validate signatures and standards",
+          "detail": "Check existing signatures, PDF/A, PDF/UA and PDF/X",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        },
+        {
+          "id": "document-health",
+          "title": "Repair, optimize and sanitize",
+          "detail": "Inspect and clean a document into a copy",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "roadmap": "phase-7-native-apple-apps"
+        }
+      ]
+    },
+    {
+      "id": "output",
+      "title": "Print, share and automate",
+      "features": [
+        {
+          "id": "print",
+          "title": "Print",
+          "detail": "Pages drawn by the same engine as the screen",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "windows": "Print preview with pages per sheet, scaling and margins.",
+            "linux": "Print preview with pages per sheet, scaling and margins; printing through CUPS.",
+            "mac": "The system print panel.",
+            "ipad": "The system print sheet.",
+            "iphone": "The system print sheet."
+          }
+        },
+        {
+          "id": "share",
+          "title": "Share",
+          "detail": "Send the document as it is shown, including unsaved changes",
+          "support": { "windows": "not-applicable", "linux": "not-applicable", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "automation",
+          "title": "Automation",
+          "detail": "Convert, combine, extract and make searchable without opening a document",
+          "support": { "windows": "partial", "linux": "partial", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "windows": "Folder batch conversion and jobs; the OfficeIMO command-line tool covers scripted workflows.",
+            "linux": "Folder batch conversion and jobs; the OfficeIMO command-line tool covers scripted workflows.",
+            "mac": "Shortcuts actions with Siri and Spotlight phrases.",
+            "ipad": "Shortcuts actions with Siri and Spotlight phrases.",
+            "iphone": "Shortcuts actions with Siri and Spotlight phrases."
+          },
+          "roadmap": "phase-4-advanced-review-and-production"
+        },
+        {
+          "id": "assistant",
+          "title": "Document assistant",
+          "detail": "Ask questions about a PDF and get answers with page citations",
+          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "notes": {
+            "windows": "ChatGPT, OpenAI-compatible services, GitHub Copilot, or a local model.",
+            "linux": "ChatGPT, OpenAI-compatible services, GitHub Copilot, or a local model."
+          },
+          "roadmap": "document-assistant"
+        }
+      ]
+    },
+    {
+      "id": "workspace",
+      "title": "Workspace",
+      "features": [
+        {
+          "id": "recovery",
+          "title": "Keep unsaved work",
+          "detail": "Recover edits after the app closes unexpectedly",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "windows": "Recovery snapshots and session restore.",
+            "linux": "Recovery snapshots and session restore.",
+            "mac": "System autosave and versions.",
+            "ipad": "System autosave.",
+            "iphone": "System autosave."
+          }
+        },
+        {
+          "id": "languages",
+          "title": "English, Polish, German and French",
+          "detail": "The interface in each language",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
+        },
+        {
+          "id": "appearance",
+          "title": "Light, dark and high contrast",
+          "detail": "Pages keep their own colors",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "mac": "Follows the system appearance and accessibility settings.",
+            "ipad": "Follows the system appearance and accessibility settings.",
+            "iphone": "Follows the system appearance and accessibility settings."
+          }
+        }
+      ]
+    }
+  ],
+  "roadmap": [
+    {
+      "title": "The Apple apps catch up with the desktop",
+      "detail": "Bookmarks, shapes and comments, split and crop, conversion from PDF, form authoring, redaction, validation and document health, through the same engine.",
+      "platforms": ["mac", "ipad", "iphone"],
+      "anchor": "phase-7-native-apple-apps"
+    },
+    {
+      "title": "Mac App Store and App Store",
+      "detail": "The native apps on Apple hardware, with store distribution for Mac, iPad and iPhone.",
+      "platforms": ["mac", "ipad", "iphone"],
+      "anchor": "phase-7-native-apple-apps"
+    },
+    {
+      "title": "Signing everywhere",
+      "detail": "Certificate files on Linux, keychain and smart-card identities on Apple platforms, visible signatures and long-term validation.",
+      "platforms": ["linux", "mac", "ipad", "iphone"],
+      "anchor": "phase-3-complete-everyday-document-work"
+    },
+    {
+      "title": "Deeper review",
+      "detail": "Comparison that finds text edits and moved pages, accessibility repair, production preflight, and saved recipes for repeated work.",
+      "platforms": ["windows", "linux"],
+      "anchor": "phase-4-advanced-review-and-production"
+    },
+    {
+      "title": "Scanners and printers on the desktop",
+      "detail": "Scan from TWAIN, WIA and SANE devices, and choose printer paper and duplex options.",
+      "platforms": ["windows", "linux"],
+      "anchor": "phase-6-optional-desktop-integrations"
+    }
+  ]
+}
