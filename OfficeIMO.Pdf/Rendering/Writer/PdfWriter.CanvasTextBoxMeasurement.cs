@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     /// <summary>Canvas composition and conservative paint bounds in coordinates relative to the box's top left.</summary>
-    internal sealed record CanvasTextBoxMeasurement(double ContentHeight, bool TextFits,
+    internal sealed record CanvasTextBoxMeasurement(double ContentHeight, bool TextFits, double TextInkTop,
         double PaintLeft, double PaintTop, double PaintWidth, double PaintHeight);
 
     /// <summary>Uses the renderer's resolved fonts, line placement, insets and shape stroke geometry.</summary>
@@ -27,7 +27,8 @@ internal static partial class PdfWriter {
             - GetCanvasTextBoxVerticalOffset(style.VerticalAlign, textHeight, prepared.ContentHeight);
         for (int index = 0; index < prepared.Lines.Count; index++) {
             List<RichSeg> line = prepared.Lines[index];
-            if (line.Any(segment => !string.IsNullOrWhiteSpace(segment.Text) || segment.InlineElement != null)) {
+            if (line.Any(segment => !string.IsNullOrWhiteSpace(segment.Text) || segment.InlineElement != null ||
+                    segment.Text.Length > 0 && (segment.BackgroundColor.HasValue || segment.Underline || segment.Strike))) {
                 double baseline = AdjustRichLineBaseline(lineBaseline, line, options,
                     prepared.FontSize, prepared.BaseFont);
                 GetRichLineInkMetrics(line, options, out double ascent, out double descent);
@@ -36,11 +37,12 @@ internal static partial class PdfWriter {
             }
             lineBaseline -= GetRichLineHeight(prepared.LineHeights, index, prepared.Leading);
         }
+        bool unmeasuredDecoration = runs.Any(run => run.Underline || run.Strike || run.BackgroundColor.HasValue);
+        if (unmeasuredDecoration) Include(style.EffectivePaddingLeft, style.EffectivePaddingTop, prepared.TextWidth, textHeight);
         if (!double.IsPositiveInfinity(inkTop)) {
             if (!IsFiniteCanvasMeasurement(inkTop) || !IsFiniteCanvasMeasurement(inkBottom)) return null;
             // Exact spacing can fit its advances while clipping a larger run's ink.
             fits &= inkTop >= -.01D && inkBottom <= textHeight + .01D;
-            bool unmeasuredDecoration = runs.Any(run => run.Underline || run.Strike || run.BackgroundColor.HasValue);
             double paintTop = unmeasuredDecoration ? 0D : Math.Max(0D, inkTop);
             double paintBottom = unmeasuredDecoration ? textHeight : Math.Min(textHeight, inkBottom);
             Include(style.EffectivePaddingLeft, style.EffectivePaddingTop + paintTop,
@@ -51,10 +53,11 @@ internal static partial class PdfWriter {
                 out double shapeLeft, out double shapeBottom, out double shapeWidth, out double shapeHeight,
                 conservativeWhenUnmeasured: true))
             Include(shapeLeft, height - shapeBottom - shapeHeight, shapeWidth, shapeHeight);
-        if (double.IsPositiveInfinity(left)) return new(prepared.ContentHeight, fits, 0D, 0D, 0D, 0D);
+        double textInkTop = double.IsPositiveInfinity(inkTop) ? 0D : inkTop;
+        if (double.IsPositiveInfinity(left)) return new(prepared.ContentHeight, fits, textInkTop, 0D, 0D, 0D, 0D);
         if (!IsFiniteCanvasMeasurement(left) || !IsFiniteCanvasMeasurement(top) ||
             !IsFiniteCanvasMeasurement(right) || !IsFiniteCanvasMeasurement(bottom)) return null;
-        return new(prepared.ContentHeight, fits, left, top, right - left, bottom - top);
+        return new(prepared.ContentHeight, fits, textInkTop, left, top, right - left, bottom - top);
 
         void Include(double x, double y, double w, double h) {
             if (w <= 0D || h <= 0D) return;
