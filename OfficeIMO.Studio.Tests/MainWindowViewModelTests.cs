@@ -192,25 +192,29 @@ public sealed class MainWindowViewModelTests {
         int picks = 0;
 
         try {
-            using var viewModel = new MainWindowViewModel(
-                _ => Task.FromResult<string?>(null),
-                pickImage: _ => {
-                    picks++;
-                    return OfficeIMO.Studio.Infrastructure.StudioStorageInput.ReadImageAsync(
-                        [StudioStorageInputTests.CreateImageFile(TinyPng)], default);
-                });
-            await viewModel.OpenDocumentAsync(path);
-            viewModel.ShowEditModeCommand.Execute(null);
-            viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.AddImage);
-            var gesture = new PdfEditorGesture(1, 40D, 50D, 80D, 90D, Array.Empty<PdfEditorVisualPoint>());
-            PdfPageViewModel firstPage = viewModel.Pages[0];
-            firstPage.CompleteEditorGesture(gesture);
-            await WaitUntilAsync(() => !ReferenceEquals(firstPage, viewModel.Pages[0]));
-            PdfPageViewModel secondPage = viewModel.Pages[0];
-            secondPage.CompleteEditorGesture(gesture with { Left = 100D, Right = 140D });
-            await WaitUntilAsync(() => !ReferenceEquals(secondPage, viewModel.Pages[0]));
+            using var app = TestAppBuilder.StartSession();
+            await app.Dispatch(async () => {
+                using var viewModel = new MainWindowViewModel(
+                    _ => Task.FromResult<string?>(null),
+                    pickImage: _ => {
+                        picks++;
+                        return OfficeIMO.Studio.Infrastructure.StudioStorageInput.ReadImageAsync(
+                            [StudioStorageInputTests.CreateImageFile(TinyPng)], default);
+                    });
+                await viewModel.OpenDocumentAsync(path);
+                viewModel.ShowEditModeCommand.Execute(null);
+                viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.AddImage);
+                var gesture = new PdfEditorGesture(1, 40D, 50D, 80D, 90D, Array.Empty<PdfEditorVisualPoint>());
+                PdfPageViewModel firstPage = viewModel.Pages[0];
+                firstPage.CompleteEditorGesture(gesture);
+                await WaitUntilAsync(() => !ReferenceEquals(firstPage, viewModel.Pages[0]));
+                PdfPageViewModel secondPage = viewModel.Pages[0];
+                secondPage.CompleteEditorGesture(gesture with { Left = 100D, Right = 140D });
+                await WaitUntilAsync(() => !ReferenceEquals(secondPage, viewModel.Pages[0]));
 
-            Assert.Equal(2, picks);
+                Assert.Equal(2, picks);
+                return true;
+            }, CancellationToken.None);
         } finally {
             Directory.Delete(root, recursive: true);
         }

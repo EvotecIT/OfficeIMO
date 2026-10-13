@@ -21,7 +21,9 @@ public static partial class WordPdfConverterExtensions {
         var inner = new WordParagraph(box.Document, innerSource);
         if (WordDocumentTraversal.GetListInfo(inner).HasValue ||
             WordEquation.GetOccurrences(inner._document, inner._paragraph).Count > 0) return false;
-        OpenXmlElement[] innerChildren = GetNativeRuns(inner).SelectMany(run => run.EnumerateEffectiveRunContent())
+        List<WordParagraph> innerRuns = GetNativeRuns(inner);
+        if (HasNativeUnsupportedRunningTextBoxRunPaint(inner, innerRuns)) return false;
+        OpenXmlElement[] innerChildren = innerRuns.SelectMany(run => run.EnumerateEffectiveRunContent())
             .Where(child => child is not W.RunProperties).ToArray();
         if (innerChildren.Any(child => child is not W.Text && child is not W.Break) ||
             innerChildren.OfType<W.Break>().Count() > 1 ||
@@ -33,6 +35,9 @@ public static partial class WordPdfConverterExtensions {
         if (body == null || body.Rotation?.Value is > 0 or < 0 ||
             body.Vertical?.Value is { } vertical && vertical != A.TextVerticalValues.Horizontal ||
             body.Anchor?.Value is { } anchor && anchor != A.TextAnchoringTypeValues.Top ||
+            body.ColumnCount?.Value is > 1 ||
+            body.GetFirstChild<A.PresetTextWarp>() is { } warp && warp.Preset?.Value != A.TextShapeValues.TextNoShape ||
+            body.GetFirstChild<A.Scene3DType>() != null || body.GetFirstChild<A.Shape3DType>() != null ||
             body.GetFirstChild<A.NormalAutoFit>() != null) return false;
 
         // Each square-wrap exclusion must clear the entire ordinary line.
@@ -75,7 +80,7 @@ public static partial class WordPdfConverterExtensions {
         PdfCore.PdfParagraphStyle paragraph = CreateNativeParagraphStyle(inner, defaults, fontMap);
         style = new PdfCore.PdfCanvasTextBoxStyle { Background = null, BorderColor = null, BorderWidth = 0D };
         if (paragraph.SpacingBefore is > 0D || paragraph.LeftIndent != 0D || paragraph.RightIndent != 0D ||
-            paragraph.FirstLineIndent != 0D) return false;
+            paragraph.FirstLineIndent != 0D || HasNativeUnsupportedRunningTextBoxParagraphPaint(inner)) return false;
         double left = (body.LeftInset?.Value ?? 91440) / 12700D;
         double right = (body.RightInset?.Value ?? 91440) / 12700D;
         double top = (body.TopInset?.Value ?? 45720) / 12700D;
@@ -91,6 +96,7 @@ public static partial class WordPdfConverterExtensions {
         var properties = box.DrawingShapeProperties;
         if (properties?.GetFirstChild<A.GradientFill>() != null || properties?.GetFirstChild<A.BlipFill>() != null ||
             properties?.GetFirstChild<A.PatternFill>() != null || properties?.GetFirstChild<A.GroupFill>() != null) return false;
+        if (HasNativeUnsupportedRunningTextBoxPaint(properties)) return false;
         W.Run? sourceRun = box.Drawing?.Ancestors<W.Run>().FirstOrDefault();
         if (sourceRun == null || box.Drawing == null) return false;
         var wordShape = new WordShape(box.Document, sourceRun.Ancestors<W.Paragraph>().First(), sourceRun, box.Drawing);
@@ -105,5 +111,46 @@ public static partial class WordPdfConverterExtensions {
         style.BorderLineCap = shape.StrokeLineCap;
         style.BorderLineJoin = shape.StrokeLineJoin;
         return !shape.StrokeOpacity.HasValue || shape.StrokeOpacity.Value == 1D;
+    }
+
+    /// <summary>Run-only box content cannot reproduce the paragraph's panel or patterned shading.</summary>
+    private static bool HasNativeUnsupportedRunningTextBoxParagraphPaint(WordParagraph paragraph) {
+        W.ParagraphPropertiesBaseStyle? documentProperties = paragraph._document?._wordprocessingDocument?
+            .MainDocumentPart?.StyleDefinitionsPart?.Styles?.DocDefaults?.GetFirstChild<W.ParagraphPropertiesDefault>()?
+            .GetFirstChild<W.ParagraphPropertiesBaseStyle>();
+        // A fill-only resolver discards auto/missing fills, which can still have a visible shading pattern.
+        return HasNativeParagraphBorder(GetNativeEffectiveParagraphBorders(paragraph)) ||
+            paragraph._paragraph.ParagraphProperties?.GetFirstChild<W.Shading>() != null ||
+            GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId).Any(source =>
+                source.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.Shading>() != null) ||
+            documentProperties?.GetFirstChild<W.Shading>() != null || documentProperties?.GetFirstChild<W.ParagraphBorders>() != null;
+    }
+
+    /// <summary>Leaves paint that the fixed canvas cannot reproduce on the explicitly approximated route.</summary>
+    private static bool HasNativeUnsupportedRunningTextBoxPaint(Wps.ShapeProperties? properties) {
+        if (properties == null) return false;
+        if (properties.GetFirstChild<A.EffectList>()?.HasChildren == true ||
+            properties.GetFirstChild<A.EffectDag>()?.HasChildren == true ||
+            properties.GetFirstChild<A.Scene3DType>() != null || properties.GetFirstChild<A.Shape3DType>() != null) return true;
+        Wps.ShapeStyle? reference = properties.Parent?.GetFirstChild<Wps.ShapeStyle>();
+        if (reference?.GetFirstChild<A.EffectReference>()?.Index?.Value is > 0U) return true;
+        // Direct fills override the theme fill. The style mapper resolves direct scheme colors,
+        // but does not resolve the theme's fill/line style matrix.
+        if (properties.GetFirstChild<A.NoFill>() == null && properties.GetFirstChild<A.SolidFill>() == null &&
+            reference?.GetFirstChild<A.FillReference>()?.Index?.Value is > 0U) return true;
+        A.Outline? outline = properties.GetFirstChild<A.Outline>();
+        if (outline?.GetFirstChild<A.NoFill>() != null) return false;
+        if (reference?.GetFirstChild<A.LineReference>()?.Index?.Value is > 0U) return true;
+        if (outline == null) return false;
+        return outline.GetFirstChild<A.GradientFill>() != null || outline.GetFirstChild<A.PatternFill>() != null ||
+            outline.GetFirstChild<A.CustomDash>() != null ||
+            outline.GetFirstChild<A.PresetDash>()?.Val?.Value is { } dash && dash != A.PresetLineDashValues.Solid ||
+            outline.CompoundLineType?.Value is { } compound && compound != A.CompoundLineValues.Single ||
+            outline.Alignment?.Value is { } alignment && alignment != A.PenAlignmentValues.Center ||
+            outline.CapType?.Value is { } cap && cap != A.LineCapValues.Flat ||
+            outline.GetFirstChild<A.Round>() != null || outline.GetFirstChild<A.LineJoinBevel>() != null ||
+            outline.GetFirstChild<A.Miter>()?.Limit != null ||
+            outline.GetFirstChild<A.HeadEnd>()?.Type?.Value is { } head && head != A.LineEndValues.None ||
+            outline.GetFirstChild<A.TailEnd>()?.Type?.Value is { } tail && tail != A.LineEndValues.None;
     }
 }
