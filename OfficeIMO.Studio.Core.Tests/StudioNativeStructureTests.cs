@@ -237,6 +237,59 @@ public sealed class StudioNativeStructureTests : IDisposable {
     }
 
     [Fact]
+    public async Task The_document_converts_to_Word_Excel_PowerPoint_and_HTML_without_changing() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("convert.pdf", "Quarterly totals"), null, default);
+        long revision = (await document.GetInfoAsync(default)).Revision;
+        foreach ((string format, string extension, string part) in new[] {
+                     ("word", "docx", "word/document.xml"), ("excel", "xlsx", "xl/workbook.xml"), ("powerpoint", "pptx", "ppt/presentation.xml") }) {
+            string path = Path.Combine(_root, "convert." + extension);
+            StudioNativeWriteResult result = await document.WriteAsync(new StudioNativeWriteRequest(Export: new StudioNativeExport(format, path)), default);
+            Assert.Equal([path], result.Files);
+            using System.IO.Compression.ZipArchive package = System.IO.Compression.ZipFile.OpenRead(path);
+            Assert.NotNull(package.GetEntry(part));
+        }
+        string html = Path.Combine(_root, "convert.html");
+        await document.WriteAsync(new StudioNativeWriteRequest(Export: new StudioNativeExport("html", html)), default);
+        Assert.Contains("Quarterly", File.ReadAllText(html));
+        Assert.Equal(revision, (await document.GetInfoAsync(default)).Revision);
+    }
+
+    [Fact]
+    public async Task Embedded_images_are_saved_into_a_folder() {
+        // A one-pixel red PNG.
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC");
+        string path = Path.Combine(_root, "images.pdf");
+        File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Image(png, 24, 24))).ToBytes());
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+        string folder = Path.Combine(_root, "images");
+
+        StudioNativeWriteResult result = await document.WriteAsync(new StudioNativeWriteRequest(Export: new StudioNativeExport("images", folder)), default);
+
+        string image = Assert.Single(result.Files);
+        Assert.Equal(folder, Path.GetDirectoryName(image));
+        Assert.True(new FileInfo(image).Length > 0);
+    }
+
+    [Fact]
+    public async Task Flattening_markup_draws_it_into_the_page_and_keeps_links() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("markup.pdf", "Reviewed"), null, default);
+        Assert.False((await document.GetStructureAsync(default)).CanFlattenMarkup);
+        await Assert.ThrowsAnyAsync<ArgumentException>(() =>
+            document.EditAsync(new StudioNativeEditRequest(Flatten: new StudioNativeFlattenEdit(Markup: true)), default));
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("rectangle", 1, new StudioNativeRectangle(40, 60, 100, 50), StrokeWidth: 2), default);
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("link", 1, new StudioNativeRectangle(40, 140, 100, 20), LinkUri: "https://officeimo.com/"), default);
+        Assert.True((await document.GetStructureAsync(default)).CanFlattenMarkup);
+
+        await document.EditAsync(new StudioNativeEditRequest(Flatten: new StudioNativeFlattenEdit(Markup: true)), default);
+
+        StudioNativeAnnotation left = Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations);
+        Assert.Equal("Link", left.Subtype);
+        Assert.False((await document.GetStructureAsync(default)).CanFlattenMarkup);
+        await document.UndoAsync(default);
+        Assert.Equal(2, (await document.GetAnnotationsAsync(1, default)).Annotations.Count);
+    }
+
+    [Fact]
     public unsafe void The_C_interface_reads_structure_applies_edits_and_refuses_two_edits_at_once() {
         string path = CreateTextPdf("abi.pdf", "One", "Two");
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
