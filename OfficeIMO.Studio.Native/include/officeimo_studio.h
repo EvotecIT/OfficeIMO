@@ -257,14 +257,16 @@ int32_t officeimo_document_add_annotation_json(officeimo_document document, cons
  * The markup annotations on a page as JSON:
  * { "abiVersion", "revision", "page", "canEdit", "annotations": [ { "objectNumber", "page", "subtype",
  *   "bounds": { "x", "y", "width", "height" }, "contents", "author", "color": { "red", "green", "blue" } } ] }
- * Bounds are in points of the page as displayed. Links, form fields and popups are not listed.
+ * Bounds are in points of the page as displayed. Links are listed; form fields and popups are not.
  */
 int32_t officeimo_document_annotations_json(officeimo_document document, int32_t page, officeimo_cancellation cancellation,
                                             char **json, char **error);
 
 /*
  * Changes an annotation's contents, author or colour as one undoable change: { "objectNumber", "contents", "author",
- * "color": { "red", "green", "blue" } }. Fields left out are kept.
+ * "color": { "red", "green", "blue" } }. Fields left out are kept. Alone, "bounds": { "x", "y", "width", "height" },
+ * in points of the page as displayed, moves the annotation there, or resizes it with its geometry when the size
+ * differs.
  */
 int32_t officeimo_document_update_annotation_json(officeimo_document document, const char *update,
                                                   officeimo_cancellation cancellation, char **error);

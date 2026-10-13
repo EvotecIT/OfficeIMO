@@ -362,6 +362,12 @@ internal sealed partial class StudioNativeDocument : IDisposable {
     /// <summary>Changes an annotation's text, author or colour as one undoable change; what is not given is kept.</summary>
     internal Task UpdateAnnotationAsync(StudioNativeAnnotationUpdate update, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(update);
+        if (update.Bounds is { } bounds) {
+            if (update.Contents is not null || update.Author is not null || update.Color is not null)
+                throw new ArgumentException("An update moves or resizes an annotation, or changes what it says, not both.", nameof(update));
+            if (!(Finite(bounds.Width) > 0D && Finite(bounds.Height) > 0D)) throw new ArgumentException("An annotation needs a width and a height.", nameof(update));
+            return RunAsync(() => SetAnnotationBoundsAsync(update.ObjectNumber, bounds, cancellationToken), cancellationToken);
+        }
         return RunAsync(() => {
             PdfAnnotation current = _workspace.AnnotationMetadata.FirstOrDefault(annotation => annotation.ObjectNumber == update.ObjectNumber)
                 ?? throw new ArgumentException("The annotation does not exist.", nameof(update));
@@ -370,6 +376,26 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             return _workspace.UpdateAnnotationAsync(update.ObjectNumber, update.Contents ?? current.Contents ?? string.Empty,
                 update.Author ?? current.Title ?? string.Empty, color, cancellationToken);
         }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Moves an annotation to a rectangle of its page as displayed, or resizes it to that rectangle, transforming its
+    /// geometry, as one undoable change. The same size moves it and keeps its appearance.
+    /// </summary>
+    private Task SetAnnotationBoundsAsync(int objectNumber, StudioNativeRectangle bounds, CancellationToken cancellationToken) {
+        PdfAnnotation current = _workspace.AnnotationMetadata.FirstOrDefault(annotation => annotation.ObjectNumber == objectNumber)
+            ?? throw new ArgumentException("The annotation does not exist.", nameof(objectNumber));
+        if (current.PageNumber is not { } page) throw new ArgumentException("The annotation isn't on a page.", nameof(objectNumber));
+        if (!_workspace.CanEditAnnotations) throw new NotSupportedException("This document's annotations can't be changed.");
+        // The editor maps a rectangle on the page as displayed into the page's own space, through its box and rotation.
+        var gesture = new PdfEditorGesture(page, bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height, []);
+        PdfPageRectangle target = PdfEditorCommandFactory.Create(_workspace.CopyBytes(), PdfEditorTool.Rectangle, gesture,
+            new PdfEditorProperties(string.Empty, string.Empty, PdfColor.Black, string.Empty, string.Empty, 12D)).Bounds;
+        double left = Math.Min(current.X1, current.X2), bottom = Math.Min(current.Y1, current.Y2);
+        double width = Math.Abs(current.X2 - current.X1), height = Math.Abs(current.Y2 - current.Y1);
+        return Math.Abs(target.Width - width) < 0.5D && Math.Abs(target.Height - height) < 0.5D
+            ? _workspace.MoveAnnotationAsync(objectNumber, page, target.Left - left, target.Bottom - bottom, cancellationToken)
+            : _workspace.ResizeAnnotationAsync(objectNumber, page, target, cancellationToken);
     }
 
     /// <summary>Removes an annotation as one undoable change.</summary>
@@ -613,7 +639,8 @@ internal sealed record StudioNativeAnnotation(int ObjectNumber, int Page, string
 
 internal sealed record StudioNativeAnnotationList(int AbiVersion, long Revision, int Page, bool CanEdit, IReadOnlyList<StudioNativeAnnotation> Annotations);
 
-internal sealed record StudioNativeAnnotationUpdate(int ObjectNumber, string? Contents = null, string? Author = null, StudioNativeColor? Color = null);
+internal sealed record StudioNativeAnnotationUpdate(int ObjectNumber, string? Contents = null, string? Author = null, StudioNativeColor? Color = null,
+    StudioNativeRectangle? Bounds = null);
 
 internal sealed record StudioNativeFormWidget(int ObjectNumber, StudioNativeRectangle Bounds, string? OnState, bool IsOn);
 

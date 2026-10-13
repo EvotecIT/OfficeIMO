@@ -74,6 +74,36 @@ public sealed class StudioNativeReviewTests : IDisposable {
     }
 
     [Fact]
+    public async Task Annotations_move_and_resize_on_the_displayed_page_and_outlines_become_polygons() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("move.pdf", "Shapes"), null, default);
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("rectangle", 1, new StudioNativeRectangle(40, 60, 100, 50), StrokeWidth: 2), default);
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("polygon", 1, Strokes: [[new StudioNativePoint(200, 60),
+            new StudioNativePoint(260, 70), new StudioNativePoint(250, 130), new StudioNativePoint(190, 120)]], StrokeWidth: 2), default);
+        IReadOnlyList<StudioNativeAnnotation> added = (await document.GetAnnotationsAsync(1, default)).Annotations;
+        StudioNativeAnnotation square = Assert.Single(added, annotation => annotation.Subtype == "Square");
+        Assert.Contains(added, annotation => annotation.Subtype == "Polygon");
+
+        StudioNativeRectangle moved = square.Bounds with { X = square.Bounds.X + 30, Y = square.Bounds.Y + 100 };
+        await document.UpdateAnnotationAsync(new StudioNativeAnnotationUpdate(square.ObjectNumber, Bounds: moved), default);
+        StudioNativeRectangle after = Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations, annotation => annotation.Subtype == "Square").Bounds;
+        Assert.Equal(moved.X, after.X, 1);
+        Assert.Equal(moved.Y, after.Y, 1);
+        Assert.Equal(square.Bounds.Width, after.Width, 1);
+
+        StudioNativeRectangle resized = after with { Width = after.Width * 2, Height = after.Height / 2 };
+        await document.UpdateAnnotationAsync(new StudioNativeAnnotationUpdate(square.ObjectNumber, Bounds: resized), default);
+        StudioNativeRectangle larger = Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations, annotation => annotation.Subtype == "Square").Bounds;
+        Assert.Equal(resized.Width, larger.Width, 1);
+        Assert.Equal(resized.Height, larger.Height, 1);
+
+        await document.UndoAsync(default);
+        await document.UndoAsync(default);
+        Assert.Equal(square.Bounds, Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations, annotation => annotation.Subtype == "Square").Bounds);
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.UpdateAnnotationAsync(
+            new StudioNativeAnnotationUpdate(square.ObjectNumber, Contents: "Both", Bounds: moved), default));
+    }
+
+    [Fact]
     public async Task Signatures_are_reported_for_a_signed_copy_and_absent_from_an_unsigned_document() {
         string source = CreateTextPdf("unsigned.pdf", "Contract");
         using (StudioNativeDocument unsigned = await StudioNativeDocument.OpenAsync(source, null, default)) {
