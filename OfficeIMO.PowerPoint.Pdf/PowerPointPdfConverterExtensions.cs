@@ -265,14 +265,16 @@ public static partial class PowerPointPdfConverterExtensions {
         const double gutter = 18D;
         if (options.HandoutSlidesPerPage == 3) {
             double rowHeight = (pageHeight - margin * 2D - gutter * 2D) / 3D;
-            double thumbWidth = (pageWidth - margin * 2D - gutter) * 0.46D;
+            double thumbColumnWidth = (pageWidth - margin * 2D - gutter) * 0.46D;
             for (int index = 0; index < slides.Count; index++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 double top = margin + index * (rowHeight + gutter);
-                double thumbHeight = Math.Min(rowHeight - 18D, thumbWidth *
+                double thumbHeight = Math.Min(rowHeight - 18D, thumbColumnWidth *
                     presentation.SlideSize.HeightPoints / presentation.SlideSize.WidthPoints);
+                double thumbWidth = thumbHeight * presentation.SlideSize.WidthPoints /
+                    presentation.SlideSize.HeightPoints;
                 RenderSnapshotThumbnail(canvas, slides[index].Slide, slides[index].Number,
-                    margin, top, thumbWidth, thumbHeight, options);
+                    margin + (thumbColumnWidth - thumbWidth) / 2D, top, thumbWidth, thumbHeight, options);
                 string notes = string.Empty;
                 if (options.IncludeSpeakerNotes) slides[index].Slide.Notes.TryGetText(out notes);
                 string noteText = string.IsNullOrWhiteSpace(notes)
@@ -281,8 +283,8 @@ public static partial class PowerPointPdfConverterExtensions {
                       "________________________________" + Environment.NewLine + "________________________________"
                     : "Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture) +
                       Environment.NewLine + notes;
-                RenderSpeakerNotes(canvas, noteText, margin + thumbWidth + gutter, top,
-                    pageWidth - margin * 2D - thumbWidth - gutter, rowHeight,
+                RenderSpeakerNotes(canvas, noteText, margin + thumbColumnWidth + gutter, top,
+                    pageWidth - margin * 2D - thumbColumnWidth - gutter, rowHeight,
                     9D, PdfCore.PdfColor.FromRgb(55, 62, 72), slides[index].Number, options);
             }
             return;
