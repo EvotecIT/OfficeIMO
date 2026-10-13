@@ -114,8 +114,10 @@ public sealed partial class PdfDocumentPreflight {
     public bool RequiresAppendOnlyMutation => Probe.Security.RequiresAppendOnlyMutation;
 
     /// <summary>True when the current OfficeIMO.Pdf writer can safely attempt append-only mutation for this input.</summary>
-    public bool CanAppendOnlyMutate => RequiresAppendOnlyMutation && CanRead &&
-        _documentInfo is not null && AppendOnlyMutationReport.CanAppendAny;
+    public bool CanAppendOnlyMutate => RequiresAppendOnlyMutation && HasCompleteAppendOnlySource && AppendOnlyMutationReport.CanAppendAny;
+
+    private bool HasCompleteAppendOnlySource => CanRead && _documentInfo is not null &&
+        !HasRewriteBlocker(PdfRewriteBlockerKind.IncompleteObjectGraph);
 
     /// <summary>Append-only mutation policy derived from the same security markers used by the incremental updater.</summary>
     public PdfAppendOnlyMutationReport AppendOnlyMutationReport {
@@ -130,13 +132,13 @@ public sealed partial class PdfDocumentPreflight {
     }
 
     /// <summary>True when OfficeIMO.Pdf can append a metadata-only revision to this input.</summary>
-    public bool CanAppendMetadataRevision => _documentInfo is not null && AppendOnlyMutationReport.CanAppendMetadata;
+    public bool CanAppendMetadataRevision => HasCompleteAppendOnlySource && AppendOnlyMutationReport.CanAppendMetadata;
 
     /// <summary>True when OfficeIMO.Pdf can append simple AcroForm field-value revisions to this input.</summary>
-    public bool CanAppendFormFieldRevision => _documentInfo is not null && AppendOnlyMutationReport.CanAppendFormFields;
+    public bool CanAppendFormFieldRevision => HasCompleteAppendOnlySource && AppendOnlyMutationReport.CanAppendFormFields;
 
     /// <summary>True when OfficeIMO.Pdf can append an external-signature placeholder revision to this input.</summary>
-    public bool CanPrepareExternalSignatureRevision => _documentInfo is not null && AppendOnlyMutationReport.CanPrepareExternalSignature;
+    public bool CanPrepareExternalSignatureRevision => HasCompleteAppendOnlySource && AppendOnlyMutationReport.CanPrepareExternalSignature;
 
     /// <summary>Human-readable diagnostics explaining why append-only mutation cannot be attempted yet.</summary>
     public IReadOnlyList<string> AppendOnlyMutationDiagnostics {
@@ -149,8 +151,7 @@ public sealed partial class PdfDocumentPreflight {
             PdfDocumentSecurityInfo security = Probe.Security;
             // The updater owns action availability. Informational notices and legacy format
             // diagnostics must not contradict an append path that the same owner supports.
-            if (!security.RequiresAppendOnlyMutation ||
-                (CanRead && _documentInfo is not null && AppendOnlyMutationReport.CanAppendAny)) {
+            if (!security.RequiresAppendOnlyMutation || CanAppendOnlyMutate) {
                 _appendOnlyMutationDiagnostics = Array.Empty<string>();
                 return _appendOnlyMutationDiagnostics;
             }
@@ -162,6 +163,12 @@ public sealed partial class PdfDocumentPreflight {
                     for (int i = 0; i < ReadBlockers.Count; i++) {
                         AddDistinct(messages, ReadBlockers[i].Message);
                     }
+                }
+            }
+
+            for (int i = 0; i < RewriteBlockers.Count; i++) {
+                if (RewriteBlockers[i].Kind == PdfRewriteBlockerKind.IncompleteObjectGraph) {
+                    AddDistinct(messages, RewriteBlockers[i].Message);
                 }
             }
 
@@ -195,10 +202,6 @@ public sealed partial class PdfDocumentPreflight {
 
             if (security.HasUsageRights && !usageRightsFormFillIn) {
                 AddDistinct(messages, "Usage-rights entries must be preserved before append-only mutation.");
-            }
-
-            if (security.HasXrefStreams) {
-                AddDistinct(messages, "Append-only mutation for xref-stream PDFs is not implemented by OfficeIMO.Pdf yet.");
             }
 
             if (messages.Count == 0 && !AppendOnlyMutationReport.CanAppendAny) {
