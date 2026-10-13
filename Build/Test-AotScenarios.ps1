@@ -5,7 +5,9 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string] $Configuration = 'Release',
     [string] $JsonOutputPath = '',
-    [string[]] $Scenario = @()
+    [string[]] $Scenario = @(),
+    [ValidateSet('all', 'libraries', 'iwork', 'surfaces')]
+    [string] $ScenarioGroup = 'all'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,30 +28,39 @@ if ([string]::IsNullOrWhiteSpace($RuntimeIdentifier)) {
 }
 
 $scenarios = @(
-    [ordered]@{ id = 'production-libraries'; title = 'Ordinary production library coverage: fully rooted libraries plus bounded Google adapter'; project = 'OfficeIMO.All.AotSmoke/OfficeIMO.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
-    [ordered]@{ id = 'word'; title = 'Word dictionary template binding, save, and reload'; project = 'OfficeIMO.Word.AotSmoke/OfficeIMO.Word.AotSmoke.csproj' },
-    [ordered]@{ id = 'excel'; title = 'Excel DataReader, typed, and generic-only dictionary table create, save, and reload'; project = 'OfficeIMO.Excel.AotSmoke/OfficeIMO.Excel.AotSmoke.csproj' },
-    [ordered]@{ id = 'powerpoint'; title = 'PowerPoint chart and generic-only dictionary table create, duplicate, save, and reload'; project = 'OfficeIMO.PowerPoint.AotSmoke/OfficeIMO.PowerPoint.AotSmoke.csproj' },
-    [ordered]@{ id = 'security'; title = 'Optional security provider CMS and XML DSig signing and verification'; project = 'OfficeIMO.Security.AotSmoke/OfficeIMO.Security.AotSmoke.csproj' },
-    [ordered]@{ id = 'provenance-c2pa'; title = 'Optional C2PA adapter provider-unavailable process boundary'; project = 'OfficeIMO.Provenance.C2pa.AotSmoke/OfficeIMO.Provenance.C2pa.AotSmoke.csproj' },
-    [ordered]@{ id = 'markdown'; title = 'Markdown fluent composition and rendering'; project = 'OfficeIMO.Markdown.AotSmoke/OfficeIMO.Markdown.AotSmoke.csproj' },
-    [ordered]@{ id = 'csv'; title = 'CSV parse and schema inspection'; project = 'OfficeIMO.CSV.AotSmoke/OfficeIMO.CSV.AotSmoke.csproj' },
-    [ordered]@{ id = 'reader-csv'; title = 'Reader CSV normalized extraction'; project = 'OfficeIMO.Reader.Csv.AotSmoke/OfficeIMO.Reader.Csv.AotSmoke.csproj' },
-    [ordered]@{ id = 'reader-iwork-net8'; title = 'iWork source and Reader native-fixture extraction on .NET 8'; project = 'OfficeIMO.Reader.IWork.AotSmoke/OfficeIMO.Reader.IWork.AotSmoke.csproj'; targetFramework = 'net8.0' },
-    [ordered]@{ id = 'reader-iwork'; title = 'iWork source and Reader native-fixture extraction, formulas, diagnostics, JSON and limits'; project = 'OfficeIMO.Reader.IWork.AotSmoke/OfficeIMO.Reader.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
-    [ordered]@{ id = 'iwork-conversion-net8'; title = 'iWork editable conversion and native Keynote creation on .NET 8'; project = 'OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj'; targetFramework = 'net8.0' },
-    [ordered]@{ id = 'iwork-conversion'; title = 'iWork editable conversion and native Keynote creation'; project = 'OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
-    [ordered]@{ id = 'iwork-pdf-net8'; title = 'Composed iWork PDF workflows, portable fonts and atomic rejection on .NET 8'; project = 'OfficeIMO.Workflows.IWork.AotSmoke/OfficeIMO.Workflows.IWork.AotSmoke.csproj'; targetFramework = 'net8.0' },
-    [ordered]@{ id = 'iwork-pdf'; title = 'Composed iWork PDF workflows, portable fonts and atomic rejection'; project = 'OfficeIMO.Workflows.IWork.AotSmoke/OfficeIMO.Workflows.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
-    [ordered]@{ id = 'reader-all'; title = 'Reader all-formats registration and representative extraction'; project = 'OfficeIMO.Reader.All.AotSmoke/OfficeIMO.Reader.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
-    [ordered]@{ id = 'html-pdf-image'; title = 'HTML to SVG, PNG, and searchable PDF'; project = 'OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj' },
-    [ordered]@{ id = 'officeimo-tool'; title = 'Unified production CLI startup and command discovery'; project = 'OfficeIMO.Tool/OfficeIMO.Tool.csproj'; targetFramework = 'net10.0'; aotValidation = $true; runArguments = @('--help') }
+    [ordered]@{ id = 'production-libraries'; group = 'libraries'; title = 'Ordinary production library coverage: fully rooted libraries plus bounded Google adapter'; project = 'OfficeIMO.All.AotSmoke/OfficeIMO.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
+    [ordered]@{ id = 'word'; group = 'libraries'; title = 'Word dictionary template binding, save, and reload'; project = 'OfficeIMO.Word.AotSmoke/OfficeIMO.Word.AotSmoke.csproj' },
+    [ordered]@{ id = 'excel'; group = 'libraries'; title = 'Excel DataReader, typed, and generic-only dictionary table create, save, and reload'; project = 'OfficeIMO.Excel.AotSmoke/OfficeIMO.Excel.AotSmoke.csproj' },
+    [ordered]@{ id = 'powerpoint'; group = 'libraries'; title = 'PowerPoint chart and generic-only dictionary table create, duplicate, save, and reload'; project = 'OfficeIMO.PowerPoint.AotSmoke/OfficeIMO.PowerPoint.AotSmoke.csproj' },
+    [ordered]@{ id = 'security'; group = 'libraries'; title = 'Optional security provider CMS and XML DSig signing and verification'; project = 'OfficeIMO.Security.AotSmoke/OfficeIMO.Security.AotSmoke.csproj' },
+    [ordered]@{ id = 'provenance-c2pa'; group = 'libraries'; title = 'Optional C2PA adapter provider-unavailable process boundary'; project = 'OfficeIMO.Provenance.C2pa.AotSmoke/OfficeIMO.Provenance.C2pa.AotSmoke.csproj' },
+    [ordered]@{ id = 'markdown'; group = 'libraries'; title = 'Markdown fluent composition and rendering'; project = 'OfficeIMO.Markdown.AotSmoke/OfficeIMO.Markdown.AotSmoke.csproj' },
+    [ordered]@{ id = 'csv'; group = 'libraries'; title = 'CSV parse and schema inspection'; project = 'OfficeIMO.CSV.AotSmoke/OfficeIMO.CSV.AotSmoke.csproj' },
+    [ordered]@{ id = 'reader-csv'; group = 'libraries'; title = 'Reader CSV normalized extraction'; project = 'OfficeIMO.Reader.Csv.AotSmoke/OfficeIMO.Reader.Csv.AotSmoke.csproj' },
+    [ordered]@{ id = 'reader-iwork-net8'; group = 'iwork'; title = 'iWork source and Reader native-fixture extraction on .NET 8'; project = 'OfficeIMO.Reader.IWork.AotSmoke/OfficeIMO.Reader.IWork.AotSmoke.csproj'; targetFramework = 'net8.0' },
+    [ordered]@{ id = 'reader-iwork'; group = 'iwork'; title = 'iWork source and Reader native-fixture extraction, formulas, diagnostics, JSON and limits'; project = 'OfficeIMO.Reader.IWork.AotSmoke/OfficeIMO.Reader.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
+    [ordered]@{ id = 'iwork-conversion-net8'; group = 'iwork'; title = 'iWork editable conversion and native Keynote creation on .NET 8'; project = 'OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj'; targetFramework = 'net8.0' },
+    [ordered]@{ id = 'iwork-conversion'; group = 'iwork'; title = 'iWork editable conversion and native Keynote creation'; project = 'OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
+    [ordered]@{ id = 'iwork-pdf-net8'; group = 'iwork'; title = 'Composed iWork PDF workflows, portable fonts and atomic rejection on .NET 8'; project = 'OfficeIMO.Workflows.IWork.AotSmoke/OfficeIMO.Workflows.IWork.AotSmoke.csproj'; targetFramework = 'net8.0' },
+    [ordered]@{ id = 'iwork-pdf'; group = 'iwork'; title = 'Composed iWork PDF workflows, portable fonts and atomic rejection'; project = 'OfficeIMO.Workflows.IWork.AotSmoke/OfficeIMO.Workflows.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
+    [ordered]@{ id = 'reader-all'; group = 'surfaces'; title = 'Reader all-formats registration and representative extraction'; project = 'OfficeIMO.Reader.All.AotSmoke/OfficeIMO.Reader.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
+    [ordered]@{ id = 'html-pdf-image'; group = 'surfaces'; title = 'HTML to SVG, PNG, and searchable PDF'; project = 'OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj' },
+    [ordered]@{ id = 'officeimo-tool'; group = 'surfaces'; title = 'Unified production CLI startup and command discovery'; project = 'OfficeIMO.Tool/OfficeIMO.Tool.csproj'; targetFramework = 'net10.0'; aotValidation = $true; runArguments = @('--help') }
 )
 
+if (@($scenarios | Where-Object { $_.group -notin @('libraries', 'iwork', 'surfaces') }).Count -gt 0) {
+    throw 'Every NativeAOT scenario must belong to a supported CI group.'
+}
 if ($Scenario.Count -gt 0) {
     $unknown = @($Scenario | Where-Object { $_ -notin $scenarios.id })
     if ($unknown.Count -gt 0) { throw "Unknown NativeAOT scenarios: $($unknown -join ', ')" }
     $scenarios = @($scenarios | Where-Object { $_.id -in $Scenario })
+}
+if ($ScenarioGroup -ne 'all') {
+    $scenarios = @($scenarios | Where-Object { $_.group -eq $ScenarioGroup })
+}
+if ($scenarios.Count -eq 0) {
+    throw 'The requested NativeAOT scenario selection is empty.'
 }
 
 $artifactRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("OfficeIMO-AotValidation-" + [guid]::NewGuid().ToString('N'))
@@ -113,8 +124,19 @@ try {
         if ($scenarioDefinition.aotValidation) {
             $publishArguments.Add('-p:AotValidation=true')
         }
+        if ($RuntimeIdentifier -like 'linux-*' -and $scenarioDefinition.targetFramework -eq 'net8.0') {
+            # Bound the .NET 8 native compiler as well as MSBuild on hosted Linux.
+            $publishArguments.Add('-p:IlcSingleThreaded=true')
+        }
 
-        $publishOutput = @(& dotnet @publishArguments 2>&1)
+        $publishOutput = [System.Collections.Generic.List[string]]::new()
+        & dotnet @publishArguments 2>&1 | ForEach-Object {
+            $publishLine = [string] $_
+            $publishOutput.Add($publishLine)
+            # Preserve compiler progress and diagnostics even if the runner exits
+            # before this publish can produce its final JSON receipt.
+            Write-Host $publishLine
+        }
         $publishExit = $LASTEXITCODE
         $diagnosticCodes = @([regex]::Matches(($publishOutput -join "`n"), '\b(?:IL|NETSDK|CS)\d{4}\b') |
             ForEach-Object Value | Sort-Object -Unique)
@@ -168,6 +190,7 @@ try {
             schemaVersion = 1
             runtimeIdentifier = $RuntimeIdentifier
             configuration = $Configuration
+            scenarioGroup = $ScenarioGroup
             scenarioCount = $results.Count
             scenarios = @($results)
         } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $resolvedOutputPath -Encoding utf8
