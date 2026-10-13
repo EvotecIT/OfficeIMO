@@ -10,6 +10,7 @@ struct DocumentWindow: View {
     @Environment(\.newDocument) private var newDocument
     #endif
     @State private var noteText = ""
+    @State private var importPassword = ""
     @Environment(\.undoManager) private var undoManager
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -66,11 +67,58 @@ struct DocumentWindow: View {
                 session.extractedPages = nil
                 if case .failure(let error) = result { session.errorMessage = error.localizedDescription }
             }
+            .fileImporter(isPresented: $session.isChoosingPagesToImport, allowedContentTypes: [.pdf], allowsMultipleSelection: true) { result in
+                switch result {
+                case .success(let urls): session.importPages(from: urls)
+                case .failure(let error): session.errorMessage = error.localizedDescription
+                }
+            }
+            .alert(importPasswordTitle, isPresented: importPasswordShown) {
+                SecureField("Password", text: $importPassword)
+                Button("Insert") {
+                    let entered = importPassword
+                    importPassword = ""
+                    session.continueImport(password: entered)
+                }
+                Button("Cancel", role: .cancel) {
+                    importPassword = ""
+                    session.pendingImport = nil
+                }
+            } message: {
+                if session.pendingImport?.needed.isRetry == true {
+                    Text("The password is incorrect. Try again.")
+                } else {
+                    Text("Enter its password to insert its pages.")
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if let progress = session.recognitionProgress {
+                    RecognitionProgressBar(progress: progress) { session.cancelEdit() }
+                }
+            }
+            .alert("No Text Added", isPresented: noticeShown) {
+                Button("OK") { session.notice = nil }
+            } message: {
+                Text(session.notice ?? "")
+            }
             .alert("The Change Couldn’t Be Made", isPresented: errorShown) {
                 Button("OK") { session.errorMessage = nil }
             } message: {
                 Text(session.errorMessage ?? "")
             }
+    }
+
+    private var noticeShown: Binding<Bool> {
+        Binding { session.notice != nil } set: { if !$0 { session.notice = nil } }
+    }
+
+    private var importPasswordShown: Binding<Bool> {
+        Binding { session.pendingImport != nil } set: { if !$0 { session.pendingImport = nil } }
+    }
+
+    private var importPasswordTitle: String {
+        guard let name = session.pendingImport?.needed.name else { return String(localized: "Password Required") }
+        return String(localized: "“\(name)” Is Protected")
     }
 
     @ViewBuilder private var layout: some View {

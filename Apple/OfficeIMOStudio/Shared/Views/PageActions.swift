@@ -28,6 +28,8 @@ struct PageActionButtons: View {
         Menu("More", systemImage: "ellipsis") {
             Button("Insert Blank Page", systemImage: "doc.badge.plus") { session.insertBlankPage() }
                 .disabled(!session.canEditPages)
+            Button("Insert Pages from File…", systemImage: "doc.badge.arrow.up") { session.isChoosingPagesToImport = true }
+                .disabled(!session.canImportPages)
             Button("Extract Pages…", systemImage: "doc.on.doc") { session.extract(pages) }
                 .disabled(pages.isEmpty || !session.canExtractPages)
         }
@@ -52,6 +54,11 @@ struct PageContextMenu: View {
             session.selection = [pages.last ?? page]
             session.insertBlankPage()
         }
+        Button("Insert Pages from File…", systemImage: "doc.badge.arrow.up") {
+            session.selection = [pages.last ?? page]
+            session.isChoosingPagesToImport = true
+        }
+        .disabled(!session.canImportPages)
         Button("Extract Pages…", systemImage: "doc.on.doc") { session.extract(pages) }
             .disabled(!session.canExtractPages)
         Divider()

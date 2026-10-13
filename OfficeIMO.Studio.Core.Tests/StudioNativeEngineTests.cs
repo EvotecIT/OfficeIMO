@@ -4,6 +4,7 @@ using System.Text.Json;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Scan;
+using OfficeIMO.Studio.Features.Workspace;
 using OfficeIMO.Studio.Native;
 
 namespace OfficeIMO.Studio.Core.Tests;
@@ -62,8 +63,10 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     // Pages of distinct widths, so a page's width identifies it after an edit.
-    private string CreatePagesOfWidths(params double[] widths) {
-        string path = Path.Combine(_root, "widths.pdf");
+    private string CreatePagesOfWidths(params double[] widths) => CreatePagesOfWidthsAt("widths.pdf", widths);
+
+    private string CreatePagesOfWidthsAt(string name, params double[] widths) {
+        string path = Path.Combine(_root, name);
         PdfDocument.Create(document => {
             foreach (double width in widths) document.Page(content => content.Size(width, 400));
         }).Save(path);
@@ -124,6 +127,85 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.Equal(allowed, (await document.GetInfoAsync(default)).CanPrint);
         using StudioNativeDocument open = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300), null, default);
         Assert.True((await open.GetInfoAsync(default)).CanPrint);
+    }
+
+    [Fact]
+    public async Task Pages_from_other_PDFs_are_inserted_as_one_undoable_change() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310), null, default);
+        string first = CreatePagesOfWidthsAt("first.pdf", 400, 410, 420);
+        string second = CreatePagesOfWidthsAt("second.pdf", 500);
+        Assert.True((await document.GetInfoAsync(default)).CanImportPages);
+
+        StudioNativeImportResult result = await document.ImportPagesAsync(new StudioNativeImportRequest(
+            [new StudioNativeImportSource(first, Pages: [3, 1]), new StudioNativeImportSource(second)], InsertBefore: 2), default);
+
+        Assert.Equal(3, result.Imported);
+        Assert.Equal(new[] { 300D, 420D, 400D, 500D, 310D }, await WidthsAsync(document));
+        await document.UndoAsync(default);
+        Assert.Equal(new[] { 300D, 310D }, await WidthsAsync(document));
+    }
+
+    [Fact]
+    public async Task Importing_reports_which_source_needs_its_password() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300), null, default);
+        string plain = CreatePagesOfWidthsAt("plain.pdf", 400);
+        string locked = Path.Combine(_root, "locked.pdf");
+        File.WriteAllBytes(locked, PdfDocument.Load(File.ReadAllBytes(CreatePagesOfWidthsAt("unlocked.pdf", 500)))
+            .Security.Encrypt(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
+
+        var missing = await Assert.ThrowsAsync<PdfImportPasswordException>(() => document.ImportPagesAsync(new StudioNativeImportRequest(
+            [new StudioNativeImportSource(plain), new StudioNativeImportSource(locked)], 2), default));
+        Assert.Equal((1, "locked.pdf", false), (missing.SourceIndex, missing.Name, missing.Invalid));
+        Assert.Equal(StudioNativeAbi.PasswordRequired, StudioNativeAbi.StatusOf(missing));
+        var wrong = await Assert.ThrowsAsync<PdfImportPasswordException>(() => document.ImportPagesAsync(new StudioNativeImportRequest(
+            [new StudioNativeImportSource(locked, "nope")], 2), default));
+        Assert.Equal(StudioNativeAbi.InvalidPassword, StudioNativeAbi.StatusOf(wrong));
+        Assert.Equal(new[] { 300D }, await WidthsAsync(document));
+
+        await document.ImportPagesAsync(new StudioNativeImportRequest([new StudioNativeImportSource(plain), new StudioNativeImportSource(locked, "open")], 2), default);
+        Assert.Equal(new[] { 300D, 400D, 500D }, await WidthsAsync(document));
+    }
+
+    [Fact]
+    public async Task Importing_refuses_requests_outside_the_document() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300), null, default);
+        string source = CreatePagesOfWidthsAt("source.pdf", 400, 410);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => document.ImportPagesAsync(new StudioNativeImportRequest([], 1), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.ImportPagesAsync(new StudioNativeImportRequest([new StudioNativeImportSource(source, Pages: [3])], 1), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.ImportPagesAsync(new StudioNativeImportRequest([new StudioNativeImportSource(source)], 3), default));
+        await Assert.ThrowsAnyAsync<Exception>(() => document.ImportPagesAsync(new StudioNativeImportRequest([new StudioNativeImportSource(Path.Combine(_root, "missing.pdf"))], 1), default));
+        Assert.False((await document.GetInfoAsync(default)).IsDirty);
+    }
+
+    [Fact]
+    public unsafe void The_C_interface_imports_pages_and_names_a_source_that_needs_its_password() {
+        string target = CreatePagesOfWidths(300);
+        string plain = CreatePagesOfWidthsAt("plain.pdf", 400);
+        string locked = Path.Combine(_root, "locked.pdf");
+        File.WriteAllBytes(locked, PdfDocument.Load(File.ReadAllBytes(plain)).Security.Encrypt(new PdfStandardEncryptionOptions("open")).Pdf);
+        delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
+        delegate* unmanaged<nint, byte*, nint, byte**, byte**, int> import = &StudioNativeExports.DocumentImportPagesJson;
+        delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
+        delegate* unmanaged<void*, void> free = &StudioNativeExports.Free;
+
+        nint document = 0; byte* error = null; byte* json = null;
+        fixed (byte* location = Encoding.UTF8.GetBytes(target + "\0")) Assert.Equal(StudioNativeAbi.Ok, open(location, null, 0, &document, &error));
+        try {
+            string request = JsonSerializer.Serialize(new { insertBefore = 2, sources = new object[] { new { path = plain }, new { path = locked } } });
+            fixed (byte* body = Encoding.UTF8.GetBytes(request + "\0")) Assert.Equal(StudioNativeAbi.PasswordRequired, import(document, body, 0, &json, &error));
+            using (JsonDocument needed = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!)) {
+                Assert.Equal(1, needed.RootElement.GetProperty("source").GetInt32());
+                Assert.Equal("locked.pdf", needed.RootElement.GetProperty("name").GetString());
+            }
+            free(json); free(error);
+
+            request = JsonSerializer.Serialize(new { insertBefore = 2, sources = new object[] { new { path = plain }, new { path = locked, password = "open" } } });
+            fixed (byte* body = Encoding.UTF8.GetBytes(request + "\0")) Assert.Equal(StudioNativeAbi.Ok, import(document, body, 0, &json, &error));
+            using JsonDocument done = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!);
+            free(json);
+            Assert.Equal(2, done.RootElement.GetProperty("imported").GetInt32());
+        } finally { close(document); }
     }
 
     [Fact]
@@ -368,6 +450,111 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.Equal(text.Texts.Count, text.Breaks.Count);
         Assert.Equal([2, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0], text.Breaks);
     }
+
+    [Fact]
+    public async Task A_scanned_document_becomes_searchable_as_one_undoable_change() {
+        string image = await CreateScanImageAsync("paper", 300, 400);
+        string scan = Path.Combine(_root, "image-only.pdf");
+        await PdfScanComposer.ComposeAsync([new PdfScanPage(image, []), new PdfScanPage(image, [])], scan, default);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(scan, null, default);
+        Assert.True((await document.GetInfoAsync(default)).CanMakeSearchable);
+        Assert.Empty((await document.SearchAsync("quarterly", default)).Hits);
+        var seen = new List<(int Page, bool IsPng)>();
+
+        StudioNativeSearchableResult result = await document.MakeSearchableAsync((page, png, _) => {
+            seen.Add((page, png.Length > 8 && png[1] == (byte)'P' && png[2] == (byte)'N' && png[3] == (byte)'G'));
+            return page == 2 ? [new PdfScanWord("Quarterly", 0.2, 0.3, 0.4, 0.05, 0.9)] : [];
+        }, default);
+
+        Assert.Equal([(1, true), (2, true)], seen);
+        Assert.Equal((1, 1), (result.Pages, result.Words));
+        StudioNativeSearchHit hit = Assert.Single((await document.SearchAsync("quarterly", default)).Hits);
+        Assert.Equal(2, hit.Page);
+        await document.UndoAsync(default);
+        Assert.Empty((await document.SearchAsync("quarterly", default)).Hits);
+    }
+
+    [Theory]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public async Task Text_recognized_on_a_rotated_page_lands_where_the_recognizer_saw_it(int rotation) {
+        string image = await CreateScanImageAsync($"turned-{rotation}", 300, 400);
+        string scan = Path.Combine(_root, $"turned-{rotation}.pdf");
+        await PdfScanComposer.ComposeAsync([new PdfScanPage(image, [])], scan, default);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(scan, null, default);
+        await document.RotatePagesAsync([1], rotation, default);
+        StudioNativePageInfo page = (await document.GetInfoAsync(default)).Pages[0];
+        double width = rotation % 180 == 0 ? page.Width : page.Height, height = rotation % 180 == 0 ? page.Height : page.Width;
+
+        await document.MakeSearchableAsync((_, _, _) => [new PdfScanWord("Quarterly", 0.2, 0.3, 0.4, 0.05, 0.9)], default);
+
+        StudioNativeSearchHit hit = Assert.Single((await document.SearchAsync("quarterly", default)).Hits);
+        // The hit is where the word was on the image the recognizer read: the page as displayed.
+        Assert.InRange(hit.Bounds.X / width, 0.17, 0.23);
+        Assert.InRange(hit.Bounds.Y / height, 0.27, 0.33);
+        Assert.InRange(hit.Bounds.Width / width, 0.35, 0.45);
+    }
+
+    [Fact]
+    public async Task Making_a_digital_document_searchable_leaves_its_text_alone() {
+        string path = Path.Combine(_root, "digital.pdf");
+        PdfDocument.Create(document => document.Page(page => page.Size(400, 300)
+            .Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Already searchable")))))).Save(path);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+        long revision = (await document.GetInfoAsync(default)).Revision;
+
+        // A recognizer that reads the page's own text back finds nothing new to add.
+        StudioNativePageText text = await document.GetPageTextAsync(1, default);
+        double width = text.Boxes.Where((_, index) => index % 4 == 2).Sum(), x = text.Boxes[0], y = text.Boxes[1], height = text.Boxes[3];
+        StudioNativeSearchableResult result = await document.MakeSearchableAsync((_, _, _) =>
+            [new PdfScanWord("Already", x / 400, y / 300, 0.2, height / 300)], default);
+
+        Assert.Equal(0, result.Words);
+        Assert.Equal(revision, (await document.GetInfoAsync(default)).Revision);
+        using var cancel = new CancellationTokenSource();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.MakeSearchableAsync((_, _, _) => {
+            cancel.Cancel();
+            return [];
+        }, cancel.Token));
+        Assert.Equal(revision, (await document.GetInfoAsync(default)).Revision);
+    }
+
+    [Fact]
+    public unsafe void The_C_interface_makes_a_scan_searchable_through_the_host_recognizer() {
+        string image = CreateScanImageAsync("c-paper", 300, 400).GetAwaiter().GetResult();
+        string scan = Path.Combine(_root, "c-image-only.pdf");
+        PdfScanComposer.ComposeAsync([new PdfScanPage(image, [])], scan, default).GetAwaiter().GetResult();
+        delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
+        delegate* unmanaged<nint, delegate* unmanaged<nint, int, int, byte*, nuint, byte**, int>, nint, nint, byte**, byte**, int> searchable =
+            &StudioNativeExports.DocumentMakeSearchableJson;
+        delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
+        delegate* unmanaged<void*, void> free = &StudioNativeExports.Free;
+
+        nint document = 0; byte* error = null; byte* json = null;
+        fixed (byte* location = Encoding.UTF8.GetBytes(scan + "\0")) Assert.Equal(StudioNativeAbi.Ok, open(location, null, 0, &document, &error));
+        try {
+            Assert.Equal(StudioNativeAbi.Ok, searchable(document, &RecognizeInvoice, 7, 0, &json, &error));
+            using JsonDocument result = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!);
+            free(json);
+            Assert.Equal(1, result.RootElement.GetProperty("words").GetInt32());
+            Assert.Equal(StudioNativeAbi.Failed, searchable(document, &RecognizeNothing, 0, 0, &json, &error));
+            Assert.Contains("page 1", Marshal.PtrToStringUTF8((nint)error));
+            free(error);
+        } finally { close(document); }
+    }
+
+    [UnmanagedCallersOnly]
+    private static unsafe int RecognizeInvoice(nint context, int page, int pageCount, byte* png, nuint length, byte** words) {
+        if (context != 7 || page != 1 || pageCount != 1 || length == 0) return StudioNativeAbi.Failed;
+        byte[] text = Encoding.UTF8.GetBytes("""[{"text":"Invoice","x":0.1,"y":0.1,"width":0.3,"height":0.05,"confidence":0.95}]""" + "\0");
+        *words = (byte*)NativeMemory.Alloc((nuint)text.Length);
+        text.CopyTo(new Span<byte>(*words, text.Length));
+        return StudioNativeAbi.Ok;
+    }
+
+    [UnmanagedCallersOnly]
+    private static unsafe int RecognizeNothing(nint context, int page, int pageCount, byte* png, nuint length, byte** words) => StudioNativeAbi.Failed;
 
     [Fact]
     public async Task A_scan_refuses_what_it_cannot_make() {

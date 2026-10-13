@@ -233,5 +233,5 @@ internal static partial class PdfWriter {
             : lineIndex == 0 ? firstLineXOverride ?? fallback : fallback;
 
     private static double GetRichSegmentWidth(RichSeg segment) =>
-        segment.MeasuredWidth;
+        segment.MeasuredWidth + segment.KerningAdvance;
 }

@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Scan;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Native;
 
@@ -179,6 +180,74 @@ internal static unsafe class StudioNativeExports {
         int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
         string? destination = StudioNativeAbi.FromUtf8(path);
         return WithDocument(document, error, cancellation, (target, token) => target.ExtractPagesAsync(selected, destination!, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>
+    /// Inserts pages from other PDFs, described by a UTF-8 JSON request, as one undoable change. The result, or for a
+    /// source that needs its password the source's position and name, is returned as UTF-8 JSON.
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_import_pages_json")]
+    internal static int DocumentImportPagesJson(nint document, byte* request, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        StudioNativeImportRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeImportRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The import request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => {
+            try {
+                StudioNativeImportResult result = target.ImportPagesAsync(parsed, token).GetAwaiter().GetResult();
+                *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeImportResult));
+            } catch (PdfImportPasswordException password) {
+                *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(
+                    new StudioNativeImportPassword(StudioNativeAbi.Version, password.SourceIndex, password.Name),
+                    StudioNativeJson.Default.StudioNativeImportPassword));
+                throw;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Makes the document searchable as one undoable change: each page is rendered and handed to the host's recognizer,
+    /// whose words become invisible text. The recognizer returns words as UTF-8 JSON it allocated with malloc, which the
+    /// engine frees; a non-zero status stops the call.
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_make_searchable_json")]
+    internal static int DocumentMakeSearchableJson(nint document, delegate* unmanaged<nint, int, int, byte*, nuint, byte**, int> recognizer,
+        nint context, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        if (recognizer is null) return Fail(error, new ArgumentNullException(nameof(recognizer)));
+        return WithDocument(document, error, cancellation, (target, token) => {
+            int pageCount = target.PageCount;
+            // The OCR runner reports any recognizer failure in general terms, so the host's own failure is kept here.
+            Exception? hostFailure = null;
+            Func<int, byte[], CancellationToken, IReadOnlyList<PdfScanWord>> recognize = (page, image, pageToken) => {
+                pageToken.ThrowIfCancellationRequested();
+                byte* words = null;
+                int status;
+                fixed (byte* png = image) status = recognizer(context, page, pageCount, png, (nuint)image.Length, &words);
+                string? text = words is null ? null : StudioNativeAbi.FromUtf8(words);
+                if (words is not null) NativeMemory.Free(words);
+                if (status == StudioNativeAbi.Cancelled) throw hostFailure = new OperationCanceledException("Text recognition was cancelled.");
+                if (status != StudioNativeAbi.Ok) throw hostFailure = new InvalidOperationException($"Text recognition failed on page {page}.");
+                try {
+                    IReadOnlyList<StudioNativeScanWord>? parsed = JsonSerializer.Deserialize(text ?? "[]",
+                        StudioNativeJson.Default.IReadOnlyListStudioNativeScanWord);
+                    return parsed?.Select(static word => new PdfScanWord(word.Text ?? string.Empty, word.X, word.Y, word.Width, word.Height, word.Confidence))
+                        .ToArray() ?? [];
+                } catch (JsonException exception) {
+                    throw hostFailure = new ArgumentException($"The recognized words for page {page} are not valid JSON.", exception);
+                }
+            };
+            StudioNativeSearchableResult result;
+            try {
+                result = target.MakeSearchableAsync(recognize, token).GetAwaiter().GetResult();
+            } catch (Exception exception) when (hostFailure is not null && !ReferenceEquals(exception, hostFailure)) {
+                throw hostFailure;
+            }
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeSearchableResult));
+        });
     }
 
     /// <summary>Finds text, ignoring case, and returns the hits with their page rectangles as UTF-8 JSON.</summary>

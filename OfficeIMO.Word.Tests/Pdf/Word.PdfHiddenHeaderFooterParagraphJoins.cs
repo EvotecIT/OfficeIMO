@@ -80,7 +80,7 @@ public partial class Word {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void SaveAsPdf_MixedHeaderFooterJoinTypographyRetainsContentAndReportsLimitation(bool footer) {
+    public void SaveAsPdf_MixedHeaderFooterJoinRetainsTypographyOnJoinedBaseline(bool footer) {
         using WordDocument document = CreateJoinedParagraphDocument();
         document.AddParagraph("BODY"); document.AddHeadersAndFooters();
         WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
@@ -89,8 +89,44 @@ public partial class Word {
         var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        Assert.Contains("ALPHA", pdf.GetPage(1).Text); Assert.Contains("BETA", pdf.GetPage(1).Text);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported" && warning.Source == "header/footer");
+        var letters = pdf.GetPage(1).Letters;
+        var alphaStart = letters.First(letter => letter.Value == "A");
+        var betaStart = letters.First(letter => letter.Value == "B");
+        Assert.Contains("ALPHABETA", pdf.GetPage(1).Text);
+        Assert.Equal(alphaStart.StartBaseLine.Y, betaStart.StartBaseLine.Y, 3);
+        Assert.DoesNotContain("Bold", alphaStart.FontName, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Bold", betaStart.FontName, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    [InlineData(true, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 2)]
+    public void SaveAsPdf_UnsupportedRunningStoryJoinReportsLossBeforeSerialization(bool footer, int tableDepth) {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        document.AddParagraph("BODY"); document.AddHeadersAndFooters();
+        WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
+        WordTableCell? cell = tableDepth > 0 ? story.AddTable(1, 1).Rows[0].Cells[0] : null;
+        for (int depth = 1; depth < tableDepth; depth++) cell = cell!.AddTable(1, 1).Rows[0].Cells[0];
+        WordParagraph alpha = cell == null ? story.AddParagraph("ALPHA") : cell.AddParagraph("ALPHA", removeExistingParagraphs: true);
+        HideJoinMark(alpha, true);
+        alpha._paragraph.ParagraphProperties!.Append(new W.Shading { Fill = "eeeeee", Val = W.ShadingPatternValues.Clear });
+        if (cell == null) story.AddParagraph("BETA");
+        else cell.AddParagraph("BETA");
+        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported" &&
+            warning.Source == (tableDepth > 0 ? "table cell" : "header/footer"));
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var letters = pdf.GetPage(1).Letters;
+        Assert.NotEqual(letters.First(letter => letter.Value == "A").StartBaseLine.Y,
+            letters.First(letter => letter.Value == "B").StartBaseLine.Y);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
     }
 
     [Theory]
@@ -135,14 +171,13 @@ public partial class Word {
         var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        if (sameSize) {
-            Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "ALPHABETA");
-            Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
-        } else {
-            var words = pdf.GetPage(1).GetWords().ToArray();
-            Assert.True(Assert.Single(words, word => word.Text == "ALPHA").BoundingBox.Bottom >
-                Assert.Single(words, word => word.Text == "BETA").BoundingBox.Bottom);
-            Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
-        }
+        var letters = pdf.GetPage(1).Letters;
+        var alphaStart = letters.First(letter => letter.Value == "A");
+        var betaStart = letters.First(letter => letter.Value == "B");
+        Assert.Equal(alphaStart.StartBaseLine.Y, betaStart.StartBaseLine.Y, 3);
+        Assert.Equal(12D, alphaStart.FontSize, 3);
+        Assert.Equal(sameSize ? 12D : 14D, betaStart.FontSize, 3);
+        Assert.Contains("ALPHABETA", pdf.GetPage(1).Text);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
     }
 }

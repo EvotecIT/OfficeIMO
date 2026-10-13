@@ -46,7 +46,8 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_duplicate_pages) X(officeimo_document_reorder_pages) X(officeimo_document_insert_blank_page) \
     X(officeimo_document_extract_pages) X(officeimo_document_search_json) X(officeimo_document_add_annotation_json) \
     X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation) \
-    X(officeimo_document_page_text_json) X(officeimo_create_pdf_from_scan_json)
+    X(officeimo_document_page_text_json) X(officeimo_create_pdf_from_scan_json) X(officeimo_document_import_pages_json) \
+    X(officeimo_document_make_searchable_json)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(&name) engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -91,6 +92,17 @@ static int has(const char *json, const char *name, const char *value) {
     char pattern[128];
     snprintf(pattern, sizeof pattern, "\"%s\":%s", name, value);
     return json && strstr(json, pattern) != NULL;
+}
+
+/* A stand-in for the platform's text recognizer: it checks it was given a PNG and reports one word on each page. */
+static int32_t recognize_page(void *context, int32_t page, int32_t page_count, const uint8_t *png, size_t length, char **words_json) {
+    static const char words[] = "[{\"text\":\"Journeyword\",\"x\":0.1,\"y\":0.1,\"width\":0.4,\"height\":0.05,\"confidence\":0.9}]";
+    if (!png || length < 8 || memcmp(png + 1, "PNG", 3) != 0 || page < 1 || page > page_count) return OFFICEIMO_FAILED;
+    *words_json = malloc(sizeof words);
+    if (!*words_json) return OFFICEIMO_FAILED;
+    memcpy(*words_json, words, sizeof words);
+    (*(int *)context)++;
+    return OFFICEIMO_OK;
 }
 
 static void path_in(char *buffer, size_t size, const char *directory, const char *name) {
@@ -262,6 +274,30 @@ int main(int argc, char **argv) {
         engine_officeimo_free(json);
         engine_officeimo_document_close(extract);
     }
+
+    /* Import: the extracted page goes back in at the start as one change, then is undone. */
+    char escaped_extracted[6 * sizeof extracted], import_request[sizeof escaped_extracted + 64];
+    if (!json_escape(escaped_extracted, sizeof escaped_extracted, extracted)) escaped_extracted[0] = '\0';
+    snprintf(import_request, sizeof import_request, "{\"insertBefore\":1,\"sources\":[{\"path\":\"%s\"}]}", escaped_extracted);
+    CHECK("import pages", engine_officeimo_document_import_pages_json(document, import_request, 0, &json, &error), OFFICEIMO_OK);
+    expect(has(json, "imported", "1"), "the page was not imported", json);
+    engine_officeimo_free(json);
+    CHECK("undo import", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    CHECK("import nothing", engine_officeimo_document_import_pages_json(document, "{\"insertBefore\":1,\"sources\":[]}", 0, &json,
+          &error), OFFICEIMO_INVALID_ARGUMENT);
+
+    /* Make searchable: both pages, the rotated image and the blank one, gain the recognized word as text, which search
+       then finds on each; undone after. */
+    int recognized = 0;
+    CHECK("make searchable", engine_officeimo_document_make_searchable_json(document, recognize_page, &recognized, 0, &json, &error),
+          OFFICEIMO_OK);
+    expect(recognized == 2 && has(json, "words", "2"), "the recognized words were not added", json);
+    engine_officeimo_free(json);
+    CHECK("search recognized", engine_officeimo_document_search_json(document, "journeyword", 0, &json, &error), OFFICEIMO_OK);
+    expect(json && strstr(json, "\"page\":1") != NULL && strstr(json, "\"page\":2") != NULL, "the recognized words are not searchable",
+           json);
+    engine_officeimo_free(json);
+    CHECK("undo searchable", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
 
     for (int edit = 0; edit < 4; edit++) CHECK("undo page edit", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);

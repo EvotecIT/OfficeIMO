@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+            if (!TryBeginDeferredDirectSaveCandidateRegistration(cancellationToken: cancellationToken)) {
                 return false;
             }
 
@@ -229,7 +229,8 @@ namespace OfficeIMO.Excel {
             bool useCellValueNumberFormats = false,
             bool replacingPendingDirectCellValues = false,
             bool includeCellReferences = true,
-            bool preserveMissingValues = true) =>
+            bool preserveMissingValues = true,
+            CancellationToken cancellationToken = default) =>
             RegisterDeferredDirectTabularSaveCandidate(
                 sheet,
                 out _,
@@ -247,7 +248,8 @@ namespace OfficeIMO.Excel {
                 useCellValueNumberFormats,
                 replacingPendingDirectCellValues,
                 includeCellReferences,
-                preserveMissingValues);
+                preserveMissingValues,
+                cancellationToken);
 
         internal bool RegisterDeferredDirectTabularSaveCandidate(
             ExcelSheet sheet,
@@ -266,17 +268,19 @@ namespace OfficeIMO.Excel {
             bool useCellValueNumberFormats = false,
             bool replacingPendingDirectCellValues = false,
             bool includeCellReferences = true,
-            bool preserveMissingValues = true) {
+            bool preserveMissingValues = true,
+            CancellationToken cancellationToken = default) {
             result = null;
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
             if (rows == null) throw new ArgumentNullException(nameof(rows));
+            cancellationToken.ThrowIfCancellationRequested();
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
 
-            if (!TryBeginDeferredDirectSaveCandidateRegistration(replacingPendingDirectCellValues)) {
+            if (!TryBeginDeferredDirectSaveCandidateRegistration(replacingPendingDirectCellValues, cancellationToken)) {
                 return false;
             }
 
@@ -295,11 +299,12 @@ namespace OfficeIMO.Excel {
                     includeAutoFilter,
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
-                    CancellationToken.None,
+                    cancellationToken,
                     useCellValueNumberFormats,
                     DateSystem,
                     includeCellReferences,
                     omitBlankCells: preserveMissingValues);
+                cancellationToken.ThrowIfCancellationRequested();
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -307,6 +312,8 @@ namespace OfficeIMO.Excel {
                 _requiresSavePreflight = false;
                 result = model.Results[0];
                 return true;
+            } catch (OperationCanceledException) {
+                throw;
             } catch {
                 ClearDirectDataSetSaveCandidate();
                 result = null;
@@ -392,16 +399,16 @@ namespace OfficeIMO.Excel {
             bool includeAutoFilter = false,
             bool autoFit = false,
             bool includeCellReferences = true,
-            bool preserveMissingValues = true) {
+            bool preserveMissingValues = true,
+            CancellationToken cancellationToken = default) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
             if (rows == null) throw new ArgumentNullException(nameof(rows));
+            cancellationToken.ThrowIfCancellationRequested();
             if (!ReferenceEquals(sheet.Document, this)) {
                 return;
             }
-
-            ClearDirectDataSetSaveCandidate();
 
             try {
                 string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
@@ -418,12 +425,16 @@ namespace OfficeIMO.Excel {
                     includeAutoFilter,
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
-                    CancellationToken.None,
+                    cancellationToken,
                     dateSystem: DateSystem,
                     includeCellReferences: includeCellReferences,
                     omitBlankCells: preserveMissingValues);
+                cancellationToken.ThrowIfCancellationRequested();
+                ClearDirectDataSetSaveCandidate();
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
+            } catch (OperationCanceledException) {
+                throw;
             } catch {
                 ClearDirectDataSetSaveCandidate();
             }

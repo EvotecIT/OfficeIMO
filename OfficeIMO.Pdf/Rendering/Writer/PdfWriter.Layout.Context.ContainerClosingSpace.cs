@@ -5,10 +5,11 @@ internal static partial class PdfWriter {
         // Only the last visual content needs closing space. Intermediate fragments
         // keep their full capacity; an inset may already reserve some or all of it.
         private static double GetUnreservedClosingPadding(PdfPanelStyle? style) =>
-            style is { RepeatFragmentDecoration: false } ? Math.Max(0D, style.BottomPadding - style.FragmentBottomInset) : 0D;
+            style is { RepeatFragmentDecoration: false, AllowTrailingPaddingOverflow: false }
+                ? Math.Max(0D, style.BottomPadding - style.FragmentBottomInset) : 0D;
 
-        private double GetClosingContainerPadding() {
-            if (activeBlockSequences.Count > 0) {
+        private double GetClosingContainerPadding(int? pendingSequenceDepth = null) {
+            if (!pendingSequenceDepth.HasValue && activeBlockSequences.Count > 0) {
                 BlockSequenceScope leaf = activeBlockSequences[activeBlockSequences.Count - 1];
                 // A section heading precedes its body. Its enclosing panel is
                 // not closing until the section's final child is placed.
@@ -16,10 +17,14 @@ internal static partial class PdfWriter {
             }
             double padding = 0D;
             double trailingSpacing = 0D;
-            for (int index = activeBlockSequences.Count - 1; index >= 0; index--) {
+            for (int index = pendingSequenceDepth ?? activeBlockSequences.Count - 1; index >= 0; index--) {
                 BlockSequenceScope sequence = activeBlockSequences[index];
-                for (int next = sequence.Index + 1; next < sequence.Blocks.Count; next++) {
-                    if (!IsNonVisualFlowMarker(sequence.Blocks[next])) return padding;
+                // Pending admission checks the selected leaf's remaining
+                // siblings itself; ancestor indices still name active children.
+                if (index != pendingSequenceDepth) {
+                    for (int next = sequence.Index + 1; next < sequence.Blocks.Count; next++) {
+                        if (!IsNonVisualFlowMarker(sequence.Blocks[next])) return padding;
+                    }
                 }
                 if (sequence.Owner is ContainerBlock container) {
                     PdfPanelStyle style = ResolveContainerStyle(container);

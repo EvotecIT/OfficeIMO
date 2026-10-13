@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
             if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
 
             if (!_materializingDeferredDataSetImport) {
-                MaterializeDeferredDataSetImport();
+                MaterializeDeferredDataSetImport(ct);
             }
 
             if (CanDeferDirectDataSetImport(dataSet, createTables, includeHeaders, autoFit)

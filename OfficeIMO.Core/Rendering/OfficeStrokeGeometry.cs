@@ -6,8 +6,23 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Shared stroke-outline geometry for raster and native document painting.</summary>
 internal static partial class OfficeStrokeGeometry {
-    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenShape(OfficeShape shape, double pixelsPerUnit) {
-        if (shape.Kind == OfficeShapeKind.Path) return OfficePathFlattener.Flatten(shape.PathCommands, 0D, 0D, 1D, pixelsPerUnit: pixelsPerUnit);
+    /// <summary>Converts physical flattening density to local coordinates, including affine shear.</summary>
+    internal static double LocalFlatteningDensity(OfficeTransform? transform, double pixelsPerUnit) {
+        if (!transform.HasValue) return pixelsPerUnit;
+        OfficeTransform value = transform.Value;
+        double maximum = Math.Max(Math.Max(Math.Abs(value.M11), Math.Abs(value.M12)),
+            Math.Max(Math.Abs(value.M21), Math.Abs(value.M22)));
+        if (maximum == 0D) return pixelsPerUnit;
+        double a = value.M11 / maximum, b = value.M12 / maximum;
+        double c = value.M21 / maximum, d = value.M22 / maximum;
+        double density = pixelsPerUnit * maximum * Math.Sqrt(a * a + b * b + c * c + d * d);
+        return double.IsInfinity(density) ? double.MaxValue : density;
+    }
+
+    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenShape(OfficeShape shape, double pixelsPerUnit, bool boundCurveExpansion = false) {
+        if (shape.Kind == OfficeShapeKind.Path) return boundCurveExpansion
+            ? OfficePathFlattener.FlattenStrokeProjection(shape.PathCommands, pixelsPerUnit)
+            : OfficePathFlattener.Flatten(shape.PathCommands, 0D, 0D, 1D, pixelsPerUnit: pixelsPerUnit);
         IReadOnlyList<OfficePoint> points;
         bool closed = shape.Kind != OfficeShapeKind.Line;
         switch (shape.Kind) {

@@ -96,6 +96,8 @@ internal sealed class OfficeLzxDecoder {
         if (_outputOffset != _decoded.Length || (requireCompleteBlocks && _blockBytesRemaining != 0)) {
             throw Error("LZX_CORRUPT", "The LZX stream does not describe the expected expanded size.");
         }
+        if (requireCompleteBlocks && _uncompressedPaddingPending)
+            throw Error("LZX_TRUNCATED", "The final LZX uncompressed-block padding byte is missing.");
 
         byte[] result = _decoded;
         if (_translationFileSize > 0) {
@@ -115,7 +117,7 @@ internal sealed class OfficeLzxDecoder {
             if (reader.RemainingByteCount < 1) {
                 throw Error("LZX_TRUNCATED", "The LZX uncompressed-block padding byte is missing.");
             }
-            reader.ReadRawByte();
+            if (reader.ReadRawByte() != 0) throw Error("LZX_CORRUPT", "The LZX uncompressed-block padding is nonzero.");
             _uncompressedPaddingPending = false;
         }
 
@@ -137,6 +139,7 @@ internal sealed class OfficeLzxDecoder {
         if (_outputOffset != frameEnd) {
             throw Error("LZX_CORRUPT", "An LZX token crosses a 32-KB LZX frame boundary.");
         }
+        reader.ValidateFrameEnd();
     }
 
     private void ReadBlockHeader(OfficeLzxBitReader reader) {
@@ -313,7 +316,7 @@ internal sealed class OfficeLzxDecoder {
         if (!_uncompressedBlockNeedsPadding) return;
         _uncompressedBlockNeedsPadding = false;
         if (reader.RemainingByteCount > 0) {
-            reader.ReadRawByte();
+            if (reader.ReadRawByte() != 0) throw Error("LZX_CORRUPT", "The LZX uncompressed-block padding is nonzero.");
         } else {
             _uncompressedPaddingPending = true;
         }

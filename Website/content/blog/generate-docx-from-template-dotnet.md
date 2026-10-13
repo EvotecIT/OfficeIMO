@@ -4,7 +4,9 @@ description: "Use placeholders, repeated blocks, conditions, images, and links t
 date: 2026-08-05
 tags: [word, docx, dotnet, automation]
 categories: [Tutorial]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 meta.seo_title: "Generate DOCX from a Word template in .NET without Word"
 meta.howto.name: "Generate a DOCX from a Word template with OfficeIMO"
 meta.howto.description: "Create placeholders in a DOCX, bind application data, require complete output, and save a new document."

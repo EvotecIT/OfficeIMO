@@ -1,5 +1,11 @@
 # Upgrading OfficeIMO
 
+## Excel import cancellation and date conversion
+
+`ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
+
+`DateTimeOffsetWriteStrategy` runs once for each `CellValue` write, including writes that cannot use the direct-save buffer. Numeric writes use that converted value; dates outside Excel's numeric range retain the ISO text fallback. Do not depend on repeated callback invocations when a write falls back to the worksheet DOM.
+
 ## Excel worksheet page-fit inspection
 
 `ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,
@@ -1270,6 +1276,8 @@ var options = new PdfToWordOptions {
 PDF-to-Word now stops image/text overlap analysis after one million comparisons per conversion by default. Set `PdfToWordOptions.MaxImageTextOverlapComparisons` higher for a trusted document that needs it. PDF-to-HTML annotation matching has a separate `PdfToHtmlOptions.MaximumAnnotationMatchWork` limit. PDF-to-HTML output is capped at 32 million characters by default; set `MaximumOutputCharacters` higher for trusted large exports, or `null` to disable that guard. Positioned page-appearance HTML emits visible text only; set `IncludeInvisibleTextInAppearanceOverlay` only when a caller intentionally needs hidden OCR text in the output.
 
 Word-to-PDF export accepts at most 1,000 images in one paragraph by default. `WordToPdfOptions.MaxImagesPerParagraph` can be raised for trusted documents. Generated PDFs can use `PdfOptions.MaxGeneratedPages` and `MaxGeneratedOutputBytes` to stop layout and serialization before excessive output is retained.
+
+PDF text layout rejects excessive cumulative cross-run kerning work with `InvalidDataException`. A very long word split across thousands of formatting runs can reach this limit even on a wide page. Reduce unnecessary run fragmentation or split the paragraph; supported layouts retain their kerning and formatting.
 
 Invoice PDF presentation now caps source XML, line text, line count, generated pages, and output bytes through `InvoicePdfLayoutOptions`. Pass explicit higher limits for known large invoices. `PdfInvoiceDocument.ToPdfBytes` and `ToPresentationPdfBytes` also accept a cancellation token. CII XML loading rejects documents with more than 100,000 nodes or 200,000 attributes before constructing an XML tree.
 

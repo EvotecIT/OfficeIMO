@@ -125,6 +125,10 @@ struct DocumentToolbar: ToolbarContent {
                 ForEach(StudioTask.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
             }
             .pickerStyle(.inline)
+            Section {
+                Button("Make Searchable", systemImage: "text.viewfinder") { session.makeSearchable() }
+                    .disabled(!session.canMakeSearchable)
+            }
         } label: {
             HStack(spacing: 4) {
                 Text(session.task.title)

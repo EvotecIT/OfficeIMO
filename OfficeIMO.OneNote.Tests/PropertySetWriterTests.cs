@@ -38,7 +38,8 @@ public sealed class PropertySetWriterTests {
 
     [Fact]
     public void DesktopWriterRoundTripsContextReferencesAndNestedPropertySets() {
-        OneNoteExtendedGuid objectId = Id(1, "11111111-1111-1111-1111-111111111111");
+        // Desktop CompactID zero can identify a non-null GUID at global index zero.
+        OneNoteExtendedGuid objectId = Id(0, "11111111-1111-1111-1111-111111111111");
         OneNoteExtendedGuid objectSpaceId = Id(2, "22222222-2222-2222-2222-222222222222");
         OneNoteExtendedGuid contextId = Id(3, "33333333-3333-3333-3333-333333333333");
         uint childElementId = Raw(OneNotePropertyType.PropertySet, 0x55);

@@ -6,6 +6,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private const int MaxUnicodeCMapMappings = 131_072;
 
     private readonly byte[] _data;
+    private readonly PdfFontUnitLayoutMetrics _fontUnitLayoutMetrics;
     // Immutable PDF-unit widths are shared by document forks.
     private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
@@ -20,6 +21,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, int[] advanceWidths1000, Dictionary<int, int> cmap) {
         _data = data.ToArray();
+        _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
         _tracking = _tables.TryGetValue("trak", out TableRecord tracking)
@@ -40,6 +42,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     private PdfTrueTypeFontProgram(PdfTrueTypeFontProgram source) {
         _data = source._data;
+        _fontUnitLayoutMetrics = source._fontUnitLayoutMetrics;
         LineMetrics = source.LineMetrics;
         _tables = source._tables;
         FontName = source.FontName;
@@ -85,12 +88,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return width;
     }
 
-    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null) {
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null, bool useFontUnitAdvances = false) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
+        if (useFontUnitAdvances) return MeasureShapedTextWidth(text!, ShapeText(text!, options), fontSize,
+            useFontUnitAdvances: true);
         if (_tracking != null) {
             return MeasureShapedTextWidth(text!, ShapeText(text!, options), fontSize);
         }

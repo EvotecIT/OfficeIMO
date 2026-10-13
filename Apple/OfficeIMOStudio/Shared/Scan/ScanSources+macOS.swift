@@ -15,7 +15,7 @@ enum ScanSources {
         panel.message = String(localized: "Choose images for the pages of a new PDF.")
         panel.prompt = String(localized: "Create PDF")
         guard panel.runModal() == .OK else { return }
-        let images = panel.urls.compactMap(cgImage(at:))
+        let images = panel.urls.compactMap(ScanBuilder.image(at:))
         make(images, newDocument)
     }
 
@@ -44,14 +44,6 @@ enum ScanSources {
                 NSAlert(error: error).runModal()
             }
         }
-    }
-
-    private static func cgImage(at url: URL) -> CGImage? {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-        // The thumbnail path applies the photo's orientation, so the page is upright.
-        let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true,
-                                        kCGImageSourceThumbnailMaxPixelSize: ScanBuilder.maximumPixels]
-        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
     }
 
     private static func load(_ provider: NSItemProvider) async -> CGImage? {

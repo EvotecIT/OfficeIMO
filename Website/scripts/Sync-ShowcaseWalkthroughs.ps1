@@ -13,6 +13,24 @@ $browserLinks = [ordered]@{}
 $expected = [ordered]@{}
 $pageRoot = Join-Path $websiteRoot 'content/showcase-examples'
 
+foreach ($card in $catalog.cards) {
+    $expectedLanguage = switch ([IO.Path]::GetExtension($card.source_path).ToLowerInvariant()) {
+        '.cs' { 'csharp' }
+        '.ps1' { 'powershell' }
+        default { throw "Unsupported source language on '$($card.id)': $($card.source_path)" }
+    }
+    if ($card.source_language -cne $expectedLanguage -or $card.source_language -cnotin @($catalog.source_languages.id)) {
+        throw "Source language must match the generating file on '$($card.id)'."
+    }
+    if ($expectedLanguage -eq 'powershell') {
+        $scriptFileName = [IO.Path]::GetFileName($card.source_path)
+        if ([IO.Path]::GetFileName($card.source_url) -cne "$scriptFileName.txt" -or
+            -not $card.run_command.StartsWith("pwsh -NoProfile -File ./$scriptFileName ", [StringComparison]::Ordinal)) {
+            throw "PowerShell example '$($card.id)' source evidence must match its generating script and internal reproduction command."
+        }
+    }
+}
+
 foreach ($card in $cards) {
     if ($card.id -cnotmatch '^[a-z0-9]+(?:-[a-z0-9]+)*$' -or $sources.Contains($card.id)) {
         throw "Invalid or duplicate showcase walkthrough id: $($card.id)"
@@ -51,7 +69,10 @@ foreach ($card in $cards) {
     }
     $title = $card.title | ConvertTo-Json -Compress
     $description = $card.description | ConvertTo-Json -Compress
-    $seoTitle = "$($card.title) in C# | OfficeIMO" | ConvertTo-Json -Compress
+    $languageLabel = ($catalog.source_languages | Where-Object id -CEQ $card.source_language).label
+    $seoTitle = if ($card.title.Contains($languageLabel, [StringComparison]::OrdinalIgnoreCase)) {
+        "$($card.title) | OfficeIMO" | ConvertTo-Json -Compress
+    } else { "$($card.title) in $languageLabel | OfficeIMO" | ConvertTo-Json -Compress }
     $expected[(Join-Path $pageRoot "$($card.id).md")] = @"
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.

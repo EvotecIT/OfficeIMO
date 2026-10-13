@@ -89,10 +89,57 @@ final class JourneyModel {
             record("reopen copy", 0, saved.pages[0].rotation == 90 && !saved.isDirty, "rotation \(saved.pages[0].rotation)")
             let unchanged = try Data(contentsOf: source) == Data(contentsOf: folders.bundledJourneyPdf)
             record("source unchanged", 0, unchanged, source.lastPathComponent)
+            try await runPagesAndActions()
         } catch {
             record("journey", 0, false, error.localizedDescription)
         }
         try? folders.write(JourneyReport(steps: steps, launch: launch, engineVersion: engineVersion), to: "journey.json")
+    }
+
+    /// Inserting another PDF's pages, then the Shortcuts actions on copies of the bundled PDF, as Shortcuts runs them.
+    private func runPagesAndActions() async throws {
+        guard let document, let count = facts?.pages.count else { return }
+        let first = try copyOfBundledPdf(named: "first.pdf")
+        let second = try copyOfBundledPdf(named: "second.pdf")
+        try await edit("import pages") { _ = try await $0.importPages([ImportSource(url: first)], before: 1) } expect: {
+            $0.pages.count == count * 2 && $0.pages[count].rotation == 90
+        }
+        try await edit("undo import") { try await $0.undo() } expect: { $0.pages.count == count }
+
+        let combined = folders.journey.appending(path: "combined.pdf")
+        try? FileManager.default.removeItem(at: combined)
+        let (_, combineTime) = try await measure {
+            try await DocumentActions.combine([first, second], names: ["first.pdf", "second.pdf"], into: combined)
+        }
+        let combinedPages = try await EngineDocument.open(combined).facts().pages.count
+        record("combine PDFs", combineTime, combinedPages == count * 2, "\(combinedPages) page(s)")
+
+        let extracted = folders.journey.appending(path: "extracted.pdf")
+        try? FileManager.default.removeItem(at: extracted)
+        let (_, extractTime) = try await measure { try await DocumentActions.extract("1", from: first, named: "first.pdf", into: extracted) }
+        let extractedPages = try await EngineDocument.open(extracted).facts().pages.count
+        record("extract pages", extractTime, extractedPages == 1, "\(extractedPages) page(s)")
+
+        let (text, textTime) = try await measure { try await DocumentActions.text(of: first, named: "first.pdf") }
+        record("get text", textTime, true, "\(text.count) character(s)")
+
+        let searchable = folders.journey.appending(path: "searchable.pdf")
+        try? FileManager.default.removeItem(at: searchable)
+        let (_, searchableTime) = try await measure { try await DocumentActions.makeSearchable(second, named: "second.pdf", into: searchable) }
+        let searchableText = try await DocumentActions.text(of: searchable, named: "searchable.pdf")
+        record("make searchable", searchableTime, FileManager.default.fileExists(atPath: searchable.path), "\(searchableText.count) character(s) of text")
+
+        let image = try await document.renderPage(1, scale: 1)
+        let (scan, scanTime) = try await measure { try await DocumentActions.pdf(fromImages: [image.png]) }
+        let scanPages = try await EngineDocument.open(scan).facts().pages.count
+        record("PDF from images", scanTime, scanPages == 1, "\(scanPages) page(s), \(scan.lastPathComponent)")
+    }
+
+    private func copyOfBundledPdf(named name: String) throws -> URL {
+        let copy = folders.journey.appending(path: name)
+        try? FileManager.default.removeItem(at: copy)
+        try FileManager.default.copyItem(at: folders.bundledJourneyPdf, to: copy)
+        return copy
     }
 
     // MARK: Steps

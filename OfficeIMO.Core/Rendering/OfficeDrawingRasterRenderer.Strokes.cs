@@ -9,8 +9,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeLinearGradient? linear, OfficeRadialGradient? radial) {
         OfficeShape shape = drawing.Shape;
         if (shape.StrokeWidth <= 0 || (color == null && linear == null && radial == null)) return;
-        OfficeTransform transform = (shape.Transform ?? OfficeTransform.Identity)
-            .Then(OfficeTransform.Translate(drawing.X, drawing.Y)).Then(OfficeTransform.Scale(scale, scale));
+        OfficeTransform transform = GetRasterTransform(drawing, scale);
         var points = new List<OfficePoint>();
         foreach (OfficeFlattenedPathContour contour in contours) foreach (OfficePoint point in contour.Points) points.Add(transform.TransformPoint(point));
         if (points.Count == 0) return;
@@ -28,4 +27,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 return SampleStrokeGradient(linear, radial, x, y, width, height, px, py) ?? color ?? OfficeColor.Transparent;
             });
     }
+
+    private static OfficeTransform GetRasterTransform(OfficeDrawingShape drawing, double scale) =>
+        (drawing.Shape.Transform ?? OfficeTransform.Identity)
+            .Then(OfficeTransform.Translate(drawing.X, drawing.Y)).Then(OfficeTransform.Scale(scale, scale));
 }

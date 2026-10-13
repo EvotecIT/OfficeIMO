@@ -14,7 +14,7 @@ struct DocumentShareButton: View {
         Button("Share", systemImage: "square.and.arrow.up") { isPresented = true }
             .popover(isPresented: $isPresented) {
                 ActivityView(items: [fileURL],
-                             activities: session.canPrint ? [PrintActivity { [weak session] in session?.print() }] : [],
+                             activities: session.canPrint ? [PrintActivity { session.print() }] : [],
                              excluded: [.print]) { isPresented = false }
                     .presentationCompactAdaptation(.sheet)
                     .presentationDetents([.medium, .large])

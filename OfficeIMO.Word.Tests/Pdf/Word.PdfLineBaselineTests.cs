@@ -98,7 +98,7 @@ public partial class Word {
         var metrics = OfficeOpenTypeLineMetrics.TryRead(font);
         Assert.True(metrics.HasValue);
         Assert.Equal(1.2D, metrics.Value.HorizontalAdvanceRatio, 6);
-        Assert.Equal(expectedDescent, metrics.Value.WindowsDescentRatio, 6);
+        Assert.Equal(expectedDescent, metrics.Value.DescentRatio, 6);
     }
 
     private static Run TextLine(string text, int size, bool lineBreak) {

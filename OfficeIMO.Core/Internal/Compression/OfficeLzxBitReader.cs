@@ -51,7 +51,22 @@ internal sealed class OfficeLzxBitReader {
         // Uncompressed headers require 1-16 padding bits, whereas frame
         // alignment permits 0-15. An already aligned header consumes a word.
         if (_bitsRemaining == 0) LoadWord();
+        ValidateZeroPadding();
         _bitsRemaining = 0;
+    }
+
+    /// <summary>Consumes only the permitted zero bits in the last word of a CFDATA frame.</summary>
+    internal void ValidateFrameEnd() {
+        ValidateZeroPadding();
+        if (_nextWordOffset != _data.Length)
+            throw new OfficeLzxException("LZX_CORRUPT", "The LZX frame contains trailing compressed bytes.");
+        _bitsRemaining = 0;
+    }
+
+    private void ValidateZeroPadding() {
+        uint mask = (1u << _bitsRemaining) - 1u;
+        if ((_word & mask) != 0)
+            throw new OfficeLzxException("LZX_CORRUPT", "The LZX alignment padding is nonzero.");
     }
 
     internal byte ReadRawByte() {

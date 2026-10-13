@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 302,
-    "productionComponentCount": 153,
-    "testProjectCount": 58,
+    "projectCount": 307,
+    "productionComponentCount": 154,
+    "testProjectCount": 60,
     "benchmarkProjectCount": 36,
-    "validationProjectCount": 56,
+    "validationProjectCount": 58,
     "apiReferenceCount": 122,
-    "conceptualPageCount": 125,
-    "conceptualWordCount": 54794
+    "conceptualPageCount": 129,
+    "conceptualWordCount": 58548
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 34,
       "componentIndexes": [
-        95,
         96,
         97,
         98,
@@ -49,7 +48,8 @@
         125,
         126,
         127,
-        128
+        128,
+        129
       ]
     },
     {
@@ -69,7 +69,6 @@
         30,
         31,
         54,
-        73,
         74,
         75,
         76,
@@ -78,17 +77,19 @@
         79,
         80,
         81,
-        93,
+        82,
         94,
-        138,
-        139
+        95,
+        139,
+        140
       ]
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 14,
+      "componentCount": 15,
       "componentIndexes": [
         1,
+        5,
         17,
         25,
         26,
@@ -99,9 +100,9 @@
         70,
         71,
         72,
-        92,
-        132,
-        152
+        93,
+        133,
+        153
       ]
     },
     {
@@ -125,29 +126,29 @@
         36,
         37,
         38,
-        85,
         86,
         87,
         88,
         89,
         90,
-        140,
+        91,
         141,
         142,
         143,
         144,
         145,
         146,
-        147
+        147,
+        148
       ]
     },
     {
       "name": "Publishing and conversion",
       "componentCount": 25,
       "componentIndexes": [
-        5,
         6,
         7,
+        8,
         43,
         44,
         45,
@@ -165,11 +166,11 @@
         58,
         59,
         60,
-        83,
         84,
-        129,
+        85,
         130,
-        131
+        131,
+        132
       ]
     },
     {
@@ -189,7 +190,6 @@
         2,
         3,
         4,
-        8,
         9,
         10,
         11,
@@ -200,17 +200,18 @@
         24,
         68,
         69,
-        82,
-        91,
-        133,
+        73,
+        83,
+        92,
         134,
         135,
         136,
         137,
-        148,
+        138,
         149,
         150,
-        151
+        151,
+        152
       ]
     }
   ],
@@ -279,6 +280,19 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ai-intelligence-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI.IntelligenceX"
+    },
+    {
+      "name": "OfficeIMO.Archives",
+      "packageId": "OfficeIMO.Archives",
+      "category": "Foundations and integrations",
+      "description": "Managed, bounded Cabinet and passive Windows Installer payload extraction.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Archives/OfficeIMO.Archives.csproj",
+      "sourceFileCount": 14,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Archives"
     },
     {
       "name": "OfficeIMO.AsciiDoc",
@@ -357,19 +371,6 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/chart-forge-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX"
-    },
-    {
-      "name": "OfficeIMO.ChartForgeX.Examples",
-      "packageId": "OfficeIMO.ChartForgeX.Examples",
-      "category": "Specialized components",
-      "description": "OfficeIMO.ChartForgeX.Examples is a focused component in the OfficeIMO managed document platform.",
-      "kind": "tool",
-      "projectPath": "OfficeIMO.ChartForgeX.Examples/OfficeIMO.ChartForgeX.Examples.csproj",
-      "sourceFileCount": 4,
-      "referencingTestProjectCount": 0,
-      "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
-      "packageUrl": null
     },
     {
       "name": "OfficeIMO.ChartForgeX.Markdown",
@@ -456,7 +457,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1049,
+      "sourceFileCount": 1070,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -638,7 +639,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1144,
+      "sourceFileCount": 1147,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -716,7 +717,7 @@
       "description": "PDF converter for OfficeIMO.Excel - Export Excel workbooks to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
-      "sourceFileCount": 28,
+      "sourceFileCount": 29,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-pdf/",
@@ -1165,13 +1166,26 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr.Tesseract"
     },
     {
+      "name": "OfficeIMO.Odbc",
+      "packageId": "OfficeIMO.Odbc",
+      "category": "Specialized components",
+      "description": "Read-only native ODBC access to OfficeIMO Excel workbook snapshots.",
+      "kind": "library",
+      "projectPath": "OfficeIMO.Odbc/OfficeIMO.Odbc.csproj",
+      "sourceFileCount": 15,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": null
+    },
+    {
       "name": "OfficeIMO.OneNote",
       "packageId": "OfficeIMO.OneNote",
       "category": "Formats and interoperability",
       "description": "Managed, cross-platform Microsoft OneNote file-format engine for .one, .onetoc2, and .onepkg artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.OneNote/OfficeIMO.OneNote.csproj",
-      "sourceFileCount": 87,
+      "sourceFileCount": 86,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/onenote/",
       "apiUrl": "/api/onenote/",
@@ -1301,7 +1315,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1391,
+      "sourceFileCount": 1413,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1431,7 +1445,7 @@
       "description": "Managed Microsoft Publisher publication recovery with positioned drawing pages and fidelity reports.",
       "kind": "package",
       "projectPath": "OfficeIMO.Publisher/OfficeIMO.Publisher.csproj",
-      "sourceFileCount": 29,
+      "sourceFileCount": 37,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1769,7 +1783,7 @@
       "description": "Native Microsoft Publisher adapter for OfficeIMO.Reader modular ingestion.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Publisher/OfficeIMO.Reader.Publisher.csproj",
-      "sourceFileCount": 4,
+      "sourceFileCount": 5,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -1964,7 +1978,7 @@
       "description": "UI-independent document sessions, editing, storage and recovery for OfficeIMO Studio hosts.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj",
-      "sourceFileCount": 64,
+      "sourceFileCount": 67,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -2120,7 +2134,7 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 89,
+      "sourceFileCount": 94,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-pdf/",

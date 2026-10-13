@@ -223,7 +223,7 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
-                double sectionContentWidth = Math.Max(72D, sectionPageSize.Width - sectionMargins.Left - sectionMargins.Right);
+                double sectionContentWidth = Math.Max(1D, sectionPageSize.Width - sectionMargins.Left - sectionMargins.Right);
                 pdf.Section(page => {
                     page.Size(sectionPageSize);
                     page.Margin(sectionMargins);

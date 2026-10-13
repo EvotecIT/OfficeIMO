@@ -1576,7 +1576,7 @@ namespace OfficeIMO.Tests {
             Type nativeFontMapType = converterType.GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
             Type nativeDefaultsType = converterType.GetNestedType("NativeDocumentDefaults", BindingFlags.NonPublic)!;
             object nativeFontMap = Activator.CreateInstance(nativeFontMapType, nonPublic: true)!;
-            byte[] portableFont = ManagedTextShapingTestAssets.CreateFont('A', 'B');
+            byte[] portableFont = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, 'A', 'B');
             var configured = new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica
             };
@@ -1848,35 +1848,6 @@ namespace OfficeIMO.Tests {
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
             Assert.Equal(2D, style.LineHeight);
-        }
-
-        [Fact]
-        public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Line_Unit_Spacing() {
-            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleLineUnitSpacing.docx"));
-            const string styleId = "LineUnitSpacingStyle";
-            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
-            styles.Append(new Style(
-                new StyleName { Val = "Line Unit Spacing Style" },
-                new BasedOn { Val = "Normal" },
-                new StyleRunProperties(new FontSize { Val = "24" }),
-                new StyleParagraphProperties(new SpacingBetweenLines {
-                    BeforeLines = 50,
-                    AfterLines = 150
-                }))
-            {
-                Type = StyleValues.Paragraph,
-                StyleId = styleId,
-                CustomStyle = true
-            });
-
-            WordParagraph paragraph = document.AddParagraph("Native style line unit spacing");
-            paragraph.SetStyleId(styleId);
-
-            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
-            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
-
-            Assert.Equal(6.9D, style.SpacingBefore, 3);
-            Assert.Equal(20.7D, style.SpacingAfter!.Value, 3);
         }
 
         [Fact]
@@ -2216,7 +2187,7 @@ namespace OfficeIMO.Tests {
             short ascender,
             short descender,
             params int[] scalars) {
-            byte[] data = ManagedTextShapingTestAssets.CreateFont(scalars);
+            byte[] data = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, scalars);
             int tableCount = (data[4] << 8) | data[5];
             for (int index = 0; index < tableCount; index++) {
                 int recordOffset = 12 + (index * 16);

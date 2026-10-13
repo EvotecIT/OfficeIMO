@@ -159,10 +159,10 @@ public static partial class OfficeDrawingSvgExporter {
                     string? strokeGradientId = null;
                     if (drawingShape.Shape.StrokeRadialGradient != null) {
                         strokeGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
-                        AppendRadialPaintDefinition(sb, strokeGradientId, drawingShape.Shape.StrokeRadialGradient, drawingShape, cancellationToken);
+                        AppendStrokeRadialPaintDefinition(sb, strokeGradientId, drawingShape.Shape.StrokeRadialGradient, drawingShape, cancellationToken);
                     } else if (drawingShape.Shape.StrokeGradient != null) {
                         strokeGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
-                        sb.AppendLinearGradientDefinition(strokeGradientId, drawingShape.Shape.StrokeGradient);
+                        AppendStrokeLinearPaintDefinition(sb, strokeGradientId, drawingShape.Shape.StrokeGradient, drawingShape);
                     }
 
                     string? shapeClipPathId = null;
@@ -480,12 +480,14 @@ public static partial class OfficeDrawingSvgExporter {
             return;
         }
 
-        string? paint = BuildLineMarkerPaintAttributes(shape, strokeGradientId);
+        bool open = marker!.Kind == OfficeLineMarkerKind.Arrow;
+        string? paint = BuildLineMarkerPaintAttributes(shape, strokeGradientId, open);
         if (paint == null) {
             return;
         }
 
-        sb.AppendPolygonElement(contour, paint + transform);
+        if (open) sb.AppendPolylineElement(contour, paint + transform);
+        else sb.AppendPolygonElement(contour, paint + transform);
     }
 
     private static void AppendPolygon(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform, double originX, double originY) {
@@ -504,7 +506,7 @@ public static partial class OfficeDrawingSvgExporter {
             return;
         }
 
-        sb.AppendPathElement(shape.PathCommands, originX, originY, paint + BuildFillRuleAttribute(shape.FillRule) + transform);
+        sb.AppendPaintPathElement(shape.PathCommands, originX, originY, paint + BuildFillRuleAttribute(shape.FillRule) + transform);
         AppendPathMarkers(sb, shape, originX, originY, transform, strokeGradientId);
     }
 
@@ -513,35 +515,6 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static string BuildClipRuleAttribute(OfficeFillRule fillRule) =>
         fillRule == OfficeFillRule.EvenOdd ? " clip-rule=\"evenodd\"" : string.Empty;
-
-    private static void AppendPathMarkers(StringBuilder sb, OfficeShape shape, double originX, double originY, string transform, string? strokeGradientId) {
-        if (shape.StrokeStartMarker == null && shape.StrokeEndMarker == null) {
-            return;
-        }
-
-        OfficeFlattenedPathContour? firstOpen = null;
-        OfficeFlattenedPathContour? lastOpen = null;
-        IReadOnlyList<OfficeFlattenedPathContour> contours = OfficePathFlattener.Flatten(shape.PathCommands, originX, originY, 1D);
-        for (int i = 0; i < contours.Count; i++) {
-            if (!contours[i].Closed && contours[i].Points.Count >= 2) {
-                firstOpen ??= contours[i];
-                lastOpen = contours[i];
-            }
-        }
-
-        if (firstOpen != null) {
-            OfficePoint start = firstOpen.Points[0];
-            OfficePoint next = firstOpen.Points[1];
-            AppendLineMarker(sb, shape.StrokeStartMarker, start, new OfficePoint(start.X - next.X, start.Y - next.Y), shape, transform, strokeGradientId);
-        }
-
-        if (lastOpen != null) {
-            IReadOnlyList<OfficePoint> points = lastOpen.Points;
-            OfficePoint end = points[points.Count - 1];
-            OfficePoint previous = points[points.Count - 2];
-            AppendLineMarker(sb, shape.StrokeEndMarker, end, new OfficePoint(end.X - previous.X, end.Y - previous.Y), shape, transform, strokeGradientId);
-        }
-    }
 
     private static void AppendRichTextFrameGroupStart(StringBuilder sb, OfficeDrawingRichText text) {
         string? transform = OfficeSvgFormatting.FormatImageFrameTransform(text.CreateFrameTransform());
@@ -653,32 +626,26 @@ public static partial class OfficeDrawingSvgExporter {
         }
     }
 
-    private static string? BuildLineMarkerPaintAttributes(OfficeShape shape, string? strokeGradientId) {
-        if (strokeGradientId != null) {
-            var gradientPaint = new StringBuilder();
-            gradientPaint.Append(" fill=\"url(#").Append(Escape(strokeGradientId)).Append(")\"");
-            double gradientOpacity = shape.StrokeOpacity ?? 1D;
-            if (gradientOpacity < 1D) {
-                gradientPaint.Append(" fill-opacity=\"").Append(Format(gradientOpacity)).Append('"');
-            }
-
-            gradientPaint.Append(" stroke=\"none\"");
-            return gradientPaint.ToString();
-        }
-
-        OfficeColor? color = shape.StrokeColor ?? shape.FillColor;
-        if (!color.HasValue || color.Value.A == 0) {
-            return null;
-        }
-
+    private static string? BuildLineMarkerPaintAttributes(OfficeShape shape, string? strokeGradientId, bool open) {
+        if (shape.StrokeWidth <= 0D) return null;
+        OfficeColor? color = shape.StrokeColor;
+        if (strokeGradientId == null && (!color.HasValue || color.Value.A == 0)) return null;
+        string paint = open ? "stroke" : "fill";
         var sb = new StringBuilder();
-        sb.Append(" fill=\"").Append(ToCssColor(color.Value)).Append('"');
-        double opacity = (shape.StrokeOpacity ?? 1D) * ToOpacity(color.Value);
+        sb.Append(' ').Append(paint).Append("=\"");
+        if (strokeGradientId != null) sb.Append("url(#").Append(Escape(strokeGradientId)).Append(')');
+        else sb.Append(ToCssColor(color!.Value));
+        sb.Append('"');
+        double opacity = (shape.StrokeOpacity ?? 1D) * (strokeGradientId != null ? 1D : ToOpacity(color!.Value));
         if (opacity < 1D) {
-            sb.Append(" fill-opacity=\"").Append(Format(opacity)).Append('"');
+            sb.Append(' ').Append(paint).Append("-opacity=\"").Append(Format(opacity)).Append('"');
         }
-
-        sb.Append(" stroke=\"none\"");
+        if (open) {
+            sb.Append(" fill=\"none\" stroke-width=\"").Append(Format(shape.StrokeWidth)).Append('"');
+            if (shape.StrokeLineCap.HasValue) sb.AppendStrokeLineCapAttribute(shape.StrokeLineCap.Value);
+            if (shape.StrokeLineJoin.HasValue) sb.AppendStrokeLineJoinAttribute(shape.StrokeLineJoin.Value);
+            sb.Append(" stroke-miterlimit=\"").Append(Format(shape.StrokeMiterLimit)).Append('"');
+        } else sb.Append(" stroke=\"none\"");
         return sb.ToString();
     }
 

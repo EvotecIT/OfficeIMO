@@ -28,7 +28,7 @@ public static partial class WordPdfConverterExtensions {
             EnumerateNativeLatinFontFamilies(paragraph._document, markRun?.RunFonts)
                 .Concat(EnumerateNativeStyleFontFamilies(characterStyle, style, tableStyle.RunStyle, defaults,
                     fontMap.UsePdfDefaultForDocumentDefaultFont != true)).ToArray());
-        double multiplier = ResolveNativeParagraphLineSpacing(paragraph, style, defaults, tableStyle.LineSpacing)
+        double multiplier = ResolveNativeParagraphLineSpacing(paragraph, style, defaults, tableStyle)
             .Resolve(size, natural) ?? natural;
         return size * multiplier;
     }

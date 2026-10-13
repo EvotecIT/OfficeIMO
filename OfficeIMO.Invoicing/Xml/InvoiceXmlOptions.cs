@@ -35,9 +35,18 @@ public sealed class InvoiceXmlOptions {
         if (projectionPolicy < InvoiceProjectionPolicy.RejectDataLoss || projectionPolicy > InvoiceProjectionPolicy.AllowProfileDefinedDataLoss)
             throw new ArgumentOutOfRangeException(nameof(projectionPolicy));
         var targets = new List<InvoiceXmlOptions>();
-        foreach (InvoiceSpecificationRelease release in Enum.GetValues(typeof(InvoiceSpecificationRelease)))
-            foreach (InvoiceSyntax syntax in Enum.GetValues(typeof(InvoiceSyntax)))
-                foreach (InvoiceProfile profile in Enum.GetValues(typeof(InvoiceProfile)))
+#if NET5_0_OR_GREATER
+        var releases = Enum.GetValues<InvoiceSpecificationRelease>();
+        var syntaxes = Enum.GetValues<InvoiceSyntax>();
+        var profiles = Enum.GetValues<InvoiceProfile>();
+#else
+        var releases = (InvoiceSpecificationRelease[])Enum.GetValues(typeof(InvoiceSpecificationRelease));
+        var syntaxes = (InvoiceSyntax[])Enum.GetValues(typeof(InvoiceSyntax));
+        var profiles = (InvoiceProfile[])Enum.GetValues(typeof(InvoiceProfile));
+#endif
+        foreach (InvoiceSpecificationRelease release in releases)
+            foreach (InvoiceSyntax syntax in syntaxes)
+                foreach (InvoiceProfile profile in profiles)
                     if (InvoiceSpecificationContracts.IsSupported(release, syntax, profile)) targets.Add(new(release, syntax, profile, projectionPolicy));
         return targets.AsReadOnly();
     }

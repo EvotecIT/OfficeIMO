@@ -1,6 +1,8 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Features.Scan;
 using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Native;
@@ -41,7 +43,8 @@ internal sealed class StudioNativeDocument : IDisposable {
                     return new StudioNativePageInfo(page.PageNumber, width, height, page.RotationDegrees);
                 }).ToArray(),
                 StudioPdfSecurityPolicy.MaximumRasterPixels, _workspace.CanMutatePages, _workspace.CanExtractPages, _workspace.CanEditAnnotations,
-                !view.Security.HasEncryption || view.Security.HasOwnerAuthorization || view.Security.AllowsPrinting == true);
+                !view.Security.HasEncryption || view.Security.HasOwnerAuthorization || view.Security.AllowsPrinting == true,
+                _workspace.CanImportPages, _workspace.CanEditPageContent && view.CanExtractText);
         } finally { _gate.Release(); }
     }
 
@@ -110,6 +113,61 @@ internal sealed class StudioNativeDocument : IDisposable {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination is required.", nameof(path));
         // The local path keeps the workflow runner, and the conversions it roots, out of the NativeAOT library.
         return RunAsync(() => _workspace.ExtractToLocalFileAsync(RequirePages(pageNumbers), path, cancellationToken), cancellationToken);
+    }
+
+    /// <summary>
+    /// Recognizes each page's text with the host's recognizer and adds it as invisible text over the page, as one undoable
+    /// change. The engine renders each page at <see cref="SearchableDpi"/> and passes the PNG and its page number to
+    /// <paramref name="recognize"/>, which returns the words on it. Words over text a page already has are left out.
+    /// </summary>
+    internal async Task<StudioNativeSearchableResult> MakeSearchableAsync(Func<int, byte[], CancellationToken, IReadOnlyList<PdfScanWord>> recognize,
+        CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(recognize);
+        await EnterAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            if (!_workspace.ViewInfo.CanExtractText) throw new NotSupportedException("This document doesn't allow its text to be read.");
+            var options = new PdfOcrMergeOptions { Dpi = SearchableDpi, MaxPages = _workspace.Pages.Count, ReconstructLayout = false };
+            PdfWorkspaceSearchableResult result = await _workspace.MakeSearchableAsync(HostTextRecognizer.Create(recognize), options, cancellationToken)
+                .ConfigureAwait(false);
+            return new StudioNativeSearchableResult(StudioNativeAbi.Version, result.ModifiedPages, result.Words, _workspace.Revision);
+        } finally { _gate.Release(); }
+    }
+
+    /// <summary>The number of pages in the current revision.</summary>
+    internal int PageCount => _workspace.Pages.Count;
+
+    /// <summary>The resolution pages are recognized at: enough for body text, within the render budget on a phone.</summary>
+    internal const double SearchableDpi = 200D;
+
+    /// <summary>
+    /// Inserts pages from other PDFs before <see cref="StudioNativeImportRequest.InsertBefore"/>, in the order given,
+    /// as one undoable change. A source without pages contributes all of them. A protected source is opened with its
+    /// password; when it is missing or wrong the call fails with a <see cref="PdfImportPasswordException"/> naming it.
+    /// </summary>
+    internal async Task<StudioNativeImportResult> ImportPagesAsync(StudioNativeImportRequest request, CancellationToken cancellationToken) {
+        IReadOnlyList<StudioNativeImportSource> sources = request.Sources is { Count: > 0 } list
+            ? list : throw new ArgumentException("Choose at least one PDF to import.", nameof(request));
+        if (sources.Any(source => string.IsNullOrWhiteSpace(source.Path)))
+            throw new ArgumentException("Each PDF to import needs a path.", nameof(request));
+        await EnterAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            if (!_workspace.CanImportPages) throw new NotSupportedException("Pages can't be added to this document safely.");
+            PdfImportPreparation preparation = await _workspace.PrepareImportAsync(sources.Select(source => source.Path!).ToArray(),
+                cancellationToken, promptPassword: null, passwords: sources.Select(source => source.Password).ToArray()).ConfigureAwait(false)
+                ?? throw new OperationCanceledException(cancellationToken);
+            var selections = new PdfImportSelection[sources.Count];
+            for (int index = 0; index < sources.Count; index++) {
+                int count = preparation.Sources[index].PageCount;
+                int[] pages = sources[index].Pages is { Count: > 0 } chosen ? chosen.ToArray() : Enumerable.Range(1, count).ToArray();
+                if (pages.Any(page => page < 1 || page > count))
+                    throw new ArgumentOutOfRangeException(nameof(request), $"“{preparation.Sources[index].Name}” has {count} pages.");
+                selections[index] = new PdfImportSelection(index, pages);
+            }
+            if (request.InsertBefore < 1 || request.InsertBefore > _workspace.Pages.Count + 1)
+                throw new ArgumentOutOfRangeException(nameof(request), "The position is outside the document.");
+            int imported = await _workspace.ApplyImportAsync(preparation, selections, request.InsertBefore, cancellationToken).ConfigureAwait(false);
+            return new StudioNativeImportResult(StudioNativeAbi.Version, imported, _workspace.Revision);
+        } finally { _gate.Release(); }
     }
 
     /// <summary>
@@ -311,7 +369,7 @@ internal sealed class StudioNativeDocument : IDisposable {
 internal sealed record StudioNativeDocumentInfo(
     int AbiVersion, string FileName, string Path, long FileSize, long Revision, bool IsDirty, bool CanUndo, bool CanRedo, bool HasRecovery,
     bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages, long MaxRenderPixels, bool CanMutatePages,
-    bool CanExtractPages, bool CanEditAnnotations, bool CanPrint);
+    bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages, bool CanMakeSearchable);
 
 internal sealed record StudioNativePageInfo(int Number, double Width, double Height, int Rotation);
 
@@ -338,6 +396,8 @@ internal sealed record StudioNativeAnnotation(int ObjectNumber, int Page, string
 internal sealed record StudioNativeAnnotationList(int AbiVersion, long Revision, int Page, bool CanEdit, IReadOnlyList<StudioNativeAnnotation> Annotations);
 
 internal sealed record StudioNativeAnnotationUpdate(int ObjectNumber, string? Contents = null, string? Author = null, StudioNativeColor? Color = null);
+
+internal sealed record StudioNativeSearchableResult(int AbiVersion, int Pages, int Words, long Revision);
 
 internal sealed record StudioNativePageText(int AbiVersion, long Revision, int Page, IReadOnlyList<string> Texts, IReadOnlyList<double> Boxes,
     IReadOnlyList<int> Breaks);

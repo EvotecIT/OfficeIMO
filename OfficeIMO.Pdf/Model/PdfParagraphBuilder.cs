@@ -5,6 +5,8 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed partial class PdfParagraphBuilder {
     private readonly System.Collections.Generic.List<PdfTextRun> _runs = new();
+    /// <summary>Runs appended so far, for adapters that inspect the final emitted content.</summary>
+    internal System.Collections.Generic.IReadOnlyList<PdfTextRun> CurrentRuns => _runs;
     private PdfColor? _currentColor;
     private bool _currentBold;
     private bool _currentItalic;

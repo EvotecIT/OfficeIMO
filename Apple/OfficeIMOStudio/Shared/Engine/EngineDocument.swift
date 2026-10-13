@@ -38,6 +38,10 @@ struct DocumentFacts: Decodable, Sendable {
     let canEditAnnotations: Bool?
     /// Whether the document permits printing.
     let canPrint: Bool?
+    /// Whether pages from other PDFs can be inserted.
+    let canImportPages: Bool?
+    /// Whether recognized text can be added to the pages.
+    let canMakeSearchable: Bool?
 
     /// The page image's size at a scale: the page's size times the scale, each side rounded up, as the engine renders it.
     func pageImageSize(page number: Int, scale: Double) -> (width: Int, height: Int) {
@@ -276,6 +280,46 @@ actor EngineDocument {
         }
     }
 
+    /// Recognizes each page's text with Vision and adds it as invisible text, as one undoable change. Progress reports
+    /// the page being read and the page count, from the engine's thread.
+    func makeSearchable(progress: @escaping @Sendable (_ page: Int, _ pageCount: Int) -> Void) async throws -> SearchableSummary {
+        let recognizer = Unmanaged.passRetained(PageRecognizer(progress: progress))
+        defer { recognizer.release() }
+        return try await withEngineCancellation { cancellation in
+            var json: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            let status = officeimo_document_make_searchable_json(handle, PageRecognizer.callback, recognizer.toOpaque(), cancellation, &json, &error)
+            let result = takeString(json)
+            try check(status, error)
+            return try JSONDecoder().decode(SearchableSummary.self, from: Data((result ?? "{}").utf8))
+        }
+    }
+
+    /// Inserts pages from other PDFs before a page, in the order given, as one undoable change. A source that needs
+    /// its password, or was given a wrong one, throws ImportPasswordNeeded naming it, so the app can ask and retry.
+    func importPages(_ sources: [ImportSource], before page: Int) async throws -> Int {
+        let request = String(decoding: try JSONEncoder().encode(ImportRequest(insertBefore: page, sources: sources)), as: UTF8.self)
+        let urls = sources.map(\.url)
+        return try await withEngineCancellation { cancellation in
+            // Each source stays readable for the call, as a file the user chose may be outside the sandbox.
+            let accessing = urls.map { $0.startAccessingSecurityScopedResource() }
+            defer { for (url, started) in zip(urls, accessing) where started { url.stopAccessingSecurityScopedResource() } }
+            var json: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            let status = request.withCString { officeimo_document_import_pages_json(handle, $0, cancellation, &json, &error) }
+            let result = takeString(json)
+            if status == EngineStatus.passwordRequired.rawValue || status == EngineStatus.invalidPassword.rawValue,
+               let result, let needed = try? JSONDecoder().decode(ImportPasswordNeeded.self, from: Data(result.utf8)) {
+                _ = takeString(error)
+                var reported = needed
+                reported.isRetry = status == EngineStatus.invalidPassword.rawValue
+                throw reported
+            }
+            try check(status, error)
+            return try JSONDecoder().decode(ImportResult.self, from: Data((result ?? "{}").utf8)).imported
+        }
+    }
+
     /// Finds text, ignoring case.
     func search(_ query: String) async throws -> SearchResult {
         let json: String = try await withEngineCancellation { cancellation in
@@ -418,4 +462,39 @@ private func withSecurityScope<T>(_ url: URL, _ work: () throws -> T) throws -> 
 private func withOptionalCString<T>(_ string: String?, _ work: (UnsafePointer<CChar>?) -> T) -> T {
     guard let string else { return work(nil) }
     return string.withCString { work($0) }
+}
+
+/// A PDF to take pages from: all of them when pages is nil.
+struct ImportSource: Encodable, Sendable {
+    let url: URL
+    var password: String?
+    var pages: [Int]?
+
+    enum CodingKeys: String, CodingKey { case path, password, pages }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(url.path, forKey: .path)
+        try container.encodeIfPresent(password, forKey: .password)
+        try container.encodeIfPresent(pages, forKey: .pages)
+    }
+}
+
+private struct ImportRequest: Encodable {
+    let insertBefore: Int
+    let sources: [ImportSource]
+}
+
+private struct ImportResult: Decodable {
+    let imported: Int
+}
+
+/// A source to import needs its password: its position in the request and its file name.
+struct ImportPasswordNeeded: Error, Decodable, Sendable {
+    let source: Int
+    let name: String
+    /// Whether a password was given and was wrong.
+    var isRetry = false
+
+    enum CodingKeys: String, CodingKey { case source, name }
 }

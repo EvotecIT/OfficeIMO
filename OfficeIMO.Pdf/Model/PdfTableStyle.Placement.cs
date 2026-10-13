@@ -4,6 +4,9 @@ public partial class PdfTableStyle {
     private double _leftIndent;
     private double _horizontalOffset;
 
+    /// <summary>Document adapters can preserve an authored fixed grid beyond its containing text frame.</summary>
+    internal bool AllowWidthBeyondFrame { get; set; }
+
     /// <summary>Left indentation before table placement, in points. Negative values extend the table into the leading margin.</summary>
     public double LeftIndent {
         get => _leftIndent;

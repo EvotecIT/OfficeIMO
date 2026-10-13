@@ -6,7 +6,7 @@ internal enum PdfRunningContentVariant { Default, FirstPage, EvenPages }
 // rather than to the document options or a user-supplied factory's lifetime.
 internal sealed class PdfRunningContent {
     internal PdfRunningContent(Func<PdfRunningContentContext, IReadOnlyList<IPdfBlock>> materialize,
-        double distanceFromEdge, double bodyGap, bool usesPageContext) {
+        double distanceFromEdge, double bodyGap, bool usesPageContext, bool allowTextFallback = false) {
         Guard.NotNull(materialize, nameof(materialize));
         Guard.NonNegative(distanceFromEdge, nameof(distanceFromEdge));
         Guard.NonNegative(bodyGap, nameof(bodyGap));
@@ -14,10 +14,16 @@ internal sealed class PdfRunningContent {
         DistanceFromEdge = distanceFromEdge;
         BodyGap = bodyGap;
         UsesPageContext = usesPageContext;
+        AllowTextFallback = allowTextFallback;
     }
 
     internal Func<PdfRunningContentContext, IReadOnlyList<IPdfBlock>> Materialize { get; }
     internal double DistanceFromEdge { get; }
     internal double BodyGap { get; }
     internal bool UsesPageContext { get; }
+    // Imported ordinary stories also retain a styled text projection. Decide
+    // between them with this page's final fields and measured physical frame.
+    internal bool AllowTextFallback { get; }
+    internal PdfRunningContent WithTextFallback() =>
+        new(Materialize, DistanceFromEdge, BodyGap, UsesPageContext, allowTextFallback: true);
 }

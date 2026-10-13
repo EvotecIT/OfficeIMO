@@ -142,9 +142,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 "baseColWidth", "defaultColWidth", "defaultRowHeight", "customHeight", "zeroHeight", "outlineLevelRow", "outlineLevelCol");
             if (format.HasChildren) ThrowUnsupportedContent(format, sheetName);
 
-            double columnWidth = format.DefaultColumnWidth?.Value ?? format.BaseColumnWidth?.Value ?? 8D;
+            double? columnWidth = format.DefaultColumnWidth?.Value;
+            uint baseColumnWidth = format.BaseColumnWidth?.Value ?? 8U;
             double rowHeight = format.DefaultRowHeight?.Value ?? 15D;
-            ValidateFiniteRange(columnWidth, 0D, 255D, "default column width", sheetName);
+            if (columnWidth.HasValue) {
+                ValidateFiniteRange(columnWidth.Value, 0D, ushort.MaxValue / 256D, "default column width", sheetName);
+            } else if (baseColumnWidth > byte.MaxValue) {
+                throw new NotSupportedException($"Native XLSB generation cannot encode base column width {baseColumnWidth} on worksheet '{sheetName}'.");
+            }
             ValidateFiniteRange(rowHeight, 0D, ushort.MaxValue / 20D, "default row height", sheetName);
             byte rowOutline = format.OutlineLevelRow?.Value ?? 0;
             byte columnOutline = format.OutlineLevelColumn?.Value ?? 0;
@@ -153,8 +158,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             using var payload = new MemoryStream(12);
-            WriteUInt32(payload, checked((uint)Math.Round(columnWidth * 256D, MidpointRounding.AwayFromZero)));
-            WriteUInt16(payload, checked((ushort)Math.Round(columnWidth, MidpointRounding.AwayFromZero)));
+            // An implicit width remains font-dependent; cchDefColWidth is ignored for an explicit dxGCol.
+            WriteUInt32(payload, columnWidth.HasValue ? checked((uint)Math.Floor(columnWidth.Value * 256D)) : uint.MaxValue);
+            WriteUInt16(payload, columnWidth.HasValue ? (ushort)8 : checked((ushort)baseColumnWidth));
             WriteUInt16(payload, checked((ushort)Math.Round(rowHeight * 20D, MidpointRounding.AwayFromZero)));
             uint flags = (format.CustomHeight?.Value == true ? 0x01U : 0U)
                 | (format.ZeroHeight?.Value == true ? 0x02U : 0U)

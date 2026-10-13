@@ -256,6 +256,13 @@ placement and run backgrounds. Fully transparent glyphs remain searchable in the
 
 Drawing strokes support native linear and radial gradient shading through their
 shared outlines, including caps, joins, dashes, opacity, clipping, and affine transforms.
+Line and open-path end markers retain their stroke brush, opacity, transform and
+clip. Triangle, stealth, diamond and oval ends paint filled geometry; open-arrow
+ends paint an outline.
+Running headers and footers report `HeaderFooterPageBoundsClipped` when shape or
+marker paint extends beyond the physical page after applying the actual clip.
+`HeaderFooterPaintBoundsUnmeasured` records unassessed page clipping when contour
+inspection exceeds its work limit.
 Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
 field without adding sampled color stops. Explicit print-condition conversion
 uses the existing bounded CMYK sampling path with the gradient's interpolation
@@ -2416,6 +2423,8 @@ result.Save("proposal.pdf");
 The Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters use one `PdfResourcePolicy`; semantic-projection adapters expose it through their nested Markdown PDF options. The balanced default enables installed fonts and bounded data URI/package resources for document fidelity while denying arbitrary local files and remote resolver calls. Use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion, and `CreateTrustedHost()` only when both source and host are trusted. Profiles never grant resource access.
 
 The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for CJK, Arabic, and other non-Latin family candidates; OneNote adds that candidate group unless fallbacks are `None`. Candidate selection does not read installed fonts unless the resource policy allows it.
+
+On Windows, local font discovery includes fonts Office has already cached in its cloud-font folders. Numeric filenames are resolved through family folders and font metadata. The selected fonts follow the same resource and embedding rules.
 
 `PdfOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. Named fallback families use their own registrations. `PdfEmbeddedFontFallbackSet.RegisterFonts` explicitly installs the supplied slot mapping. Coverage scans inspect candidates in priority order; later candidates remain unparsed when an earlier candidate covers the text. A candidate that must be inspected still needs valid font data.
 
