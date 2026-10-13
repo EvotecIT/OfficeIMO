@@ -16,6 +16,17 @@ public partial class Word {
         using WordDocument document = CreateRunningStoryPaintOrderControl(10U, 1U, footer: footer);
         string[] before = AnchoredRunningStoryXml(document);
 
+        // Identical geometry with compatible depths must be admitted. In
+        // particular, the footer must not fail an unrelated body-paint guard.
+        using WordDocument ordered = CreateRunningStoryPaintOrderControl(1U, 10U, footer: footer);
+        var orderedResult = ordered.ToPdfDocumentResult(EmptyRunningOptions());
+        Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        using var orderedPdf = PdfPigDocument.Open(orderedResult.Value.ToBytes());
+        Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        foreach (string marker in new[] { "FIRSTBOX", "SECONDBOX" })
+            Assert.Equal((612D - 468D * .585D) / 2D + 7.2D,
+                AnchoredRunningLetters(orderedPdf.GetPage(2), marker)[0].StartBaseLine.X, 3);
+
         var result = document.ToPdfDocumentResult(EmptyRunningOptions());
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
@@ -99,8 +110,10 @@ public partial class Word {
             foreach (W.Paragraph source in header.Elements<W.Paragraph>().ToArray()) {
                 source.Remove();
                 foreach (DW.Anchor anchor in source.Descendants<DW.Anchor>()) {
-                    anchor.VerticalPosition!.PositionOffset!.Text = "9271000"; // 730pt, below the body margin.
+                    anchor.VerticalPosition!.PositionOffset!.Text = "9271000"; // 730pt on the authored page.
                     anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
+                    // This case isolates box stacking, not foreground body overlap.
+                    anchor.BehindDoc = true;
                 }
                 target.Append(source);
             }

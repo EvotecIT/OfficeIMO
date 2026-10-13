@@ -4,6 +4,7 @@ using OfficeIMO.Word.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using W = DocumentFormat.OpenXml.Wordprocessing;
+using W14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 
@@ -30,7 +31,7 @@ public partial class Word {
     [InlineData("miterLimit")]
     [InlineData("arrow")]
     public void SaveAsPdf_UnsupportedRunningTextBoxPaintRetainsWarnedContent(string paint) {
-        using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
+        using WordDocument document = CreateCompactRunningTextBoxPaintControl();
         ConfigureRunningTextBoxPaint(document, paint);
         AssertRunningTextBoxPaintIsExplicitlyApproximated(document);
     }
@@ -42,7 +43,7 @@ public partial class Word {
     [InlineData("shading", true)]
     [InlineData("pattern", true)]
     public void SaveAsPdf_DecoratedRunningTextBoxParagraphRetainsWarnedContent(string decoration, bool inherited) {
-        using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
+        using WordDocument document = CreateCompactRunningTextBoxPaintControl();
         W.Paragraph inner = document.Sections[1].Header!.First!.TextBoxes.Single().Content!.Elements<W.Paragraph>().Single();
         OpenXmlElement authored = decoration == "border"
             ? new W.ParagraphBorders(new W.BottomBorder { Val = W.BorderValues.Single, Size = 16U, Color = "FF0000" })
@@ -63,7 +64,7 @@ public partial class Word {
     [InlineData(false)]
     [InlineData(true)]
     public void SaveAsPdf_DocumentDefaultBoxParagraphPaintRetainsWarnedContent(bool border) {
-        using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
+        using WordDocument document = CreateCompactRunningTextBoxPaintControl();
         W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.DocDefaults ??= new W.DocDefaults();
         W.ParagraphPropertiesDefault defaults = styles.DocDefaults.GetFirstChild<W.ParagraphPropertiesDefault>() ??
@@ -84,7 +85,7 @@ public partial class Word {
     [InlineData("plainOutline")]
     [InlineData("noFillOutline")]
     public void SaveAsPdf_PlainRunningTextBoxPaintKeepsPreciseAdmission(string paint) {
-        using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
+        using WordDocument document = CreateCompactRunningTextBoxPaintControl();
         ConfigureRunningTextBoxPaint(document, paint);
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ToPdfDocumentResult(EmptyRunningOptions());
@@ -96,6 +97,15 @@ public partial class Word {
             AnchoredRunningLetters(pdf.GetPage(2), "BOX")[0].StartBaseLine.X, 3);
         Assert.Equal(paint == "plainOutline", pdf.GetPage(2).Paths.Any(path => path.IsStroked));
         Assert.Equal(before, AnchoredRunningStoryXml(document));
+    }
+
+    private static WordDocument CreateCompactRunningTextBoxPaintControl() {
+        WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
+        // Keep the 51.84pt frame and its ordinary 2pt outline above the body.
+        // Unsupported paint, rather than the body-overlap guard, must decide admission.
+        document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!
+            .Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
+        return document;
     }
 
     private static void AssertRunningTextBoxPaintIsExplicitlyApproximated(WordDocument document) {
@@ -133,7 +143,8 @@ public partial class Word {
                 shape.AddChild(new A.EffectDag(new A.Glow(new A.RgbColorModelHex { Val = "FF0000" }) { Radius = 25400L }), true); return;
             case "bevel3d":
                 shape.AddChild(new A.Shape3DType(new A.BevelTop { Width = 12700L, Height = 12700L }), true); return;
-            case "themeEffect": style!.GetFirstChild<A.EffectReference>()!.Index = 1U; return;
+            // The created theme's first two effect entries are empty; the third has a shadow.
+            case "themeEffect": style!.GetFirstChild<A.EffectReference>()!.Index = 3U; return;
             case "themeFill": style!.GetFirstChild<A.FillReference>()!.Index = 1U; return;
             case "themeLine": style!.GetFirstChild<A.LineReference>()!.Index = 1U; return;
             case "emptyEffects": shape.AddChild(new A.EffectList(), true); return;
