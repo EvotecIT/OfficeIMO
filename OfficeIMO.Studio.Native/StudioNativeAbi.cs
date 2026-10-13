@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Serialization;
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Conversion;
 using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Native;
@@ -71,6 +72,8 @@ internal static class StudioNativeAbi {
 [JsonSerializable(typeof(StudioNativeImportPassword))]
 [JsonSerializable(typeof(IReadOnlyList<StudioNativeScanWord>))]
 [JsonSerializable(typeof(StudioNativeSearchableResult))]
+[JsonSerializable(typeof(StudioNativeConversionSources))]
+[JsonSerializable(typeof(StudioNativeConversionResult))]
 internal sealed partial class StudioNativeJson : JsonSerializerContext;
 
 internal sealed record StudioNativeScanWord(string? Text, double X, double Y, double Width, double Height, double? Confidence = null);
@@ -88,3 +91,7 @@ internal sealed record StudioNativeImportRequest(IReadOnlyList<StudioNativeImpor
 internal sealed record StudioNativeImportResult(int AbiVersion, int Imported, long Revision);
 
 internal sealed record StudioNativeImportPassword(int AbiVersion, int Source, string Name);
+
+internal sealed record StudioNativeConversionSources(int AbiVersion, IReadOnlyList<PdfConversionSource> Sources);
+
+internal sealed record StudioNativeConversionResult(int AbiVersion, string Route, string Source, long OutputBytes, IReadOnlyList<PdfConversionNote> Notes);

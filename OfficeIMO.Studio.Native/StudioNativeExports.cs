@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using OfficeIMO.Studio.Features.Conversion;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Scan;
 using OfficeIMO.Studio.Features.Workspace;
@@ -247,6 +248,30 @@ internal static unsafe class StudioNativeExports {
                 throw hostFailure;
             }
             *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeSearchableResult));
+        });
+    }
+
+    /// <summary>The document formats that convert to PDF, as UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_conversion_sources_json")]
+    internal static int ConversionSourcesJson(byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return Run(error, 0, _ => *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(
+            new StudioNativeConversionSources(StudioNativeAbi.Version, PdfConversion.Sources), StudioNativeJson.Default.StudioNativeConversionSources)));
+    }
+
+    /// <summary>Converts a document to a PDF at <paramref name="outputPath"/> and returns the route and its notes as UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_convert_to_pdf_json")]
+    internal static int ConvertToPdfJson(byte* inputPath, byte* outputPath, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        string input = StudioNativeAbi.FromUtf8(inputPath) ?? string.Empty;
+        string output = StudioNativeAbi.FromUtf8(outputPath) ?? string.Empty;
+        return Run(error, cancellation, token => {
+            PdfConversionResult result = PdfConversion.ConvertAsync(input, output, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(
+                new StudioNativeConversionResult(StudioNativeAbi.Version, result.Route, result.Source, result.OutputBytes, result.Notes),
+                StudioNativeJson.Default.StudioNativeConversionResult));
         });
     }
 

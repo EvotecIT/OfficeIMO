@@ -47,7 +47,7 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_extract_pages) X(officeimo_document_search_json) X(officeimo_document_add_annotation_json) \
     X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation) \
     X(officeimo_document_page_text_json) X(officeimo_create_pdf_from_scan_json) X(officeimo_document_import_pages_json) \
-    X(officeimo_document_make_searchable_json)
+    X(officeimo_document_make_searchable_json) X(officeimo_conversion_sources_json) X(officeimo_convert_to_pdf_json)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -365,6 +365,28 @@ int main(int argc, char **argv) {
     }
     CHECK("scan without pages", engine_officeimo_create_pdf_from_scan_json("{\"pages\":[]}", scan, 0, &json, &error),
           OFFICEIMO_INVALID_ARGUMENT);
+
+    /* Convert: the formats include Word, and a text file becomes a PDF whose text search finds. */
+    CHECK("conversion sources", engine_officeimo_conversion_sources_json(&json, &error), OFFICEIMO_OK);
+    expect(json && strstr(json, "\".docx\"") != NULL, "Word is not among the conversion formats", json);
+    engine_officeimo_free(json);
+    char notes[1024], converted[1024];
+    path_in(notes, sizeof notes, work, "notes.txt");
+    path_in(converted, sizeof converted, work, "notes.pdf");
+    FILE *text = fopen(notes, "wb");
+    if (text) { fputs("Converted journey notes\n", text); fclose(text); }
+    CHECK("convert to pdf", engine_officeimo_convert_to_pdf_json(notes, converted, 0, &json, &error), OFFICEIMO_OK);
+    expect(json && strstr(json, "\"txt-pdf\"") != NULL, "the text file did not use the text route", json);
+    engine_officeimo_free(json);
+    officeimo_document converted_document = 0;
+    CHECK("open converted", engine_officeimo_document_open(converted, NULL, 0, &converted_document, &error), OFFICEIMO_OK);
+    if (converted_document) {
+        CHECK("search converted", engine_officeimo_document_search_json(converted_document, "journey", 0, &json, &error), OFFICEIMO_OK);
+        expect(json && strstr(json, "\"page\":1") != NULL, "the converted text is not searchable", json);
+        engine_officeimo_free(json);
+        engine_officeimo_document_close(converted_document);
+    }
+    CHECK("convert unknown format", engine_officeimo_convert_to_pdf_json(page_png, converted, 0, &json, &error), OFFICEIMO_UNSUPPORTED);
 
     if (failures) {
         printf("%d step(s) failed.\n", failures);

@@ -153,6 +153,21 @@ int32_t officeimo_document_import_pages_json(officeimo_document document, const 
                                              officeimo_cancellation cancellation, char **json, char **error);
 
 /*
+ * The document formats that convert to PDF, as JSON: { "abiVersion", "sources": [ { "route", "name", "extensions": [ ] } ] },
+ * such as Word, Excel and PowerPoint files, with the file extensions each is read from, ".docx" and so on.
+ */
+int32_t officeimo_conversion_sources_json(char **json, char **error);
+
+/*
+ * Converts the document at input_path to a PDF at output_path, replacing what is there, through the route its extension
+ * names in officeimo_conversion_sources_json. json receives { "abiVersion", "route", "source", "outputBytes",
+ * "notes": [ { "severity", "message" } ] }: the converter's warnings about content the PDF shows differently. A format
+ * with no route fails with OFFICEIMO_UNSUPPORTED; a document the converter can't read fails with its reason.
+ */
+int32_t officeimo_convert_to_pdf_json(const char *input_path, const char *output_path, officeimo_cancellation cancellation,
+                                      char **json, char **error);
+
+/*
  * Recognizes a page's text for officeimo_document_make_searchable_json. It receives the context given to that call, the
  * page number from 1, the page count and the page rendered as PNG, and sets *words_json to a JSON array allocated with
  * malloc, which the engine frees: [ { "text", "x", "y", "width", "height", "confidence" } ], each box from the image's

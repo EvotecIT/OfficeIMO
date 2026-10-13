@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using OfficeIMO.Studio.Features.Conversion;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Scan;
@@ -555,6 +556,83 @@ public sealed class StudioNativeEngineTests : IDisposable {
 
     [UnmanagedCallersOnly]
     private static unsafe int RecognizeNothing(nint context, int page, int pageCount, byte* png, nuint length, byte** words) => StudioNativeAbi.Failed;
+
+    [Fact]
+    public async Task Word_Excel_and_PowerPoint_files_convert_to_searchable_PDFs() {
+        string word = Path.Combine(_root, "report.docx");
+        using (var document = OfficeIMO.Word.WordDocument.Create(word)) {
+            document.AddParagraph("Quarterly report");
+            document.Save();
+        }
+        string workbook = Path.Combine(_root, "figures.xlsx");
+        using (var document = OfficeIMO.Excel.ExcelDocument.Create(workbook)) {
+            document.AddWorksheet("Data").CellValue(1, 1, "Quarterly figures");
+            document.Save();
+        }
+        string deck = Path.Combine(_root, "deck.pptx");
+        using (var presentation = OfficeIMO.PowerPoint.PowerPointPresentation.Create(deck)) {
+            presentation.AddSlide().AddTextBox("Quarterly review");
+            presentation.Save();
+        }
+
+        foreach ((string input, string route) in new[] { (word, "docx-pdf"), (workbook, "xlsx-pdf"), (deck, "pptx-pdf") }) {
+            string output = Path.ChangeExtension(input, ".pdf");
+            PdfConversionResult result = await PdfConversion.ConvertAsync(input, output, default);
+            Assert.Equal(route, result.Route);
+            Assert.Equal(new FileInfo(output).Length, result.OutputBytes);
+            using StudioNativeDocument converted = await StudioNativeDocument.OpenAsync(output, null, default);
+            Assert.NotEmpty((await converted.SearchAsync("quarterly", default)).Hits);
+        }
+    }
+
+    [Fact]
+    public async Task Conversion_names_its_formats_and_refuses_what_it_cannot_convert() {
+        Assert.Contains(PdfConversion.Sources, source => source.Extensions.Contains(".docx"));
+        Assert.Equal("txt-pdf", PdfConversion.RouteFor("notes.txt")?.Route);
+        Assert.Equal("markdown-pdf", PdfConversion.RouteFor("README.md")?.Route);
+        Assert.Null(PdfConversion.RouteFor("photo.heic"));
+
+        string unknown = Path.Combine(_root, "photo.heic");
+        File.WriteAllBytes(unknown, [1, 2, 3]);
+        await Assert.ThrowsAsync<NotSupportedException>(() => PdfConversion.ConvertAsync(unknown, Path.Combine(_root, "photo.pdf"), default));
+        await Assert.ThrowsAsync<FileNotFoundException>(() => PdfConversion.ConvertAsync(Path.Combine(_root, "missing.docx"), Path.Combine(_root, "missing.pdf"), default));
+        string broken = Path.Combine(_root, "broken.docx");
+        File.WriteAllText(broken, "not a document");
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => PdfConversion.ConvertAsync(broken, Path.Combine(_root, "broken.pdf"), default));
+        Assert.Contains("broken.docx", failure.Message);
+        Assert.False(File.Exists(Path.Combine(_root, "broken.pdf")));
+    }
+
+    [Fact]
+    public unsafe void The_C_interface_lists_formats_and_converts_a_document() {
+        string text = Path.Combine(_root, "notes.txt");
+        File.WriteAllText(text, "Quarterly notes");
+        delegate* unmanaged<byte**, byte**, int> sources = &StudioNativeExports.ConversionSourcesJson;
+        delegate* unmanaged<byte*, byte*, nint, byte**, byte**, int> convert = &StudioNativeExports.ConvertToPdfJson;
+        delegate* unmanaged<void*, void> free = &StudioNativeExports.Free;
+        byte* json = null; byte* error = null;
+
+        Assert.Equal(StudioNativeAbi.Ok, sources(&json, &error));
+        using (JsonDocument list = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!))
+            Assert.Contains(list.RootElement.GetProperty("sources").EnumerateArray(), source => source.GetProperty("route").GetString() == "pptx-pdf");
+        free(json);
+
+        string output = Path.Combine(_root, "notes.pdf");
+        fixed (byte* input = Encoding.UTF8.GetBytes(text + "\0"))
+        fixed (byte* destination = Encoding.UTF8.GetBytes(output + "\0")) {
+            Assert.Equal(StudioNativeAbi.Ok, convert(input, destination, 0, &json, &error));
+            using JsonDocument result = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!);
+            Assert.Equal("txt-pdf", result.RootElement.GetProperty("route").GetString());
+            free(json);
+        }
+        Assert.True(File.Exists(output));
+        fixed (byte* input = Encoding.UTF8.GetBytes(Path.Combine(_root, "photo.heic") + "\0"))
+        fixed (byte* destination = Encoding.UTF8.GetBytes(output + "\0")) {
+            File.WriteAllBytes(Path.Combine(_root, "photo.heic"), [1]);
+            Assert.Equal(StudioNativeAbi.Unsupported, convert(input, destination, 0, &json, &error));
+            free(error);
+        }
+    }
 
     [Fact]
     public async Task A_scan_refuses_what_it_cannot_make() {
