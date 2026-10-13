@@ -249,6 +249,15 @@ internal static partial class PdfDocumentSemanticEnricher {
             if (pages.Count < minimumPages) continue;
 
             PageEdgeGeometryGroup[] geometryGroups = GroupPageEdgeGeometry(candidates, signatureIndexes, workBudget);
+            if (geometryGroups.Length > 1 && HasCompatiblePageEdgeEnvelope(geometryGroups, workBudget)) {
+                // Every anchor sees all groups inside this envelope, and the signature's
+                // unique-page quorum was already met. Avoid repeating the same page unions.
+                for (int index = 0; index < signatureIndexes.Count; index++) {
+                    workBudget.Consume();
+                    repeated[signatureIndexes[index]] = true;
+                }
+                continue;
+            }
             for (int anchorIndex = 0; anchorIndex < geometryGroups.Length; anchorIndex++) {
                 PageEdgeGeometryGroup anchor = geometryGroups[anchorIndex];
                 pages.Clear();
@@ -269,6 +278,25 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
         }
         return repeated;
+    }
+
+    private static bool HasCompatiblePageEdgeEnvelope(
+        PageEdgeGeometryGroup[] groups,
+        PdfUnderstandingWorkBudget workBudget) {
+        double minimumLeft = groups[0].NormalizedLeft;
+        double maximumLeft = minimumLeft;
+        double minimumWidth = groups[0].NormalizedWidth;
+        double maximumWidth = minimumWidth;
+        for (int index = 0; index < groups.Length; index++) {
+            workBudget.Consume();
+            PageEdgeGeometryGroup group = groups[index];
+            minimumLeft = Math.Min(minimumLeft, group.NormalizedLeft);
+            maximumLeft = Math.Max(maximumLeft, group.NormalizedLeft);
+            minimumWidth = Math.Min(minimumWidth, group.NormalizedWidth);
+            maximumWidth = Math.Max(maximumWidth, group.NormalizedWidth);
+            if (maximumLeft - minimumLeft > 0.08D || maximumWidth - minimumWidth > 0.12D) return false;
+        }
+        return true;
     }
 
     private static PageEdgeGeometryGroup[] GroupPageEdgeGeometry(

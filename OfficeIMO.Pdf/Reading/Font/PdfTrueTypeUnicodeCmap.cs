@@ -59,7 +59,8 @@ internal static class PdfTrueTypeUnicodeCmap {
         }
         if (mappings == null || mappings.Count == 0) return null;
         byte[]? rebuilt = Rebuild(program, mappings);
-        return rebuilt == null ? null : new PdfDrawingFontProgram(rebuilt, mappings, glyphForCode, isEmptyGlyph, cidToGlyphMap);
+        return rebuilt == null ? null : new PdfDrawingFontProgram(rebuilt, mappings, glyphForCode, isEmptyGlyph,
+            cidToGlyphMap, originalProgramByteCount: program.LongLength);
     }
 
     /// <summary>Returns the program with additional Unicode-to-glyph mappings, keeping existing entries.</summary>
@@ -532,15 +533,19 @@ internal static class PdfTrueTypeUnicodeCmap {
 /// <summary>A drawing-ready TrueType program with its synthesized Unicode mappings.</summary>
 internal sealed class PdfDrawingFontProgram {
     internal PdfDrawingFontProgram(byte[] program, SortedDictionary<int, int> unicodeGlyphs, Func<int, int> glyphForCode,
-        Func<int, bool> isEmptyGlyph, byte[]? cidToGlyphMap = null) {
+        Func<int, bool> isEmptyGlyph, byte[]? cidToGlyphMap = null, long originalProgramByteCount = 0) {
         Program = program;
         UnicodeGlyphs = unicodeGlyphs;
         GlyphForCode = glyphForCode;
         IsEmptyGlyph = isEmptyGlyph;
         CidToGlyphMap = cidToGlyphMap;
+        OriginalProgramByteCount = originalProgramByteCount;
     }
 
     internal byte[] Program { get; }
+
+    /// <summary>Original sfnt bytes retained by the glyph delegates, separate from the rebuilt program.</summary>
+    internal long OriginalProgramByteCount { get; }
 
     /// <summary>Unicode scalar to glyph id entries of the synthesized cmap.</summary>
     internal IReadOnlyDictionary<int, int> UnicodeGlyphs { get; }

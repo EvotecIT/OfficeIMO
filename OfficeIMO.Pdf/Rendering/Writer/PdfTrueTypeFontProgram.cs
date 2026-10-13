@@ -17,10 +17,11 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
     private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
-    private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements = new();
+    private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
 
     private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, int[] advanceWidths1000, Dictionary<int, int> cmap) {
         _data = data.ToArray();
+        _shortMeasurements = new();
         _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
@@ -58,6 +59,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _cmap = source._cmap;
         _subsetFontFingerprint = source._subsetFontFingerprint;
         _tracking = source._tracking;
+        // Nominal advances and glyph identities depend only on immutable font
+        // data. Every hit still replays usage into this document's own subset.
+        _shortMeasurements = source._shortMeasurements;
     }
 
     internal PdfTrueTypeFontProgram ForkForDocument() => new(this);

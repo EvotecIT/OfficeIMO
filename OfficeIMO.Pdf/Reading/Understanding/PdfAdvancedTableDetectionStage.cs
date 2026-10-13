@@ -29,9 +29,13 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             context.Height,
             context.ConsumeWork,
             context.ThrowIfCancellationRequested);
+        IReadOnlyList<PdfTableRuling> rulings = tables.Count == 0
+            ? Array.Empty<PdfTableRuling>()
+            : context.Page.GetTableRulings(context);
         result.Capacity = tables.Count;
         foreach (StructuredTable table in tables) {
             context.ConsumeWork();
+            bool ruledGrid = rulings.Count > 0 && TableDetector.TryRefineClosedRulingGrid(table, rulings, context);
             ContentStructureExtractor.NormalizeDetectedTable(table);
             if (table.Columns.Count < 2 || table.SourceRuns.Count == 0) continue;
 
@@ -90,6 +94,10 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
                     "Repeated column geometry and row alignment form a bounded table candidate.",
                     0.9D)
             };
+            if (ruledGrid) evidence.Add(new PdfInferenceEvidence(
+                "table.closed-ruling-grid",
+                "A unique closed grid of fully visible straight rulings agrees with every recovered cell and source run.",
+                0.95D));
             if (TableDetector.HasDistinctEmphasizedHeader(sourceLines)) {
                 evidence.Add(new PdfInferenceEvidence(
                     "table.header-emphasis",
