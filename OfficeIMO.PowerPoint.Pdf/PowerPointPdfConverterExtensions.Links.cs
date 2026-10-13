@@ -25,13 +25,22 @@ public static partial class PowerPointPdfConverterExtensions {
         return null;
     }
 
-    private static void RemoveUnavailableDrawingSlideLinks(OfficeDrawing drawing, PowerPointToPdfOptions options) {
+    private static void RemoveUnavailableDrawingSlideLinks(OfficeDrawing drawing, PowerPointToPdfOptions options,
+        int? diagnosticSlideNumber = null) {
         foreach (OfficeDrawingRichText text in drawing.Elements.OfType<OfficeDrawingRichText>()) {
             foreach (OfficeRichTextRun run in text.Runs.Concat(text.Paragraphs.SelectMany(paragraph => paragraph.Runs))) {
-                if (run.LinkDestinationName != null && !options.SlideLinkDestinations.Contains(run.LinkDestinationName))
-                    run.LinkDestinationName = null;
+                if (run.LinkDestinationName == null || options.SlideLinkDestinations.Contains(run.LinkDestinationName)) continue;
+                if (diagnosticSlideNumber.HasValue)
+                    AddWarning(options, diagnosticSlideNumber.Value, "internal-slide-target-omitted",
+                        "Skipped a PowerPoint text run hyperlink because its target slide is absent from the PDF output.",
+                        lossKind: OfficeConversionLossKind.Omission);
+                run.LinkDestinationName = null;
             }
         }
+        foreach (OfficeDrawingGroup group in drawing.Elements.OfType<OfficeDrawingGroup>())
+            RemoveUnavailableDrawingSlideLinks(group.InnerDrawing, options, diagnosticSlideNumber);
+        foreach (OfficeDrawingEffectGroup group in drawing.Elements.OfType<OfficeDrawingEffectGroup>())
+            RemoveUnavailableDrawingSlideLinks(group.InnerDrawing, options, diagnosticSlideNumber);
     }
 
     private static void RenderShapeSlideLink(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape,

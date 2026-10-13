@@ -38,6 +38,12 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ReportOmittedSpeakerNotes(presentation, options);
 
+        IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
+        for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
+            if (options.IncludeHiddenSlides || !slides[slideIndex].Hidden)
+                options.SlideLinkDestinations.Add(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideIndex + 1));
+        }
+
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
             RenderNotesPages(pdf, presentation, pdfOptions.PageWidth, pdfOptions.PageHeight, options);
             return pdf;
@@ -47,11 +53,6 @@ public static partial class PowerPointPdfConverterExtensions {
             return pdf;
         }
 
-        IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
-        for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
-            if (options.IncludeHiddenSlides || !slides[slideIndex].Hidden)
-                options.SlideLinkDestinations.Add(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideIndex + 1));
-        }
         int renderedSlides = 0;
         for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -329,6 +330,8 @@ public static partial class PowerPointPdfConverterExtensions {
                 IncludeCharts = options.IncludeCharts,
                 MaxGroupShapeDepth = options.MaxGroupShapeDepth
             });
+        canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), x, y);
+        RemoveUnavailableDrawingSlideLinks(snapshot.Drawing, options, slideNumber);
         canvas.Drawing(snapshot.Drawing, x, y, width, height);
         foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
             AddWarning(options, slideNumber, "snapshot-" + diagnostic.Code, diagnostic.Message, lossKind: diagnostic.LossKind);

@@ -803,7 +803,7 @@ namespace OfficeIMO.PowerPoint {
         private static bool ShouldRenderRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
             richRuns.Count > 1 ||
             (richRuns.Count == 1 && (richRuns[0].Underline || richRuns[0].Strikethrough ||
-                richRuns[0].LinkDestinationName != null ||
+                richRuns[0].LinkDestinationName != null || richRuns[0].LinkUri != null ||
                 richRuns[0].BackgroundColor.HasValue || richRuns[0].Baseline != OfficeTextBaseline.Normal));
 
         private static OfficeTextParagraphIndent CreateParagraphIndent(PowerPointParagraph? paragraph, PowerPointShapeBoundsMapping mapping) {
