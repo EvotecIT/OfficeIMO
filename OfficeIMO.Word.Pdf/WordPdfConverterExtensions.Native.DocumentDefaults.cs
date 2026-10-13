@@ -17,6 +17,9 @@ namespace OfficeIMO.Word.Pdf {
             public WordSection? RunningContentSection { get; init; }
             // Computed once by the read operation with its effective body styles and fonts.
             public double? BodyTextInkTopOffset { get; init; }
+            // Immutable per-part visibility/permission inventory captured by this read operation.
+            public IReadOnlyDictionary<OpenXmlElement, NativeRunningTextBoxStoryPeers>? RunningTextBoxStoryPeers { get; init; }
+            public bool RunningStoryHasDisallowedTextBoxPeers { get; init; }
             // A missing docDefaults element follows Word's 12pt application fallback.
             public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 12D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null) { OpenTypeFeaturesEnabled = true };
         }
