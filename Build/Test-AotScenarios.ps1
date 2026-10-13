@@ -136,7 +136,8 @@ try {
                 # Reserve room for native code generation and the hosted runner.
                 # These defaults affect publisher children only; explicit caller
                 # settings are preserved and native execution uses the original environment.
-                $defaults = @{ DOTNET_GCHeapHardLimit = '0x200000000'; DOTNET_GCConserveMemory = '5' }
+                # .NET 8 NativeAOT accepts bare hexadecimal digits, not a 0x prefix.
+                $defaults = @{ DOTNET_GCHeapHardLimit = '200000000'; DOTNET_GCConserveMemory = '5' }
                 foreach ($name in $defaults.Keys) {
                     $previous = [Environment]::GetEnvironmentVariable($name, 'Process')
                     if ([string]::IsNullOrEmpty($previous)) {
