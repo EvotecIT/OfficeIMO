@@ -5,21 +5,26 @@ public sealed class PdfAttachmentEditSession {
     private readonly List<PdfEmbeddedFile> _attachments;
     private readonly List<PdfAttachmentSourceIdentity> _sourceIdentities;
     private readonly Dictionary<string, string> _retainedOriginalNames;
+    private readonly long _maximumAttachmentBytes;
+    private long _totalAttachmentBytes;
 
-    internal PdfAttachmentEditSession(IEnumerable<PdfEmbeddedFile> attachments) {
-        _attachments = attachments.Select(static file => file.Clone()).ToList();
-        _sourceIdentities = _attachments
-            .Select(static _ => new PdfAttachmentSourceIdentity(0, 0))
-            .ToList();
-        _retainedOriginalNames = CreateRetainedOriginalNames(_attachments);
-    }
+    internal PdfAttachmentEditSession(IEnumerable<PdfEmbeddedFile> attachments,
+        long maximumAttachmentBytes = PdfReadLimits.DefaultMaxTotalAttachmentBytes)
+        : this(attachments.Select(static file => new PdfAttachmentEditSource(file, 0, 0)), maximumAttachmentBytes) { }
 
-    internal PdfAttachmentEditSession(IEnumerable<PdfAttachmentEditSource> attachments) {
-        IReadOnlyList<PdfAttachmentEditSource> sources = attachments.ToArray();
-        _attachments = sources.Select(static source => source.Attachment.Clone()).ToList();
-        _sourceIdentities = sources.Select(static source => new PdfAttachmentSourceIdentity(
-            source.FileSpecObjectNumber,
-            source.EmbeddedFileObjectNumber)).ToList();
+    internal PdfAttachmentEditSession(IEnumerable<PdfAttachmentEditSource> attachments,
+        long maximumAttachmentBytes = PdfReadLimits.DefaultMaxTotalAttachmentBytes) {
+        Guard.Positive(maximumAttachmentBytes, nameof(maximumAttachmentBytes));
+        _maximumAttachmentBytes = maximumAttachmentBytes;
+        _attachments = new List<PdfEmbeddedFile>();
+        _sourceIdentities = new List<PdfAttachmentSourceIdentity>();
+        foreach (PdfAttachmentEditSource source in attachments) {
+            long projectedBytes = GetProjectedBytes(0, source.Attachment.ByteLength);
+            _attachments.Add(source.Attachment.Clone());
+            _sourceIdentities.Add(new PdfAttachmentSourceIdentity(
+                source.FileSpecObjectNumber, source.EmbeddedFileObjectNumber));
+            _totalAttachmentBytes = projectedBytes;
+        }
         _retainedOriginalNames = CreateRetainedOriginalNames(_attachments);
     }
 
@@ -37,23 +42,30 @@ public sealed class PdfAttachmentEditSession {
     /// <summary>Current attachment snapshots in edit order.</summary>
     public IReadOnlyList<PdfEmbeddedFile> Attachments => _attachments.Select(static file => file.Clone()).ToArray();
 
-    /// <summary>Adds a uniquely named attachment.</summary>
+    /// <summary>Adds a uniquely named attachment after admitting its payload against the target collection budget.</summary>
+    /// <exception cref="PdfReadLimitException">The target collection exceeds its aggregate attachment-byte limit.</exception>
     public PdfAttachmentEditSession Add(PdfEmbeddedFile attachment) {
         Guard.NotNull(attachment, nameof(attachment));
         EnsureMissing(attachment.FileName);
+        long projectedBytes = GetProjectedBytes(0, attachment.ByteLength);
         _attachments.Add(attachment.Clone());
         _sourceIdentities.Add(new PdfAttachmentSourceIdentity(0, 0));
+        _totalAttachmentBytes = projectedBytes;
         return this;
     }
 
-    /// <summary>Replaces the attachment identified by file name.</summary>
+    /// <summary>Replaces the attachment identified by file name, admitting the net payload before changing the collection.</summary>
+    /// <exception cref="PdfReadLimitException">The target collection exceeds its aggregate attachment-byte limit.</exception>
     public PdfAttachmentEditSession Replace(string fileName, PdfEmbeddedFile replacement) {
         Guard.NotNullOrWhiteSpace(fileName, nameof(fileName)); Guard.NotNull(replacement, nameof(replacement));
         int index = RequireIndex(fileName);
         int conflict = FindIndex(replacement.FileName);
         if (conflict >= 0 && conflict != index) throw new ArgumentException("An attachment with the replacement file name already exists.", nameof(replacement));
+        long projectedBytes = GetProjectedBytes(_attachments[index].ByteLength, replacement.ByteLength);
+        PdfEmbeddedFile snapshot = replacement.Clone();
         UpdateRetainedName(_attachments[index].FileName, replacement.FileName);
-        _attachments[index] = replacement.Clone();
+        _attachments[index] = snapshot;
+        _totalAttachmentBytes = projectedBytes;
         return this;
     }
 
@@ -97,6 +109,7 @@ public sealed class PdfAttachmentEditSession {
     internal PdfAttachmentEditSession RemoveAt(int index) {
         if (index < 0 || index >= _attachments.Count) throw new ArgumentOutOfRangeException(nameof(index));
         string fileName = _attachments[index].FileName;
+        _totalAttachmentBytes -= _attachments[index].ByteLength;
         _attachments.RemoveAt(index);
         _sourceIdentities.RemoveAt(index);
         string? originalName = _retainedOriginalNames.FirstOrDefault(pair => string.Equals(pair.Value, fileName, StringComparison.Ordinal)).Key;
@@ -110,6 +123,15 @@ public sealed class PdfAttachmentEditSession {
         .Select((file, index) => new PdfAttachmentEditEntry(file.Clone(), _sourceIdentities[index]))
         .ToArray();
     internal IReadOnlyDictionary<string, string> RetainedOriginalNames => _retainedOriginalNames;
+
+    private long GetProjectedBytes(long removedBytes, long addedBytes) {
+        long retainedBytes = _totalAttachmentBytes - removedBytes;
+        if (addedBytes > _maximumAttachmentBytes - retainedBytes) {
+            long actual = retainedBytes > long.MaxValue - addedBytes ? long.MaxValue : retainedBytes + addedBytes;
+            throw PdfReadLimitException.Create(PdfReadLimitKind.AttachmentBytes, _maximumAttachmentBytes, actual);
+        }
+        return retainedBytes + addedBytes;
+    }
 
     private void UpdateRetainedName(string currentName, string newName) {
         string? originalName = _retainedOriginalNames.FirstOrDefault(pair => string.Equals(pair.Value, currentName, StringComparison.Ordinal)).Key;

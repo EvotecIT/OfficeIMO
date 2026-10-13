@@ -44,10 +44,16 @@ public partial class Word {
     [InlineData(true, "complex", "character", false)]
     [InlineData(false, "complex", "paragraph", false)]
     [InlineData(true, "complex", "paragraph", true)]
+    [InlineData(false, "simple", "document", false)]
+    [InlineData(true, "simple", "document", true)]
+    [InlineData(false, "complex", "document", true)]
+    [InlineData(true, "complex", "document", false)]
     public void HeaderFieldSerializationRespectsEffectiveVisibility(bool footer, string route, string hiddenSource, bool visibleOverride) {
         using WordDocument document = CreateJoinedParagraphDocument();
         document.AddParagraph("BODY");
         W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        if (hiddenSource == "document") styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!
+            .AddChild(new W.Vanish(), true);
         styles.Append(new W.Style(new W.StyleRunProperties(new W.Vanish())) {
             Type = hiddenSource == "paragraph" ? W.StyleValues.Paragraph : W.StyleValues.Character, StyleId = "HiddenFieldText"
         });

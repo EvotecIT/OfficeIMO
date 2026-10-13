@@ -37,7 +37,26 @@ internal static partial class PdfWriter {
         private double width;
         private double yStart;
         private double y;
-        private bool pageDirty;
+        private bool pageHasContent;
+        private int? currentRunningSectionId;
+        // Body emission records logical ownership at the same point as page
+        // dirtiness, after any paragraph/table pagination has taken place.
+        private bool pageDirty {
+            get => pageHasContent;
+            set {
+                pageHasContent = value;
+                if (value) RecordRunningContentSection();
+            }
+        }
+
+        // Blank body flow can occupy a source section's page without painting it.
+        // Track that ownership separately from whether the page must be emitted.
+        private void RecordRunningContentSection() {
+            if (!isRunningContent && currentPage != null && currentRunningSectionId is int sectionId) {
+                currentPage.RunningContentSectionId ??= sectionId;
+                (currentPage.RunningContentSections ??= new HashSet<int>()).Add(sectionId);
+            }
+        }
         private bool usedBold;
         private bool usedItalic;
         private bool usedBoldItalic;
@@ -134,7 +153,13 @@ internal static partial class PdfWriter {
             width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             yStart = currentOpts.PageHeight - currentOpts.MarginTop;
             y = yStart;
-            currentPage = new LayoutResult.Page { Options = currentOpts, PageGroupId = currentPageGroupId };
+            currentPage = new LayoutResult.Page {
+                Options = currentOpts, PageGroupId = currentPageGroupId,
+                // The section at the page start owns its running fields even
+                // when it is empty and a continuous successor supplies the body.
+                RunningContentSectionId = currentRunningSectionId,
+                RunningContentSections = currentRunningSectionId is int sectionId ? new HashSet<int> { sectionId } : null
+            };
             sb.Clear();
             behindTextCanvases.Clear();
             pageDirty = false;
@@ -224,6 +249,7 @@ internal static partial class PdfWriter {
                     return;
                 }
                 PrepareActiveContainerScopesForPageBreak();
+                if (preserveEmptyPage) RecordRunningContentSection();
                 FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
                 StartPage(currentPageBaseOptions);
                 ResumeActiveContainerScopesOnNewPage();

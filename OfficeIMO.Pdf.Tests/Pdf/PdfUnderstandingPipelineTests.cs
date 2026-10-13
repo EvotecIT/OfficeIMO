@@ -1670,7 +1670,9 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void LogicalProjection_SharesThePipelinePageWorkBudget() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        // Isolate projection from source scan costs: the custom stage supplies
+        // the text and spends the entire budget before projection begins.
+        byte[] pdf = CreateEmptyTaggedStructurePdf();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(10), 10)));

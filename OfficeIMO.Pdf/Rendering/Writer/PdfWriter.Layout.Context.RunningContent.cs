@@ -121,10 +121,21 @@ internal static partial class PdfWriter {
                 throw new InvalidOperationException("Running PDF content must leave a positive body content frame.");
             // A fallback is local to this page and variant. Never remove a
             // definition from the shared source or cached geometry frames.
-            currentOpts = fallbackHeader || fallbackFooter
+            bool retainHeaderProjection = header?.RetainTextProjection == true;
+            bool retainFooterProjection = footer?.RetainTextProjection == true;
+            currentOpts = fallbackHeader || fallbackFooter || retainHeaderProjection || retainFooterProjection
                 ? source.CreateRunningContentFrame(top, bottom) : GetRunningFrameOptions(source, top, bottom);
             if (fallbackHeader) currentOpts.ClearRunningContentForPage(variant, isHeader: true);
             if (fallbackFooter) currentOpts.ClearRunningContentForPage(variant, isHeader: false);
+            // Geometry and visible text have different owners here. Keep the
+            // measured body frame, but draw projected text from its original
+            // physical margin, without mutating shared or cached options.
+            if (retainHeaderProjection) {
+                currentOpts.HeaderOffsetY += top - source.MarginTop;
+            }
+            if (retainFooterProjection) {
+                currentOpts.FooterOffsetY += bottom - source.MarginBottom;
+            }
             currentPage!.Options = currentOpts;
             currentPage.RunningContentContext = context;
             currentPage.HasDynamicRunningContent = usesPageContext;
@@ -136,7 +147,7 @@ internal static partial class PdfWriter {
                 RenderRunningContent(source, footerBlocks!, footer.DistanceFromEdge + footerHeight, footerHeight, isHeader: false);
 
             static double Exclusion(PdfRunningContent? content, double height, double physicalMargin) =>
-                content == null || height <= 0D ? physicalMargin
+                content == null || (height <= 0D && !content.ReserveDistanceWhenEmpty) ? physicalMargin
                     : Math.Max(physicalMargin, content.DistanceFromEdge + height + content.BodyGap);
         }
 
@@ -166,7 +177,7 @@ internal static partial class PdfWriter {
                 while (pending.MoveNext()) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IPdfBlock block = pending.Current;
-                    if (block is BookmarkBlock or ColumnBreakBlock) continue;
+                    if (block is BookmarkBlock or RunningContentSectionBlock or ColumnBreakBlock) continue;
                     if (block is PageBreakBlock) return 0D;
                     if (block is PageBlock page) return FirstVisual(page.Blocks, frameX, frameWidth, closingPadding) ?? 0D;
                     double height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
@@ -256,7 +267,9 @@ internal static partial class PdfWriter {
                 .Append(source.PageHeight.ToString("0.###", CultureInfo.InvariantCulture)).Append(" re W n\n")
                 .Append("/Artifact << /Type /Pagination /Subtype /").Append(isHeader ? "Header" : "Footer")
                 .Append(" >> BDC\n").Append(story.sb).Append("EMC\nQ\n");
-            pageDirty = true;
+            // Running stories make a page printable but do not belong to its
+            // body section. The first body content owns shared-page fields.
+            pageHasContent = true;
         }
     }
 

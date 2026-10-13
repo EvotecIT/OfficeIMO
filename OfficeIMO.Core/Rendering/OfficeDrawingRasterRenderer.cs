@@ -142,8 +142,9 @@ public static partial class OfficeDrawingRasterRenderer {
     public static byte[] ToPng(OfficeDrawing drawing, double scale = 1D, OfficeColor? background = null) =>
         OfficePngWriter.Encode(Render(drawing, scale, background));
 
-    /// <summary>Renders a drawing to PNG bytes with an optional external image codec.</summary>
-    public static byte[] ToPng(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options) => OfficePngWriter.Encode(Render(drawing, options));
+    /// <summary>Renders a drawing to PNG bytes with an optional external image codec and cancellation through encoding.</summary>
+    public static byte[] ToPng(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options) =>
+        OfficePngWriter.Encode(Render(drawing, options), options.CancellationToken);
 
     private static void RenderGroup(
         OfficeRasterCanvas canvas,
