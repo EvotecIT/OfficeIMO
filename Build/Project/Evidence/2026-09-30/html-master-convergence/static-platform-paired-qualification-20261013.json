@@ -1,0 +1,341 @@
+{
+  "schema": "officeimo.html.static-platform-paired-qualification/v1",
+  "recordedUtc": "2026-10-13T04:45:33.452609+00:00",
+  "runId": 38340521350,
+  "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/38340521350",
+  "sourceCommit": "1a0ae4046d2554626d6b4248cda4326e8ad1546c",
+  "controlCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+  "workload": {
+    "corpusId": "officeimo-html-h4-advanced-held-out",
+    "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+    "cases": 8,
+    "outputsPerIteration": 76,
+    "coldProcessesEachArm": 1,
+    "warmIterationsEachArm": 3,
+    "unchangedCeilings": true
+  },
+  "state": "correctness-passed-resource-acceptance-open",
+  "platforms": [
+    {
+      "platform": "ubuntu-latest",
+      "actualTrxPassed": 22563,
+      "arms": [
+        {
+          "arm": "current",
+          "source": {
+            "commit": "1a0ae4046d2554626d6b4248cda4326e8ad1546c",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "ceilings": {
+            "osFamily": "Linux",
+            "coldProcessElapsedMilliseconds": 12000,
+            "warmIterationElapsedMilliseconds": 5000,
+            "coldManagedAllocatedBytes": 1100000000,
+            "warmManagedAllocatedBytes": 1000000000,
+            "peakWorkingSetBytes": 500000000,
+            "outputBytesPerIteration": 3000000,
+            "cancellationElapsedMilliseconds": 250
+          },
+          "coldProcessMs": 11576.8471,
+          "warmIterationMs": [
+            4684.1758,
+            4837.756,
+            4589.3172
+          ],
+          "warmMedianMs": 4684.1758,
+          "coldAllocations": 957846904,
+          "warmAllocations": [
+            776960888,
+            776480616,
+            776474184
+          ],
+          "peakBytes": {
+            "cold": 281849856,
+            "warm": 332128256
+          },
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 6.25,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failures": [],
+          "deterministicWithinArm": true
+        },
+        {
+          "arm": "control",
+          "source": {
+            "commit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "ceilings": {
+            "osFamily": "Linux",
+            "coldProcessElapsedMilliseconds": 12000,
+            "warmIterationElapsedMilliseconds": 5000,
+            "coldManagedAllocatedBytes": 1100000000,
+            "warmManagedAllocatedBytes": 1000000000,
+            "peakWorkingSetBytes": 500000000,
+            "outputBytesPerIteration": 3000000,
+            "cancellationElapsedMilliseconds": 250
+          },
+          "coldProcessMs": 11040.8566,
+          "warmIterationMs": [
+            4709.1318,
+            4747.4432,
+            4431.5652
+          ],
+          "warmMedianMs": 4709.1318,
+          "coldAllocations": 1009478968,
+          "warmAllocations": [
+            827071832,
+            826567536,
+            826400824
+          ],
+          "peakBytes": {
+            "cold": 284389376,
+            "warm": 328118272
+          },
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 6.3051,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failures": [],
+          "deterministicWithinArm": true
+        }
+      ]
+    },
+    {
+      "platform": "windows-latest",
+      "actualTrxPassed": 22563,
+      "arms": [
+        {
+          "arm": "current",
+          "source": {
+            "commit": "1a0ae4046d2554626d6b4248cda4326e8ad1546c",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "ceilings": {
+            "osFamily": "Windows",
+            "coldProcessElapsedMilliseconds": 12000,
+            "warmIterationElapsedMilliseconds": 4000,
+            "coldManagedAllocatedBytes": 2500000000,
+            "warmManagedAllocatedBytes": 1200000000,
+            "peakWorkingSetBytes": 1500000000,
+            "outputBytesPerIteration": 3000000,
+            "cancellationElapsedMilliseconds": 250
+          },
+          "coldProcessMs": 17091.7451,
+          "warmIterationMs": [
+            5774.8832,
+            5732.1676,
+            5746.0804
+          ],
+          "warmMedianMs": 5746.0804,
+          "coldAllocations": 2351140528,
+          "warmAllocations": [
+            942580856,
+            942417960,
+            942394464
+          ],
+          "peakBytes": {
+            "cold": 1100750848,
+            "warm": 1416654848
+          },
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 7.9068,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failures": [
+            "cold process elapsed milliseconds 17091.7 exceeded ceiling 12000.0.",
+            "warm iteration 1 elapsed milliseconds 5774.9 exceeded ceiling 4000.0.",
+            "warm iteration 2 elapsed milliseconds 5732.2 exceeded ceiling 4000.0.",
+            "warm iteration 3 elapsed milliseconds 5746.1 exceeded ceiling 4000.0."
+          ],
+          "deterministicWithinArm": true
+        },
+        {
+          "arm": "control",
+          "source": {
+            "commit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "ceilings": {
+            "osFamily": "Windows",
+            "coldProcessElapsedMilliseconds": 12000,
+            "warmIterationElapsedMilliseconds": 4000,
+            "coldManagedAllocatedBytes": 2500000000,
+            "warmManagedAllocatedBytes": 1200000000,
+            "peakWorkingSetBytes": 1500000000,
+            "outputBytesPerIteration": 3000000,
+            "cancellationElapsedMilliseconds": 250
+          },
+          "coldProcessMs": 14221.4346,
+          "warmIterationMs": [
+            5424.0291,
+            5753.6903,
+            5395.3851
+          ],
+          "warmMedianMs": 5424.0291,
+          "coldAllocations": 2401701496,
+          "warmAllocations": [
+            997244288,
+            996870512,
+            996855944
+          ],
+          "peakBytes": {
+            "cold": 1109766144,
+            "warm": 1434451968
+          },
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 7.8943,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failures": [
+            "cold process elapsed milliseconds 14221.4 exceeded ceiling 12000.0.",
+            "warm iteration 1 elapsed milliseconds 5424.0 exceeded ceiling 4000.0.",
+            "warm iteration 2 elapsed milliseconds 5753.7 exceeded ceiling 4000.0.",
+            "warm iteration 3 elapsed milliseconds 5395.4 exceeded ceiling 4000.0."
+          ],
+          "deterministicWithinArm": true
+        }
+      ]
+    },
+    {
+      "platform": "macos-latest",
+      "actualTrxPassed": 22563,
+      "arms": [
+        {
+          "arm": "current",
+          "source": {
+            "commit": "1a0ae4046d2554626d6b4248cda4326e8ad1546c",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "ceilings": {
+            "osFamily": "macOS",
+            "coldProcessElapsedMilliseconds": 8000,
+            "warmIterationElapsedMilliseconds": 3000,
+            "coldManagedAllocatedBytes": 1250000000,
+            "warmManagedAllocatedBytes": 1100000000,
+            "peakWorkingSetBytes": 700000000,
+            "outputBytesPerIteration": 3000000,
+            "cancellationElapsedMilliseconds": 250
+          },
+          "coldProcessMs": 16536.9534,
+          "warmIterationMs": [
+            5074.7577,
+            5473.2979,
+            4926.3482
+          ],
+          "warmMedianMs": 5074.7577,
+          "coldAllocations": 1058762160,
+          "warmAllocations": [
+            823069376,
+            822506848,
+            822281192
+          ],
+          "peakBytes": {
+            "cold": 426737664,
+            "warm": 538918912
+          },
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 3.1601,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failures": [
+            "cold process elapsed milliseconds 16537.0 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 5074.8 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 5473.3 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 4926.3 exceeded ceiling 3000.0."
+          ],
+          "deterministicWithinArm": true
+        },
+        {
+          "arm": "control",
+          "source": {
+            "commit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "ceilings": {
+            "osFamily": "macOS",
+            "coldProcessElapsedMilliseconds": 8000,
+            "warmIterationElapsedMilliseconds": 3000,
+            "coldManagedAllocatedBytes": 1250000000,
+            "warmManagedAllocatedBytes": 1100000000,
+            "peakWorkingSetBytes": 700000000,
+            "outputBytesPerIteration": 3000000,
+            "cancellationElapsedMilliseconds": 250
+          },
+          "coldProcessMs": 16280.9225,
+          "warmIterationMs": [
+            5705.4691,
+            4405.3282,
+            4350.395
+          ],
+          "warmMedianMs": 4405.3282,
+          "coldAllocations": 1113282248,
+          "warmAllocations": [
+            875957712,
+            875288936,
+            874998192
+          ],
+          "peakBytes": {
+            "cold": 455835648,
+            "warm": 590249984
+          },
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 3.6135,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failures": [
+            "cold process elapsed milliseconds 16280.9 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 5705.5 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 4405.3 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 4350.4 exceeded ceiling 3000.0."
+          ],
+          "deterministicWithinArm": true
+        }
+      ]
+    }
+  ],
+  "boundary": "Source and control use the same corpus on each host. Ordered runs without an idle/power/thermal witness establish neither causal regression nor host contention. Latest no-break source is not qualified by this predecessor run. Package archive artifacts were not inspected in this diagnosis.",
+  "evidence": [
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/platform-run-38340521350-diagnosis/root-paired-metrics-diagnosis.json",
+      "bytes": 28209,
+      "sha256": "cacfd2a966b2953801783f31430067520fb51310ca15961359833b101dfc9723"
+    },
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/platform-run-38340521350-diagnosis/root-source-corpus-confirmation.json",
+      "bytes": 668,
+      "sha256": "6b2390674e6afb7b955f35dd8983e6889f3a0935645ae4c86959ea991d303e20"
+    }
+  ]
+}

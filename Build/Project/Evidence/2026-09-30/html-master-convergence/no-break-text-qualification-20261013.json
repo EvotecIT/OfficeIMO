@@ -1,0 +1,140 @@
+{
+  "schema": "officeimo.html.no-break-qualification/v1",
+  "recordedUtc": "2026-10-13T04:45:33.451652+00:00",
+  "sourceCommit": "369748df63cdbd878c288e645a2a0a18992908de",
+  "productionQualificationCommit": "4f336b7cc17f8cbb806b65bf1ebf8dc3eae67299",
+  "productionInputsUnchangedAtTestCheckpoint": true,
+  "scope": "HTML no-break computed defaults, authored overrides and min-content; declared-font NIST unit expressions in three PDF intents",
+  "contracts": {
+    "html": "OfficeIMO.Html/README.md",
+    "roadmap": "Docs/ROADMAP.md",
+    "newPublicApi": false,
+    "newProductionDependency": false,
+    "normativeRenderingReference": "https://html.spec.whatwg.org/multipage/rendering.html#phrasing-content-3"
+  },
+  "causalManagedProof": {
+    "initialControls": 14,
+    "beforeFixFailed": 7,
+    "afterFixPassed": 14,
+    "fullHtmlPassedEachFramework": 6057,
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "additionalLayerControls": 8,
+    "latestFocusedPassedEachFramework": 22,
+    "fullSuiteSource": "4f336b7cc17f8cbb806b65bf1ebf8dc3eae67299",
+    "fullCountBoundary": "Full6057 suites executed at production commit; latest22 focused cases executed at test-only checkpoint. Counts are not combined into an inferred full-suite run."
+  },
+  "independentReview": {
+    "state": "accepted-with-no-unresolved-actionable-findings",
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "boundary": "Initial layer and trace concerns were reproduced against actual public consumers and retracted; white-space remains outside the owned style-trace catalog."
+  },
+  "nativeBrowserControls": {
+    "mainControlsAccepted": 12,
+    "diagnosticRepresentationVariances": 1,
+    "originalRunnerExitCode": 1,
+    "variance": "Chromium breaks at wbr inside nobr while exposing computednowrap; HTML rendering rule materializesnormal. Original diagnostic failed and remains preserved. It does not invalidate the twelve text/table override controls.",
+    "fontLoaded": true,
+    "consoleErrors": 0,
+    "pageErrors": 0,
+    "requestFailures": 0,
+    "pageSessionBrowserAndServerDisposed": true,
+    "browserOwner": "HtmlTinkerX",
+    "boundary": "Browser controls are separate from OfficeIMO PDF paint acceptance."
+  },
+  "frozenRequest": {
+    "sourceMhtmlSha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa",
+    "declaredFont": {
+      "bytes": 234960,
+      "sha256": "e9eefd0655161b5558b4caf1a0667b3931c55ef8e06b58b034e8955190261d99"
+    },
+    "normalProjectReferenceGraph": true,
+    "frozenOwnerOverlay": false,
+    "actualLoadedOwnerCount": 11,
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "pdfSha256": "5d704572e37172e954cd9d61fd69aa216ba918ae4e6b1c1b3940f745d95ad6e2",
+        "pages": 9,
+        "rawMinusSigns": 105,
+        "warnings": 22
+      },
+      {
+        "profile": "screen-media-paged",
+        "pdfSha256": "0af8f5d9225d832c061f0d418a0efc527cb46ae04100b49d02f2d1f709549bea",
+        "pages": 10,
+        "rawMinusSigns": 105,
+        "warnings": 232
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pdfSha256": "f9123a9ee804b97451739f8acecfd24882801b0a9560b5e2b85f9d169006e108",
+        "pages": 9,
+        "rawMinusSigns": 107,
+        "warnings": 190
+      }
+    ],
+    "allPagesFresh96Dpi": 28,
+    "decisiveViewed144Dpi": 6,
+    "sourceTables": 5,
+    "sourceRows": 86,
+    "sourceCells": 364,
+    "sourceScriptOrNoBreakSpans": 227,
+    "observedScriptOrNoBreakLineSplitsBefore": [
+      10,
+      9,
+      10
+    ],
+    "observedScriptOrNoBreakLineSplitsAfter": [
+      0,
+      0,
+      0
+    ],
+    "articleLinksWithObservedTargetsEachProfile": 26,
+    "qualifiedInk": "Pressure/stress m−1 · kg · s−2 and selected Table3 expressions retain raised exponents on the same base line in each profile; intrinsic no-break width changes table columns.",
+    "associationBoundary": "The snapshot has351exact nonempty cells and13source-empty cells. Each reflow profile has347exact nonempty cells,13source-empty cells and4locator ambiguities caused by repeated headers in a continuation row band. Six decisive page views preserve the selected row values; raw association reports remain observations.",
+    "rawReaderBoundary": "Snapshot visitor commands include two additional minus copies under page clips. Raw multiplicity and clip pointers remain; extractor-specific clipped-row reading order is not qualified."
+  },
+  "retainedLimits": [
+    "Three original bare-font NIST requests remain failures",
+    "Captured assets/fonts and unsupported style/resource diagnostics remain explicit",
+    "Wider all-page NIST appearance and manual accessibility remain unqualified",
+    "Latest source package/platform/resource/trimming/AOT/WASM acceptance is separate"
+  ],
+  "evidence": [
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nobr-validation-next/root-focused-red-green-acceptance.json",
+      "bytes": 431,
+      "sha256": "9f75f177f6562801d5bde2a2dfd03ccc86f40604480a881e3155763d4f4a9461"
+    },
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nobr-validation-next/root-latest-focused-qualification.json",
+      "bytes": 1630,
+      "sha256": "ae4c8b9731eab555f3e023daab123256b82a63202050fee908a116edbde7afca"
+    },
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nobr-validation-next/root-full-html-qualification.json",
+      "bytes": 785,
+      "sha256": "1ca23fe3dc91cbbb958bd917fffa50edf3020a2917d40ff0ee5c468c1b9e5ccb"
+    },
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nobr-browser-oracle-source-only/root-native-browser-classification.json",
+      "bytes": 1628,
+      "sha256": "eca6b3974df025fe94e4abc494e50798cf47263750b36e6dedc040bc5fc2855f"
+    },
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nobr-nist-replay-current-source-only/execution/root-execution-receipt.json",
+      "bytes": 20798,
+      "sha256": "fe27c6d5deba575d69f33d9ddb22f4e62cd8ed37c5b0989bceaabcde56e9f4f4"
+    },
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nobr-nist-replay-current-source-only/root-native-review/root-bounded-nobr-acceptance.json",
+      "bytes": 5094,
+      "sha256": "663fee202259e66dfed2e9373f619e73084803553adf8e79cc10cfe659cde8c0"
+    }
+  ],
+  "platformBoundary": "Predecessor1a0 three-platform proof is recorded separately. This narrow source has local framework and NIST proof; fresh package/platform/resource/AOT/WASM gates remain open."
+}
