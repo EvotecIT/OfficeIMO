@@ -16,16 +16,30 @@ public partial class Excel {
     [InlineData(false, true)]
     [InlineData(true, true)]
     public void XlsbSharedStrings_PreserveDecoderPolicyAcrossBorrowedAndCanonicalAccess(bool largeTable, bool empty) {
-        ushort[] units = empty ? Array.Empty<ushort>() : [0x41, 0xD800, 0x42, 0xD83D, 0xDC22, 0, 0xDC00];
-        string expected = empty ? string.Empty : "A\uFFFDB🐢\0\uFFFD";
+        ushort[] units = empty ? Array.Empty<ushort>() : [
+            0x41, 0xD800, 0x42, 0xD83D, 0xDC22, 0, 0xDC00,
+            0xFEFF, 0xFFFE, 0xFFFF, 0xD800, 0xD800, 0x43, 0xDC00, 0xDC00
+        ];
+        string expected = empty ? string.Empty : "A\uFFFDB🐢\0\uFFFD\uFEFF\uFFFE\uFFFF\uFFFD\uFFFDC\uFFFD\uFFFD";
+        long characters = 0;
         byte[] package = RewriteSst(CreateSstWorkbook(largeTable), (records, output) => {
             foreach (XlsbRecord record in records) {
-                XlsbRecordWriter.Write(output, record.Type,
-                    record.Type == 19 && DecodeSstItem(record.Data) == "Replace" ? CreateSstItem(units) : record.Data);
+                byte[] payload = record.Data;
+                if (record.Type == 19) {
+                    string original = DecodeSstItem(payload);
+                    if (original == "Replace") {
+                        payload = CreateSstItem(units);
+                        characters += expected.Length;
+                    } else {
+                        characters += original.Length;
+                    }
+                }
+                XlsbRecordWriter.Write(output, record.Type, payload);
             }
         });
         string materialized;
-        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package)) {
+        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package,
+            new ExcelReadOptions { MaxSharedStringCharacters = characters })) {
             Assert.True(reader.Read());
 #if NET8_0_OR_GREATER
             Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> held));
@@ -45,6 +59,54 @@ public partial class Excel {
             Assert.Equal(expected, materialized);
         }
         Assert.Equal(expected, materialized);
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => XlsbTabularWorkbook.Open(package,
+            new ExcelReadOptions { MaxSharedStringCharacters = characters - 1 }));
+        Assert.Contains("aggregate limit", error.Message);
+    }
+
+    [Fact]
+    public void XlsbSharedStrings_CanonicalTextRemainsCorrectAcrossWorkbookOwnersAndForeignPoolEntries() {
+        byte[] firstPackage = CreateSstWorkbook(false, repeatFirstValue: true);
+        byte[] secondPackage = RewriteSst(firstPackage, (records, output) => {
+            foreach (XlsbRecord record in records) {
+                XlsbRecordWriter.Write(output, record.Type, record.Type == 19
+                    ? CreateSstItem(("Second" + DecodeSstItem(record.Data)).Select(c => (ushort)c).ToArray())
+                    : record.Data);
+            }
+        });
+        // Shared pools can supply arrays returned by unrelated callers without clearing.
+        string?[] foreign = ArrayPool<string?>.Shared.Rent(5);
+        for (int index = 0; index < foreign.Length; index++) foreign[index] = "Foreign pool entry";
+        ArrayPool<string?>.Shared.Return(foreign, clearArray: false);
+
+        string held;
+        using (XlsbTabularWorkbook firstWorkbook = XlsbTabularWorkbook.Open(firstPackage, new ExcelReadOptions()))
+        using (var first = (XlsbTabularDataReader)firstWorkbook.OpenTable("Data", true, new ExcelReadOptions())) {
+            Assert.True(first.Read());
+            held = first.GetString(0);
+            Assert.Equal("Replace", held);
+            Assert.Equal("Other", first.GetString(1));
+            firstWorkbook.Dispose();
+
+            using (XlsbTabularWorkbook secondWorkbook = XlsbTabularWorkbook.Open(secondPackage, new ExcelReadOptions()))
+            using (var second = (XlsbTabularDataReader)secondWorkbook.OpenTable("Data", true, new ExcelReadOptions())) {
+                Assert.True(second.Read());
+                Assert.Equal("SecondReplace", second.GetString(0));
+                Assert.Equal("SecondOther", second.GetString(1));
+                Assert.True(first.Read());
+                Assert.Equal("After", first.GetString(0));
+                Assert.True(first.Read());
+                Assert.Equal("Replace", first.GetString(0));
+                first.Close();
+                secondWorkbook.Dispose();
+                Assert.True(second.Read());
+                Assert.Equal("SecondAfter", second.GetString(0));
+                Assert.True(second.Read());
+                Assert.Equal("SecondReplace", second.GetString(0));
+                Assert.Equal("Replace", held);
+            }
+        }
+        Assert.Equal("Replace", held);
     }
 
     [Theory]
@@ -168,7 +230,7 @@ public partial class Excel {
         Assert.Throws<EndOfStreamException>(() => XlsbTabularWorkbook.Open(stream.ToArray(), new ExcelReadOptions()));
     }
 
-    private static byte[] CreateSstWorkbook(bool largeTable) {
+    private static byte[] CreateSstWorkbook(bool largeTable, bool repeatFirstValue = false) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Data");
         sheet.CellValue(1, 1, "Text");
@@ -176,6 +238,7 @@ public partial class Excel {
         sheet.CellValue(2, 1, "Replace");
         sheet.CellValue(2, 2, "Other");
         sheet.CellValue(3, 1, "After");
+        if (repeatFirstValue) sheet.CellValue(4, 1, "Replace");
         if (largeTable) for (int row = 4; row < 270; row++) sheet.CellValue(row, 1, "Item" + row);
         return document.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = true });
     }
