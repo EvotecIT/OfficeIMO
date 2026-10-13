@@ -52,6 +52,8 @@ namespace OfficeIMO.Archives.Tests {
         [InlineData("Windows Server 2022 August 2021 Update ", "Windows Server 2022 August 2021 Update")]
         [InlineData("Templates.", "Templates")]
         [InlineData("Templates. .", "Templates")]
+        [InlineData(" Templates . ", " Templates")]
+        [InlineData(".Templates ", ".Templates")]
         public void MsiDirectorySegmentsUseTheirInstalledSpelling(string authored, string installed) {
             using var fixture = new ArchiveFixtures();
             var result = ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
@@ -84,6 +86,7 @@ namespace OfficeIMO.Archives.Tests {
         [InlineData("Template.admx ", "Template.admx")]
         [InlineData("Template.admx.", "Template.admx")]
         [InlineData("TEMPLA~1.ADM|Template.admx . ", "Template.admx")]
+        [InlineData("SHORT~1| Template.admx ", " Template.admx")]
         public void MsiFileNamesUseTheirInstalledSpelling(string authored, string installed) {
             using var fixture = new ArchiveFixtures();
             var result = ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
@@ -122,6 +125,25 @@ namespace OfficeIMO.Archives.Tests {
                 Assert.Contains("payload", error.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.False(Directory.Exists(fixture.Destination));
             }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void OversizedAuthoredNamesAreRejectedBeforeNormalizationOrSelection(bool directory) {
+            using var fixture = new ArchiveFixtures();
+            string authored = "Template" + new string(' ', 4096);
+            byte[] package = ArchiveFixtures.Msi(stringColumnLength: 0, editDatabase: (_, rows) => {
+                if (directory) rows["Directory"][1][2] = authored;
+                else rows["File"][0][2] = authored;
+            });
+            int selectionCalls = 0;
+            Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+                fixture.Package(package), fixture.Destination,
+                new ArchiveExtractionOptions { IncludeFile = _ => { selectionCalls++; return false; } }));
+            Assert.Equal(0, selectionCalls);
+            Assert.False(Directory.Exists(fixture.Destination));
+            Assert.Empty(Directory.GetDirectories(fixture.Root, ".officeimo-archive-*"));
         }
 
         [Theory]

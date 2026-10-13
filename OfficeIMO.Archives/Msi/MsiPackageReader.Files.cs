@@ -95,6 +95,9 @@ internal sealed partial class MsiPackageReader {
         return media[match].Item3;
     }
     private static string LongName(string value) {
+        // Both halves are bounded before splitting, even when the schema permits unbounded strings.
+        if (value.Length > 2 * 255 + 1)
+            throw new InvalidDataException("MSI authored short/long filename exceeds supported bounds.");
         string[] names = value.Split('|');
         if (names.Length > 2 || names[names.Length - 1].Length == 0) throw new InvalidDataException("MSI contains an invalid short/long filename.");
         return names[names.Length - 1];

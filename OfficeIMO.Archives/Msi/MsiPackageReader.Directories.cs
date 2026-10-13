@@ -34,6 +34,9 @@ internal sealed partial class MsiPackageReader {
             _token.ThrowIfCancellationRequested();
             var entry = chain[index];
             string definition = RequiredString(entry.Value[2], "Directory.DefaultDir");
+            // Four bounded short/long names and three separators, checked before Split scans a reused pool string.
+            if (definition.Length > 4 * 255 + 3)
+                throw new InvalidDataException("MSI authored directory name exceeds supported bounds.");
             string[] pair = definition.Split(':');
             if (pair.Length > 2) throw new InvalidDataException("MSI directory contains an invalid target/source name pair.");
             string target = InstalledName(LongName(pair[0]));
@@ -61,6 +64,8 @@ internal sealed partial class MsiPackageReader {
     // other segment. A directory '.' keeps its "same as parent" meaning; '..' and other
     // all-dot or all-space names stay unchanged so the existing segment rejection applies.
     private static string InstalledName(string authored) {
+        if (authored.Length > 255)
+            throw new InvalidDataException("MSI authored filename exceeds supported bounds.");
         if (authored == ".") return authored;
         string trimmed = authored.TrimEnd(' ', '.');
         return trimmed.Length == 0 ? authored : trimmed;
