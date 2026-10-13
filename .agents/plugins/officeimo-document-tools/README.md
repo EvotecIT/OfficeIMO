@@ -53,7 +53,7 @@ Use that client's native STDIO configuration syntax and pass the allowed-roots e
 | `officeimo_inspect` | Bounded metadata and structural summary |
 | `officeimo_search` | Query-first document or mailbox search |
 | `officeimo_fetch` | Fetch selected result content with pagination |
-| `officeimo_convert` | Write Markdown or Reader JSON to an authorized output path |
+| `officeimo_convert` | Write Markdown/Reader JSON, or convert an iWork ZIP file or authorized directory package to matching Office output or PDF with source hashes and workflow evidence |
 | `officeimo_capabilities` | Discover format and operation support |
 | `officeimo_pdf` | Extract, owner-authorized decrypt, acknowledged raster flatten, optimize, or sanitize into a separate PDF |
 | `officeimo_pdf_split` | Split consecutive pages into a separate validated folder |

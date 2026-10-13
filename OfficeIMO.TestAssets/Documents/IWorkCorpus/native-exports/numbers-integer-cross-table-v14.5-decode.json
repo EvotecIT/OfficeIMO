@@ -1,0 +1,493 @@
+{
+  "schemaVersion": 1,
+  "producer": "Numbers 14.5 (7045.0.17)",
+  "decoder": "numbers-parser 4.19.0",
+  "source": "numbers-integer-cross-table-v14.5.numbers",
+  "nativeXlsx": "numbers-integer-cross-table-v14.5.xlsx",
+  "changedSource": "numbers-integer-cross-table-changed-v14.5.numbers",
+  "changedXlsx": "numbers-integer-cross-table-changed-v14.5.xlsx",
+  "formulaCells": 9,
+  "qualifiedCrossTableIntegerCalls": 8,
+  "cells": [
+    {
+      "tableIndex": 0,
+      "tableName": "Data",
+      "row": 2,
+      "column": 4,
+      "formula": "GCD(Totals::B1,6)",
+      "excelFormula": "GCD('Budget - Totals'!B1,6)",
+      "nativeValue": 3.0,
+      "independentIntegerValue": 3,
+      "nativeXlsxAddress": "D2",
+      "nodeTypes": [
+        36,
+        17,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 0,
+      "tableName": "Data",
+      "row": 3,
+      "column": 4,
+      "formula": "LCM(Totals::B1,6)",
+      "excelFormula": "LCM('Budget - Totals'!B1,6)",
+      "nativeValue": 198.0,
+      "independentIntegerValue": 198,
+      "nativeXlsxAddress": "D3",
+      "nodeTypes": [
+        36,
+        17,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 0,
+      "tableName": "Data",
+      "row": 4,
+      "column": 4,
+      "formula": "30+6",
+      "excelFormula": "30+6",
+      "nativeValue": 36.0,
+      "independentIntegerValue": 36,
+      "nativeXlsxAddress": "D4",
+      "nodeTypes": [
+        17,
+        17,
+        1
+      ],
+      "references": []
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 1,
+      "column": 1,
+      "formula": "GCD(Data::B2:B4)",
+      "excelFormula": "GCD('Budget - Data'!B2:B4)",
+      "nativeValue": 6.0,
+      "independentIntegerValue": 6,
+      "nativeXlsxAddress": "B2",
+      "nodeTypes": [
+        67,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 1,
+      "column": 2,
+      "formula": "LCM(Data::B2:B4)",
+      "excelFormula": "LCM('Budget - Data'!B2:B4)",
+      "nativeValue": 180.0,
+      "independentIntegerValue": 180,
+      "nativeXlsxAddress": "C2",
+      "nodeTypes": [
+        67,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 1,
+      "column": 3,
+      "formula": "GCD(Data::B2,Totals::B1)",
+      "excelFormula": "GCD('Budget - Data'!B2,'Budget - Totals'!B1)",
+      "nativeValue": 3.0,
+      "independentIntegerValue": 3,
+      "nativeXlsxAddress": "D2",
+      "nodeTypes": [
+        36,
+        36,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        },
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 2,
+      "column": 1,
+      "formula": "LCM(Data::$B$2,Totals::$B$1)",
+      "excelFormula": "LCM('Budget - Data'!$B$2,'Budget - Totals'!$B$1)",
+      "nativeValue": 990.0,
+      "independentIntegerValue": 990,
+      "nativeXlsxAddress": "B3",
+      "nodeTypes": [
+        36,
+        36,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        },
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 2,
+      "column": 2,
+      "formula": "GCD(Data::B2:B4,Totals::B1)",
+      "excelFormula": "GCD('Budget - Data'!B2:B4,'Budget - Totals'!B1)",
+      "nativeValue": 3.0,
+      "independentIntegerValue": 3,
+      "nativeXlsxAddress": "C3",
+      "nodeTypes": [
+        67,
+        36,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        },
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 2,
+      "column": 3,
+      "formula": "LCM(Data::B2,Totals::B1,0)",
+      "excelFormula": "LCM('Budget - Data'!B2,'Budget - Totals'!B1,0)",
+      "nativeValue": 0.0,
+      "independentIntegerValue": 0,
+      "nativeXlsxAddress": "D3",
+      "nodeTypes": [
+        36,
+        36,
+        17,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        },
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    }
+  ],
+  "changedCells": [
+    {
+      "tableIndex": 0,
+      "tableName": "Data",
+      "row": 2,
+      "column": 4,
+      "formula": "GCD(Totals::B1,6)",
+      "excelFormula": "GCD('Budget - Totals'!B1,6)",
+      "nativeValue": 3.0,
+      "independentIntegerValue": 3,
+      "nativeXlsxAddress": "D2",
+      "nodeTypes": [
+        36,
+        17,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 0,
+      "tableName": "Data",
+      "row": 3,
+      "column": 4,
+      "formula": "LCM(Totals::B1,6)",
+      "excelFormula": "LCM('Budget - Totals'!B1,6)",
+      "nativeValue": 198.0,
+      "independentIntegerValue": 198,
+      "nativeXlsxAddress": "D3",
+      "nodeTypes": [
+        36,
+        17,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 0,
+      "tableName": "Data",
+      "row": 4,
+      "column": 4,
+      "formula": "30+6",
+      "excelFormula": "30+6",
+      "nativeValue": 36.0,
+      "independentIntegerValue": 36,
+      "nativeXlsxAddress": "D4",
+      "nodeTypes": [
+        17,
+        17,
+        1
+      ],
+      "references": []
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 1,
+      "column": 1,
+      "formula": "GCD(Data::B2:B4)",
+      "excelFormula": "GCD('Budget - Data'!B2:B4)",
+      "nativeValue": 12.0,
+      "independentIntegerValue": 12,
+      "nativeXlsxAddress": "B2",
+      "nodeTypes": [
+        67,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 1,
+      "column": 2,
+      "formula": "LCM(Data::B2:B4)",
+      "excelFormula": "LCM('Budget - Data'!B2:B4)",
+      "nativeValue": 360.0,
+      "independentIntegerValue": 360,
+      "nativeXlsxAddress": "C2",
+      "nodeTypes": [
+        67,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 1,
+      "column": 3,
+      "formula": "GCD(Data::B2,Totals::B1)",
+      "excelFormula": "GCD('Budget - Data'!B2,'Budget - Totals'!B1)",
+      "nativeValue": 3.0,
+      "independentIntegerValue": 3,
+      "nativeXlsxAddress": "D2",
+      "nodeTypes": [
+        36,
+        36,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        },
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 2,
+      "column": 1,
+      "formula": "LCM(Data::$B$2,Totals::$B$1)",
+      "excelFormula": "LCM('Budget - Data'!$B$2,'Budget - Totals'!$B$1)",
+      "nativeValue": 792.0,
+      "independentIntegerValue": 792,
+      "nativeXlsxAddress": "B3",
+      "nodeTypes": [
+        36,
+        36,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        },
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 2,
+      "column": 2,
+      "formula": "GCD(Data::B2:B4,Totals::B1)",
+      "excelFormula": "GCD('Budget - Data'!B2:B4,'Budget - Totals'!B1)",
+      "nativeValue": 3.0,
+      "independentIntegerValue": 3,
+      "nativeXlsxAddress": "C3",
+      "nodeTypes": [
+        67,
+        36,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        },
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    },
+    {
+      "tableIndex": 2,
+      "tableName": "Empty",
+      "row": 2,
+      "column": 3,
+      "formula": "LCM(Data::B2,Totals::B1,0)",
+      "excelFormula": "LCM('Budget - Data'!B2,'Budget - Totals'!B1,0)",
+      "nativeValue": 0.0,
+      "independentIntegerValue": 0,
+      "nativeXlsxAddress": "D3",
+      "nodeTypes": [
+        36,
+        36,
+        17,
+        16
+      ],
+      "references": [
+        {
+          "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+          "sheet": "Budget",
+          "table": "Data"
+        },
+        {
+          "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+          "sheet": "Budget",
+          "table": "Totals"
+        }
+      ]
+    }
+  ],
+  "sourceTables": [
+    "Data",
+    "Totals",
+    "Empty"
+  ],
+  "changedSourceTables": [
+    "Data",
+    "Totals",
+    "Empty"
+  ],
+  "inputs": [
+    {
+      "path": "numbers-integer-cross-table-v14.5.numbers",
+      "bytes": 85242,
+      "sha256": "5551aad4e3ba7e2b918681c39282499a6e409fde7139c268de32c63367df68fd"
+    },
+    {
+      "path": "numbers-integer-cross-table-v14.5.xlsx",
+      "bytes": 7865,
+      "sha256": "9e5e0181c33223adad195d8805e2a5cdd16f8b58d3f7a7b854753082409973b4"
+    },
+    {
+      "path": "numbers-integer-cross-table-changed-v14.5.numbers",
+      "bytes": 84998,
+      "sha256": "0dbffd11551fff2d830a671f04e0e7fe0f6e071156f50e2e98f2d31c4e1835bd"
+    },
+    {
+      "path": "numbers-integer-cross-table-changed-v14.5.xlsx",
+      "bytes": 7865,
+      "sha256": "a03dfdfb972e6d0e9c69df09d4b3a5f4573bd5ebee80f8b2d01588075ba486e9"
+    }
+  ],
+  "limits": [
+    "Controlled numeric scalar references across two tables and two sheets in the recorded producer.",
+    "Native inputs, formula caches and typed XLSX exports agree with independent integer arithmetic.",
+    "Native XLSX offsets the small table by one row and column; OfficeIMO uses table-relative positions.",
+    "No broader coercion, formula dependency, whole-axis, exact appearance or complete PDF qualification."
+  ]
+}

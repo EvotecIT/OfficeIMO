@@ -535,7 +535,7 @@ namespace OfficeIMO.Excel {
 
         private void SetArrayFormulaCore(string a1Range, string formula, bool dynamic) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
-            string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
+            string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula, qualifyArrayFunctions: true);
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             WriteLock(() => {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
@@ -551,7 +551,7 @@ namespace OfficeIMO.Excel {
                 bool retainsCachedValue = topLeft.CellValue != null;
                 ClearCellValueMetadata(topLeft);
                 topLeft.CellMetaIndex = dynamic ? EnsureDynamicArrayMetadata() : null;
-                topLeft.CellFormula = new CellFormula(QualifyAuthoredArrayFunctions(safeFormula)) {
+                topLeft.CellFormula = new CellFormula(safeFormula) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
@@ -679,6 +679,7 @@ namespace OfficeIMO.Excel {
                     string args = functionCall.Arguments;
                     if (function == "MATCH" || function == "XMATCH") return TryEvaluateMatchValue(function, args, out result);
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") return TryEvaluateScalarMathValue(function, args, out result);
+                    if (function is "GCD" or "LCM") return TryEvaluateIntegerAggregateValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
@@ -759,8 +760,9 @@ namespace OfficeIMO.Excel {
                         result = value.Number!.Value;
                         return true;
                     }
-                    if (function == "PROB" || function == "RANDBETWEEN" || function == "OFFSET") {
-                        bool evaluated = function == "PROB" ? TryEvaluateProbabilityValue(args, out FormulaArgumentValue value)
+                    if (function is "GCD" or "LCM" or "PROB" or "RANDBETWEEN" or "OFFSET") {
+                        bool evaluated = function is "GCD" or "LCM" ? TryEvaluateIntegerAggregateValue(function, args, out FormulaArgumentValue value)
+                            : function == "PROB" ? TryEvaluateProbabilityValue(args, out value)
                             : function == "RANDBETWEEN" ? TryEvaluateRandomBetweenValue(args, out value)
                             : TryEvaluateOffsetValue(args, out value);
                         if (!evaluated) return false;
@@ -852,11 +854,11 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (function == "COUNTIF" || function == "SUMIF" || function == "AVERAGEIF") {
-                        return TryEvaluateConditionalAggregate(function, args, out result);
+                        return TryEvaluateConditionalAggregate(function, args, out result, out error);
                     }
 
                     if (function == "COUNTIFS" || function == "SUMIFS" || function == "AVERAGEIFS" || function == "MINIFS" || function == "MAXIFS") {
-                        return TryEvaluateMultiCriteriaAggregate(function, args, out result);
+                        return TryEvaluateMultiCriteriaAggregate(function, args, out result, out error);
                     }
 
                     if (function == "DATE" || function == "TIME" || function == "DATEVALUE" || function == "TIMEVALUE" || function == "TODAY" || function == "NOW"
@@ -933,6 +935,7 @@ namespace OfficeIMO.Excel {
                     if (!TryResolveFormulaArguments(args, out var values) || values.Any(value => value.IsUnresolvedFormula)) {
                         return false;
                     }
+                    if (_formulaReferenceError.IsError) { error = _formulaReferenceError; return false; }
 
                     if (function == "COUNTA") {
                         result = values.Count(v => v.HasValue || !string.IsNullOrEmpty(v.Text));

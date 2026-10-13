@@ -1,0 +1,551 @@
+{
+  "producer": "Numbers 14.5 (7045.0.17), macOS 27.0.1 (26A434), arm64",
+  "license": "MIT, OfficeIMO contributors",
+  "source": "numbers-duration-milliseconds-v14.5.numbers",
+  "sourceSha256": "cc4993fadc018e5b31c525a6fba2d4c847710a2ff1524fc510d12bbb380eb0ff",
+  "nativeExport": "numbers-duration-milliseconds-v14.5.xlsx",
+  "decode": "numbers-duration-milliseconds-v14.5-decode.json",
+  "provenance": "Task-owned copy of the fixed-second native reference. In Numbers, select C2:D8 on each of the three sheets, retain custom abbreviated units and enable milliseconds; save locally. Export one XLSX sheet per Numbers sheet without a summary and a full-sheet PDF with each sheet on one page. Original second reference remains unchanged.",
+  "nativeUi": {
+    "initialNumbersRunning": false,
+    "ownedDocumentClosed": true,
+    "finalNumbersRunning": false,
+    "preExistingExcelAndKeynoteRetained": true,
+    "localFileOnly": true,
+    "screenshotsInspected": 3,
+    "nativePdfPagesInspected": 3
+  },
+  "qualification": [
+    "Strict five-field selected duration formats for hour/millisecond, minute/millisecond and second/millisecond. All 42 typed raw-second caches and 21 C+C formulas are independently decoded through numbers-parser 4.19.0 and paired with native XLSX day serials and codes.",
+    "Shared display expectations are calculated independently from decoded seconds by fixed millisecond precision and elapsed unit decomposition. They qualify the declared XLSX code contract; they are not native Excel appearance evidence.",
+    "Native PDF duration cells are independently extracted with pdfplumber and all three pages are visually inspected. Native Numbers uses separate ms labels; native XLSX export uses fractional seconds with a terminal literal space.",
+    "Saved/reopened source conversion, source identity, formula recalculation and complete editable-to-PDF stages are checked through public owners."
+  ],
+  "knownLimits": [
+    "Native Numbers separate ms labels differ from destination three-digit fractional-second text. Preserve explicit duration display approximation. Additional fractional precision, automatic units, millisecond-only totals, other ranges/label styles and locales remain unqualified.",
+    "Native Excel appearance for this millisecond reference has not been assessed. Negative elapsed display and exact geometry remain separate acceptance requirements.",
+    "pdfplumber substitutes a hyphen for the ti ligature in native PDF labels; numeric duration cells extract correctly and visual inspection verifies the labels.",
+    "Native PDF uses host Calibri; composed output reports substitution to PDF Helvetica with the recorded caller Carlito fallback.",
+    "Composed width pagination has six pages versus three native positioned-sheet pages. Every populated row and formula-result cell is retained; this does not establish exact geometry or typography."
+  ],
+  "profiles": [
+    {
+      "sheet": "Hours to seconds",
+      "largestUnit": 4,
+      "smallestUnit": 32,
+      "cells": [
+        {
+          "address": "C2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0h 0m 0s 0ms",
+          "officeimoSharedDisplay": "0h 0m 0.000s "
+        },
+        {
+          "address": "D2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0h 0m 0s 0ms",
+          "officeimoSharedDisplay": "0h 0m 0.000s "
+        },
+        {
+          "address": "C3",
+          "case": "Minute plus one",
+          "sourceSeconds": 60.99999999999999,
+          "numbersPdfDisplay": "0h 1m 1s 0ms",
+          "officeimoSharedDisplay": "0h 1m 1.000s "
+        },
+        {
+          "address": "D3",
+          "case": "Minute plus one",
+          "sourceSeconds": 121.99999999999999,
+          "numbersPdfDisplay": "0h 2m 2s 0ms",
+          "officeimoSharedDisplay": "0h 2m 2.000s "
+        },
+        {
+          "address": "C4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 3661.0,
+          "numbersPdfDisplay": "1h 1m 1s 0ms",
+          "officeimoSharedDisplay": "1h 1m 1.000s "
+        },
+        {
+          "address": "D4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 7322.0,
+          "numbersPdfDisplay": "2h 2m 2s 0ms",
+          "officeimoSharedDisplay": "2h 2m 2.000s "
+        },
+        {
+          "address": "C5",
+          "case": "Beyond one day",
+          "sourceSeconds": 129661.0,
+          "numbersPdfDisplay": "36h 1m 1s 0ms",
+          "officeimoSharedDisplay": "36h 1m 1.000s "
+        },
+        {
+          "address": "D5",
+          "case": "Beyond one day",
+          "sourceSeconds": 259322.0,
+          "numbersPdfDisplay": "72h 2m 2s 0ms",
+          "officeimoSharedDisplay": "72h 2m 2.000s "
+        },
+        {
+          "address": "C6",
+          "case": "Negative",
+          "sourceSeconds": -3661.0,
+          "numbersPdfDisplay": "-1h 1m 1s 0ms",
+          "officeimoSharedDisplay": "-1h 1m 1.000s "
+        },
+        {
+          "address": "D6",
+          "case": "Negative",
+          "sourceSeconds": -7322.0,
+          "numbersPdfDisplay": "-2h 2m 2s 0ms",
+          "officeimoSharedDisplay": "-2h 2m 2.000s "
+        },
+        {
+          "address": "C7",
+          "case": "Fractional positive",
+          "sourceSeconds": 3661.7500000000005,
+          "numbersPdfDisplay": "1h 1m 1s 750ms",
+          "officeimoSharedDisplay": "1h 1m 1.750s "
+        },
+        {
+          "address": "D7",
+          "case": "Fractional positive",
+          "sourceSeconds": 7323.500000000001,
+          "numbersPdfDisplay": "2h 2m 3s 500ms",
+          "officeimoSharedDisplay": "2h 2m 3.500s "
+        },
+        {
+          "address": "C8",
+          "case": "Fractional negative",
+          "sourceSeconds": -0.75,
+          "numbersPdfDisplay": "-0h 0m 0s 750ms",
+          "officeimoSharedDisplay": "-0h 0m 0.750s "
+        },
+        {
+          "address": "D8",
+          "case": "Fractional negative",
+          "sourceSeconds": -1.5,
+          "numbersPdfDisplay": "-0h 0m 1s 500ms",
+          "officeimoSharedDisplay": "-0h 0m 1.500s "
+        }
+      ]
+    },
+    {
+      "sheet": "Minutes to seconds",
+      "largestUnit": 8,
+      "smallestUnit": 32,
+      "cells": [
+        {
+          "address": "C2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0m 0s 0ms",
+          "officeimoSharedDisplay": "0m 0.000s "
+        },
+        {
+          "address": "D2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0m 0s 0ms",
+          "officeimoSharedDisplay": "0m 0.000s "
+        },
+        {
+          "address": "C3",
+          "case": "Minute plus one",
+          "sourceSeconds": 60.99999999999999,
+          "numbersPdfDisplay": "1m 1s 0ms",
+          "officeimoSharedDisplay": "1m 1.000s "
+        },
+        {
+          "address": "D3",
+          "case": "Minute plus one",
+          "sourceSeconds": 121.99999999999999,
+          "numbersPdfDisplay": "2m 2s 0ms",
+          "officeimoSharedDisplay": "2m 2.000s "
+        },
+        {
+          "address": "C4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 3661.0,
+          "numbersPdfDisplay": "61m 1s 0ms",
+          "officeimoSharedDisplay": "61m 1.000s "
+        },
+        {
+          "address": "D4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 7322.0,
+          "numbersPdfDisplay": "122m 2s 0ms",
+          "officeimoSharedDisplay": "122m 2.000s "
+        },
+        {
+          "address": "C5",
+          "case": "Beyond one day",
+          "sourceSeconds": 129661.0,
+          "numbersPdfDisplay": "2161m 1s 0ms",
+          "officeimoSharedDisplay": "2161m 1.000s "
+        },
+        {
+          "address": "D5",
+          "case": "Beyond one day",
+          "sourceSeconds": 259322.0,
+          "numbersPdfDisplay": "4322m 2s 0ms",
+          "officeimoSharedDisplay": "4322m 2.000s "
+        },
+        {
+          "address": "C6",
+          "case": "Negative",
+          "sourceSeconds": -3661.0,
+          "numbersPdfDisplay": "-61m 1s 0ms",
+          "officeimoSharedDisplay": "-61m 1.000s "
+        },
+        {
+          "address": "D6",
+          "case": "Negative",
+          "sourceSeconds": -7322.0,
+          "numbersPdfDisplay": "-122m 2s 0ms",
+          "officeimoSharedDisplay": "-122m 2.000s "
+        },
+        {
+          "address": "C7",
+          "case": "Fractional positive",
+          "sourceSeconds": 3661.7500000000005,
+          "numbersPdfDisplay": "61m 1s 750ms",
+          "officeimoSharedDisplay": "61m 1.750s "
+        },
+        {
+          "address": "D7",
+          "case": "Fractional positive",
+          "sourceSeconds": 7323.500000000001,
+          "numbersPdfDisplay": "122m 3s 500ms",
+          "officeimoSharedDisplay": "122m 3.500s "
+        },
+        {
+          "address": "C8",
+          "case": "Fractional negative",
+          "sourceSeconds": -0.75,
+          "numbersPdfDisplay": "-0m 0s 750ms",
+          "officeimoSharedDisplay": "-0m 0.750s "
+        },
+        {
+          "address": "D8",
+          "case": "Fractional negative",
+          "sourceSeconds": -1.5,
+          "numbersPdfDisplay": "-0m 1s 500ms",
+          "officeimoSharedDisplay": "-0m 1.500s "
+        }
+      ]
+    },
+    {
+      "sheet": "Seconds only",
+      "largestUnit": 16,
+      "smallestUnit": 32,
+      "cells": [
+        {
+          "address": "C2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0s 0ms",
+          "officeimoSharedDisplay": "0.000s "
+        },
+        {
+          "address": "D2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0s 0ms",
+          "officeimoSharedDisplay": "0.000s "
+        },
+        {
+          "address": "C3",
+          "case": "Minute plus one",
+          "sourceSeconds": 60.99999999999999,
+          "numbersPdfDisplay": "61s 0ms",
+          "officeimoSharedDisplay": "61.000s "
+        },
+        {
+          "address": "D3",
+          "case": "Minute plus one",
+          "sourceSeconds": 121.99999999999999,
+          "numbersPdfDisplay": "122s 0ms",
+          "officeimoSharedDisplay": "122.000s "
+        },
+        {
+          "address": "C4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 3661.0,
+          "numbersPdfDisplay": "3661s 0ms",
+          "officeimoSharedDisplay": "3661.000s "
+        },
+        {
+          "address": "D4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 7322.0,
+          "numbersPdfDisplay": "7322s 0ms",
+          "officeimoSharedDisplay": "7322.000s "
+        },
+        {
+          "address": "C5",
+          "case": "Beyond one day",
+          "sourceSeconds": 129661.0,
+          "numbersPdfDisplay": "129661s 0ms",
+          "officeimoSharedDisplay": "129661.000s "
+        },
+        {
+          "address": "D5",
+          "case": "Beyond one day",
+          "sourceSeconds": 259322.0,
+          "numbersPdfDisplay": "259322s 0ms",
+          "officeimoSharedDisplay": "259322.000s "
+        },
+        {
+          "address": "C6",
+          "case": "Negative",
+          "sourceSeconds": -3661.0,
+          "numbersPdfDisplay": "-3661s 0ms",
+          "officeimoSharedDisplay": "-3661.000s "
+        },
+        {
+          "address": "D6",
+          "case": "Negative",
+          "sourceSeconds": -7322.0,
+          "numbersPdfDisplay": "-7322s 0ms",
+          "officeimoSharedDisplay": "-7322.000s "
+        },
+        {
+          "address": "C7",
+          "case": "Fractional positive",
+          "sourceSeconds": 3661.7500000000005,
+          "numbersPdfDisplay": "3661s 750ms",
+          "officeimoSharedDisplay": "3661.750s "
+        },
+        {
+          "address": "D7",
+          "case": "Fractional positive",
+          "sourceSeconds": 7323.500000000001,
+          "numbersPdfDisplay": "7323s 500ms",
+          "officeimoSharedDisplay": "7323.500s "
+        },
+        {
+          "address": "C8",
+          "case": "Fractional negative",
+          "sourceSeconds": -0.75,
+          "numbersPdfDisplay": "-0s 750ms",
+          "officeimoSharedDisplay": "-0.750s "
+        },
+        {
+          "address": "D8",
+          "case": "Fractional negative",
+          "sourceSeconds": -1.5,
+          "numbersPdfDisplay": "-1s 500ms",
+          "officeimoSharedDisplay": "-1.500s "
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "numbers-duration-milliseconds-v14.5-composed-page1.png",
+      "bytes": 32363,
+      "sha256": "c442c2abc611b7e8647b6053f09d1b76877b933fb14ff5abff09479821917de4"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-composed-page2.png",
+      "bytes": 17991,
+      "sha256": "9e2064d42ac93cbf78fa2d1a07086036b29e9a8285f5ce0fbe3d9a832d40f3bb"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-composed-page3.png",
+      "bytes": 31967,
+      "sha256": "d872d5691e0b8e6ca1fa6262f847a3c30c5f358cca04e328a03264befd57ff8c"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-composed-page4.png",
+      "bytes": 16629,
+      "sha256": "9a9df088dd0308c7b5373c42f21acee48f2a41eec0cbec52e67ece6beb481e1e"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-composed-page5.png",
+      "bytes": 32110,
+      "sha256": "797b5e01145a99223869a020fcd8457f64c945cc59d58a2b7f34830531c7e268"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-composed-page6.png",
+      "bytes": 16380,
+      "sha256": "86b00cd35230ee4fef9ea43e910af9a6244af2c1a72f72ea6e8f9954d85b3188"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-composed.pdf",
+      "bytes": 8890,
+      "sha256": "22d766b0e54d546c95d1d098f8209063705a17d280836eb3a69368def9d984da"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-decode.json",
+      "bytes": 26880,
+      "sha256": "2e7766f63e77c706e6381ac115793ffa62ab4d23960edee2374d73921919964c"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-hours.png",
+      "bytes": 134041,
+      "sha256": "1b323022e3b17d10d7198a2ba65f8d823c276338da62b1666553a8391ee02bca"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-minutes.png",
+      "bytes": 132129,
+      "sha256": "0d5140b8d62e3e97b7deb0bf2982df667c94d0fa3e112e8a7a71c78c251da417"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-page1.png",
+      "bytes": 40962,
+      "sha256": "922bdb45fe2ef7322e4f590fe1fef5f3478d8fe885926fb020b77da399a1a6f6"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-page2.png",
+      "bytes": 39138,
+      "sha256": "5d4a2b211f3527d30a0f6189f8f719668335c73e946b9471d9681df22ae3bfbd"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-page3.png",
+      "bytes": 39988,
+      "sha256": "7332a2749594ea58cbae6add61caf4c6866746c8fe401895538cfab7a60dd918"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5-seconds.png",
+      "bytes": 129687,
+      "sha256": "80b849a32cd6afcb4036a073253c204c9987a77fdf5dd42a90e677a6f0f5492e"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5.numbers",
+      "bytes": 697431,
+      "sha256": "cc4993fadc018e5b31c525a6fba2d4c847710a2ff1524fc510d12bbb380eb0ff"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5.pdf",
+      "bytes": 64045,
+      "sha256": "a0085302d1002a0949b6f46e748b1283bbf9cdf090e8e869d84bd76fd20c3e3b"
+    },
+    {
+      "path": "numbers-duration-milliseconds-v14.5.xlsx",
+      "bytes": 9129,
+      "sha256": "d1edf1c84de9fac07af77374c0b7274a67d9ccbdc365e7b11654454046946412"
+    }
+  ],
+  "composedPdf": {
+    "route": "numbers-pdf",
+    "defaultAcceptance": true,
+    "sourceUnits": "7",
+    "partialEditableReconstruction": false,
+    "sourceFormulaCells": 21,
+    "stages": "iwork-editable,pdf",
+    "pages": 6,
+    "allPagesVisuallyInspected": true,
+    "outputBytes": 8890,
+    "report": {
+      "FidelityDiagnostics": [
+        {
+          "Code": "IWORK_SOURCE_READ",
+          "Message": "Read 1039 IWA payload records from 110 package entries.",
+          "LossKind": 0,
+          "Source": "OfficeIMO.IWork",
+          "Location": null
+        },
+        {
+          "Code": "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED",
+          "Message": "Numbers automatic decimal formats use up to fifteen optional fractional places in XLSX; scientific formats apply them to the mantissa. Significant-digit selection, rounding and exponent presentation can differ; numeric values and formula caches are unchanged.",
+          "LossKind": 1,
+          "Source": "OfficeIMO.IWork",
+          "Location": null
+        },
+        {
+          "Code": "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED",
+          "Message": "Qualified fixed abbreviated hour/minute, hour/second, minute/second and second-only durations use elapsed XLSX formats; hour/millisecond, minute/millisecond and second/millisecond ranges use three fractional-second digits rather than separate ms labels. Day-only durations use a numeric whole-day format. Numeric values and formula caches are retained, with source seconds converted to day serials. Fractional days use destination numeric rounding rather than source truncation; unit spacing, fractional-second rounding and negative-duration display can differ between applications. Other duration settings and locale equivalence are unqualified.",
+          "LossKind": 1,
+          "Source": "OfficeIMO.IWork",
+          "Location": null
+        },
+        {
+          "Code": "IWORK_RECORD_FIDELITY_UNASSESSED",
+          "Message": "1039 source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content.",
+          "LossKind": 4,
+          "Source": "OfficeIMO.IWork",
+          "Location": null
+        },
+        {
+          "Code": "WorksheetFontFamilySubstituted",
+          "Message": "The source font family 'Calibri' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+          "LossKind": 1,
+          "Source": "OfficeIMO.Excel.Pdf",
+          "Location": "Hours to seconds"
+        }
+      ],
+      "Facts": {
+        "packageContentSha256": "41ed980218f4409083e13d9ed670fb7b9e7aeb89de6ebde59566c7769a254fac",
+        "sourceKind": "Numbers",
+        "projectionKind": "EditableReconstruction",
+        "producerBuildVersions": "xlsx, M14.5-7045.0.17-4",
+        "totalRecordCount": "1039",
+        "unassessedRecordCount": "1039",
+        "reconstructedItemCount": "102",
+        "sourceUnitCount": "7",
+        "reconstructedSourceUnitCount": "7",
+        "omittedSourceUnitCount": "0",
+        "unassessedSourceUnitCount": "0",
+        "sourceReferenceIssueCount": "0",
+        "sourceDeclarationIssueCount": "0",
+        "sourceCellIssueCount": "0",
+        "sourceMissingReferenceTargetCount": "0",
+        "sourceMalformedReferenceCount": "0",
+        "sourceRejectedReferenceSetCount": "0",
+        "sourceUnexpectedReferenceTargetTypeCount": "0",
+        "sourceFormulaCellCount": "21",
+        "sourceCompleteFormulaExpressionCount": "21",
+        "sourceIncompleteFormulaExpressionCount": "0",
+        "sourceUnassessedFormulaExpressionCount": "0",
+        "sourceCompleteFormulaCacheCount": "21",
+        "sourcePartialFormulaCacheCount": "0",
+        "sourceApproximateFormulaCacheCount": "0",
+        "sourceMissingFormulaCacheCount": "0",
+        "sourceUnassessedFormulaCacheCount": "0",
+        "partialEditableReconstruction": "False",
+        "visualCoverage": "NotApplicable",
+        "conversionStages": "iwork-editable,pdf",
+        "pdfOutputBytes": "8890"
+      },
+      "HasLoss": true
+    },
+    "callerFontInputs": [
+      {
+        "family": "Carlito",
+        "style": "Regular",
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+        "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+        "license": "SIL Open Font License 1.1; existing corpus font provenance applies."
+      },
+      {
+        "family": "Carlito",
+        "style": "Bold",
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf",
+        "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db",
+        "license": "SIL Open Font License 1.1; existing corpus font provenance applies."
+      },
+      {
+        "family": "Carlito",
+        "style": "Italic",
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Italic.ttf",
+        "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c",
+        "license": "SIL Open Font License 1.1; existing corpus font provenance applies."
+      },
+      {
+        "family": "Carlito",
+        "style": "BoldItalic",
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-BoldItalic.ttf",
+        "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517",
+        "license": "SIL Open Font License 1.1; existing corpus font provenance applies."
+      }
+    ],
+    "fontPolicy": "Portable deterministic, installed font discovery disabled; Calibri maps to PDF Helvetica, caller Carlito available as embedded fallback. Substitution reported."
+  },
+  "capturedUtc": "2026-10-10T06:51:15.500672+00:00"
+}

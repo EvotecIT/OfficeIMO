@@ -46,6 +46,8 @@ rows. Formula calculation, dynamic arrays, and pivot materialization are
 operations on that workbook model when a report needs them; they are not
 alternate ways to open a workbook.
 
+Set selected cell edges with `sheet.CellBorder(1, 1, ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, "FF0000")` or the cell wrapper's `SetBorder(...)`. The other edges, font, fill and number format remain intact. `ExcelBorderStyle.None` explicitly clears the selected edges; the existing `CellBorder(row, column, style, color)` overload applies to all four sides. Cell coordinates are one-based.
+
 `AsFluent()` wraps the same `ExcelDocument`; it does not create a separate
 workbook model. Call `End()` when direct worksheet APIs are more convenient:
 
@@ -1075,6 +1077,21 @@ avoids factorial overflow and accumulated rounding; large finite results use the
 workbook’s floating-point representation. Evaluation takes at most 1,023 steps.
 Unsupported signatures, ranges, text and larger item counts retain existing caches.
 
+`GCD` and `LCM` accept one to 255 arguments: finite numeric values, invariant
+numeric text, and cell or rectangular range references sharing a 100,000-cell
+budget. Fractions truncate toward zero. Blank direct cell arguments are ignored;
+if every direct argument is blank, the result is `#VALUE!`. Blank positions inside
+a range contribute zero.
+Negative operands produce `#NUM!`, while Boolean and nonnumeric text produce
+`#VALUE!`. Typed errors propagate. Operands outside ±(2^53−1), unsupported
+expressions and resource-limit failures retain existing caches, including inside
+error handlers. `LCM` returns `#NUM!` when its nonzero result exceeds 2^53−1;
+a zero anywhere in the arguments returns zero even if an intermediate product
+would exceed that bound. [Native Numbers and fresh Excel results](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.json)
+qualify the recorded cases; Numbers reconstruction has its own narrower contract.
+The [blank-reference qualification](../Docs/Compatibility/iwork-numbers-blank-reference-native-aot-macos-arm64-2026-10-11.json)
+also records native fill/save/clear results and saved error caches for all-blank direct arguments.
+
 `FACT` evaluates one finite scalar, truncating nonnegative fractions before
 multiplication. Zero returns one. Negative inputs and values at least 171 produce
 `#NUM!`; at most 169 multiplications are needed for a finite result. Large
@@ -1106,16 +1123,24 @@ Multi-cell scalar results, implicit intersection and spills remain unsupported.
 `PROB` evaluates finite numeric vectors with a shared 100,000-cell input budget;
 mixed text, Boolean and blank vector coercion remains unsupported. Probabilities
 must lie between zero and one and sum to one within `1e-12` rounding tolerance.
-`RANDBETWEEN` accepts inclusive integer bounds from `-9007199254740991` to
-`9007199254740991` (the consecutive exact integer range through ±(2^53−1)) and draws a fresh
-value on each calculation pass; dependent formulas reuse that pass's cell cache.
-Fractional bounds and bounds outside that range retain their producer cache without local
-evaluation. Inspection reports direct references; dynamic `OFFSET` targets are
+`RANDBETWEEN` accepts finite bounds from `-9007199254740991` to
+`9007199254740991` (the consecutive exact integer range through ±(2^53−1)). It rounds the lower
+bound up and the upper bound down, then draws a fresh integer from that inclusive interval
+on each calculation pass; dependent formulas reuse that pass's cell cache. Reversed bounds
+produce `#NUM!`. Intervals containing no integer and bounds outside that range retain their
+producer cache without local evaluation. Inspection reports direct references; dynamic `OFFSET` targets are
 resolved during calculation and its runtime dependency guards apply. Invalid
 reference errors propagate through reference consumers and error handlers.
 Unsupported inputs and resource limits remain unevaluated inside `IFERROR`,
 `IFNA` and error predicates, preserving existing caches. Completed supported
 lookup searches return typed `#N/A` when no match exists.
+
+`XLOOKUP` retains empty optional argument positions: an empty fallback uses
+`#N/A`, an empty match mode uses exact matching, and an empty search mode scans
+from the first item. The [fresh Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-xlookup-optional-v16.113.3.json)
+records no-match, explicit-fallback and reverse-search cases. Conditional
+aggregates resolve unquoted criteria as formula arguments; unsupported criterion
+expressions preserve existing caches. Quoted criteria remain literal text.
 
 Named references can resolve to A1 ranges or numeric, text, Boolean, and error
 constants, including bounded aliases and worksheet-local scope. Arbitrary
@@ -1253,7 +1278,15 @@ Author `TEXTJOIN` through the normal cell and array-formula APIs. The writer sto
 
 `Calculate()` supports both empty-cell policies, quoted worksheet names with punctuation, and typed error propagation through `TEXTJOIN`, `CONCAT` and `CONCATENATE`. Ordinary text such as `#N/A` remains text. Joined results above the 32,767-character cell-text limit become `#VALUE!`. The evaluator remains bounded by its supported expression and range contracts. Rejected prefix expansion preserves existing cells and in-cell images.
 
+### IFNA, MINIFS and MAXIFS formula storage
+
+Author these functions through `CellFormula` or `SetArrayFormula` using ordinary names. The shared writer stores their [XLSX future-function prefixes](https://learn.microsoft.com/en-us/openspecs/office_standards/ms-xlsx/5d1b6d44-6fc1-4ecd-8fef-0b27406cc2bf), including nested calls: `IFNA(NA(),99)` becomes `_xlfn.IFNA(NA(),99)`. `GetFormulaText` returns the stored spelling. String literals, quoted sheet names and existing prefixes retain their text; oversized prefix expansion rejects the write before changing cells.
+
+The [native Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-future-functions-v16.113.3.json) covers 32 normal and single-cell array formulas, typed errors, no-match extrema and a native operand edit. Buffered and materialized authoring, saved/reopened calculation and escaped literal/reference text have separate regression coverage. Broader future functions retain their own qualification gates.
+
 ### Referenced values in aggregates
+
+`AVERAGEIF` and `AVERAGEIFS` return typed `#DIV/0!` when fully qualified inputs yield no numeric matches. `IFERROR` can handle that error; `IFNA` propagates it. Unsupported expressions, unresolved inputs and range-budget failures remain unevaluated and retain their existing caches. Selected typed errors propagate through conditional sums, averages and extrema. Typed error criteria match the same error type and remain distinct from ordinary text such as `"#N/A"`. The nonblank criterion `"<>"` is supported. No-match `MINIFS`/`MAXIFS` return zero; extrema over matched nonnumeric values remain unevaluated. The [fresh native Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-conditional-aggregates-v14.5-decode.json) covers empty averages, 98 typed-error and criterion cases, dependent error handlers, save/reopen and operand edits.
 
 `Calculate()` preserves referenced types for numeric aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero, skip blank cells, and preserve typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking strings. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Scalar numeric coercion remains available. Positional statistical helpers require numeric-only ranges; mixed-type series remain unevaluated rather than losing their paired coordinates.
 

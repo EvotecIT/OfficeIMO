@@ -549,7 +549,7 @@ namespace OfficeIMO.Word.Html {
         private static void CopyAllBlockBorders(
             IReadOnlyDictionary<BlockBorderSide, BlockBorderState> source,
             IDictionary<BlockBorderSide, BlockBorderState> destination) {
-            foreach (BlockBorderSide side in Enum.GetValues(typeof(BlockBorderSide))) {
+            foreach (BlockBorderSide side in global::OfficeIMO.Internal.EnumCompat.GetValues<BlockBorderSide>()) {
                 CopyBlockBorder(source, destination, side);
             }
         }
@@ -564,7 +564,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ResetAllBlockBorders(IDictionary<BlockBorderSide, BlockBorderState> sideBorders) {
-            foreach (BlockBorderSide side in Enum.GetValues(typeof(BlockBorderSide))) {
+            foreach (BlockBorderSide side in global::OfficeIMO.Internal.EnumCompat.GetValues<BlockBorderSide>()) {
                 sideBorders[side] = default;
             }
         }

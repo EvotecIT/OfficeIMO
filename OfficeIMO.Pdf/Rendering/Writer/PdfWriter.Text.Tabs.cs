@@ -66,14 +66,34 @@ internal static partial class PdfWriter {
     private static PdfTabLeaderStyle ResolveTabLeader(PdfTabLeaderStyle runLeader, PdfTabStop? tabStop) =>
         tabStop != null && runLeader == PdfTabLeaderStyle.None ? tabStop.Leader : runLeader;
 
-    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D) {
+    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, char? decimalSeparator = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
-        int decimalIndex = text.IndexOfAny(DecimalTabAnchorChars);
+        int decimalIndex = decimalSeparator.HasValue ? text.IndexOf(decimalSeparator.Value) : text.IndexOfAny(DecimalTabAnchorChars);
         if (decimalIndex < 0) {
             return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);
+        }
+
+        // Shape the whole token: a pair spanning the separator can adjust both
+        // the preceding advance and the separator's own painted position.
+        PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings,
+            layoutHorizontalScaling: horizontalTextScaling);
+        if (command.VisualGlyphs is { Count: > 0 } glyphs) {
+            double effectiveSize = EffectiveRichFontSize(fontSize, baseline);
+            double scale = horizontalTextScaling / 100D;
+            double advance = 0D;
+            double tracking = GetIntrinsicGlyphTrackingAdvance(command, effectiveSize);
+            for (int index = 0; index < glyphs.Count; index++) {
+                PdfGlyphInfo glyph = glyphs[index];
+                if (glyph.TextIndex == decimalIndex) {
+                    return advance + glyph.OffsetX1000 * effectiveSize / 1000D * scale;
+                }
+                double glyphAdvance = glyph.AdvanceWidth1000 * effectiveSize / 1000D;
+                if (command.TrackingBoundaries?[index] == true) glyphAdvance += tracking;
+                advance += glyphAdvance * scale + characterSpacing;
+            }
         }
 
         return MeasureRichText(text.Substring(0, decimalIndex), font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);

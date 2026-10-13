@@ -37,8 +37,21 @@ public sealed partial class IWorkRuntimeWorkload {
     public void Execute(string operation) {
         _operation = operation; ReleaseResults(); VerifiedUnits = 0;
         CancellationObserved = false; CancellationProcessedBytes = 0; CancellationTotalIoBytes = 0; CancellationLatencyMs = 0;
+        CancellationPreRequestElapsedMs = 0; CancellationPreRequestCpuMs = 0; CancellationRecoveryUnits = 0;
+        KnownPaddingOmissionCount = 0; KnownNumbersApproximationCount = 0;
+        if (IsPhaseCancellation(operation)) {
+            ExecutePhaseCancellation(operation);
+            return;
+        }
         if (operation.StartsWith("CancelDuring", StringComparison.Ordinal)) {
             ExecuteCancellation(operation);
+            return;
+        }
+        if (operation == "NativeSave") {
+            using var nativeOutput = new MemoryStream();
+            (_createdNativeDocument ?? throw new InvalidOperationException("NativeSave requires an owned native Keynote workload."))
+                .Save(nativeOutput);
+            _output = nativeOutput.ToArray();
             return;
         }
         using var input = new MemoryStream(_input, writable: false);
@@ -54,7 +67,9 @@ public sealed partial class IWorkRuntimeWorkload {
         }
         if (operation != "ConvertSave") throw new ArgumentException("Unknown iWork workload operation.", nameof(operation));
         using var saved = new MemoryStream();
-        var policy = new IWorkConversionOptions();
+        var policy = _native && _kind == IWorkDocumentKind.Numbers
+            ? new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true }
+            : new IWorkConversionOptions();
         if (_kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordDocumentResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
@@ -71,6 +86,10 @@ public sealed partial class IWorkRuntimeWorkload {
     private void ValidateConversionPolicy(IWorkConversionReport report) {
         if (report.ProjectionKind != IWorkProjectionKind.EditableReconstruction)
             throw new InvalidDataException("Runtime workload requires editable output.");
+        if (_native && _kind == IWorkDocumentKind.Numbers) {
+            ValidateNativeNumbersConversionPolicy(report);
+            return;
+        }
         report.RequireCompleteEditableReconstruction();
     }
 
@@ -82,6 +101,10 @@ public sealed partial class IWorkRuntimeWorkload {
 
     /// <summary>Checks every source or saved destination unit outside timing; failures fail the lane.</summary>
     public void Validate() {
+        if (IsPhaseCancellation(_operation)) {
+            ValidatePhaseCancellation();
+            return;
+        }
         if (_operation?.StartsWith("CancelDuring", StringComparison.Ordinal) == true) {
             if (!CancellationObserved || CancellationProcessedBytes <= 0)
                 throw new InvalidDataException("Cancellation did not follow actual operation I/O.");
@@ -89,7 +112,12 @@ public sealed partial class IWorkRuntimeWorkload {
             return;
         }
         if (_native) { ValidateNative(); return; }
-        if (_operation == "LoadProject") {
+        if (_operation == "NativeSave" && _output is { Length: > 0 }) {
+            using var nativeOutput = new MemoryStream(_output, writable: false);
+            IWorkKeynoteProjection keynote = IWorkSourceDocument.Open(nativeOutput, IWorkDocumentKind.Keynote).ReadKeynote();
+            if (!keynote.HasEditableContent) throw new InvalidDataException("Saved native Keynote content is incomplete.");
+            ValidateText(keynote.Slides.Select(slide => slide.TextBoxes.Single().Content.PlainText), paragraphTerminator: "\n");
+        } else if (_operation == "LoadProject") {
             if (_projection is IWorkPagesProjection pages) {
                 if (!pages.HasEditableContent) throw new InvalidDataException("Pages input is incomplete.");
                 ValidateText(pages.Body.Paragraphs.Select(p => p.Text));
@@ -109,7 +137,8 @@ public sealed partial class IWorkRuntimeWorkload {
             } else if (_projection is IWorkKeynoteProjection keynote) {
                 if (!keynote.HasEditableContent) throw new InvalidDataException("Keynote input is incomplete: "
                     + string.Join("; ", keynote.Diagnostics.Select(d => d.Code + ": " + d.Message)));
-                ValidateText(keynote.Slides.Select(slide => slide.Title));
+                ValidateText(keynote.Slides.Select(slide => _createdNativeDocument is null
+                    ? slide.Title : slide.TextBoxes.Single().Content.PlainText), paragraphTerminator: _createdNativeDocument is not null ? "\n" : string.Empty);
             } else throw new InvalidDataException("Missing projection result.");
         } else if (_operation == "ConvertSave" && _output is { Length: > 0 }) {
             using var saved = new MemoryStream(_output, writable: false);
@@ -133,18 +162,22 @@ public sealed partial class IWorkRuntimeWorkload {
                 VerifiedUnits = rows.Length;
             } else {
                 using PowerPointPresentation document = PowerPointPresentation.Load(saved);
-                ValidateText(document.Slides.Select(slide => slide.TextBoxes.Single().Text));
+                ValidateText(document.Slides.Select(slide => slide.TextBoxes.Single().Text),
+                    paragraphTerminator: _createdNativeDocument is not null ? Environment.NewLine : string.Empty);
             }
         } else throw new InvalidDataException("Missing saved result.");
         if (VerifiedUnits != _units) throw new InvalidDataException("iWork workload unit count mismatch.");
     }
 
-    private void ValidateText(IEnumerable<string> values) {
+    private void ValidateText(IEnumerable<string> values, string paragraphTerminator = "") {
         int index = 0;
         foreach (string text in values) {
             index++;
-            if (text != IWorkScaleInput.Text(index)) throw new InvalidDataException("iWork text or order mismatch.");
+            string expected = IWorkScaleInput.Text(index) + paragraphTerminator;
+            if (text != expected) throw new InvalidDataException(
+                $"iWork text or order mismatch at unit {index}: expected {System.Text.Json.JsonSerializer.Serialize(expected)}, read {System.Text.Json.JsonSerializer.Serialize(text)}.");
         }
+        if (index != _units) throw new InvalidDataException("iWork text workload unit count mismatch.");
         VerifiedUnits = index;
     }
 }

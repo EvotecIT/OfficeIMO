@@ -48,11 +48,21 @@ namespace OfficeIMO.PowerPoint {
             if (clipped) diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning, "POWERPOINT_TEXT_OVERFLOW",
                 "Clipped PowerPoint text because it exceeds the available text frame.",
-                DescribeShape(textBox), OfficeConversionLossKind.Approximation));
+                DescribeShape(textBox), OfficeConversionLossKind.Omission));
         }
 
         private static string ResolveTextBoxFallbackFont(PowerPointTextBox textBox, string? defaultFontFamily) =>
             defaultFontFamily ?? PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide) ?? "Calibri";
+
+        private static void ReportCharacterSpacing(PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run is { } run
+                && !string.IsNullOrEmpty(run.Text)
+                && PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, textBox).GetValueOrDefault() != 0))) return;
+            diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                "POWERPOINT_CHARACTER_SPACING_APPROXIMATED",
+                "Shared text rendering uses default character spacing; authored spacing is retained in the presentation.",
+                DescribeShape(textBox), OfficeConversionLossKind.Approximation));
+        }
 
         private static IEnumerable<OfficeRichTextRun> CreateEffectiveTextRuns(string text, PowerPointTextRun? run,
             PowerPointTextBox textBox, PowerPointParagraph paragraph, DocumentFormat.OpenXml.Drawing.ColorScheme? colors,
@@ -70,6 +80,8 @@ namespace OfficeIMO.PowerPoint {
                 OfficeColor color = authoredColor ?? (TryParseOfficeColor(style.Color, out OfficeColor effectiveColor)
                     ? effectiveColor : ResolveTextRunColor(run, textBox, colors));
                 string? link = run.Hyperlink is { IsAbsoluteUri: true } uri ? uri.AbsoluteUri : null;
+                string? destination = PowerPointHyperlinkResolver.TryParseSlideFragment(run.Hyperlink, out int targetSlide)
+                    ? PowerPointHyperlinkResolver.GetSlideDestinationName(targetSlide) : null;
                 var underline = MapUnderlineStyle(style.UnderlineStyle);
                 if (link != null && underline == OfficeTextDecorationStyle.None) underline = OfficeTextDecorationStyle.Single;
                 yield return new OfficeRichTextRun(value,
@@ -78,7 +90,7 @@ namespace OfficeIMO.PowerPoint {
                     underline != OfficeTextDecorationStyle.None, style.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                     style.StrikeStyle is { } strike && strike != PowerPointStrikeStyle.None,
                     ResolveTextRunBackgroundColor(run, colors), underline, MapStrikeStyle(style.StrikeStyle),
-                    MapBaseline(style.BaselinePercent)) { LinkUri = link };
+                    MapBaseline(style.BaselinePercent)) { LinkUri = link, LinkDestinationName = destination };
             }
         }
     }

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "method": "Python stdlib ZIP/XML part comparison; no OfficeIMO loads. Every package part is equal after the stated normalization.",
+  "sourceSha256": "d6fefca93e07ab4c2f8557f91ad6dd34bca5864c0372733751d74db992fcc65d",
+  "oldDocx": "pages-table-borders-officeimo.docx",
+  "oldDocxSha256": "13ef11968bc98c626abcfc0efe81e302338981d9589446c0b86f2b950989e1e6",
+  "currentDocx": "pages-table-borders-effective-dimensions.docx",
+  "currentDocxSha256": "de8b28554d29b4091b48651afa4980f21a359cb187674a89d7fee5c9d124cceb",
+  "diagnosticCodes": [
+    "IWORK_SOURCE_READ",
+    "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED",
+    "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION"
+  ],
+  "tableDimensions": [
+    {
+      "DefaultRowHeight": 21.1025390625,
+      "DefaultColumnWidth": 108,
+      "RowHeights": {
+        "1": 32,
+        "2": 31,
+        "3": 32,
+        "4": 32
+      },
+      "ColumnWidths": {
+        "1": 108,
+        "2": 108,
+        "3": 108,
+        "4": 108
+      }
+    }
+  ],
+  "differentUncompressedParts": [
+    "word/document.xml",
+    "_rels/.rels",
+    "word/_rels/document.xml.rels"
+  ],
+  "normalization": [
+    "Relationship IDs are replaced by their Type,Target,TargetMode tuple in .rels and corresponding document references.",
+    "The generated section revision identifier w:sectPr/@w:rsidR is removed.",
+    "Every other part, node, attribute and value is retained."
+  ],
+  "normalizedPartsIdentical": true,
+  "parts": [
+    {
+      "part": "[Content_Types].xml",
+      "sha256AfterNormalization": "96614d073bce972fc22e888f2fcfa66e1ed2b38316bb3314c106f07dd9371a1b"
+    },
+    {
+      "part": "_rels/.rels",
+      "sha256AfterNormalization": "9575d4aaa76321298972560c29565b3fbbb09cd50cec3c51edda938c188183cb"
+    },
+    {
+      "part": "word/_rels/document.xml.rels",
+      "sha256AfterNormalization": "f78889528875c13b27e4cb70d2b0f4f6d6c02811c68b0365530ccfa04694c126"
+    },
+    {
+      "part": "word/document.xml",
+      "sha256AfterNormalization": "2e26b6857139bc6f262e32439ea7c8be284e8d21651060c6407e588e08f9429c"
+    },
+    {
+      "part": "word/endnotes.xml",
+      "sha256AfterNormalization": "76d115f8fe7a8e9902ce92e7d600031e5a94b59206f2ce9e816fce56c5440388"
+    },
+    {
+      "part": "word/fontTable.xml",
+      "sha256AfterNormalization": "f05955ca5c61d1c553b57b44211cdad395bf323e2cce49d9944790e60b298de6"
+    },
+    {
+      "part": "word/footer1.xml",
+      "sha256AfterNormalization": "898eafa641a531b607a4653283c5986c420fb5afe32ea80902ea11d1bae1a0ea"
+    },
+    {
+      "part": "word/footnotes.xml",
+      "sha256AfterNormalization": "bb4502adffeb5d6a77d8fc270c2c9580ffd4eee53ce428e78e260bfd78c24249"
+    },
+    {
+      "part": "word/header1.xml",
+      "sha256AfterNormalization": "83aad5a0ba4be212121a971fe901a84143f315f6f8a92aa5725d25a18f99143a"
+    },
+    {
+      "part": "word/settings.xml",
+      "sha256AfterNormalization": "53a919d49d921c20e2d3631616cb9c93d13016f7b5f36ebbd625883775508369"
+    },
+    {
+      "part": "word/styles.xml",
+      "sha256AfterNormalization": "c0b2ab129407c62885655974857b44b211ad9c9c65d14bc3dd7ad2833ffae1b4"
+    },
+    {
+      "part": "word/theme/theme1.xml",
+      "sha256AfterNormalization": "c486a4921de61de26999164b7b66e526edb21c9ec669585756717befd7b17bb6"
+    },
+    {
+      "part": "word/webSettings.xml",
+      "sha256AfterNormalization": "98a22c966840363f154d96155b78b87e303d4f8888605ba9034a72fa3db6ead6"
+    }
+  ],
+  "nativeAcceptanceBoundary": "The Word change affects validation and reporting. The prior Pages native acceptance artifact is retained; the current DOCX has identical normalized package parts. No new native application run is claimed."
+}

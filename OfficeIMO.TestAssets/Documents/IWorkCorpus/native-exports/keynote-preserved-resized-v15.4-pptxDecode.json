@@ -1,0 +1,256 @@
+[
+  {
+    "producer": "nativeEdited",
+    "path": "keynote-preserved-resized-edited-v15.4.pptx",
+    "sha256": "2f0858e9640e1bbe8ceff8f490c8484ad152e8d7609971b83c82739ff148e0e4",
+    "slideSizePoints": [
+      960,
+      540
+    ],
+    "slides": [
+      {
+        "slide": 1,
+        "framePoints": [
+          80.0,
+          125.0,
+          420.0,
+          168.0
+        ],
+        "imageSha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+        "description": "Opaque four-color PNG \ud83d\ude00",
+        "text": [
+          "Native PNG \u2014 image behind text",
+          "Covered source label",
+          "TEXT IN FRONT"
+        ],
+        "shapeOrder": [
+          "nvGrpSpPr",
+          "grpSpPr",
+          "sp",
+          "sp",
+          "pic",
+          "sp"
+        ]
+      },
+      {
+        "slide": 2,
+        "framePoints": [
+          80.0,
+          135.0,
+          360.0,
+          180.0
+        ],
+        "imageSha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+        "description": "Transparent, half-alpha, opaque purple",
+        "text": [
+          "Native alpha PNG",
+          "0% / 50% / ",
+          "100% alpha"
+        ],
+        "shapeOrder": [
+          "nvGrpSpPr",
+          "grpSpPr",
+          "sp",
+          "pic",
+          "sp"
+        ]
+      },
+      {
+        "slide": 3,
+        "framePoints": [
+          100.0,
+          135.0,
+          421.0,
+          168.0
+        ],
+        "imageSha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+        "description": "Four-color JPEG, intentionally stretched frame",
+        "text": [
+          "Native JPEG",
+          "JPEG / stretched frame"
+        ],
+        "shapeOrder": [
+          "nvGrpSpPr",
+          "grpSpPr",
+          "sp",
+          "pic",
+          "sp"
+        ]
+      }
+    ]
+  },
+  {
+    "producer": "officeimo",
+    "path": "keynote-preserved-resized-officeimo-v15.4.pptx",
+    "sha256": "eaad7edd6b41cc861d90cdcbb71397c196fa14429977cf3398eff45b9d6b2125",
+    "slideSizePoints": [
+      960,
+      540
+    ],
+    "slides": [
+      {
+        "slide": 1,
+        "framePoints": [
+          80.0,
+          125.0,
+          420.0,
+          168.0
+        ],
+        "imageSha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+        "description": "Opaque four-color PNG \ud83d\ude00",
+        "text": [
+          "Native PNG \u2014 image behind text",
+          "",
+          "Covered source label",
+          "",
+          "TEXT IN FRONT",
+          ""
+        ],
+        "shapeOrder": [
+          "nvGrpSpPr",
+          "grpSpPr",
+          "sp",
+          "sp",
+          "pic",
+          "sp"
+        ]
+      },
+      {
+        "slide": 2,
+        "framePoints": [
+          80.0,
+          135.0,
+          360.0,
+          180.0
+        ],
+        "imageSha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+        "description": "Transparent, half-alpha, opaque purple",
+        "text": [
+          "Native alpha PNG",
+          "",
+          "0% / 50% / ",
+          "100% alpha",
+          ""
+        ],
+        "shapeOrder": [
+          "nvGrpSpPr",
+          "grpSpPr",
+          "sp",
+          "pic",
+          "sp"
+        ]
+      },
+      {
+        "slide": 3,
+        "framePoints": [
+          100.0,
+          135.0,
+          420.0,
+          168.0
+        ],
+        "imageSha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+        "description": "Four-color JPEG, intentionally stretched frame",
+        "text": [
+          "Native JPEG",
+          "",
+          "JPEG / stretched frame",
+          ""
+        ],
+        "shapeOrder": [
+          "nvGrpSpPr",
+          "grpSpPr",
+          "sp",
+          "pic",
+          "sp"
+        ]
+      }
+    ]
+  },
+  {
+    "producer": "officeimoEdited",
+    "path": "keynote-preserved-resized-edited-officeimo-v15.4.pptx",
+    "sha256": "321af48c4eb5aea8f79f62800933b1917de2e9d0af8c6ceb25a18e3213aecac1",
+    "slideSizePoints": [
+      960,
+      540
+    ],
+    "slides": [
+      {
+        "slide": 1,
+        "framePoints": [
+          80.0,
+          125.0,
+          420.0,
+          168.0
+        ],
+        "imageSha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+        "description": "Opaque four-color PNG \ud83d\ude00",
+        "text": [
+          "Native PNG \u2014 image behind text",
+          "",
+          "Covered source label",
+          "",
+          "TEXT IN FRONT",
+          ""
+        ],
+        "shapeOrder": [
+          "nvGrpSpPr",
+          "grpSpPr",
+          "sp",
+          "sp",
+          "pic",
+          "sp"
+        ]
+      },
+      {
+        "slide": 2,
+        "framePoints": [
+          80.0,
+          135.0,
+          360.0,
+          180.0
+        ],
+        "imageSha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+        "description": "Transparent, half-alpha, opaque purple",
+        "text": [
+          "Native alpha PNG",
+          "",
+          "0% / 50% / ",
+          "100% alpha",
+          ""
+        ],
+        "shapeOrder": [
+          "nvGrpSpPr",
+          "grpSpPr",
+          "sp",
+          "pic",
+          "sp"
+        ]
+      },
+      {
+        "slide": 3,
+        "framePoints": [
+          100.0,
+          135.0,
+          421.0,
+          168.0
+        ],
+        "imageSha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+        "description": "Four-color JPEG, intentionally stretched frame",
+        "text": [
+          "Native JPEG",
+          "",
+          "JPEG / stretched frame",
+          ""
+        ],
+        "shapeOrder": [
+          "nvGrpSpPr",
+          "grpSpPr",
+          "sp",
+          "pic",
+          "sp"
+        ]
+      }
+    ]
+  }
+]

@@ -112,7 +112,18 @@ namespace OfficeIMO.Excel {
             if (cell.CellFormula?.FormulaType?.Value != CellFormulaValues.Array)
                 return TryEvaluateFormulaValue(formula, out result);
             if (!IsSupportedArrayCall(formula)) return TryEvaluateFormulaValue(formula, out result);
-            string? reference = cell.CellFormula.Reference?.Value;
+            FormulaArgumentValue previousError = _formulaReferenceError;
+            _formulaReferenceError = default;
+            try {
+                return TryEvaluateAuthoredArrayFormulaCell(cell, formula, out result);
+            } finally {
+                _formulaReferenceError = previousError;
+            }
+        }
+
+        private bool TryEvaluateAuthoredArrayFormulaCell(Cell cell, string formula, out FormulaArgumentValue result) {
+            result = default;
+            string? reference = cell.CellFormula?.Reference?.Value;
             if (reference == null || !TryFixedArrayBounds(reference,
                 out int r1, out int c1, out int r2, out int c2)
                 || !TryParseCellReference(cell.CellReference?.Value ?? "", out int row, out int column)

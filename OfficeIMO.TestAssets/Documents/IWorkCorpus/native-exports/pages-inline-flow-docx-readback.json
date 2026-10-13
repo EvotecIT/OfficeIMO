@@ -1,0 +1,24 @@
+{
+  "method": "Python stdlib ZIP/XML; no OfficeIMO loads",
+  "decodeSha256": "ae4cd80592f286002e658f4859090ae11d6d12a592c23b9d1f7bc9614ef3f965",
+  "artifacts": [
+    {
+      "file": "pages-inline-flow.docx",
+      "bytes": 19717,
+      "sha256": "a41a92c71e98d59ac53b1674bde7fc2b895814942a2dfff23803c0f64191b044",
+      "values": 16,
+      "edges": 64,
+      "boldCells": 10,
+      "emptyD3": true
+    },
+    {
+      "file": "pages-inline-flow-workflow.docx",
+      "bytes": 19716,
+      "sha256": "b7fc629ccfa7dc460595ed41fda560b59e41a5b81d949486a4c4ae0e68c05ee4",
+      "values": 16,
+      "edges": 64,
+      "boldCells": 10,
+      "emptyD3": true
+    }
+  ]
+}

@@ -1,0 +1,2481 @@
+{
+  "source": "pages-list-marker-size-roundtrip-v15.4.pages",
+  "sha256": "c74495f1952adb4b0ce431f2fc72ec311d7c7cf9ae770696699c7aa4df7bfb83",
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "offsetUnit": "UTF-16 code units",
+  "bodyIdentifier": 1732641,
+  "primaryRecordCount": 702,
+  "records": [
+    {
+      "identifier": 1731481,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "Brak",
+          "style_identifier": "text-0-liststyle-None",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 4,
+        "label_types": [
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone"
+        ],
+        "text_indents": [
+          -0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "indents": [
+          0.0,
+          36.0,
+          72.0,
+          108.0,
+          144.0,
+          180.0,
+          216.0,
+          252.0,
+          288.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ]
+      }
+    },
+    {
+      "identifier": 1731511,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "name": "Tre\u015b\u0107",
+          "style_identifier": "text-20-paragraphstyle-Body 1",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 57,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 11.0,
+          "font_name": "Calibri",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "language_null": true,
+          "superscript": "kNoScript",
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "capitalization": "kNoCaps",
+          "baseline_shift": 0.0,
+          "kerning": 0.0,
+          "ligatures": "kStandardLigatures",
+          "shadow_null": true,
+          "strikethru_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "strikethru_width": 1.0,
+          "background_color_null": true,
+          "tracking": 0.0,
+          "underline_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline_width": 1.0,
+          "word_strikethru": false,
+          "word_underline": false,
+          "font_features_null": true,
+          "writing_direction": "kWritingDirectionLeftToRight",
+          "emphasis_marks_null": true,
+          "compatibility_font_name_null": true,
+          "is_named_point_size": false,
+          "capitalization_uses_linguistics": false,
+          "tsd_stroke_null": true,
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          },
+          "tsd_fill_should_fill_text_container": false
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ",",
+          "default_tab_stops": 36.0,
+          "fill_null": true,
+          "first_line_indent": 0.0,
+          "hyphenate": true,
+          "keep_lines_together": false,
+          "keep_with_next": false,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "amount": 1.0791667
+          },
+          "page_break_before": false,
+          "deprecated_borders": "PBTvalue0",
+          "historical_rule_offset": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "rule_width": 1.0,
+          "right_indent": 0.0,
+          "space_after": 8.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "widow_control": true,
+          "outline_level": 4294967295,
+          "outline_style": "OSTvalue0",
+          "stroke_null": true,
+          "list_style": {
+            "identifier": "1731481"
+          },
+          "following_style_null": true,
+          "show_in_bookmarks_list": false,
+          "show_in_toc_navigator": false,
+          "border_positions": 0,
+          "rounded_corners": false
+        }
+      }
+    },
+    {
+      "identifier": 1731539,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "Brak",
+          "style_identifier": "character-style-null",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 1732641,
+      "entry": "Index/Document.iwa",
+      "type": 2001,
+      "declaration": {
+        "kind": "BODY",
+        "style_sheet": {
+          "identifier": "1732613"
+        },
+        "text": [
+          "Native decimal list continuation\nInitial seven\nInitial eight\nNon-list interruption\nContinued nine\nNested first\nNested second\nParent ten\nNested after parent\nNested restart five\nNested restart six\nNested non-list interruption\nNested continued seven\nOriginal parent eleven\nParent restart three\nParent restart four"
+        ],
+        "table_para_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "1731511"
+              }
+            },
+            {
+              "character_index": 33,
+              "object": {
+                "identifier": "1732811"
+              }
+            },
+            {
+              "character_index": 47
+            },
+            {
+              "character_index": 61,
+              "object": {
+                "identifier": "1731511"
+              }
+            },
+            {
+              "character_index": 83,
+              "object": {
+                "identifier": "1732816"
+              }
+            },
+            {
+              "character_index": 98
+            },
+            {
+              "character_index": 111
+            },
+            {
+              "character_index": 125,
+              "object": {
+                "identifier": "1732820"
+              }
+            },
+            {
+              "character_index": 136
+            },
+            {
+              "character_index": 156,
+              "object": {
+                "identifier": "1732824"
+              }
+            },
+            {
+              "character_index": 176
+            },
+            {
+              "character_index": 195,
+              "object": {
+                "identifier": "1731511"
+              }
+            },
+            {
+              "character_index": 224,
+              "object": {
+                "identifier": "1732828"
+              }
+            },
+            {
+              "character_index": 247,
+              "object": {
+                "identifier": "1732832"
+              }
+            },
+            {
+              "character_index": 270,
+              "object": {
+                "identifier": "1732836"
+              }
+            },
+            {
+              "character_index": 291
+            }
+          ]
+        },
+        "table_para_data": {
+          "entries": [
+            {
+              "character_index": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 33,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 47,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 83,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 98,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "character_index": 125,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 136,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "character_index": 156,
+              "first": 1,
+              "second": 1
+            },
+            {
+              "character_index": 176,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "character_index": 195,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 224,
+              "first": 1,
+              "second": 1
+            },
+            {
+              "character_index": 247,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 291,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        },
+        "table_list_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "1731481"
+              }
+            },
+            {
+              "character_index": 33,
+              "object": {
+                "identifier": "1732808"
+              }
+            },
+            {
+              "character_index": 61,
+              "object": {
+                "identifier": "1731481"
+              }
+            },
+            {
+              "character_index": 83,
+              "object": {
+                "identifier": "1732814"
+              }
+            },
+            {
+              "character_index": 125,
+              "object": {
+                "identifier": "1732818"
+              }
+            },
+            {
+              "character_index": 156,
+              "object": {
+                "identifier": "1732822"
+              }
+            },
+            {
+              "character_index": 195,
+              "object": {
+                "identifier": "1731481"
+              }
+            },
+            {
+              "character_index": 224,
+              "object": {
+                "identifier": "1732826"
+              }
+            },
+            {
+              "character_index": 247,
+              "object": {
+                "identifier": "1732830"
+              }
+            },
+            {
+              "character_index": 270,
+              "object": {
+                "identifier": "1732834"
+              }
+            }
+          ]
+        },
+        "table_char_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "1732805"
+              }
+            },
+            {
+              "character_index": 32,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 33,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 46,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 47,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 60,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 61,
+              "object": {
+                "identifier": "1732805"
+              }
+            },
+            {
+              "character_index": 82,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 83,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 97,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 98,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 110,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 111,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 124,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 125,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 135,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 136,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 155,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 156,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 175,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 176,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 194,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 195,
+              "object": {
+                "identifier": "1732805"
+              }
+            },
+            {
+              "character_index": 223,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 224,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 246,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 247,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 269,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 270,
+              "object": {
+                "identifier": "1732812"
+              }
+            },
+            {
+              "character_index": 290,
+              "object": {
+                "identifier": "1732806"
+              }
+            },
+            {
+              "character_index": 291,
+              "object": {
+                "identifier": "1732812"
+              }
+            }
+          ]
+        },
+        "in_document": true,
+        "table_layout_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "1732153"
+              }
+            }
+          ]
+        },
+        "table_para_starts": {
+          "entries": [
+            {
+              "character_index": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 33,
+              "first": 7,
+              "second": 0
+            },
+            {
+              "character_index": 47,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 83,
+              "first": 9,
+              "second": 0
+            },
+            {
+              "character_index": 98,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 125,
+              "first": 10,
+              "second": 0
+            },
+            {
+              "character_index": 136,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 156,
+              "first": 5,
+              "second": 0
+            },
+            {
+              "character_index": 176,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 224,
+              "first": 7,
+              "second": 0
+            },
+            {
+              "character_index": 247,
+              "first": 11,
+              "second": 0
+            },
+            {
+              "character_index": 270,
+              "first": 3,
+              "second": 0
+            },
+            {
+              "character_index": 291,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        },
+        "table_section": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "1732642"
+              }
+            }
+          ]
+        },
+        "table_para_bidi": {
+          "entries": [
+            {
+              "character_index": 0,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        },
+        "table_drop_cap_style": {
+          "entries": [
+            {
+              "character_index": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "identifier": 1732805,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731539"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "font_size": 12.0,
+          "font_name": "ArialMT",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "strikethru_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "tracking": 0.0,
+          "underline_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "compatibility_font_name_null": true,
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          },
+          "tsd_fill_should_fill_text_container": false
+        }
+      }
+    },
+    {
+      "identifier": 1732806,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731539"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "font_name": "Calibri",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "strikethru_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "tracking": 0.0,
+          "underline_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "compatibility_font_name_null": true,
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          },
+          "tsd_fill_should_fill_text_container": false
+        }
+      }
+    },
+    {
+      "identifier": 1732807,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "Zaimportowany styl 1",
+          "style_identifier": "imported-list-style-16",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber"
+        ],
+        "text_indents": [
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5
+        ],
+        "indents": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name": "Calibri",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 1732808,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1732807"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 2,
+        "text_indents": [
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375
+        ],
+        "geometries": [
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ]
+      }
+    },
+    {
+      "identifier": 1732811,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731511"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 3,
+        "char_properties": {
+          "font_size": 12.0,
+          "writing_direction": "kWritingDirectionNatural"
+        },
+        "para_properties": {
+          "list_style": {
+            "identifier": "1732808"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 1732812,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731539"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "font_name": "ArialMT",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "strikethru_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "tracking": 0.0,
+          "underline_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "compatibility_font_name_null": true,
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          },
+          "tsd_fill_should_fill_text_container": false
+        }
+      }
+    },
+    {
+      "identifier": 1732813,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "Zaimportowany styl 2",
+          "style_identifier": "imported-list-style-17",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber"
+        ],
+        "text_indents": [
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5
+        ],
+        "indents": [
+          0.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name": "Calibri",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 1732814,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1732813"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 2,
+        "text_indents": [
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375
+        ],
+        "geometries": [
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ]
+      }
+    },
+    {
+      "identifier": 1732816,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731511"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 3,
+        "char_properties": {
+          "font_size": 12.0,
+          "writing_direction": "kWritingDirectionNatural"
+        },
+        "para_properties": {
+          "list_style": {
+            "identifier": "1732814"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 1732817,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "Zaimportowany styl 3",
+          "style_identifier": "imported-list-style-18",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber"
+        ],
+        "text_indents": [
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5
+        ],
+        "indents": [
+          0.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name": "Calibri",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 1732818,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1732817"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 2,
+        "text_indents": [
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375
+        ],
+        "geometries": [
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ]
+      }
+    },
+    {
+      "identifier": 1732820,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731511"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 3,
+        "char_properties": {
+          "font_size": 12.0,
+          "writing_direction": "kWritingDirectionNatural"
+        },
+        "para_properties": {
+          "list_style": {
+            "identifier": "1732818"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 1732821,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "Zaimportowany styl 4",
+          "style_identifier": "imported-list-style-19",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber"
+        ],
+        "text_indents": [
+          1.6363636,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5
+        ],
+        "indents": [
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name": "Calibri",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 1732822,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1732821"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 2,
+        "text_indents": [
+          1.5,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375
+        ],
+        "geometries": [
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ]
+      }
+    },
+    {
+      "identifier": 1732824,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731511"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 3,
+        "char_properties": {
+          "font_size": 12.0,
+          "writing_direction": "kWritingDirectionNatural"
+        },
+        "para_properties": {
+          "list_style": {
+            "identifier": "1732822"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 1732825,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "Zaimportowany styl 5",
+          "style_identifier": "imported-list-style-20",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber"
+        ],
+        "text_indents": [
+          1.6363636,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5
+        ],
+        "indents": [
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0,
+          18.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name": "Calibri",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 1732826,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1732825"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 2,
+        "text_indents": [
+          1.5,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375
+        ],
+        "geometries": [
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ]
+      }
+    },
+    {
+      "identifier": 1732828,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731511"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 3,
+        "char_properties": {
+          "font_size": 12.0,
+          "writing_direction": "kWritingDirectionNatural"
+        },
+        "para_properties": {
+          "list_style": {
+            "identifier": "1732826"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 1732829,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "Zaimportowany styl 6",
+          "style_identifier": "imported-list-style-21",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber"
+        ],
+        "text_indents": [
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5
+        ],
+        "indents": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name": "Calibri",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 1732830,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1732829"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 2,
+        "text_indents": [
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375
+        ],
+        "geometries": [
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ]
+      }
+    },
+    {
+      "identifier": 1732832,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731511"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 3,
+        "char_properties": {
+          "font_size": 12.0,
+          "writing_direction": "kWritingDirectionNatural"
+        },
+        "para_properties": {
+          "list_style": {
+            "identifier": "1732830"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 1732833,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "Zaimportowany styl 7",
+          "style_identifier": "imported-list-style-22",
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber"
+        ],
+        "text_indents": [
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5
+        ],
+        "indents": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name": "Calibri",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 1732834,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1732833"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 2,
+        "text_indents": [
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375,
+          1.375
+        ],
+        "geometries": [
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 0.9166667,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ]
+      }
+    },
+    {
+      "identifier": 1732836,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "1731511"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "1732613"
+          }
+        },
+        "override_count": 3,
+        "char_properties": {
+          "font_size": 12.0,
+          "writing_direction": "kWritingDirectionNatural"
+        },
+        "para_properties": {
+          "list_style": {
+            "identifier": "1732834"
+          }
+        }
+      }
+    }
+  ],
+  "scope": "Selected native body and style declarations. Counter values and appearance require paired Apple exports."
+}

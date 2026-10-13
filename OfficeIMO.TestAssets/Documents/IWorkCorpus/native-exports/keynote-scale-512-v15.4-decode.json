@@ -1,0 +1,240 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "descriptorSha256": "2c46d6ee3eaf4d8419d0cc8329b74776f69517c1e14de0571e0434e29c4fc216",
+  "schemaRevision": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+  "files": {
+    "source": {
+      "path": "keynote-scale-512-v15.4.key",
+      "bytes": 1286730,
+      "sha256": "805f383fc8055b52a6527f1e57bb9bd923b8f629aa32c0cdd78c772b8b827692"
+    },
+    "applePptx": {
+      "path": "keynote-scale-512-v15.4.pptx",
+      "bytes": 923642,
+      "sha256": "c82191c62449f6def3000e3551ee22c867a976f753868e037ef329b1f7f1ead9"
+    },
+    "applePdf": {
+      "path": "keynote-scale-512-v15.4.pdf",
+      "bytes": 675973,
+      "sha256": "9d38d977397a60e77a4b6f13650f518b56f99bb533648649833e0c5148e7c65f"
+    },
+    "pdfBbox": {
+      "path": "keynote-scale-512-v15.4-bbox.xhtml",
+      "bytes": 461557,
+      "sha256": "4354c400b7c4b208997d600376f4685aefabc3ce1cc6c01d172f26c2f107dcf7"
+    },
+    "pdfText": {
+      "path": "apple-pdf-text.json",
+      "bytes": 83353,
+      "sha256": "99abf3c292bb390624e17baa63b16c52da180048b9c25f6ab2388c7cfa7ba799"
+    }
+  },
+  "nativeMessageCount": 9178,
+  "verifiedSlides": 512,
+  "uniqueNativeSlideIdentities": 512,
+  "orderedNativeSlideIdentitiesSha256": "3ebfe306987fe7dd805358ed9c37efa42a056d45f6a4e61b894d2def151bc66a",
+  "orderedSelectedSemanticsSha256": "915822fc81d037e576d5a2cb83c1bf9fa4378264fc7fbe40cc0d54a3d3adc2d7",
+  "slideSizePoints": [
+    1024,
+    768
+  ],
+  "geometryTolerancePoints": 0.001,
+  "pdfTextProvider": "pypdf",
+  "pdfTextProviderVersion": "6.10.0",
+  "profileOccurrences": [
+    256,
+    256
+  ],
+  "profiles": [
+    {
+      "position": 1,
+      "node": 1221830,
+      "slide": 1221831,
+      "background": "56C1FF",
+      "boxes": [
+        {
+          "text": "hello keynote",
+          "geometryPoints": [
+            55.0,
+            146.0,
+            914.0989379882812,
+            260.0
+          ]
+        },
+        {
+          "text": "first bullet",
+          "geometryPoints": [
+            55.0,
+            402.0,
+            914.0,
+            114.67706298828125
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "position": 2,
+      "node": 1225094,
+      "slide": 1225067,
+      "background": "FF968D",
+      "boxes": [
+        {
+          "text": "wrapped title keeps all of its lines in this fixed frame",
+          "geometryPoints": [
+            55.0,
+            146.0,
+            914.0989379882812,
+            260.0
+          ]
+        }
+      ],
+      "notes": "note text here"
+    }
+  ],
+  "selectedSlides": [
+    {
+      "position": 1,
+      "node": 1221830,
+      "slide": 1221831,
+      "background": "56C1FF",
+      "boxes": [
+        {
+          "text": "hello keynote",
+          "geometryPoints": [
+            55.0,
+            146.0,
+            914.0989379882812,
+            260.0
+          ]
+        },
+        {
+          "text": "first bullet",
+          "geometryPoints": [
+            55.0,
+            402.0,
+            914.0,
+            114.67706298828125
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "position": 2,
+      "node": 1225094,
+      "slide": 1225067,
+      "background": "FF968D",
+      "boxes": [
+        {
+          "text": "wrapped title keeps all of its lines in this fixed frame",
+          "geometryPoints": [
+            55.0,
+            146.0,
+            914.0989379882812,
+            260.0
+          ]
+        }
+      ],
+      "notes": "note text here"
+    },
+    {
+      "position": 255,
+      "node": 1235567,
+      "slide": 1235396,
+      "background": "56C1FF",
+      "boxes": [
+        {
+          "text": "hello keynote",
+          "geometryPoints": [
+            55.0,
+            146.0,
+            914.0989379882812,
+            260.0
+          ]
+        },
+        {
+          "text": "first bullet",
+          "geometryPoints": [
+            55.0,
+            402.0,
+            914.0,
+            114.67706298828125
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "position": 256,
+      "node": 1235543,
+      "slide": 1235395,
+      "background": "FF968D",
+      "boxes": [
+        {
+          "text": "wrapped title keeps all of its lines in this fixed frame",
+          "geometryPoints": [
+            55.0,
+            146.0,
+            914.0989379882812,
+            260.0
+          ]
+        }
+      ],
+      "notes": "note text here"
+    },
+    {
+      "position": 511,
+      "node": 1244123,
+      "slide": 1243800,
+      "background": "56C1FF",
+      "boxes": [
+        {
+          "text": "hello keynote",
+          "geometryPoints": [
+            55.0,
+            146.0,
+            914.0989379882812,
+            260.0
+          ]
+        },
+        {
+          "text": "first bullet",
+          "geometryPoints": [
+            55.0,
+            402.0,
+            914.0,
+            114.67706298828125
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "position": 512,
+      "node": 1244185,
+      "slide": 1243799,
+      "background": "FF968D",
+      "boxes": [
+        {
+          "text": "wrapped title keeps all of its lines in this fixed frame",
+          "geometryPoints": [
+            55.0,
+            146.0,
+            914.0989379882812,
+            260.0
+          ]
+        }
+      ],
+      "notes": "note text here"
+    }
+  ],
+  "checks": [
+    "All ordered native slide/node identities distinct and initialized",
+    "All 512 native slides: exact text, notes, backgrounds, drawable order, no skipped slides",
+    "All 512 Apple PPTX slides: relationship order, text, notes, inherited geometry and resolved background",
+    "All 512 Apple PDF pages: canvas and complete ordered NFKC text, known bullet removed"
+  ],
+  "limits": "Two repeated text layouts in one Keynote 15.4 document. Selected native records only; auxiliary/opaque records are inventoried, not fully assessed. No broad master/theme, typography, varied-object or complete PDF appearance claim. Geometry tolerance covers EMU rounding. pypdf text ligatures normalize with NFKC; Poppler bbox text misplaces fi ligatures and is used only for canvas checks. pypdf warns about two wrong-pointing objects in this Apple PDF; no conformance claim."
+}

@@ -23,7 +23,7 @@ internal static partial class OfficeDrawingTextLayout {
         double size = fontScale == 1D ? original.FontSize * scale : Math.Max(1D, original.FontSize * scale * fontScale);
         var run = new OfficeRichTextRun(original.Text, size, original.Color, original.Bold, original.Italic,
             original.Underline, original.FontFamily, original.Strikethrough, original.BackgroundColor, original.UnderlineStyle,
-            original.StrikethroughStyle, original.Baseline) { LinkUri = original.LinkUri };
+            original.StrikethroughStyle, original.Baseline) { LinkUri = original.LinkUri, LinkDestinationName = original.LinkDestinationName };
         var layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(new[] { run }, double.MaxValue, double.MaxValue,
             paragraph.LineHeightFactor ?? 1.2, measure, false, measurePaint: measurePaint, cancellationToken: cancellationToken);
         OfficeRichTextLine line = layout.Lines.Count == 0 ? new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>()) : layout.Lines[0];

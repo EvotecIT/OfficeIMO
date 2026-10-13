@@ -32,6 +32,9 @@
     <ProjectReference Include="..\OfficeIMO.Word.IWork\OfficeIMO.Word.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.IWork\OfficeIMO.Excel.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.IWork\OfficeIMO.PowerPoint.IWork.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
   </ItemGroup>
 
 </Project>

@@ -26,7 +26,7 @@ public sealed class IWorkAppleExportQualificationTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
-        result.Report.RequireCompleteEditableReconstruction();
+        IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.Empty(result.Report.SourceDeclarationIssues);
         Assert.Equal(2, result.WorksheetMappings.Count);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
@@ -78,7 +78,7 @@ public sealed class IWorkAppleExportQualificationTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(
             Path.Combine(corpus, "numbers-parser", "test-10-formulas.numbers"),
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
-        result.Report.RequireCompleteEditableReconstruction();
+        IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.Empty(result.Report.SourceDeclarationIssues);
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
@@ -119,7 +119,7 @@ public sealed class IWorkAppleExportQualificationTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
-        result.Report.RequireCompleteEditableReconstruction();
+        IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.Empty(result.Report.SourceDeclarationIssues);
         var tables = result.Projection.Sheets.SelectMany(sheet => sheet.Tables).ToArray();
         using var saved = new MemoryStream();

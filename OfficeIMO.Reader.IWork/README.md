@@ -6,7 +6,7 @@ Mapped source diagnostics retain the source fidelity category in `Attributes["lo
 
 ## Install
 
-```powershell
+```sh
 dotnet add package OfficeIMO.Reader.IWork
 ```
 
@@ -35,7 +35,7 @@ Keynote logical page numbers and chunk slide citations retain source slide-tree 
 
 Pages content is projected as text, drawable tables and images, plus headers and footers. Qualified body attachments retain their text/table/image order. Inline images have anchor blocks even without alternative text, and their assets reference those blocks. Attachment-run links reference the emitted image or table block. Mixed text/object paragraphs are split into ordered blocks with a layout diagnostic. Numbers sheets become logical pages with tables and text boxes in their shared source order. Keynote slides become logical pages with text boxes, tables, images, and presenter notes. Rich text becomes Markdown and linked runs become link entries. Formula cells expose their cached display values in Reader tables; use `OfficeIMO.IWork` directly when formula syntax and typed cells are needed.
 
-Qualified date/time patterns and fixed day-only or hour/minute durations use the shared numeric, calendar and elapsed formatters in Reader tables, for example `15 Nov 2001` and `2h 24m`. `IWORK_READER_NUMBER_FORMAT_APPROXIMATED` reports display limits; values outside the formatter range retain raw cached text with `IWORK_READER_NUMBER_FORMAT_OMITTED`. Raw dates and seconds, typed caches and recovered format metadata remain on the iWork source model. Other numeric Reader cells retain their existing cached text.
+Qualified date/time patterns and fixed abbreviated day-only, hour/minute, hour/second, minute/second or second-only durations use the shared numeric, calendar and elapsed formatters in Reader tables, for example `15 Nov 2001` and `2h 24m`. `IWORK_READER_NUMBER_FORMAT_APPROXIMATED` reports display limits; values outside the formatter range retain raw cached text with `IWORK_READER_NUMBER_FORMAT_OMITTED`. Raw dates and seconds, typed caches and recovered format metadata remain on the iWork source model. Other numeric Reader cells retain their existing cached text.
 
 `ReaderOptions.MaxTableRows` and `ReaderIWorkOptions.MaximumTableColumns` bound each table, while `ReaderIWorkOptions.MaximumProjectedTableCells` bounds dense table cells across the whole result. `ReaderIWorkOptions.ReadOptions` controls source package and semantic limits. Its `MaximumProjectedImages` limit also counts every emitted Reader image use; `MaximumProjectedImageBytes` counts copied payload bytes, including repeated uses, before allocation. Image bytes are omitted by default; set `IncludeImagePayloads` when the caller needs them. Truncation, omitted tables after the cell budget is exhausted, and unsupported visual details are reported as diagnostics. Reader tables are flat grids; a diagnostic records source header-column and footer-row counts when their roles cannot be represented. Tables with source geometry expose column profiles and geometry diagnostics. If a sparse source grid exceeds 32-bit diagnostic counts, expected and missing counts saturate at `int.MaxValue` and a diagnostic records the exact logical cell count.
 
@@ -65,8 +65,10 @@ Reader row, column and dense-cell limits also bound comment projection. `IWORK_R
 
 Reader does not paginate Pages layouts or render Keynote slides. Its logical page labels represent a Pages document, Numbers sheet, or Keynote slide, not a rendered Pages page count.
 
+Qualified decimal list counters appear in both block `Marker` values and Markdown, including explicit starts and restarts. Structured markers retain period, parenthesized and closing-parenthesis forms, such as `7.`, `(7)` and `7)`; Markdown normalizes these forms to `7.`. Literal source markers remain unordered Markdown lists. The [Pages paragraph/list reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-paragraph-list-v15.4.json) checks the sequence 7, 8, 3, 4. Unqualified native numbering retains source diagnostics. Decimal counters beyond Markdown's nine-digit marker range use an unordered Markdown marker and report `IWORK_READER_LIST_COUNTER_LIMIT`; structured block markers keep the decimal value.
+
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows. License: MIT. Runtime dependencies are `OfficeIMO.Reader.Core` and `OfficeIMO.IWork`.
 
 ## Native compilation
 
-The [bounded NativeAOT scenario](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) exercises this handler on macOS arm64 under .NET 8 and 10, including structured extraction, source diagnostics, JSON transport, cancellation and input limits. The scenario preserves current reconstruction limits; it does not qualify destination conversion, appearance or Apple sandbox/device acceptance.
+The [bounded NativeAOT scenario](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) exercises this handler on macOS arm64, Linux x64 and Windows x64 under .NET 8 and 10, including structured extraction, root comments, source diagnostics, JSON transport, cancellation and input limits. A separate scenario covers destination conversion and native Keynote creation. These checks preserve current reconstruction limits; they do not qualify complete appearance, portable fonts or Apple sandbox/device acceptance.

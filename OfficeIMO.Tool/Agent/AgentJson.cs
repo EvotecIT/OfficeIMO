@@ -51,6 +51,7 @@ internal static class AgentJson {
 [JsonSerializable(typeof(AgentCapabilitiesResult))]
 [JsonSerializable(typeof(AgentOperationCapabilitySummary))]
 [JsonSerializable(typeof(AgentConvertResult))]
+[JsonSerializable(typeof(OfficeIMO.IWork.IWorkConversionOptions))]
 [JsonSerializable(typeof(AgentPdfWorkflowResult))]
 [JsonSerializable(typeof(AgentPdfOcrProvidersResult))]
 [JsonSerializable(typeof(AgentPdfPrintPlanResult))]

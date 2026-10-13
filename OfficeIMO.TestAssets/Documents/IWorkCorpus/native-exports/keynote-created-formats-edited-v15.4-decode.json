@@ -1,0 +1,283 @@
+{
+  "source": "keynote-created-formats-edited-v15.4.key",
+  "bytes": 164586,
+  "sha256": "cab7921901cd03748ac99e0429c244660f6eb61eaebb3266dbe478871f9c63eb",
+  "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917",
+  "numbersParserVersion": "4.19.0",
+  "tables": [
+    {
+      "id": 115,
+      "name": "Formats",
+      "rows": 20,
+      "columns": 2,
+      "numericCells": [
+        {
+          "row": 2,
+          "column": 2,
+          "value": 12.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 1,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 0,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "value": 12.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 2,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 4,
+          "column": 2,
+          "value": -9876.0,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 3,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 5,
+          "column": 2,
+          "value": -1234.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 3,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 6,
+          "column": 2,
+          "value": -1234.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 4,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 2,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 7,
+          "column": 2,
+          "value": -1234.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 1,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 8,
+          "column": 2,
+          "value": -1234.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 6,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 3,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 9,
+          "column": 2,
+          "value": 0.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 7,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 15,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 10,
+          "column": 2,
+          "value": 0.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 8,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 30,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 11,
+          "column": 2,
+          "value": 0.125,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 9,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 0,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 12,
+          "column": 2,
+          "value": -0.25,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 10,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 13,
+          "column": 2,
+          "value": 12.345,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 11,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 14,
+          "column": 2,
+          "value": -0.125,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 12,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 2,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 15,
+          "column": 2,
+          "value": -0.125,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 13,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 1,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 16,
+          "column": 2,
+          "value": -0.125,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 14,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 3,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 17,
+          "column": 2,
+          "value": 0.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 15,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 30,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 18,
+          "column": 2,
+          "value": 12345.0,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 16,
+          "numberFormat": {
+            "kind": "Scientific",
+            "decimalPlaces": 0,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 19,
+          "column": 2,
+          "value": -54321.0,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 17,
+          "numberFormat": {
+            "kind": "Scientific",
+            "decimalPlaces": 4,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 20,
+          "column": 2,
+          "value": 0.5,
+          "activeNumericFormat": true,
+          "suggestedType": 1,
+          "formatKey": 18,
+          "numberFormat": {
+            "kind": "Scientific",
+            "decimalPlaces": 30,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        }
+      ]
+    }
+  ]
+}

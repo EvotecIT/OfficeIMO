@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfTabStop {
     private double _position;
+    private char? _decimalSeparator;
 
     /// <summary>
     /// Creates a paragraph tab stop at the specified position.
@@ -36,6 +37,17 @@ public sealed class PdfTabStop {
     /// <summary>Leader drawn across the tab gap.</summary>
     public PdfTabLeaderStyle Leader { get; set; }
 
+    /// <summary>Gets or sets the character anchored by decimal alignment. Null accepts the first period or comma.</summary>
+    /// <remarks>Grouping punctuation is ignored when a separator is specified. Text without that character is right-aligned.</remarks>
+    public char? DecimalSeparator {
+        get => _decimalSeparator;
+        set {
+            if (value.HasValue && (char.IsControl(value.Value) || char.IsSurrogate(value.Value)))
+                throw new System.ArgumentException("A decimal tab separator must be one noncontrol Unicode character.", nameof(DecimalSeparator));
+            _decimalSeparator = value;
+        }
+    }
+
     /// <summary>Creates a copy of this tab stop.</summary>
-    public PdfTabStop Clone() => new PdfTabStop(Position, Alignment, Leader);
+    public PdfTabStop Clone() => new PdfTabStop(Position, Alignment, Leader) { DecimalSeparator = DecimalSeparator };
 }

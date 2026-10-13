@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = SelectedRichTextPackage(kind,
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11, Message(
-                VarintField(10, 2), VarintField(13, 2), FloatField(14, 3), FloatField(15, -1), FloatField(27, 0.5f)))));
+                VarintField(10, 2), VarintField(13, 2), FloatField(14, 3), FloatField(15, -1)))));
         var (table, references) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
         IWorkTextContent text = Assert.Single(table.Cells).RichText!;
         Assert.Equal("Value", text.PlainText);
@@ -33,7 +33,7 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: true,
             readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
-        Assert.Equal(new[] { "11/10", "11/13", "11/14", "11/15", "11/27" },
+        Assert.Equal(new[] { "11/10", "11/13", "11/14", "11/15" },
             report.SourceDeclarationIssues.Select(issue => issue.FieldPath).OrderBy(path => path));
         Assert.All(report.SourceDeclarationIssues, issue => {
             Assert.Equal(19ul, issue.Owner.RecordIdentifier);

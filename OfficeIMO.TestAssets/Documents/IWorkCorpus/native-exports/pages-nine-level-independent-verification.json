@@ -1,0 +1,177 @@
+{
+  "provider": "numbers-parser4.19.0; pinned Apple schemas; Poppler",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "cases": [
+    {
+      "source": "pages-nine-level-created.pages",
+      "sha256": "7dcaf3219b199cb33f89b37520642dce96a10e4512bb81431232d079fa02c154",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeAndOfficeimoDocxVerified": true,
+      "nativeAndComposedPdfTextAndCountersVerified": true
+    },
+    {
+      "source": "pages-nine-level-saved-v15.4.pages",
+      "sha256": "06032ec01c1bb8e03b4edc9b3e7a189006d3cb9e142bfbe4459d048929da6e9a",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeAndOfficeimoDocxVerified": true,
+      "nativeAndComposedPdfTextAndCountersVerified": true
+    },
+    {
+      "source": "pages-nine-level-preserved.pages",
+      "sha256": "f104be006883b9c741aa3b56e77bd826650a47392e10fd5b657bc5361222bc8b",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeAndOfficeimoDocxVerified": true,
+      "nativeAndComposedPdfTextAndCountersVerified": true
+    },
+    {
+      "source": "pages-nine-level-edited-v15.4.pages",
+      "sha256": "b0bf86409d573682ff3d214af543abde93f338aab7aca26a30f206593d878e52",
+      "numberedItems": 38,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeAndOfficeimoDocxVerified": true,
+      "nativeAndComposedPdfTextAndCountersVerified": true
+    }
+  ],
+  "exactPatch": {
+    "source": "pages-nine-level-saved-v15.4.pages",
+    "output": "pages-nine-level-preserved.pages",
+    "sourceSha256": "06032ec01c1bb8e03b4edc9b3e7a189006d3cb9e142bfbe4459d048929da6e9a",
+    "outputSha256": "f104be006883b9c741aa3b56e77bd826650a47392e10fd5b657bc5361222bc8b",
+    "fileEntries": 13,
+    "recordsIncludingAuxiliary": 120,
+    "bodyRecordId": 3,
+    "paragraphs": [
+      {
+        "paragraph": 2,
+        "payloadByteOffset": 29,
+        "bytes": 10,
+        "before": "Root seven",
+        "after": "ROOT SEVEN",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 3,
+        "payloadByteOffset": 40,
+        "bytes": 9,
+        "before": "Level one",
+        "after": "LEVEL ONE",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 4,
+        "payloadByteOffset": 50,
+        "bytes": 9,
+        "before": "Level two",
+        "after": "LEVEL TWO",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 5,
+        "payloadByteOffset": 60,
+        "bytes": 11,
+        "before": "Level three",
+        "after": "LEVEL THREE",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 6,
+        "payloadByteOffset": 72,
+        "bytes": 10,
+        "before": "Level four",
+        "after": "LEVEL FOUR",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 7,
+        "payloadByteOffset": 83,
+        "bytes": 10,
+        "before": "Level five",
+        "after": "LEVEL FIVE",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 8,
+        "payloadByteOffset": 94,
+        "bytes": 9,
+        "before": "Level six",
+        "after": "LEVEL SIX",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 9,
+        "payloadByteOffset": 104,
+        "bytes": 11,
+        "before": "Level seven",
+        "after": "LEVEL SEVEN",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 10,
+        "payloadByteOffset": 116,
+        "bytes": 11,
+        "before": "Level eight",
+        "after": "LEVEL EIGHT",
+        "storageRecordId": 3
+      }
+    ],
+    "changedEntries": [
+      "Index/Document.iwa"
+    ],
+    "onlyDeclaredUtf8RangesDiffer": true,
+    "rawHeadersSiblingsAndOtherBytesIdentical": true,
+    "nativeStoragePropertiesIdenticalExceptText": true,
+    "numbersParser": "4.19.0",
+    "protobuf": "7.36.2",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176"
+  },
+  "receivingApplicationPdfVerified": true,
+  "limits": [
+    "OfficeIMO-authored and Apple-saved source; no arbitrary independent-producer coverage.",
+    "Selected one-page Pages15.4 Arial12 decimal body profile; wider typography/pagination remain open.",
+    "Composed PDFs use explicit portable-font substitution; no native typography equivalence claim.",
+    "Native resave updates application metadata; exact preservation applies before resave."
+  ]
+}

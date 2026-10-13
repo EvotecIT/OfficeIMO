@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
@@ -121,6 +122,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 }));
             cancellationToken.ThrowIfCancellationRequested();
 
+            string outputSha256 = System.Convert.ToHexString(SHA256.HashData(artifact.Bytes)).ToLowerInvariant();
             Report(progress, validated.Id, "publish", "Publishing the validated artifact", 0.9D);
             inputs.Dispose();
             cancellationToken.ThrowIfCancellationRequested();
@@ -135,12 +137,13 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 return new OfficeWorkflowResult(validated.Id, validated.Operation, outcome.Status,
                     outcome.Status is OfficeWorkflowStatus.Completed or OfficeWorkflowStatus.Cancelled ? OfficeWorkflowFailureKind.None : OfficeWorkflowFailureKind.OutputFailed,
                     outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
-                    inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, artifact.HealthReport, outcome.Recovery, artifact.SignatureReport, artifact.ConversionEvidence);
+                    inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, artifact.HealthReport, outcome.Recovery, artifact.SignatureReport, artifact.ConversionEvidence,
+                    outcome.Status == OfficeWorkflowStatus.Completed ? outputSha256 : null);
             }
             string publishedPath = await PublishAsync(stagingPath, validated.OutputPath!, validated.ConflictPolicy,
                 validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
-            long outputBytes = new FileInfo(publishedPath).Length;
+            long outputBytes = artifact.Bytes.LongLength;
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "AtomicPublication",
                 "The artifact was staged in the destination directory and published with one filesystem move.",
@@ -155,7 +158,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 artifact.Summary,
                 diagnostics,
-                artifact.HealthReport, artifact.SignatureReport, artifact.ConversionEvidence);
+                artifact.HealthReport, artifact.SignatureReport, artifact.ConversionEvidence, outputSha256);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
             OfficeWorkflowConversionEvidence? cancelledConversionEvidence = (error as WorkflowConversionCancellationException)?.Evidence
                 ?? artifact?.ConversionEvidence;
@@ -179,6 +182,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 "Cancelled",
                 diagnostics,
+                healthReport: artifact?.HealthReport,
+                signatureReport: artifact?.SignatureReport,
                 conversionEvidence: cancelledConversionEvidence);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
@@ -207,6 +212,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 "Workflow failed: " + ex.Message,
                 diagnostics,
+                healthReport: artifact?.HealthReport,
+                signatureReport: artifact?.SignatureReport,
                 conversionEvidence: failedConversionEvidence);
         } finally {
             if (stagingPath is not null) TryDelete(stagingPath);
@@ -666,7 +673,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics,
         PdfHealthReport? report,
         PdfSignatureValidationReport? signatureReport = null,
-        OfficeWorkflowConversionEvidence? conversionEvidence = null) => new(
+        OfficeWorkflowConversionEvidence? conversionEvidence = null,
+        string? outputSha256 = null) => new(
             request.Id,
             request.Operation,
             status,
@@ -677,7 +685,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             duration,
             summary,
             diagnostics,
-            report, signatureReport: signatureReport, conversionEvidence: conversionEvidence);
+            report, signatureReport: signatureReport, conversionEvidence: conversionEvidence, outputSha256: outputSha256);
 
     private static void Report(IProgress<OfficeWorkflowProgress>? progress, string id, string stage, string message, double fraction) {
         try {

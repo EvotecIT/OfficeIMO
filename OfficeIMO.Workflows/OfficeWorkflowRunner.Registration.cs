@@ -43,8 +43,11 @@ public sealed partial class OfficeWorkflowRunner {
             details: new Dictionary<string, string> { ["route"] = request.Route.Id, ["engine"] = request.Route.Engine,
                 ["knownLimitations"] = request.Route.KnownLimitations }));
         try {
+            byte[] bytes = output.ToArray();
+            if (request.ConversionOptions?.CompressPdfOutput == true)
+                bytes = CompressConvertedPdfOutput(bytes, request, diagnostics, token);
             token.ThrowIfCancellationRequested();
-            return new OperationArtifact(output.ToArray(), request.Route.Label + (evidence.HasLoss
+            return new OperationArtifact(bytes, request.Route.Label + (evidence.HasLoss
                 ? " completed with fidelity warnings; review the structured diagnostics."
                 : " completed and the output reopened successfully."), null, ConversionEvidence: evidence);
         } catch (OperationCanceledException exception) when (token.IsCancellationRequested) {

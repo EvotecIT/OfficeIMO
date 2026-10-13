@@ -1,0 +1,829 @@
+{
+  "source": "numbers-created-formats-v14.5.numbers",
+  "sha256": "639566a8dab685ffe30c39450fcb1c555404e5d994fbad3bc0a28d2f408ec9b5",
+  "bytes": 30500,
+  "descriptor_sha256": "d5e97836e04ffffe2145b6bd93aa01a0c3fa4af420a0f82ae9d3c8019844d45e",
+  "numbers_parser_version": "4.19.0",
+  "required_fields_complete": true,
+  "references_complete": true,
+  "deterministic_zip_profile": true,
+  "records": 50,
+  "objects": [
+    {
+      "id": 1,
+      "type": 1,
+      "schema": "TN.DocumentArchive",
+      "references": [
+        3,
+        4,
+        5,
+        6,
+        9,
+        10,
+        32
+      ]
+    },
+    {
+      "id": 3,
+      "type": 205,
+      "schema": "TSK.TreeNode",
+      "references": [
+        33
+      ]
+    },
+    {
+      "id": 4,
+      "type": 12009,
+      "schema": "TN.ThemeArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        46
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "schema": "TSS.StylesheetArchive",
+      "references": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        17,
+        36,
+        37,
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "id": 6,
+      "type": 4000,
+      "schema": "TSCE.CalculationEngineArchive",
+      "references": [
+        7
+      ]
+    },
+    {
+      "id": 7,
+      "type": 4003,
+      "schema": "TSCE.NamedReferenceManagerArchive",
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 4004,
+      "schema": "TSCE.TrackedReferenceStoreArchive",
+      "references": []
+    },
+    {
+      "id": 9,
+      "type": 222,
+      "schema": "TSK.CustomFormatListArchive",
+      "references": []
+    },
+    {
+      "id": 10,
+      "type": 601,
+      "schema": "TSA.FunctionBrowserStateArchive",
+      "references": []
+    },
+    {
+      "id": 11,
+      "type": 12050,
+      "schema": "TN.SheetStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2021,
+      "schema": "TSWP.CharacterStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 13,
+      "type": 2022,
+      "schema": "TSWP.ParagraphStyleArchive",
+      "references": [
+        5,
+        14
+      ]
+    },
+    {
+      "id": 14,
+      "type": 2023,
+      "schema": "TSWP.ListStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2025,
+      "schema": "TSWP.ShapeStyleArchive",
+      "references": [
+        5,
+        13
+      ]
+    },
+    {
+      "id": 16,
+      "type": 2050,
+      "schema": "TSWP.TextStylePresetArchive",
+      "references": [
+        13,
+        14
+      ]
+    },
+    {
+      "id": 17,
+      "type": 3016,
+      "schema": "TSD.MediaStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 32,
+      "type": 2,
+      "schema": "TN.SheetArchive",
+      "references": [
+        11,
+        34,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64
+      ]
+    },
+    {
+      "id": 33,
+      "type": 205,
+      "schema": "TSK.TreeNode",
+      "references": [
+        32,
+        58
+      ]
+    },
+    {
+      "id": 34,
+      "type": 6000,
+      "schema": "TST.TableInfoArchive",
+      "references": [
+        32,
+        35
+      ]
+    },
+    {
+      "id": 35,
+      "type": 6001,
+      "schema": "TST.TableModelArchive",
+      "references": [
+        36,
+        37,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57
+      ]
+    },
+    {
+      "id": 36,
+      "type": 6003,
+      "schema": "TST.TableStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 37,
+      "type": 6004,
+      "schema": "TST.CellStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 38,
+      "type": 2021,
+      "schema": "TSWP.CharacterStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 39,
+      "type": 2022,
+      "schema": "TSWP.ParagraphStyleArchive",
+      "references": [
+        5,
+        14
+      ]
+    },
+    {
+      "id": 40,
+      "type": 2025,
+      "schema": "TSWP.ShapeStyleArchive",
+      "references": [
+        5,
+        39
+      ]
+    },
+    {
+      "id": 41,
+      "type": 6006,
+      "schema": "TST.HeaderStorageBucket",
+      "references": []
+    },
+    {
+      "id": 42,
+      "type": 6006,
+      "schema": "TST.HeaderStorageBucket",
+      "references": []
+    },
+    {
+      "id": 43,
+      "type": 6002,
+      "schema": "TST.Tile",
+      "references": []
+    },
+    {
+      "id": 44,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 45,
+      "type": 6247,
+      "schema": "TST.TableStyleNetworkArchive",
+      "references": [
+        36,
+        37,
+        39,
+        40
+      ]
+    },
+    {
+      "id": 46,
+      "type": 6008,
+      "schema": "TST.TableStylePresetArchive",
+      "references": [
+        45
+      ]
+    },
+    {
+      "id": 47,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 48,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 49,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 50,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 51,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 52,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 53,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 54,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 55,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 56,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 57,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 58,
+      "type": 205,
+      "schema": "TSK.TreeNode",
+      "references": [
+        34
+      ]
+    },
+    {
+      "id": 59,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 60,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 61,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 62,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 63,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 64,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "schema": "TSP.PackageMetadata",
+      "references": []
+    }
+  ],
+  "sheets": [
+    {
+      "name": "Formats",
+      "table_ids": [
+        35
+      ],
+      "hidden_header_footer_storages_complete": true
+    }
+  ],
+  "native_tables": [
+    {
+      "id": 35,
+      "name": "Formats",
+      "rows": 20,
+      "columns": 2,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "kind": "Text",
+          "value": "Explicit numeric formats"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "kind": "Text",
+          "value": "Numeric values"
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "kind": "Text",
+          "value": "Number zero"
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "kind": "Number",
+          "value": 12.5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 0,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 3,
+          "column": 1,
+          "kind": "Text",
+          "value": "Number two"
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "kind": "Number",
+          "value": 12.5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 4,
+          "column": 1,
+          "kind": "Text",
+          "value": "Grouping"
+        },
+        {
+          "row": 4,
+          "column": 2,
+          "kind": "Number",
+          "value": 1234.5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 5,
+          "column": 1,
+          "kind": "Text",
+          "value": "Minus"
+        },
+        {
+          "row": 5,
+          "column": 2,
+          "kind": "Number",
+          "value": -1234.5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 6,
+          "column": 1,
+          "kind": "Text",
+          "value": "Parentheses"
+        },
+        {
+          "row": 6,
+          "column": 2,
+          "kind": "Number",
+          "value": -1234.5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 2,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 7,
+          "column": 1,
+          "kind": "Text",
+          "value": "Red"
+        },
+        {
+          "row": 7,
+          "column": 2,
+          "kind": "Number",
+          "value": -1234.5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 1,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 8,
+          "column": 1,
+          "kind": "Text",
+          "value": "Red parentheses"
+        },
+        {
+          "row": 8,
+          "column": 2,
+          "kind": "Number",
+          "value": -1234.5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 2,
+            "negativeStyle": 3,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 9,
+          "column": 1,
+          "kind": "Text",
+          "value": "Number fifteen"
+        },
+        {
+          "row": 9,
+          "column": 2,
+          "kind": "Number",
+          "value": 0.5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 15,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 10,
+          "column": 1,
+          "kind": "Text",
+          "value": "Number thirty"
+        },
+        {
+          "row": 10,
+          "column": 2,
+          "kind": "Number",
+          "value": 0.5,
+          "numberFormat": {
+            "kind": "Number",
+            "decimalPlaces": 30,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 11,
+          "column": 1,
+          "kind": "Text",
+          "value": "Percent zero"
+        },
+        {
+          "row": 11,
+          "column": 2,
+          "kind": "Number",
+          "value": 0.125,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 0,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 12,
+          "column": 1,
+          "kind": "Text",
+          "value": "Percent two"
+        },
+        {
+          "row": 12,
+          "column": 2,
+          "kind": "Number",
+          "value": 0.125,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 13,
+          "column": 1,
+          "kind": "Text",
+          "value": "Percent grouping"
+        },
+        {
+          "row": 13,
+          "column": 2,
+          "kind": "Number",
+          "value": 12.345,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": true
+          }
+        },
+        {
+          "row": 14,
+          "column": 1,
+          "kind": "Text",
+          "value": "Percent parentheses"
+        },
+        {
+          "row": 14,
+          "column": 2,
+          "kind": "Number",
+          "value": -0.125,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 2,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 15,
+          "column": 1,
+          "kind": "Text",
+          "value": "Percent red"
+        },
+        {
+          "row": 15,
+          "column": 2,
+          "kind": "Number",
+          "value": -0.125,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 1,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 16,
+          "column": 1,
+          "kind": "Text",
+          "value": "Percent red parentheses"
+        },
+        {
+          "row": 16,
+          "column": 2,
+          "kind": "Number",
+          "value": -0.125,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 2,
+            "negativeStyle": 3,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 17,
+          "column": 1,
+          "kind": "Text",
+          "value": "Percent thirty"
+        },
+        {
+          "row": 17,
+          "column": 2,
+          "kind": "Number",
+          "value": 0.5,
+          "numberFormat": {
+            "kind": "Percentage",
+            "decimalPlaces": 30,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 18,
+          "column": 1,
+          "kind": "Text",
+          "value": "Scientific zero"
+        },
+        {
+          "row": 18,
+          "column": 2,
+          "kind": "Number",
+          "value": 12345.0,
+          "numberFormat": {
+            "kind": "Scientific",
+            "decimalPlaces": 0,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 19,
+          "column": 1,
+          "kind": "Text",
+          "value": "Scientific four"
+        },
+        {
+          "row": 19,
+          "column": 2,
+          "kind": "Number",
+          "value": 12345.0,
+          "numberFormat": {
+            "kind": "Scientific",
+            "decimalPlaces": 4,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        },
+        {
+          "row": 20,
+          "column": 1,
+          "kind": "Text",
+          "value": "Scientific thirty"
+        },
+        {
+          "row": 20,
+          "column": 2,
+          "kind": "Number",
+          "value": 0.5,
+          "numberFormat": {
+            "kind": "Scientific",
+            "decimalPlaces": 30,
+            "negativeStyle": 0,
+            "thousandsSeparator": false
+          }
+        }
+      ],
+      "row_offsets_and_counts_complete": true,
+      "style_preset_network_complete": true,
+      "bodyCellPaddingPoints": 4,
+      "bodyCellVerticalAlignment": "Top"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "sourceRevision": "81bfd72c5df7f27a70360faa5d8f4688dc44932c",
+  "nativeSourceSha256": "c74495f1952adb4b0ce431f2fc72ec311d7c7cf9ae770696699c7aa4df7bfb83",
+  "nativePages": "15.4 (7051.0.79)",
+  "cycle": "Original native->OfficeIMO DOCX->Apple-saved native->OfficeIMO strict DOCX->Pages PDF",
+  "wordBounds": 55,
+  "maximumNativeWordBoundsDeltaPoints": 0.0,
+  "markerCount": 13,
+  "markerPoints": 11,
+  "files": {
+    "pages-list-marker-size-reconverted.docx": {
+      "sha256": "92ef6b6912c9592f2731a319c403f2489d3746b1ad34c7f7fb78922867293030",
+      "bytes": 20621
+    },
+    "pages-list-marker-size-reconverted-native.pdf": {
+      "sha256": "cc8e573f028409291e4ab054055808d2f4c0dbc403f4994c5bed489b66a92d81",
+      "bytes": 34612
+    },
+    "pages-list-marker-size-reconverted-open-v15.4.png": {
+      "sha256": "d449b61e889a683dfd936b33c7009316f6860ccc59ef7832a87aa8a7d605f367",
+      "bytes": 71662
+    }
+  },
+  "nativeImportScreenshotInspected": true,
+  "ownedAppClosed": true,
+  "reproduction": "Strictly convert the Apple-saved pages-list-marker-size-roundtrip-v15.4.pages through WordIWorkConverter; import its saved DOCX into Pages15.4 and export the complete PDF. Reuse verify-pages-marker-size-roundtrip.py verify_docx, pdf_markers and word_bounds against pages-list-continuation-v15.4.pdf.",
+  "completeNativePdfPageInspected": true
+}

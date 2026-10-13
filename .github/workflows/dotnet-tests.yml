@@ -2044,11 +2044,9 @@ jobs:
           fi
           echo "macOS test matrix passed."
 
-  aot-trim-analyzers:
-    name: 'AOT/Trim analyzers'
+  aot-managed-analyzers:
+    name: 'Managed AOT/Trim analyzers'
     runs-on: ubuntu-latest
-    # The full isolated production matrix reaches its final tool publish near
-    # 50 minutes on cold runners; retain room for that publish and evidence upload.
     timeout-minutes: 90
     steps:
       - name: Checkout code
@@ -2099,23 +2097,137 @@ jobs:
           dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
           dotnet build OfficeIMO.Studio/OfficeIMO.Studio.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
 
-      - name: Publish and run supported NativeAOT scenarios
-        shell: pwsh
+  aot-linux-scenarios:
+    name: 'NativeAOT Linux / ${{ matrix.group }}'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [libraries, iwork, surfaces]
+    env:
+      DOTNET_PROCESSOR_COUNT: 2
+      MSBUILDDISABLENODEREUSE: 1
+      DOTNET_CLI_USE_MSBUILD_SERVER: 0
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Report Linux native build resources
         run: |
-          ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
-          ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -JsonOutputPath ./artifacts/aot/linux-x64.json
+          free -h
+          df -h "$RUNNER_TEMP"
+          if [ -f /sys/fs/cgroup/memory.events ]; then cat /sys/fs/cgroup/memory.events; fi
+
+      - name: Reserve swap for composed iWork native compilation
+        if: matrix.group == 'iwork'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The .NET 8 whole-program compiler also allocates outside its GC heap.
+          # Keep the hosted runner responsive without changing the native profile.
+          native_swap_file="$(mktemp "$RUNNER_TEMP/officeimo-aot-swap.XXXXXXXX")"
+          printf 'OFFICEIMO_NATIVE_SWAP_FILE=%s\n' "$native_swap_file" >> "$GITHUB_ENV"
+          fallocate -l 16G "$native_swap_file"
+          mkswap "$native_swap_file"
+          sudo swapon "$native_swap_file"
+          free -h
+
+      - name: Publish and run supported NativeAOT scenarios
+        shell: bash
+        run: |
+          # Each group starts on a fresh runner, separate from managed analysis.
+          sample_resources() {
+            local sample_sleep_pid=''
+            trap 'if [ -n "$sample_sleep_pid" ]; then kill "$sample_sleep_pid" 2>/dev/null || true; wait "$sample_sleep_pid" 2>/dev/null || true; fi; exit 0' TERM
+            while true; do
+              date -u '+Native build resources %Y-%m-%dT%H:%M:%SZ'
+              free -m
+              ps -eo pid,ppid,rss,comm --sort=-rss | sed -n '1,8p'
+              if [ -f /sys/fs/cgroup/memory.events ]; then cat /sys/fs/cgroup/memory.events; fi
+              sleep 30 & sample_sleep_pid=$!
+              wait "$sample_sleep_pid"
+            done
+          }
+          sample_resources & native_sampler_pid=$!
+          trap 'kill "$native_sampler_pid" 2>/dev/null || true; wait "$native_sampler_pid" 2>/dev/null || true' EXIT
+          pwsh -NoProfile -File ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
+          pwsh -NoProfile -File ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration '${{ env.BUILD_CONFIGURATION }}' -ScenarioGroup '${{ matrix.group }}' -JsonOutputPath './artifacts/aot/linux-x64-${{ matrix.group }}.json'
+
+      - name: Report final Linux native build resources
+        if: always()
+        run: |
+          free -h
+          df -h "$RUNNER_TEMP"
+          if [ -f /sys/fs/cgroup/memory.events ]; then cat /sys/fs/cgroup/memory.events; fi
+
+      - name: Release composed native build swap
+        if: always() && matrix.group == 'iwork'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${OFFICEIMO_NATIVE_SWAP_FILE:-}" ]; then
+            case "$OFFICEIMO_NATIVE_SWAP_FILE" in
+              "$RUNNER_TEMP"/officeimo-aot-swap.*) ;;
+              *) echo 'Unexpected native swap path'; exit 1 ;;
+            esac
+            if [ ! -f "$OFFICEIMO_NATIVE_SWAP_FILE" ] || [ -L "$OFFICEIMO_NATIVE_SWAP_FILE" ]; then
+              echo 'Native swap path is not a regular file'; exit 1
+            fi
+            active_swaps="$(swapon --show=NAME --noheadings --raw)"
+            while IFS= read -r active_swap; do
+              # Raw NAME output hex-escapes blanks, backslashes and control bytes.
+              if [ "$(printf '%b_' "$active_swap")" = "${OFFICEIMO_NATIVE_SWAP_FILE}_" ]; then
+                sudo swapoff "$OFFICEIMO_NATIVE_SWAP_FILE"
+                break
+              fi
+            done <<< "$active_swaps"
+            rm -- "$OFFICEIMO_NATIVE_SWAP_FILE"
+          fi
 
       - name: Upload Linux NativeAOT evidence
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nativeaot-linux-x64
+          name: nativeaot-linux-x64-${{ matrix.group }}
           path: artifacts/aot/*.json
 
-  aot-windows:
-    name: 'NativeAOT Windows'
+  aot-trim-analyzers:
+    name: 'AOT/Trim analyzers'
+    runs-on: ubuntu-latest
+    needs: [aot-managed-analyzers, aot-linux-scenarios]
+    if: always()
+    steps:
+      - name: Require managed analysis and every Linux native group
+        run: |
+          if [ "${{ needs.aot-managed-analyzers.result }}" != "success" ] || [ "${{ needs.aot-linux-scenarios.result }}" != "success" ]; then
+            echo "Managed analysis: ${{ needs.aot-managed-analyzers.result }}; Linux native groups: ${{ needs.aot-linux-scenarios.result }}"
+            exit 1
+          fi
+
+  aot-windows-scenarios:
+    name: 'NativeAOT Windows / ${{ matrix.group }}'
     runs-on: windows-latest
-    # Cold production-matrix runs reach the final tool publish near 50 minutes.
+    # The previous serialized matrix reached profile 17 at the 90-minute limit.
+    # These groups retain every profile with a separate budget and fresh runner.
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [libraries, iwork, surfaces]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -2137,13 +2249,27 @@ jobs:
         shell: pwsh
         run: |
           ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
-          ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier win-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -JsonOutputPath ./artifacts/aot/win-x64.json
+          ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier win-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -ScenarioGroup '${{ matrix.group }}' -JsonOutputPath './artifacts/aot/win-x64-${{ matrix.group }}.json'
 
       - name: Upload Windows NativeAOT evidence
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nativeaot-win-x64
+          name: nativeaot-win-x64-${{ matrix.group }}
           path: artifacts/aot/*.json
+
+  aot-windows:
+    name: 'NativeAOT Windows'
+    runs-on: ubuntu-latest
+    needs: aot-windows-scenarios
+    if: always()
+    steps:
+      - name: Require every Windows native group
+        run: |
+          if [ "${{ needs.aot-windows-scenarios.result }}" != "success" ]; then
+            echo "Windows native groups: ${{ needs.aot-windows-scenarios.result }}"
+            exit 1
+          fi
 
   dbf-contracts:
     name: 'DBF contracts / ${{ matrix.os }} / ${{ matrix.framework }}'

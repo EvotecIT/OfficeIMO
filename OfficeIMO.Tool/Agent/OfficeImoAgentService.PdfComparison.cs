@@ -13,11 +13,11 @@ internal sealed partial class OfficeImoAgentService {
             MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes
         };
         actualSettings.Validate();
-        string input = ResolvePdfInput(_registry.Resolve(sourceId, cancellationToken).Path);
-        string actual = ResolvePdfInput(_registry.Resolve(comparisonSourceId, cancellationToken).Path);
+        string input = ResolveRegisteredPdfInput(sourceId, cancellationToken);
+        string actual = ResolveRegisteredPdfInput(comparisonSourceId, cancellationToken);
         void VerifySources(CancellationToken token) {
-            _ = ResolvePdfInput(_registry.Resolve(sourceId, token).Path);
-            _ = ResolvePdfInput(_registry.Resolve(comparisonSourceId, token).Path);
+            _ = ResolveRegisteredPdfInput(sourceId, token);
+            _ = ResolveRegisteredPdfInput(comparisonSourceId, token);
         }
         OfficeWorkflowStreamInput Source(string path) => new(Path.GetFileName(path), token => {
             VerifySources(token);
@@ -35,5 +35,11 @@ internal sealed partial class OfficeImoAgentService {
         return PdfResult("compare", result.Status, result.FailureKind, result.OutputPath, result.OutputBytes,
             result.OutputPath is null ? [] : [new AgentPdfArtifact { Path = result.OutputPath, SizeBytes = result.OutputBytes }],
             result.Diagnostics, maxOutputCharacters, summary: result.Summary);
+    }
+
+    private string ResolveRegisteredPdfInput(string sourceId, CancellationToken token) {
+        // Authorize and check the type before registry resolution can read content.
+        string input = ResolvePdfInput(_registry.GetRegisteredPath(sourceId));
+        return ResolvePdfInput(_registry.Resolve(sourceId, input, token).Path);
     }
 }

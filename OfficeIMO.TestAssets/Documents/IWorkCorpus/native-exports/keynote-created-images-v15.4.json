@@ -1,0 +1,183 @@
+{
+  "title": "Native Keynote PNG and JPEG creation",
+  "recordedUtc": "2026-10-09T18:57:52.381677+00:00",
+  "license": "Newly authored OfficeIMO documents and evidence use the repository MIT license. No seed package or standalone font files are distributed.",
+  "producer": {
+    "application": "Keynote Creator Studio",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "operatingSystem": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "creation": {
+    "canvasPoints": [
+      960,
+      540
+    ],
+    "slides": 3,
+    "textBoxes": 7,
+    "images": 3,
+    "pixelSize": [
+      96,
+      64
+    ],
+    "formats": [
+      "PNG opaque",
+      "PNG alpha0/128/255",
+      "JPEG"
+    ],
+    "geometryPoints": [
+      [
+        60,
+        110,
+        480,
+        320
+      ],
+      [
+        60,
+        120,
+        480,
+        320
+      ],
+      [
+        60,
+        120,
+        600,
+        240
+      ]
+    ],
+    "stacking": "Combined insertion order; first slide includes text behind and in front of image",
+    "description": "Native accessibility descriptions, including a non-BMP emoji",
+    "fonts": [
+      "Helvetica Neue",
+      "Arial",
+      "Times New Roman"
+    ]
+  },
+  "files": [
+    {
+      "path": "native-exports/keynote-created-images-v15.4.key",
+      "sha256": "5523dbe029b9a508d2bf3e3ad1a54c6266ac6c3bddf8f23d6051fcc5f1e2f765",
+      "bytes": 13399,
+      "role": "OfficeIMO template-free image creation"
+    },
+    {
+      "path": "native-exports/keynote-created-images-edited-v15.4.key",
+      "sha256": "c0bc70026c2c977fde0879f37849c14cd819dc055a3cd7f95e97cac789828a17",
+      "bytes": 95250,
+      "role": "Keynote JPEG X60 to80 edit; saved, closed and reopened"
+    },
+    {
+      "path": "native-exports/keynote-created-images-v15.4.pptx",
+      "sha256": "926c71063d8aa008e8b6b898c3acd0ddf5f6de33bf54dd27e91719291b5ea428",
+      "bytes": 17500,
+      "role": "Native PPTX before edit"
+    },
+    {
+      "path": "native-exports/keynote-created-images-v15.4.pdf",
+      "sha256": "1d92439383662e831460af1ca714590a63042203fbf812f9863405992f0d25a5",
+      "bytes": 51562,
+      "role": "Native best-quality PDF; all three slides"
+    },
+    {
+      "path": "native-exports/keynote-created-images-pixels-v15.4.json",
+      "sha256": "95cfcd37b12c1eaad2a98bd33d01b4d316287e529a4bcb9b13cbeccaafaad8a9",
+      "bytes": 16285,
+      "role": "Pillow/PPTX XML/pypdf image and geometry evidence"
+    },
+    {
+      "path": "native-exports/keynote-created-images-v15.4-slide1.png",
+      "sha256": "1b3e0c50dcbc6a9b5b8ad120a3a3059bec828c6fb4dcddf4e5731b153872bdcd",
+      "bytes": 16597,
+      "role": "Inspected native PDF page1 rendered by Poppler at1200px"
+    },
+    {
+      "path": "native-exports/keynote-created-images-v15.4-slide2.png",
+      "sha256": "3aec362993b3f61a865fcf82521ed1010ac3fa5556a62b540a375f93423151c6",
+      "bytes": 18063,
+      "role": "Inspected native PDF page2 rendered by Poppler at1200px"
+    },
+    {
+      "path": "native-exports/keynote-created-images-v15.4-slide3.png",
+      "sha256": "9cedada3ec80c51db94b36606b96b117dbd873eb9f87ac9c46034686b348eb33",
+      "bytes": 15477,
+      "role": "Inspected native PDF page3 rendered by Poppler at1200px"
+    },
+    {
+      "path": "native-exports/keynote-created-images-opaque.png",
+      "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+      "bytes": 225,
+      "role": "Fixed encoded image input for same-model runtime qualification"
+    },
+    {
+      "path": "native-exports/keynote-created-images-alpha.png",
+      "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+      "bytes": 220,
+      "role": "Fixed encoded image input for same-model runtime qualification"
+    },
+    {
+      "path": "native-exports/keynote-created-images-jpeg.jpg",
+      "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+      "bytes": 862,
+      "role": "Fixed encoded image input for same-model runtime qualification"
+    }
+  ],
+  "independentDecode": {
+    "schemaSource": "https://github.com/orcastor/iwork-converter",
+    "schemaCommit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schemaLicense": "MIT, Steve Dunham",
+    "descriptorSha256": "2c46d6ee3eaf4d8419d0cc8329b74776f69517c1e14de0571e0434e29c4fc216",
+    "numbersParserVersion": "4.19.0",
+    "records": 62,
+    "requiredFieldsComplete": true,
+    "objectAndDataReferencesComplete": true,
+    "imageDataAttributesExtension": 100,
+    "reservedMetadataIdentitiesExcluded": [
+      71,
+      72
+    ],
+    "deterministicZipProfile": true
+  },
+  "nativeAcceptance": {
+    "openedWithoutRepair": true,
+    "allThreeSlidesVisuallyInspected": true,
+    "PDFPages": 3,
+    "PPTXSlides": 3,
+    "exportedImagePayloadsUnchanged": true,
+    "exportedImageFramesStackingAndDescriptionsMatch": true,
+    "nativeEdit": "JPEG X60 to80 points",
+    "savedClosedReopened": true,
+    "editedSourceAndStrictSavedPPTXRetainEdit": true,
+    "ownedApplicationClosed": true
+  },
+  "reproduction": "Generate ImageExample in IWorkKeynoteImageWritingTests. Decode with verify-keynote-creation.py and the pinned descriptor. Open in Keynote 15.4, export PDF at best quality with all slides and optional content/password off, and PPTX without a password. Save As a separate native package, move the third-slide JPEG X 60 to 80, save, close and reopen. Compare PPTX picture payloads, descriptions, complete object order and geometry independently.",
+  "boundaries": [
+    "Fixed unmasked image frames fill the full image, stretching when aspect ratios differ. Crops, masks, rotations and adjustments are not authored.",
+    "Direct OfficeIMO PDF retains all three pages, visible text, images, frames and stacking in this fixture. Default-policy font substitutions remain explicit; native text-layout equivalence is unqualified.",
+    "Other application versions, image codecs, fonts, scripts, layout combinations, tables and loaded-source save-back remain unqualified.",
+    "PNG encoders can produce different valid compressed bytes across runtimes; deterministic native qualification uses identical encoded inputs, not separately re-encoded pixels."
+  ],
+  "directPdfQualification": {
+    "sourceRevision": "d96a7548be27cd632a5368397e3e1eb753efbc2c",
+    "pages": 3,
+    "allPagesVisuallyInspected": true,
+    "completeExtractedTextUnchanged": true,
+    "textOverflowDiagnostics": 0,
+    "fontSubstitutions": [
+      "Helvetica Neue to Helvetica",
+      "Arial to Helvetica",
+      "Times New Roman to TimesRoman"
+    ],
+    "regression": "empty trailing paragraphs do not report clipped visible content; displaced visible text retains clipping diagnostics in text boxes and table cells"
+  },
+  "nativeAotQualification": {
+    "evidence": "../../../../Docs/Compatibility/iwork-keynote-creation-native-aot-macos-arm64-2026-10-09.json",
+    "runtimeIdentifier": "osx-arm64",
+    "runtimeVersions": [
+      "8.0.31",
+      "10.0.12"
+    ],
+    "nativeExecutionPassed": true,
+    "imagePackageSha256": "5523dbe029b9a508d2bf3e3ad1a54c6266ac6c3bddf8f23d6051fcc5f1e2f765"
+  }
+}

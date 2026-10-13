@@ -21,7 +21,7 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         PreservedRecordCount = preservedRecordCount;
         ReconstructedItemCount = reconstructedItemCount;
         SourceUnits = Array.AsReadOnly((sourceUnits ?? Array.Empty<IWorkSourceUnit>()).ToArray());
-        SourceUnitCounts = Array.AsReadOnly(((IWorkSourceUnitKind[])Enum.GetValues(typeof(IWorkSourceUnitKind)))
+        SourceUnitCounts = Array.AsReadOnly(global::OfficeIMO.Internal.EnumCompat.GetValues<IWorkSourceUnitKind>()
             .Select(kind => new IWorkSourceUnitCount(kind, SourceUnits)).ToArray());
         FormulaCells = Array.AsReadOnly((formulaCells ?? Array.Empty<IWorkFormulaCellStatus>()).ToArray());
         FormulaSummary = new IWorkFormulaSummary(FormulaCells);

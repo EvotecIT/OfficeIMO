@@ -80,7 +80,7 @@ internal sealed partial class OfficeImoAgentService {
                 Ocr = options, PageSelector = settings.Selector(), ConflictPolicy = settings.ConflictPolicy,
                 Limits = settings.Limits(), PublicationGuard = new PdfRootPublicationGuard(_pathPolicy, [input])
             }, engine, cancellationToken).ConfigureAwait(false);
-            long bytes = result.OutputPath is null ? 0 : new FileInfo(result.OutputPath).Length;
+            long bytes = result.OutputBytes;
             return PdfResult("ocr", result.Status, OfficeWorkflowFailureKind.None, result.OutputPath, bytes,
                 result.OutputPath is null ? [] : [new AgentPdfArtifact { Path = result.OutputPath, SizeBytes = bytes }],
                 result.Diagnostics, maxOutputCharacters, result.AddedWordCount);

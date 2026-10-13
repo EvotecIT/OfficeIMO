@@ -15,10 +15,10 @@ namespace OfficeIMO.Excel {
 
         private bool TryResolveFormulaArgumentNumbers(string token, out List<double> numbers, ref int remainingCellBudget) {
             numbers = new List<double>();
-            if (TryResolveFormulaRange(token, out var values, ref remainingCellBudget)) {
+            if (TryResolveFormulaRange(token, out var values, ref remainingCellBudget, out bool isReference)) {
                 foreach (var value in values) {
                     // Keep positional series numeric-only; dropping entries here would misalign paired ranges.
-                    if (!value.IsNumericAggregateValue) {
+                    if (!value.IsNumericAggregateValue || !IsFinite(value.Number!.Value)) {
                         return false;
                     }
 
@@ -27,8 +27,9 @@ namespace OfficeIMO.Excel {
 
                 return true;
             }
+            if (isReference) return false;
 
-            if (!TryEvaluateFormulaOrNumeric(token, out double numeric)) {
+            if (!TryEvaluateFormulaOrNumeric(token, out double numeric) || !IsFinite(numeric)) {
                 return false;
             }
 
@@ -36,8 +37,9 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TryEvaluateMultiCriteriaAggregate(string function, string args, out double result) {
+        private bool TryEvaluateMultiCriteriaAggregate(string function, string args, out double result, out FormulaArgumentValue error) {
             result = 0;
+            error = default;
             var tokens = SplitFormulaArguments(args);
             bool countOnly = function == "COUNTIFS";
             if (countOnly) {
@@ -65,12 +67,15 @@ namespace OfficeIMO.Excel {
 
                 if (expectedCount < 0) {
                     expectedCount = criteriaValues.Count;
-                } else if (criteriaValues.Count != expectedCount) {
+                } else if (criteriaValues.Count != expectedCount && !_formulaReferenceError.IsError) {
                     return false;
                 }
 
                 criteriaSets.Add((criteriaValues, criteria));
             }
+            if ((aggregateValues?.Any(value => value.IsUnresolvedFormula) ?? false)
+                || criteriaSets.Any(set => set.Values.Any(value => value.IsUnresolvedFormula))) return false;
+            if (_formulaReferenceError.IsError) return true;
 
             var matched = new List<FormulaArgumentValue>();
             for (int rowIndex = 0; rowIndex < expectedCount; rowIndex++) {
@@ -92,6 +97,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            // Qualify every input before publishing a selected operand error.
+            // Numeric filtering must not turn an error into an empty or partial aggregate.
+            error = matched.FirstOrDefault(value => value.IsError);
+            if (error.IsError) return false;
+
             var numbers = matched.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "SUMIFS") {
                 result = numbers.Sum();
@@ -99,6 +109,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (numbers.Count == 0) {
+                if (function == "AVERAGEIFS") error = FormulaArgumentValue.Error("#DIV/0!");
+                else if (matched.Count == 0 && (function == "MINIFS" || function == "MAXIFS")) return true;
                 return false;
             }
 
@@ -247,52 +259,20 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TryResolveFormulaRange(string token, out List<FormulaArgumentValue> values) {
-            int remainingCellBudget = MaxResolvedFormulaRangeCells;
-            return TryResolveFormulaRange(token, out values, ref remainingCellBudget);
-        }
-
-        private bool TryResolveFormulaRange(string token, out List<FormulaArgumentValue> values, ref int remainingCellBudget) {
-            values = new List<FormulaArgumentValue>();
-            if (!TryResolveFormulaRangeReference(token, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2)) {
-                return false;
-            }
-
-            if (!TryGetFormulaRangeCellCount(r1, c1, r2, c2, out int cellCount) || cellCount > remainingCellBudget) {
-                return false;
-            }
-
-            remainingCellBudget -= cellCount;
-            values = new List<FormulaArgumentValue>(cellCount);
-            for (int row = r1; row <= r2; row++) {
-                for (int column = c1; column <= c2; column++) {
-                    values.Add(ResolveFormulaDependency(sheet, row, column));
-                }
-            }
-
-            return true;
-        }
-
-        private static bool TryGetFormulaRangeCellCount(int r1, int c1, int r2, int c2, out int cellCount) {
-            cellCount = 0;
-            long rowCount = (long)r2 - r1 + 1;
-            long columnCount = (long)c2 - c1 + 1;
-            long totalCells = rowCount * columnCount;
-            if (rowCount <= 0 || columnCount <= 0 || totalCells > MaxResolvedFormulaRangeCells) {
-                return false;
-            }
-
-            cellCount = (int)totalCells;
-            return true;
-        }
-
         private bool TryParseCriteria(string token, out FormulaCriteria criteria) {
             string value = token.Trim();
 
-            if (TryResolveFormulaArgument(value, out FormulaArgumentValue criteriaValue) && !criteriaValue.IsUnresolvedFormula && criteriaValue.HasValue) {
+            if (!TryResolveFormulaArgument(value, out FormulaArgumentValue criteriaValue)
+                || criteriaValue.IsUnresolvedFormula) {
+                criteria = default;
+                return false;
+            }
+            if (criteriaValue.IsError) {
+                criteria = new FormulaCriteria("=", string.Empty, null, criteriaValue.ErrorCode);
+                return true;
+            }
+            if (criteriaValue.HasValue) {
                 value = FormulaValueToText(criteriaValue);
-            } else if (value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"') {
-                value = value.Substring(1, value.Length - 2);
             }
 
             string op = "=";
@@ -310,10 +290,17 @@ namespace OfficeIMO.Excel {
                 : (double?)null;
 
             criteria = new FormulaCriteria(op, value, number);
-            return value.Length > 0 || op == "=";
+            return value.Length > 0 || op == "=" || op == "<>";
         }
 
         private static bool MatchesCriteria(FormulaArgumentValue value, FormulaCriteria criteria) {
+            if (criteria.ErrorCode != null) {
+                return value.IsError && string.Equals(value.ErrorCode, criteria.ErrorCode, StringComparison.Ordinal);
+            }
+            // Error cells are distinct from ordinary text, including a literal "#N/A".
+            // They satisfy an ordinary not-equal criterion, but no text/numeric ordering or wildcard.
+            if (value.IsError) return criteria.Operator == "<>";
+
             if (criteria.Number.HasValue && value.Number.HasValue) {
                 double left = value.Number.Value;
                 double right = criteria.Number.Value;
