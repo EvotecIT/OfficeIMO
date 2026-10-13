@@ -13,11 +13,23 @@ internal static partial class PdfWriter {
         private bool runningFirstBodyAllowsExactOverflow;
 
         // Imported exact-height body lines retain their authored baseline even
-        // beyond the bottom margin. Admit only one line on an empty page;
-        // columns, decorated containers and running stories keep their bounds.
+        // beyond the bottom margin. Admit only one line on an empty page or
+        // column; decorated containers and running stories keep their bounds.
         private bool CanOverflowImportedExactLine(PdfParagraphStyle? style) =>
-            !isRunningContent && activeColumnFlow == null && activeContainerScopes.Count == 0 &&
+            !isRunningContent && activeContainerScopes.Count == 0 &&
             style?.LineSpacing?.FixedLineBoxBaselineOffset != null;
+
+        private bool CanOverflowImportedExactFirstBlock(IPdfBlock block) {
+            if (block is MultiColumnBlock columns) {
+                foreach (IPdfBlock child in ExpandTransparentMeasurementBlocks(columns.Blocks)) {
+                    if (IsNonVisualFlowMarker(child) || child is ColumnBreakBlock ||
+                        child is SpacerBlock { Height: <= .001D }) continue;
+                    return child is RichParagraphBlock paragraph && CanOverflowImportedExactLine(EffectiveParagraphStyle(paragraph));
+                }
+                return false;
+            }
+            return block is RichParagraphBlock exactParagraph && CanOverflowImportedExactLine(EffectiveParagraphStyle(exactParagraph));
+        }
 
         // A paragraph continuation can reclaim an optional imported header's
         // exclusion. Preserve footer and active-container reservations.
@@ -216,8 +228,7 @@ internal static partial class PdfWriter {
                         firstVisualFooterOverlapHeight = MeasureParagraphFirstVisual(paragraph, frameX, frameWidth,
                             source.DefaultFontSize, suppressSpacingBefore: true, closingPadding: paragraphClosingPadding,
                             reserveSingleLine: true).Height;
-                    firstVisualAllowsExactOverflow = block is RichParagraphBlock exactParagraph &&
-                        CanOverflowImportedExactLine(EffectiveParagraphStyle(exactParagraph));
+                    firstVisualAllowsExactOverflow = CanOverflowImportedExactFirstBlock(block);
                     return height;
                 }
                 return null;
