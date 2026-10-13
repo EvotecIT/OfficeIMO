@@ -1147,7 +1147,7 @@
     <value>English is the neutral fallback. The en-XA expansion locale is available for clipping and hard-coded-text testing.</value>
   </data>
   <data name="Settings.LocalizationContract" xml:space="preserve">
-    <value>English, Polish, German and French interface translations are available. Other language packs are admitted after translation review.</value>
+    <value>Choose an interface language in Settings. Each available language pack has complete, reviewed translations.</value>
   </data>
   <data name="Settings.DiagnosticsPrivacyNotice" xml:space="preserve">
     <value>Local diagnostics record application areas, stable event codes, runtime metadata, and sanitized stack traces. They exclude document contents, document names, document paths, and exception messages.</value>

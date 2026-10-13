@@ -1177,7 +1177,7 @@
     <value>L'anglais sert de langue de repli neutre. La variante d'expansion en-XA permet de tester les textes tronqués et les textes codés en dur.</value>
   </data>
   <data name="Settings.LocalizationContract" xml:space="preserve">
-    <value>Les traductions de l'interface en anglais, polonais, allemand et français sont disponibles. Les autres packs linguistiques sont admis après révision de leur traduction.</value>
+    <value>Choisissez la langue de l’interface dans les paramètres. Chaque langue disponible dispose de traductions complètes et vérifiées.</value>
   </data>
   <data name="Settings.DiagnosticsPrivacyNotice" xml:space="preserve">
     <value>Les diagnostics locaux enregistrent les zones de l'application, des codes d'événements stables, des métadonnées d'exécution et des traces de pile assainies. Ils excluent le contenu, le nom et le chemin des documents, ainsi que les messages d'exception.</value>

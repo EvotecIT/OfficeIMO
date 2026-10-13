@@ -158,7 +158,7 @@ Use **Settings → Text recognition setup** to check the installed engine and it
 
 ## Language, accessibility, and local data
 
-Studio stores versioned user preferences under the operating system's local application-data directory. English, Polish, German and French are available in the language settings picker. English is the fallback interface language. Additional culture names are reserved for future reviewed packs. The `en-XA` expansion locale exposes clipped controls, hard-coded strings and layouts that cannot accommodate longer translations. Right-to-left languages mirror the windows, menus and dialogs, while PDF pages, scans, signatures and images keep their own direction.
+Studio stores versioned user preferences under the operating system's local application-data directory. English, Polish, German, French, Spanish, Italian and Brazilian Portuguese are available in the language settings picker. English is the fallback interface language. Additional culture names are reserved for future reviewed packs. The `en-XA` expansion locale exposes clipped controls, hard-coded strings and layouts that cannot accommodate longer translations. Right-to-left languages mirror the windows, menus and dialogs, while PDF pages, scans, signatures and images keep their own direction.
 
 User-facing XAML, dialogs, file pickers, and capability notices resolve stable, feature-scoped resource keys through `IStudioLocalizer`. Document engines remain culture-neutral. A new language adds satellite resources, the same language in the native Apple apps' String Catalogs, and a shipped catalog entry, rather than branching view models or document operations by language; the export, import and check scripts in `Build/Studio` do this for both apps.
 

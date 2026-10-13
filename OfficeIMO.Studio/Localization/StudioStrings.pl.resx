@@ -1177,7 +1177,7 @@
     <value>Angielski jest neutralnym językiem zapasowym. Wariant en-XA z wydłużonymi tekstami służy do wykrywania obciętych elementów i tekstów wpisanych na stałe.</value>
   </data>
   <data name="Settings.LocalizationContract" xml:space="preserve">
-    <value>Dostępne są tłumaczenia interfejsu na angielski, polski, niemiecki i francuski. Pozostałe pakiety językowe są dopuszczane po sprawdzeniu tłumaczeń.</value>
+    <value>Wybierz język interfejsu w ustawieniach. Każdy dostępny pakiet językowy ma kompletne, sprawdzone tłumaczenia.</value>
   </data>
   <data name="Settings.DiagnosticsPrivacyNotice" xml:space="preserve">
     <value>Lokalna diagnostyka zapisuje obszary aplikacji, stałe kody zdarzeń, metadane środowiska i oczyszczone ślady stosu. Pomija treść, nazwy i ścieżki dokumentów oraz komunikaty wyjątków.</value>

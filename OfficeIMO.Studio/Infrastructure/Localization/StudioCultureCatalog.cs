@@ -11,7 +11,7 @@ internal static class StudioCultureCatalog {
 
     // The languages the picker offers, each with complete StudioStrings.<name>.resx resources and the matching Apple
     // String Catalog translations. Build/Studio/Import-StudioTranslations.ps1 adds a language here with its strings.
-    private static readonly string[] ShippedCultures = ["en", "pl", "de", "fr"];
+    private static readonly string[] ShippedCultures = ["en", "pl", "de", "fr", "es", "it", "pt-BR"];
 
     // Culture names reserved for future packs. They are accepted in preferences but not offered until shipped.
     private static readonly string[] ReservedCultures = [

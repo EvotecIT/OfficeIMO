@@ -34,7 +34,7 @@ The `Shared` folder is synchronized with both targets, so new files need no proj
 | `Shared/Journey`, `Shared/Measurement` | The engine journey and the measurements for unattended runs. |
 | `Measurements` | The measurement documents' generator and the runner for the Mac and an iPad simulator. |
 
-`Shared/Localizable.xcstrings`, `InfoPlist.xcstrings` and `AppShortcuts.xcstrings` hold the app's strings in English, Polish, German and French for both targets, reusing the wording of OfficeIMO Studio's [own translations](../../OfficeIMO.Studio/Localization) where the two apps share a term. Xcode adds new strings to `Localizable.xcstrings` when it builds. From the command line, build both targets and sync the catalog with the extracted strings:
+`Shared/Localizable.xcstrings`, `InfoPlist.xcstrings` and `AppShortcuts.xcstrings` hold the app's strings in English, Polish, German, French, Spanish, Italian and Brazilian Portuguese for both targets, reusing the wording of OfficeIMO Studio's [own translations](../../OfficeIMO.Studio/Localization) where the two apps share a term. Xcode adds new strings to `Localizable.xcstrings` when it builds. From the command line, build both targets and sync the catalog with the extracted strings:
 
 ```sh
 xcrun xcstringstool sync Shared/Localizable.xcstrings --stringsdata <derived data>/Build/Intermediates.noindex/OfficeIMOStudio.build/*/*.build/Objects-normal/arm64/*.stringsdata

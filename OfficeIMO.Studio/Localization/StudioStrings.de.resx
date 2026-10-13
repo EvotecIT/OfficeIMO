@@ -1177,7 +1177,7 @@
     <value>Englisch ist die neutrale Rückfallsprache. Die erweiterte Testlokalisierung en-XA ist für Prüfungen auf abgeschnittene und fest einprogrammierte Texte verfügbar.</value>
   </data>
   <data name="Settings.LocalizationContract" xml:space="preserve">
-    <value>Die Oberfläche ist auf Englisch, Polnisch, Deutsch und Französisch verfügbar. Weitere Sprachpakete werden nach Prüfung der Übersetzung freigegeben.</value>
+    <value>Wählen Sie die Sprache der Benutzeroberfläche in den Einstellungen. Jedes verfügbare Sprachpaket enthält vollständige, geprüfte Übersetzungen.</value>
   </data>
   <data name="Settings.DiagnosticsPrivacyNotice" xml:space="preserve">
     <value>Lokale Diagnosen erfassen Anwendungsbereiche, stabile Ereigniscodes, Laufzeitmetadaten und bereinigte Stapelüberwachungen. Dokumentinhalte, Dokumentnamen, Dokumentpfade und Ausnahmemeldungen werden ausgeschlossen.</value>
