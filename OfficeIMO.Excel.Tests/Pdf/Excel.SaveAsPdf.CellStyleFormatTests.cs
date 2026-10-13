@@ -160,7 +160,7 @@ public partial class Excel {
 
         PdfCore.PdfConversionWarning warning = Assert.Single(
             result.Warnings,
-            item => item.Code == "WorksheetFontFamilySubstituted");
+            item => item.Code == "WorksheetFontFamilySubstituted" && item.Details["fontFamily"] == unavailableFamily);
         Assert.Equal("Fonts", warning.Source);
         Assert.Equal("FontUnavailable", warning.Details["substitutionReason"]);
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());

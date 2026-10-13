@@ -17,12 +17,14 @@ namespace OfficeIMO.Word {
             OfficeImageExportConsumer consumer,
             CancellationToken cancellationToken = default) {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+            using IDisposable storyScope = WordHeaderFooterResolutionSnapshot.Begin(document, cancellationToken);
             using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
                 WordDocumentTraversal.BuildListMarkersForRendering(document, cancellationToken);
             IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(
                 document,
                 cancellationToken,
-                options.CancellationCheckpoint);
+                options.CancellationCheckpoint,
+                options);
             (int firstPage, int count) = ResolveBatchPageRange(options, sectionPageCounts);
             int[] pages = Enumerable.Range(firstPage, count).ToArray();
             var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
@@ -49,12 +51,14 @@ namespace OfficeIMO.Word {
             WordImageExportOptions options,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
+            using IDisposable storyScope = WordHeaderFooterResolutionSnapshot.Begin(document, cancellationToken);
             using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
                 WordDocumentTraversal.BuildListMarkersForRendering(document, cancellationToken);
             IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(
                 document,
                 cancellationToken,
-                options.CancellationCheckpoint);
+                options.CancellationCheckpoint,
+                options);
             (int firstPage, int count) = ResolveBatchPageRange(options, sectionPageCounts);
             if (count > options.MaximumOutputCount) {
                 throw new InvalidOperationException(

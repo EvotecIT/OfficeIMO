@@ -22,20 +22,27 @@ public static class IWorkWorkflow {
         return Array.AsReadOnly(new[] {
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("pages-docx", (input, output, limits, settings, token) => {
                 using PagesToWordResult result = WordIWorkConverter.ConvertPagesToWordResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
-                result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
-                return Evidence(result.Report);
+                return SaveWithEvidence(result.Report, () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("numbers-xlsx", (input, output, limits, settings, token) => {
                 using NumbersToExcelResult result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
-                result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
-                return Evidence(result.Report);
+                return SaveWithEvidence(result.Report, () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("keynote-pptx", (input, output, limits, settings, token) => {
                 using KeynoteToPowerPointResult result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
-                result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
-                return Evidence(result.Report);
+                return SaveWithEvidence(result.Report, () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits))
         });
+    }
+
+    private static OfficeWorkflowConversionEvidence SaveWithEvidence(IWorkConversionReport report, Action save) {
+        OfficeWorkflowConversionEvidence evidence = Evidence(report);
+        try {
+            save();
+            return evidence;
+        } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
+            throw new OfficeConversionException(exception.Message, evidence, exception);
+        }
     }
 
     private static OfficeWorkflowStreamInput DirectoryInput(string path, IWorkReadOptions reading, OfficeWorkflowLimits limits) {

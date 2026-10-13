@@ -4,7 +4,9 @@ description: "Get started with PSWriteOffice, the PowerShell module that exposes
 date: 2025-06-15
 tags: [powershell, pswriteoffice, automation]
 categories: [Tutorial]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 ---
 
 Not every document automation task warrants a full C# project. Sometimes you just need to generate an Excel summary from a CSV or spin up a Word letter from a template, and you want to do it in a short PowerShell script. **PSWriteOffice** is a good fit for that kind of workflow.

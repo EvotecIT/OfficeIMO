@@ -11,9 +11,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int MaximumCellSlots = 1_048_576;
         internal const byte DateKind = 5;
         private readonly int _cellSlots;
+        private int _initialTextCapacity;
         private byte[] _kinds = Array.Empty<byte>();
         private ulong[] _payloads = Array.Empty<ulong>();
         private string?[]? _texts;
+        private int _textCount;
 
         private XlsbDirectTabularPlan(int rowCount, int columnCount, bool sharedStrings) {
             RowCount = rowCount;
@@ -28,7 +30,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal uint DateStyle { get; private set; }
         internal byte KindAt(int slot) => _kinds[slot];
         internal ulong PayloadAt(int slot) => _payloads[slot];
-        internal string TextAt(int slot) => _texts![slot]!;
+        internal string TextAt(int slot) => _texts![checked((int)_payloads[slot])]!;
 
         /// <summary>Large tables retain the existing staged worksheet route.</summary>
         internal static bool CanCapture(ExcelDirectTabularSource source) =>
@@ -52,6 +54,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             var candidate = new XlsbDirectTabularPlan(totalRows, rows.ColumnCount, sharedStrings != null);
             bool captured = false;
             try {
+                if (sharedStrings == null) {
+                    candidate._initialTextCapacity = candidate.EstimateInitialTextCapacity(source, cancellationToken);
+                }
                 if (candidate._cellSlots != 0) {
                     candidate._kinds = ArrayPool<byte>.Shared.Rent(candidate._cellSlots);
                     candidate._payloads = ArrayPool<ulong>.Shared.Rent(candidate._cellSlots);
@@ -115,15 +120,48 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
+        private int EstimateInitialTextCapacity(ExcelDirectTabularSource source, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!source.PreserveMissingValues) return _cellSlots;
+            int textColumns = 0;
+            for (int column = 0; column < ColumnCount; column++) {
+                if ((column & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                Type? columnType = source.Rows.GetColumnType(column);
+                if (columnType == null) return _cellSlots;
+                columnType = Nullable.GetUnderlyingType(columnType) ?? columnType;
+                TypeCode typeCode = Type.GetTypeCode(columnType);
+                if (typeCode == TypeCode.String) textColumns++;
+                else if (typeCode == TypeCode.Object) return _cellSlots;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            // Metadata only guides the first rent. Capture still uses actual
+            // values and grows when a mutable source exceeds this estimate.
+            return checked((source.IncludeHeaders ? ColumnCount : 0) + source.Rows.RowCount * textColumns);
+        }
+
         private void CaptureText(int slot, string text, XlsbSharedStringTable? sharedStrings) {
             CoerceValueHelper.ValidateSharedStringLength(text, nameof(text));
             _kinds[slot] = (byte)ExcelDirectTabularValueKind.Text;
             if (sharedStrings != null) {
                 _payloads[slot] = checked((ulong)sharedStrings.GetOrAdd(text));
             } else {
-                _texts ??= ArrayPool<string?>.Shared.Rent(_cellSlots);
-                _texts[slot] = text;
+                if (_texts == null || _textCount == _texts.Length) GrowTextBuffer();
+                // Inline text needs no numeric payload, so its slot can address a
+                // compact reference array instead of reserving one per cell.
+                _payloads[slot] = checked((ulong)_textCount);
+                _texts![_textCount++] = text;
             }
+        }
+
+        private void GrowTextBuffer() {
+            int capacity = _texts == null ? Math.Min(Math.Max(1, _initialTextCapacity), _cellSlots)
+                : Math.Min(checked(_texts.Length * 2), _cellSlots);
+            string?[] expanded = ArrayPool<string?>.Shared.Rent(capacity);
+            if (_texts != null) {
+                Array.Copy(_texts, expanded, _textCount);
+                ArrayPool<string?>.Shared.Return(_texts, clearArray: true);
+            }
+            _texts = expanded;
         }
 
         public void Dispose() {
@@ -133,6 +171,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             _kinds = Array.Empty<byte>();
             _payloads = Array.Empty<ulong>();
             _texts = null;
+            _textCount = 0;
             if (kinds.Length != 0) ArrayPool<byte>.Shared.Return(kinds, clearArray: true);
             if (payloads.Length != 0) ArrayPool<ulong>.Shared.Return(payloads, clearArray: true);
             if (texts != null) ArrayPool<string?>.Shared.Return(texts, clearArray: true);

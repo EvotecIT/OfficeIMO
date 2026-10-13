@@ -4,7 +4,9 @@ description: "A step-by-step tutorial showing how to create professional Word do
 date: 2025-02-10
 tags: [word, docx, getting-started]
 categories: [Tutorial]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 ---
 
 One of the first practical questions teams ask is whether they can generate Word documents on a server without installing Office. With **OfficeIMO.Word**, the answer is yes for standard Open XML `.docx` workflows, and the basic document assembly path is quite small.

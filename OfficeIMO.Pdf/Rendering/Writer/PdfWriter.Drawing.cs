@@ -201,9 +201,12 @@ internal static partial class PdfWriter {
         bool hasFill,
         bool hasStroke) {
         OfficeIMO.Drawing.OfficeShape shape = source;
-        if (source.Transform.HasValue) {
+        if (source.Transform.HasValue || RequiresExactStrokeWriter(source)) {
             shape = source.Clone();
+            shape.Transform ??= OfficeIMO.Drawing.OfficeTransform.Identity;
             shape.StrokeWidth = strokeWidth;
+            shape.StrokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid;
+            shape.SetStrokeDashArray(null);
             shape.ClipPath = null;
             DrawTransformedShape(sb, shape, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, null, x, bottomY);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line) {
@@ -332,111 +335,53 @@ internal static partial class PdfWriter {
             .CubicTo(cx + ox, cy - ry, cx + rx, cy - oy, cx + rx, cy);
     }
 
-    private static void AppendPathCommands(ContentStreamBuilder content, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double h) {
-        OfficeIMO.Drawing.OfficePoint current = default;
-        bool hasCurrent = false;
+    private static void AppendPathCommands(ContentStreamBuilder content,
+        System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double h) =>
+        AppendPathCommandsCore(content, commands, x, y + h, -1);
+
+    private static void AppendLocalPathCommands(ContentStreamBuilder content,
+        System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands) =>
+        AppendPathCommandsCore(content, commands, 0, 0, 1);
+
+    private static void AppendPathCommandsCore(ContentStreamBuilder content,
+        System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double yScale) {
+        OfficeIMO.Drawing.OfficePoint current = default, start = default;
+        bool hasCurrent = false, subpathHasDraw = false;
         for (int i = 0; i < commands.Count; i++) {
             var command = commands[i];
             switch (command.Kind) {
                 case OfficeIMO.Drawing.OfficePathCommandKind.MoveTo:
-                    if (i > 0) {
-                        content.PathSeparator();
-                    }
-
-                    content.MoveTo(x + command.Point.X, y + h - command.Point.Y);
-                    current = command.Point;
-                    hasCurrent = true;
+                    if (i > 0) content.PathSeparator();
+                    content.MoveTo(x + command.Point.X, y + yScale * command.Point.Y);
+                    current = start = command.Point; hasCurrent = true; subpathHasDraw = false;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.LineTo:
-                    content.LineTo(x + command.Point.X, y + h - command.Point.Y);
-                    current = command.Point;
+                    content.LineTo(x + command.Point.X, y + yScale * command.Point.Y);
+                    current = command.Point; subpathHasDraw = true;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.QuadraticBezierTo:
                     if (!hasCurrent) {
-                        content.MoveTo(x + command.Point.X, y + h - command.Point.Y);
-                        current = command.Point;
-                        hasCurrent = true;
+                        content.MoveTo(x + command.Point.X, y + yScale * command.Point.Y);
+                        current = start = command.Point; hasCurrent = true;
                         break;
                     }
-
-                    OfficeIMO.Drawing.OfficePoint cubic1 = ConvertQuadraticControlPoint(current, command.ControlPoint1);
-                    OfficeIMO.Drawing.OfficePoint cubic2 = ConvertQuadraticControlPoint(command.Point, command.ControlPoint1);
-                    content.CubicTo(
-                        x + cubic1.X,
-                        y + h - cubic1.Y,
-                        x + cubic2.X,
-                        y + h - cubic2.Y,
-                        x + command.Point.X,
-                        y + h - command.Point.Y);
-                    current = command.Point;
+                    OfficeIMO.Drawing.OfficePoint first = ConvertQuadraticControlPoint(current, command.ControlPoint1);
+                    OfficeIMO.Drawing.OfficePoint second = ConvertQuadraticControlPoint(command.Point, command.ControlPoint1);
+                    content.CubicTo(x + first.X, y + yScale * first.Y, x + second.X, y + yScale * second.Y,
+                        x + command.Point.X, y + yScale * command.Point.Y);
+                    current = command.Point; subpathHasDraw = true;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.CubicBezierTo:
-                    content.CubicTo(
-                        x + command.ControlPoint1.X,
-                        y + h - command.ControlPoint1.Y,
-                        x + command.ControlPoint2.X,
-                        y + h - command.ControlPoint2.Y,
-                        x + command.Point.X,
-                        y + h - command.Point.Y);
-                    current = command.Point;
+                    content.CubicTo(x + command.ControlPoint1.X, y + yScale * command.ControlPoint1.Y,
+                        x + command.ControlPoint2.X, y + yScale * command.ControlPoint2.Y,
+                        x + command.Point.X, y + yScale * command.Point.Y);
+                    current = command.Point; subpathHasDraw = true;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.Close:
-                    content.ClosePath();
-                    break;
-            }
-        }
-    }
-
-    private static void AppendLocalPathCommands(ContentStreamBuilder content, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands) {
-        OfficeIMO.Drawing.OfficePoint current = default;
-        bool hasCurrent = false;
-        for (int i = 0; i < commands.Count; i++) {
-            var command = commands[i];
-            switch (command.Kind) {
-                case OfficeIMO.Drawing.OfficePathCommandKind.MoveTo:
-                    if (i > 0) {
-                        content.PathSeparator();
-                    }
-
-                    content.MoveTo(command.Point.X, command.Point.Y);
-                    current = command.Point;
-                    hasCurrent = true;
-                    break;
-                case OfficeIMO.Drawing.OfficePathCommandKind.LineTo:
-                    content.LineTo(command.Point.X, command.Point.Y);
-                    current = command.Point;
-                    break;
-                case OfficeIMO.Drawing.OfficePathCommandKind.QuadraticBezierTo:
-                    if (!hasCurrent) {
-                        content.MoveTo(command.Point.X, command.Point.Y);
-                        current = command.Point;
-                        hasCurrent = true;
-                        break;
-                    }
-
-                    OfficeIMO.Drawing.OfficePoint localCubic1 = ConvertQuadraticControlPoint(current, command.ControlPoint1);
-                    OfficeIMO.Drawing.OfficePoint localCubic2 = ConvertQuadraticControlPoint(command.Point, command.ControlPoint1);
-                    content.CubicTo(
-                        localCubic1.X,
-                        localCubic1.Y,
-                        localCubic2.X,
-                        localCubic2.Y,
-                        command.Point.X,
-                        command.Point.Y);
-                    current = command.Point;
-                    break;
-                case OfficeIMO.Drawing.OfficePathCommandKind.CubicBezierTo:
-                    content.CubicTo(
-                        command.ControlPoint1.X,
-                        command.ControlPoint1.Y,
-                        command.ControlPoint2.X,
-                        command.ControlPoint2.Y,
-                        command.Point.X,
-                        command.Point.Y);
-                    current = command.Point;
-                    break;
-                case OfficeIMO.Drawing.OfficePathCommandKind.Close:
-                    content.ClosePath();
+                    // A closed single-point PDF subpath paints a dot with round caps.
+                    // Keep no-draw contours empty, preserving actual zero-length lines.
+                    if (subpathHasDraw) content.ClosePath();
+                    current = start; subpathHasDraw = false;
                     break;
             }
         }
@@ -566,6 +511,7 @@ internal static partial class PdfWriter {
     private static bool RequiresExactStrokeWriter(OfficeIMO.Drawing.OfficeShape shape) =>
         shape.StrokeDashArray.Count > 0
         || Math.Abs(shape.StrokeDashOffset) > 0.000000000001D
+        || shape.StrokeLineJoin == OfficeIMO.Drawing.OfficeStrokeLineJoin.Miter
         || Math.Abs(shape.StrokeMiterLimit - 4D) > 0.000000000001D;
 
     private static void AppendShapeClipPath(StringBuilder sb, OfficeIMO.Drawing.OfficeShape shape, double x, double y) {
@@ -751,26 +697,10 @@ internal static partial class PdfWriter {
     }
 
     private static void ApplyStrokeDashStyle(ContentStreamBuilder content, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double strokeWidth, bool hasExplicitLineCap) {
-        double unit = Math.Max(0.1, strokeWidth);
-        switch (dashStyle) {
-            case OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash:
-                content.StrokeDash(unit * 3, unit * 1.5);
-                break;
-            case OfficeIMO.Drawing.OfficeStrokeDashStyle.Dot:
-                if (!hasExplicitLineCap) {
-                    content.LineCap(1);
-                }
-
-                content.StrokeDash(unit, unit * 1.5);
-                break;
-            case OfficeIMO.Drawing.OfficeStrokeDashStyle.DashDot:
-                if (!hasExplicitLineCap) {
-                    content.LineCap(1);
-                }
-
-                content.StrokeDash(unit * 3, unit * 1.5, unit, unit * 1.5);
-                break;
-        }
+        if (!hasExplicitLineCap && PdfPresetLineCap(dashStyle) == OfficeIMO.Drawing.OfficeStrokeLineCap.Round)
+            content.LineCap(1);
+        var pattern = PdfPresetDashPattern(dashStyle, strokeWidth);
+        if (pattern != null) content.StrokeDash(pattern, 0D);
     }
 
     private static int LineCapValue(OfficeIMO.Drawing.OfficeStrokeLineCap lineCap) {
