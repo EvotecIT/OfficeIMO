@@ -354,6 +354,13 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
 
         foreach (var required in new[] { "cmap", "glyf", "head", "hhea", "hmtx", "loca", "maxp" }) if (!tables.ContainsKey(required)) return null;
+        // Advance-width reads must stay inside the declared tables, including fonts
+        // whose directory is valid but whose long horizontal metrics are truncated.
+        if (tableLengths["head"] < 54 || tableLengths["hhea"] < 36 || tableLengths["maxp"] < 6) return null;
+        int glyphCount = ReadUInt16(data, tables["maxp"] + 4);
+        int metricCount = ReadUInt16(data, tables["hhea"] + 34);
+        if (glyphCount == 0 || metricCount == 0 || metricCount > glyphCount
+            || tableLengths["hmtx"] < metricCount * 4) return null;
         return new OfficeTrueTypeFont(data, tables, tableLengths, collectionIndex, variationModel);
     }
 

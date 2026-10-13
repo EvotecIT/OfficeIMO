@@ -18,6 +18,9 @@ internal static class OneNoteCabinetArchiveWriter {
                 if (entry.Data.LongLength > uint.MaxValue || folderData.Length > uint.MaxValue - entry.Data.LongLength) {
                     throw new IOException("The uncompressed OneNote package exceeds the Cabinet folder limit.");
                 }
+                if (Encoding.UTF8.GetByteCount(name) > 256) {
+                    throw new OneNoteFormatException("ONENOTE_CAB_ENTRY_NAME", "A CAB member name exceeds 256 encoded UTF-8 bytes.");
+                }
                 byte[] encodedName = Encoding.UTF8.GetBytes(name.Replace('/', '\\'));
                 WriteUInt32(fileTable, (uint)entry.Data.Length);
                 WriteUInt32(fileTable, (uint)folderData.Length);
