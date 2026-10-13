@@ -39,6 +39,7 @@ namespace OfficeIMO.Word.Pdf {
 
         internal bool HasExplicitPdfFontConfiguration =>
             _pdfOptions != null
+            && _pdfOptions.HasDocumentFontConfiguration
             && (!_renderingProfileFontConfigurationState.HasValue
                 || _pdfOptions.FontConfigurationState
                     != _renderingProfileFontConfigurationState.Value
@@ -48,9 +49,8 @@ namespace OfficeIMO.Word.Pdf {
 
         internal bool HasExplicitPdfDefaultFontSizeConfiguration =>
             _pdfOptions != null
-            && (!_renderingProfileDefaultFontSizeAssignmentVersion.HasValue
-                || _pdfOptions.DefaultFontSizeAssignmentVersion
-                    != _renderingProfileDefaultFontSizeAssignmentVersion.Value);
+            && _pdfOptions.DefaultFontSizeAssignmentVersion
+                != (_renderingProfileDefaultFontSizeAssignmentVersion ?? 0L);
 
         /// <summary>
         /// Optional Word-style font family used as the first-party PDF default font. When the resource policy allows system fonts, an installed family is embedded; otherwise it maps to the nearest PDF standard font.

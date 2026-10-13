@@ -16,6 +16,8 @@ public sealed partial class PdfReadPage {
         string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
             PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources);
+            if (!invokedResources.HasVectorPaint && !invokedResources.HasObjectPaint &&
+                !HasIndirectPaintResources(pageResources)) return (0, 0);
             CollectVisualPrimitivesAndForms(
                 content,
                 pageResources,
