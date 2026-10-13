@@ -294,7 +294,7 @@ namespace OfficeIMO.PowerPoint {
                 encryptedBytes, password, cancellationToken,
                 ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
-            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>Asynchronously loads a password-encrypted presentation into detached memory.</summary>
@@ -337,7 +337,7 @@ namespace OfficeIMO.PowerPoint {
                 encryptedBytes, password, cancellationToken,
                 ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
-            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>Asynchronously loads a password-encrypted presentation stream into detached memory.</summary>
@@ -369,7 +369,7 @@ namespace OfficeIMO.PowerPoint {
                 encryptedBytes, password, cancellationToken,
                 ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
-            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>Loads a password-encrypted presentation stream into detached memory.</summary>
@@ -408,7 +408,7 @@ namespace OfficeIMO.PowerPoint {
                 encryptedBytes, password, cancellationToken,
                 ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
-            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         private static void ThrowIfUnencryptedLegacyBinary(
@@ -423,7 +423,8 @@ namespace OfficeIMO.PowerPoint {
             byte[] bytes,
             string? filePath,
             Stream? sourceStream,
-            PowerPointLoadOptions options) {
+            PowerPointLoadOptions options,
+            bool captureSourcePackageSecurity = true) {
             ValidatePackageSecurity(bytes, options);
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "presentation");
             bool editable = options.AccessMode == DocumentAccessMode.ReadWrite;
@@ -451,7 +452,7 @@ namespace OfficeIMO.PowerPoint {
                     presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
                 }
                 presentation.MarkLoadedFromOpenXml(bytes);
-                return WithSourcePackageInspection(presentation, bytes, options);
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(presentation, bytes, options) : presentation;
             } catch {
                 packageStream.Dispose();
                 throw;

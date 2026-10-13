@@ -481,7 +481,7 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             using var decryptedSource = new MemoryStream(packageBytes, writable: false);
-            return WithSourcePackageInspection(Load(decryptedSource, resolved), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadFromStream(decryptedSource, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>
@@ -502,7 +502,7 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             using var decryptedSource = new MemoryStream(packageBytes, writable: false);
-            return WithSourcePackageInspection(Load(decryptedSource, resolved), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadFromStream(decryptedSource, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         private static void EnsureEncryptedLoadUsesExplicitPersistence(WordLoadOptions options) {
@@ -616,7 +616,11 @@ namespace OfficeIMO.Word {
         /// <param name="stream">Readable source. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
         /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <returns></returns>
-        public static WordDocument Load(Stream stream, WordLoadOptions? options = null) {
+        public static WordDocument Load(Stream stream, WordLoadOptions? options = null) =>
+            LoadFromStream(stream, options, captureSourcePackageSecurity: true);
+
+        private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
+            bool captureSourcePackageSecurity) {
             if (stream == null) {
                 throw new ArgumentNullException(nameof(stream));
             }
@@ -634,7 +638,8 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
-                return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly), sourceBytes, resolved);
+                WordDocument document = LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
             }
 
             MemoryStream packageStream = CreateLegacyValidationPackageStream(
@@ -672,7 +677,7 @@ namespace OfficeIMO.Word {
 
                 WordChart.InitializeAxisIdSeed(wordDocument);
                 WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
-                return WithSourcePackageInspection(document, sourceBytes, resolved);
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
             } catch {
                 packageStream.Dispose();
                 throw;

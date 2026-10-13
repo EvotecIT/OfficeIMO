@@ -86,9 +86,9 @@ namespace OfficeIMO.PowerPoint {
             };
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes,
                 importOptions, cancellationToken);
-            return ProjectLoadedLegacyPpt(legacy, sourcePath: null,
+            return WithSourcePackageInspection(ProjectLoadedLegacyPpt(legacy, sourcePath: null,
                 sourceFormat, options,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken), bytes, options, "encrypted-source-container");
         }
 
         internal static PowerPointPresentation ProjectLoadedLegacyPpt(LegacyPptPresentation legacy,
@@ -170,7 +170,7 @@ namespace OfficeIMO.PowerPoint {
                     packageBytes, loadOptions);
             }
             PowerPointPresentation presentation = LoadPackage(packageBytes,
-                sourcePath, sourceStream, loadOptions);
+                sourcePath, sourceStream, loadOptions, captureSourcePackageSecurity: false);
             try {
                 cancellationToken.ThrowIfCancellationRequested();
             } catch {

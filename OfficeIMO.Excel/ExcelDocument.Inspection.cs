@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel {
                                         ? formulaText
                                         : cell.CellFormula?.Text,
                                     StoredFormula = cell.CellFormula?.Text,
-                                    FormulaKind = cell.CellFormula?.FormulaType?.InnerText ?? "normal",
+                                    FormulaKind = cell.CellFormula == null ? null : cell.CellFormula.FormulaType?.InnerText ?? "normal",
                                     HasStoredValue = cell.CellValue != null,
                                     StoredValue = cell.CellValue?.Text,
                                     StoredValueType = cell.DataType?.InnerText ?? "n",

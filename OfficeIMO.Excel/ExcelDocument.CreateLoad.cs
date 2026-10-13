@@ -232,7 +232,8 @@ namespace OfficeIMO.Excel {
             ExcelLoadOptions options,
             string? filePath,
             Stream? originalStream = null,
-            bool leaveOriginalStreamOpen = true) {
+            bool leaveOriginalStreamOpen = true,
+            bool captureSourcePackageSecurity = true) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "workbook");
@@ -253,12 +254,14 @@ namespace OfficeIMO.Excel {
 
             ExcelFileFormat detectedFormat = ExcelDocumentLoadRouting.DetectFormat(bytes, filePath);
             if (detectedFormat == ExcelFileFormat.Xls) {
-                return WithSourcePackageInspection(LoadLegacyXlsFromNormalFlow(
-                    bytes, readOnly, saveOnDispose, filePath, CreateLegacyImportOptions(options)), bytes, options);
+                ExcelDocument document = LoadLegacyXlsFromNormalFlow(
+                    bytes, readOnly, saveOnDispose, filePath, CreateLegacyImportOptions(options));
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(document, bytes, options) : document;
             }
 
             if (detectedFormat == ExcelFileFormat.Xlsb) {
-                return WithSourcePackageInspection(LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions), bytes, options);
+                ExcelDocument document = LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions);
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(document, bytes, options) : document;
             }
 
             var effectiveOpenSettings = CreateOpenSettings(options.OpenSettings);
@@ -297,7 +300,7 @@ namespace OfficeIMO.Excel {
                 document._openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(bytes)
                     ? (byte[])bytes.Clone()
                     : null;
-                return WithSourcePackageInspection(document, bytes, options);
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(document, bytes, options) : document;
             } catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException) {
                 normalizedStream?.Dispose();
                 var contextMessage = filePath != null
@@ -476,7 +479,7 @@ namespace OfficeIMO.Excel {
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>
@@ -525,7 +528,7 @@ namespace OfficeIMO.Excel {
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>
@@ -610,7 +613,7 @@ namespace OfficeIMO.Excel {
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>
@@ -663,7 +666,7 @@ namespace OfficeIMO.Excel {
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadFromByteArray(packageBytes, resolved, filePath: null, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly) {

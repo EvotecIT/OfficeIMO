@@ -109,8 +109,10 @@ public sealed partial class ImageMetadataEvidenceTests {
         return image.Take(19).Concat(applications.SelectMany(application => application)).Concat(image.Skip(19)).ToArray();
     }
     private static byte[] ReviewGifApplication(string identifier, byte[] profile, bool rawXmp = false) {
-        using var output = new MemoryStream(); output.Write(new byte[] { 0x21, 0xFF, 11 }); output.Write(Encoding.ASCII.GetBytes(identifier));
-        if (rawXmp) output.Write(profile);
+        using var output = new MemoryStream();
+        byte[] header = { 0x21, 0xFF, 11 }; output.Write(header, 0, header.Length);
+        byte[] applicationIdentifier = Encoding.ASCII.GetBytes(identifier); output.Write(applicationIdentifier, 0, applicationIdentifier.Length);
+        if (rawXmp) output.Write(profile, 0, profile.Length);
         else for (int at = 0; at < profile.Length; at += 255) { int length = Math.Min(255, profile.Length - at); output.WriteByte((byte)length); output.Write(profile, at, length); }
         if (identifier == "XMP DataXMP") { output.WriteByte(1); for (int value = 255; value >= 0; value--) output.WriteByte((byte)value); }
         output.WriteByte(0); return output.ToArray();
