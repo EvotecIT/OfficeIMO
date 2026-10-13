@@ -338,6 +338,160 @@ public sealed class ZipExtractionTests {
         Assert.False(Directory.Exists(fixture.Destination));
     }
 
+    [Fact]
+    public void DeflateMembersExpandingBeyondTheirDeclaredPrefixAreRejected() {
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = Zip(("Example.admx", "AB", CompressionLevel.Optimal));
+        int central = (int)BitConverter.ToUInt32(zip, zip.Length - 6);
+        WriteUInt32(zip, 22, 1); WriteUInt32(zip, central + 24, 1);
+        WriteUInt32(zip, 14, 0xd3d99e8b); WriteUInt32(zip, central + 16, 0xd3d99e8b); // CRC of A only
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
+        Assert.False(Directory.Exists(fixture.Destination));
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(0, 8)]
+    public void ConflictingLocalHeaderMetadataFailsEvenForExcludedMembers(ushort flags, ushort method) {
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = Zip(("Example.admx", "A", CompressionLevel.NoCompression));
+        int central = (int)BitConverter.ToUInt32(zip, zip.Length - 6);
+        WriteUInt16(zip, 6, flags);
+        if (method != 0) WriteUInt16(zip, 8, (ushort)(BitConverter.ToUInt16(zip, central + 10) == 0 ? 8 : 0));
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination,
+            new ArchiveExtractionOptions { IncludeFile = _ => false }));
+        Assert.False(Directory.Exists(fixture.Destination));
+    }
+
+    [Fact]
+    public void PatchedDataSetsAreRejectedBeforeSelection() {
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = PatchHeaders(Zip(("Example.admx", "A", CompressionLevel.NoCompression)), flagsToSet: 0x0020);
+        int calls = 0;
+        Assert.Throws<NotSupportedException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination,
+            new ArchiveExtractionOptions { IncludeFile = _ => { calls++; return false; } }));
+        Assert.Equal(0, calls);
+        Assert.False(Directory.Exists(fixture.Destination));
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(0, true)]
+    public void Zip64DiskStartIsResolvedFromTheExtraField(uint disk, bool allCoordinates) {
+        using var fixture = new ArchiveFixtures();
+        byte[] original = Zip(("Example.admx", "A", CompressionLevel.NoCompression));
+        int end = original.Length - 22;
+        int central = (int)BitConverter.ToUInt32(original, end + 16);
+        int extra = central + 46 + BitConverter.ToUInt16(original, central + 28);
+        ushort extraLength = (ushort)(allCoordinates ? 32 : 8);
+        byte[] zip = original.Take(extra).Concat(new byte[extraLength]).Concat(original.Skip(extra)).ToArray();
+        WriteUInt16(zip, central + 34, ushort.MaxValue); WriteUInt16(zip, central + 30, extraLength);
+        WriteUInt16(zip, extra, 1); WriteUInt16(zip, extra + 2, (ushort)(extraLength - 4));
+        if (allCoordinates) {
+            WriteUInt32(zip, extra + 4, BitConverter.ToUInt32(original, central + 24));
+            WriteUInt32(zip, extra + 12, BitConverter.ToUInt32(original, central + 20));
+            WriteUInt32(zip, extra + 20, BitConverter.ToUInt32(original, central + 42));
+            WriteUInt32(zip, central + 20, uint.MaxValue); WriteUInt32(zip, central + 24, uint.MaxValue); WriteUInt32(zip, central + 42, uint.MaxValue);
+        }
+        WriteUInt32(zip, extra + extraLength - 4, disk);
+        WriteUInt32(zip, end + extraLength + 12, BitConverter.ToUInt32(original, end + 12) + extraLength);
+        var bytes = OfficeIMO.Core.Internal.OfficeArchiveSafety.ScanZipCentralDirectory(zip, 10);
+        using var stream = new MemoryStream(zip, writable: false);
+        var streaming = OfficeIMO.Core.Internal.OfficeArchiveSafety.ScanZipCentralDirectory(stream, stream.Length, 10);
+        Assert.Equal(disk == 0, bytes.IsValid);
+        Assert.Equal(disk == 0, streaming.IsValid);
+        if (disk != 0) Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
+        else Assert.Equal("Example.admx", Assert.Single(ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination).Files).RelativePath);
+    }
+
+    [Fact]
+    public void SaturatedClassicCountRejectsALowerLimitBeforeReadingTheBody() {
+        byte[] zip = new byte[1024 * 1024];
+        int end = zip.Length - 22;
+        WriteUInt32(zip, end, 0x06054b50); WriteUInt16(zip, end + 8, ushort.MaxValue); WriteUInt16(zip, end + 10, ushort.MaxValue);
+        using var source = new CountingStream(zip);
+        var result = OfficeIMO.Core.Internal.OfficeArchiveSafety.ScanZipCentralDirectory(source, source.Length, 5);
+        Assert.True(result.LimitExceeded);
+        Assert.True(source.BytesRead < 70000, "The low entry limit should be decided from the tail.");
+        Assert.Equal(0, source.Position);
+    }
+
+    private sealed class CountingStream(byte[] bytes) : MemoryStream(bytes, writable: false) {
+        internal long BytesRead { get; private set; }
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            BytesRead += read;
+            return read;
+        }
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    public void DeflateRequiresAFinalBlockAndExactCompressedFraming(bool final, bool trailing) {
+        using var fixture = new ArchiveFixtures();
+        byte[] compressed = new byte[] { (byte)(final ? 1 : 0), 1, 0, 0xfe, 0xff, 0x41 };
+        if (trailing) compressed = compressed.Concat(new byte[] { 0 }).ToArray();
+        byte[] zip = ZipWithRawDeflate(compressed, 1, 0xd3d99e8b);
+        if (final && !trailing) {
+            Assert.Single(ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination).Files);
+            Assert.Equal("A", File.ReadAllText(Path.Combine(fixture.Destination, "Example.admx")));
+        } else {
+            Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
+            Assert.False(Directory.Exists(fixture.Destination));
+        }
+    }
+
+    private static byte[] ZipWithRawDeflate(byte[] compressed, uint expanded, uint crc) {
+        byte[] original = Zip(("Example.admx", "A", CompressionLevel.Optimal));
+        int central = (int)BitConverter.ToUInt32(original, original.Length - 6);
+        int payload = 30 + BitConverter.ToUInt16(original, 26) + BitConverter.ToUInt16(original, 28);
+        byte[] zip = original.Take(payload).Concat(compressed).Concat(original.Skip(central)).ToArray();
+        central = payload + compressed.Length;
+        WriteUInt16(zip, 6, 0); WriteUInt16(zip, central + 8, 0);
+        WriteUInt16(zip, 8, 8); WriteUInt16(zip, central + 10, 8);
+        WriteUInt32(zip, 14, crc); WriteUInt32(zip, central + 16, crc);
+        WriteUInt32(zip, 18, (uint)compressed.Length); WriteUInt32(zip, central + 20, (uint)compressed.Length);
+        WriteUInt32(zip, 22, expanded); WriteUInt32(zip, central + 24, expanded);
+        WriteUInt32(zip, zip.Length - 6, (uint)central);
+        return zip;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StreamDeflateValidationHandlesBufferBoundariesAndRestoresPositionOnCancellation(bool cancel) {
+        using var bytes = new MemoryStream();
+        bytes.WriteByte(0x7f); // The validated slice need not start at source position zero.
+        using (var writer = new BinaryWriter(bytes, Encoding.ASCII, leaveOpen: true)) {
+            for (int index = 0; index < 4; index++) {
+                writer.Write((byte)(index == 3 ? 1 : 0));
+                writer.Write(ushort.MaxValue); writer.Write((ushort)0);
+                writer.Write(new byte[ushort.MaxValue]);
+            }
+        }
+        using var cancellation = new CancellationTokenSource();
+        using var source = new CancelOnReadStream(bytes.ToArray(), cancel ? cancellation : null) { Position = 1 };
+        if (cancel) Assert.Throws<OperationCanceledException>(() => OfficeIMO.Core.Internal.OfficeDeflateStreamValidator.TryValidateExact(
+            source, 4L * ushort.MaxValue, cancellation.Token));
+        else Assert.True(OfficeIMO.Core.Internal.OfficeDeflateStreamValidator.TryValidateExact(source, 4L * ushort.MaxValue));
+        Assert.Equal(1, source.Position);
+    }
+
+    private sealed class CancelOnReadStream(byte[] bytes, CancellationTokenSource? cancellation) : MemoryStream(bytes, writable: false) {
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            cancellation?.Cancel();
+            return read;
+        }
+    }
+
+    private static void WriteUInt32(byte[] bytes, int offset, uint value) {
+        WriteUInt16(bytes, offset, (ushort)value); WriteUInt16(bytes, offset + 2, (ushort)(value >> 16));
+    }
+
     private static byte[] WithZip64Locator(byte[] zip, int offsetSkew) {
         int end = zip.Length - 22;
         ushort entries = BitConverter.ToUInt16(zip, end + 10);

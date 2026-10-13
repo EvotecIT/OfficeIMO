@@ -24,6 +24,8 @@ internal static partial class OfficeArchiveSafety {
             || (localFlags & 1) != 0 || localMethod is not (0 or 8)) {
             throw new InvalidDataException("ZIP entry uses conflicting, encrypted or unsupported compression metadata.");
         }
+        if (localMethod == 8 && !OfficeDeflateStreamValidator.TryValidateExact(bytes, start, checked((int)compressedLength), entry.Length))
+            throw new InvalidDataException("ZIP member has invalid or incomplete Deflate framing.");
         var compressed = new MemoryStream(bytes, start, checked((int)compressedLength), writable: false);
         return localMethod == 0 ? compressed : new DeflateStream(compressed, CompressionMode.Decompress);
     }

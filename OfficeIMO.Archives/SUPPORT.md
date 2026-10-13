@@ -2,7 +2,7 @@
 
 | Container | Supported read profile | Boundaries |
 | --- | --- | --- |
-| ZIP | Single-disk archives with stored or Deflate members | Encryption, other compression methods, multi-disk archives, ambiguous directory layouts (including distant ZIP64 locators with saturated classic counts), unflagged non-ASCII and invalid UTF-8 names are rejected; central-directory member count, name and size binding, declared lengths, CRC-32 and expansion bounds are enforced |
+| ZIP | Single-disk archives with stored or Deflate members | Prepended self-extracting stubs, encryption, patched data sets, other compression methods, multi-disk archives, ambiguous directory layouts (including distant ZIP64 locators with saturated classic counts), unflagged non-ASCII and invalid UTF-8 names are rejected; central-directory member count, ZIP64 coordinates, matching local names/flags/methods, exact Deflate framing, actual decoded EOF, declared lengths, CRC-32 and expansion bounds are enforced |
 | CAB | Single cabinets with Store, MSZIP and the shared LZX decoder | Cabinet sets, continuation/spanning and unsupported compression are rejected; finite entry/folder/output bounds and available checksums are enforced |
 | MSI | Ordinary installer database CFB; schema-driven strings and Directory, Component, File and Media tables; embedded complete cabinets | External cabinets and loose files, transforms, patches and action-dependent installation layouts are unsupported; no Installer actions, conditions or properties are executed |
 

@@ -212,6 +212,8 @@ internal static partial class OfficeArchiveSafety {
             bool zip64 = false;
             bool hasZip64Locator = HasZip64Locator(source,
                 originalPosition, endOfCentralDirectoryOffset);
+            if (!hasZip64Locator && !zip64Required && totalEntries16 > entryLimit)
+                return ZipCentralDirectoryScanResult.Exceeded(totalEntries16);
             if (!hasZip64Locator && totalEntries16 == ushort.MaxValue
                 && HasEarlierZip64Locator(source, originalPosition, endOfCentralDirectoryOffset, cancellationToken)) {
                 return ZipCentralDirectoryScanResult.Invalid("A saturated classic ZIP count has an earlier ZIP64 locator that readers may follow.");
@@ -302,9 +304,6 @@ internal static partial class OfficeArchiveSafety {
                             "A ZIP central-directory file header is truncated.");
                     }
                     ReadExactlyAt(source, originalPosition + cursor, header, header.Length);
-                    if (ReadZipUInt16(header, 34) != 0) {
-                        return ZipCentralDirectoryScanResult.Invalid("Multi-disk ZIP members are not supported.");
-                    }
                     long recordLength = 46L
                         + ReadZipUInt16(header, 28)
                         + ReadZipUInt16(header, 30)
@@ -312,6 +311,15 @@ internal static partial class OfficeArchiveSafety {
                     if (recordLength > end - cursor) {
                         return ZipCentralDirectoryScanResult.Invalid(
                             "A ZIP central-directory file header exceeds the declared directory bounds.");
+                    }
+                    ZipEntryCoordinates coordinates = default;
+                    if (records != null || ReadZipUInt16(header, 34) == ushort.MaxValue) {
+                        var extra = new byte[ReadZipUInt16(header, 30)];
+                        ReadExactlyAt(source, originalPosition + cursor + 46 + ReadZipUInt16(header, 28), extra, extra.Length);
+                        if (!TryReadZipEntryCoordinates(header, 0, extra, 0, extra.Length, out coordinates) || coordinates.Disk != 0)
+                            return ZipCentralDirectoryScanResult.Invalid("Invalid or multi-disk ZIP member metadata.");
+                    } else if (ReadZipUInt16(header, 34) != 0) {
+                        return ZipCentralDirectoryScanResult.Invalid("Multi-disk ZIP members are not supported.");
                     }
                     actualEntries++;
                     if (actualEntries > entryLimit) {
@@ -322,7 +330,8 @@ internal static partial class OfficeArchiveSafety {
                         ReadExactlyAt(source, originalPosition + cursor + 46, name, name.Length);
                         records.Add(new ZipCentralDirectoryRecord(ReadZipUInt16(header, 8),
                             ReadZipUInt16(header, 10), ReadZipUInt32(header, 16),
-                            ReadZipUInt32(header, 20), ReadZipUInt32(header, 24), name));
+                            (long)coordinates.Compressed, (long)coordinates.Expanded, name,
+                            checked(originalPosition + (long)coordinates.Offset), checked(originalPosition + (long)centralDirectoryOffset)));
                     }
                     cursor += recordLength;
                 } else if (signature == CentralDirectoryDigitalSignature) {
@@ -414,6 +423,8 @@ internal static partial class OfficeArchiveSafety {
         bool zip64 = false;
         bool hasZip64Locator = HasZip64Locator(bytes,
             archiveOffset, endOfCentralDirectory);
+        if (!hasZip64Locator && !zip64Required && totalEntries16 > entryLimit)
+            return ZipCentralDirectoryScanResult.Exceeded(totalEntries16);
         if (!hasZip64Locator && totalEntries16 == ushort.MaxValue
             && HasEarlierZip64Locator(bytes, archiveOffset, endOfCentralDirectory)) {
             return ZipCentralDirectoryScanResult.Invalid("A saturated classic ZIP count has an earlier ZIP64 locator that readers may follow.");
@@ -486,9 +497,6 @@ internal static partial class OfficeArchiveSafety {
                         "A ZIP central-directory file header is truncated.");
                 }
                 int headerOffset = checked((int)cursor);
-                if (ReadZipUInt16(bytes, headerOffset + 34) != 0) {
-                    return ZipCentralDirectoryScanResult.Invalid("Multi-disk ZIP members are not supported.");
-                }
                 long recordLength = 46L
                     + ReadZipUInt16(bytes, headerOffset + 28)
                     + ReadZipUInt16(bytes, headerOffset + 30)
@@ -497,6 +505,14 @@ internal static partial class OfficeArchiveSafety {
                     return ZipCentralDirectoryScanResult.Invalid(
                         "A ZIP central-directory file header exceeds the declared directory bounds.");
                 }
+                uint diskStart = ReadZipUInt16(bytes, headerOffset + 34);
+                if (diskStart == ushort.MaxValue) {
+                    int extraOffset = headerOffset + 46 + ReadZipUInt16(bytes, headerOffset + 28);
+                    if (!TryReadZipEntryCoordinates(bytes, headerOffset, bytes, extraOffset, ReadZipUInt16(bytes, headerOffset + 30), out var coordinates))
+                        return ZipCentralDirectoryScanResult.Invalid("Invalid ZIP64 member metadata.");
+                    diskStart = coordinates.Disk;
+                }
+                if (diskStart != 0) return ZipCentralDirectoryScanResult.Invalid("Multi-disk ZIP members are not supported.");
                 cursor += recordLength;
                 actualEntries++;
                 if (actualEntries > entryLimit) {
@@ -714,24 +730,28 @@ internal static partial class OfficeArchiveSafety {
         | (ulong)ReadZipUInt32(data, offset + 4) << 32;
 
     /// <summary>Fixed fields and raw name bytes of one ZIP central-directory file header.
-    /// Size fields are the raw 32-bit values; <see cref="uint.MaxValue"/> defers to ZIP64 data.</summary>
+    /// Size and offset fields include resolved ZIP64 values.</summary>
     internal readonly struct ZipCentralDirectoryRecord {
         internal ZipCentralDirectoryRecord(ushort flags, ushort compressionMethod, uint crc32,
-            uint compressedSize, uint uncompressedSize, byte[] nameBytes) {
+            long compressedSize, long uncompressedSize, byte[] nameBytes, long localHeaderOffset, long payloadUpperBound) {
             Flags = flags;
             CompressionMethod = compressionMethod;
             Crc32 = crc32;
             CompressedSize = compressedSize;
             UncompressedSize = uncompressedSize;
             NameBytes = nameBytes;
+            LocalHeaderOffset = localHeaderOffset;
+            PayloadUpperBound = payloadUpperBound;
         }
 
         internal ushort Flags { get; }
         internal ushort CompressionMethod { get; }
         internal uint Crc32 { get; }
-        internal uint CompressedSize { get; }
-        internal uint UncompressedSize { get; }
+        internal long CompressedSize { get; }
+        internal long UncompressedSize { get; }
         internal byte[] NameBytes { get; }
+        internal long LocalHeaderOffset { get; }
+        internal long PayloadUpperBound { get; }
     }
 
     internal readonly struct ZipCentralDirectoryScanResult {
