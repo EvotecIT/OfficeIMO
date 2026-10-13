@@ -61,6 +61,9 @@ already accepted in preferences.
 
 - **Desktop:** add the English string to `StudioStrings.resx` under a feature-scoped key and the same key to every shipped
   language's `.resx` in the same change. Never put user-facing text in code or XAML.
+  A fallback passed to `GetOrDefault`/`FormatOrDefault` is a safety net, not the English string: the check fails when
+  a key used with one, directly or through a view model's `T(key, fallback)` helper, is missing from `StudioStrings.resx`,
+  and `StudioTranslationResourceTests` covers keys built from enum names. Add a family's keys when you add an enum value.
 - **Apple:** write the text in SwiftUI or `String(localized:)`, run `Sync-StudioAppleStrings.ps1`, and translate the new
   catalog entries into every known region. Mark strings with no words, such as `%@ – %@`, `shouldTranslate: false`.
 - For a few new strings, export with the languages concerned, translate and import, as above.

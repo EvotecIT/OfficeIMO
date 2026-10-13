@@ -6810,4 +6810,370 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
     <value>Option 1
 Option 2</value>
   </data>
+  <data name="Book.CoverSelected" xml:space="preserve">
+    <value>Paketcover ausgewählt. Vorhandene Coverseiten und Ressourcen bleiben erhalten.</value>
+  </data>
+  <data name="Book.Exported" xml:space="preserve">
+    <value>EPUB exportiert und geprüft. Sichere das Buchprojekt, um Bearbeitungs- und Prüfstand zu behalten.</value>
+  </data>
+  <data name="Book.Imported" xml:space="preserve">
+    <value>Buch geöffnet. Prüfe Kapitel und Vorschau vor dem Export.</value>
+  </data>
+  <data name="Book.PreviewHint" xml:space="preserve">
+    <value>Beispielkapitel, von OfficeIMO gerendert. EPUB-Reader können das Buch anders umbrechen.</value>
+  </data>
+  <data name="Book.ProtectSource" xml:space="preserve">
+    <value>Wähle ein anderes Ziel, um die geöffnete Quelle zu erhalten.</value>
+  </data>
+  <data name="Book.Protected" xml:space="preserve">
+    <value>Das Ziel ist durch ein anderes geöffnetes Dokument oder einen Wiederherstellungsvorgang geschützt.</value>
+  </data>
+  <data name="Book.ReviewRequired" xml:space="preserve">
+    <value>Prüfe die Importbefunde. Fehlgeschlagene Abhängigkeiten erfordern eine Reparatur der Quelle und einen erneuten Import.</value>
+  </data>
+  <data name="Book.Saved" xml:space="preserve">
+    <value>Buchprojekt gesichert und geprüft.</value>
+  </data>
+  <data name="Invoice.BeforeWriteCancelled" xml:space="preserve">
+    <value>Vor dem Veröffentlichen abgebrochen.</value>
+  </data>
+  <data name="Invoice.Cancelled" xml:space="preserve">
+    <value>Rechnungsvorgang abgebrochen.</value>
+  </data>
+  <data name="Invoice.DateRequired" xml:space="preserve">
+    <value>Rechnungsdaten erfordern das Format yyyy-MM-dd.</value>
+  </data>
+  <data name="Invoice.EditRequired" xml:space="preserve">
+    <value>Gib mindestens eine Ersetzung für ein Quellfeld ein.</value>
+  </data>
+  <data name="Invoice.FontLimit" xml:space="preserve">
+    <value>Die eingebettete Schrift muss zwischen einem Byte und 16 MiB groß sein.</value>
+  </data>
+  <data name="Invoice.Mapping.Complete" xml:space="preserve">
+    <value>Vollständige semantische Zuordnung</value>
+  </data>
+  <data name="Invoice.Mapping.Partial" xml:space="preserve">
+    <value>Die Quelle enthält nicht zugeordnete Daten; prüfe die Befunde.</value>
+  </data>
+  <data name="Invoice.Model.Invalid" xml:space="preserve">
+    <value>Modellprüfungen fanden ungültige Geschäftsdaten</value>
+  </data>
+  <data name="Invoice.Model.Unavailable" xml:space="preserve">
+    <value>Modellprüfungen nicht verfügbar</value>
+  </data>
+  <data name="Invoice.Model.Valid" xml:space="preserve">
+    <value>Modellprüfungen bestanden</value>
+  </data>
+  <data name="Invoice.OutputRequired" xml:space="preserve">
+    <value>Wähle einen Ausgabeordner.</value>
+  </data>
+  <data name="Invoice.Recovery" xml:space="preserve">
+    <value>In „Aufträge“ ist eine geprüfte Wiederherstellungskopie verfügbar. Prüfe sie und das Ziel des Anbieters, bevor du es erneut versuchst.</value>
+  </data>
+  <data name="Invoice.RulesRequired" xml:space="preserve">
+    <value>Wähle das fixierte Regelpaket und die Saxon-JAR, bevor du Standardprüfungen anforderst.</value>
+  </data>
+  <data name="Invoice.Running" xml:space="preserve">
+    <value>Rechnung wird verarbeitet …</value>
+  </data>
+  <data name="Ocr.Review.Status" xml:space="preserve">
+    <value>Prüfe die erkannten Wörter, bevor du das durchsuchbare PDF erstellst.</value>
+  </data>
+  <data name="Editor.FormKind.Text" xml:space="preserve">
+    <value>Textfeld</value>
+  </data>
+  <data name="Editor.FormKind.CheckBox" xml:space="preserve">
+    <value>Kontrollkästchen</value>
+  </data>
+  <data name="Editor.FormKind.Choice" xml:space="preserve">
+    <value>Auswahlfeld</value>
+  </data>
+  <data name="Editor.FormKind.RadioButtonGroup" xml:space="preserve">
+    <value>Optionsgruppe</value>
+  </data>
+  <data name="Editor.FormKind.Signature" xml:space="preserve">
+    <value>Unterschriftsfeld</value>
+  </data>
+  <data name="Editor.FormKind.PushButton" xml:space="preserve">
+    <value>Schaltfläche</value>
+  </data>
+  <data name="Editor.Tool.Select.Label" xml:space="preserve">
+    <value>Auswählen</value>
+  </data>
+  <data name="Editor.Tool.Select.Hint" xml:space="preserve">
+    <value>Text auswählen und kopieren oder Links öffnen</value>
+  </data>
+  <data name="Editor.Tool.Note.Label" xml:space="preserve">
+    <value>Notiz</value>
+  </data>
+  <data name="Editor.Tool.Note.Hint" xml:space="preserve">
+    <value>Klicken, um eine Kommentarnotiz hinzuzufügen</value>
+  </data>
+  <data name="Editor.Tool.FreeText.Label" xml:space="preserve">
+    <value>Textfeld</value>
+  </data>
+  <data name="Editor.Tool.FreeText.Hint" xml:space="preserve">
+    <value>Eine Freitext-Anmerkung zeichnen</value>
+  </data>
+  <data name="Editor.Tool.Highlight.Label" xml:space="preserve">
+    <value>Hervorheben</value>
+  </data>
+  <data name="Editor.Tool.Highlight.Hint" xml:space="preserve">
+    <value>Über Text oder einen Bereich ziehen</value>
+  </data>
+  <data name="Editor.Tool.Underline.Label" xml:space="preserve">
+    <value>Unterstreichen</value>
+  </data>
+  <data name="Editor.Tool.Underline.Hint" xml:space="preserve">
+    <value>Über Text oder einen Bereich ziehen</value>
+  </data>
+  <data name="Editor.Tool.StrikeOut.Label" xml:space="preserve">
+    <value>Durchstreichen</value>
+  </data>
+  <data name="Editor.Tool.StrikeOut.Hint" xml:space="preserve">
+    <value>Über Text oder einen Bereich ziehen</value>
+  </data>
+  <data name="Editor.Tool.Rectangle.Label" xml:space="preserve">
+    <value>Rechteck</value>
+  </data>
+  <data name="Editor.Tool.Rectangle.Hint" xml:space="preserve">
+    <value>Eine Rechteck-Anmerkung zeichnen</value>
+  </data>
+  <data name="Editor.Tool.Ellipse.Label" xml:space="preserve">
+    <value>Ellipse</value>
+  </data>
+  <data name="Editor.Tool.Ellipse.Hint" xml:space="preserve">
+    <value>Eine Ellipsen-Anmerkung zeichnen</value>
+  </data>
+  <data name="Editor.Tool.Line.Label" xml:space="preserve">
+    <value>Linie</value>
+  </data>
+  <data name="Editor.Tool.Line.Hint" xml:space="preserve">
+    <value>Eine Prüflinie ziehen</value>
+  </data>
+  <data name="Editor.Tool.Ink.Label" xml:space="preserve">
+    <value>Freihand</value>
+  </data>
+  <data name="Editor.Tool.Ink.Hint" xml:space="preserve">
+    <value>Freihand zeichnen</value>
+  </data>
+  <data name="Editor.Tool.Stamp.Label" xml:space="preserve">
+    <value>Stempel</value>
+  </data>
+  <data name="Editor.Tool.Stamp.Hint" xml:space="preserve">
+    <value>Einen Anmerkungsstempel platzieren</value>
+  </data>
+  <data name="Editor.Tool.AddText.Label" xml:space="preserve">
+    <value>Text hinzufügen</value>
+  </data>
+  <data name="Editor.Tool.AddText.Hint" xml:space="preserve">
+    <value>Dauerhaften Seitentext hinzufügen, ohne vorhandenen Inhalt neu umzubrechen</value>
+  </data>
+  <data name="Editor.Tool.AddImage.Label" xml:space="preserve">
+    <value>Bild hinzufügen</value>
+  </data>
+  <data name="Editor.Tool.AddImage.Hint" xml:space="preserve">
+    <value>Ein PNG- oder JPEG-Bild auswählen und platzieren</value>
+  </data>
+  <data name="Editor.Tool.Link.Label" xml:space="preserve">
+    <value>Link</value>
+  </data>
+  <data name="Editor.Tool.Link.Hint" xml:space="preserve">
+    <value>Einen URI-Linkbereich zeichnen</value>
+  </data>
+  <data name="Editor.Tool.SignatureAppearance.Label" xml:space="preserve">
+    <value>Unterschriftsdarstellung</value>
+  </data>
+  <data name="Editor.Tool.SignatureAppearance.Hint" xml:space="preserve">
+    <value>Eine rein visuelle Unterschriftsbeschriftung zeichnen; das PDF wird dadurch nicht kryptografisch signiert</value>
+  </data>
+  <data name="Editor.Tool.Redact.Label" xml:space="preserve">
+    <value>Schwärzen</value>
+  </data>
+  <data name="Editor.Tool.Redact.Hint" xml:space="preserve">
+    <value>Einen Bereich zeichnen, prüfen und dann überlappende Inhalte dauerhaft entfernen</value>
+  </data>
+  <data name="Ocr.Language.Arabic" xml:space="preserve">
+    <value>Arabisch</value>
+  </data>
+  <data name="Ocr.Language.ChineseSimplified" xml:space="preserve">
+    <value>Chinesisch (vereinfacht)</value>
+  </data>
+  <data name="Ocr.Language.ChineseTraditional" xml:space="preserve">
+    <value>Chinesisch (traditionell)</value>
+  </data>
+  <data name="Ocr.Language.Czech" xml:space="preserve">
+    <value>Tschechisch</value>
+  </data>
+  <data name="Ocr.Language.Danish" xml:space="preserve">
+    <value>Dänisch</value>
+  </data>
+  <data name="Ocr.Language.Dutch" xml:space="preserve">
+    <value>Niederländisch</value>
+  </data>
+  <data name="Ocr.Language.English" xml:space="preserve">
+    <value>Englisch</value>
+  </data>
+  <data name="Ocr.Language.Finnish" xml:space="preserve">
+    <value>Finnisch</value>
+  </data>
+  <data name="Ocr.Language.French" xml:space="preserve">
+    <value>Französisch</value>
+  </data>
+  <data name="Ocr.Language.German" xml:space="preserve">
+    <value>Deutsch</value>
+  </data>
+  <data name="Ocr.Language.Greek" xml:space="preserve">
+    <value>Griechisch</value>
+  </data>
+  <data name="Ocr.Language.Hebrew" xml:space="preserve">
+    <value>Hebräisch</value>
+  </data>
+  <data name="Ocr.Language.Hindi" xml:space="preserve">
+    <value>Hindi</value>
+  </data>
+  <data name="Ocr.Language.Hungarian" xml:space="preserve">
+    <value>Ungarisch</value>
+  </data>
+  <data name="Ocr.Language.Italian" xml:space="preserve">
+    <value>Italienisch</value>
+  </data>
+  <data name="Ocr.Language.Japanese" xml:space="preserve">
+    <value>Japanisch</value>
+  </data>
+  <data name="Ocr.Language.Korean" xml:space="preserve">
+    <value>Koreanisch</value>
+  </data>
+  <data name="Ocr.Language.Norwegian" xml:space="preserve">
+    <value>Norwegisch</value>
+  </data>
+  <data name="Ocr.Language.Polish" xml:space="preserve">
+    <value>Polnisch</value>
+  </data>
+  <data name="Ocr.Language.Portuguese" xml:space="preserve">
+    <value>Portugiesisch</value>
+  </data>
+  <data name="Ocr.Language.Romanian" xml:space="preserve">
+    <value>Rumänisch</value>
+  </data>
+  <data name="Ocr.Language.Russian" xml:space="preserve">
+    <value>Russisch</value>
+  </data>
+  <data name="Ocr.Language.Slovak" xml:space="preserve">
+    <value>Slowakisch</value>
+  </data>
+  <data name="Ocr.Language.Spanish" xml:space="preserve">
+    <value>Spanisch</value>
+  </data>
+  <data name="Ocr.Language.Swedish" xml:space="preserve">
+    <value>Schwedisch</value>
+  </data>
+  <data name="Ocr.Language.Turkish" xml:space="preserve">
+    <value>Türkisch</value>
+  </data>
+  <data name="Ocr.Language.Ukrainian" xml:space="preserve">
+    <value>Ukrainisch</value>
+  </data>
+  <data name="Ocr.Language.Vietnamese" xml:space="preserve">
+    <value>Vietnamesisch</value>
+  </data>
+  <data name="Operation.CropBox" xml:space="preserve">
+    <value>Seitenbeschnitt geändert</value>
+  </data>
+  <data name="Operation.NormalizeRotation" xml:space="preserve">
+    <value>Seitendrehung normalisiert</value>
+  </data>
+  <data name="Reader.Layout.SinglePage.Label" xml:space="preserve">
+    <value>Einzelseite</value>
+  </data>
+  <data name="Reader.Layout.SinglePage.Description" xml:space="preserve">
+    <value>Nur die ausgewählte Seite anzeigen.</value>
+  </data>
+  <data name="Reader.Layout.Continuous.Label" xml:space="preserve">
+    <value>Fortlaufend</value>
+  </data>
+  <data name="Reader.Layout.Continuous.Description" xml:space="preserve">
+    <value>Seiten vertikal durchblättern.</value>
+  </data>
+  <data name="Reader.Layout.TwoPage.Label" xml:space="preserve">
+    <value>Zwei Seiten</value>
+  </data>
+  <data name="Reader.Layout.TwoPage.Description" xml:space="preserve">
+    <value>Ein Deckblatt und danach Doppelseiten lesen.</value>
+  </data>
+  <data name="Reader.Layout.Grid.Label" xml:space="preserve">
+    <value>Raster</value>
+  </data>
+  <data name="Reader.Layout.Grid.Description" xml:space="preserve">
+    <value>Das ganze Dokument als Seitenraster durchsuchen.</value>
+  </data>
+  <data name="Workflow.Progress.apply" xml:space="preserve">
+    <value>Änderungen werden angewendet …</value>
+  </data>
+  <data name="Workflow.Progress.assess" xml:space="preserve">
+    <value>Wird bewertet …</value>
+  </data>
+  <data name="Workflow.Progress.complete" xml:space="preserve">
+    <value>Fertig</value>
+  </data>
+  <data name="Workflow.Progress.discover" xml:space="preserve">
+    <value>Eingabedokumente werden gesucht …</value>
+  </data>
+  <data name="Workflow.Progress.execute" xml:space="preserve">
+    <value>Wird verarbeitet …</value>
+  </data>
+  <data name="Workflow.Progress.finalize" xml:space="preserve">
+    <value>Wird abgeschlossen …</value>
+  </data>
+  <data name="Workflow.Progress.input" xml:space="preserve">
+    <value>Eingabe wird gelesen …</value>
+  </data>
+  <data name="Workflow.Progress.inspect" xml:space="preserve">
+    <value>Wird untersucht …</value>
+  </data>
+  <data name="Workflow.Progress.merge" xml:space="preserve">
+    <value>Seiten werden zusammengefügt …</value>
+  </data>
+  <data name="Workflow.Progress.normalize" xml:space="preserve">
+    <value>Eingaben werden vorbereitet …</value>
+  </data>
+  <data name="Workflow.Progress.plan" xml:space="preserve">
+    <value>Wird geplant …</value>
+  </data>
+  <data name="Workflow.Progress.publish" xml:space="preserve">
+    <value>Ausgabe wird gesichert …</value>
+  </data>
+  <data name="Workflow.Progress.remove" xml:space="preserve">
+    <value>Inhalt wird entfernt …</value>
+  </data>
+  <data name="Workflow.Progress.render" xml:space="preserve">
+    <value>Seiten werden gerendert …</value>
+  </data>
+  <data name="Workflow.Progress.split" xml:space="preserve">
+    <value>Wird geteilt …</value>
+  </data>
+  <data name="Workflow.Progress.validate" xml:space="preserve">
+    <value>Wird validiert …</value>
+  </data>
+  <data name="Workflow.Progress.validate-output" xml:space="preserve">
+    <value>Ausgabe wird geprüft …</value>
+  </data>
+  <data name="Workflow.Progress.verify" xml:space="preserve">
+    <value>Wird überprüft …</value>
+  </data>
+  <data name="Workflow.Severity.Error" xml:space="preserve">
+    <value>Fehler</value>
+  </data>
+  <data name="Workflow.Severity.Information" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Workflow.Severity.Warning" xml:space="preserve">
+    <value>Warnung</value>
+  </data>
+  <data name="PageExport.Status.Failed" xml:space="preserve">
+    <value>Seitenexport fehlgeschlagen</value>
+  </data>
+  <data name="Assembly.Status.Failed" xml:space="preserve">
+    <value>Zusammenstellung fehlgeschlagen</value>
+  </data>
 </root>

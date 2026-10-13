@@ -3200,4 +3200,370 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
     <value>Option 1
 Option 2</value>
   </data>
+  <data name="Book.CoverSelected" xml:space="preserve">
+    <value>Package cover selected. Existing cover pages and resources are retained.</value>
+  </data>
+  <data name="Book.Exported" xml:space="preserve">
+    <value>EPUB exported and verified. Save the book project to retain your editing and review state.</value>
+  </data>
+  <data name="Book.Imported" xml:space="preserve">
+    <value>Book opened. Review the chapters and preview before export.</value>
+  </data>
+  <data name="Book.PreviewHint" xml:space="preserve">
+    <value>Sample chapter rendered by OfficeIMO. EPUB readers can reflow the book differently.</value>
+  </data>
+  <data name="Book.ProtectSource" xml:space="preserve">
+    <value>Choose another destination to preserve the opened source.</value>
+  </data>
+  <data name="Book.Protected" xml:space="preserve">
+    <value>The destination is protected by another open document or recovery operation.</value>
+  </data>
+  <data name="Book.ReviewRequired" xml:space="preserve">
+    <value>Review the import findings. Failed dependencies require source repair and re-import.</value>
+  </data>
+  <data name="Book.Saved" xml:space="preserve">
+    <value>Book project saved and verified.</value>
+  </data>
+  <data name="Invoice.BeforeWriteCancelled" xml:space="preserve">
+    <value>Cancelled before publishing.</value>
+  </data>
+  <data name="Invoice.Cancelled" xml:space="preserve">
+    <value>Invoice operation cancelled.</value>
+  </data>
+  <data name="Invoice.DateRequired" xml:space="preserve">
+    <value>Invoice dates require yyyy-MM-dd.</value>
+  </data>
+  <data name="Invoice.EditRequired" xml:space="preserve">
+    <value>Enter at least one source-field replacement.</value>
+  </data>
+  <data name="Invoice.FontLimit" xml:space="preserve">
+    <value>The embedded font must contain between one byte and 16 MiB.</value>
+  </data>
+  <data name="Invoice.Mapping.Complete" xml:space="preserve">
+    <value>Complete semantic mapping</value>
+  </data>
+  <data name="Invoice.Mapping.Partial" xml:space="preserve">
+    <value>Source contains unmapped data; inspect the findings.</value>
+  </data>
+  <data name="Invoice.Model.Invalid" xml:space="preserve">
+    <value>Model checks found invalid business data</value>
+  </data>
+  <data name="Invoice.Model.Unavailable" xml:space="preserve">
+    <value>Model checks unavailable</value>
+  </data>
+  <data name="Invoice.Model.Valid" xml:space="preserve">
+    <value>Model checks passed</value>
+  </data>
+  <data name="Invoice.OutputRequired" xml:space="preserve">
+    <value>Choose an output folder.</value>
+  </data>
+  <data name="Invoice.Recovery" xml:space="preserve">
+    <value>A verified recovery copy is available in Jobs. Check it and the provider destination before retrying.</value>
+  </data>
+  <data name="Invoice.RulesRequired" xml:space="preserve">
+    <value>Select the pinned rule bundle and Saxon JAR before requesting standards checks.</value>
+  </data>
+  <data name="Invoice.Running" xml:space="preserve">
+    <value>Processing invoice…</value>
+  </data>
+  <data name="Ocr.Review.Status" xml:space="preserve">
+    <value>Review the recognized words before creating the searchable PDF.</value>
+  </data>
+  <data name="Editor.FormKind.Text" xml:space="preserve">
+    <value>Text field</value>
+  </data>
+  <data name="Editor.FormKind.CheckBox" xml:space="preserve">
+    <value>Check box</value>
+  </data>
+  <data name="Editor.FormKind.Choice" xml:space="preserve">
+    <value>Choice field</value>
+  </data>
+  <data name="Editor.FormKind.RadioButtonGroup" xml:space="preserve">
+    <value>Radio group</value>
+  </data>
+  <data name="Editor.FormKind.Signature" xml:space="preserve">
+    <value>Signature field</value>
+  </data>
+  <data name="Editor.FormKind.PushButton" xml:space="preserve">
+    <value>Button</value>
+  </data>
+  <data name="Editor.Tool.Select.Label" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="Editor.Tool.Select.Hint" xml:space="preserve">
+    <value>Select and copy text or open links</value>
+  </data>
+  <data name="Editor.Tool.Note.Label" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Editor.Tool.Note.Hint" xml:space="preserve">
+    <value>Click to add a comment note</value>
+  </data>
+  <data name="Editor.Tool.FreeText.Label" xml:space="preserve">
+    <value>Text box</value>
+  </data>
+  <data name="Editor.Tool.FreeText.Hint" xml:space="preserve">
+    <value>Draw a free-text annotation</value>
+  </data>
+  <data name="Editor.Tool.Highlight.Label" xml:space="preserve">
+    <value>Highlight</value>
+  </data>
+  <data name="Editor.Tool.Highlight.Hint" xml:space="preserve">
+    <value>Drag across text or an area</value>
+  </data>
+  <data name="Editor.Tool.Underline.Label" xml:space="preserve">
+    <value>Underline</value>
+  </data>
+  <data name="Editor.Tool.Underline.Hint" xml:space="preserve">
+    <value>Drag across text or an area</value>
+  </data>
+  <data name="Editor.Tool.StrikeOut.Label" xml:space="preserve">
+    <value>Strikeout</value>
+  </data>
+  <data name="Editor.Tool.StrikeOut.Hint" xml:space="preserve">
+    <value>Drag across text or an area</value>
+  </data>
+  <data name="Editor.Tool.Rectangle.Label" xml:space="preserve">
+    <value>Rectangle</value>
+  </data>
+  <data name="Editor.Tool.Rectangle.Hint" xml:space="preserve">
+    <value>Draw a rectangle annotation</value>
+  </data>
+  <data name="Editor.Tool.Ellipse.Label" xml:space="preserve">
+    <value>Ellipse</value>
+  </data>
+  <data name="Editor.Tool.Ellipse.Hint" xml:space="preserve">
+    <value>Draw an ellipse annotation</value>
+  </data>
+  <data name="Editor.Tool.Line.Label" xml:space="preserve">
+    <value>Line</value>
+  </data>
+  <data name="Editor.Tool.Line.Hint" xml:space="preserve">
+    <value>Drag a review line</value>
+  </data>
+  <data name="Editor.Tool.Ink.Label" xml:space="preserve">
+    <value>Ink</value>
+  </data>
+  <data name="Editor.Tool.Ink.Hint" xml:space="preserve">
+    <value>Draw a freehand ink path</value>
+  </data>
+  <data name="Editor.Tool.Stamp.Label" xml:space="preserve">
+    <value>Stamp</value>
+  </data>
+  <data name="Editor.Tool.Stamp.Hint" xml:space="preserve">
+    <value>Place an annotation stamp</value>
+  </data>
+  <data name="Editor.Tool.AddText.Label" xml:space="preserve">
+    <value>Add text</value>
+  </data>
+  <data name="Editor.Tool.AddText.Hint" xml:space="preserve">
+    <value>Add permanent page text without reflowing existing content</value>
+  </data>
+  <data name="Editor.Tool.AddImage.Label" xml:space="preserve">
+    <value>Add image</value>
+  </data>
+  <data name="Editor.Tool.AddImage.Hint" xml:space="preserve">
+    <value>Choose and place a PNG or JPEG image</value>
+  </data>
+  <data name="Editor.Tool.Link.Label" xml:space="preserve">
+    <value>Link</value>
+  </data>
+  <data name="Editor.Tool.Link.Hint" xml:space="preserve">
+    <value>Draw a URI link hotspot</value>
+  </data>
+  <data name="Editor.Tool.SignatureAppearance.Label" xml:space="preserve">
+    <value>Signature appearance</value>
+  </data>
+  <data name="Editor.Tool.SignatureAppearance.Hint" xml:space="preserve">
+    <value>Draw a visual-only signature label; this does not cryptographically sign the PDF</value>
+  </data>
+  <data name="Editor.Tool.Redact.Label" xml:space="preserve">
+    <value>Redact</value>
+  </data>
+  <data name="Editor.Tool.Redact.Hint" xml:space="preserve">
+    <value>Draw an area, review it, then permanently remove intersecting content</value>
+  </data>
+  <data name="Ocr.Language.Arabic" xml:space="preserve">
+    <value>Arabic</value>
+  </data>
+  <data name="Ocr.Language.ChineseSimplified" xml:space="preserve">
+    <value>Chinese (Simplified)</value>
+  </data>
+  <data name="Ocr.Language.ChineseTraditional" xml:space="preserve">
+    <value>Chinese (Traditional)</value>
+  </data>
+  <data name="Ocr.Language.Czech" xml:space="preserve">
+    <value>Czech</value>
+  </data>
+  <data name="Ocr.Language.Danish" xml:space="preserve">
+    <value>Danish</value>
+  </data>
+  <data name="Ocr.Language.Dutch" xml:space="preserve">
+    <value>Dutch</value>
+  </data>
+  <data name="Ocr.Language.English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Ocr.Language.Finnish" xml:space="preserve">
+    <value>Finnish</value>
+  </data>
+  <data name="Ocr.Language.French" xml:space="preserve">
+    <value>French</value>
+  </data>
+  <data name="Ocr.Language.German" xml:space="preserve">
+    <value>German</value>
+  </data>
+  <data name="Ocr.Language.Greek" xml:space="preserve">
+    <value>Greek</value>
+  </data>
+  <data name="Ocr.Language.Hebrew" xml:space="preserve">
+    <value>Hebrew</value>
+  </data>
+  <data name="Ocr.Language.Hindi" xml:space="preserve">
+    <value>Hindi</value>
+  </data>
+  <data name="Ocr.Language.Hungarian" xml:space="preserve">
+    <value>Hungarian</value>
+  </data>
+  <data name="Ocr.Language.Italian" xml:space="preserve">
+    <value>Italian</value>
+  </data>
+  <data name="Ocr.Language.Japanese" xml:space="preserve">
+    <value>Japanese</value>
+  </data>
+  <data name="Ocr.Language.Korean" xml:space="preserve">
+    <value>Korean</value>
+  </data>
+  <data name="Ocr.Language.Norwegian" xml:space="preserve">
+    <value>Norwegian</value>
+  </data>
+  <data name="Ocr.Language.Polish" xml:space="preserve">
+    <value>Polish</value>
+  </data>
+  <data name="Ocr.Language.Portuguese" xml:space="preserve">
+    <value>Portuguese</value>
+  </data>
+  <data name="Ocr.Language.Romanian" xml:space="preserve">
+    <value>Romanian</value>
+  </data>
+  <data name="Ocr.Language.Russian" xml:space="preserve">
+    <value>Russian</value>
+  </data>
+  <data name="Ocr.Language.Slovak" xml:space="preserve">
+    <value>Slovak</value>
+  </data>
+  <data name="Ocr.Language.Spanish" xml:space="preserve">
+    <value>Spanish</value>
+  </data>
+  <data name="Ocr.Language.Swedish" xml:space="preserve">
+    <value>Swedish</value>
+  </data>
+  <data name="Ocr.Language.Turkish" xml:space="preserve">
+    <value>Turkish</value>
+  </data>
+  <data name="Ocr.Language.Ukrainian" xml:space="preserve">
+    <value>Ukrainian</value>
+  </data>
+  <data name="Ocr.Language.Vietnamese" xml:space="preserve">
+    <value>Vietnamese</value>
+  </data>
+  <data name="Operation.CropBox" xml:space="preserve">
+    <value>Page crop changed</value>
+  </data>
+  <data name="Operation.NormalizeRotation" xml:space="preserve">
+    <value>Page rotation normalized</value>
+  </data>
+  <data name="Reader.Layout.SinglePage.Label" xml:space="preserve">
+    <value>Single page</value>
+  </data>
+  <data name="Reader.Layout.SinglePage.Description" xml:space="preserve">
+    <value>Show only the selected page.</value>
+  </data>
+  <data name="Reader.Layout.Continuous.Label" xml:space="preserve">
+    <value>Continuous</value>
+  </data>
+  <data name="Reader.Layout.Continuous.Description" xml:space="preserve">
+    <value>Scroll through pages vertically.</value>
+  </data>
+  <data name="Reader.Layout.TwoPage.Label" xml:space="preserve">
+    <value>Two page</value>
+  </data>
+  <data name="Reader.Layout.TwoPage.Description" xml:space="preserve">
+    <value>Read a cover page followed by paired spreads.</value>
+  </data>
+  <data name="Reader.Layout.Grid.Label" xml:space="preserve">
+    <value>Grid</value>
+  </data>
+  <data name="Reader.Layout.Grid.Description" xml:space="preserve">
+    <value>Browse the whole document as a page grid.</value>
+  </data>
+  <data name="Workflow.Progress.apply" xml:space="preserve">
+    <value>Applying changes…</value>
+  </data>
+  <data name="Workflow.Progress.assess" xml:space="preserve">
+    <value>Assessing…</value>
+  </data>
+  <data name="Workflow.Progress.complete" xml:space="preserve">
+    <value>Finished</value>
+  </data>
+  <data name="Workflow.Progress.discover" xml:space="preserve">
+    <value>Finding input documents…</value>
+  </data>
+  <data name="Workflow.Progress.execute" xml:space="preserve">
+    <value>Working…</value>
+  </data>
+  <data name="Workflow.Progress.finalize" xml:space="preserve">
+    <value>Finishing…</value>
+  </data>
+  <data name="Workflow.Progress.input" xml:space="preserve">
+    <value>Reading the input…</value>
+  </data>
+  <data name="Workflow.Progress.inspect" xml:space="preserve">
+    <value>Inspecting…</value>
+  </data>
+  <data name="Workflow.Progress.merge" xml:space="preserve">
+    <value>Combining pages…</value>
+  </data>
+  <data name="Workflow.Progress.normalize" xml:space="preserve">
+    <value>Preparing inputs…</value>
+  </data>
+  <data name="Workflow.Progress.plan" xml:space="preserve">
+    <value>Planning…</value>
+  </data>
+  <data name="Workflow.Progress.publish" xml:space="preserve">
+    <value>Saving the output…</value>
+  </data>
+  <data name="Workflow.Progress.remove" xml:space="preserve">
+    <value>Removing content…</value>
+  </data>
+  <data name="Workflow.Progress.render" xml:space="preserve">
+    <value>Rendering pages…</value>
+  </data>
+  <data name="Workflow.Progress.split" xml:space="preserve">
+    <value>Splitting…</value>
+  </data>
+  <data name="Workflow.Progress.validate" xml:space="preserve">
+    <value>Validating…</value>
+  </data>
+  <data name="Workflow.Progress.validate-output" xml:space="preserve">
+    <value>Checking the output…</value>
+  </data>
+  <data name="Workflow.Progress.verify" xml:space="preserve">
+    <value>Verifying…</value>
+  </data>
+  <data name="Workflow.Severity.Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Workflow.Severity.Information" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Workflow.Severity.Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="PageExport.Status.Failed" xml:space="preserve">
+    <value>Page export failed</value>
+  </data>
+  <data name="Assembly.Status.Failed" xml:space="preserve">
+    <value>Assembly failed</value>
+  </data>
 </root>

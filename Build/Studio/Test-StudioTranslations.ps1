@@ -54,8 +54,51 @@ foreach ($code in $languages) {
     }
 }
 
+# The desktop also looks up keys with an English fallback (GetOrDefault, FormatOrDefault), directly or through a
+# helper that adds a prefix, such as T("Saved", "...") for "Book.Saved". A missing key shows English in every language
+# without failing the checks above, so each key written in the code must be in the English resources. Keys built from
+# values are checked by the desktop tests.
+$sourceRoot = Join-Path $PSScriptRoot '..' '..' 'OfficeIMO.Studio'
+$sources = Get-ChildItem -Path $sourceRoot -Recurse -Filter '*.cs' | Where-Object FullName -notmatch '[\\/](bin|obj)[\\/]'
+$typePattern = [regex] '\b(?:class|struct|interface|record(?:\s+(?:class|struct))?)\s+(\w+)\s*(?=[<:{(\r\n]|where\b)'
+$helperPattern = [regex] '(?s)string\s+(\w+)\(\s*string\s+(\w+)\s*,\s*string\s+\w+\s*\)\s*(?:=>|\{[^}]*?return)\s*[\w.?]*(?:GetOrDefault|FormatOrDefault)\(\s*"([^"]*)"\s*\+\s*\2\b'
+$literalPattern = [regex] '(?:GetOrDefault|FormatOrDefault)\(\s*"([^"]+)"\s*,'
+function Get-EnclosingType([string] $Text, [int] $Position) {
+    $name = $null
+    foreach ($match in $typePattern.Matches($Text.Substring(0, $Position))) { $name = $match.Groups[1].Value }
+    $name
+}
+$texts = @{}
+foreach ($file in $sources) { $texts[$file.FullName] = Get-Content -LiteralPath $file.FullName -Raw }
+$helpers = @{}
+foreach ($entry in $texts.GetEnumerator()) {
+    foreach ($match in $helperPattern.Matches($entry.Value)) {
+        $helpers["$(Get-EnclosingType $entry.Value $match.Index)|$($match.Groups[1].Value)"] = $match.Groups[3].Value
+    }
+}
+$helperNames = @($helpers.Keys | ForEach-Object { $_.Split('|')[1] } | Sort-Object -Unique)
+$used = [System.Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
+foreach ($entry in $texts.GetEnumerator()) {
+    $relative = [System.IO.Path]::GetRelativePath((Join-Path $PSScriptRoot '..' '..'), $entry.Key)
+    foreach ($match in $literalPattern.Matches($entry.Value)) { $used[$match.Groups[1].Value] = $relative }
+    foreach ($name in $helperNames) {
+        foreach ($match in [regex]::Matches($entry.Value, "(?<![\w.])$name\(\s*`"([^`"]+)`"\s*,")) {
+            $prefix = $helpers["$(Get-EnclosingType $entry.Value $match.Index)|$name"]
+            if ($null -eq $prefix) {
+                # A helper used outside its own type only resolves when one type defines it.
+                $candidates = @($helpers.Keys | Where-Object { $_.EndsWith("|$name") })
+                if ($candidates.Count -eq 1) { $prefix = $helpers[$candidates[0]] } else { continue }
+            }
+            $used[$prefix + $match.Groups[1].Value] = $relative
+        }
+    }
+}
+foreach ($key in $used.Keys | Sort-Object) {
+    if (-not $english.Contains($key)) { $problems.Add("desktop ${key}: used in $($used[$key]) but not in StudioStrings.resx.") }
+}
+
 if ($problems.Count) {
     $problems | ForEach-Object { Write-Host "Studio translations: $_" }
     throw "The Studio translations have $($problems.Count) problem(s)."
 }
-Write-Host "Studio translations: $($languages -join ', ') complete on the desktop ($($english.Count) strings) and Apple ($(($AppleCatalogs | ForEach-Object { @(Get-AppleEntries -Catalog $_ -Document $catalogs[$_]).Count } | Measure-Object -Sum).Sum) strings)."
+Write-Host "Studio translations: $($languages -join ', ') complete on the desktop ($($english.Count) strings, $($used.Count) with a fallback in code) and Apple ($(($AppleCatalogs | ForEach-Object { @(Get-AppleEntries -Catalog $_ -Document $catalogs[$_]).Count } | Measure-Object -Sum).Sum) strings)."
