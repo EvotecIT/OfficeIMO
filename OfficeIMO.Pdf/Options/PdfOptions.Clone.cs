@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfOptions {
     /// <summary>Creates a deep copy of the options.</summary>
     public PdfOptions Clone() {
+        ValidateEmbeddedFileLimits();
         var clone = new PdfOptions {
             PageWidth = PageWidth,
             PageHeight = PageHeight,
@@ -35,6 +36,9 @@ public sealed partial class PdfOptions {
             PageContentMemoryLimitBytes = PageContentMemoryLimitBytes,
             MaxGeneratedPages = MaxGeneratedPages,
             MaxGeneratedOutputBytes = MaxGeneratedOutputBytes,
+            MaxEmbeddedFileBytes = MaxEmbeddedFileBytes,
+            MaxTotalEmbeddedFileBytes = MaxTotalEmbeddedFileBytes,
+            _totalEmbeddedFileBytes = _totalEmbeddedFileBytes,
             IncludeStandardFontToUnicodeMaps = IncludeStandardFontToUnicodeMaps,
             CompressEmbeddedFonts = CompressEmbeddedFonts,
             IncludeXmpMetadata = IncludeXmpMetadata,

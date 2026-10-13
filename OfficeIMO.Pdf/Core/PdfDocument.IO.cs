@@ -196,7 +196,7 @@ public sealed partial class PdfDocument {
             using var hashingStream = new PdfPipelineHashingStream(stream);
             (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream, cancellationToken);
             output = hashingStream.Complete(pageCount);
-        });
+        }, cancellationToken);
         timer.Stop();
         PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
         return PdfSaveResult.Success(fullPath, bytesWritten, pipeline, serialization);
@@ -360,8 +360,7 @@ public sealed partial class PdfDocument {
         Stream stream,
         System.Threading.CancellationToken cancellationToken = default) {
         if (_source is not null) {
-            cancellationToken.ThrowIfCancellationRequested();
-            stream.Write(_source.Bytes, 0, _source.Bytes.Length);
+            OfficeStreamWriter.CopyBytes(stream, _source.Bytes, cancellationToken);
             int? sourcePageCount = _pipeline.Output?.PageCount;
             return (
                 _source.Bytes.LongLength,

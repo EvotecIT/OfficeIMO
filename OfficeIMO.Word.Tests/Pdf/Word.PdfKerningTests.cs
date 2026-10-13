@@ -90,7 +90,9 @@ public sealed class WordPdfKerningTests {
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "AV";
         } else if (route is "header" or "footer") {
-            document.AddParagraph("Body").FontFamily = "Courier";
+            // The pair-positioning font contains only A/V; keep filler text
+            // in a complete font while the running story exercises kerning.
+            document.AddParagraph("Body").FontFamily = "Arial";
             WordHeaderFooter story = route == "header" ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
             paragraph = story.AddParagraph("AV");
         } else {
