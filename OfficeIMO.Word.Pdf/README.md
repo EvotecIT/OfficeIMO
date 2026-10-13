@@ -98,6 +98,10 @@ Word text extraction honors `xml:space`: leading and trailing XML whitespace is 
 
 Font sizes preserve half-point values, including 10.5 pt. When the run and its styles omit a size, conversion honors the document default. An existing `docDefaults` element without a size uses Word's 10 pt fallback; a document without `docDefaults` uses 12 pt. OfficeIMO-created documents declare an 11 pt default and retain that size.
 
+Each text run resolves its font through its own formatting, character style, paragraph style, table style, and document defaults. A preceding run's explicit font does not change the font of an unformatted sibling. This also applies to source page fields in headers and footers.
+
+Supplying an empty `PdfOptions` object, metadata, or header/footer presentation settings preserves the document's inherited body font and size. Registering a reusable named font family makes it available to matching text without selecting a different body font. Generated headers and page numbers retain their explicitly selected fonts, including when the body embeds a font with the same standard-font alias. Explicit PDF body-font and default-size assignments retain their precedence. Rendering profiles keep the same distinction between document typography and presentation overrides.
+
 Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
 table, paragraph and character styles, with direct formatting and explicit resets
 taking precedence. Body text, list markers, table cells, hyperlinks and header/footer
@@ -126,7 +130,7 @@ Section columns use the shared PDF flow engine for equal and unequal widths, con
 
 Inline tables with collapsed borders retain the horizontal placement rules of their Word compatibility mode. Legacy left and right alignment uses the first cell's leading margin to place the grid, including cell margin overrides. Centered tables keep the grid centered. Modern Word layout aligns the outside border edge with the body frame. These translations preserve column widths and continuation indents. Tables using an explicitly configured PDF default style retain that style's presentation placement.
 
-Automatic tables with automatic cell widths size their columns from unwrapped content and cell padding, within the available page or column frame. A stored grid alone does not impose a preferred table width. An authored absolute table width retains its frame even beyond the text area and counts cell spacing once. Within that frame, absolute cell preferences shrink through the space between their preferred widths and content minimums, then grow proportionally when the preferences fit. Automatic cells absorb the space remaining after absolute preferences are satisfied. Percentage table and cell preferences retain their sizing constraints.
+Automatic tables with automatic cell widths size their columns from unwrapped content and cell padding, within the available page or column frame. A stored grid alone does not impose a preferred table width. An automatic-width cell in a later row can grow an earlier absolute column preference to fit its text and inline pictures. A following absolute cell restores wrapping at the authored preference while retaining unbreakable content minimums. An omitted cell width follows the automatic path; `nil` retains the cached grid preference. An authored absolute table width retains its frame even beyond the text area and counts cell spacing once. Within that frame, absolute cell preferences shrink through the space between their preferred widths and content minimums, then grow proportionally when the preferences fit. Automatic cells absorb the space remaining after absolute preferences are satisfied. Percentage table and cell preferences retain their sizing constraints.
 
 Fixed tables retain their authored width even when it extends beyond the page or column text area. Absolute and percentage table widths take precedence over the stored grid; a fixed table with automatic width uses its grid. Percentage widths reserve the effective outer border paint before scaling the text area. A declared fixed width includes outer cell spacing, and very narrow cells retain their margins, border paint and minimum text frame. Merged-cell width and margin constraints apply to the combined span while retaining unequal underlying columns. Fixed tables expand when their effective margins require a larger text frame. Center and right alignment preserve the resulting position across the text-area edges instead of narrowing the columns.
 
@@ -161,6 +165,8 @@ Missing table margin sides retain Word's standard zero vertical and 5.4-point ho
 Object-only paragraphs retain direct and inherited spacing before and after their flow objects, collapsing that spacing with adjacent paragraphs. Hidden shapes with a resolved flow height reserve that height without drawing the shape. Positioned-shape placement remains subject to the renderer's supported anchor and wrapping mappings.
 
 ### Export to bytes or streams
+
+An otherwise empty authored section retains its section-mark paragraph line, including inherited spacing, font size and mark visibility. A section terminator following ordinary text adds no separate line. Conversion preserves the source XML in both cases.
 
 ```csharp
 using OfficeIMO.Word;

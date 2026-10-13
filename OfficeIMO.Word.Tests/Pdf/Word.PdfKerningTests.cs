@@ -90,7 +90,7 @@ public sealed class WordPdfKerningTests {
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "AV";
         } else if (route is "header" or "footer") {
-            document.AddParagraph("Body");
+            document.AddParagraph("Body").FontFamily = "Courier";
             WordHeaderFooter story = route == "header" ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
             paragraph = story.AddParagraph("AV");
         } else {

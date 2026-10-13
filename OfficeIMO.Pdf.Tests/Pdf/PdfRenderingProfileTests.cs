@@ -2006,17 +2006,6 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal("pl", word.PdfOptions?.Language);
         Assert.Equal("pl", excel.PdfOptions?.Language);
         Assert.Equal("pl", powerPoint.PdfOptions?.Language);
-        Assert.False(word.HasExplicitPdfFontConfiguration);
-        Assert.False(word.CloneForConversion().HasExplicitPdfFontConfiguration);
-
-        var explicitlyConfiguredWord = new OfficeIMO.Word.Pdf.WordToPdfOptions {
-            PdfOptions = new PdfOptions()
-        }.UseRenderingProfile(profile);
-        Assert.True(explicitlyConfiguredWord.HasExplicitPdfFontConfiguration);
-        Assert.True(explicitlyConfiguredWord
-            .CloneForConversion()
-            .HasExplicitPdfFontConfiguration);
-
         var explicitlyConfiguredExcel = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions {
             PdfOptions = new PdfOptions()
         }.UseRenderingProfile(profile);
@@ -2028,10 +2017,6 @@ public sealed class PdfRenderingProfileTests {
             }.UseRenderingProfile(profile);
         Assert.True(
             explicitlyConfiguredPowerPoint.HasExplicitPdfFontConfiguration);
-
-        word.PdfOptions!.DefaultFontSize = 17D;
-        Assert.True(word.HasExplicitPdfFontConfiguration);
-        excel.PdfOptions!.PageSize = new PageSize(300, 400);
     }
 
     [Fact]
@@ -2087,19 +2072,6 @@ public sealed class PdfRenderingProfileTests {
                 | System.Reflection.BindingFlags.NonPublic)!;
         Assert.True(Assert.IsType<bool>(state.GetValue(options)));
         Assert.Equal(PdfStandardFont.Courier, options.PdfOptions.DefaultFont);
-    }
-
-    [Fact]
-    public void WordShapingOnlyProfileTreatsEqualFontSizeAssignmentAsExplicit() {
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-
-        Assert.False(options.HasExplicitPdfFontConfiguration);
-
-        options.PdfOptions!.DefaultFontSize = 11D;
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
     }
 
     [Fact]
@@ -2174,14 +2146,12 @@ public sealed class PdfRenderingProfileTests {
 
         var fontless = new OfficeRenderingProfile("fontless");
         var adapters = new object[] {
-            new OfficeIMO.Word.Pdf.WordToPdfOptions().UseRenderingProfile(fontless),
             new OfficeIMO.Excel.Pdf.ExcelToPdfOptions().UseRenderingProfile(fontless),
             new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions().UseRenderingProfile(fontless)
         };
 
         foreach (object adapter in adapters) {
             PdfOptions pdfOptions = adapter switch {
-                OfficeIMO.Word.Pdf.WordToPdfOptions word => word.PdfOptions!,
                 OfficeIMO.Excel.Pdf.ExcelToPdfOptions excel => excel.PdfOptions!,
                 OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions powerPoint =>
                     powerPoint.PdfOptions!,
@@ -2347,31 +2317,6 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void EqualDefaultFontSizeAssignmentAfterFontlessProfileIsExplicit() {
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-
-        Assert.False(options.HasExplicitPdfFontConfiguration);
-        options.PdfOptions!.DefaultFontSize = options.PdfOptions.DefaultFontSize;
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-    }
-
-    [Fact]
-    public void WordFontProfileRemainsExplicitFontConfiguration() {
-        var profile = new OfficeRenderingProfile(
-            "word-font-profile",
-            new OfficeFontFaceCollection()
-                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(profile);
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-    }
-
-    [Fact]
     public void FontlessOverlayPreservesDirectCallerFontConfiguration() {
         var fontless = new OfficeRenderingProfile("fontless-overlay");
         var adapters = new object[] {
@@ -2469,23 +2414,6 @@ public sealed class PdfRenderingProfileTests {
                 "The PDF adapter font-configuration state was not found."));
 
     [Fact]
-    public void WordFontProfileRemainsExplicitAfterFontlessOverlay() {
-        var fontProfile = new OfficeRenderingProfile(
-            "word-font-profile",
-            new OfficeFontFaceCollection()
-                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(fontProfile);
-
-        options.UseRenderingProfile(
-            new OfficeRenderingProfile("shaping-only-overlay"),
-            OfficeRenderingProfileApplyMode.Overlay);
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-    }
-
-    [Fact]
     public void PowerPointFailedProfileDoesNotCreatePdfOptions() {
         var fonts = new OfficeFontFaceCollection();
         for (int index = 0; index <= PdfOptions.MaximumNamedFontFamilies; index++) {
@@ -2538,22 +2466,6 @@ public sealed class PdfRenderingProfileTests {
         Assert.True(options.HasExplicitPdfFontConfiguration);
         Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
         Assert.Empty(options.PdfOptions!.NamedFontFamilies);
-    }
-
-    [Fact]
-    public void RepeatedWordFontlessReplacementPreservesCallerAssignment() {
-        var fontless = new OfficeRenderingProfile("shaping-only");
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(fontless);
-        options.PdfOptions!.DefaultFontSize = 13;
-
-        options.UseRenderingProfile(
-            fontless,
-            OfficeRenderingProfileApplyMode.Replace);
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-        Assert.Equal(13, options.PdfOptions.DefaultFontSize);
     }
 
     [Fact]

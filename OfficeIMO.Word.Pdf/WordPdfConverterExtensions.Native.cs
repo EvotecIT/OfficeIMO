@@ -247,6 +247,11 @@ namespace OfficeIMO.Word.Pdf {
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById, documentEndnotes);
                         if (currentSectionIndex + 1 == sections.Count) footnotes.AddRange(documentEndnotes);
 
+                        if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap)) {
+                            RenderNativeFootnotes(flow, footnotes);
+                            continue;
+                        }
+
                         if (TryRenderNativeSectionColumns(
                             page,
                             section,
