@@ -46,3 +46,5 @@ CAB folder decompression counts toward expansion and work bounds even when its f
 `MaxDecompressionWorkBytes` defaults to 2 GiB and is separate from `MaxExpandedBytes`. Before processing each CAB data frame, the extractor charges the greatest of 32 KiB, the complete frame record size, and the expanded bytes plus any MSZIP history replay. One budget covers every folder and embedded MSI cabinet, including repeated data offsets, gaps and unselected files. A cabinet with no data frames consumes no decompression work. For example, four one-byte MSZIP frames consume 128 KiB of work despite expanding to four bytes. The default permits at most 65,536 frames; larger frames or dictionary replay can exhaust it sooner. These units bound processing and frame setup rather than measuring exact CPU time.
 
 See [SUPPORT.md](SUPPORT.md) for supported compression and MSI profiles. There are no native archive executables to install or download.
+
+For bounded read-only ZIP enumeration and ingestion warnings, use [OfficeIMO.Zip](../OfficeIMO.Zip/README.md). Both packages use the shared Core ZIP reader; Archives adds strict path validation and transactional filesystem publication.

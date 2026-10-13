@@ -383,6 +383,13 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 - [ ] Add decoded lossless RTF text-range editing across escaped ANSI, Unicode fallback, and run boundaries. Preserve source identity and unrelated syntax, and reject ambiguous or stale ranges.
 - [ ] Preserve relative hyperlink meaning when appending documents with conflicting hyperlink bases, and qualify resources bound only through styles. Extend independent RTF producer evidence with editable semantic round trips and cross-platform performance qualification.
 
+## Archive containers
+
+- [ ] Define one shared archive-reading contract for `OfficeIMO.Archives` and `OfficeIMO.Zip`, using the existing Core directory and payload readers. Preserve bounded read-only traversal with warnings and transactional extraction with strict rejection as separate caller policies. Inventory `OfficeIMO.Reader.Zip` and other public consumers before deciding a package migration or retirement.
+- [ ] Add bounded stream and byte inspection with explicitly owned entry-stream lifetimes, structured verification diagnostics and reported resource usage. Use one cumulative budget for nested containers while keeping application file selection in thin consumers.
+- [ ] Extend independent producer fixtures for ZIP64, streaming descriptors, CAB and MSI across supported runtimes. Define an explicit legacy filename-encoding policy and qualify Polish names from Windows Explorer and 7-Zip without guessing the host code page.
+- [ ] Qualify TAR/GZip when a concrete cross-platform ingestion workflow requires them. Assess archive creation, deterministic bundles, encryption and additional compression providers separately against actual consumers, compatibility and dependency approval.
+
 ## Email artifacts and archives
 
 - [ ] Qualify the external lanes in the [email interoperability runner](../Build/Email/README.md) against pinned, licensed, independently produced fixtures and named classic Outlook versions. Record producer versions, source hashes, expected semantics and host coverage for MSGReader/MimeKit corpora, Outlook exchange and PST operations, real S/MIME artifacts, and caller-owned PST/OST read/conversion. Keep private content and certificate material out of published evidence, and distinguish disabled lanes from qualified producers.
