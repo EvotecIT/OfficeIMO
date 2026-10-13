@@ -130,14 +130,34 @@ try {
         }
 
         $publishOutput = [System.Collections.Generic.List[string]]::new()
-        & dotnet @publishArguments 2>&1 | ForEach-Object {
-            $publishLine = [string] $_
-            $publishOutput.Add($publishLine)
-            # Preserve compiler progress and diagnostics even if the runner exits
-            # before this publish can produce its final JSON receipt.
-            Write-Host $publishLine
+        $publishEnvironment = @{}
+        try {
+            if ($RuntimeIdentifier -like 'linux-*' -and $scenarioDefinition.targetFramework -eq 'net8.0') {
+                # Reserve room for native code generation and the hosted runner.
+                # These defaults affect publisher children only; explicit caller
+                # settings are preserved and native execution uses the original environment.
+                $defaults = @{ DOTNET_GCHeapHardLimit = '0x200000000'; DOTNET_GCConserveMemory = '5' }
+                foreach ($name in $defaults.Keys) {
+                    $previous = [Environment]::GetEnvironmentVariable($name, 'Process')
+                    if ([string]::IsNullOrEmpty($previous)) {
+                        $publishEnvironment[$name] = $previous
+                        [Environment]::SetEnvironmentVariable($name, $defaults[$name], 'Process')
+                    }
+                }
+            }
+            & dotnet @publishArguments 2>&1 | ForEach-Object {
+                $publishLine = [string] $_
+                $publishOutput.Add($publishLine)
+                # Preserve compiler progress and diagnostics even if the runner exits
+                # before this publish can produce its final JSON receipt.
+                Write-Host $publishLine
+            }
+            $publishExit = $LASTEXITCODE
+        } finally {
+            foreach ($name in $publishEnvironment.Keys) {
+                [Environment]::SetEnvironmentVariable($name, $publishEnvironment[$name], 'Process')
+            }
         }
-        $publishExit = $LASTEXITCODE
         $diagnosticCodes = @([regex]::Matches(($publishOutput -join "`n"), '\b(?:IL|NETSDK|CS)\d{4}\b') |
             ForEach-Object Value | Sort-Object -Unique)
 

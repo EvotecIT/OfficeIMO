@@ -2133,11 +2133,25 @@ jobs:
           if [ -f /sys/fs/cgroup/memory.events ]; then cat /sys/fs/cgroup/memory.events; fi
 
       - name: Publish and run supported NativeAOT scenarios
-        shell: pwsh
+        shell: bash
         run: |
           # Each group starts on a fresh runner, separate from managed analysis.
-          ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
-          ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -ScenarioGroup '${{ matrix.group }}' -JsonOutputPath './artifacts/aot/linux-x64-${{ matrix.group }}.json'
+          sample_resources() {
+            local sample_sleep_pid=''
+            trap 'if [ -n "$sample_sleep_pid" ]; then kill "$sample_sleep_pid" 2>/dev/null || true; wait "$sample_sleep_pid" 2>/dev/null || true; fi; exit 0' TERM
+            while true; do
+              date -u '+Native build resources %Y-%m-%dT%H:%M:%SZ'
+              free -m
+              ps -eo pid,ppid,rss,comm --sort=-rss | sed -n '1,8p'
+              if [ -f /sys/fs/cgroup/memory.events ]; then cat /sys/fs/cgroup/memory.events; fi
+              sleep 30 & sample_sleep_pid=$!
+              wait "$sample_sleep_pid"
+            done
+          }
+          sample_resources & native_sampler_pid=$!
+          trap 'kill "$native_sampler_pid" 2>/dev/null || true; wait "$native_sampler_pid" 2>/dev/null || true' EXIT
+          pwsh -NoProfile -File ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
+          pwsh -NoProfile -File ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration '${{ env.BUILD_CONFIGURATION }}' -ScenarioGroup '${{ matrix.group }}' -JsonOutputPath './artifacts/aot/linux-x64-${{ matrix.group }}.json'
 
       - name: Report final Linux native build resources
         if: always()
