@@ -259,6 +259,316 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Theory]
+    [InlineData("manual", false, false)]
+    [InlineData("manual", true, false)]
+    [InlineData("auto", false, false)]
+    [InlineData("auto", true, false)]
+    [InlineData("manual", false, true)]
+    [InlineData("auto", false, true)]
+    public void HtmlStyledWord_LaterRunHyphenationUsesTheCurrentRemainder(string hyphens, bool floated, bool firstLine) {
+        const double floatWidth = 32D;
+        string rightStyle = "color:blue;hyphens:" + hyphens;
+        string word = hyphens == "manual" ? "po&shy;graphy" : "pography";
+        string content = "<span id='prefix'>A </span><span id='left'>ty</span><span id='right' style='" + rightStyle + "'>" + word + "</span>";
+        string firstLineCss = firstLine ? "#probe::first-line{color:red}" : string.Empty;
+        void Configure(HtmlRenderOptions options) => options.TextHyphenationCallback = token => token == "pography" ? new[] { 2 } : Array.Empty<int>();
+        HtmlRenderDocument control = RenderStyledWord(content, "width:220px;white-space:nowrap", firstLineCss, configure: Configure);
+        HtmlRenderText controlPrefix = StyledWordTexts(control).Single(text => text.Text.Trim() == "A");
+        HtmlRenderText controlLeft = StyledWordText(control, "ty"), controlRight = StyledWordText(control, "pography");
+        double prefixWidth = controlLeft.X - controlPrefix.X;
+        double joinedWidth = StyledWordAdvance(controlLeft) + StyledWordAdvance(controlRight);
+        double width = joinedWidth + prefixWidth / 2D;
+        HtmlRenderDocument breakControl = RenderStyledWord(
+            "<span id='prefix'>A </span><span id='left'>ty</span><span id='right' style='" + rightStyle + "'>po-</span>",
+            "width:220px;white-space:nowrap", firstLineCss, configure: Configure);
+        HtmlRenderText controlBreak = StyledWordText(breakControl, "po-");
+        string measured = FormattableString.Invariant($"Public hyphenation calibration: P={prefixWidth:R}, G={joinedWidth:R}, W={width:R}; hyphens={hyphens}, floated={floated}, firstLine={firstLine}.");
+        Assert.True(joinedWidth <= width && width + 0.001D < prefixWidth + joinedWidth
+            && prefixWidth + StyledWordAdvance(controlLeft) + StyledWordAdvance(controlBreak) < width, measured);
+
+        string obstruction = floated
+            ? "<span id='obstruction' style='float:left;width:32px;height:96px;background:gray'></span>" : string.Empty;
+        HtmlRenderDocument rendered = RenderStyledWord(obstruction + content, StyledWordWidth(width + (floated ? floatWidth : 0D)),
+            firstLineCss, configure: Configure);
+        HtmlRenderText prefix = StyledWordTexts(rendered).Single(text => text.Text.Trim() == "A");
+        HtmlRenderText left = StyledWordText(rendered, "ty"), broken = StyledWordText(rendered, "po-"), suffix = StyledWordText(rendered, "graphy");
+        double origin = StyledWordFreshLineOrigin(rendered, floated);
+
+        Assert.Equal(prefix.Y, left.Y, 6);
+        Assert.Equal(left.Y, broken.Y, 6);
+        Assert.Equal(prefix.X + prefixWidth, left.X, 6);
+        Assert.Equal(left.X + StyledWordAdvance(controlLeft), broken.X, 6);
+        Assert.Equal(left.Y + 24D, suffix.Y, 6);
+        Assert.Equal(origin, suffix.X, 6);
+        Assert.All(StyledWordTexts(rendered), text => Assert.True(text.X + StyledWordAdvance(text) <= origin + width + 0.001D, measured));
+        AssertStyledWordRun(controlLeft, left);
+        AssertStyledWordRun(controlBreak, broken);
+        HtmlRenderDocument suffixControl = RenderStyledWord("<span id='right' style='" + rightStyle + "'>graphy</span>", "width:220px;white-space:nowrap");
+        AssertStyledWordRun(StyledWordText(suffixControl, "graphy"), suffix);
+        Assert.Equal(firstLine ? OfficeColor.Red : OfficeColor.Blue, broken.Color);
+        Assert.Equal(OfficeColor.Blue, suffix.Color);
+        Assert.Equal("Atypography", StyledWordLogicalCharacters(rendered));
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("manual", false, false, false)]
+    [InlineData("manual", true, false, false)]
+    [InlineData("manual", false, true, false)]
+    [InlineData("auto", false, false, false)]
+    [InlineData("auto", true, false, false)]
+    [InlineData("auto", false, true, false)]
+    [InlineData("manual", false, false, true)]
+    [InlineData("auto", true, false, true)]
+    public void HtmlStyledWord_MiddleRunHyphenationIncludesEveryJoinedSuffix(string hyphens, bool floated, bool firstLine, bool splitTail) {
+        const double floatWidth = 32D;
+        string middleStyle = "color:blue;hyphens:" + hyphens;
+        string middle = hyphens == "manual" ? "po&shy;gra" : "pogra";
+        string tail = splitTail
+            ? "<span style='color:blue'>p</span><span style='color:green'>h</span><span style='color:blue'>y</span>"
+            : "<span style='color:blue'>phy</span>";
+        string content = "<span>A </span><span>ty</span><span style='" + middleStyle + "'>" + middle + "</span>" + tail;
+        string firstLineCss = firstLine ? "#probe::first-line{color:red}" : string.Empty;
+        void Configure(HtmlRenderOptions options) => options.TextHyphenationCallback = token => token == "pogra" ? new[] { 2 } : Array.Empty<int>();
+        HtmlRenderDocument control = RenderStyledWord(content, "width:220px;white-space:nowrap", firstLineCss, configure: Configure);
+        HtmlRenderText controlPrefix = StyledWordTexts(control).Single(text => text.Text.Trim() == "A");
+        HtmlRenderText controlLeft = StyledWordText(control, "ty"), controlMiddle = StyledWordText(control, "pogra");
+        HtmlRenderText controlEnd = StyledWordText(control, splitTail ? "y" : "phy");
+        double prefixWidth = controlLeft.X - controlPrefix.X;
+        double joinedWidth = controlEnd.X + StyledWordAdvance(controlEnd) - controlLeft.X;
+        double width = joinedWidth + prefixWidth / 2D;
+        HtmlRenderDocument breakControl = RenderStyledWord("<span>A </span><span>ty</span><span style='" + middleStyle + "'>po-</span>",
+            "width:220px;white-space:nowrap", firstLineCss, configure: Configure);
+        HtmlRenderText controlBreak = StyledWordText(breakControl, "po-");
+        string measured = FormattableString.Invariant($"Public middle-hyphen calibration: P={prefixWidth:R}, G={joinedWidth:R}, W={width:R}; hyphens={hyphens}, floated={floated}, firstLine={firstLine}, splitTail={splitTail}.");
+        Assert.True(joinedWidth <= width && width + 0.001D < prefixWidth + joinedWidth
+            && prefixWidth + StyledWordAdvance(controlLeft) + StyledWordAdvance(controlMiddle) < width
+            && prefixWidth + StyledWordAdvance(controlLeft) + StyledWordAdvance(controlBreak) < width, measured);
+
+        string obstruction = floated
+            ? "<span id='obstruction' style='float:left;width:32px;height:96px;background:gray'></span>" : string.Empty;
+        HtmlRenderDocument rendered = RenderStyledWord(obstruction + content, StyledWordWidth(width + (floated ? floatWidth : 0D)),
+            firstLineCss, configure: Configure);
+        HtmlRenderText prefix = StyledWordTexts(rendered).Single(text => text.Text.Trim() == "A");
+        HtmlRenderText left = StyledWordText(rendered, "ty"), broken = StyledWordText(rendered, "po-"), suffix = StyledWordText(rendered, "gra");
+        double origin = StyledWordFreshLineOrigin(rendered, floated);
+
+        Assert.Equal(prefix.Y, left.Y, 6);
+        Assert.Equal(left.Y, broken.Y, 6);
+        Assert.Equal(prefix.X + prefixWidth, left.X, 6);
+        Assert.Equal(left.X + StyledWordAdvance(controlLeft), broken.X, 6);
+        Assert.Equal(left.Y + 24D, suffix.Y, 6);
+        Assert.Equal(origin, suffix.X, 6);
+        AssertStyledWordRun(controlLeft, left);
+        AssertStyledWordRun(controlBreak, broken);
+        HtmlRenderDocument suffixControl = RenderStyledWord("<span style='" + middleStyle + "'>gra</span>" + tail, "width:220px;white-space:nowrap");
+        double cursor = origin;
+        foreach (HtmlRenderText expected in StyledWordTexts(suffixControl)) {
+            HtmlRenderText actual = StyledWordText(rendered, expected.Text);
+            Assert.Equal(suffix.Y, actual.Y, 6);
+            Assert.Equal(cursor, actual.X, 6);
+            AssertStyledWordRun(expected, actual);
+            cursor += StyledWordAdvance(actual);
+        }
+        Assert.All(StyledWordTexts(rendered), text => Assert.True(text.X >= origin - 0.001D
+            && text.X + StyledWordAdvance(text) <= origin + width + 0.001D, measured));
+        Assert.Equal("Atypography", StyledWordLogicalCharacters(rendered));
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("hyphens:none")]
+    [InlineData("hyphens:manual;hyphenate-limit-chars:20 2 2")]
+    [InlineData("hyphens:manual;white-space:nowrap")]
+    public void HtmlStyledWord_LaterRunHyphenationConstraintsKeepTheJoinedWordWhole(string constraint) {
+        string content = "<span id='prefix'>A </span><span id='left'>ty</span><span id='right' style='color:blue;" + constraint + "'>po&shy;graphy</span>";
+        HtmlRenderDocument control = RenderStyledWord(content, "width:220px;white-space:nowrap");
+        HtmlRenderText controlPrefix = StyledWordTexts(control).Single(text => text.Text.Trim() == "A");
+        HtmlRenderText controlLeft = StyledWordText(control, "ty"), controlRight = StyledWordText(control, "pography");
+        double prefixWidth = controlLeft.X - controlPrefix.X;
+        double joinedWidth = StyledWordAdvance(controlLeft) + StyledWordAdvance(controlRight);
+        double width = joinedWidth + prefixWidth / 2D;
+        Assert.True(joinedWidth <= width && width < prefixWidth + joinedWidth);
+        HtmlRenderDocument rendered = RenderStyledWord(content, StyledWordWidth(width));
+        HtmlRenderText prefix = StyledWordTexts(rendered).Single(text => text.Text.Trim() == "A");
+        HtmlRenderText left = StyledWordText(rendered, "ty"), right = StyledWordText(rendered, "pography");
+
+        Assert.True(left.Y > prefix.Y + 0.001D, constraint);
+        Assert.Equal(left.Y, right.Y, 6);
+        Assert.Equal(StyledWordBox(rendered).X, left.X, 6);
+        Assert.Equal(left.X + StyledWordAdvance(controlLeft), right.X, 6);
+        AssertStyledWordRun(controlLeft, left);
+        AssertStyledWordRun(controlRight, right);
+        Assert.Equal("Atypography", StyledWordLogicalCharacters(rendered));
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void HtmlStyledWord_LaterRunDiscretionaryGlyphMustFitBeforeKeepingTheWord(bool floated, bool firstLine) {
+        const double floatWidth = 32D;
+        var calibration = CalibrateStyledHyphenGlyph();
+        string obstruction = floated
+            ? "<span id='obstruction' style='float:left;width:32px;height:96px;background:gray'></span>" : string.Empty;
+        string firstLineCss = firstLine ? "#probe::first-line{color:red}" : string.Empty;
+        HtmlRenderDocument rendered = RenderStyledWord(obstruction + calibration.Content,
+            StyledWordWidth(calibration.Width + (floated ? floatWidth : 0D)), firstLineCss);
+        HtmlRenderText prefix = StyledWordTexts(rendered).Single(text => text.Text.Trim() == "AAAAA");
+        HtmlRenderText left = StyledWordText(rendered, "ty"), right = StyledWordText(rendered, "pography");
+        double origin = StyledWordFreshLineOrigin(rendered, floated);
+
+        Assert.True(left.Y > prefix.Y + 0.001D);
+        Assert.Equal(left.Y, right.Y, 6);
+        Assert.Equal(origin, left.X, 6);
+        Assert.Equal(left.X + StyledWordAdvance(calibration.Left), right.X, 6);
+        Assert.True(right.X + StyledWordAdvance(right) <= origin + calibration.Width + 0.001D);
+        Assert.Equal(firstLine ? OfficeColor.Red : OfficeColor.Black, prefix.Color);
+        AssertStyledWordRun(calibration.Left, left);
+        AssertStyledWordRun(calibration.Right, right);
+        Assert.Equal("AAAAAtypography", StyledWordLogicalCharacters(rendered));
+        rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void HtmlStyledWord_PreparedFirstLineHyphenFitsTheFloatRemainderWithItsPaintedGlyph() {
+        const double floatWidth = 32D;
+        var calibration = CalibrateStyledHyphenGlyph(uniformBlue: true);
+        const string obstruction = "<span id='obstruction' style='float:left;width:32px;height:96px;background:gray'></span>";
+        HtmlRenderDocument rendered = RenderStyledWord(obstruction + calibration.Content, StyledWordWidth(calibration.Width + floatWidth),
+            "#probe::first-line{color:blue}");
+        HtmlRenderText prefix = StyledWordTexts(rendered).Single(text => text.Text.Trim() == "AAAAA");
+        HtmlRenderText left = StyledWordText(rendered, "ty");
+        HtmlRenderText[] right = StyledWordTexts(rendered).Where(text => text.Text is "po-" or "graphy" or "pography").ToArray();
+        double origin = StyledWordFreshLineOrigin(rendered, floated: true);
+
+        Assert.True(left.Y > prefix.Y + 0.001D);
+        Assert.Equal(origin, left.X, 6);
+        Assert.Contains(right, text => Math.Abs(text.Y - left.Y) < 0.000001D);
+        Assert.All(StyledWordTexts(rendered), text => Assert.True(text.X >= origin - 0.001D
+            && text.X + StyledWordAdvance(text) <= origin + calibration.Width + 0.001D));
+        AssertStyledWordRun(calibration.Left, left);
+        foreach (HtmlRenderText fragment in right) {
+            HtmlRenderDocument control = RenderStyledWord("<span id='right' style='color:blue;hyphens:manual'>" + fragment.Text + "</span>",
+                "width:220px;white-space:nowrap");
+            AssertStyledWordRun(StyledWordText(control, fragment.Text), fragment);
+        }
+        Assert.Equal("AAAAAtypography", StyledWordLogicalCharacters(rendered));
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlStyledWord_LaterRunHonorsTheCurrentConsecutiveHyphenationLimit(bool floated) {
+        const double floatWidth = 32D;
+        const string word = "<span id='left'>ty</span><span id='right' style='color:blue;hyphens:manual;hyphenate-limit-lines:1'>po&shy;graphy</span>";
+        HtmlRenderDocument control = RenderStyledWord("<span id='prefix'>AA </span>" + word, "width:220px;white-space:nowrap");
+        HtmlRenderText controlPrefix = StyledWordTexts(control).Single(text => text.Text.Trim() == "AA");
+        HtmlRenderText controlLeft = StyledWordText(control, "ty"), controlRight = StyledWordText(control, "pography");
+        double prefixWidth = controlLeft.X - controlPrefix.X;
+        double joinedWidth = StyledWordAdvance(controlLeft) + StyledWordAdvance(controlRight);
+        double width = joinedWidth + prefixWidth / 2D;
+        HtmlRenderDocument units = RenderStyledWord("<span>x</span><span>-</span>", "width:220px;white-space:nowrap");
+        double unitWidth = StyledWordAdvance(StyledWordText(units, "x")), hyphenWidth = StyledWordAdvance(StyledWordText(units, "-"));
+        string previous = new('x', (int)Math.Floor((width - hyphenWidth) / unitWidth));
+        double previousWidth = previous.Length * unitWidth;
+        Assert.True(previousWidth + hyphenWidth <= width && previousWidth + StyledWordAdvance(controlPrefix) > width);
+        string obstruction = floated
+            ? "<span id='obstruction' style='float:left;width:32px;height:96px;background:gray'></span>" : string.Empty;
+        string content = obstruction + "<span id='previous' style='hyphens:manual;hyphenate-limit-chars:1 1 1'>" + previous + "&shy;AA </span>" + word;
+        HtmlRenderDocument rendered = RenderStyledWord(content, StyledWordWidth(width + (floated ? floatWidth : 0D)));
+        HtmlRenderText previousBreak = StyledWordText(rendered, previous + "-");
+        HtmlRenderText prefix = StyledWordTexts(rendered).Single(text => text.Text.Trim() == "AA");
+        HtmlRenderText left = StyledWordText(rendered, "ty"), right = StyledWordText(rendered, "pography");
+
+        Assert.Equal(previousBreak.Y + 24D, prefix.Y, 6);
+        Assert.Equal(prefix.Y + 24D, left.Y, 6);
+        Assert.Equal(left.Y, right.Y, 6);
+        Assert.Equal(StyledWordFreshLineOrigin(rendered, floated), left.X, 6);
+        Assert.Equal(left.X + StyledWordAdvance(controlLeft), right.X, 6);
+        AssertStyledWordRun(controlLeft, left);
+        AssertStyledWordRun(controlRight, right);
+        Assert.Equal(previous + "AAtypography", StyledWordLogicalCharacters(rendered));
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("slice", false, false)]
+    [InlineData("clone", false, false)]
+    [InlineData("nested", false, false)]
+    [InlineData("signed", false, false)]
+    [InlineData("slice", true, false)]
+    [InlineData("slice", false, true)]
+    public void HtmlStyledWord_EmptyDecoratedSiblingIsIncludedWhenRelocatingTheWord(string decoration, bool floated, bool firstLine) {
+        const double floatWidth = 32D;
+        string gap = decoration switch {
+            "clone" => "<span id='gap' style='padding:0 10px;background:yellow;box-decoration-break:clone'></span>",
+            "nested" => "<span id='gap' style='padding:0 4px;background:yellow'><span id='nested-gap' style='padding:0 6px;background:green'></span></span>",
+            "signed" => "<span id='gap' style='padding:0 15px;margin-left:-4px;margin-right:-6px;background:yellow'></span>",
+            _ => "<span id='gap' style='padding:0 10px;background:yellow'></span>"
+        };
+        string content = "<span id='prefix'>A </span><span id='left'>stera</span>" + gap + "<span id='right' style='color:blue'>dian</span>";
+        string firstLineCss = firstLine ? "#probe::first-line{color:red}" : string.Empty;
+        HtmlRenderDocument control = RenderStyledWord(content, "width:220px;white-space:nowrap", firstLineCss);
+        HtmlRenderText controlPrefix = StyledWordTexts(control).Single(text => text.Text.Trim() == "A");
+        HtmlRenderText controlLeft = StyledWordText(control, "stera"), controlRight = StyledWordText(control, "dian");
+        double prefixWidth = controlLeft.X - controlPrefix.X;
+        double joinedWidth = controlRight.X + StyledWordAdvance(controlRight) - controlLeft.X;
+        double width = joinedWidth + prefixWidth / 2D;
+        string measured = FormattableString.Invariant($"Public empty-inline calibration: P={prefixWidth:R}, G={joinedWidth:R}, W={width:R}; decoration={decoration}, floated={floated}, firstLine={firstLine}.");
+        Assert.True(joinedWidth <= width && width + 0.001D < prefixWidth + joinedWidth
+            && prefixWidth + StyledWordAdvance(controlLeft) + StyledWordAdvance(controlRight) < width, measured);
+        string obstruction = floated
+            ? "<span id='obstruction' style='float:left;width:32px;height:96px;background:gray'></span>" : string.Empty;
+        HtmlRenderDocument rendered = RenderStyledWord(obstruction + content, StyledWordWidth(width + (floated ? floatWidth : 0D)), firstLineCss);
+        HtmlRenderText prefix = StyledWordTexts(rendered).Single(text => text.Text.Trim() == "A");
+        HtmlRenderText left = StyledWordText(rendered, "stera"), right = StyledWordText(rendered, "dian");
+        double origin = StyledWordFreshLineOrigin(rendered, floated);
+
+        Assert.True(left.Y > prefix.Y + 0.001D, measured);
+        Assert.Equal(left.Y, right.Y, 6);
+        Assert.Equal(origin, left.X, 6);
+        Assert.Equal(controlRight.X - controlLeft.X, right.X - left.X, 6);
+        Assert.True(right.X + StyledWordAdvance(right) <= origin + width + 0.001D, measured);
+        HtmlRenderDocument ordinaryControl = firstLine ? RenderStyledWord(content, "width:220px;white-space:nowrap") : control;
+        AssertStyledWordRun(StyledWordText(ordinaryControl, "stera"), left);
+        AssertStyledWordRun(StyledWordText(ordinaryControl, "dian"), right);
+        if (firstLine) Assert.Equal(OfficeColor.Red, prefix.Color);
+        foreach (string source in decoration == "nested" ? new[] { "span#gap", "span#nested-gap" } : new[] { "span#gap" }) {
+            HtmlRenderShape expected = Assert.Single(StyledWordVisuals(control).OfType<HtmlRenderShape>(), shape => shape.Source == source);
+            HtmlRenderShape actual = Assert.Single(StyledWordVisuals(rendered).OfType<HtmlRenderShape>(), shape => shape.Source == source);
+            Assert.Equal(expected.X - controlLeft.X, actual.X - left.X, 6);
+            Assert.Equal(expected.Y - controlLeft.Y, actual.Y - left.Y, 6);
+            Assert.Equal(expected.Width, actual.Width, 6);
+            Assert.Equal(expected.Height, actual.Height, 6);
+        }
+        Assert.Equal("Asteradian", StyledWordLogicalCharacters(rendered));
+        rendered.RequireNoLoss();
+    }
+
+    private static (string Content, HtmlRenderText Left, HtmlRenderText Right, double Width) CalibrateStyledHyphenGlyph(bool uniformBlue = false) {
+        string color = uniformBlue ? " style='color:blue'" : string.Empty;
+        string content = "<span id='prefix'" + color + ">AAAAA </span><span id='left'" + color
+            + ">ty</span><span id='right' style='color:blue;hyphens:manual'>po&shy;graphy</span>";
+        HtmlRenderDocument control = RenderStyledWord(content, "width:220px;white-space:nowrap");
+        HtmlRenderText prefix = StyledWordTexts(control).Single(text => text.Text.Trim() == "AAAAA");
+        HtmlRenderText left = StyledWordText(control, "ty"), right = StyledWordText(control, "pography");
+        double prefixWidth = left.X - prefix.X;
+        HtmlRenderDocument withoutGlyph = RenderStyledWord(content.Replace("po&shy;graphy", "po"), "width:220px;white-space:nowrap");
+        HtmlRenderDocument withGlyph = RenderStyledWord(content.Replace("po&shy;graphy", "po-"), "width:220px;white-space:nowrap");
+        double without = prefixWidth + StyledWordAdvance(left) + StyledWordAdvance(StyledWordText(withoutGlyph, "po"));
+        double with = prefixWidth + StyledWordAdvance(left) + StyledWordAdvance(StyledWordText(withGlyph, "po-"));
+        double joined = StyledWordAdvance(left) + StyledWordAdvance(right);
+        double width = (without + with) / 2D;
+        string measured = FormattableString.Invariant($"Public discretionary-glyph calibration: P={prefixWidth:R}, G={joined:R}, without={without:R}, with={with:R}, W={width:R}.");
+        Assert.True(without + 0.001D < width && width + 0.001D < with
+            && joined <= width && width + 0.001D < prefixWidth + joined, measured);
+        return (content, left, right, width);
+    }
+
     private static (HtmlRenderDocument Document, HtmlRenderText Left, HtmlRenderText Right, double Width) CalibrateStyledWord(bool script) {
         HtmlRenderDocument document = RenderStyledWord(StyledWordMarkup(script), "width:220px;white-space:nowrap");
         HtmlRenderText left = StyledWordText(document, script ? "steradian" : "stera");
@@ -269,8 +579,11 @@ public sealed partial class HtmlRenderingTests {
         return (document, left, right, width);
     }
 
-    private static HtmlRenderDocument RenderStyledWord(string content, string sizing, string extraCss = "", string followingContent = "") {
-        return HtmlRenderEngine.Render(HtmlConversionDocument.Parse(StyledWordSource(content, sizing, extraCss, followingContent)), StyledWordOptions());
+    private static HtmlRenderDocument RenderStyledWord(string content, string sizing, string extraCss = "", string followingContent = "",
+        Action<HtmlRenderOptions>? configure = null) {
+        HtmlRenderOptions options = StyledWordOptions();
+        configure?.Invoke(options);
+        return HtmlRenderEngine.Render(HtmlConversionDocument.Parse(StyledWordSource(content, sizing, extraCss, followingContent)), options);
     }
 
     private static HtmlRenderOptions StyledWordOptions() {
@@ -302,6 +615,13 @@ public sealed partial class HtmlRenderingTests {
     private static HtmlRenderText StyledWordText(HtmlRenderDocument document, string value) => Assert.Single(StyledWordTexts(document), text => text.Text == value);
     private static HtmlRenderShape StyledWordBox(HtmlRenderDocument document) => Assert.Single(StyledWordVisuals(document).OfType<HtmlRenderShape>(), shape => shape.Source == "div#probe");
     private static double StyledWordAdvance(HtmlRenderText text) => Assert.IsType<double>(text.TextAdvanceWidth);
+
+    private static double StyledWordFreshLineOrigin(HtmlRenderDocument document, bool floated) {
+        if (!floated) return StyledWordBox(document).X;
+        HtmlRenderShape obstruction = Assert.Single(StyledWordVisuals(document).OfType<HtmlRenderShape>(), shape => shape.Source == "span#obstruction");
+        Assert.Equal(32D, obstruction.Width, 6);
+        return obstruction.X + obstruction.Width;
+    }
 
     // Public searchable text inserts separators between visuals; source characters must still occur exactly once in source order.
     private static string StyledWordLogicalCharacters(HtmlRenderDocument document) => new(document.Text.Where(character => !char.IsWhiteSpace(character)).ToArray());

@@ -76,7 +76,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool preventWrapping = parentStyle.PreventTextWrapping || run.Style.PreventTextWrapping;
                 bool canBreakBefore = wordFitting.CanBreakBefore(run, sourceStartOffset);
                 double previewAdvance = !preventWrapping
-                    && (canBreakBefore || wordFitting.HasBreakInside(run, sourceStartOffset, sourceOffset))
+                    && (canBreakBefore || wordFitting.HasBreakInside(run, sourceStartOffset, sourceOffset)
+                        || !IsWhitespaceToken(token)
+                            && PrepareHyphenationToken(token, token, run.Style, reportUnsupportedLanguage: false).HasBreaks)
                         ? wordFitting.PreviewWithContinuation(previewLine, run, sourceOffset, tokenWidth)
                         : previewLine.PreviewAdvance(run, tokenWidth);
                 bool moveWholeToken = !preventWrapping && hasContent && canBreakBefore && !IsWhitespaceToken(token)

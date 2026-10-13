@@ -713,7 +713,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int noWrapRangeStart = -1;
         int noWrapStrutStart = 0;
         bool noWrapRangeStartedAfterContent = false;
-        InlineWordFitting wordFitting = CreateInlineWordFitting(runs, paragraphStyle);
+        InlineWordFitting wordFitting = CreateInlineWordFitting(runs, paragraphStyle,
+            consecutiveHyphenatedLines: () => CountConsecutiveHyphenatedLines(lines));
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
             if (ProcessInlineEdgeBoundary(run, line)) continue;
@@ -865,7 +866,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool canBreakBefore = whitespace || wordFitting.CanBreakBefore(run, visibleSourceStart);
                 bool previewContinuation = !preventTokenWrapping && !whitespace
                     && !AllowsEmergencyTokenBreak(run.Style)
-                    && (canBreakBefore || wordFitting.HasBreakInside(run, visibleSourceStart, sourceOffset));
+                    && (canBreakBefore || hyphenation.HasBreaks
+                        || wordFitting.HasBreakInside(run, visibleSourceStart, sourceOffset));
                 double previewAdvance = previewContinuation
                     ? wordFitting.PreviewWithContinuation(line, run, sourceOffset, measured)
                     : line.PreviewAdvance(run, measured);
@@ -1014,8 +1016,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return false;
     }
 
-    private HyphenationToken PrepareHyphenationToken(string paintToken, string logicalToken, HtmlRenderBoxStyle style) {
-        if (style.Hyphens == "auto" && style.WordBreak != "break-all"
+    private HyphenationToken PrepareHyphenationToken(string paintToken, string logicalToken, HtmlRenderBoxStyle style,
+        bool reportUnsupportedLanguage = true) {
+        if (reportUnsupportedLanguage && style.Hyphens == "auto" && style.WordBreak != "break-all"
             && _options.TextHyphenationCallback == null
             && !OfficeTextHyphenationPatterns.SupportsLanguage(style.Language)
             && logicalToken.Any(char.IsLetter)

@@ -132,8 +132,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || run.PositionedMarkerElement != null) return result;
             foreach (HtmlInlineEdgeScope scope in run.InlineEdgeScopes) {
                 if (_inlineEdges.ContainsKey(scope)) continue;
-                if (scope.Clone || scope.FirstContent == null) result += scope.Start;
-                if (scope.Clone) result += scope.End;
+                result += PreviewNewInlineScopeAdvance(scope);
             }
             if (completesToken && run.InlineTokenEndsRun) result += run.InlineClosingAdvance;
             return result;
@@ -142,11 +141,54 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal static double PreviewEmptyLineAdvance(HtmlInlineRun run, double contentWidth, bool completesToken = true) {
             double result = contentWidth;
             foreach (HtmlInlineEdgeScope scope in run.InlineEdgeScopes) {
-                if (scope.Clone || scope.FirstContent == null) result += scope.Start;
-                if (scope.Clone) result += scope.End;
+                result += PreviewNewInlineScopeAdvance(scope);
             }
             if (completesToken && run.InlineTokenEndsRun) result += run.InlineClosingAdvance;
             return result;
+        }
+
+        private static double PreviewNewInlineScopeAdvance(HtmlInlineEdgeScope scope) =>
+            (scope.Clone || scope.FirstContent == null ? scope.Start : 0D) + (scope.Clone ? scope.End : 0D);
+
+        /// <summary>
+        /// Predicts content and empty inline closures using private scope sets.
+        /// Scope content, segments, and the real line remain untouched.
+        /// </summary>
+        private sealed class InlineAdvancePreview {
+            private readonly HashSet<HtmlInlineEdgeScope> _present;
+            private readonly HashSet<HtmlInlineEdgeScope> _closed;
+
+            internal InlineAdvancePreview(InlineLine line) {
+                Width = line.Width;
+                _present = new HashSet<HtmlInlineEdgeScope>(line._inlineEdges.Keys);
+                _closed = new HashSet<HtmlInlineEdgeScope>(line._inlineEdges
+                    .Where(entry => entry.Value.Closed).Select(entry => entry.Key));
+            }
+
+            internal double Width { get; private set; }
+
+            internal double PreviewContent(HtmlInlineRun run, double contentWidth) {
+                double result = Width + contentWidth;
+                foreach (HtmlInlineEdgeScope scope in run.InlineEdgeScopes) {
+                    if (!_present.Contains(scope)) result += PreviewNewInlineScopeAdvance(scope);
+                }
+                return result;
+            }
+
+            internal void AddContent(HtmlInlineRun run, double contentWidth) {
+                Width = PreviewContent(run, contentWidth);
+                foreach (HtmlInlineEdgeScope scope in run.InlineEdgeScopes) _present.Add(scope);
+            }
+
+            internal void CloseScope(HtmlInlineRun boundaryRun) {
+                HtmlInlineEdgeScope scope = boundaryRun.InlineEdgeBoundary!.Scope;
+                if (!_present.Contains(scope)) {
+                    // Match CloseInlineScope's empty-box path without assigning FirstContent.
+                    if (ReferenceEquals(scope.FirstContent, scope)) return;
+                    AddContent(boundaryRun, 0D);
+                }
+                if (_closed.Add(scope) && !scope.Clone) Width += scope.End;
+            }
         }
 
         // Tab stops are measured from the formatting line's start. A cloned end

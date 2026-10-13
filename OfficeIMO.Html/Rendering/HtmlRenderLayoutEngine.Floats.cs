@@ -86,7 +86,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int noWrapRangeStart = -1;
         int noWrapStrutStart = 0;
         bool noWrapRangeStartedAfterContent = false;
-        InlineWordFitting wordFitting = CreateInlineWordFitting(runs, paragraphStyle);
+        InlineWordFitting wordFitting = CreateInlineWordFitting(runs, paragraphStyle,
+            consecutiveHyphenatedLines: () => CountConsecutiveHyphenatedLines(lines));
 
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
@@ -272,7 +273,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool canBreakBefore = whitespace || wordFitting.CanBreakBefore(run, sourceStartOffset);
                 bool previewContinuation = !preventTokenWrapping && !whitespace
                     && !AllowsEmergencyTokenBreak(run.Style)
-                    && (canBreakBefore || wordFitting.HasBreakInside(run, sourceStartOffset, sourceOffset));
+                    && (canBreakBefore || hyphenation.HasBreaks
+                        || wordFitting.HasBreakInside(run, sourceStartOffset, sourceOffset));
                 double previewAdvance = previewContinuation
                     ? wordFitting.PreviewWithContinuation(line, run, sourceOffset, measured)
                     : line.PreviewAdvance(run, measured);
