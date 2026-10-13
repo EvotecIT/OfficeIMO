@@ -225,14 +225,14 @@ final class DocumentSession {
 
     func rotate(_ pages: [Int], degrees: Int) {
         guard !pages.isEmpty else { return }
-        edit(String(localized: degrees < 0 ? "Rotate Left" : "Rotate Right")) { try await $0.rotatePages(pages, degrees: degrees) }
+        edit(degrees < 0 ? String(localized: "Rotate Left") : String(localized: "Rotate Right")) { try await $0.rotatePages(pages, degrees: degrees) }
     }
 
     /// Deletes pages; a document keeps at least one.
     func delete(_ pages: [Int]) {
         guard !pages.isEmpty, pages.count < pageCount else { return }
         let remaining = pageCount - pages.count
-        edit(String(localized: pages.count == 1 ? "Delete Page" : "Delete Pages")) { try await $0.deletePages(pages) } then: { session in
+        edit(pages.count == 1 ? String(localized: "Delete Page") : String(localized: "Delete Pages")) { try await $0.deletePages(pages) } then: { session in
             session.selection = []
             session.currentPage = min(session.currentPage, remaining)
         }
@@ -244,7 +244,7 @@ final class DocumentSession {
         guard !pages.isEmpty else { return }
         // Each copy lands after its page, shifted by the copies inserted before it.
         let copies = Set(pages.enumerated().map { index, page in page + index + 1 })
-        edit(String(localized: pages.count == 1 ? "Duplicate Page" : "Duplicate Pages")) { try await $0.duplicatePages(pages) } then: { session in
+        edit(pages.count == 1 ? String(localized: "Duplicate Page") : String(localized: "Duplicate Pages")) { try await $0.duplicatePages(pages) } then: { session in
             session.selection = copies
         }
     }
@@ -261,7 +261,7 @@ final class DocumentSession {
         guard order != Array(1...count) else { return }
         let moved = Set((position + 1)...(position + moving.count))
         let newOrder = order
-        edit(String(localized: moving.count == 1 ? "Move Page" : "Move Pages")) { try await $0.reorderPages(newOrder) } then: { session in
+        edit(moving.count == 1 ? String(localized: "Move Page") : String(localized: "Move Pages")) { try await $0.reorderPages(newOrder) } then: { session in
             session.selection = moved
         }
     }

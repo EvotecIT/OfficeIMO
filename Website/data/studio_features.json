@@ -116,14 +116,13 @@
         {
           "id": "shapes",
           "title": "Shapes, text boxes and stamps",
-          "detail": "Rectangles, ellipses, lines, polygons, callouts and stamps",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "detail": "Rectangles, ovals, lines, polygons, text boxes and stamps, moved and resized on the page",
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "mac": "Rectangles, ovals, lines, arrows, text boxes and standard stamps; polygons and callouts are planned.",
-            "ipad": "Rectangles, ovals, lines, arrows, text boxes and standard stamps; polygons and callouts are planned.",
-            "iphone": "Rectangles, ovals, lines, arrows, text boxes and standard stamps; polygons and callouts are planned."
-          },
-          "roadmap": "phase-7-native-apple-apps"
+            "mac": "Arrows too.",
+            "ipad": "Arrows too.",
+            "iphone": "Arrows too."
+          }
         },
         {
           "id": "comments",

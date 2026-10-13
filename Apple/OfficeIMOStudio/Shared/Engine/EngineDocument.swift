@@ -217,12 +217,14 @@ struct AnnotationList: Decodable, Sendable {
     let annotations: [Annotation]
 }
 
-/// A change to an annotation's contents, author or colour; nil fields are kept.
+/// A change to an annotation's contents, author or colour, or alone its rectangle on the displayed page, which moves
+/// or resizes it; nil fields are kept.
 struct AnnotationUpdate: Encodable, Sendable {
     let objectNumber: Int
     var contents: String?
     var author: String?
     var color: EngineColor?
+    var bounds: SearchResult.Rectangle?
 }
 
 /// A page rendered by the engine as PNG.

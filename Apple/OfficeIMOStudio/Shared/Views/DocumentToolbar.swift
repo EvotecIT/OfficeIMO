@@ -21,16 +21,25 @@ struct DocumentToolbar: ToolbarContent {
             if session.task == .markup {
                 // Each segment shows its symbol and names its tool, rather than the symbol, to VoiceOver and in its tooltip.
                 Picker("Tool", selection: markupChoice) {
+                    Image(systemName: ShapeTool.select.systemImage).accessibilityLabel(Text(ShapeTool.select.title))
+                        .help(Text(ShapeTool.select.title))
+                        .tag(MarkupChoice.shape(.select))
                     ForEach(MarkupStyle.allCases) { style in
                         Image(systemName: style.systemImage).accessibilityLabel(Text(style.title)).help(Text(style.title))
                             .tag(MarkupChoice.style(style))
                     }
-                    ForEach(ShapeTool.allCases) { shape in
-                        Image(systemName: shape.systemImage).accessibilityLabel(Text(shape.title)).help(Text(shape.title))
-                            .tag(MarkupChoice.shape(shape))
-                    }
                 }
                 .pickerStyle(.segmented)
+                // The shapes share one pull-down, as in Preview, which shows the shape a drag draws.
+                Menu {
+                    Picker("Shapes", selection: shapeChoice) {
+                        ForEach(ShapeTool.shapes) { Label($0.title, systemImage: $0.systemImage).tag(Optional($0)) }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Label("Shapes", systemImage: shapeChoice.wrappedValue?.systemImage ?? "square.on.circle")
+                }
+                .help("Shapes")
                 ColorPicker("Colour", selection: markupColor, supportsOpacity: false)
                 Button("Add Note", systemImage: "note.text.badge.plus") { isAddingNote = true }
             }
@@ -116,7 +125,8 @@ struct DocumentToolbar: ToolbarContent {
     }
 
     #if os(iOS)
-    /// Shapes and text boxes, which a drag on the page draws in place of the drawing tools until Done.
+    /// Selecting markup to move or resize it, and shapes and text boxes, which a drag on the page draws in place of the
+    /// drawing tools until Done.
     private var shapesMenu: some View {
         Menu("Shapes", systemImage: "square.on.circle") {
             Picker("Shapes", selection: $session.shapeTool) {
@@ -141,6 +151,15 @@ struct DocumentToolbar: ToolbarContent {
             case .shape(let shape):
                 session.shapeTool = shape
             }
+        }
+    }
+
+    /// The shape a drag draws, if one is chosen.
+    private var shapeChoice: Binding<ShapeTool?> {
+        Binding {
+            session.shapeTool == .select ? nil : session.shapeTool
+        } set: { shape in
+            session.shapeTool = shape
         }
     }
 

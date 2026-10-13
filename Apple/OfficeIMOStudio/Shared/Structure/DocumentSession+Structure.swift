@@ -145,7 +145,7 @@ extension DocumentSession {
 
     func crop(_ pages: [Int], left: Double, top: Double, right: Double, bottom: Double) {
         guard canCrop, !pages.isEmpty else { return }
-        editStructure(String(localized: pages.count == 1 ? "Crop Page" : "Crop Pages"),
+        editStructure(pages.count == 1 ? String(localized: "Crop Page") : String(localized: "Crop Pages"),
                       EditRequest(crop: CropEdit(pages: pages, left: left, top: top, right: right, bottom: bottom)))
     }
 
