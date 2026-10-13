@@ -70,6 +70,9 @@ struct DocumentWindow: View {
             .sheet(item: $session.securitySheet, onDismiss: { session.presentPendingExport() }) { sheet in
                 SecuritySheetView(session: session, sheet: sheet)
             }
+            .modifier(TextBoxPrompt(session: session))
+            // The Tools menu and the task menu enable their commands from the structure of the revision shown.
+            .task(id: "\(session.isReady)-\(session.revision)") { await session.loadStructure() }
             .sheet(item: $session.structureSheet, onDismiss: { session.presentPendingExportedFile() }) { sheet in
                 StructureSheetView(session: session, sheet: sheet)
             }
@@ -269,8 +272,12 @@ struct ReadView: View {
                                 .transition(.opacity)
                                 .accessibilityHidden(true)
                         }
-                        if session.pendingSignature != nil {
+                        if session.pageDragTool == .redaction {
+                            RedactionBanner(session: session)
+                        } else if session.pendingSignature != nil {
                             SigningBanner(session: session)
+                        } else if let tool = shapeBannerTool {
+                            ShapeBanner(session: session, tool: tool)
                         } else if session.isSearching || session.searchResult != nil {
                             FindBar(session: session)
                         }
@@ -298,6 +305,14 @@ struct ReadView: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Page \(session.currentPage) of \(session.pageCount)")
+    }
+
+    /// The shape a drag draws on iPad and iPhone, where the banner over the pages names it; the Mac's toolbar does.
+    private var shapeBannerTool: ShapeTool? {
+        #if os(iOS)
+        if case .shape(let tool)? = session.pageDragTool { return tool }
+        #endif
+        return nil
     }
 }
 

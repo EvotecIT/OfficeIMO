@@ -15,10 +15,14 @@ struct PageCanvas: UIViewRepresentable {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
         if let request = session.canvasRequest { view.handle(request) }
-        let drawing = session.task == .markup && session.canEditAnnotations
+        let dragTool = session.pageDragTool
+        let drawing = session.task == .markup && session.canEditAnnotations && dragTool == nil
         view.markup.setActive(drawing)
-        view.textSelection.setEnabled(session.task == .read && session.canCopyText)
-        view.forms.setEnabled(session.task == .read && (session.canFillForms || session.pendingSignature != nil))
+        view.drag.update(tool: dragTool)
+        // One finger draws, drags a shape or marks an area; two scroll and pinch, as in Notes and Files.
+        view.panGestureRecognizer.minimumNumberOfTouches = drawing || dragTool != nil ? 2 : 1
+        view.textSelection.setEnabled(session.task == .read && dragTool == nil && session.canCopyText)
+        view.forms.setEnabled(session.task == .read && dragTool == nil && (session.canFillForms || session.pendingSignature != nil))
         _ = session.formFieldsVersion
         view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = view.tintColor.withAlphaComponent(0.3).cgColor
@@ -29,7 +33,7 @@ struct PageCanvas: UIViewRepresentable {
         }
         view.textSelection.layoutHandles()
         // A double tap on the page draws a dot while marking up, rather than zooming.
-        view.doubleTap.isEnabled = !drawing
+        view.doubleTap.isEnabled = !drawing && dragTool == nil
         view.markup.update()
     }
 
@@ -49,6 +53,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     let doubleTap = UITapGestureRecognizer()
     private(set) lazy var textSelection = TextSelectionController(session: session, scrollView: self)
     private(set) lazy var forms = FormController(session: session, scrollView: self)
+    private(set) lazy var drag = PageDragController(session: session, scrollView: self)
     private var handledRequest: UUID?
     private var laidOutWidth: CGFloat = 0
     private var fitZoom: CGFloat = 1
@@ -63,7 +68,10 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         bouncesZoom = true
         content.layer.addSublayer(tiles.layer)
         addSubview(content)
-        tiles.revisionShown = { [weak self] revision in self?.markup.revisionShown(revision) }
+        tiles.revisionShown = { [weak self] revision in
+            self?.markup.revisionShown(revision)
+            self?.drag.revisionShown(revision)
+        }
         doubleTap.addTarget(self, action: #selector(doubleTapped(_:)))
         doubleTap.numberOfTapsRequired = 2
         addGestureRecognizer(doubleTap)

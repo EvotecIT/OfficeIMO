@@ -31,6 +31,8 @@ struct StructureCommands: View {
             .disabled(!session.canFlattenForms)
         Button("Redact…", systemImage: "rectangle.fill.badge.xmark") { session.structureSheet = .redact }
             .disabled(!session.canRedact)
+        Button("Mark Areas to Redact", systemImage: "rectangle.dashed") { session.beginMarkingRedactions() }
+            .disabled(!session.canRedact || session.redactionAreas != nil)
         Divider()
         Button("Signatures…", systemImage: "signature") { session.structureSheet = .signatures }
             .disabled(!session.canCheck)

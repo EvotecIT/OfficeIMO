@@ -5,9 +5,9 @@
 
 .DESCRIPTION
     Xcode adds new strings from the Swift source to Localizable.xcstrings when the project builds in the Xcode app, not
-    when xcodebuild builds it. This builds the iOS app for the simulator, which extracts every shared string, and syncs
-    the extracted strings into the catalog without marking strings stale. Run it after changing interface text and
-    before exporting or checking translations.
+    when xcodebuild builds it. This builds the iOS app for the simulator and the Mac app, which extracts every string,
+    including those only one platform shows, and syncs the extracted strings into the catalog without marking strings
+    stale. Run it after changing interface text and before exporting or checking translations.
 
 .EXAMPLE
     ./Build/Studio/Sync-StudioAppleStrings.ps1 -DerivedDataPath /tmp/studio-derived
@@ -21,10 +21,13 @@ if (-not $IsMacOS) { throw 'Syncing the Apple String Catalog needs a Mac with Xc
 $project = Join-Path $PSScriptRoot '..' '..' 'Apple' 'OfficeIMOStudio'
 $catalog = Join-Path $project 'Shared' 'Localizable.xcstrings'
 
-xcodebuild -project (Join-Path $project 'OfficeIMOStudio.xcodeproj') -scheme OfficeIMOStudio-iOS -configuration Debug `
+$xcodeProject = Join-Path $project 'OfficeIMOStudio.xcodeproj'
+xcodebuild -project $xcodeProject -scheme OfficeIMOStudio-iOS -configuration Debug `
     -destination 'generic/platform=iOS Simulator' -derivedDataPath $DerivedDataPath build -quiet
+xcodebuild -project $xcodeProject -scheme OfficeIMOStudio-macOS -configuration Debug -derivedDataPath $DerivedDataPath build -quiet
+# Each platform's own build, without any other configurations the folder holds.
 $extracted = Get-ChildItem -Path (Join-Path $DerivedDataPath 'Build/Intermediates.noindex') -Recurse -Filter '*.stringsdata' |
-    Where-Object FullName -like '*Debug-iphonesimulator*'
+    Where-Object { $_.FullName -like '*Debug-iphonesimulator*' -or $_.FullName -match '[/\\]Debug[/\\]' }
 if (-not $extracted) { throw 'The build extracted no strings.' }
 $arguments = @('xcstringstool', 'sync', $catalog) + @($extracted | ForEach-Object { '--stringsdata', $_.FullName }) + '--skip-marking-strings-stale'
 xcrun @arguments

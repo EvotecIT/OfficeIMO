@@ -250,6 +250,28 @@
         }
       }
     },
+    "%lld area(s) marked" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Bereich(e) markiert"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld zone(s) marquée(s)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznaczone obszary: %lld"
+          }
+        }
+      }
+    },
     "%lld of %lld" : {
       "localizations" : {
         "de" : {
@@ -630,6 +652,28 @@
         }
       }
     },
+    "Add Shape" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Form hinzufügen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter une forme"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj kształt"
+          }
+        }
+      }
+    },
     "Add Signature" : {
       "localizations" : {
         "de" : {
@@ -670,6 +714,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dodaj pieczątkę"
+          }
+        }
+      }
+    },
+    "Add Text Box" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Textfeld hinzufügen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter une zone de texte"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj pole tekstowe"
           }
         }
       }
@@ -934,6 +1000,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Archiwizacja"
+          }
+        }
+      }
+    },
+    "Arrow" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pfeil"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flèche"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strzałka"
           }
         }
       }
@@ -2496,6 +2584,138 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szkic"
+          }
+        }
+      }
+    },
+    "Drag across what to remove." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehe über das, was entfernt werden soll."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser sur ce qu’il faut supprimer."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij po tym, co chcesz usunąć."
+          }
+        }
+      }
+    },
+    "Drag on the page to draw a line." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehe auf der Seite, um eine Linie zu zeichnen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser sur la page pour tracer une ligne."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij po stronie, aby narysować linię."
+          }
+        }
+      }
+    },
+    "Drag on the page to draw a rectangle." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehe auf der Seite, um ein Rechteck zu zeichnen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser sur la page pour tracer un rectangle."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij po stronie, aby narysować prostokąt."
+          }
+        }
+      }
+    },
+    "Drag on the page to draw an arrow." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehe auf der Seite, um einen Pfeil zu zeichnen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser sur la page pour tracer une flèche."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij po stronie, aby narysować strzałkę."
+          }
+        }
+      }
+    },
+    "Drag on the page to draw an oval." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehe auf der Seite, um ein Oval zu zeichnen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser sur la page pour tracer un ovale."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij po stronie, aby narysować owal."
+          }
+        }
+      }
+    },
+    "Drag on the page where the text goes." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehe auf der Seite dort, wo der Text stehen soll."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser sur la page à l’endroit du texte."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij po stronie w miejscu, gdzie ma być tekst."
           }
         }
       }
@@ -4102,6 +4322,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tworzy nowy PDF z wybranych stron pliku PDF, np. „1-3, 5”, w podanej kolejności."
+          }
+        }
+      }
+    },
+    "Mark Areas to Redact" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereiche zum Schwärzen markieren"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marquer des zones à caviarder"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznacz obszary do utajnienia"
           }
         }
       }
@@ -6108,24 +6350,46 @@
         }
       }
     },
-    "Redaction removes the text, images and drawings under each match and covers it in black. Select text on a page to redact just that." : {
+    "Redaction area" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schwärzen entfernt Text, Bilder und Zeichnungen unter jedem Treffer und deckt ihn schwarz ab. Wähle Text auf einer Seite aus, um nur diesen zu schwärzen."
+            "value" : "Schwärzungsbereich"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le caviardage supprime le texte, les images et les dessins sous chaque correspondance et les recouvre de noir. Sélectionnez du texte sur une page pour ne caviarder que celui-ci."
+            "value" : "Zone de caviardage"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utajnienie usuwa tekst, obrazy i rysunki pod każdym dopasowaniem i zakrywa je na czarno. Aby utajnić tylko fragment, zaznacz tekst na stronie."
+            "value" : "Obszar utajnienia"
+          }
+        }
+      }
+    },
+    "Redaction removes the text, images and drawings under each match and covers it in black. Select text on a page to redact just that, or use Mark Areas to Redact to drag across images and drawings." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schwärzen entfernt Text, Bilder und Zeichnungen unter jedem Treffer und deckt ihn schwarz ab. Wähle Text auf einer Seite aus, um nur diesen zu schwärzen, oder ziehe mit „Bereiche zum Schwärzen markieren“ über Bilder und Zeichnungen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le caviardage supprime le texte, les images et les dessins sous chaque correspondance et les recouvre de noir. Sélectionnez du texte sur une page pour ne caviarder que celui-ci, ou utilisez « Marquer des zones à caviarder » pour faire glisser sur des images et des dessins."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utajnienie usuwa tekst, obrazy i rysunki pod każdym dopasowaniem i zakrywa je na czarno. Aby utajnić tylko fragment, zaznacz tekst na stronie, a obrazy i rysunki zaznacz przeciągnięciem po wybraniu „Zaznacz obszary do utajnienia”."
           }
         }
       }
@@ -6918,6 +7182,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kształt"
+          }
+        }
+      }
+    },
+    "Shapes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kształty"
           }
         }
       }
@@ -8084,6 +8370,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sam tekst, w kolejności czytania."
+          }
+        }
+      }
+    },
+    "The text shows in a box on the page, in the Markup colour." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Text erscheint in einem Feld auf der Seite, in der Markierungsfarbe."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le texte s’affiche dans une zone sur la page, dans la couleur d’annotation."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst pojawi się w polu na stronie, w kolorze oznaczeń."
           }
         }
       }

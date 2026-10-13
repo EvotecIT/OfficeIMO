@@ -193,6 +193,8 @@ struct AnnotationRequest: Encodable, Sendable {
     var linkPage: Int?
     /// A standard stamp's name, such as Approved or Draft.
     var stamp: String?
+    /// How a line ends: None, OpenArrow or ClosedArrow.
+    var lineEnd: String?
 }
 
 /// The markup annotations on a page, from officeimo_document_annotations_json.

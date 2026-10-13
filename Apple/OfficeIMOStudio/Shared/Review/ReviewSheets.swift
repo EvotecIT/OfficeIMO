@@ -227,7 +227,7 @@ struct RedactSheet: View {
                 Button("Find", systemImage: "magnifyingglass", action: search)
                     .disabled(find.text.trimmingCharacters(in: .whitespaces).isEmpty)
             } footer: {
-                Text("Redaction removes the text, images and drawings under each match and covers it in black. Select text on a page to redact just that.")
+                Text("Redaction removes the text, images and drawings under each match and covers it in black. Select text on a page to redact just that, or use Mark Areas to Redact to drag across images and drawings.")
             }
             if searched != nil {
                 Section {

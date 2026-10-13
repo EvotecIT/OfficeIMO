@@ -136,6 +136,12 @@ final class DocumentSession {
     /// The drawing style on the Mac, where the page view draws without PencilKit.
     var markupStyle = MarkupStyle.pen
     var markupColor = EngineColor(red: 0.85, green: 0.12, blue: 0.1)
+    /// The shape a drag on the page draws in Markup, in place of the pen.
+    var shapeTool: ShapeTool?
+    /// A text box drawn on a page, waiting for its text.
+    var pendingTextBox: PendingTextBox?
+    /// Areas marked on the pages to redact together; nil when not marking.
+    var redactionAreas: [RedactionMark]?
     /// The pending drawing's own history, which Undo and Redo act on before the window's.
     @ObservationIgnored weak var markupUndoManager: UndoManager?
     /// The middle of the page view, in the current page's displayed points, where a new note goes.
