@@ -87,7 +87,7 @@ final class MarkupInkView: NSView {
                                         author: DocumentSession.author, color: session.markupColor,
                                         strokeWidth: style.strokeWidth, opacity: style.opacity)
         waiting.append((session.revision, shape))
-        session.addMarkup([request], name: String(localized: style == .pen ? "Draw" : "Highlight"), failed: { [weak self, weak shape] in
+        session.addMarkup([request], name: style == .pen ? String(localized: "Draw") : String(localized: "Highlight"), failed: { [weak self, weak shape] in
             shape?.removeFromSuperlayer()
             self?.waiting.removeAll { $0.layer === shape }
         })

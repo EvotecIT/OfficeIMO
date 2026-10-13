@@ -2,19 +2,21 @@
 import AppKit
 import QuartzCore
 
-/// Drags across the pages on the Mac that draw a shape in Markup or mark an area to redact, as Preview's Shapes and
-/// Redact tools do. The outline follows the pointer; a shape stays as a vector outline until the page's new images
-/// show it, and marked areas stay shaded until they are redacted or the marking is cancelled.
+/// Drags across the pages on the Mac with a page tool, as Preview's Select, Shapes and Redact tools work: drawing a
+/// shape, marking an area to redact, or selecting markup and moving it or resizing it by a corner. The outline follows
+/// the pointer; a change stays as a vector outline until the page's new images show it, and marked areas stay shaded
+/// until they are redacted or the marking is cancelled. Delete removes the selected markup.
 @MainActor
-final class PageDragView: NSView {
+final class PageDragView: NSView, NSMenuItemValidation {
     private let session: DocumentSession
     private let layout: () -> PageLayout
     private let marks = CAShapeLayer()
+    private let selectionOutline = CAShapeLayer()
+    private let selectionHandles = CAShapeLayer()
     private var draft: CAShapeLayer?
-    private var start: CGPoint?
-    private var dragPage = 0
+    private var gesture: PageDragGesture?
     private var tool: PageDragTool?
-    /// Shapes added to the document and waiting for the page's images to show them, by the revision they followed.
+    /// Changes made in the document and waiting for the page's images to show them, by the revision they followed.
     private var waiting: [(revision: Int64, layer: CAShapeLayer)] = []
 
     init(session: DocumentSession, layout: @escaping () -> PageLayout) {
@@ -22,10 +24,11 @@ final class PageDragView: NSView {
         self.layout = layout
         super.init(frame: .zero)
         wantsLayer = true
-        marks.fillColor = CGColor(gray: 0, alpha: 0.35)
-        marks.strokeColor = CGColor(gray: 0, alpha: 0.9)
-        marks.lineWidth = 1
-        layer?.addSublayer(marks)
+        Self.style(marks, as: .area)
+        selectionOutline.fillColor = nil
+        selectionOutline.lineWidth = 1
+        selectionOutline.lineDashPattern = [4, 3]
+        for layer in [marks, selectionOutline, selectionHandles] { self.layer?.addSublayer(layer) }
         setAccessibilityElement(true)
         setAccessibilityRole(.layoutArea)
     }
@@ -41,88 +44,96 @@ final class PageDragView: NSView {
         tool == nil ? nil : super.hitTest(point)
     }
 
-    /// Follows the session: the tool a drag uses and the areas marked to redact.
+    /// Follows the session: the tool a drag uses, the areas marked to redact and the selected markup.
     func update(tool: PageDragTool?) {
         if tool != self.tool {
             self.tool = tool
             window?.invalidateCursorRects(for: self)
             setAccessibilityLabel(tool == .redaction ? String(localized: "Redaction area") : String(localized: "Drawing area"))
         }
+        let layout = layout()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        marks.path = DragOutline.path(for: session.redactionAreas ?? [], layout: layout())
+        marks.path = DragOutline.path(for: session.redactionAreas ?? [], layout: layout)
+        let accent = NSColor.controlAccentColor.cgColor
+        selectionOutline.strokeColor = accent
+        selectionHandles.fillColor = accent
+        if tool == .select, let selected = session.selectedPageAnnotation, layout.frames.indices.contains(selected.page - 1) {
+            let paths = SelectionOutline.paths(for: selected.bounds.cgRect, page: layout.frames[selected.page - 1])
+            selectionOutline.path = paths.outline
+            selectionHandles.path = paths.handles
+        } else {
+            selectionOutline.path = nil
+            selectionHandles.path = nil
+        }
         CATransaction.commit()
     }
 
     override func resetCursorRects() {
-        guard tool != nil else { return }
-        for frame in layout().frames { addCursorRect(frame, cursor: .crosshair) }
+        guard let tool else { return }
+        for frame in layout().frames { addCursorRect(frame, cursor: tool == .select ? .arrow : .crosshair) }
     }
 
     override func mouseDown(with event: NSEvent) {
         guard let tool else { return }
-        let point = convert(event.locationInWindow, from: nil)
-        guard let index = layout().frames.firstIndex(where: { $0.contains(point) }) else { return }
         window?.makeFirstResponder(self)
-        dragPage = index + 1
-        start = point
+        let point = convert(event.locationInWindow, from: nil)
+        guard let gesture = PageDragGesture.begin(tool, at: point, layout: layout(), session: session) else { return }
+        self.gesture = gesture
         let shape = CAShapeLayer()
-        if tool == .redaction {
-            shape.fillColor = CGColor(gray: 0, alpha: 0.35)
-            shape.strokeColor = CGColor(gray: 0, alpha: 0.9)
-            shape.lineWidth = 1
-        } else {
-            shape.fillColor = nil
-            shape.strokeColor = CGColor(srgbRed: session.markupColor.red, green: session.markupColor.green, blue: session.markupColor.blue, alpha: 1)
-            shape.lineWidth = DocumentSession.shapeStrokeWidth
-            shape.lineCap = .round
-            shape.lineJoin = .round
-            if tool == .shape(.textBox) { shape.lineDashPattern = [4, 3] }
-        }
+        Self.style(shape, as: gesture.look, color: session.markupColor)
         shape.contentsScale = (window?.backingScaleFactor ?? 2) * 4
         layer?.addSublayer(shape)
         draft = shape
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard let tool, let start, let draft else { return }
+        guard gesture != nil, let draft else { return }
+        gesture?.move(to: convert(event.locationInWindow, from: nil))
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        draft.path = DragOutline.path(for: tool, from: start, to: clamped(convert(event.locationInWindow, from: nil)))
+        draft.path = gesture?.outline
         CATransaction.commit()
     }
 
     override func mouseUp(with event: NSEvent) {
-        guard let tool, let start, let draft else { return }
-        self.start = nil
+        guard var gesture, let draft else { return }
+        self.gesture = nil
         self.draft = nil
-        let frames = layout().frames
-        guard frames.indices.contains(dragPage - 1) else {
-            draft.removeFromSuperlayer()
-            return
-        }
-        let origin = frames[dragPage - 1].origin
-        let end = clamped(convert(event.locationInWindow, from: nil))
-        let from = CGPoint(x: start.x - origin.x, y: start.y - origin.y), to = CGPoint(x: end.x - origin.x, y: end.y - origin.y)
-        switch tool {
-        case .redaction:
-            draft.removeFromSuperlayer()
-            session.markRedaction(page: dragPage, from: from, to: to)
-        case .shape(let shape):
-            waiting.append((session.revision, draft))
-            session.addShape(shape, page: dragPage, from: from, to: to, failed: { [weak self, weak draft] in
-                draft?.removeFromSuperlayer()
-                self?.waiting.removeAll { $0.layer === draft }
-            })
+        gesture.move(to: convert(event.locationInWindow, from: nil))
+        let revision = session.revision
+        let stays = gesture.finish(session: session, failed: { [weak self, weak draft] in
+            draft?.removeFromSuperlayer()
+            self?.waiting.removeAll { $0.layer === draft }
+        })
+        if stays, draft.superlayer != nil { waiting.append((revision, draft)) } else { draft.removeFromSuperlayer() }
+    }
+
+    /// Delete and Forward Delete remove the selected markup.
+    override func keyDown(with event: NSEvent) {
+        if tool == .select, session.selectedPageAnnotation != nil, [51, 117].contains(event.keyCode) {
+            delete(nil)
+        } else {
+            super.keyDown(with: event)
         }
     }
 
-    /// Esc stops marking areas to redact, as it cancels other modes.
+    /// Edit ▸ Delete removes the selected markup.
+    @objc func delete(_ sender: Any?) {
+        session.removeSelectedAnnotation()
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        menuItem.action == #selector(delete(_:)) ? tool == .select && session.selectedPageAnnotation != nil : true
+    }
+
+    /// Esc stops marking areas to redact and clears the selection, as it cancels other modes.
     override func cancelOperation(_ sender: Any?) {
         if session.redactionAreas != nil { session.redactionAreas = nil }
+        session.selectedAnnotation = nil
     }
 
-    /// Removes shapes the page's images now show.
+    /// Removes outlines the page's images now show.
     func revisionShown(_ revision: Int64) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -134,12 +145,26 @@ final class PageDragView: NSView {
         CATransaction.commit()
     }
 
-    /// A point kept on the page the drag started on.
-    private func clamped(_ point: CGPoint) -> CGPoint {
-        let frames = layout().frames
-        guard frames.indices.contains(dragPage - 1) else { return point }
-        let page = frames[dragPage - 1]
-        return CGPoint(x: min(max(point.x, page.minX), page.maxX), y: min(max(point.y, page.minY), page.maxY))
+    private static func style(_ layer: CAShapeLayer, as look: PageDragGesture.Look, color: EngineColor? = nil) {
+        switch look {
+        case .area:
+            layer.fillColor = CGColor(gray: 0, alpha: 0.35)
+            layer.strokeColor = CGColor(gray: 0, alpha: 0.9)
+            layer.lineWidth = 1
+        case .shape(let dashed):
+            let color = color ?? EngineColor(red: 0, green: 0, blue: 0)
+            layer.fillColor = nil
+            layer.strokeColor = CGColor(srgbRed: color.red, green: color.green, blue: color.blue, alpha: 1)
+            layer.lineWidth = DocumentSession.shapeStrokeWidth
+            layer.lineCap = .round
+            layer.lineJoin = .round
+            if dashed { layer.lineDashPattern = [4, 3] }
+        case .selection:
+            layer.fillColor = nil
+            layer.strokeColor = NSColor.controlAccentColor.cgColor
+            layer.lineWidth = 1
+            layer.lineDashPattern = [4, 3]
+        }
     }
 }
 #endif

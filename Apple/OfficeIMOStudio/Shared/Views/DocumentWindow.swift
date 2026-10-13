@@ -297,6 +297,10 @@ struct ReadView: View {
                     await session.loadFormFields(page)
                 }
             }
+            .task(id: "\(session.pageDragTool == .select)-\(session.currentPage)-\(session.revision)") {
+                // Selecting markup on the page needs the page's annotations.
+                if session.pageDragTool == .select { await session.loadAnnotations() }
+            }
             .task(id: session.currentPage) {
                 guard session.pageCount > 1 else { return }
                 withAnimation(.easeOut(duration: 0.15)) { isIndicatorShown = true }
@@ -311,6 +315,7 @@ struct ReadView: View {
     private var shapeBannerTool: ShapeTool? {
         #if os(iOS)
         if case .shape(let tool)? = session.pageDragTool { return tool }
+        if session.pageDragTool == .select { return .select }
         #endif
         return nil
     }

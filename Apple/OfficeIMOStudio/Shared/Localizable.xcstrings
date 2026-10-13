@@ -2192,6 +2192,28 @@
         }
       }
     },
+    "Crop Page" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite beschneiden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rogner la page"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przytnij stronę"
+          }
+        }
+      }
+    },
     "Crop Pages" : {
       "localizations" : {
         "de" : {
@@ -2364,6 +2386,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usuń zakładkę"
+          }
+        }
+      }
+    },
+    "Delete Page" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite löschen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer la page"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń stronę"
           }
         }
       }
@@ -2610,6 +2654,28 @@
         }
       }
     },
+    "Drag around an area to outline it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehe um einen Bereich, um ihn zu umranden."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser autour d’une zone pour en tracer le contour."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij wokół obszaru, aby go obrysować."
+          }
+        }
+      }
+    },
     "Drag on the page to draw a line." : {
       "localizations" : {
         "de" : {
@@ -2720,6 +2786,28 @@
         }
       }
     },
+    "Draw" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeichnen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dessiner"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rysuj"
+          }
+        }
+      }
+    },
     "Drawing" : {
       "localizations" : {
         "de" : {
@@ -2782,6 +2870,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Duplikuj"
+          }
+        }
+      }
+    },
+    "Duplicate Page" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite duplizieren"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dupliquer la page"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplikuj stronę"
           }
         }
       }
@@ -4502,6 +4612,28 @@
         }
       }
     },
+    "Move Annotation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmerkung bewegen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer l’annotation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś adnotację"
+          }
+        }
+      }
+    },
     "Move Bookmark" : {
       "localizations" : {
         "de" : {
@@ -4586,6 +4718,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przenieś dalej"
+          }
+        }
+      }
+    },
+    "Move Page" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite bewegen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer la page"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś stronę"
+          }
+        }
+      }
+    },
+    "Move Pages" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seiten bewegen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer les pages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś strony"
           }
         }
       }
@@ -5822,6 +5998,28 @@
         }
       }
     },
+    "Polygon" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polygon"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polygone"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wielokąt"
+          }
+        }
+      }
+    },
     "Portrait" : {
       "localizations" : {
         "de" : {
@@ -6702,6 +6900,28 @@
         }
       }
     },
+    "Resize Annotation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Größe der Anmerkung ändern"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redimensionner l’annotation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień rozmiar adnotacji"
+          }
+        }
+      }
+    },
     "Returns a PDF’s text in reading order, a blank line between pages." : {
       "localizations" : {
         "de" : {
@@ -7094,6 +7314,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyszukiwanie…"
+          }
+        }
+      }
+    },
+    "Select" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswählen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionner"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznacz"
           }
         }
       }
@@ -7842,6 +8084,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tabloid"
+          }
+        }
+      }
+    },
+    "Tap markup to select it, then drag it or a corner." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe auf eine Markierung, um sie auszuwählen, und ziehe sie oder eine Ecke."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchez une annotation pour la sélectionner, puis faites-la glisser ou tirez un coin."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stuknij oznaczenie, aby je zaznaczyć, a potem przeciągnij je lub jego róg."
           }
         }
       }
