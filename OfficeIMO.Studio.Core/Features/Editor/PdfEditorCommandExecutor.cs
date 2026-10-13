@@ -149,6 +149,7 @@ internal static class PdfEditorCommandExecutor {
             Subtype = "Line",
             Rectangle = Rectangle(command.Bounds),
             Line = new[] { start.X, start.Y, end.X, end.Y },
+            LineEndEnding = command.Properties.LineEndEnding,
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),

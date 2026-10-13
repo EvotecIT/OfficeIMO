@@ -240,10 +240,11 @@ int32_t officeimo_document_search_stream_json(officeimo_document document, const
  * Adds a markup annotation as one undoable change, described as JSON:
  * { "tool", "page", "bounds": { "x", "y", "width", "height" }, "strokes": [ [ { "x", "y" } ] ],
  *   "quads": [ { "x", "y", "width", "height" } ], "text", "author", "color": { "red", "green", "blue" },
- *   "strokeWidth", "opacity", "fontSize", "linkUri", "linkPage", "stamp" }
+ *   "strokeWidth", "opacity", "fontSize", "linkUri", "linkPage", "stamp", "lineEnd" }
  * tool is one of ink, note, freeText, highlight, underline, strikeOut, squiggly, rectangle, ellipse, line, polygon, link
  * and stamp. A link covers its bounds and goes to linkUri (https, http or mailto) or to linkPage, exactly one of them; a
- * stamp is one of the standard stamps, such as Approved, Draft, Confidential, Final or ForComment (default Draft).
+ * stamp is one of the standard stamps, such as Approved, Draft, Confidential, Final or ForComment (default Draft). A
+ * line's lineEnd is None, OpenArrow or ClosedArrow, drawn at its last point.
  * Geometry is in points of the page as displayed, from its top-left corner, the space of officeimo_document_search_json.
  * Ink takes its strokes; a line its first stroke's first and last points; a polygon its first stroke; text markup its
  * quads, or bounds without them; the others take bounds. bounds may be left out when strokes are given. Colours are

@@ -271,6 +271,9 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         "Departmental", "ForComment", "TopSecret", "Draft", "ForPublicRelease"
     };
 
+    // The line endings of ISO 32000-2, 12.5.6.7, that an arrow uses.
+    private static readonly string[] LineEndings = ["None", "OpenArrow", "ClosedArrow"];
+
     /// <summary>
     /// Adds a markup annotation as one undoable change. Geometry is in points of the page as displayed, from its
     /// top-left corner; the workspace maps it to the page's own space through its box, rotation and user unit.
@@ -310,9 +313,11 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             stamp = request.Stamp ?? "Draft";
             if (!StampNames.Contains(stamp)) throw new ArgumentException($"“{stamp}” isn't a standard stamp.", nameof(request));
         }
+        if (request.LineEnd is { } ending && (tool != PdfEditorTool.Line || !LineEndings.Contains(ending)))
+            throw new ArgumentException($"A line ends with {string.Join(", ", LineEndings)}; other markup has no line ending.", nameof(request));
         var properties = new PdfEditorProperties(request.Text ?? string.Empty, request.Author ?? string.Empty,
             new PdfColor(color.Red, color.Green, color.Blue), stamp, linkUri, request.FontSize ?? 12D,
-            LinkPageNumber: request.LinkPage, StrokeWidth: width, Opacity: request.Opacity);
+            LinkPageNumber: request.LinkPage, StrokeWidth: width, Opacity: request.Opacity, LineEndEnding: request.LineEnd);
         return RunAsync(() => {
             if (request.Page < 1 || request.Page > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(request), "The page does not exist.");
             if (request.LinkPage is { } target && (target < 1 || target > _workspace.Pages.Count))
@@ -601,7 +606,7 @@ internal sealed record StudioNativeColor(double Red, double Green, double Blue);
 internal sealed record StudioNativeAnnotationRequest(string Tool, int Page, StudioNativeRectangle? Bounds = null,
     IReadOnlyList<IReadOnlyList<StudioNativePoint>>? Strokes = null, IReadOnlyList<StudioNativeRectangle>? Quads = null,
     string? Text = null, string? Author = null, StudioNativeColor? Color = null, double? StrokeWidth = null, double? Opacity = null,
-    double? FontSize = null, string? LinkUri = null, int? LinkPage = null, string? Stamp = null);
+    double? FontSize = null, string? LinkUri = null, int? LinkPage = null, string? Stamp = null, string? LineEnd = null);
 
 internal sealed record StudioNativeAnnotation(int ObjectNumber, int Page, string Subtype, StudioNativeRectangle Bounds, string? Contents,
     string? Author, StudioNativeColor? Color);
