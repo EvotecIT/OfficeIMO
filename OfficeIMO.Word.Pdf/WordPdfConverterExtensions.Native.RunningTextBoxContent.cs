@@ -11,7 +11,7 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     /// <summary>Validates one simple floating box and appends its paint in the resolved drawing order.</summary>
     private static bool TryAddNativeRunningTextBox(PdfCore.PdfPageCanvas canvas, WordTextBox box,
-        PdfCore.PageSize pageSize, double textLeft, double textWidth, NativeNoteNumbering? notes,
+        PdfCore.PageSize pageSize, PdfCore.PageMargins margins, double textLeft, double textWidth, NativeNoteNumbering? notes,
         WordToPdfOptions? options, NativeDocumentDefaults defaults, NativeFontMap fontMap) {
         W.TextBoxContent? content = box.Content;
         if (content == null || content.ChildElements.Count != 1 || content.FirstChild is not W.Paragraph innerSource ||
@@ -28,7 +28,7 @@ public static partial class WordPdfConverterExtensions {
             innerChildren.OfType<W.Break>().Any(lineBreak => !ReferenceEquals(lineBreak, innerChildren.Last()) ||
                 lineBreak.Type?.Value == W.BreakValues.Page || lineBreak.Type?.Value == W.BreakValues.Column)) return false;
         if (!TryGetNativeRunningTextBoxFrame(box, defaults.RunningContentSection!, options, pageSize,
-                out double x, out double y, out double width, out double height)) return false;
+                out double x, out double y, out double width, out double height, out bool behindDocument)) return false;
         Wps.TextBodyProperties? body = box.DrawingTextBodyProperties;
         if (body == null || body.Rotation?.Value is > 0 or < 0 ||
             body.Vertical?.Value is { } vertical && vertical != A.TextVerticalValues.Horizontal ||
@@ -52,9 +52,19 @@ public static partial class WordPdfConverterExtensions {
             if (!measured.HasValue) return false;
             boxTextWidth += measured.Value;
         }
-        if (boxTextWidth > width - style.PaddingLeft - style.PaddingRight ||
-            (style.LineHeight ?? 1.2D) * (style.FontSize ?? defaults.FontSize) *
-                (innerChildren.LastOrDefault() is W.Break ? 2D : 1D) > height - style.PaddingTop - style.PaddingBottom) return false;
+        if (boxTextWidth > width - style.PaddingLeft - style.PaddingRight) return false;
+        PdfCore.PdfWriter.CanvasTextBoxMeasurement? measuredBox = fontMap.MeasureCanvasTextBox(boxRuns, width, height, style);
+        if (measuredBox == null || !measuredBox.TextFits) return false;
+        // Running canvas paints before body content. A foreground box is safe
+        // only when its visible paint clears the canonical body frame. Running
+        // reservations can shrink that frame further, never enlarge it. Extend
+        // its bottom to the physical page: imported exact lines may paint into
+        // the footer margin and this route has no actual body-ink inventory.
+        if (!behindDocument && measuredBox.PaintWidth > 0D && measuredBox.PaintHeight > 0D &&
+            x + measuredBox.PaintLeft + measuredBox.PaintWidth > margins.Left &&
+            x + measuredBox.PaintLeft < pageSize.Width - margins.Right &&
+            y + measuredBox.PaintTop + measuredBox.PaintHeight > margins.Top &&
+            y + measuredBox.PaintTop < pageSize.Height) return false;
         canvas.TextBox(boxRuns, x, y, width, height, style);
         return true;
     }
