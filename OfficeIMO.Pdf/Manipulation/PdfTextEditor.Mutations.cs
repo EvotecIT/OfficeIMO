@@ -34,22 +34,27 @@ internal static partial class PdfTextEditor {
 
     internal static TextMutationResult Replace(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
-        region = TranslateRegionToSource(pdf, region, readOptions);
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(region, nameof(region));
+        var source = new TextEditSource(pdf, readOptions);
+        region = TranslateRegionToSource(source.VisualDocument, region);
         PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
-        EnsureRegionIsSafelyEditable(pdf, region, snapshot.AllowTextRenderingMode3, readOptions);
-        PdfRegionText detected = InspectSource(pdf, region, snapshot.AllowTextRenderingMode3, readOptions);
+        PdfReadPage page = source.VisualDocument.Pages[region.PageNumber - 1];
+        EnsureRegionIsSafelyEditable(page, region, snapshot.AllowTextRenderingMode3);
+        PdfRegionText detected = InspectSource(page, region, snapshot.AllowTextRenderingMode3);
         EnsureCompatibleRenderingModes(detected.Spans, snapshot.AllowTextRenderingMode3);
-        EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions);
-        PdfResolvedTextStyle style = ResolveStyle(snapshot, detected, PdfReadDocument.Open(pdf, readOptions).Pages[region.PageNumber - 1]);
+        EnsureAppendOrderIsSafe(page, detected.Spans);
+        PdfResolvedTextStyle style = ResolveStyle(snapshot, detected, source.Document.Pages[region.PageNumber - 1]);
         string replacementText = PreserveAuthoredEdgeWhitespace(detected.Spans, text);
         style = FitStyleToRegion(style, replacementText, region, snapshot, out string? fitWarning);
         TextRemovalResult removal = detected.Spans.Count == 0
             ? new TextRemovalResult(pdf.ToArray(), Array.Empty<string>(), Array.Empty<PdfStamper.TextStampRequest>())
-            : RemoveTextPreservingUnmatchedSpans(pdf, new[] { region.ToRedactionArea() }, readOptions, allowTextRenderingMode3: snapshot.AllowTextRenderingMode3);
+            : RemoveTextPreservingUnmatchedSpans(pdf, new[] { region.ToRedactionArea() }, readOptions,
+                allowTextRenderingMode3: snapshot.AllowTextRenderingMode3, sourceDocument: source.Document);
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var replacementRequests = new List<PdfStamper.TextStampRequest>();
         if (text.Length > 0) AddStampLines(replacementRequests, region.PageNumber, detected.Spans.Count == 0 ? region.X : detected.BaselineX, detected.Spans.Count == 0 ? region.Top - style.FontSize : detected.BaselineY, replacementText, style, detected.Spans.Count == 0 ? double.MaxValue : detected.Spans.Min(static span => span.PaintOrder));
-        EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions, replacementRequests);
+        EnsureAppendOrderIsSafe(page, detected.Spans, replacementRequests);
         requests.AddRange(replacementRequests);
         byte[] output = ApplyStampRequests(removal.Bytes, requests, readOptions);
         IEnumerable<string> warnings = removal.Warnings.Concat(BuildSubstitutionWarnings(detected, style));
@@ -60,18 +65,23 @@ internal static partial class PdfTextEditor {
     internal static TextMutationResult Move(byte[] pdf, PdfPageRegion source, double deltaX, double deltaY, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         ValidateFinite(deltaX, nameof(deltaX));
         ValidateFinite(deltaY, nameof(deltaY));
-        source = TranslateRegionToSource(pdf, source, readOptions);
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(source, "region");
+        var sourceDocument = new TextEditSource(pdf, readOptions);
+        source = TranslateRegionToSource(sourceDocument.VisualDocument, source);
         PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
-        EnsureRegionIsSafelyEditable(pdf, source, snapshot.AllowTextRenderingMode3, readOptions);
-        PdfRegionText detected = InspectSource(pdf, source, snapshot.AllowTextRenderingMode3, readOptions);
+        PdfReadPage page = sourceDocument.VisualDocument.Pages[source.PageNumber - 1];
+        EnsureRegionIsSafelyEditable(page, source, snapshot.AllowTextRenderingMode3);
+        PdfRegionText detected = InspectSource(page, source, snapshot.AllowTextRenderingMode3);
         EnsureCompatibleRenderingModes(detected.Spans, snapshot.AllowTextRenderingMode3);
         if (detected.Spans.Count == 0 || detected.Text.Length == 0) return new TextMutationResult(pdf.ToArray(), 0, Array.Empty<string>());
-        EnsureAppendOrderIsSafe(pdf, source.PageNumber, detected.Spans, readOptions);
-        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, new[] { source.ToRedactionArea() }, readOptions, allowTextRenderingMode3: snapshot.AllowTextRenderingMode3);
+        EnsureAppendOrderIsSafe(page, detected.Spans);
+        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, new[] { source.ToRedactionArea() }, readOptions,
+            allowTextRenderingMode3: snapshot.AllowTextRenderingMode3, sourceDocument: sourceDocument.Document);
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var movedRequests = new List<PdfStamper.TextStampRequest>();
         var warnings = new List<string>(removal.Warnings);
-        PdfReadDocument styleDocument = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument styleDocument = sourceDocument.Document;
         for (int index = 0; index < detected.Spans.Count; index++) {
             PdfTextSpan span = detected.Spans[index];
             PdfRegionText spanRegion = BuildRegionText(new[] { span });
@@ -79,7 +89,7 @@ internal static partial class PdfTextEditor {
             warnings.AddRange(BuildSubstitutionWarnings(spanRegion, style));
             AddStampLines(movedRequests, source.PageNumber, span.X + deltaX, span.Y + deltaY, span.RestampText, style, span.PaintOrder);
         }
-        EnsureAppendOrderIsSafe(pdf, source.PageNumber, detected.Spans, readOptions, movedRequests);
+        EnsureAppendOrderIsSafe(page, detected.Spans, movedRequests);
         requests.AddRange(movedRequests);
         byte[] output = ApplyStampRequests(removal.Bytes, requests, readOptions);
         return new TextMutationResult(output, detected.Spans.Count, warnings);

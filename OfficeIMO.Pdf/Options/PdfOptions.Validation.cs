@@ -2,6 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
     internal void Validate(bool allowDerivedHorizontalOverflow = false) {
+        ValidateEmbeddedFileLimits();
         if (PageWidth <= 0 || double.IsNaN(PageWidth) || double.IsInfinity(PageWidth)) {
             throw new System.ArgumentException("PDF page width must be a positive finite value.");
         }
