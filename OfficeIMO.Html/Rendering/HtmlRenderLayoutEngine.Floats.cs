@@ -86,6 +86,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int noWrapRangeStart = -1;
         int noWrapStrutStart = 0;
         bool noWrapRangeStartedAfterContent = false;
+        InlineWordFitting wordFitting = CreateInlineWordFitting(runs, paragraphStyle);
 
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
@@ -205,10 +206,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             int logicalOffset = 0;
+            int sourceOffset = 0;
             bool preserveWhitespace = run.Style.PreserveWhitespace;
             IReadOnlyList<string> tokens = Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces).ToList();
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
+                int sourceStartOffset = sourceOffset;
+                sourceOffset += preserveWhitespace && token == "\n" && run.Text[sourceOffset] == '\r'
+                    && sourceOffset + 1 < run.Text.Length && run.Text[sourceOffset + 1] == '\n' ? 2 : token.Length;
                 run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
@@ -264,10 +269,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
+                bool canBreakBefore = whitespace || wordFitting.CanBreakBefore(run, sourceStartOffset);
+                bool previewContinuation = !preventTokenWrapping && !whitespace
+                    && !AllowsEmergencyTokenBreak(run.Style)
+                    && (canBreakBefore || wordFitting.HasBreakInside(run, sourceStartOffset, sourceOffset));
+                double previewAdvance = previewContinuation
+                    ? wordFitting.PreviewWithContinuation(line, run, sourceOffset, measured)
+                    : line.PreviewAdvance(run, measured);
                 if (!preventTokenWrapping
                     && !whitespace
                     && run.Style.WordBreak != "break-all"
-                    && measured > Math.Max(0D, line.AvailableWidth - line.PreviewAdvance(run, 0D))
+                    && previewAdvance > line.AvailableWidth
                     && TryAddHyphenatedFloatToken(
                         lines,
                         ref line,
@@ -276,12 +288,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         paragraphStyle.LineHeight,
                         run,
                         hyphenation,
-                        !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex))) {
+                        !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex),
+                        wordFitting, sourceStartOffset, sourceOffset, previewContinuation)) {
                     continue;
                 }
                 if (!preventTokenWrapping
                     && !whitespace
-                    && measured > Math.Max(0D, line.AvailableWidth - line.PreviewAdvance(run, 0D))
+                    && previewAdvance > line.AvailableWidth
                     && TryAddPreferredFloatBreakToken(
                         lines,
                         ref line,
@@ -291,28 +304,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         run,
                         hyphenation.PaintText,
                         hyphenation.LogicalText,
-                        followsCollapsibleSpace)) {
+                        followsCollapsibleSpace,
+                        wordFitting, sourceStartOffset, sourceOffset, hyphenation.SourceBoundaries)) {
                     continue;
                 }
                 bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
                     && line.HasFlowContent
                     && measured > Math.Max(0D, line.AvailableWidth - line.PreviewAdvance(run, 0D));
+                bool continuationNeedsEmergencyBreak = !canBreakBefore && line.HasFlowContent
+                    && line.PreviewAdvance(run, measured) > line.AvailableWidth;
                 if (!preventTokenWrapping
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
-                    && (InlineLine.PreviewEmptyLineAdvance(run, measured) > line.AvailableWidth || breakAllIntoRemainingSpace)) {
+                    && (InlineLine.PreviewEmptyLineAdvance(run, measured) > line.AvailableWidth
+                        || breakAllIntoRemainingSpace || continuationNeedsEmergencyBreak)) {
                     if (followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
                         CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                     }
                     AddBrokenFloatToken(lines, ref line, ref y, context, paragraphStyle.LineHeight, run, paintToken);
                     continue;
                 }
-                if (!preventTokenWrapping && line.HasFlowContent && line.PreviewAdvance(run, measured) > line.AvailableWidth) {
+                if (!preventTokenWrapping && canBreakBefore && line.HasFlowContent && previewAdvance > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                     if (whitespace && !preserveWhitespace) continue;
                 }
-                if (!preventTokenWrapping && !whitespace && line.PreviewAdvance(run, measured) > line.AvailableWidth && !line.HasFlowContent) {
-                    MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, line.PreviewAdvance(run, measured));
+                if (!preventTokenWrapping && !whitespace && canBreakBefore && !line.HasFlowContent) {
+                    double emptyAdvance = previewContinuation
+                        ? wordFitting.PreviewWithContinuation(line, run, sourceOffset, measured)
+                        : line.PreviewAdvance(run, measured);
+                    if (emptyAdvance > line.AvailableWidth) {
+                        MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, emptyAdvance);
+                    }
                 }
                 if (hasTabs) {
                     AddTabExpandedSegments(line, normalizedToken, normalizedToken, run);

@@ -399,6 +399,10 @@ public static partial class HtmlComputedStyleEngine {
                 || string.Equals(owned.Definition.Name, "visibility", StringComparison.OrdinalIgnoreCase))) return false;
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "overflow-wrap":
+                return IsKnownKeyword(normalized, "normal", "break-word", "anywhere");
+            case "word-break":
+                return IsKnownKeyword(normalized, "normal", "break-all", "keep-all", "break-word");
             case "place-items":
             case "place-self":
             case "place-content":

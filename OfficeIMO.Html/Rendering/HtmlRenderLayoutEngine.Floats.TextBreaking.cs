@@ -11,15 +11,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double lineHeight,
         HtmlInlineRun run,
         HyphenationToken token,
-        bool isFinalContentToken) {
+        bool isFinalContentToken,
+        InlineWordFitting wordFitting,
+        int sourceStartOffset,
+        int sourceEndOffset,
+        bool previewContinuation) {
         if (!token.HasBreaks || token.PaintText.Length != token.LogicalText.Length) return false;
         if (run.Style.HyphenateLimitLast == "always"
             && isFinalContentToken
             && line.HasFlowContent
+            && wordFitting.CanBreakBefore(run, sourceStartOffset)
             && InlineLine.PreviewEmptyLineAdvance(run, MeasureInlineText(token.PaintText, run.Style)) <= line.AvailableWidth + 0.0001D) {
             CommitFloatLine(lines, ref line, ref y, context, lineHeight);
         }
         if (line.HasFlowContent && run.Style.HyphenateLimitZone > 0D
+            && wordFitting.CanBreakBefore(run, sourceStartOffset)
             && line.AvailableWidth - line.Width <= run.Style.HyphenateLimitZone + 0.0001D) {
             CommitFloatLine(lines, ref line, ref y, context, lineHeight);
         }
@@ -31,7 +37,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || CountConsecutiveHyphenatedLines(lines) < run.Style.HyphenateLimitLines.Value;
             int selectedEnd = -1;
             bool selectedIsBreak = false;
-            if (line.PreviewAdvance(run, MeasureInlineText(token.PaintText.Substring(start), run.Style)) <= line.AvailableWidth + 0.0001D) {
+            double remainderWidth = MeasureInlineText(token.PaintText.Substring(start), run.Style);
+            double remainderAdvance = previewContinuation && start == 0
+                ? wordFitting.PreviewWithContinuation(line, run, sourceEndOffset, remainderWidth)
+                : line.PreviewAdvance(run, remainderWidth);
+            if (remainderAdvance <= line.AvailableWidth + 0.0001D) {
                 selectedEnd = token.PaintText.Length;
             } else if (hyphenationAllowed) {
                 selectedEnd = SelectHyphenationBreak(token.PrimaryBreaks, token.PaintText, start, available, run.Style);
@@ -40,11 +50,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             if (selectedEnd < 0) {
+                if (start == 0 && line.HasFlowContent && !wordFitting.CanBreakBefore(run, sourceStartOffset)) return false;
                 if (line.HasFlowContent) {
                     CommitFloatLine(lines, ref line, ref y, context, lineHeight);
                     continue;
                 }
-                double remainingWidth = MeasureInlineText(token.PaintText.Substring(start), run.Style);
+                double remainingWidth = remainderWidth;
                 double previousY = y;
                 MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, line.PreviewAdvance(run, remainingWidth));
                 if (y > previousY + 0.0001D) continue;
@@ -77,7 +88,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlInlineRun run,
         string paintToken,
         string logicalToken,
-        bool followsCollapsibleSpace) {
+        bool followsCollapsibleSpace,
+        InlineWordFitting wordFitting,
+        int sourceStartOffset,
+        int sourceEndOffset,
+        IReadOnlyList<int> sourceBoundaries) {
         if (paintToken.Length != logicalToken.Length) return false;
         IReadOnlyList<int> breaks = GetHtmlPreferredBreakPositions(
             paintToken,
@@ -91,10 +106,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string logicalChunk = logicalToken.Substring(start, end - start);
             double chunkWidth = MeasureInlineText(paintChunk, run.Style);
             bool completesToken = end == paintToken.Length;
-            if (!line.HasFlowContent && line.PreviewAdvance(run, chunkWidth, completesToken) > line.AvailableWidth + 0.0001D) {
-                MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, line.PreviewAdvance(run, chunkWidth, completesToken));
+            int sourceStart = sourceStartOffset + (start < sourceBoundaries.Count ? sourceBoundaries[start] : start);
+            int sourceEnd = completesToken ? sourceEndOffset
+                : sourceStartOffset + (end < sourceBoundaries.Count ? sourceBoundaries[end] : end);
+            bool canBreakBefore = wordFitting.CanBreakBefore(run, sourceStart);
+            double chunkAdvance = canBreakBefore
+                ? wordFitting.PreviewWithContinuation(line, run, sourceEnd, chunkWidth, completesToken)
+                : line.PreviewAdvance(run, chunkWidth, completesToken);
+            if (canBreakBefore && !line.HasFlowContent && chunkAdvance > line.AvailableWidth + 0.0001D) {
+                MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, chunkAdvance);
             }
-            if (InlineLine.PreviewEmptyLineAdvance(run, chunkWidth, completesToken) > line.AvailableWidth + 0.0001D && AllowsEmergencyTokenBreak(run.Style)) {
+            bool emergencyContinuation = !canBreakBefore && line.HasFlowContent
+                && line.PreviewAdvance(run, chunkWidth, completesToken) > line.AvailableWidth + 0.0001D;
+            if ((InlineLine.PreviewEmptyLineAdvance(run, chunkWidth, completesToken) > line.AvailableWidth + 0.0001D
+                    || emergencyContinuation) && AllowsEmergencyTokenBreak(run.Style)) {
                 if (start == 0 && followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
                     CommitFloatLine(lines, ref line, ref y, context, lineHeight);
                 }
@@ -102,7 +127,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 start = end;
                 continue;
             }
-            if (line.HasFlowContent && line.PreviewAdvance(run, chunkWidth, end == paintToken.Length) > line.AvailableWidth + 0.0001D) {
+            if (canBreakBefore && line.HasFlowContent && chunkAdvance > line.AvailableWidth + 0.0001D) {
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
             }
             line.Add(new InlineSegment(paintChunk, chunkWidth, run, logicalChunk));

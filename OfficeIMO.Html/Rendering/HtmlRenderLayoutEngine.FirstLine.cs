@@ -20,6 +20,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         width = Math.Max(0.01D, width - (parentStyle.TextIndent?.Resolve(width) ?? 0D));
         var styledRuns = new List<HtmlInlineRun>(runs.Count);
         PrepareInlineEdgeScopes(runs);
+        InlineWordFitting wordFitting = CreateInlineWordFitting(
+            runs,
+            parentStyle,
+            run => CreateFirstLineRunStyle(run, firstLineStyle));
         var previewLine = new InlineLine();
         bool firstLine = true;
         bool hasContent = false;
@@ -42,19 +46,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            HtmlRenderBoxStyle runFirstLineStyle = firstLineStyle.Clone();
-            // Language comes from the originating element, not a CSS pseudo-element.
-            runFirstLineStyle.Language = run.Style.Language;
-            // ::first-line changes eligible font/paint properties. It must not
-            // replace the originating run's whitespace and tab-stop contract.
-            runFirstLineStyle.PreserveWhitespace = run.Style.PreserveWhitespace;
-            runFirstLineStyle.BreakSpaces = run.Style.BreakSpaces;
-            runFirstLineStyle.PreventTextWrapping = run.Style.PreventTextWrapping;
-            runFirstLineStyle.TabSize = run.Style.TabSize;
-            runFirstLineStyle.TabSizeIsLength = run.Style.TabSizeIsLength;
+            HtmlRenderBoxStyle runFirstLineStyle = CreateFirstLineRunStyle(run, firstLineStyle);
             IReadOnlyList<string> tokens = Tokenize(run.Text, run.Style.PreserveWhitespace, run.Style.BreakSpaces).ToList();
+            int sourceOffset = 0;
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
+                int sourceStartOffset = sourceOffset;
+                sourceOffset += run.Style.PreserveWhitespace && token == "\n"
+                    && run.Text[sourceOffset] == '\r'
+                    && sourceOffset + 1 < run.Text.Length && run.Text[sourceOffset + 1] == '\n'
+                        ? 2 : token.Length;
                 run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 if (!firstLine) {
                     styledRuns.Add(run.CloneText(token, token, run.Style, run.IsFirstLetter));
@@ -73,8 +74,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     : MeasureInlineText(measuredToken, tokenStyle);
                 double remainingWidth = Math.Max(0D, width - previewLine.PreviewAdvance(run, 0D, false));
                 bool preventWrapping = parentStyle.PreventTextWrapping || run.Style.PreventTextWrapping;
-                bool moveWholeToken = !preventWrapping && hasContent && !IsWhitespaceToken(token)
-                    && tokenWidth > remainingWidth + 0.0001D
+                bool canBreakBefore = wordFitting.CanBreakBefore(run, sourceStartOffset);
+                double previewAdvance = !preventWrapping
+                    && (canBreakBefore || wordFitting.HasBreakInside(run, sourceStartOffset, sourceOffset))
+                        ? wordFitting.PreviewWithContinuation(previewLine, run, sourceOffset, tokenWidth)
+                        : previewLine.PreviewAdvance(run, tokenWidth);
+                bool moveWholeToken = !preventWrapping && hasContent && canBreakBefore && !IsWhitespaceToken(token)
+                    && previewAdvance > width + 0.0001D
                     && (tokenStyle.HyphenateLimitZone > 0D && remainingWidth <= tokenStyle.HyphenateLimitZone + 0.0001D
                         || tokenStyle.HyphenateLimitLast == "always"
                             && !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex)
@@ -85,7 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 if (!preventWrapping
-                    && previewLine.PreviewAdvance(run, tokenWidth) > width
+                    && previewAdvance > width
                     && !IsWhitespaceToken(token)
                     && remainingWidth > 0.0001D
                     && TryResolveFirstLineTokenSplit(token, run.Style, tokenStyle, remainingWidth, out int split, out HyphenationToken? prepared)) {
@@ -105,7 +111,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     hasContent = true;
                     continue;
                 }
-                if (hasContent && previewLine.PreviewAdvance(run, tokenWidth) > width) firstLine = false;
+                if (!preventWrapping && hasContent && previewAdvance > width
+                    && (IsWhitespaceToken(token) || canBreakBefore)) firstLine = false;
                 HtmlRenderBoxStyle appliedStyle = firstLine ? tokenStyle : run.Style;
                 styledRuns.Add(run.CloneText(token, token, appliedStyle, run.IsFirstLetter));
                 if (firstLine) {
@@ -116,6 +123,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         runs.Clear();
         runs.AddRange(styledRuns);
+    }
+
+    private static HtmlRenderBoxStyle CreateFirstLineRunStyle(HtmlInlineRun run, HtmlRenderBoxStyle firstLineStyle) {
+        if (run.IsFirstLetter) return run.Style;
+        HtmlRenderBoxStyle style = firstLineStyle.Clone();
+        // Language comes from the originating element, not a CSS pseudo-element.
+        style.Language = run.Style.Language;
+        // ::first-line changes eligible font/paint properties. It must not
+        // replace the originating run's whitespace and tab-stop contract.
+        style.PreserveWhitespace = run.Style.PreserveWhitespace;
+        style.BreakSpaces = run.Style.BreakSpaces;
+        style.PreventTextWrapping = run.Style.PreventTextWrapping;
+        style.TabSize = run.Style.TabSize;
+        style.TabSizeIsLength = run.Style.TabSizeIsLength;
+        return style;
     }
 
     private bool TryResolveFirstLineTokenSplit(

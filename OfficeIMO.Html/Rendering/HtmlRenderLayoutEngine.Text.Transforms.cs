@@ -41,9 +41,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     // A font-changing pseudo-element may restore the selected source fragment.
     // All other zero-font input must leave before shaping, painting, or extraction.
+    // Its CSS whitespace can still permit a zero-advance line break.
     private static void RemoveSuppressedInlineText(IList<HtmlInlineRun> runs) {
         for (int index = runs.Count - 1; index >= 0; index--) {
-            if (runs[index].IsTextTransformContextOnly) runs.RemoveAt(index);
+            HtmlInlineRun run = runs[index];
+            if (!run.IsTextTransformContextOnly) continue;
+            if (run.Text.Any(IsCollapsibleCssWhitespace) && !run.Style.PreventTextWrapping) {
+                HtmlInlineRun marker = run.CloneText(string.Empty, string.Empty, run.Style);
+                marker.IsTextTransformContextOnly = false;
+                marker.IsInlineStrutMarker = true;
+                marker.IsSuppressedWhitespaceBreak = true;
+                runs[index] = marker;
+            } else runs.RemoveAt(index);
         }
     }
 

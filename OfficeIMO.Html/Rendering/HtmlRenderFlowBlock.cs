@@ -749,6 +749,8 @@ internal sealed class HtmlInlineRun {
     internal bool InlineTokenEndsRun { get; set; }
     internal bool IsEmptyInlineBox { get; set; }
     internal bool IsInlineStrutMarker { get; set; }
+    // Removed zero-font source text may retain a CSS whitespace opportunity without content or advance.
+    internal bool IsSuppressedWhitespaceBreak { get; set; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
     internal int? SemanticFragmentOrder { get; private set; }
@@ -818,6 +820,7 @@ internal sealed class HtmlInlineRun {
             InlineEdgeScopes = InlineEdgeScopes,
             InlineStrutStyles = InlineStrutStyles,
             IsInlineStrutMarker = IsInlineStrutMarker,
+            IsSuppressedWhitespaceBreak = IsSuppressedWhitespaceBreak,
             InlineClosingAdvance = InlineClosingAdvance,
             InlineTokenEndsRun = InlineTokenEndsRun
         };
