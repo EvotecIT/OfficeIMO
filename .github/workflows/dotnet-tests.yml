@@ -2132,6 +2132,20 @@ jobs:
           df -h "$RUNNER_TEMP"
           if [ -f /sys/fs/cgroup/memory.events ]; then cat /sys/fs/cgroup/memory.events; fi
 
+      - name: Reserve swap for composed iWork native compilation
+        if: matrix.group == 'iwork'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The .NET 8 whole-program compiler also allocates outside its GC heap.
+          # Keep the hosted runner responsive without changing the native profile.
+          native_swap_file="$(mktemp "$RUNNER_TEMP/officeimo-aot-swap.XXXXXXXX")"
+          printf 'OFFICEIMO_NATIVE_SWAP_FILE=%s\n' "$native_swap_file" >> "$GITHUB_ENV"
+          fallocate -l 16G "$native_swap_file"
+          mkswap "$native_swap_file"
+          sudo swapon "$native_swap_file"
+          free -h
+
       - name: Publish and run supported NativeAOT scenarios
         shell: bash
         run: |
@@ -2159,6 +2173,27 @@ jobs:
           free -h
           df -h "$RUNNER_TEMP"
           if [ -f /sys/fs/cgroup/memory.events ]; then cat /sys/fs/cgroup/memory.events; fi
+
+      - name: Release composed native build swap
+        if: always() && matrix.group == 'iwork'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${OFFICEIMO_NATIVE_SWAP_FILE:-}" ]; then
+            case "$OFFICEIMO_NATIVE_SWAP_FILE" in
+              "$RUNNER_TEMP"/officeimo-aot-swap.*) ;;
+              *) echo 'Unexpected native swap path'; exit 1 ;;
+            esac
+            if [ ! -f "$OFFICEIMO_NATIVE_SWAP_FILE" ] || [ -L "$OFFICEIMO_NATIVE_SWAP_FILE" ]; then
+              echo 'Native swap path is not a regular file'; exit 1
+            fi
+            active_swaps="$(swapon --show=NAME --json)"
+            swap_enabled="$(python3 -c 'import json, sys; print(any(s["name"] == sys.argv[2] for s in json.loads(sys.argv[1])["swapdevices"]))' "$active_swaps" "$OFFICEIMO_NATIVE_SWAP_FILE")"
+            if [ "$swap_enabled" = 'True' ]; then
+              sudo swapoff "$OFFICEIMO_NATIVE_SWAP_FILE"
+            fi
+            rm -- "$OFFICEIMO_NATIVE_SWAP_FILE"
+          fi
 
       - name: Upload Linux NativeAOT evidence
         if: always()
