@@ -106,6 +106,27 @@ struct MakePDFSearchableIntent: AppIntent {
     }
 }
 
+struct ConvertToPDFIntent: AppIntent {
+    static let title: LocalizedStringResource = "Convert to PDF"
+    static let description = IntentDescription(
+        "Converts a Word, Excel, PowerPoint, RTF, text, HTML, Markdown, XPS, Visio, Draw or Publisher document to PDF on this device.")
+
+    @Parameter(title: "Document")
+    var file: IntentFile
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Convert \(\.$file) to PDF")
+    }
+
+    func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
+        let work = try await ActionFolder.prepare()
+        let input = try work.copy(file, as: file.filename)
+        let output = try await DocumentActions.convert(input, named: file.filename,
+                                                       into: work.output(named: (file.filename as NSString).deletingPathExtension))
+        return .result(value: IntentFile(fileURL: output, filename: output.lastPathComponent, type: .pdf))
+    }
+}
+
 /// The phrases Siri and Spotlight offer for the actions.
 struct StudioShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
@@ -115,6 +136,8 @@ struct StudioShortcuts: AppShortcutsProvider {
                     shortTitle: "PDF from Images", systemImageName: "doc.viewfinder")
         AppShortcut(intent: ExtractPagesIntent(), phrases: ["Extract PDF pages with \(.applicationName)"],
                     shortTitle: "Extract Pages", systemImageName: "doc.badge.arrow.up")
+        AppShortcut(intent: ConvertToPDFIntent(), phrases: ["Convert a document to PDF with \(.applicationName)"],
+                    shortTitle: "Convert to PDF", systemImageName: "doc.richtext")
         AppShortcut(intent: MakePDFSearchableIntent(), phrases: ["Make a PDF searchable with \(.applicationName)"],
                     shortTitle: "Make Searchable", systemImageName: "text.viewfinder")
         AppShortcut(intent: GetPDFTextIntent(), phrases: ["Get text from a PDF with \(.applicationName)"],
@@ -188,6 +211,16 @@ enum DocumentActions {
         }
         _ = try await document.makeSearchable { _, _ in }
         try await document.save(to: output)
+        return output
+    }
+
+    /// A PDF at output converted from a Word, Excel, PowerPoint or other document the engine converts.
+    static func convert(_ input: URL, named name: String, into output: URL) async throws -> URL {
+        do {
+            _ = try await Engine.convertToPDF(input, at: output)
+        } catch let error as EngineError where error.status == .unsupported {
+            throw IntentProblem.message(String(localized: "“\(name)” isn’t a format OfficeIMO Studio converts to PDF."))
+        }
         return output
     }
 

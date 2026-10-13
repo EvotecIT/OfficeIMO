@@ -24,6 +24,7 @@ The `Shared` folder is synchronized with both targets, so new files need no proj
 | `Shared/Document` | `StudioDocument`, the system document over a private working copy that the engine edits, and `DocumentSession`, a window's state: the open engine document, facts, task, page, zoom, selection and undo registration. |
 | `Shared/Canvas` | The page view: the page layout in PDF points, the tile renderer, and its hosts in `UIScrollView` and `NSScrollView`. |
 | `Shared/Views` | The document window, toolbar, page list, Pages task and inspector. |
+| `Shared/Conversion` | Converting Word, Excel, PowerPoint and other documents to PDF with the engine, from the launch screen, the File menu and Shortcuts. |
 | `Shared/Intents` | Shortcuts actions and their Siri and Spotlight phrases, over `DocumentActions`, which the unattended journey also runs. |
 | `Shared/Printing` | Printing the engine's page renderings through the system print panel and sheet. |
 | `Shared/Scan` | Scanning paper into a searchable PDF: the VisionKit document camera and the photo picker on iPad and iPhone, image files and Continuity Camera on the Mac, and Vision text recognition passed to the engine. |

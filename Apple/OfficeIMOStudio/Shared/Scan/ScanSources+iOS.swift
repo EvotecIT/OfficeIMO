@@ -21,13 +21,21 @@ enum ScanSources {
         return try await ScanBuilder.makePDF(from: images, named: ScanBuilder.newName)
     }
 
-    fileprivate static func present(_ controller: UIViewController) -> Bool {
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let window = scenes.flatMap(\.windows).first { $0.isKeyWindow } ?? scenes.first?.windows.first
-        guard var top = window?.rootViewController else { return false }
-        while let presented = top.presentedViewController { top = presented }
-        top.present(controller, animated: true)
-        return true
+    /// Presents a picker over the frontmost screen once any sheet or menu on its way out has gone, as UIKit ignores a
+    /// presentation that starts during another's dismissal; false when it could not be shown.
+    static func present(_ controller: UIViewController) async -> Bool {
+        for _ in 0..<30 {
+            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            let window = scenes.flatMap(\.windows).first { $0.isKeyWindow } ?? scenes.first?.windows.first
+            guard var top = window?.rootViewController else { return false }
+            while let presented = top.presentedViewController, !presented.isBeingDismissed { top = presented }
+            if top.presentedViewController == nil, top.transitionCoordinator == nil {
+                top.present(controller, animated: true)
+                if controller.presentingViewController != nil { return true }
+            }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        return false
     }
 }
 
@@ -42,7 +50,7 @@ private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraVie
             let camera = VNDocumentCameraViewController()
             camera.delegate = self
             keepAlive = self
-            if !ScanSources.present(camera) { finish(nil, from: nil) }
+            Task { if !(await ScanSources.present(camera)) { self.finish(nil, from: nil) } }
         }
     }
 
@@ -82,7 +90,7 @@ private final class PhotosSession: NSObject, PHPickerViewControllerDelegate {
             let picker = PHPickerViewController(configuration: configuration)
             picker.delegate = self
             keepAlive = self
-            if !ScanSources.present(picker) { finish(nil) }
+            Task { if !(await ScanSources.present(picker)) { self.finish(nil) } }
         }
     }
 

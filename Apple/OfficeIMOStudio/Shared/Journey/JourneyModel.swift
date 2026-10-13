@@ -129,6 +129,14 @@ final class JourneyModel {
         let searchableText = try await DocumentActions.text(of: searchable, named: "searchable.pdf")
         record("make searchable", searchableTime, FileManager.default.fileExists(atPath: searchable.path), "\(searchableText.count) character(s) of text")
 
+        let notes = folders.journey.appending(path: "notes.md")
+        try "# Journey notes\n\nConverted on this device.\n".write(to: notes, atomically: true, encoding: .utf8)
+        let convertedPDF = folders.journey.appending(path: "notes.pdf")
+        try? FileManager.default.removeItem(at: convertedPDF)
+        let (_, convertTime) = try await measure { try await DocumentActions.convert(notes, named: "notes.md", into: convertedPDF) }
+        let convertedText = try await DocumentActions.text(of: convertedPDF, named: "notes.pdf")
+        record("convert to PDF", convertTime, convertedText.contains("Journey notes"), "\(convertedText.count) character(s) of text")
+
         let image = try await document.renderPage(1, scale: 1)
         let (scan, scanTime) = try await measure { try await DocumentActions.pdf(fromImages: [image.png]) }
         let scanPages = try await EngineDocument.open(scan).facts().pages.count

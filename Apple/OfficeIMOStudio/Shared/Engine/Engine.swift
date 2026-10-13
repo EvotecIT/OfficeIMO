@@ -65,6 +65,40 @@ enum Engine {
         return try JSONDecoder().decode(ScanSummary.self, from: Data(summary.utf8))
     }
 
+    /// The document formats that convert to PDF.
+    static func conversionSources() async throws -> [ConversionSource] {
+        let json: String = try await run {
+            var result: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            try check(officeimo_conversion_sources_json(&result, &error), error)
+            return takeString(result) ?? "{}"
+        }
+        return try JSONDecoder().decode(ConversionSourceList.self, from: Data(json.utf8)).sources
+    }
+
+    /// Converts the document at input to a PDF at output, through the route its extension names.
+    static func convertToPDF(_ input: URL, at output: URL) async throws -> ConversionResult {
+        let inputPath = input.path
+        let outputPath = output.path
+        // A conversion can take a while, so it runs on the engine's queue rather than Swift's shared threads.
+        let cancellation = officeimo_cancellation_create()
+        defer { officeimo_cancellation_free(cancellation) }
+        let json: String = try await withTaskCancellationHandler {
+            try await run {
+                var result: UnsafeMutablePointer<CChar>?
+                var error: UnsafeMutablePointer<CChar>?
+                let status = inputPath.withCString { source in
+                    outputPath.withCString { officeimo_convert_to_pdf_json(source, $0, cancellation, &result, &error) }
+                }
+                try check(status, error)
+                return takeString(result) ?? "{}"
+            }
+        } onCancel: {
+            officeimo_cancellation_cancel(cancellation)
+        }
+        return try JSONDecoder().decode(ConversionResult.self, from: Data(json.utf8))
+    }
+
     static func run<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { continuation.resume(with: Result { try work() }) }

@@ -46,6 +46,7 @@ struct OfficeIMOStudioApp: App {
                 NewDocumentButton("Scan Document", contentType: .pdf) { try await ScanSources.newDocumentFromCamera() }
             }
             NewDocumentButton("PDF from Photos", contentType: .pdf) { try await ScanSources.newDocumentFromPhotos() }
+            NewDocumentButton("Convert to PDF", contentType: .pdf) { try await ConversionSources.newDocumentFromFile() }
         }
         #endif
     }
@@ -62,6 +63,7 @@ struct StudioCommands: Commands {
         #if os(macOS)
         CommandGroup(after: .newItem) {
             Button("New PDF from Images…") { ScanSources.newDocumentFromImageFiles(newDocument) }
+            Button("Convert to PDF…") { ConversionSources.newDocumentFromFile(newDocument) }
         }
         #endif
 
