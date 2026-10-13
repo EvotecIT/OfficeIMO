@@ -421,6 +421,72 @@ internal static unsafe class StudioNativeExports {
         return WithDocument(document, error, cancellation, (target, token) => target.SaveSignedCopyAsync(parsed, token).GetAwaiter().GetResult());
     }
 
+    /// <summary>The document's properties, outline and attachments as UTF-8 JSON, with what the document lets the host change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_structure_json")]
+    internal static int DocumentStructureJson(nint document, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeStructure structure = target.GetStructureAsync(token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(structure, StudioNativeJson.Default.StudioNativeStructure));
+        });
+    }
+
+    /// <summary>Applies one document edit described by a UTF-8 JSON request as one undoable change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_edit_json")]
+    internal static int DocumentEditJson(nint document, byte* request, nint cancellation, byte** error) {
+        StudioNativeEditRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeEditRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The edit request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => target.EditAsync(parsed, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Writes an output described by a UTF-8 JSON request, leaving the document unchanged, and lists the files as JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_write_json")]
+    internal static int DocumentWriteJson(nint document, byte* request, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        StudioNativeWriteRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeWriteRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The output request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeWriteResult result = target.WriteAsync(parsed, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeWriteResult));
+        });
+    }
+
+    /// <summary>Checks the document's signatures, a standard or its health, described by UTF-8 JSON, and reports as JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_check_json")]
+    internal static int DocumentCheckJson(nint document, byte* request, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        StudioNativeCheckRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeCheckRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The check request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeCheckResult result = target.CheckAsync(parsed, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeCheckResult));
+        });
+    }
+
+    /// <summary>Finds text to redact, or redacts areas as one verified, undoable change, described by UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_redact_json")]
+    internal static int DocumentRedactJson(nint document, byte* request, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        StudioNativeRedactionRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeRedactionRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The redaction request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeRedactionResult result = target.RedactAsync(parsed, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeRedactionResult));
+        });
+    }
+
     // Plumbing ---------------------------------------------------------------------------------------------------
 
     private delegate void DocumentCall(StudioNativeDocument document, CancellationToken token);

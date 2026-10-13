@@ -173,6 +173,11 @@
       "Path": ".agents/plugins/officeimo-document-tools/README.md",
       "Project": "OfficeIMO.Tool",
       "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    },
+    {
+      "Path": "Website/data/agent_integrations.json",
+      "Project": "OfficeIMO.Tool",
+      "Pattern": "(?m)(?<=^  \"pluginVersion\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
     }
   ],
   "ExpectedVersionMapAsInclude": true,

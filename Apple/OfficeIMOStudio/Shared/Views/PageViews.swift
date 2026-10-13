@@ -33,8 +33,28 @@ struct PageThumbnail: View {
     }
 }
 
-/// The page list in the sidebar. Selecting a page shows it; the selection follows the page in view.
+/// The sidebar: page thumbnails or the table of contents, switched from the View menu or the picker above them.
 struct PageSidebar: View {
+    let session: DocumentSession
+
+    var body: some View {
+        Group {
+            switch session.sidebarMode {
+            case .thumbnails: PageThumbnailList(session: session)
+            case .outline: OutlineList(session: session)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .top) {
+            SidebarModePicker(session: session)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+        }
+    }
+}
+
+/// The page list in the sidebar. Selecting a page shows it; the selection follows the page in view.
+struct PageThumbnailList: View {
     let session: DocumentSession
 
     var body: some View {
@@ -71,28 +91,21 @@ struct PageListSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 16)], spacing: 16) {
-                        ForEach(session.facts?.pages ?? [], id: \.number) { page in
-                            Button {
-                                session.show(page: page.number)
-                            } label: {
-                                PageCell(session: session, page: page, width: 72, isSelected: page.number == session.currentPage)
-                            }
-                            .buttonStyle(.plain)
-                            .id(page.number)
-                        }
-                    }
-                    .padding()
+            Group {
+                if session.sidebarMode == .outline {
+                    OutlineList(session: session)
+                } else {
+                    grid
                 }
-                .onAppear { proxy.scrollTo(session.currentPage, anchor: .center) }
             }
-            .navigationTitle("Pages")
+            .navigationTitle(session.sidebarMode == .outline ? "Table of Contents" : "Pages")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    SidebarModePicker(session: session).fixedSize()
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done", systemImage: "checkmark") { dismiss() }
                 }
@@ -100,6 +113,26 @@ struct PageListSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+    }
+
+    private var grid: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 16)], spacing: 16) {
+                    ForEach(session.facts?.pages ?? [], id: \.number) { page in
+                        Button {
+                            session.show(page: page.number)
+                        } label: {
+                            PageCell(session: session, page: page, width: 72, isSelected: page.number == session.currentPage)
+                        }
+                        .buttonStyle(.plain)
+                        .id(page.number)
+                    }
+                }
+                .padding()
+            }
+            .onAppear { proxy.scrollTo(session.currentPage, anchor: .center) }
+        }
     }
 }
 

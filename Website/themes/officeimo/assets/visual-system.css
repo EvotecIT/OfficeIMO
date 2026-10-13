@@ -1122,7 +1122,10 @@ body.pf-api-docs {
   .imo-api-component-row { grid-template-columns: 1fr; gap: 0.65rem; }
   .imo-api-component-row nav { justify-content: flex-start; }
   .imo-blog-featured__copy { padding: 1.3rem; }
-  .imo-footer__grid { grid-template-columns: 1fr 1fr; }
+  /* The brand takes its own row and the four link groups share the next, rather than two wide columns with gaps. */
+  .imo-footer__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem 1.5rem; }
+  .imo-footer__brand { grid-column: 1 / -1; }
+  .imo-footer__brand p { max-width: 46ch; }
   .imo-converter-launch__frame-shell {
     width: 100%;
     padding-inline: 0;
@@ -1164,4 +1167,7 @@ body.pf-api-docs {
   .imo-nav__link, .imo-dropdown__link { min-height: 44px; display: flex; justify-content: flex-start; }
   .imo-dropdown__link { flex-direction: column; align-items: flex-start; justify-content: center; }
   .imo-theme-toggle { min-width: 44px; min-height: 44px; }
+}
+@media (max-width: 640px) {
+  .imo-footer__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.75rem 1.25rem; }
 }

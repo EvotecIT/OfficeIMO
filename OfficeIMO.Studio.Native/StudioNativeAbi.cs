@@ -80,6 +80,14 @@ internal static class StudioNativeAbi {
 [JsonSerializable(typeof(StudioNativeConversionResult))]
 [JsonSerializable(typeof(StudioNativeFormFields))]
 [JsonSerializable(typeof(StudioNativeFormFill))]
+[JsonSerializable(typeof(StudioNativeStructure))]
+[JsonSerializable(typeof(StudioNativeEditRequest))]
+[JsonSerializable(typeof(StudioNativeWriteRequest))]
+[JsonSerializable(typeof(StudioNativeWriteResult))]
+[JsonSerializable(typeof(StudioNativeCheckRequest))]
+[JsonSerializable(typeof(StudioNativeCheckResult))]
+[JsonSerializable(typeof(StudioNativeRedactionRequest))]
+[JsonSerializable(typeof(StudioNativeRedactionResult))]
 internal sealed partial class StudioNativeJson : JsonSerializerContext;
 
 internal sealed record StudioNativeScanWord(string? Text, double X, double Y, double Width, double Height, double? Confidence = null);

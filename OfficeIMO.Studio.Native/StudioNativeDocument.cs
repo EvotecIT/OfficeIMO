@@ -15,7 +15,7 @@ namespace OfficeIMO.Studio.Native;
 /// identity checks and verified saving behave identically in every host. Calls on one document are serialized; the
 /// host may call from any thread and should not call from its main thread.
 /// </summary>
-internal sealed class StudioNativeDocument : IDisposable {
+internal sealed partial class StudioNativeDocument : IDisposable {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly PdfWorkspace _workspace;
     private PdfDocumentSession? _session;
@@ -263,12 +263,18 @@ internal sealed class StudioNativeDocument : IDisposable {
             StudioNativeRectangle.From(hit.Bounds), hit.LineBounds.Select(StudioNativeRectangle.From).ToArray());
     }
 
-    // The markup tools a host may add. Text, images, stamps, links and redaction have their own journeys.
+    // The markup tools a host may add. Text, images and redaction have their own journeys.
     private static readonly HashSet<PdfEditorTool> AnnotationTools = [
         PdfEditorTool.Ink, PdfEditorTool.Note, PdfEditorTool.FreeText, PdfEditorTool.Highlight, PdfEditorTool.Underline,
         PdfEditorTool.StrikeOut, PdfEditorTool.Squiggly, PdfEditorTool.Rectangle, PdfEditorTool.Ellipse, PdfEditorTool.Line,
-        PdfEditorTool.Polygon
+        PdfEditorTool.Polygon, PdfEditorTool.Link, PdfEditorTool.Stamp
     ];
+
+    // The standard stamp names of ISO 32000-2, 12.5.6.12, which every reader draws.
+    private static readonly HashSet<string> StampNames = new(StringComparer.Ordinal) {
+        "Approved", "Experimental", "NotApproved", "AsIs", "Expired", "NotForPublicRelease", "Confidential", "Final", "Sold",
+        "Departmental", "ForComment", "TopSecret", "Draft", "ForPublicRelease"
+    };
 
     /// <summary>
     /// Adds a markup annotation as one undoable change. Geometry is in points of the page as displayed, from its
@@ -294,11 +300,28 @@ internal sealed class StudioNativeDocument : IDisposable {
             throw new ArgumentOutOfRangeException(nameof(request), "Colour components are from 0 through 1.");
         var gesture = new PdfEditorGesture(request.Page, left, top, right, bottom, strokes.FirstOrDefault() ?? [],
             strokes.Length > 0 ? strokes : null, quads.Length > 0 ? quads : null);
+        string linkUri = string.Empty;
+        if (tool == PdfEditorTool.Link) {
+            if (request.LinkPage is null == string.IsNullOrWhiteSpace(request.LinkUri))
+                throw new ArgumentException("A link goes to a web address or to a page, not both.", nameof(request));
+            if (request.LinkUri is { } uri) {
+                if (!Uri.TryCreate(uri.Trim(), UriKind.Absolute, out Uri? parsed) || parsed.Scheme is not ("https" or "http" or "mailto"))
+                    throw new ArgumentException("A link's address starts with https://, http:// or mailto:.", nameof(request));
+                linkUri = parsed.AbsoluteUri;
+            }
+        }
+        string stamp = string.Empty;
+        if (tool == PdfEditorTool.Stamp) {
+            stamp = request.Stamp ?? "Draft";
+            if (!StampNames.Contains(stamp)) throw new ArgumentException($"“{stamp}” isn't a standard stamp.", nameof(request));
+        }
         var properties = new PdfEditorProperties(request.Text ?? string.Empty, request.Author ?? string.Empty,
-            new PdfColor(color.Red, color.Green, color.Blue), string.Empty, string.Empty, request.FontSize ?? 12D,
-            StrokeWidth: width, Opacity: request.Opacity);
+            new PdfColor(color.Red, color.Green, color.Blue), stamp, linkUri, request.FontSize ?? 12D,
+            LinkPageNumber: request.LinkPage, StrokeWidth: width, Opacity: request.Opacity);
         return RunAsync(() => {
             if (request.Page < 1 || request.Page > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(request), "The page does not exist.");
+            if (request.LinkPage is { } target && (target < 1 || target > _workspace.Pages.Count))
+                throw new ArgumentOutOfRangeException(nameof(request), "The link's page does not exist.");
             if (!_workspace.CanEditAnnotations) throw new NotSupportedException("This document's annotations can't be changed.");
             return _workspace.ApplyEditorGestureAsync(tool, gesture, properties, cancellationToken);
         }, cancellationToken);
@@ -311,7 +334,8 @@ internal sealed class StudioNativeDocument : IDisposable {
             if (pageNumber < 1 || pageNumber > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber), "The page does not exist.");
             var metadata = _workspace.AnnotationMetadata.Where(static annotation => annotation.ObjectNumber.HasValue)
                 .GroupBy(static annotation => annotation.ObjectNumber!.Value).ToDictionary(static group => group.Key, static group => group.First());
-            PdfPageInteractionMap map = _workspace.CreateDocumentSnapshot().Annotations.GetEditingInteractions(pageNumber);
+            PdfDocument snapshot = _workspace.CreateDocumentSnapshot();
+            PdfPageInteractionMap map = snapshot.Annotations.GetEditingInteractions(pageNumber);
             var annotations = new List<StudioNativeAnnotation>();
             foreach (PdfPageInteractionRegion region in map.Regions) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -321,6 +345,15 @@ internal sealed class StudioNativeDocument : IDisposable {
                 annotations.Add(new StudioNativeAnnotation(number, pageNumber, region.Subtype ?? annotation?.Subtype ?? string.Empty,
                     new StudioNativeRectangle(region.Quad.Left, region.Quad.Top, region.Quad.Width, region.Quad.Height),
                     annotation?.Contents, annotation?.Title, color));
+            }
+            // Links aren't markup, so the editing map leaves them out; they are listed so they can be found and removed.
+            PdfPageLayoutInfo? layout = null;
+            foreach (PdfAnnotation link in metadata.Values.Where(annotation => annotation.PageNumber == pageNumber && annotation.Subtype == "Link" && annotation.ObjectNumber.HasValue &&
+                         annotation.Width > 0 && annotation.Height > 0)) {
+                layout ??= snapshot.GetPageLayouts()[pageNumber - 1];
+                PdfSelectionQuad quad = layout.MapUserSpaceRectangleToVisual(link.X1, link.Y1, link.X2, link.Y2);
+                annotations.Add(new StudioNativeAnnotation(link.ObjectNumber!.Value, pageNumber, "Link",
+                    new StudioNativeRectangle(quad.Left, quad.Top, quad.Width, quad.Height), link.Contents, link.Title, null));
             }
             return new StudioNativeAnnotationList(StudioNativeAbi.Version, _workspace.Revision, pageNumber, _workspace.CanEditAnnotations, annotations);
         } finally { _gate.Release(); }
@@ -573,7 +606,7 @@ internal sealed record StudioNativeColor(double Red, double Green, double Blue);
 internal sealed record StudioNativeAnnotationRequest(string Tool, int Page, StudioNativeRectangle? Bounds = null,
     IReadOnlyList<IReadOnlyList<StudioNativePoint>>? Strokes = null, IReadOnlyList<StudioNativeRectangle>? Quads = null,
     string? Text = null, string? Author = null, StudioNativeColor? Color = null, double? StrokeWidth = null, double? Opacity = null,
-    double? FontSize = null);
+    double? FontSize = null, string? LinkUri = null, int? LinkPage = null, string? Stamp = null);
 
 internal sealed record StudioNativeAnnotation(int ObjectNumber, int Page, string Subtype, StudioNativeRectangle Bounds, string? Contents,
     string? Author, StudioNativeColor? Color);

@@ -245,8 +245,10 @@ int32_t officeimo_document_search_stream_json(officeimo_document document, const
  * Adds a markup annotation as one undoable change, described as JSON:
  * { "tool", "page", "bounds": { "x", "y", "width", "height" }, "strokes": [ [ { "x", "y" } ] ],
  *   "quads": [ { "x", "y", "width", "height" } ], "text", "author", "color": { "red", "green", "blue" },
- *   "strokeWidth", "opacity", "fontSize" }
- * tool is one of ink, note, freeText, highlight, underline, strikeOut, squiggly, rectangle, ellipse, line and polygon.
+ *   "strokeWidth", "opacity", "fontSize", "linkUri", "linkPage", "stamp" }
+ * tool is one of ink, note, freeText, highlight, underline, strikeOut, squiggly, rectangle, ellipse, line, polygon, link
+ * and stamp. A link covers its bounds and goes to linkUri (https, http or mailto) or to linkPage, exactly one of them; a
+ * stamp is one of the standard stamps, such as Approved, Draft, Confidential, Final or ForComment (default Draft).
  * Geometry is in points of the page as displayed, from its top-left corner, the space of officeimo_document_search_json.
  * Ink takes its strokes; a line its first stroke's first and last points; a polygon its first stroke; text markup its
  * quads, or bounds without them; the others take bounds. bounds may be left out when strokes are given. Colours are
@@ -324,6 +326,86 @@ int32_t officeimo_document_save_protected_copy_json(officeimo_document document,
  */
 int32_t officeimo_document_save_signed_copy_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
                                                  char **error);
+
+/*
+ * The document's structure as JSON: { "abiVersion", "revision", "properties": { "title", "author", "subject", "keywords",
+ * "created", "modified" }, "canEditProperties", "outline": [ { "id", "title", "page", "children": [ ] } ], "canEditOutline",
+ * "attachments": [ { "fileName", "size", "description", "mimeType" } ], "canEditAttachments", "canCrop", "canResize",
+ * "canStampPages", "hasForms", "canFlattenForms" }. created and modified are ISO 8601 times. An outline entry without an id
+ * has no page in this document; it and its children are shown but can't be changed.
+ */
+int32_t officeimo_document_structure_json(officeimo_document document, officeimo_cancellation cancellation, char **json,
+                                          char **error);
+
+/*
+ * Applies one edit as one undoable change, described as JSON naming exactly one of:
+ *   "properties": { "title", "author", "subject", "keywords" }: a field left out keeps its value; "" clears it.
+ *   "outline": [ { "op", "id", "title", "page", "parentId", "index" } ]: op is "add" (title, page, optional parentId and
+ *     index), "rename" (id, title), "remove" (id), "move" (id, parentId, index), "retarget" (id, page) or "rebuild", which
+ *     makes the outline from the document's headings. Ids come from officeimo_document_structure_json; all the changes in
+ *     one request are one undoable step.
+ *   "crop": { "pages", "left", "top", "right", "bottom" }: margins in points cut from each edge of the pages as displayed.
+ *   "pageSize": { "pages", "width", "height", "mode" }: a new paper size in points, mode "fit" (default), "fill" or "stretch".
+ *   "headerFooter": { "headerLeft", "headerCenter", "headerRight", "footerLeft", "footerCenter", "footerRight", "fontSize",
+ *     "margin", "startNumber", "pages" }: text accepts {page}, {pages}, {date}, {file} and {title}.
+ *   "watermark": { "text", "fontSize", "opacity", "rotation", "behindContent", "color": { "red", "green", "blue" }, "pages" }.
+ *   "bates": { "prefix", "suffix", "start", "digits", "position" }: position is "bottomRight" (default), "bottomCenter",
+ *     "bottomLeft", "topLeft", "topCenter" or "topRight"; every page is numbered.
+ *   "flatten": { "fields" }: draws the named field, or every field when none is named, into its page.
+ *   "addAttachment": { "path", "fileName" }, or "removeAttachment": "file name".
+ * Leaving out "pages" means every page. The structure's can flags tell which edits the document allows.
+ */
+int32_t officeimo_document_edit_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
+                                     char **error);
+
+/*
+ * Writes an output, leaving the document unchanged, described as JSON naming exactly one of:
+ *   "split": { "directory", "pagesPerPart" } or { "directory", "parts": [ { "pages", "name" } ] }: at least two parts,
+ *     each a new PDF in directory, named from the document and its pages unless a name is given.
+ *   "attachment": { "fileName", "path" }: saves an attachment's contents.
+ *   "export": { "format", "path" }: the document's text as "text", "markdown" or structured "json".
+ *   "optimize": { "path", "profile" }: a losslessly smaller copy; profile is "balanced" (default), "smallest", "web" or
+ *     "archival". The copy is written only when it keeps everything the document contains.
+ *   "repair": { "path" }: a copy with the structural problems the reader recovered written out, verified by reopening it.
+ *   "sanitize": { "path" }: a copy without scripts, actions, attachments and other active content, verified afterwards.
+ * Never replaces an existing part: a name already taken gets a number. A health copy replaces the file at path, which
+ * must not be the document's own. Returns { "abiVersion", "revision", "files", "summary" }, summary saying what a
+ * health copy changed.
+ */
+int32_t officeimo_document_write_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
+                                      char **json, char **error);
+
+/*
+ * Checks the document without changing it, described as JSON naming exactly one of:
+ *   "signatures": true -> "signatures": { "hasSignatures", "signatures": [ { "signer", "field", "signingTime", "reason",
+ *     "location", "status", "coversWholeDocument", "certificate", "timestamp", "findings": [ ] } ], "findings": [ ] }.
+ *     status is "valid" (intact and from a trusted certificate), "intact" (unchanged since signing, certificate not
+ *     trusted), "invalid", "unknown" or "unchecked"; certificate and timestamp are "valid", "invalid", "unknown" or
+ *     "notChecked".
+ *   "standard": "pdfa2b", "pdfa2u", "pdfa2a", "pdfa3b", "pdfa3u", "pdfa3a", "pdfa4", "pdfua1", "pdfua2", "pdfx1a" or "pdfx4"
+ *     -> "standard": { "name", "isReady", "requirements": [ { "id", "name", "status", "detail" } ] }, status "met",
+ *     "missing" or "unsupported".
+ *   "health": true -> "health": { "fileSize", "pages", "version", "canRead", "canRewrite", "isEncrypted", "isSigned",
+ *     "isTagged", "hasActiveContent", "hasAttachments", "recoveredProblems", "unrecoverableProblems", "diagnostics" }.
+ * Returns { "abiVersion", "revision" } with the one report.
+ */
+int32_t officeimo_document_check_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
+                                      char **json, char **error);
+
+/*
+ * Redaction, described as JSON naming exactly one of:
+ *   "find": { "text", "regex", "matchCase", "pages" } -> { "marks": [ { "page", "bounds", "preview" } ] }: the found text's
+ *     own glyphs, in points of the page as displayed; the document is unchanged.
+ *   "apply": { "areas": [ { "page", "bounds" } ], "find", "include", "removedText", "sanitize" } -> { "verification":
+ *     { "verified", "removed", "residual", "inconclusive", "pages" } }: removes the text, images and drawings under each
+ *     drawn area and each match of find (all of them, or the marks listed by index in include), paints them black and
+ *     checks that the content is gone, as one undoable change. find is searched again on the same revision, so it keeps
+ *     the exact glyphs. removedText, when given, must be absent afterwards; sanitize also removes metadata,
+ *     attachments, actions and markup.
+ * Returns { "abiVersion", "revision" } with marks or verification.
+ */
+int32_t officeimo_document_redact_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
+                                       char **json, char **error);
 
 #ifdef __cplusplus
 }

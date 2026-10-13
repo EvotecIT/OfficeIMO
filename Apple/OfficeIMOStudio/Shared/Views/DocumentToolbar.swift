@@ -130,6 +130,9 @@ struct DocumentToolbar: ToolbarContent {
                     .disabled(!session.canMakeSearchable)
             }
             Section {
+                StructureCommands(session: session)
+            }
+            Section {
                 SignatureMenu(session: session)
                 SecurityCommands(session: session)
             }
@@ -145,6 +148,7 @@ struct DocumentToolbar: ToolbarContent {
         .menuIndicator(.hidden)
         .fixedSize()
         .disabled(!session.isReady)
+        .task(id: session.revision) { await session.loadStructure() }
     }
 
     @ViewBuilder private var share: some View {
