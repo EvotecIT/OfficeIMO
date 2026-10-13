@@ -33,6 +33,8 @@ public static partial class WordPdfConverterExtensions {
         if (body == null || body.Rotation?.Value is > 0 or < 0 ||
             body.Vertical?.Value is { } vertical && vertical != A.TextVerticalValues.Horizontal ||
             body.Anchor?.Value is { } anchor && anchor != A.TextAnchoringTypeValues.Top ||
+            body.ColumnCount?.Value is > 1 ||
+            body.GetFirstChild<A.PresetTextWarp>() is { } warp && warp.Preset?.Value != A.TextShapeValues.TextNoShape ||
             body.GetFirstChild<A.NormalAutoFit>() != null) return false;
 
         // Each square-wrap exclusion must clear the entire ordinary line.

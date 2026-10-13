@@ -81,6 +81,25 @@ public partial class Word {
     }
 
     [Theory]
+    [InlineData("columns")]
+    [InlineData("warp")]
+    public void SaveAsPdf_UnsupportedRunningTextBoxBodyLayoutRetainsWarnedContent(string layout) {
+        using WordDocument document = CreateCompactRunningTextBoxPaintControl();
+        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        Wps.TextBodyProperties body = box.Anchor!.Descendants<Wps.TextBodyProperties>().Single();
+        // This run fits the full frame but exceeds one of two equal-width columns.
+        // The fixed canvas would otherwise retain a single full-width line.
+        WordParagraph paragraph = box.Paragraphs.Single();
+        paragraph.Text = "BOX ONE TWO THREE FOUR FIVE SIX";
+        paragraph.FontFamily = "Arial";
+        paragraph.FontSize = 11;
+        if (layout == "columns") body.ColumnCount = 2;
+        else body.GetFirstChild<A.PresetTextWarp>()!.Preset = A.TextShapeValues.TextArchUp;
+        AssertRunningTextBoxPaintIsExplicitlyApproximated(document,
+            new[] { "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX" });
+    }
+
+    [Theory]
     [InlineData("emptyEffects")]
     [InlineData("plainOutline")]
     [InlineData("noFillOutline")]
@@ -103,18 +122,22 @@ public partial class Word {
         WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         // Keep the 51.84pt frame and its ordinary 2pt outline above the body.
         // Unsupported paint, rather than the body-overlap guard, must decide admission.
-        document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!
-            .Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
+        var anchor = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!;
+        anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
+        Wps.TextBodyProperties body = anchor.Descendants<Wps.TextBodyProperties>().Single();
+        body.ColumnCount = 1;
+        body.AddChild(new A.PresetTextWarp(new A.AdjustValueList()) { Preset = A.TextShapeValues.TextNoShape }, true);
         return document;
     }
 
-    private static void AssertRunningTextBoxPaintIsExplicitlyApproximated(WordDocument document) {
+    private static void AssertRunningTextBoxPaintIsExplicitlyApproximated(WordDocument document, string[]? additionalTokens = null) {
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ToPdfDocumentResult(EmptyRunningOptions());
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
+        foreach (string token in additionalTokens ?? Array.Empty<string>()) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
         Assert.Equal(before, AnchoredRunningStoryXml(document));
     }
