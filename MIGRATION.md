@@ -1,10 +1,28 @@
 # Upgrading OfficeIMO
 
-## Excel import cancellation and date conversion
+## PDF attachment authoring limits
 
-`ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
+Generated PDF catalog attachments now default to 128 MiB per payload and 256 MiB
+across the catalog. Previously accepted larger inputs require explicit positive
+`PdfOptions.MaxEmbeddedFileBytes` and `MaxTotalEmbeddedFileBytes` values before
+calling `AddEmbeddedFile`, fluent attachment helpers, or invoice helpers.
+For example, use `MaxEmbeddedFileBytes = 256L * 1024 * 1024` and
+`MaxTotalEmbeddedFileBytes = 512L * 1024 * 1024` for a trusted workflow accepting
+256 MiB files within a 512 MiB collection.
 
-`DateTimeOffsetWriteStrategy` runs once for each `CellValue` write, including writes that cannot use the direct-save buffer. Numeric writes use that converted value; dates outside Excel's numeric range retain the ISO text fallback. Do not depend on repeated callback invocations when a write falls back to the worksheet DOM.
+Structure attachments use the same defaults through
+`PdfCanvasStructureOptions.MaxAssociatedFileBytes` and
+`MaxTotalAssociatedFileBytes`. Raise those limits as well when attaching a larger
+trusted file to a structure element. Saving enforces the document's per-file
+limit and combined total across catalog files and distinct emitted structure
+files; repeated identical structure associations sharing one file specification
+count once. Over-budget admission or save throws `InvalidDataException`.
+
+Standalone `PdfEmbeddedFile` constructors retain their existing behavior.
+Read/edit operations continue to use their explicit `PdfLoadOptions` limits.
+The authoring limits bound admitted and emitted payload bytes, not defensive
+copies or peak process memory. See [attachment authoring limits](OfficeIMO.Pdf/README.md#attachment-authoring-limits)
+for configuration and destination-preservation behavior.
 
 ## Excel worksheet page-fit inspection
 
@@ -18,6 +36,12 @@ Update inspection and export code to treat null fit dimensions as inactive and
 to use `Scale` for percentage-based printing. To enable page fitting, configure
 it through `sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U)` for one page wide
 with no height limit, instead of relying on cached dimensions in the worksheet XML.
+
+## Excel import cancellation and date conversion
+
+`ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
+
+`DateTimeOffsetWriteStrategy` runs once for each `CellValue` write, including writes that cannot use the direct-save buffer. Numeric writes use that converted value; dates outside Excel's numeric range retain the ISO text fallback. Do not depend on repeated callback invocations when a write falls back to the worksheet DOM.
 
 ## PDF form value assessment
 

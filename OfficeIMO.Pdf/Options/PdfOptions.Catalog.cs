@@ -253,13 +253,6 @@ public sealed partial class PdfOptions {
 
     internal PdfFormFieldTextAlignment? AcroFormDefaultTextAlignmentSnapshot => _acroFormDefaultTextAlignment;
 
-    /// <summary>Embedded files associated with the generated document catalog.</summary>
-    public System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile> EmbeddedFiles =>
-        (System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile>?)CloneEmbeddedFiles(_embeddedFiles) ?? System.Array.Empty<PdfEmbeddedFile>();
-
-    internal System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile> EmbeddedFileSnapshots =>
-        (System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile>?)CloneEmbeddedFiles(_embeddedFiles) ?? System.Array.Empty<PdfEmbeddedFile>();
-
     /// <summary>Optional document portfolio configuration for the generated embedded files.</summary>
     public PdfPortfolioOptions? Portfolio {
         get => _portfolio?.Clone();
@@ -708,47 +701,6 @@ public sealed partial class PdfOptions {
         return ConfigurePdfAGroundwork(profile, language);
     }
 
-    /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
-    public PdfOptions AddEmbeddedFile(PdfEmbeddedFile file) {
-        Guard.NotNull(file, nameof(file));
-        if (_embeddedFiles != null) {
-            foreach (PdfEmbeddedFile existingFile in _embeddedFiles) {
-                if (string.Equals(existingFile.FileName, file.FileName, System.StringComparison.Ordinal)) {
-                    throw new System.ArgumentException("PDF embedded file names must be unique within a generated document.", nameof(file));
-                }
-            }
-        }
-
-        (_embeddedFiles ??= new System.Collections.Generic.List<PdfEmbeddedFile>()).Add(file.Clone());
-        return this;
-    }
-
-    /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
-    public PdfOptions AddEmbeddedFile(
-        string fileName,
-        byte[] data,
-        string? mimeType = null,
-        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Unspecified,
-        string? description = null) {
-        return AddEmbeddedFile(new PdfEmbeddedFile(fileName, data, mimeType, relationship, description));
-    }
-
-    /// <summary>Sets the modification date emitted in the embedded-file stream parameters for an existing attachment.</summary>
-    public PdfOptions SetEmbeddedFileModificationDate(string fileName, DateTimeOffset modificationDate) {
-        Guard.NotNullOrWhiteSpace(fileName, nameof(fileName));
-        if (_embeddedFiles != null) {
-            for (int i = 0; i < _embeddedFiles.Count; i++) {
-                PdfEmbeddedFile file = _embeddedFiles[i];
-                if (string.Equals(file.FileName, fileName, System.StringComparison.Ordinal)) {
-                    file.ModificationDate = modificationDate;
-                    return this;
-                }
-            }
-        }
-
-        throw new System.ArgumentException("No embedded file with the requested name is configured.", nameof(fileName));
-    }
-
     /// <summary>
     /// Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML payload and matching XMP extension metadata.
     /// </summary>
@@ -892,12 +844,6 @@ public sealed partial class PdfOptions {
         bool useDocumentFontFallback = true) {
         Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
         return ConfigureElectronicInvoiceGroundwork(profile, ReadFacturXInvoiceXmlFile(ciiXmlPath), conformanceLevel, version, relationship, description, useDocumentFontFallback);
-    }
-
-    /// <summary>Removes all embedded files associated with the generated PDF catalog.</summary>
-    public PdfOptions ClearEmbeddedFiles() {
-        _embeddedFiles?.Clear();
-        return this;
     }
 
     internal bool TryGetEmbeddedStandardFont(PdfStandardFont font, out PdfEmbeddedFont? embeddedFont) {
@@ -1109,7 +1055,7 @@ public sealed partial class PdfOptions {
             profile == PdfComplianceProfile.PdfA3A;
     }
 
-    private static PdfEmbeddedFile CreateFacturXInvoiceAttachment(
+    private PdfEmbeddedFile CreateFacturXInvoiceAttachment(
         byte[] ciiXml,
         PdfAssociatedFileRelationship relationship,
         string? description) {
@@ -1118,14 +1064,16 @@ public sealed partial class PdfOptions {
             throw new System.IO.InvalidDataException("CII XML exceeds the maximum byte length.");
         }
         ValidateFacturXInvoiceRelationship(relationship);
+        PrepareEmbeddedFileAdmission("factur-x.xml", ciiXml.LongLength);
         return new PdfEmbeddedFile("factur-x.xml", ciiXml, "application/xml", relationship, description);
     }
 
-    private static byte[] ReadFacturXInvoiceXmlFile(string path) {
+    private byte[] ReadFacturXInvoiceXmlFile(string path) {
         var file = new System.IO.FileInfo(System.IO.Path.GetFullPath(path));
         if (file.Length > PdfCiiInvoiceDocument.MaximumXmlBytes) {
             throw new System.IO.InvalidDataException("CII XML exceeds the maximum byte length.");
         }
+        PrepareEmbeddedFileAdmission("factur-x.xml", file.Length);
         using var stream = new System.IO.FileStream(file.FullName, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete);
         return OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(stream, default, PdfCiiInvoiceDocument.MaximumXmlBytes);
     }
