@@ -66,14 +66,17 @@ public partial class PdfReadStreamTests {
         AssertCombinedNameTrees(PdfStamper.StampText(combinedNameTreePdf, "STAMP"));
 
         static void AssertCombinedNameTrees(byte[] output) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/Names << /Dests << /Names [", text, StringComparison.Ordinal);
-            Assert.Contains("(Chapter1)", text, StringComparison.Ordinal);
-            Assert.Contains("/XYZ 0 200 0", text, StringComparison.Ordinal);
-            Assert.Contains("/EmbeddedFiles << /Names [", text, StringComparison.Ordinal);
-            Assert.Contains("(note.txt)", text, StringComparison.Ordinal);
-            Assert.Contains("/Type /Filespec", text, StringComparison.Ordinal);
-            Assert.Contains("/Type /EmbeddedFile", text, StringComparison.Ordinal);
+            PdfReadDocument document = PdfReadDocument.Open(output);
+            PdfNamedDestination destination = Assert.Single(document.NamedDestinations);
+            Assert.Equal("Chapter1", destination.Name);
+            Assert.Equal(1, destination.PageNumber);
+            Assert.Equal(PdfOpenActionDestinationMode.Xyz, destination.DestinationMode);
+            Assert.Equal(0, destination.DestinationLeft);
+            Assert.Equal(200, destination.DestinationTop);
+            Assert.Equal(0, destination.DestinationZoom);
+            var attachment = Assert.Single(document.ExtractAttachments());
+            Assert.Equal("note.txt", attachment.FileName);
+            Assert.Equal("note", System.Text.Encoding.ASCII.GetString(attachment.Bytes));
         }
     }
 
