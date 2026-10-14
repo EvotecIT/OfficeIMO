@@ -13,7 +13,6 @@ namespace OfficeIMO.Excel {
                 var pageSetup = GetOrCreatePageSetup(ws);
                 string val = orientation == OfficePageOrientation.Landscape ? "landscape" : "portrait";
                 pageSetup.SetAttribute(new OpenXmlAttribute("", "orientation", "", val));
-                ws.Save();
             });
         }
 
@@ -26,7 +25,6 @@ namespace OfficeIMO.Excel {
                 var ws = WorksheetRoot;
                 var pageSetup = GetOrCreatePageSetup(ws);
                 pageSetup.PaperSize = (uint)paperSize;
-                ws.Save();
             });
         }
 
@@ -60,7 +58,6 @@ namespace OfficeIMO.Excel {
                     ws.InsertAt(margins, 0);
                 }
                 margins.Left = left; margins.Right = right; margins.Top = top; margins.Bottom = bottom; margins.Header = header; margins.Footer = footer;
-                ws.Save();
             });
         }
 

@@ -66,7 +66,7 @@ internal sealed partial class MsiPackageReader {
             if (!components.TryGetValue(component, out object?[]? owner)) throw new InvalidDataException("MSI file references an absent component.");
             MsiResolvedDirectory resolved = ResolveDirectory(RequiredIdentifier(owner[2], "Component.Directory_"), directories, directoryCache);
             string directory = resolved.Path;
-            string filename = LongName(RequiredString(row[2], "File.FileName"));
+            string filename = InstalledName(LongName(RequiredString(row[2], "File.FileName")));
             ArchivePaths.ValidateSegment(filename);
             long pathLength = (long)directory.Length + (directory.Length == 0 ? 0 : 1) + filename.Length;
             if (resolved.PathSegments >= _limits.Depth || pathLength > _limits.PathLength)
@@ -95,6 +95,9 @@ internal sealed partial class MsiPackageReader {
         return media[match].Item3;
     }
     private static string LongName(string value) {
+        // Both halves are bounded before splitting, even when the schema permits unbounded strings.
+        if (value.Length > 2 * 255 + 1)
+            throw new InvalidDataException("MSI authored short/long filename exceeds supported bounds.");
         string[] names = value.Split('|');
         if (names.Length > 2 || names[names.Length - 1].Length == 0) throw new InvalidDataException("MSI contains an invalid short/long filename.");
         return names[names.Length - 1];

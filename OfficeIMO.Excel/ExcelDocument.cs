@@ -304,7 +304,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelSheet> Sheets {
             get {
                 var lck = EnsureLock();
-                if (Locking.IsNoLock || lck is null) {
+                if (Locking.IsNoLock || lck is null || lck.IsWriteLockHeld) {
                     MaterializeDeferredDataSetImport();
                     if (SheetCachingEnabled) {
                         EnsureSheetCacheInitialized(lck);

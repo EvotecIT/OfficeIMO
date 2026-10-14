@@ -1,0 +1,10 @@
+[
+  {
+    "title": "HTML and MHTML",
+    "url": "/docs/html/",
+    "kind": "guide",
+    "targets": [
+      "OfficeIMO.Html.HtmlConversionDocument"
+    ]
+  }
+]

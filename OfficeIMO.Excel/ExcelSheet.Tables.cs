@@ -52,8 +52,7 @@ namespace OfficeIMO.Excel {
                     tableColumn.TotalsRowLabel = null;
                 }
 
-                table.Save();
-                WorksheetRoot.Save();
+                DeferPartSave(table.OpenXmlPart!);
             });
         }
 
@@ -111,8 +110,7 @@ namespace OfficeIMO.Excel {
                 if (showRowStripes.HasValue) styleInfo.ShowRowStripes = showRowStripes.Value;
                 if (showColumnStripes.HasValue) styleInfo.ShowColumnStripes = showColumnStripes.Value;
 
-                table.Save();
-                WorksheetRoot.Save();
+                DeferPartSave(table.OpenXmlPart!);
             });
         }
 
@@ -141,8 +139,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                table.Save();
-                WorksheetRoot.Save();
+                DeferPartSave(table.OpenXmlPart!);
             });
         }
 
@@ -227,7 +224,7 @@ namespace OfficeIMO.Excel {
                             table.InsertAt(newAutoFilter, 0);
                         }
 
-                        table.Save();
+                        DeferPartSave(table.OpenXmlPart!);
                         return; // Exit early - we've handled the AutoFilter via the table
                     }
                 }
@@ -271,7 +268,6 @@ namespace OfficeIMO.Excel {
                     worksheet.Append(autoFilter);
                 }
 
-                worksheet.Save();
             };
 
             if (!worksheetOnly) {
@@ -311,7 +307,7 @@ namespace OfficeIMO.Excel {
                             table.InsertAt(newAutoFilter, 0);
                         }
 
-                        table.Save();
+                        DeferPartSave(table.OpenXmlPart!);
                         _excelDocument.TryEnableDirectTableAutoFilterMetadata(this, range);
                         return true;
                     }
@@ -594,11 +590,6 @@ namespace OfficeIMO.Excel {
                 });
 
                 tableDefinitionPart.Table = table;
-                if (deferPartSave) {
-                    DeferTableDefinitionPartSave(tableDefinitionPart);
-                } else {
-                    tableDefinitionPart.Table.Save();
-                }
 
                 var tableParts = WorksheetRoot.GetFirstChild<TableParts>();
                 if (tableParts == null) {
@@ -636,8 +627,8 @@ namespace OfficeIMO.Excel {
                         _excelDocument.PreserveDirectDataSetSaveCandidateForNextDirtyMark();
                     }
 
-                    WorksheetRoot.Save();
                 }
+                DeferPartSave(tableDefinitionPart);
             });
 
             return resolvedName;

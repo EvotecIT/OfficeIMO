@@ -45,7 +45,6 @@ namespace OfficeIMO.Excel {
                     container = standardContainer;
                 }
 
-                WorksheetRoot.Save();
                 _nextConditionalFormattingPriority = 0;
                 result = ReadConditionalFormattingInfo(
                     rule,
@@ -111,7 +110,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 _nextConditionalFormattingPriority = 0;
-                WorksheetRoot.Save();
                 CaptureConditionalFormattingProjectionSignatures(rule);
             });
         }
@@ -160,7 +158,6 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("The conditional-formatting rule type is unsupported.");
                 }
 
-                WorksheetRoot.Save();
                 result = ReadConditionalFormattingInfo(
                     clone,
                     range,
@@ -183,7 +180,6 @@ namespace OfficeIMO.Excel {
                 rule.BackingRule = null;
                 rule.OwnerContainer = null;
                 _nextConditionalFormattingPriority = 0;
-                WorksheetRoot.Save();
             });
         }
 
@@ -220,7 +216,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 _nextConditionalFormattingPriority = orderedRules.Count + 1;
-                WorksheetRoot.Save();
             });
         }
 

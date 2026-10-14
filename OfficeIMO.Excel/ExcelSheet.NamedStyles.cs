@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
                 if (style.BuiltinId != null) throw new InvalidOperationException($"Built-in named style '{name}' cannot be removed.");
                 style.Remove();
                 stylesheet!.CellStyles!.Count = (uint)stylesheet.CellStyles.Count();
-                stylesheet.Save();
+                ExcelSheet.SaveStylesheet(WorkbookPartRoot.WorkbookStylesPart!);
                 MarkPackageDirty();
                 removed = true;
             });
@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
                 style.FormatId = formatId;
                 style.Hidden = hidden;
                 stylesheet.CellStyles.Count = (uint)stylesheet.CellStyles.Count();
-                stylesheet.Save();
+                SaveStylesheet(stylesPart);
                 result = new ExcelNamedStyleInfo(normalizedName, formatId, null, hidden);
             });
             return result!;
@@ -143,7 +143,9 @@ namespace OfficeIMO.Excel {
                     cancellationToken.ThrowIfCancellationRequested();
                     for (int column = c1; column <= c2; column++) GetCell(row, column).StyleIndex = cellFormatId;
                 }
-                stylesheet.Save();
+                SaveStylesheet(_excelDocument.WorkbookPartRoot.WorkbookStylesPart!);
+                ClearHeaderCacheForCellMutation(r1, c1);
+                if (c2 != c1) ClearHeaderCacheForCellMutation(r1, c2);
                 return checked((int)cellCount);
             }, new ExcelMutationPlanOptions(), cancellationToken);
         }
@@ -218,6 +220,8 @@ namespace OfficeIMO.Excel {
                 cellFormats.ReplaceChild(replacement, applied);
             }
             cellFormats.Count = (uint)cellFormats.Count();
+            InvalidateAutomaticCellFormatCaches(cellFormats);
+            if (cellFormats.Parent is Stylesheet stylesheet) StyleBatch.InvalidateCellFormats(stylesheet);
         }
 
     }

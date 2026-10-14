@@ -15,7 +15,7 @@
         "differentRatio": 0.06,
         "meanAbsoluteError": 7
       },
-      "evidence": "Authored labels, baseline positions within 0.25px, and a color region validate content and placement. The pinned face, inherited 32px line height and explicit sub/sup offsets give the script line a 41px advance, independently confirmed in Chromium. Managed PDF and image routes allow 3 percent changed pixels with mean channel error capped at 3. The source-HTML Chromium reference has separate measured baselines and regions and allows 6 percent changed pixels with mean channel error capped at 7.",
+      "evidence": "Authored labels, baseline positions within 0.25px, and a color region validate content and placement. The pinned face, inherited 32px line height and explicit sub/sup offsets give the script line a 41px advance, independently confirmed in Chromium. Rounded selected-face metrics align the managed text baselines with the independent browser reference. Managed PDF and image routes allow 3 percent changed pixels with mean channel error capped at 3. The source-HTML Chromium reference retains separate measured regions and allows 6 percent changed pixels with mean channel error capped at 7.",
       "visualTolerance": {
         "channel": 32,
         "differentRatio": 0.03,
@@ -34,12 +34,12 @@
             {
               "text": "PAGE-ONE",
               "x": 16,
-              "baseline": 36
+              "baseline": 39
             },
             {
               "text": "Water",
               "x": 16,
-              "baseline": 88.70686849
+              "baseline": 92
             },
             {
               "text": "SVG LABEL",
@@ -145,17 +145,17 @@
             {
               "text": "ACT-001",
               "x": 28,
-              "baseline": 203.4
+              "baseline": 203
             },
             {
               "text": "ACT-020",
               "x": 28,
-              "baseline": 602.4
+              "baseline": 602
             },
             {
               "text": "REGISTER PAGE 1",
               "x": 24,
-              "baseline": 631.4
+              "baseline": 632
             }
           ],
           "browserTextPositions": [
@@ -252,7 +252,7 @@
             {
               "text": "Action register continued",
               "x": 24,
-              "baseline": 42
+              "baseline": 43
             },
             {
               "text": "ACT-021",
@@ -267,7 +267,7 @@
             {
               "text": "REGISTER PAGE 2",
               "x": 24,
-              "baseline": 547
+              "baseline": 548
             }
           ],
           "browserTextPositions": [

@@ -38,7 +38,6 @@ namespace OfficeIMO.Excel {
                     sheetView.View = ToOpenXmlSheetView(options.View.Value);
                 }
 
-                WorksheetRoot.Save();
                 _excelDocument.MarkPackageDirty();
             });
         }
