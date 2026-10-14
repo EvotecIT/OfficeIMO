@@ -209,7 +209,11 @@ internal static partial class OfficeArchiveSafety {
             bool zip64Required = centralDirectorySize32 == uint.MaxValue
                 || centralDirectoryOffset32 == uint.MaxValue;
             bool zip64 = false;
-            bool hasZip64Locator = HasZip64Locator(source,
+            // A locator-looking sequence inside a declared classic directory record is ordinary metadata.
+            // Masked counts still receive the whole-source ambiguity check below for Framework readers.
+            bool locatorOverlapsClassicDirectory = !zip64Required
+                && (ulong)centralDirectoryOffset32 + centralDirectorySize32 > (ulong)Math.Max(0, endOfCentralDirectoryOffset - 20);
+            bool hasZip64Locator = !locatorOverlapsClassicDirectory && HasZip64Locator(source,
                 originalPosition, endOfCentralDirectoryOffset);
             if (!hasZip64Locator && !zip64Required && totalEntries16 > entryLimit)
                 return ZipCentralDirectoryScanResult.Exceeded(totalEntries16);
@@ -405,16 +409,19 @@ internal static partial class OfficeArchiveSafety {
         int archiveEnd = checked(archiveOffset + archiveLength);
         int minimumOffset = Math.Max(archiveOffset,
             archiveEnd - (22 + ushort.MaxValue));
+        int candidate = -1;
         for (int offset = archiveEnd - 22;
              offset >= minimumOffset; offset--) {
             if (ReadZipUInt32(bytes, offset)
                 != EndOfCentralDirectorySignature) continue;
             ushort commentLength = ReadZipUInt16(bytes, offset + 20);
             if ((long)offset + 22L + commentLength == archiveEnd) {
-                return offset;
+                // Retain the earliest self-consistent candidate. A nested later candidate must not hide
+                // the enclosing comment from HasLaterEndOfCentralDirectorySignature.
+                candidate = offset;
             }
         }
-        return -1;
+        return candidate;
     }
 
     private static bool HasZip64Locator(Stream source, long archiveOffset,

@@ -4,6 +4,76 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Archives.Tests;
 
 public sealed partial class ZipExtractionTests {
+    [Fact]
+    public void EmptyArchivesWithADirectoryDigitalSignatureAreDetectedAndValidated() {
+        byte[] record = { 0x50, 0x4b, 5, 5, 3, 0, 1, 2, 3 };
+        byte[] zip = record.Concat(Zip()).ToArray();
+        WriteUInt32(zip, zip.Length - 10, (uint)record.Length);
+        Assert.True(OfficeArchiveSafety.ScanZipCentralDirectory(zip, 1).IsValid);
+        using var fixture = new ArchiveFixtures();
+        var result = ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination);
+        Assert.Equal(ArchiveFormat.Zip, result.Format);
+        Assert.Empty(result.Files);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StoredSizesMustAgreeBeforeSelectionAndInTheBytePayloadReader(bool include) {
+        byte[] zip = PatchHeaders(StoredMemberZip(), uncompressedDelta: 1);
+        using var fixture = new ArchiveFixtures();
+        int selectionCalls = 0;
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination,
+            new ArchiveExtractionOptions { IncludeFile = _ => { selectionCalls++; return include; } }));
+        Assert.Equal(0, selectionCalls);
+        Assert.False(Directory.Exists(fixture.Destination));
+        using var input = new MemoryStream(zip);
+        using var archive = new ZipArchive(input, ZipArchiveMode.Read);
+        var entry = Assert.Single(archive.Entries);
+        var metadata = OfficeIMO.Provenance.OfficeProvenanceZip.GetInputEntryMetadata(zip, archive)[entry];
+        Assert.Throws<InvalidDataException>(() => OfficeArchiveSafety.OpenEntryPayload(zip, entry, metadata));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void SelfConsistentEndRecordsNestedInACommentRemainAmbiguous(bool zip64, bool differentDirectory) {
+        byte[] zip = Zip(("Example.admx", "A", CompressionLevel.Optimal));
+        if (zip64) zip = WithZip64Locator(zip, 0);
+        byte[] inner = differentDirectory ? Zip() : zip.Skip(zip.Length - 22).ToArray();
+        WriteUInt16(zip, zip.Length - 2, (ushort)inner.Length);
+        zip = zip.Concat(inner).ToArray();
+        Assert.False(OfficeArchiveSafety.ScanZipCentralDirectory(zip, 10).IsValid);
+        byte[] prefixed = new byte[5].Concat(zip).ToArray();
+        using var stream = new MemoryStream(prefixed);
+        stream.Position = 5;
+        Assert.False(OfficeArchiveSafety.ScanZipCentralDirectory(stream, zip.Length, 10).IsValid);
+        Assert.Equal(5, stream.Position);
+        using var fixture = new ArchiveFixtures();
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
+        Assert.False(Directory.Exists(fixture.Destination));
+    }
+
+    [Fact]
+    public void ALocatorSignatureInsideAClassicDirectoryCommentRemainsOrdinaryMetadata() {
+        const int size = 66;
+        var zip = new byte[size + 22];
+        WriteUInt32(zip, 0, 0x02014b50);
+        WriteUInt16(zip, 32, 20);
+        WriteUInt32(zip, 46, 0x07064b50);
+        WriteUInt32(zip, size, 0x06054b50);
+        WriteUInt16(zip, size + 8, 1); WriteUInt16(zip, size + 10, 1);
+        WriteUInt32(zip, size + 12, size);
+        var bytes = OfficeArchiveSafety.ScanZipCentralDirectory(zip, 1);
+        Assert.True(bytes.IsValid, bytes.Error);
+        using var stream = new MemoryStream(zip);
+        var streamed = OfficeArchiveSafety.ScanZipCentralDirectory(stream, zip.Length, 1);
+        Assert.True(streamed.IsValid, streamed.Error);
+        Assert.Equal(1, streamed.EntryCount);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

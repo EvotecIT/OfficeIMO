@@ -85,9 +85,9 @@ public static partial class ArchiveExtractor {
         if (length >= 4 && bytes[0] == 'M' && bytes[1] == 'S' && bytes[2] == 'C' && bytes[3] == 'F') return ArchiveFormat.Cab;
         byte[] compound = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
         if (length == 8 && bytes.SequenceEqual(compound)) return ArchiveFormat.Msi;
-        // A local file header, or the classic/ZIP64 end record of an empty archive.
+        // A local file header, or the directory signature/classic/ZIP64 end record of an empty archive.
         if (length >= 4 && bytes[0] == 'P' && bytes[1] == 'K' && (bytes[2] == 3 && bytes[3] == 4
-            || bytes[2] == 5 && bytes[3] == 6 || bytes[2] == 6 && bytes[3] == 6))
+            || bytes[2] == 5 && (bytes[3] == 5 || bytes[3] == 6) || bytes[2] == 6 && bytes[3] == 6))
             return ArchiveFormat.Zip;
         throw new NotSupportedException("The package is not a supported ZIP, Cabinet or Windows Installer container.");
     }

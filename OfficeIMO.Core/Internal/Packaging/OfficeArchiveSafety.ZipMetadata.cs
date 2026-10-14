@@ -84,6 +84,8 @@ internal static partial class OfficeArchiveSafety {
 
     private static void ValidateLocalIntegrity(Stream source, byte[] header, long offset, long payload, long bound,
         uint checksum, long compressedSize, long expandedSize, bool centralZip64) {
+        if (ReadZipUInt16(header, 8) == 0 && compressedSize != expandedSize)
+            throw new InvalidDataException("A stored ZIP member has inconsistent compressed and expanded sizes.");
         var extra = new byte[ReadZipUInt16(header, 28)];
         ReadExactlyAt(source, offset + 30 + ReadZipUInt16(header, 26), extra, extra.Length);
         if (!TryFindZip64Extra(extra, 0, extra.Length, out int zip64Offset, out _))
