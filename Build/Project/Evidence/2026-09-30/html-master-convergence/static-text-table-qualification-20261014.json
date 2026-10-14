@@ -1,18 +1,21 @@
 {
   "schemaVersion": 1,
+  "latestQualifiedCompiledCodeCommit": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+  "historicalFoundationRecordBoundary": "Root source/framework/render/package fields retain the original foundation checkpoint. postMasterRequalification and ciReviewFollowUp record later source-bound qualification; neither retroactively upgrades prior package/platform evidence.",
   "capturedUtc": "2026-10-13T23:57:04.451882+00:00",
-  "state": "bounded-static-rendering-pr-candidate-qualified; broader acceptance remains open",
+  "state": "bounded-static-rendering-pr-candidate-qualified; latest local closure in ciReviewFollowUp; current-head hosted gates pending",
   "compiledCodeCommit": "3b366d381df10cc8c7c948096b63eb10ec6a8352",
   "integrationSourceCommit": "4b31796a7f5935b853eb61dfaa448da76fcfb9aa",
   "receivingMasterParent": "d1ed891bde1f0489d09f2190a6912d9688a90de1",
   "qualifiedFeatureCheckpoint": "184d4d910ec0d49ff7acc93655eb22ee8333cadc",
   "scope": {
     "product": "Static HTML inline wrapping, intrinsic/table sizing and geometry, shared font/space/decoration metrics, clipped PDF navigation and low-level script readback, CLI untrusted-limit propagation",
-    "productionDependencyDeclarationsChanged": false,
+    "productionDependencyDeclarationsChanged": true,
     "runtimeWorkerAndBrowserFontApiExcluded": true,
     "generalPdfFlowChangesExcludedExceptRequiredFontRegistration": true,
     "currentSupportContract": "Docs/officeimo.html-support-matrix.md",
-    "remainingBacklog": "Docs/ROADMAP.md"
+    "remainingBacklog": "Docs/ROADMAP.md",
+    "productionDependencyChangeBoundary": "Existing crypto package servicing only; no new production provider or role expansion."
   },
   "source": {
     "actualCleanCompiledCandidate": {
@@ -971,5 +974,510 @@
       "failure": "Pinned reproduction input-binding changed after path retargeting; guard stopped before rendering",
       "disposition": "Preserved failed source/output/log/consumer proof; fresh intrinsic3-input-preserved-source-only retains original input hash and passed every existing predicate"
     }
+  },
+  "ciReviewFollowUp": {
+    "state": "Final product candidate locally qualified; consolidated hosted CI/review still required",
+    "capturedUtc": "2026-10-14T10:16:12.900456+00:00",
+    "compiledCodeCommit": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+    "trackedPatchBytes": 0,
+    "receivingPr": "https://github.com/EvotecIT/OfficeIMO/pull/3092",
+    "fixes": [
+      "Preserve bidi source-index groups and width-bearing tabs; rebuild nowrap edges once for a moved range.",
+      "Keep float offsets separate from table auto-margin shares; fit using expanded fixed tracks and measured table height.",
+      "Combine per-run selected-face ascent/descent, half-leading and resolved vertical offset for text-only line advance, preserving zero-font, CSS line-height and atomic-route boundaries.",
+      "Honor explicit PDF regular/italic faces and the configured PowerPoint default font; assert complete painted PDF runs.",
+      "Service existing crypto packages and regenerate Studio lock graphs without suppressing audit."
+    ],
+    "currentFrameworkChecks": [
+      {
+        "label": "ci-closure-qualified-html-net10.0",
+        "sourceHead": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-qualified-html-net10.0/command.json",
+          "bytes": 2315,
+          "sha256": "1535799068d25f95a03e7ba44ff9163ae34fdaac44e78da14842cc5f9f47562d"
+        },
+        "counts": {
+          "total": 6178,
+          "passed": 6178,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-qualified-html-net10.0/results/tests.trx",
+          "bytes": 9498082,
+          "sha256": "90804e61f92efd106127db549cb3405893545cdeae0a0c2b036fe901b019b64b"
+        }
+      },
+      {
+        "label": "ci-closure-qualified-html-net8.0",
+        "sourceHead": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-qualified-html-net8.0/command.json",
+          "bytes": 2311,
+          "sha256": "707892a4ddeb6aa85a6c8f67ca5731e5df99f8e1c3a5953ba8ad747e7b233e24"
+        },
+        "counts": {
+          "total": 6178,
+          "passed": 6178,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-qualified-html-net8.0/results/tests.trx",
+          "bytes": 9485725,
+          "sha256": "b30362c44bbd3ec8a8c126435e966932f54424446a77aea1f00dc20de5863761"
+        }
+      },
+      {
+        "label": "ci-closure-qualified-pdf-net10.0",
+        "sourceHead": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-qualified-pdf-net10.0/command.json",
+          "bytes": 4119,
+          "sha256": "620e99ee8f0569ebd5aebc1e2d2b2712b8d65753095a022f6121c7f65d41eb48"
+        },
+        "counts": {
+          "total": 373,
+          "passed": 373,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-qualified-pdf-net10.0/results/tests.trx",
+          "bytes": 567599,
+          "sha256": "b2e61b90d59a419e4f08b80314fb246428d16863fbd08896442bed40258ee199"
+        }
+      },
+      {
+        "label": "ci-closure-qualified-pdf-net8.0",
+        "sourceHead": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-qualified-pdf-net8.0/command.json",
+          "bytes": 4115,
+          "sha256": "4a8e837fc04750909b005d18c16598607ff27b64a417766ee0f21009cccd8c05"
+        },
+        "counts": {
+          "total": 373,
+          "passed": 373,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-qualified-pdf-net8.0/results/tests.trx",
+          "bytes": 566852,
+          "sha256": "915579a184c0059063618a51e38d4cbe4d934d86d77325c99f407422ee6b592b"
+        }
+      }
+    ],
+    "currentConversionAndNativeAotChecks": [
+      {
+        "label": "ci-qualified-conversion-build",
+        "sourceHead": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-qualified-conversion-build/command.json",
+          "bytes": 2107,
+          "sha256": "0ddee1ac738e705cdf10987392a54dd9f5db859960703441064fee483bcb9248"
+        }
+      },
+      {
+        "label": "ci-qualified-conversion-reports",
+        "sourceHead": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-qualified-conversion-reports/command.json",
+          "bytes": 2253,
+          "sha256": "906717f9b676b272f3b7354252e9cef14920333edf6be2fe560c8e16c63f222a"
+        }
+      },
+      {
+        "label": "ci-qualified-aot-analyzed-publish",
+        "sourceHead": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-qualified-aot-analyzed-publish/command.json",
+          "bytes": 2271,
+          "sha256": "44d6383e7393836ca1b31cd304ee9eb64765ea538f2d8ad652163a3ab01b3bac"
+        }
+      },
+      {
+        "label": "ci-qualified-aot-native-run",
+        "sourceHead": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-qualified-aot-native-run/command.json",
+          "bytes": 1999,
+          "sha256": "18d0787055a6ad0b38bafc99dd75466bcae7ebf9580a9b39fed1ca553c238afb"
+        }
+      }
+    ],
+    "conversionReport": {
+      "cases": 2,
+      "pages": 3,
+      "artifactComparison": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-qualified-conversion-byte-comparison.json",
+        "bytes": 8632,
+        "sha256": "1eea01da153caed4abd4fa3748ce3e004f177eb6e6df31c2358ffb25c37df70c"
+      }
+    },
+    "retainedUnaffectedConsumerChecks": [
+      {
+        "label": "ci-closure-final-word-net10.0",
+        "sourceHead": "8e8d3029758a093e1fc219b012a64aeddbc07877",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-word-net10.0/command.json",
+          "bytes": 3448,
+          "sha256": "1f0cc50b381c24fe19c943ce363c1cb2ccba47d0ec29f5920e9642dbe42fbe32"
+        },
+        "counts": {
+          "total": 46,
+          "passed": 46,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-word-net10.0/results/tests.trx",
+          "bytes": 70281,
+          "sha256": "d246bf06b062adb8a9e7c348df491bbe2eaf366d230c905588072c9cf1fee34e"
+        }
+      },
+      {
+        "label": "ci-closure-final-word-net8.0",
+        "sourceHead": "8e8d3029758a093e1fc219b012a64aeddbc07877",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-word-net8.0/command.json",
+          "bytes": 3444,
+          "sha256": "5bfc3f818b2e768d2010f3c276ef99d625b3d5ee51602e9c514740ef736f3bcb"
+        },
+        "counts": {
+          "total": 46,
+          "passed": 46,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-word-net8.0/results/tests.trx",
+          "bytes": 70188,
+          "sha256": "91d18de00e86d3480cd8d878b546d1d9ecfbe541144be5ef3907d258084373cd"
+        }
+      },
+      {
+        "label": "ci-closure-final-tool-net10.0",
+        "sourceHead": "8e8d3029758a093e1fc219b012a64aeddbc07877",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-tool-net10.0/command.json",
+          "bytes": 2343,
+          "sha256": "d62b5c93e94037cafc377c82f47f085ed83a420b243d853f74afbe801755ef44"
+        },
+        "counts": {
+          "total": 26,
+          "passed": 26,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-tool-net10.0/results/tests.trx",
+          "bytes": 42136,
+          "sha256": "16b2d7f546a0f3648f4a03cdb9f78cc442ab25e3bc668eed360bc4aa945072b6"
+        }
+      },
+      {
+        "label": "ci-closure-final-tool-net8.0",
+        "sourceHead": "8e8d3029758a093e1fc219b012a64aeddbc07877",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-tool-net8.0/command.json",
+          "bytes": 2339,
+          "sha256": "97fb6b62bcaec24924b762d4082345f62d1e6222f2d36ae2b244c68d7729a5bb"
+        },
+        "counts": {
+          "total": 26,
+          "passed": 26,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-tool-net8.0/results/tests.trx",
+          "bytes": 42083,
+          "sha256": "84cdc6582c94a2430488fb577d9bf963340bc2047ef1be72a2872d42f06bc3d4"
+        }
+      },
+      {
+        "label": "ci-closure-final-powerpoint-net10.0",
+        "sourceHead": "8e8d3029758a093e1fc219b012a64aeddbc07877",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-powerpoint-net10.0/command.json",
+          "bytes": 2423,
+          "sha256": "3cf3cc41083e1813662d0fe9442e0ed8a705321e425e887c53d363d2b6538300"
+        },
+        "counts": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-powerpoint-net10.0/results/tests.trx",
+          "bytes": 3101,
+          "sha256": "439c8d057c376d64aa60fc3c845c45955cba8dd83343c0eaa84c4506ebf050c7"
+        }
+      },
+      {
+        "label": "ci-closure-final-powerpoint-net8.0",
+        "sourceHead": "8e8d3029758a093e1fc219b012a64aeddbc07877",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-powerpoint-net8.0/command.json",
+          "bytes": 2419,
+          "sha256": "cf1b15d4ed785edc6a96243f26bb9ff538cf2c7f4e377ad3dc3311d5ac5fd76e"
+        },
+        "counts": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-final-powerpoint-net8.0/results/tests.trx",
+          "bytes": 3098,
+          "sha256": "6f24f0203d6dd49ac09a4e47ba67804fa540166e614ef87f51aca7c4518fcf40"
+        }
+      }
+    ],
+    "retainedConsumerBoundary": "Word/Tool/PowerPoint checks are bound to their recorded 8e source and tracked test patch. Final table-only production changes are covered by current HTML checks and rendered public/table fixtures; these retained checks are not described as executions at the final head.",
+    "dependencyAssessment": {
+      "newProductionProviders": false,
+      "roleExpansion": false,
+      "servicing": [
+        "System.Security.Cryptography.Pkcs 10.0.13",
+        "System.Security.Cryptography.Xml 10.0.13",
+        "Optional Word benchmark System.Security.Cryptography.Xml 8.0.5"
+      ],
+      "securityProof": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/powerforge-crypto-owner-triage-20261014.md",
+      "acceptedSharedBuildOwner": "https://github.com/EvotecIT/PSPublishModule/pull/1104",
+      "acceptedOwnerCommit": "3c6f7eca78796f3e2c885a40416101d706bd4ebd",
+      "provedCandidateCommit": "5c907903bb8f4e9c907212bfe50c71a3c7c36334",
+      "identicalOwnerTree": "3a52c25e3dd0f323873801685e87314bb540acc6",
+      "sharedPackerProof": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/powerforge-crypto-candidate-proof/proof.md",
+        "bytes": 5325,
+        "sha256": "8f0161f72bee8c9580281cb6b6bb4fc929b50e57401e6f698d66faf7ba25e951"
+      },
+      "studioLockedRestore": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/crypto-studio-locked-check",
+      "hostedWindowsLockedRestore": "Required external gate; Windows profiling remains deferred."
+    },
+    "renderChecks": {
+      "originalStrictFrozenComparison": "Preserved failure: 3 of 76 H4 exports and 1 of 30 split witnesses change after the corrected footnote line extents. This is not frozen-byte equivalence or platform/performance acceptance.",
+      "originalClassification": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-owner-requalification-result.json",
+        "bytes": 10415,
+        "sha256": "fb3b2b25e8aec983ea40d6209c67d77b6ecb54ce4bd9467e477a64b9ce2fb854"
+      },
+      "footnoteContentAndGeometry": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/static-cost-post-owner-source-only/execution-effect-8e8d3029758a/diagnostic-correctness/footnote-fulltext-geometry-comparison.json",
+        "bytes": 12259,
+        "sha256": "6ba46109cff622a7a01b28211fd0d526ea7cd8bb08608aefc226763ecfb25f71"
+      },
+      "finalPublicBeforeH4": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/table-minimum-public-before-h4-preservation.json",
+        "bytes": 7581,
+        "sha256": "ab27e1f526e5fa87c4e95b364b90df34d5c37621e198f1cc8d05ad8dee530e6d"
+      },
+      "finalH4AndFixedTable": {
+        "result": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/table-minimum-requalification-result.json",
+          "bytes": 11026,
+          "sha256": "cfc5aebade63e648eb289a5b19acb7b86f76df293064292e3708335fae94bc65"
+        },
+        "h4Comparison": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/static-cost-table-minimum-source-only/execution-effect-afcf6ef8ac4c/current-vs-8e-preservation.json",
+          "bytes": 2007,
+          "sha256": "e4da9e310883afbf2193ac2db88393a34fe9f606538be06f8b5dfbfb930a7298"
+        },
+        "publicComparison": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/static-cost-table-minimum-source-only/execution-effect-afcf6ef8ac4c/current-vs-8e-public-preservation.json",
+          "bytes": 44874,
+          "sha256": "325fbd7f663457d24892c2c7b01a8a81e860e5a0f4c710cd3adda99137eddb0e"
+        },
+        "h4Exports": 76,
+        "splitWitnesses": 30,
+        "completeH4Pdfs": 16,
+        "focusedCapturePairs": 35,
+        "nativeNistPages": 29,
+        "publicPdfs": 3,
+        "exactPriorCorrectedCandidateBytes": true,
+        "originalFrozen01bEquivalence": false,
+        "performanceAcceptance": false
+      },
+      "rootVisualInspection": "Root inspected the corrected conversion geometry, table float regressions, H4 complete brief, and all ten NIST print pages. Final byte equality to those inspected outputs carries the relevant visual proof; source inspection alone is not used as visual acceptance."
+    },
+    "nistSourceCellAssociation": {
+      "summary": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/nist-structure-association-8e8d3029758a/qualification-summary.json",
+        "bytes": 18258,
+        "sha256": "a67627c89350db8e05e84789fb274878717ddfd1bd5e5ab2099d3fa9c88eadae"
+      },
+      "readerAndProducerCommit": "8e8d3029758a093e1fc219b012a64aeddbc07877",
+      "finalCandidatePdfHashChain": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/table-minimum-public-before-h4-preservation.json",
+        "bytes": 7581,
+        "sha256": "ab27e1f526e5fa87c4e95b364b90df34d5c37621e198f1cc8d05ad8dee530e6d"
+      },
+      "profiles": [
+        {
+          "profile": "print-paged",
+          "pdf": {
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-post-owner-source-only/nist3profiles-native28/execution-8e8d3029758a/nist/print-paged.pdf",
+            "bytes": 1555468,
+            "sha256": "ac05361dd27d2d7fa26e463c873de59c6ff0f3baa3e2f4a111247acee11869b3"
+          },
+          "pages": 10,
+          "sourceTables": 5,
+          "sourceRows": 86,
+          "sourceCells": 364,
+          "ownedStates": {
+            "source-empty-exact": 13,
+            "source-exact": 351
+          },
+          "independentStates": {
+            "source-empty-exact": 13,
+            "source-exact": 351
+          },
+          "ownedTupleCount": 715,
+          "ownershipErrors": [],
+          "missingLogicalSpanReferences": 0,
+          "ambiguousSpans": 0
+        },
+        {
+          "profile": "screen-media-paged",
+          "pdf": {
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-post-owner-source-only/nist3profiles-native28/execution-8e8d3029758a/nist/screen-media-paged.pdf",
+            "bytes": 1031562,
+            "sha256": "154c6283b49a41e7a2d3418707ae64534f049174032e607787c89376a3f68b53"
+          },
+          "pages": 10,
+          "sourceTables": 5,
+          "sourceRows": 86,
+          "sourceCells": 364,
+          "ownedStates": {
+            "source-empty-exact": 13,
+            "source-exact": 351
+          },
+          "independentStates": {
+            "source-empty-exact": 13,
+            "source-exact": 351
+          },
+          "ownedTupleCount": 829,
+          "ownershipErrors": [],
+          "missingLogicalSpanReferences": 0,
+          "ambiguousSpans": 0
+        },
+        {
+          "profile": "screen-snapshot-paged",
+          "pdf": {
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-post-owner-source-only/nist3profiles-native28/execution-8e8d3029758a/nist/screen-snapshot-paged.pdf",
+            "bytes": 951601,
+            "sha256": "acd460ebd21b3efbbd14e7058c756db5d3937881e4ed3de6f294ddeb7477a259"
+          },
+          "pages": 9,
+          "sourceTables": 5,
+          "sourceRows": 86,
+          "sourceCells": 364,
+          "ownedStates": {
+            "source-empty-exact": 13,
+            "source-exact": 351
+          },
+          "independentStates": {
+            "source-empty-exact": 13,
+            "source-exact": 351
+          },
+          "ownedTupleCount": 806,
+          "ownershipErrors": [],
+          "missingLogicalSpanReferences": 0,
+          "ambiguousSpans": 0
+        }
+      ],
+      "limits": [
+        "Independent PDF reader evidence against independently captured NIST HTML source; these PDFs are still OfficeIMO-produced, not an independent PDF producer.",
+        "The source association gate does not accept glyph ink, paint overlap, original-font fidelity, all10printpage appearance, arbitrary reader behavior, per-page selection or assistive technology. Root owns the visual review.",
+        "Currentprint10pages is recorded rather than treated as failure or success by count; every source table cell is retained and source-exact.",
+        "Screen-media and snapshot PDF hashes match prior qualification; their current associations were nevertheless recomputed with the sealed8ereader."
+      ],
+      "boundary": "Independent NIST HTML source and independent pypdf readback of owned PDF output; not an independent PDF producer, original-font appearance, manual accessibility or clipped-copy acceptance."
+    },
+    "independentReview": {
+      "fullClosurePass": "953034df0feb91d51fbc5da457da9f7aca004295 through 8e8d3029758a093e1fc219b012a64aeddbc07877 plus three flow-coordinate test assertions; two table P2 findings.",
+      "targetedConfirmation": {
+        "candidate": "afcf6ef8ac4ca1bdda509b425737fe2ac65e6388",
+        "findings": 2,
+        "remainingActionableFindings": 0,
+        "disposition": "Accept as shaped"
+      },
+      "tableRedGreenProof": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/table-float-review-fix/round2-summary.json",
+        "bytes": 3878,
+        "sha256": "4d3a2abc13d097e46750541cfea6d9d7699b96926e765555d65a56fdc4995213"
+      },
+      "manualHostedReviewRequested": false
+    },
+    "packageBoundary": "The original nineteen static-package consumer checkpoint and subsequent Core/Security four-framework packages remain bound to their recorded sources. This follow-up does not claim that all nineteen packages were repacked at the final source.",
+    "storage": {
+      "earlierRootLogicalBytesRemoved": 6656758526,
+      "subsequentRootLogicalBytesRemoved": 9305803242,
+      "cleanupReceipts": [
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-cleanup-result.json",
+          "bytes": 887,
+          "sha256": "aa463247c425c2244cca2a3a42667e82668ea6e42934953880ff196c20686716"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-final-remediation-cleanup-result.json",
+          "bytes": 5309,
+          "sha256": "f923608ab4b60130d757aaa2c9220751c1a085add389230fa2622d7c1f99537e"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-qualified-cleanup-result.json",
+          "bytes": 10543,
+          "sha256": "11eaa6e73546ab33350311609cfa7b384c0388457faffeb09b5b09ea889f22f8"
+        }
+      ],
+      "retainedRoot": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving",
+      "cachesHistorySourceDeleted": false,
+      "finalStorageReview": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/storage-manifest.json",
+        "bytes": 24334,
+        "sha256": "194d665ddff85e59a7ccc1b9679686e26f269a7619044ed996ac7180655f09a9"
+      },
+      "rootLogicalBytesRemovedTotal": 15962561768,
+      "retainedCurrentRuntimeAndEvidence": [
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/static-cost-table-minimum-source-only",
+          "reason": "Final normal producer and guarded H4 evidence"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-table-minimum-source-only",
+          "reason": "Final public/native rendered artifacts and protected identities"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/ci-closure-aot-publish",
+          "reason": "Final native AOT executable and symbols"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/conversion-ci-graph/bin",
+          "reason": "Current source-bound conversion verifier for reproducing reported CI evidence"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/protected-proof",
+          "reason": "Read-back final test/compiler/consumer archives"
+        }
+      ]
+    },
+    "remainingGates": [
+      "Current-head hosted CI and delayed review/thread settlement",
+      "Long-lived integration branch convergence",
+      "Broader H10 appearance and original fonts",
+      "Manual assistive-technology review",
+      "Advertised broader AOT/trimming/WASM and platform performance qualification"
+    ],
+    "approvedSeparateFollowupsAfterHtml": [
+      "Shared storage-review array-ledger compatibility",
+      "Optional NPOI benchmark transitive SourceLink vulnerability"
+    ],
+    "windowsProfiling": "Explicitly deferred by user"
   }
 }
