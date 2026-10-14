@@ -66,8 +66,8 @@ extension DocumentSession {
                               linkUri: uri, linkPage: page)
         }
         guard !requests.isEmpty else { return }
-        edit(String(localized: "Add Link"), steps: requests.count, { engine in
-            for request in requests { try await engine.addAnnotation(request) }
+        edit(String(localized: "Add Link"), { engine in
+            try await engine.addAnnotations(requests)
         }, then: { session in
             session.textSelection = nil
         })

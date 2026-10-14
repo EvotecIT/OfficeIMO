@@ -28,7 +28,12 @@ public static partial class PdfRewritePreservation {
         PdfRewritePreservationOptions? options,
         PdfLoadOptions? originalReadOptions,
         PdfLoadOptions? rewrittenReadOptions,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        AssessCore(originalPdf, rewrittenPdf, options, originalReadOptions, rewrittenReadOptions, null, cancellationToken);
+
+    private static PdfRewritePreservationReport AssessCore(byte[] originalPdf, byte[] rewrittenPdf,
+        PdfRewritePreservationOptions? options, PdfLoadOptions? originalReadOptions, PdfLoadOptions? rewrittenReadOptions,
+        PdfMutationPlan? authorizedMutation, CancellationToken cancellationToken) {
         Guard.NotNull(originalPdf, nameof(originalPdf));
         Guard.NotNull(rewrittenPdf, nameof(rewrittenPdf));
         cancellationToken.ThrowIfCancellationRequested();
@@ -36,8 +41,9 @@ public static partial class PdfRewritePreservation {
         options ??= new PdfRewritePreservationOptions();
         PdfLoadOptions? effectiveOriginalReadOptions = options.OriginalReadOptions ?? originalReadOptions;
         PdfLoadOptions? effectiveRewrittenReadOptions = options.RewrittenReadOptions ?? rewrittenReadOptions;
-        PdfDocumentInfo original = InspectReportInput(originalPdf, effectiveOriginalReadOptions, "original", cancellationToken);
-        PdfDocumentInfo rewritten = InspectReportInput(rewrittenPdf, effectiveRewrittenReadOptions, "rewritten", cancellationToken);
+        if (authorizedMutation is { CanExecute: false }) throw new InvalidOperationException("Preservation proof requires an authorized mutation.");
+        PdfDocumentInfo original = InspectReportInput(originalPdf, effectiveOriginalReadOptions, "original", authorizedMutation is not null, cancellationToken);
+        PdfDocumentInfo rewritten = InspectReportInput(rewrittenPdf, effectiveRewrittenReadOptions, "rewritten", authorizedMutation is not null, cancellationToken);
         var issues = new List<PdfRewritePreservationIssue>();
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -70,17 +76,19 @@ public static partial class PdfRewritePreservation {
         CompareTextMarkers(issues, rewrittenPdf, options.RequiredTextMarkers, effectiveRewrittenReadOptions, cancellationToken);
 
         cancellationToken.ThrowIfCancellationRequested();
-        return new PdfRewritePreservationReport(original, rewritten, issues.AsReadOnly());
+        return new PdfRewritePreservationReport(original, rewritten, issues.AsReadOnly(),
+            effectiveOriginalReadOptions?.PermissionPolicy ?? PdfPermissionPolicy.Enforce,
+            effectiveRewrittenReadOptions?.PermissionPolicy ?? PdfPermissionPolicy.Enforce);
     }
 
     private static PdfDocumentInfo InspectReportInput(
         byte[] pdf,
         PdfLoadOptions? readOptions,
         string inputName,
-        CancellationToken cancellationToken) {
+        bool authorizedMutation, CancellationToken cancellationToken) {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        document.DemandContentExtraction(inputName + " rewrite-preservation report");
+        if (!authorizedMutation) document.DemandContentExtraction(inputName + " rewrite-preservation report");
         return PdfInspector.Inspect(pdf, document, cancellationToken);
     }
 
@@ -89,6 +97,15 @@ public static partial class PdfRewritePreservation {
     /// </summary>
     public static PdfRewritePreservationReport AssertPreserved(byte[] originalPdf, byte[] rewrittenPdf) {
         return AssertPreserved(originalPdf, rewrittenPdf, null);
+    }
+
+    /// <summary>Runs internal proof after operation authorization; report inspection snapshots retain their own extraction guards.</summary>
+    internal static PdfRewritePreservationReport AssertPreservedForMutation(byte[] originalPdf, byte[] rewrittenPdf,
+        PdfRewritePreservationOptions options, PdfMutationPlan plan, CancellationToken cancellationToken = default) {
+        PdfRewritePreservationReport report = AssessCore(originalPdf, rewrittenPdf, options, options.OriginalReadOptions,
+            options.RewrittenReadOptions, plan, cancellationToken);
+        report.ThrowIfFailed();
+        return report;
     }
 
     /// <summary>

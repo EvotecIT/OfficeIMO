@@ -234,7 +234,10 @@ final class DocumentSession {
 
     func updateOriginalURL(_ url: URL?) async {
         guard let engine else { return }
-        do { try await engine.setRecoveryIdentity(StudioDocument.recoveryIdentity(for: url)) }
+        do {
+            try await engine.setRecoveryIdentity(StudioDocument.recoveryIdentity(for: url))
+            document.observeOriginalURL(url, engine: engine)
+        }
         catch { errorMessage = error.localizedDescription }
     }
 
@@ -407,6 +410,16 @@ final class DocumentSession {
         markupCommitRequest = UUID()
     }
 
+    /// A system snapshot must finish the drawing before returning; no task on the main actor is needed to publish it.
+    func commitPendingDrawingSynchronously() throws {
+        guard let engine else { throw CocoaError(.fileWriteUnknown) }
+        if try document.commitPendingDrawingAndWait() {
+            registerUndo(String(localized: "Add Drawing"), steps: 1)
+            do { facts = try engine.factsAndWait() }
+            catch { errorMessage = error.localizedDescription }
+        }
+    }
+
     /// Adds a note at a point of a page, in the displayed page's points.
     func addNote(_ text: String, page: Int, at point: CGPoint) {
         let request = AnnotationRequest(tool: .note, page: page,
@@ -415,18 +428,18 @@ final class DocumentSession {
         addMarkup([request], name: String(localized: "Add Note"))
     }
 
-    var canUndoEdit: Bool { !isWorking && ((hasPendingMarkup && markupUndoManager?.canUndo == true) || facts?.canUndo == true) }
-    var canRedoEdit: Bool { !isWorking && ((hasPendingMarkup && markupUndoManager?.canRedo == true) || facts?.canRedo == true) }
+    var canUndoEdit: Bool { !isWorking && (markupUndoManager?.canUndo == true || facts?.canUndo == true) }
+    var canRedoEdit: Bool { !isWorking && (markupUndoManager?.canRedo == true || facts?.canRedo == true) }
 
     /// Undo acts on the pending drawing first, then on the document, as ⌘Z does from the canvas.
     func undoEdit() {
         guard !isWorking else { return }
-        if hasPendingMarkup, let markup = markupUndoManager, markup.canUndo { markup.undo() } else { undoManager?.undo() }
+        if let markup = markupUndoManager, markup.canUndo { markup.undo() } else { undoManager?.undo() }
     }
 
     func redoEdit() {
         guard !isWorking else { return }
-        if hasPendingMarkup, let markup = markupUndoManager, markup.canRedo { markup.redo() } else { undoManager?.redo() }
+        if let markup = markupUndoManager, markup.canRedo { markup.redo() } else { undoManager?.redo() }
     }
 
     func loadAnnotations() async {

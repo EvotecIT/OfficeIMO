@@ -11,21 +11,18 @@ internal sealed class PdfDocumentSession {
     private readonly PdfDocument _document;
     private readonly object _displayLock = new();
     private PdfPageDisplayRenderer? _display;
-    private readonly bool _canEditAnnotations;
 
     private PdfDocumentSession(
         string path,
         string fileName,
         long fileSize,
         PdfDocument document,
-        PdfDocumentViewInfo viewInfo,
-        bool canEditAnnotations = false) {
+        PdfDocumentViewInfo viewInfo) {
         Path = path;
         FileName = fileName;
         FileSize = fileSize;
         _document = document;
         ViewInfo = viewInfo;
-        _canEditAnnotations = canEditAnnotations;
     }
 
     internal string Path { get; }
@@ -102,8 +99,7 @@ internal sealed class PdfDocumentSession {
             workspace.FileName,
             workspace.FileSize,
             document,
-            workspace.ViewInfo,
-            workspace.CanEditAnnotations);
+            workspace.ViewInfo);
     }
 
     internal async Task<PdfPageScene> LoadPageSceneAsync(
@@ -119,8 +115,7 @@ internal sealed class PdfDocumentSession {
             if (!ViewInfo.CanExtractContent) {
                 (double width, double height) = GetDisplaySize(pageNumber);
                 var display = new OfficeIMO.Drawing.OfficeDrawing(width, height);
-                PdfPageInteractionMap? annotationInteractions = _canEditAnnotations
-                    ? _document.Annotations.GetEditingInteractions(pageNumber) : null;
+                PdfPageInteractionMap annotationInteractions = _document.GetEditingInteractions(pageNumber);
                 return new PdfPageScene(pageNumber, display, annotationInteractions, [], RequiresRasterFallback: true);
             }
             OfficeIMO.Drawing.OfficeDrawing drawing = _document.Render.Drawing(pageNumber);

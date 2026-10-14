@@ -17,8 +17,8 @@ internal sealed partial class PdfWorkspace {
                 var numbers = _annotationIdentities.Keys.ToDictionary(number => number, number => number);
                 foreach (var item in captured) {
                     token.ThrowIfCancellationRequested();
-                    var result = PdfEditorCommandExecutor.ApplyAnnotation(bytes,
-                        PdfEditorCommandFactory.Create(bytes, item.Tool, item.Gesture, item.Properties));
+                    var result = PdfEditorCommandExecutor.ApplyAnnotation(LoadDocument(bytes),
+                        PdfEditorCommandFactory.Create(LoadDocument(bytes), item.Tool, item.Gesture, item.Properties));
                     if (result.AnnotationObjectNumberMap is { } remapped) {
                         numbers = numbers.Where(pair => remapped.ContainsKey(pair.Value))
                             .ToDictionary(pair => pair.Key, pair => remapped[pair.Value]);

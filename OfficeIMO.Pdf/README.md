@@ -1792,10 +1792,24 @@ crop origin, rotation, and user-unit scale independently in the same mutation.
 
 `Annotations.GetForEditing()` returns annotation metadata, excluding form widgets,
 when annotation mutation is permitted by encryption and certification policy.
-`GetEditingInteractions(pageNumber)` supplies annotation-only visual hit regions
+`document.Annotations.GetEditingInteractions(pageNumber)` supplies annotation-only visual hit regions
 without extracted text, link targets, images, or form fields. Both support annotation
 editing when copying page content is restricted; `Inspect()` and `Read()` retain
 their content-extraction permission checks.
+
+`document.Forms.GetForInteraction()` reads field values, options, widget geometry,
+and whether XFA data is present under content-copy, form-filling, or form-authoring
+authorization. `document.GetEditingInteractions(pageNumber)` combines permitted
+annotation and form-widget hit regions without extracting page text or images.
+These reads do not grant a write operation; use `PlanMutation` to check it.
+Encrypted form filling still requires owner authorization or an explicit
+`IgnoreRestrictions` policy for its full-rewrite path.
+
+Authorized form-authoring and sanitization operations check preservation without
+granting content extraction. Their `PdfRewritePreservationReport` exposes the
+proof result and issues; `CanReadDetails` indicates whether the complete
+`Original` and `Rewritten` inspection snapshots may be read. Those properties
+enforce each input's content-extraction permission.
 
 `document.Annotations.Group(objectNumbers)` groups at least two editable markup
 annotations on one page using standard `/IRT` and `/RT /Group` relationships.

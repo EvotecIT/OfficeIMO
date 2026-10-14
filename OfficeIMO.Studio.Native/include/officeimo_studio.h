@@ -327,6 +327,13 @@ int32_t officeimo_document_save(officeimo_document document, const char *path, o
 int32_t officeimo_document_save_copy(officeimo_document document, const char *path, officeimo_cancellation cancellation,
                                      char **error);
 
+/* Captures immutable bytes for a host-owned save; release *pdf with officeimo_free. Recovery remains until acknowledged. */
+int32_t officeimo_document_prepare_save(officeimo_document document, officeimo_cancellation cancellation,
+                                        uint8_t **pdf, size_t *length, char **error);
+/* Acknowledge only a prepared SHA-256 actually observed at the host's original file, after its publication completes. */
+int32_t officeimo_document_acknowledge_save(officeimo_document document, const char *fingerprint, const char *identity,
+                                            officeimo_cancellation cancellation, char **error);
+
 /*
  * Writes the open revision with a password to open it, described as JSON:
  * { "path", "userPassword", "ownerPassword", "currentOwnerPassword", "allowPrinting", "allowCopying", "allowChanges" }

@@ -15,10 +15,11 @@ internal sealed partial class PdfWorkspace {
             ThrowIfDisposed();
             string previous = RecoveryIdentity, next = normalized ?? Path;
             if (previous == next) return;
-            if (IsDirty) await _recoveryStore.WriteAsync(next, _baseFingerprint, _bytes, _revision, token).ConfigureAwait(false);
+            if (IsDirty || _preparedExternalSaves.Count > 0)
+                await _recoveryStore.WriteAsync(next, RecoveryBaseFingerprint, _bytes, _revision, token, _preparedExternalSaves.Keys.ToArray()).ConfigureAwait(false);
             await _recoveryStore.DeleteAsync(previous, token).ConfigureAwait(false);
             _recoveryIdentity = normalized;
-            RecoveryPath = IsDirty ? null : _recoveryStore.Find(next, _baseFingerprint);
+            RecoveryPath = IsDirty ? null : _recoveryStore.Find(next, RecoveryBaseFingerprint);
             Changed?.Invoke(this, EventArgs.Empty);
         } finally { _operationGate.Release(); }
     }

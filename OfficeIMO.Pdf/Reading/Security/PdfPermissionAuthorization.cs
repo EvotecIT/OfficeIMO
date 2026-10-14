@@ -11,6 +11,10 @@ internal static class PdfPermissionAuthorization {
     internal static bool CanPrint(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy) =>
         IsAllowed(security, policy, PdfStandardPermissions.Print);
 
+    internal static bool CanReadFormMetadata(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy) =>
+        CanExtractContent(security, policy) || CanMutate(security, policy, PdfMutationOperation.FillFormFields) ||
+        CanMutate(security, policy, PdfMutationOperation.ModifyAcroForm);
+
     internal static bool CanMutate(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy, PdfMutationOperation operation) {
         if (!security.HasEncryption || security.HasOwnerAuthorization) {
             return true;

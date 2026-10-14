@@ -132,14 +132,11 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         try {
             if (pageNumber < 1 || pageNumber > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber), "The page does not exist.");
             PdfDocument snapshot = _workspace.CreateDocumentSnapshot();
-            var boxes = new Dictionary<int, StudioNativeRectangle>();
-            foreach (PdfPageInteractionRegion region in snapshot.Render.Interactions(pageNumber).Regions) {
-                if (region.Kind == PdfInteractionKind.FormWidget && region.ObjectNumber is { } number)
-                    boxes[number] = new StudioNativeRectangle(region.Quad.Left, region.Quad.Top, region.Quad.Width, region.Quad.Height);
-            }
+            var boxes = snapshot.GetEditingInteractions(pageNumber).Regions.Where(region => region.Kind == PdfInteractionKind.FormWidget && region.ObjectNumber.HasValue)
+                .ToDictionary(region => region.ObjectNumber!.Value, region => new StudioNativeRectangle(region.Quad.Left, region.Quad.Top, region.Quad.Width, region.Quad.Height));
             var fields = new List<StudioNativeFormField>();
-            PdfDocumentInfo info = snapshot.Inspect();
-            foreach (PdfFormField field in info.FormFields) {
+            PdfFormInteractionInfo info = snapshot.Forms.GetForInteraction();
+            foreach (PdfFormField field in info.Fields) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(field.Name)) continue;
                 var widgets = field.Widgets
@@ -156,7 +153,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
                     field.AllowsMultipleSelection, field.IsEditableChoice, field.AlternateName, widgets));
             }
             return new StudioNativeFormFields(StudioNativeAbi.Version, _workspace.Revision, pageNumber, _workspace.CanFillForms,
-                info.AcroFormXfa is not null, fields);
+                info.HasXfa, fields);
         } finally { _gate.Release(); }
     }
 
@@ -171,7 +168,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             ? given : throw new ArgumentException("Give at least one field value.", nameof(request));
         return RunAsync(() => {
             if (!_workspace.CanFillForms) throw new NotSupportedException("This document's form can't be filled.");
-            var fields = _workspace.CreateDocumentSnapshot().Inspect().FormFields
+            var fields = _workspace.CreateDocumentSnapshot().Forms.GetForInteraction().Fields
                 .Where(static field => !string.IsNullOrEmpty(field.Name)).GroupBy(static field => field.Name!).ToDictionary(static group => group.Key, static group => group.First());
             var fill = new Dictionary<string, PdfFormFieldValue>(StringComparer.Ordinal);
             foreach ((string name, IReadOnlyList<string> fieldValues) in values) {
@@ -404,7 +401,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         if (!_workspace.CanEditAnnotations) throw new NotSupportedException("This document's annotations can't be changed.");
         // The editor maps a rectangle on the page as displayed into the page's own space, through its box and rotation.
         var gesture = new PdfEditorGesture(page, bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height, []);
-        PdfPageRectangle target = PdfEditorCommandFactory.Create(_workspace.CopyBytes(), PdfEditorTool.Rectangle, gesture,
+        PdfPageRectangle target = PdfEditorCommandFactory.Create(_workspace.CreateDocumentSnapshot(), PdfEditorTool.Rectangle, gesture,
             new PdfEditorProperties(string.Empty, string.Empty, PdfColor.Black, string.Empty, string.Empty, 12D)).Bounds;
         double left = Math.Min(current.X1, current.X2), bottom = Math.Min(current.Y1, current.Y2);
         double width = Math.Abs(current.X2 - current.X1), height = Math.Abs(current.Y2 - current.Y1);
@@ -597,9 +594,9 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         _gate.Wait();
         try {
             _disposed = true;
-            // Closing discards unsaved changes, so their recovery copy goes too. A host that ends without closing keeps
-            // it for the next launch, and so does a failed deletion, which close cannot report.
-            if (_workspace.IsDirty) {
+            // Direct-file hosts close after deciding whether to save or discard. Host-owned publication retains recovery
+            // until the original file is observed; destroying a disposable working copy is not a save acknowledgement.
+            if (_workspace.IsDirty && !_workspace.UsesExternalPublication) {
                 try { _workspace.DiscardRecoveryAsync().GetAwaiter().GetResult(); }
                 catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { }
             }

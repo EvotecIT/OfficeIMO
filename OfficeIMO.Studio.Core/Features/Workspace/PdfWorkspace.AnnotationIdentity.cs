@@ -7,9 +7,12 @@ internal sealed partial class PdfWorkspace {
 
     internal Guid GetAnnotationIdentity(int objectNumber) => _annotationIdentities[objectNumber];
 
-    private static IReadOnlyDictionary<int, Guid> BuildAnnotationIdentities(PdfDocumentViewInfo info,
+    private IReadOnlyDictionary<int, Guid> BuildAnnotationIdentities(byte[] bytes, PdfDocumentViewInfo info,
         IReadOnlyDictionary<int, Guid>? previous = null, AnnotationMapping? mapping = null) {
-        var identities = (info.LogicalContent?.Annotations ?? []).Where(annotation => annotation.ObjectNumber.HasValue)
+        var annotations = info.LogicalContent?.Annotations ??
+            (PdfDocument.Load(bytes, _readOptions).PlanMutation(PdfMutationOperation.ModifyAnnotations).CanExecute
+                ? PdfDocument.Load(bytes, _readOptions).Annotations.GetForEditing() : []);
+        var identities = annotations.Where(annotation => annotation.ObjectNumber.HasValue)
             .Select(annotation => annotation.ObjectNumber!.Value).Distinct().ToDictionary(number => number, _ => Guid.NewGuid());
         if (previous is null || mapping is null) return identities;
         foreach (var original in previous) {

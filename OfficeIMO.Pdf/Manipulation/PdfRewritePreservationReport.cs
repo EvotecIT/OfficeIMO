@@ -4,17 +4,33 @@ namespace OfficeIMO.Pdf;
 /// Result of comparing original and rewritten PDFs for user-visible preservation.
 /// </summary>
 public sealed class PdfRewritePreservationReport {
-    internal PdfRewritePreservationReport(PdfDocumentInfo original, PdfDocumentInfo rewritten, IReadOnlyList<PdfRewritePreservationIssue> issues) {
-        Original = original;
-        Rewritten = rewritten;
+    private readonly PdfDocumentInfo _original;
+    private readonly PdfDocumentInfo _rewritten;
+    private readonly PdfPermissionPolicy _originalPolicy;
+    private readonly PdfPermissionPolicy _rewrittenPolicy;
+
+    internal PdfRewritePreservationReport(PdfDocumentInfo original, PdfDocumentInfo rewritten, IReadOnlyList<PdfRewritePreservationIssue> issues,
+        PdfPermissionPolicy originalPolicy, PdfPermissionPolicy rewrittenPolicy) {
+        _original = original; _rewritten = rewritten;
+        _originalPolicy = originalPolicy; _rewrittenPolicy = rewrittenPolicy;
         Issues = issues;
     }
 
-    /// <summary>Inspection snapshot for the original PDF.</summary>
-    public PdfDocumentInfo Original { get; }
+    /// <summary>Whether both complete inspection snapshots may be read with the supplied authorizations.</summary>
+    public bool CanReadDetails => PdfPermissionAuthorization.CanExtractContent(_original.Security, _originalPolicy) &&
+        PdfPermissionAuthorization.CanExtractContent(_rewritten.Security, _rewrittenPolicy);
 
-    /// <summary>Inspection snapshot for the rewritten PDF.</summary>
-    public PdfDocumentInfo Rewritten { get; }
+    /// <summary>Inspection snapshot for the original PDF, subject to its content-extraction permission.</summary>
+    /// <exception cref="PdfPermissionDeniedException">The original authorization does not permit content extraction.</exception>
+    public PdfDocumentInfo Original {
+        get { PdfPermissionAuthorization.DemandContentExtraction(_original.Security, _originalPolicy, "original rewrite-preservation report"); return _original; }
+    }
+
+    /// <summary>Inspection snapshot for the rewritten PDF, subject to its content-extraction permission.</summary>
+    /// <exception cref="PdfPermissionDeniedException">The rewritten authorization does not permit content extraction.</exception>
+    public PdfDocumentInfo Rewritten {
+        get { PdfPermissionAuthorization.DemandContentExtraction(_rewritten.Security, _rewrittenPolicy, "rewritten rewrite-preservation report"); return _rewritten; }
+    }
 
     /// <summary>Preservation mismatches found in the rewritten PDF.</summary>
     public IReadOnlyList<PdfRewritePreservationIssue> Issues { get; }

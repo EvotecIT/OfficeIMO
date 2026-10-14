@@ -7,9 +7,10 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioKeyboardTransformSelectionTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ConsecutiveKeyboardTransformsKeepASelectionFromTheCurrentRevision(bool annotation) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ConsecutiveKeyboardTransformsKeepASelectionFromTheCurrentRevision(bool annotation, bool restricted) {
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
@@ -22,9 +23,12 @@ public sealed class StudioKeyboardTransformSelectionTests {
             }).ToDocument();
             else document = document.Images.Add(new PdfPageRegion(1, 50, 50, 40, 40), Convert.FromBase64String(
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")).Document;
-            document.Save(source);
+            byte[] original = restricted ? document.Security.Encrypt(new PdfStandardEncryptionOptions("open") {
+                OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.ModifyAnnotations
+            }).Pdf : document.ToBytes();
+            File.WriteAllBytes(source, original);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null),
-                pickSavePdf: _ => Task.FromResult<string?>(saved), services: services);
+                pickSavePdf: _ => Task.FromResult<string?>(saved), promptPdfPassword: (_, _, _) => Task.FromResult<string?>("open"), services: services);
             await model.OpenDocumentAsync(source);
             if (annotation) model.ShowAnnotateModeCommand.Execute(null); else model.ShowEditModeCommand.Execute(null);
             var region = document.Render.Interactions(1).Regions.Single(item =>
@@ -43,10 +47,10 @@ public sealed class StudioKeyboardTransformSelectionTests {
                 Assert.Equal(initial.Bounds.Left + step + 1, Assert.IsType<PdfEditorSelection>(model.SelectedObject).Bounds.Left, 5);
             }
             await model.SaveAsCommand.ExecuteAsync(null);
-            var output = PdfDocument.Load(saved).Render.Interactions(1).Regions.Single(item => item.Kind == region.Kind);
+            var output = PdfDocument.Load(saved, new PdfLoadOptions { Password = restricted ? "owner" : null }).Render.Interactions(1).Regions.Single(item => item.Kind == region.Kind);
             Assert.Equal(initial.Bounds.Left + 2, output.Quad.Left, 5);
             Assert.Equal(initial.Bounds.Top, output.Quad.Top, 5);
-            Assert.Equal(document.ToBytes(), File.ReadAllBytes(source));
+            Assert.Equal(original, File.ReadAllBytes(source));
             return true;
         }, CancellationToken.None);
     }

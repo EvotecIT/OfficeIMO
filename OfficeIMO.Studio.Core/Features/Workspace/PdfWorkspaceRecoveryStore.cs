@@ -47,12 +47,12 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
         string baseFingerprint,
         byte[] bytes,
         long revision,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, IReadOnlyList<string>? compatibleBaseFingerprints = null) {
         await _persistenceGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             cancellationToken.ThrowIfCancellationRequested();
             if (!_persistenceEnabled) return null;
-            return await WriteEnabledAsync(sourcePath, baseFingerprint, bytes, revision, cancellationToken).ConfigureAwait(false);
+            return await WriteEnabledAsync(sourcePath, baseFingerprint, bytes, revision, cancellationToken, compatibleBaseFingerprints).ConfigureAwait(false);
         } finally {
             _persistenceGate.Release();
         }
@@ -63,7 +63,7 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
         string baseFingerprint,
         byte[] bytes,
         long revision,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, IReadOnlyList<string>? compatibleBaseFingerprints) {
         if (bytes.LongLength > MaximumSnapshotBytes) {
             throw new IOException("The document exceeds the 512 MiB recovery snapshot limit.");
         }
@@ -78,7 +78,7 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
             baseFingerprint,
             recoveryFingerprint,
             revision,
-            DateTimeOffset.UtcNow) { SchemaVersion = 2 }, RecoveryJsonContext.Default.RecoveryMetadata);
+            DateTimeOffset.UtcNow) { SchemaVersion = 2, CompatibleBaseFingerprints = compatibleBaseFingerprints?.ToArray() ?? [] }, RecoveryJsonContext.Default.RecoveryMetadata);
         if (metadata.Length > MaximumMetadataBytes) throw new InvalidDataException("Recovery metadata exceeds its size limit.");
         await WriteSnapshotAsync(snapshotPath, metadata, bytes, cancellationToken).ConfigureAwait(false);
         // Migrate only after the complete replacement has been published successfully.
@@ -99,7 +99,8 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
     }
 
     internal string? Find(string sourcePath, string baseFingerprint) {
-        return ReadSnapshot(sourcePath, baseFingerprint)?.Path;
+        var snapshot = ReadSnapshot(sourcePath, baseFingerprint);
+        return snapshot is { } found && !string.Equals(Fingerprint(found.Bytes), baseFingerprint, StringComparison.OrdinalIgnoreCase) ? found.Path : null;
     }
 
     internal byte[]? ReadVerifiedSnapshot(string sourcePath, string baseFingerprint) =>
@@ -138,7 +139,8 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
         return metadata is not null && metadata.SchemaVersion == schemaVersion &&
             metadata.UpdatedAt >= now - Retention && metadata.UpdatedAt <= now.AddDays(1) &&
             metadata.Revision >= 0 && PathsEqual(path, metadata.SourcePath) &&
-            string.Equals(fingerprint, metadata.BaseFingerprint, StringComparison.OrdinalIgnoreCase);
+            (string.Equals(fingerprint, metadata.BaseFingerprint, StringComparison.OrdinalIgnoreCase) ||
+                metadata.CompatibleBaseFingerprints.Contains(fingerprint, StringComparer.OrdinalIgnoreCase));
     }
 
     private static byte[]? ReadCurrentSnapshot(string path, string sourcePath, string baseFingerprint) {
@@ -227,6 +229,7 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
         DateTimeOffset UpdatedAt) {
         // Keep the legacy default when source-generated JSON reads records without this field.
         public int SchemaVersion { get; set; } = 1;
+        public string[] CompatibleBaseFingerprints { get; set; } = [];
     }
     [System.Text.Json.Serialization.JsonSerializable(typeof(RecoveryMetadata))]
     private sealed partial class RecoveryJsonContext : System.Text.Json.Serialization.JsonSerializerContext;

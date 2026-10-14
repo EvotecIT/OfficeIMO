@@ -93,6 +93,9 @@ internal sealed partial class PdfWorkspace {
             Path = destination;
             _sourceIdentityKey = savedSourceIdentity ?? OfficePathIdentity.GetPhysicalIdentityKey(destination);
             _baseFingerprint = saved!.Pipeline.Output!.Sha256.ToUpperInvariant();
+            _externalBaseFingerprint = null;
+            _preparedExternalSaves.Clear();
+            UsesExternalPublication = false;
             _savedRevision = _revision;
             // Publication has completed; cleanup must not be interrupted by late cancellation.
             try {

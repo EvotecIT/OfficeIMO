@@ -24,7 +24,7 @@ internal sealed partial class StudioNativeDocument {
             StudioNativeAttachment[] attachments = _workspace.Attachments
                 .Select(static attachment => new StudioNativeAttachment(attachment.UnicodeFileName ?? attachment.FileName, attachment.SizeBytes,
                     attachment.Description, attachment.MimeType, AttachmentId(attachment))).ToArray();
-            bool hasForms = _workspace.CreateDocumentSnapshot().Inspect().FormFields.Count > 0;
+            bool hasForms = _workspace.HasForms;
             return new StudioNativeStructure(StudioNativeAbi.Version, _workspace.Revision, properties, _workspace.CanEditMetadata, outline,
                 _workspace.CanEditBookmarks, attachments, _workspace.CanEditAttachments, _workspace.CanCropPages, _workspace.CanResizePages,
                 _workspace.CanEditPageContent, hasForms, hasForms && _workspace.CanFlattenForms, HasMarkup() && _workspace.CanEditAnnotations,

@@ -3,6 +3,11 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Studio.Features.Workspace;
 
 internal sealed partial class PdfWorkspace {
+    internal IReadOnlyList<PdfFormField> FormMetadata => DocumentInfo?.FormFields ??
+        (ViewInfo.Security.AllowsFormFilling == true || ViewInfo.Security.AllowsModification == true ||
+            _readOptions.PermissionPolicy == PdfPermissionPolicy.IgnoreRestrictions
+            ? CreateDocumentSnapshot().Forms.GetForInteraction().Fields : []);
+
     internal Task MoveFormWidgetAsync(string name, int page, double x, double y, double width, double height,
         CancellationToken token, IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateBytesAsync(PdfWorkspaceOperationKind.FormAuthor, "Moved form field " + name, [page],
@@ -20,7 +25,7 @@ internal sealed partial class PdfWorkspace {
         CancellationToken token, IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateBytesAsync(PdfWorkspaceOperationKind.FormAuthor, "Updated form field " + name, [], bytes => {
             var document = LoadDocument(bytes);
-            var field = document.Inspect().FormFields.Single(field => field.Name == name);
+            var field = document.Forms.GetForInteraction().Fields.Single(field => field.Name == name);
             int flags = ((field.Flags ?? 0) & ~3) | (readOnly ? 1 : 0) | (required ? 2 : 0);
             return document.Forms.Edit(edit => {
                 edit.SetFlags(name, flags);

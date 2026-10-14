@@ -14,6 +14,9 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
     /// The engine's copy of the document, inside the app's temporary folder.
     let workingCopy: URL
     private let opened = Mutex<EngineDocument?>(nil)
+    private let pendingDrawing = Mutex<[AnnotationRequest]>([])
+    private let snapshotPreparation = Mutex<(@MainActor @Sendable () throws -> Void)?>(nil)
+    private let publicationObserver = Mutex<StudioFilePublicationObserver?>(nil)
     private let initializationError: Error?
 
     /// A blank page, for the system's New command: Letter where it is the common paper size, otherwise A4.
@@ -52,6 +55,7 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
     }
 
     deinit {
+        publicationObserver.withLock { $0?.stop() }
         // The engine keeps its own file handle, so removing the folder never disturbs a call still finishing.
         try? FileManager.default.removeItem(at: workingCopy.deletingLastPathComponent())
     }
@@ -62,23 +66,60 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
         if let document = opened.withLock({ $0 }) { return document }
         try await EngineRuntime.ready()
         let document = try await EngineDocument.open(workingCopy, password: password, recoveryIdentity: Self.recoveryIdentity(for: originalURL))
-        return opened.withLock { current in
+        let result = opened.withLock { current in
             if let current { return current }
             current = document
             return document
         }
+        observeOriginalURL(originalURL, engine: result)
+        return result
     }
 
-    /// The engine's document at the moment the system asks to save.
-    func snapshot(contentType: UTType) throws -> EngineDocument? {
-        opened.withLock { $0 }
-    }
-
-    /// Runs on the system's saving thread: the engine saves its working copy, which becomes the saved file.
-    func fileWrapper(snapshot: EngineDocument?, configuration: WriteConfiguration) throws -> FileWrapper {
+    /// Captures the drawing and engine state while SwiftUI has disabled edits. Serialization uses only these bytes.
+    func snapshot(contentType: UTType) throws -> Data {
         if let initializationError { throw initializationError }
-        try snapshot?.saveInPlaceAndWait()
-        return try FileWrapper(url: workingCopy, options: .immediate)
+        if let prepare = snapshotPreparation.withLock({ $0 }) {
+            if Thread.isMainThread {
+                try MainActor.assumeIsolated { try prepare() }
+            } else {
+                try DispatchQueue.main.sync { try MainActor.assumeIsolated { try prepare() } }
+            }
+        }
+        // A view may have gone away after a failed commit; its immutable drawing still belongs to this document.
+        try commitPendingDrawingAndWait()
+        if let engine = opened.withLock({ $0 }) { return try engine.prepareSaveAndWait() }
+        return try Data(contentsOf: workingCopy)
+    }
+
+    func fileWrapper(snapshot: Data, configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: snapshot)
+    }
+
+    func setSnapshotPreparation(_ prepare: @escaping @MainActor @Sendable () throws -> Void) {
+        snapshotPreparation.withLock { $0 = prepare }
+    }
+
+    func updatePendingDrawing(_ requests: [AnnotationRequest]) {
+        pendingDrawing.withLock { $0 = requests }
+    }
+
+    @discardableResult
+    func commitPendingDrawingAndWait() throws -> Bool {
+        try pendingDrawing.withLock { requests in
+            guard !requests.isEmpty else { return false }
+            guard let engine = opened.withLock({ $0 }) else { throw CocoaError(.fileWriteUnknown) }
+            try engine.addAnnotationsAndWait(requests)
+            requests.removeAll()
+            return true
+        }
+    }
+
+    func observeOriginalURL(_ url: URL?, engine: EngineDocument) {
+        publicationObserver.withLock { observer in
+            guard observer?.presentedItemURL != url else { return }
+            observer?.stop()
+            observer = url.map { StudioFilePublicationObserver(url: $0, engine: engine) }
+        }
     }
 
     private static func makeWorkingCopyURL(named name: String) -> URL {

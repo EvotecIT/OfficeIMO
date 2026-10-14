@@ -54,9 +54,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
         _baseFingerprint = baseFingerprint;
         _sourceIdentityKey = sourceIdentityKey;
         _documentInfo = documentInfo;
-        _annotationIdentities = BuildAnnotationIdentities(documentInfo);
         _preflight = preflight;
         _readOptions = readOptions;
+        _annotationIdentities = BuildAnnotationIdentities(bytes, documentInfo);
         _recoveryStore = recoveryStore;
         RecoveryPath = recoveryPath;
         _canPublishOutput = canPublishOutput;
@@ -114,6 +114,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
     internal bool CanEditPageContent => CanPlan(PdfMutationOperation.ModifyPageContent);
 
     internal bool CanRedact => CanPlan(PdfMutationOperation.Redact);
+
+    internal bool HasForms => _preflight.Probe.HasForms;
 
     internal bool CanFillForms => CanPlan(PdfMutationOperation.FillFormFields);
 
@@ -262,14 +264,14 @@ internal sealed partial class PdfWorkspace : IDisposable {
         string description = "Added " + GetToolDescription(tool) + " on page " + gesture.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (kind == PdfWorkspaceOperationKind.Annotation) {
             return MutateAnnotationBytesAsync(kind, description, [gesture.PageNumber],
-                bytes => PdfEditorCommandExecutor.ApplyAnnotation(bytes, PdfEditorCommandFactory.Create(bytes, tool, gesture, properties)),
+                bytes => PdfEditorCommandExecutor.ApplyAnnotation(LoadDocument(bytes), PdfEditorCommandFactory.Create(LoadDocument(bytes), tool, gesture, properties)),
                 cancellationToken, progress);
         }
         return MutateBytesAsync(
             kind,
             description,
             new[] { gesture.PageNumber },
-            bytes => PdfEditorCommandExecutor.Apply(bytes, PdfEditorCommandFactory.Create(bytes, tool, gesture, properties)),
+            bytes => PdfEditorCommandExecutor.Apply(LoadDocument(bytes), PdfEditorCommandFactory.Create(LoadDocument(bytes), tool, gesture, properties)),
             cancellationToken,
             progress);
     }
@@ -292,7 +294,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
                     throw new InvalidOperationException("The document changed after this redaction was reviewed. Plan the redaction again before applying it.");
                 }
                 if (sanitizationOptions is not null) sanitizationOptions.CancellationToken = cancellationToken;
-                verified = PdfEditorCommandExecutor.ApplyVerifiedRedaction(bytes, reviewedPlan, removedTextMarker, sanitizationOptions, cancellationToken);
+                verified = PdfEditorCommandExecutor.ApplyVerifiedRedaction(LoadDocument(bytes), reviewedPlan, removedTextMarker, sanitizationOptions, cancellationToken);
                 return verified.Bytes;
             },
             cancellationToken,
@@ -307,8 +309,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
         ThrowIfDisposed();
         byte[] snapshot = CopyBytes();
         return Task.Run(() => {
-            PdfEditorCommand command = PdfEditorCommandFactory.Create(snapshot, PdfEditorTool.Redact, gesture, properties);
-            return PdfEditorCommandExecutor.PlanRedaction(snapshot, command);
+            PdfEditorCommand command = PdfEditorCommandFactory.Create(LoadDocument(snapshot), PdfEditorTool.Redact, gesture, properties);
+            return PdfEditorCommandExecutor.PlanRedaction(LoadDocument(snapshot), command);
         }, cancellationToken);
     }
 
@@ -437,7 +439,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             byte[] recovered = await Task.Run(
-                () => _recoveryStore.ReadVerifiedSnapshot(RecoveryIdentity, _baseFingerprint)
+                () => _recoveryStore.ReadVerifiedSnapshot(RecoveryIdentity, RecoveryBaseFingerprint)
                     ?? throw new InvalidDataException("The recovery snapshot is no longer valid. The open document has not been changed."),
                 cancellationToken).ConfigureAwait(false);
             (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
@@ -449,7 +451,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             ClearHistory(_redo);
             _bytes = recovered;
             _documentInfo = analysis.Info;
-            _annotationIdentities = BuildAnnotationIdentities(analysis.Info);
+            _annotationIdentities = BuildAnnotationIdentities(recovered, analysis.Info);
             _preflight = analysis.Preflight;
             _revision = ++_nextRevision;
             TrimHistory();
@@ -533,12 +535,11 @@ internal sealed partial class PdfWorkspace : IDisposable {
             if (_documentInfo.Security.HasEncryption && !candidateAnalysis.Info.Security.HasEncryption)
                 throw new InvalidOperationException("This edit would remove PDF encryption. Use the owner-authorized decrypted-copy workflow instead.");
 
+            var nextIdentities = BuildAnnotationIdentities(candidateBytes, candidateAnalysis.Info, _annotationIdentities, getAnnotationMapping?.Invoke());
             long nextRevision = ++_nextRevision;
-            await _recoveryStore
-                .WriteAsync(RecoveryIdentity, _baseFingerprint, candidateBytes, nextRevision, cancellationToken)
+            await WriteRecoveryAsync(candidateBytes, nextRevision, cancellationToken)
                 .ConfigureAwait(false);
 
-            var nextIdentities = BuildAnnotationIdentities(candidateAnalysis.Info, _annotationIdentities, getAnnotationMapping?.Invoke());
             PushHistory(_undo, new Snapshot(previousBytes, _revision, _annotationIdentities));
             ClearHistory(_redo);
             _bytes = candidateBytes;
@@ -588,9 +589,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
                 () => Analyze(restore.Bytes, _readOptions),
                 cancellationToken).ConfigureAwait(false);
 
-            if (restore.Revision != _savedRevision) {
-                await _recoveryStore
-                    .WriteAsync(RecoveryIdentity, _baseFingerprint, restore.Bytes, restore.Revision, cancellationToken)
+            if (restore.Revision != _savedRevision || _preparedExternalSaves.Count > 0) {
+                await WriteRecoveryAsync(restore.Bytes, restore.Revision, cancellationToken)
                     .ConfigureAwait(false);
             } else {
                 // Keep history and in-memory edits intact if cleanup fails or is canceled.

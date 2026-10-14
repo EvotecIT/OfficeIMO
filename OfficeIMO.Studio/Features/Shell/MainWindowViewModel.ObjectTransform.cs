@@ -41,14 +41,14 @@ public sealed partial class MainWindowViewModel {
             (gesture.Selection.Kind == PdfEditorSelectionKind.Image ? !CanEditPageContent : !CanEditAnnotations)) return;
         long revision = workspace.Revision;
         PdfImageEditLayer layer = PlaceEditedImageBehindContent ? PdfImageEditLayer.BehindExistingContent : PdfImageEditLayer.AboveExistingContent;
-        Guid[] annotationIdentities = gesture.KeepSelection && gesture.Selection.Kind == PdfEditorSelectionKind.Annotation
-            ? (gesture.Annotations is { Count: > 0 } annotations ? annotations : [gesture.Selection])
-                .Where(item => item.ObjectNumber.HasValue).Select(item => workspace.GetAnnotationIdentity(item.ObjectNumber!.Value)).ToArray()
-            : [];
-        ClearObjectSelection();
-        bool applied = await RunMutationAsync(token => workspace.TransformSelectedObjectAsync(gesture, revision, layer, token, CreateProgress()), CancellationToken.None).ConfigureAwait(true);
-        if (!applied || !gesture.KeepSelection || !ReferenceEquals(_workspace, workspace)) return;
         try {
+            Guid[] annotationIdentities = gesture.KeepSelection && gesture.Selection.Kind == PdfEditorSelectionKind.Annotation
+                ? (gesture.Annotations is { Count: > 0 } annotations ? annotations : [gesture.Selection])
+                    .Where(item => item.ObjectNumber.HasValue).Select(item => workspace.GetAnnotationIdentity(item.ObjectNumber!.Value)).ToArray()
+                : [];
+            ClearObjectSelection();
+            bool applied = await RunMutationAsync(token => workspace.TransformSelectedObjectAsync(gesture, revision, layer, token, CreateProgress()), CancellationToken.None).ConfigureAwait(true);
+            if (!applied || !gesture.KeepSelection || !ReferenceEquals(_workspace, workspace)) return;
             if (annotationIdentities.Length > 0) {
                 var selected = workspace.AnnotationMetadata.Where(annotation => annotation.ObjectNumber is int number &&
                     annotationIdentities.Contains(workspace.GetAnnotationIdentity(number))).Select(annotation =>

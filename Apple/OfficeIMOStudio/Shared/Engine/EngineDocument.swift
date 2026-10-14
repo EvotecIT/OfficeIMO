@@ -528,13 +528,47 @@ actor EngineDocument {
         }
     }
 
-    /// Saves in place from a thread outside the actor, after any call already running. The system's document saving
-    /// is synchronous and runs on its own thread, so it waits here rather than awaiting the actor.
-    nonisolated func saveInPlaceAndWait() throws {
+    /// Captures immutable bytes without acknowledging a host-owned save or changing the working file.
+    nonisolated func prepareSaveAndWait() throws -> Data {
+        dispatchPrecondition(condition: .notOnQueue(queue))
+        return try queue.sync {
+            var pdf: UnsafeMutablePointer<UInt8>?
+            var length = 0
+            var error: UnsafeMutablePointer<CChar>?
+            try check(officeimo_document_prepare_save(handle, 0, &pdf, &length, &error), error)
+            guard let pdf else { throw CocoaError(.fileWriteUnknown) }
+            return Data(bytesNoCopy: pdf, count: length, deallocator: .custom { pointer, _ in officeimo_free(pointer) })
+        }
+    }
+
+    nonisolated func acknowledgeSaveAndWait(fingerprint: String, identity: String) throws {
         dispatchPrecondition(condition: .notOnQueue(queue))
         try queue.sync {
             var error: UnsafeMutablePointer<CChar>?
-            try check(officeimo_document_save(handle, nil, 0, &error), error)
+            let status = fingerprint.withCString { digest in
+                identity.withCString { officeimo_document_acknowledge_save(handle, digest, $0, 0, &error) }
+            }
+            try check(status, error)
+        }
+    }
+
+    /// Used by synchronous document snapshots; it never waits for the main actor.
+    nonisolated func addAnnotationsAndWait(_ requests: [AnnotationRequest]) throws {
+        let json = String(decoding: try JSONEncoder().encode(requests), as: UTF8.self)
+        dispatchPrecondition(condition: .notOnQueue(queue))
+        try queue.sync {
+            var error: UnsafeMutablePointer<CChar>?
+            try check(json.withCString { officeimo_document_add_annotation_json(handle, $0, 0, &error) }, error)
+        }
+    }
+
+    nonisolated func factsAndWait() throws -> DocumentFacts {
+        dispatchPrecondition(condition: .notOnQueue(queue))
+        return try queue.sync {
+            var json: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            try check(officeimo_document_info_json(handle, &json, &error), error)
+            return try JSONDecoder().decode(DocumentFacts.self, from: Data((takeString(json) ?? "").utf8))
         }
     }
 
