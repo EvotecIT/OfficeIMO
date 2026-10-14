@@ -1,0 +1,2081 @@
+{
+  "source": "pages-created-rich-numbering.pages",
+  "sha256": "9aab5aa4c78f2f0a427255d8126c6ca80d44ccffb9e23e51854e10e862ac898a",
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+  "offsetUnit": "UTF-16 code units",
+  "bodyIdentifier": 3,
+  "primaryRecordCount": 51,
+  "records": [
+    {
+      "identifier": 3,
+      "entry": "Index/Document.iwa",
+      "type": 2001,
+      "declaration": {
+        "kind": "BODY",
+        "style_sheet": {
+          "identifier": "5"
+        },
+        "text": [
+          "Rich numbered items \ud83d\ude00\nBold first \ud83d\ude00 plain reset\nChild italic, underline, strike\nCombined decoration reset\nPlain gap\nColored first parent eight\nUnderlined child reset\nPlain parent nine\nSeparate Za\u017c\u00f3\u0142\u0107 caf\u00e9\nResumed parent ten\n"
+        ],
+        "table_para_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "32"
+              }
+            },
+            {
+              "character_index": 23,
+              "object": {
+                "identifier": "35"
+              }
+            },
+            {
+              "character_index": 49,
+              "object": {
+                "identifier": "38"
+              }
+            },
+            {
+              "character_index": 81,
+              "object": {
+                "identifier": "42"
+              }
+            },
+            {
+              "character_index": 107,
+              "object": {
+                "identifier": "45"
+              }
+            },
+            {
+              "character_index": 117,
+              "object": {
+                "identifier": "47"
+              }
+            },
+            {
+              "character_index": 144,
+              "object": {
+                "identifier": "50"
+              }
+            },
+            {
+              "character_index": 167,
+              "object": {
+                "identifier": "53"
+              }
+            },
+            {
+              "character_index": 185,
+              "object": {
+                "identifier": "56"
+              }
+            },
+            {
+              "character_index": 206,
+              "object": {
+                "identifier": "58"
+              }
+            },
+            {
+              "character_index": 225
+            }
+          ]
+        },
+        "table_para_data": {
+          "entries": [
+            {
+              "character_index": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 23,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 49,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "character_index": 81,
+              "first": 1,
+              "second": 1
+            },
+            {
+              "character_index": 107,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 117,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 144,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "character_index": 167,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 185,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 206,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 225,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        },
+        "table_list_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "10"
+              }
+            },
+            {
+              "character_index": 23,
+              "object": {
+                "identifier": "34"
+              }
+            },
+            {
+              "character_index": 49,
+              "object": {
+                "identifier": "34"
+              }
+            },
+            {
+              "character_index": 81,
+              "object": {
+                "identifier": "34"
+              }
+            },
+            {
+              "character_index": 107,
+              "object": {
+                "identifier": "10"
+              }
+            },
+            {
+              "character_index": 117,
+              "object": {
+                "identifier": "34"
+              }
+            },
+            {
+              "character_index": 144,
+              "object": {
+                "identifier": "34"
+              }
+            },
+            {
+              "character_index": 167,
+              "object": {
+                "identifier": "34"
+              }
+            },
+            {
+              "character_index": 185,
+              "object": {
+                "identifier": "55"
+              }
+            },
+            {
+              "character_index": 206,
+              "object": {
+                "identifier": "34"
+              }
+            },
+            {
+              "character_index": 225,
+              "object": {
+                "identifier": "10"
+              }
+            }
+          ]
+        },
+        "table_char_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "33"
+              }
+            },
+            {
+              "character_index": 23,
+              "object": {
+                "identifier": "36"
+              }
+            },
+            {
+              "character_index": 36,
+              "object": {
+                "identifier": "37"
+              }
+            },
+            {
+              "character_index": 49,
+              "object": {
+                "identifier": "39"
+              }
+            },
+            {
+              "character_index": 61,
+              "object": {
+                "identifier": "40"
+              }
+            },
+            {
+              "character_index": 72,
+              "object": {
+                "identifier": "41"
+              }
+            },
+            {
+              "character_index": 81,
+              "object": {
+                "identifier": "43"
+              }
+            },
+            {
+              "character_index": 100,
+              "object": {
+                "identifier": "44"
+              }
+            },
+            {
+              "character_index": 107,
+              "object": {
+                "identifier": "46"
+              }
+            },
+            {
+              "character_index": 117,
+              "object": {
+                "identifier": "48"
+              }
+            },
+            {
+              "character_index": 130,
+              "object": {
+                "identifier": "49"
+              }
+            },
+            {
+              "character_index": 144,
+              "object": {
+                "identifier": "51"
+              }
+            },
+            {
+              "character_index": 160,
+              "object": {
+                "identifier": "52"
+              }
+            },
+            {
+              "character_index": 167,
+              "object": {
+                "identifier": "54"
+              }
+            },
+            {
+              "character_index": 185,
+              "object": {
+                "identifier": "57"
+              }
+            },
+            {
+              "character_index": 206,
+              "object": {
+                "identifier": "59"
+              }
+            },
+            {
+              "character_index": 213,
+              "object": {
+                "identifier": "60"
+              }
+            }
+          ]
+        },
+        "in_document": true,
+        "table_layout_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "9"
+              }
+            }
+          ]
+        },
+        "table_para_starts": {
+          "entries": [
+            {
+              "character_index": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 23,
+              "first": 7,
+              "second": 0
+            },
+            {
+              "character_index": 49,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 81,
+              "first": 5,
+              "second": 0
+            },
+            {
+              "character_index": 107,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 117,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 144,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 167,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 185,
+              "first": 3,
+              "second": 0
+            },
+            {
+              "character_index": 206,
+              "first": 10,
+              "second": 0
+            },
+            {
+              "character_index": 225,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        },
+        "table_section": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "7"
+              }
+            }
+          ]
+        },
+        "table_para_bidi": {
+          "entries": [
+            {
+              "character_index": 0,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        },
+        "table_drop_cap_style": {
+          "entries": [
+            {
+              "character_index": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "identifier": 10,
+      "entry": "Index/Document.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "None",
+          "style_identifier": "officeimo-style-10",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 3,
+        "label_types": [
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone"
+        ],
+        "text_indents": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "indents": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "identifier": 22,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Body",
+          "style_identifier": "paragraph-style-default",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "10"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 32,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "10"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 33,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-33",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 34,
+      "entry": "Index/Document.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Decimal List",
+          "style_identifier": "officeimo-style-34",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone"
+        ],
+        "text_indents": [
+          1.5,
+          1.5,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "indents": [
+          0.0,
+          18.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name_null": false,
+        "font_name": "Arial",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 35,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "34"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 36,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-36",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": true,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.2,
+            "b": 0.4,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.2,
+              "b": 0.4,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 37,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-37",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 38,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "34"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 39,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-39",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": true,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.5019608,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.5019608,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 40,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-40",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.2,
+            "b": 0.4,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kSingleUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.2,
+              "b": 0.4,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 41,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-41",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kSingleStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 42,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "34"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 43,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-43",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": true,
+          "italic": true,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.4,
+            "g": 0.0,
+            "b": 0.4,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kSingleUnderline",
+          "strikethru": "kSingleStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.4,
+              "g": 0.0,
+              "b": 0.4,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 44,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-44",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 45,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "10"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 46,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-46",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 47,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "34"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 48,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-48",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.8,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.8,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 49,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-49",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 50,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "34"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 51,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-51",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kSingleUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 52,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-52",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 53,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "34"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 54,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-54",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 55,
+      "entry": "Index/Document.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Decimal List",
+          "style_identifier": "officeimo-style-55",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone"
+        ],
+        "text_indents": [
+          1.5,
+          1.5,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "indents": [
+          0.0,
+          18.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name_null": false,
+        "font_name": "Arial",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 56,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "55"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 57,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-57",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": true,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 58,
+      "entry": "Index/Document.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "22"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {
+            "mode": "kRelativeLineSpacing",
+            "amount": 1.0
+          },
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "34"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 59,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-59",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kSingleUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 60,
+      "entry": "Index/Document.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-60",
+          "stylesheet": {
+            "identifier": "5"
+          }
+        },
+        "override_count": 8,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "scope": "Selected native body and style declarations. Counter values and appearance require paired Apple exports."
+}

@@ -1,0 +1,611 @@
+{
+  "nativeEdited": {
+    "sha256": "7a6c1fe0b898c8a655370b379b54e7fe28ca158ab415d9d0d470a063b56ba451",
+    "pages": [
+      {
+        "text": "Rich numbered items 😀\n7. Bold first 😀 plain reset\n1. Child italic, underline, strike\n5. Combined decoration reset\nPlain gap\n8. Colored first parent eight\n1. Underlined child reset\n9. Plain parent nine\n3. Separate Zażółć café\n10.Resumed parent ten native edit",
+        "spans": [
+          {
+            "text": "Rich numbered items ",
+            "font": "AAAAAB+ArialMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "😀",
+            "font": "AAAAAD+AppleColorEmoji",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": " 7.",
+            "font": "AAAAAB+ArialMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Bold first ",
+            "font": "AAAAAE+Arial-BoldMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.2,
+              0.4
+            ]
+          },
+          {
+            "text": "😀",
+            "font": "AAAAAD+AppleColorEmoji",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.2,
+              0.4
+            ]
+          },
+          {
+            "text": " plain reset 1.",
+            "font": "AAAAAB+ArialMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Child italic",
+            "font": "AAAAAF+Arial-ItalicMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.5019608,
+              0.0
+            ]
+          },
+          {
+            "text": ", underline",
+            "font": "AAAAAB+ArialMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.2,
+              0.4
+            ]
+          },
+          {
+            "text": ", strike 5.",
+            "font": "AAAAAB+ArialMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Combined decoration",
+            "font": "AAAAAG+Arial-BoldItalicMT",
+            "size": 12.0,
+            "color": [
+              0.4,
+              0.0,
+              0.4
+            ]
+          },
+          {
+            "text": " reset Plain gap 8.",
+            "font": "AAAAAB+ArialMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Colored first",
+            "font": "AAAAAB+ArialMT",
+            "size": 12.0,
+            "color": [
+              0.8,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": " parent eight 1.Underlined child reset 9.Plain parent nine 3.",
+            "font": "AAAAAB+ArialMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Separate Za",
+            "font": "AAAAAF+Arial-ItalicMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "ż",
+            "font": "AAAAAH+Arial-ItalicMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "ó",
+            "font": "AAAAAF+Arial-ItalicMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "łć",
+            "font": "AAAAAH+Arial-ItalicMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": " café ",
+            "font": "AAAAAF+Arial-ItalicMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "10.Resumed parent ten native edit ",
+            "font": "AAAAAB+ArialMT",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "lines": 6,
+        "rectangles": 1,
+        "curves": 0
+      }
+    ]
+  },
+  "officeimoCreated": {
+    "sha256": "520a67a3e3674ada4e40f1012afd561f48742e12b9f16f3cd9d67d8c404bf180",
+    "pages": [
+      {
+        "text": "Rich numbered items 😀\n7. Bold first 😀 plain reset\n1. Child italic, underline, strike\n5. Combined decoration reset\nPlain gap\n8. Colored first parent eight\n1. Underlined child reset\n9. Plain parent nine\n3. Separate Zażółć café\n10.Resumed parent ten",
+        "spans": [
+          {
+            "text": "Rich numbered items ",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "😀",
+            "font": "NotoEmoji-Regular",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "7.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Bold first ",
+            "font": "Helvetica-Bold",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.2,
+              0.4
+            ]
+          },
+          {
+            "text": "😀",
+            "font": "NotoEmoji-Bold",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.2,
+              0.4
+            ]
+          },
+          {
+            "text": " plain reset1.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Child italic",
+            "font": "Helvetica-Oblique",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.502,
+              0.0
+            ]
+          },
+          {
+            "text": ", underline",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.2,
+              0.4
+            ]
+          },
+          {
+            "text": ", strike5.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Combined decoration",
+            "font": "Helvetica-BoldOblique",
+            "size": 12.0,
+            "color": [
+              0.4,
+              0.0,
+              0.4
+            ]
+          },
+          {
+            "text": " resetPlain gap8.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Colored first",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.8,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": " parent eight1.Underlined child reset9.Plain parent nine3.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Separate Za",
+            "font": "Helvetica-Oblique",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "ż",
+            "font": "Carlito-Italic",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "ó",
+            "font": "Helvetica-Oblique",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "łć",
+            "font": "Carlito-Italic",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": " café",
+            "font": "Helvetica-Oblique",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "10.Resumed parent ten",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "lines": 14,
+        "rectangles": 0,
+        "curves": 0
+      }
+    ]
+  },
+  "officeimoEdited": {
+    "sha256": "e4bf624953f8d9b5ef4eeed1c874961d47b42fbb95ab3bb7ecb0499147524d69",
+    "pages": [
+      {
+        "text": "Rich numbered items 😀\n7. Bold first 😀 plain reset\n1. Child italic, underline, strike\n5. Combined decoration reset\nPlain gap\n8. Colored first parent eight\n1. Underlined child reset\n9. Plain parent nine\n3. Separate Zażółć café\n10.Resumed parent ten native edit",
+        "spans": [
+          {
+            "text": "Rich numbered items ",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "😀",
+            "font": "NotoEmoji-Regular",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "7.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Bold first ",
+            "font": "Helvetica-Bold",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.2,
+              0.4
+            ]
+          },
+          {
+            "text": "😀",
+            "font": "NotoEmoji-Bold",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.2,
+              0.4
+            ]
+          },
+          {
+            "text": " plain reset1.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Child italic",
+            "font": "Helvetica-Oblique",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.502,
+              0.0
+            ]
+          },
+          {
+            "text": ", underline",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.2,
+              0.4
+            ]
+          },
+          {
+            "text": ", strike5.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Combined decoration",
+            "font": "Helvetica-BoldOblique",
+            "size": 12.0,
+            "color": [
+              0.4,
+              0.0,
+              0.4
+            ]
+          },
+          {
+            "text": " resetPlain gap8.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Colored first",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.8,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": " parent eight1.Underlined child reset9.Plain parent nine3.",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "Separate Za",
+            "font": "Helvetica-Oblique",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "ż",
+            "font": "Carlito-Italic",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "ó",
+            "font": "Helvetica-Oblique",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "łć",
+            "font": "Carlito-Italic",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": " café",
+            "font": "Helvetica-Oblique",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "text": "10.Resumed parent ten native edit",
+            "font": "Helvetica",
+            "size": 12.0,
+            "color": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "lines": 14,
+        "rectangles": 0,
+        "curves": 0
+      }
+    ]
+  }
+}

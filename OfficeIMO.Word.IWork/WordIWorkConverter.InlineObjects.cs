@@ -1,5 +1,6 @@
 using OfficeIMO.IWork;
 using System.Threading;
+using OpenXmlTable = DocumentFormat.OpenXml.Wordprocessing.Table;
 
 namespace OfficeIMO.Word.IWork;
 
@@ -26,18 +27,32 @@ public static partial class WordIWorkConverter {
         return null;
     }
 
-    private static void AddInlineObject(WordDocument document, WordParagraph paragraph,
+    private static bool AddInlineObject(WordDocument document, WordParagraph paragraph,
         IWorkPagesDrawable drawable, IWorkNativeListCatalog nativeLists, double contentWidth, double contentHeight,
-        List<WordCellComment> cellComments, CancellationToken cancellationToken) {
+        List<WordCellComment> cellComments, HashSet<ulong> standaloneTables, IWorkPageLayout? pageLayout,
+        CancellationToken cancellationToken) {
         if (drawable.Table is { } table) {
-            AddTable(document, table, nativeLists, paragraph, null, cellComments, cancellationToken);
+            WordTable? target = AddTable(document, table, nativeLists, paragraph, null, cellComments, cancellationToken);
+            if (target != null && standaloneTables.Contains(DrawableIdentifier(drawable))) {
+                if (CanApplyInlineTableGeometry(table, pageLayout, standaloneTables, cancellationToken))
+                    ApplyInlineTableGrid(target, table, cancellationToken);
+                // Word joins adjacent same-style tables without a paragraph boundary.
+                // Keep this host when removing it would join distinct source tables.
+                if (paragraph._paragraph.PreviousSibling() is not OpenXmlTable
+                    && target._table.NextSibling() is not OpenXmlTable) {
+                    paragraph.Remove();
+                    return true;
+                }
+            }
         } else if (drawable.Image is { } source) {
             using var image = new MemoryStream(source.GetBytes(), writable: false);
             double width = source.Geometry?.WidthPoints ?? source.PixelWidth.GetValueOrDefault(640) * 72d / 96d;
             double height = source.Geometry?.HeightPoints ?? source.PixelHeight.GetValueOrDefault(480) * 72d / 96d;
             if (source.Geometry == null) (width, height) = FitInside(width, height, contentWidth, contentHeight);
-            paragraph.AddText(string.Empty).InsertImage(image, source.FileName, width, height,
+            paragraph.AddText(string.Empty).InsertImage(image, source.FileName,
+                Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height),
                 description: source.AccessibilityDescription ?? "Image imported from Pages");
         }
+        return false;
     }
 }

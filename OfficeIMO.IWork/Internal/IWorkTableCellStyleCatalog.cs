@@ -11,14 +11,15 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
 
     internal bool FillsFullyReconstructed { get; private set; } = true;
     internal bool LayoutFullyReconstructed { get; private set; } = true;
+    internal bool BordersFullyReconstructed { get; private set; } = true;
 
     internal IWorkTableCellStyle? Read(uint key) {
         source.CancellationToken.ThrowIfCancellationRequested();
         if (!_initialized) Initialize();
-        if (!_catalogComplete) FillsFullyReconstructed = LayoutFullyReconstructed = false;
+        if (!_catalogComplete) FillsFullyReconstructed = LayoutFullyReconstructed = BordersFullyReconstructed = false;
         if (_resolved.TryGetValue(key, out var cached)) return cached;
         if (!_entries.TryGetValue(key, out var entry)) {
-            FillsFullyReconstructed = LayoutFullyReconstructed = false;
+            FillsFullyReconstructed = LayoutFullyReconstructed = BordersFullyReconstructed = false;
             return null;
         }
         string path = IWorkTableCatalogIndex.EntryPath(entry.Position) + "/4";
@@ -34,6 +35,8 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
         IWorkCellPadding? padding = null;
         IWorkCellVerticalAlignment? vertical = null;
         bool fillsComplete = true, paddingComplete = true, verticalComplete = true;
+        var borders = new IWorkCellBorderStyle();
+        var layoutReader = new IWorkCellLayoutReader(references);
         if (complete) {
             var chain = IWorkStyleReader.ReadChain(source.Index, style!.Identifier,
                 budget.MaximumTextStyleInheritanceDepth, type => type == 6004,
@@ -51,8 +54,9 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
                 }
                 if (properties == null) continue;
                 IWorkCellFillReader.Read(owner, properties, references, ref fill, ref fillsComplete);
-                ReadPadding(owner, properties, ref padding, ref paddingComplete);
-                ReadVerticalAlignment(owner, properties, ref vertical, ref verticalComplete);
+                layoutReader.ReadPadding(owner, properties, ref padding, ref paddingComplete);
+                layoutReader.ReadVerticalAlignment(owner, properties, ref vertical, ref verticalComplete);
+                borders.Read(owner, properties, references);
             }
         }
         if (!complete || !fillsComplete || !paddingComplete || !verticalComplete) {
@@ -66,52 +70,12 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
         if (!complete || !paddingComplete || !verticalComplete) LayoutFullyReconstructed = false;
         if (!complete || !paddingComplete) padding = null;
         if (!complete || !verticalComplete) vertical = null;
-        var result = new IWorkTableCellStyle(fill, padding, vertical, complete && fillsComplete);
+        if (!complete) borders.Invalidate();
+        if (!borders.FullyReconstructed) BordersFullyReconstructed = false;
+        var result = new IWorkTableCellStyle(fill, padding, vertical, complete && fillsComplete, borders,
+            complete && paddingComplete, complete && verticalComplete);
         _resolved.Add(key, result);
         return result;
-    }
-
-    private void ReadPadding(IWorkArchiveRecord owner, IWorkWireMessage properties,
-        ref IWorkCellPadding? padding, ref bool complete) {
-        if (!properties.HasField(9)) return;
-        IWorkWireMessage? declaration = IWorkObjectIndex.TryGetMessage(properties, 9, out bool malformed);
-        bool valid = !malformed && properties.FieldCount(9) == 1
-            && !properties.HasUnexpectedWireKind(9, IWorkWireKind.Bytes) && declaration != null;
-        var sides = new double[4];
-        if (valid) {
-            valid = declaration!.TotalFieldCount == Enumerable.Range(1, 4).Sum(declaration.FieldCount);
-            for (int field = 1; field <= 4; field++) {
-                float? value = declaration.GetFloat(field);
-                if (declaration.FieldCount(field) > 1
-                    || declaration.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)
-                    || declaration.HasField(field) && !value.HasValue
-                    || value.HasValue && (float.IsNaN(value.Value) || float.IsInfinity(value.Value) || value.Value < 0))
-                    valid = false;
-                sides[field - 1] = value ?? 0;
-            }
-        }
-        if (!valid) {
-            references.Declarations.Record(owner, "11/9", properties.FieldCount(9),
-                IWorkSourceDeclarationIssueKind.InvalidValue);
-            complete = false;
-            return;
-        }
-        // The message overrides the whole property. Omitted scalar sides use protobuf zero defaults.
-        padding = new IWorkCellPadding(sides[0], sides[1], sides[2], sides[3]);
-    }
-
-    private void ReadVerticalAlignment(IWorkArchiveRecord owner, IWorkWireMessage properties,
-        ref IWorkCellVerticalAlignment? vertical, ref bool complete) {
-        if (!properties.HasField(8)) return;
-        ulong? value = properties.GetUnsigned(8);
-        if (properties.FieldCount(8) != 1 || properties.HasUnexpectedWireKind(8, IWorkWireKind.Varint)
-            || !value.HasValue || value.Value > 2) {
-            references.Declarations.Record(owner, "11/8", properties.FieldCount(8),
-                IWorkSourceDeclarationIssueKind.InvalidValue);
-            complete = false;
-            return;
-        }
-        vertical = (IWorkCellVerticalAlignment)value.Value;
     }
 
     /// <summary>Resolves a selected text-style entry without traversing unselected style references.</summary>
@@ -163,9 +127,13 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
 
 /// <summary>Resolved independent selected cell properties; unsupported properties stay null without discarding other qualified fields.</summary>
 internal sealed class IWorkTableCellStyle(IWorkCellFill? fill, IWorkCellPadding? padding,
-    IWorkCellVerticalAlignment? verticalAlignment, bool fillIsComplete = true) {
+    IWorkCellVerticalAlignment? verticalAlignment, bool fillIsComplete = true, IWorkCellBorderStyle? borders = null,
+    bool paddingIsComplete = true, bool verticalAlignmentIsComplete = true) {
     internal bool FillIsComplete { get; } = fillIsComplete;
+    internal bool PaddingIsComplete { get; } = paddingIsComplete;
+    internal bool VerticalAlignmentIsComplete { get; } = verticalAlignmentIsComplete;
     internal IWorkCellFill? Fill { get; } = fill;
     internal IWorkCellPadding? Padding { get; } = padding;
     internal IWorkCellVerticalAlignment? VerticalAlignment { get; } = verticalAlignment;
+    internal IWorkCellBorderStyle? Borders { get; } = borders;
 }

@@ -90,6 +90,7 @@ public sealed class IWorkDirectoryWorkflowTests {
         var result = await IWorkWorkflow.CreateRunner().RunAsync(bundle.Request("numbers-xlsx"));
         Assert.True(result.Succeeded, result.Summary);
         Assert.Equal(source.Records.Count.ToString(), result.ConversionEvidence!.Facts["totalRecordCount"]);
+        Assert.Equal(source.ComputePackageContentHash(), result.ConversionEvidence.Facts["packageContentSha256"]);
         Assert.Equal("EditableReconstruction", result.ConversionEvidence.Facts["projectionKind"]);
     }
 

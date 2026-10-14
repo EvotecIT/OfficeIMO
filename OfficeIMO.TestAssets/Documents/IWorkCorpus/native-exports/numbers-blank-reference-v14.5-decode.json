@@ -1,0 +1,471 @@
+{
+  "schemaVersion": 1,
+  "producer": "Numbers14.5 (7045.0.17)",
+  "decoder": "numbers-parser4.19.0, raw tile row indexes and AST; native XLSX XML",
+  "cases": [
+    {
+      "source": "numbers-blank-reference-v14.5.numbers",
+      "nativeXlsx": "numbers-blank-reference-v14.5.xlsx",
+      "cells": [
+        {
+          "row": 3,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$4,6)",
+          "nativeValue": 6,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            17,
+            16
+          ]
+        },
+        {
+          "row": 3,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$4,6)",
+          "nativeValue": 6,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            17,
+            16
+          ]
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$3:$C$4)",
+          "nativeValue": 30,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            29,
+            16
+          ]
+        },
+        {
+          "row": 4,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$3:$C$4)",
+          "nativeValue": 0,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            29,
+            16
+          ]
+        },
+        {
+          "row": 5,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$5,6)",
+          "nativeValue": 6,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            17,
+            16
+          ]
+        },
+        {
+          "row": 5,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$5,6)",
+          "nativeValue": 12,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            17,
+            16
+          ]
+        },
+        {
+          "row": 6,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$4)",
+          "nativeValue": null,
+          "qualified": false,
+          "nativeKind": "ErrorCell",
+          "nodeTypes": [
+            36,
+            16
+          ]
+        },
+        {
+          "row": 6,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$4)",
+          "nativeValue": null,
+          "qualified": false,
+          "nativeKind": "ErrorCell",
+          "nodeTypes": [
+            36,
+            16
+          ]
+        },
+        {
+          "row": 7,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$4)",
+          "nativeValue": null,
+          "qualified": false,
+          "nativeKind": "ErrorCell",
+          "nodeTypes": [
+            36,
+            36,
+            16
+          ]
+        },
+        {
+          "row": 7,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$4)",
+          "nativeValue": null,
+          "qualified": false,
+          "nativeKind": "ErrorCell",
+          "nodeTypes": [
+            36,
+            36,
+            16
+          ]
+        },
+        {
+          "row": 8,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$5)",
+          "nativeValue": 12,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            16
+          ]
+        },
+        {
+          "row": 8,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$5)",
+          "nativeValue": 12,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            16
+          ]
+        },
+        {
+          "row": 9,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$8)",
+          "nativeValue": 0,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            16
+          ]
+        },
+        {
+          "row": 9,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$8)",
+          "nativeValue": 0,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            16
+          ]
+        }
+      ],
+      "qualifiedFormulaCells": 10,
+      "referenceTableUuid": "a5dc2cd2-48d5-4dde-a198-e0602ed7122b",
+      "nativeTileRows": {
+        "inputs": {
+          "1": 0,
+          "2": 1,
+          "3": 2,
+          "4": 3,
+          "5": 4,
+          "6": 5,
+          "7": 6
+        },
+        "checks": {
+          "1": 0,
+          "2": 1,
+          "3": 2,
+          "4": 3,
+          "5": 4,
+          "6": 5,
+          "7": 6,
+          "8": 7
+        }
+      }
+    },
+    {
+      "source": "numbers-blank-reference-filled-v14.5.numbers",
+      "nativeXlsx": "numbers-blank-reference-filled-v14.5.xlsx",
+      "cells": [
+        {
+          "row": 3,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$4,6)",
+          "nativeValue": 6,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            17,
+            16
+          ]
+        },
+        {
+          "row": 3,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$4,6)",
+          "nativeValue": 18,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            17,
+            16
+          ]
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$3:$C$4)",
+          "nativeValue": 6,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            29,
+            16
+          ]
+        },
+        {
+          "row": 4,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$3:$C$4)",
+          "nativeValue": 90,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            29,
+            16
+          ]
+        },
+        {
+          "row": 5,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$5,6)",
+          "nativeValue": 6,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            17,
+            16
+          ]
+        },
+        {
+          "row": 5,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$5,6)",
+          "nativeValue": 12,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            17,
+            16
+          ]
+        },
+        {
+          "row": 6,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$4)",
+          "nativeValue": 18,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            16
+          ]
+        },
+        {
+          "row": 6,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$4)",
+          "nativeValue": 18,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            16
+          ]
+        },
+        {
+          "row": 7,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$4)",
+          "nativeValue": 18,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            16
+          ]
+        },
+        {
+          "row": 7,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$4)",
+          "nativeValue": 18,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            16
+          ]
+        },
+        {
+          "row": 8,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$5)",
+          "nativeValue": 12,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            16
+          ]
+        },
+        {
+          "row": 8,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$5)",
+          "nativeValue": 12,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            16
+          ]
+        },
+        {
+          "row": 9,
+          "column": 3,
+          "excelFormula": "GCD('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$8)",
+          "nativeValue": 18,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            16
+          ]
+        },
+        {
+          "row": 9,
+          "column": 4,
+          "excelFormula": "LCM('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$8)",
+          "nativeValue": 0,
+          "qualified": true,
+          "nativeKind": "NumberCell",
+          "nodeTypes": [
+            36,
+            36,
+            16
+          ]
+        }
+      ],
+      "qualifiedFormulaCells": 14,
+      "referenceTableUuid": "a5dc2cd2-48d5-4dde-a198-e0602ed7122b",
+      "nativeTileRows": {
+        "inputs": {
+          "1": 0,
+          "2": 1,
+          "3": 2,
+          "4": 3,
+          "5": 4,
+          "6": 5,
+          "7": 6
+        },
+        "checks": {
+          "1": 0,
+          "2": 1,
+          "3": 2,
+          "4": 3,
+          "5": 4,
+          "6": 5,
+          "7": 6,
+          "8": 7
+        }
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "path": "numbers-blank-reference-v14.5.numbers",
+      "bytes": 609640,
+      "sha256": "4f5d15192d975629336db3b2b31ee3df0cc0dd5f2b7d55a492538054981d351b"
+    },
+    {
+      "path": "numbers-blank-reference-v14.5.xlsx",
+      "bytes": 7794,
+      "sha256": "cbdd9e555609d92bed4319947951945e06bea5aec5dde18bf88209cea70d3fca"
+    },
+    {
+      "path": "numbers-blank-reference-filled-v14.5.numbers",
+      "bytes": 610181,
+      "sha256": "447cdffd27acbfa254ba8f750bee91d995ea07395da14a7c30ca0ac0b6e06ea0"
+    },
+    {
+      "path": "numbers-blank-reference-filled-v14.5.xlsx",
+      "bytes": 7787,
+      "sha256": "c21c92fe6e7895579e587c70f57796b1ea897951df2f9c8544a10aa1916ea469"
+    }
+  ],
+  "limits": [
+    "Controlled Apple-imported/saved OfficeIMO-owned XLSX fixture; not arbitrary independent producers.",
+    "All-blank direct arguments retain native errors and remain partial.",
+    "No mixed text/Boolean ranges, formula dependencies, whole axes or appearance equivalence."
+  ],
+  "provenance": {
+    "baseline": "Controlled Apple XLSX import from numbers-integer-text-reference-v14.5.xlsx, with four blank-only error controls in six edited cells; saved, closed and reopened in Numbers.",
+    "edited": "Native blank operand C4 set to numeric18 in Numbers; saved, closed and reopened; native XLSX exported for both states.",
+    "excelComparison": "Excel16.113.3 independently filled then cleared the same blank operand; direct and range caches matched Numbers. Scratch workbook retained outside corpus with an incidental unrelated A2 value documented in its evidence.",
+    "appearance": "No appearance or complete editable reconstruction claim; inherited formatting and native error controls remain reported."
+  },
+  "screenshots": [
+    {
+      "path": "numbers-blank-reopened.png",
+      "bytes": 89989,
+      "sha256": "f5e034038072308fdd38a535d50f834e0230ae9e2942be644f120b5ad6f25711"
+    },
+    {
+      "path": "numbers-filled-reopened.png",
+      "bytes": 89929,
+      "sha256": "9145d2a314a1160daf2a65ff5343d24328b1079a6c72b39bcdb396b69a4bde02"
+    }
+  ],
+  "license": "Repository MIT; all source and native export content is repository-owned."
+}

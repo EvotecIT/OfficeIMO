@@ -27,7 +27,7 @@ public sealed class StudioIWorkProviderPackageTests {
             var services = ((App)Application.Current!).Services;
             string root = Path.Combine(services.Paths.Root, "selected.numbers");
             Directory.CreateDirectory(root);
-            ZipFile.ExtractToDirectory(Path.Combine(AppContext.BaseDirectory, "Fixtures", "IWork", "simple.numbers"), root);
+            ZipFile.ExtractToDirectory(Path.Combine(AppContext.BaseDirectory, "Fixtures", "IWork", "numbers-unpadded-scalar.numbers"), root);
             var folder = CreateFolder(root);
             await services.Storage.RegisterManyAsync([folder], default);
             var guard = new MutationGuard(() => {

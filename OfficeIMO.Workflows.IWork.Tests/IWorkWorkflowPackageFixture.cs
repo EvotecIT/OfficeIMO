@@ -3,6 +3,16 @@ using System.IO.Compression;
 namespace OfficeIMO.Workflows.IWork.Tests;
 
 public sealed partial class IWorkWorkflowTests {
+    private static void UseCompletePdfFixture(Files files, string source) {
+        if (source == "key") {
+            CreateNoteFreeKeynoteInput(files.Input);
+            return;
+        }
+        if (source != "numbers") return;
+        // Shared synthetic control; Apple-produced padding rejection is qualified separately.
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "numbers-unpadded-scalar.numbers"), files.Input, overwrite: true);
+    }
+
     private static void WritePackage(string path, byte[] records) {
         // One literal-only Snappy block inside the bounded IWA frame.
         int encodedLength = records.Length - 1;

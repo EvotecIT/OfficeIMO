@@ -93,14 +93,17 @@ public sealed class IWorkKeynoteSlide {
 public sealed partial class IWorkKeynoteProjection {
     private readonly IWorkSourceDocument _source;
     private readonly bool _supportsEditableReconstruction;
+    private readonly IWorkKeynoteSlideLinks? _slideLinks;
 
     internal IWorkKeynoteProjection(IWorkSourceDocument source, IReadOnlyList<IWorkKeynoteSlide> slides,
         IWorkCanvasSize? slideSize,
         IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction,
         IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null,
         IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null,
-        IReadOnlyList<IWorkSourceDeclarationIssue>? declarationIssues = null) {
+        IReadOnlyList<IWorkSourceDeclarationIssue>? declarationIssues = null,
+        IWorkKeynoteSlideLinks? slideLinks = null) {
         _source = source;
+        _slideLinks = slideLinks;
         SourceIdentity = sourceIdentity;
         OmittedSourceUnits = Array.AsReadOnly((omittedUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
         SourceReferenceIssues = Array.AsReadOnly((referenceIssues ?? Array.Empty<IWorkSourceReferenceIssue>()).ToArray());
@@ -129,6 +132,9 @@ public sealed partial class IWorkKeynoteProjection {
 
     /// <summary>Gets whether bounded source content is available for an explicitly partial editable conversion.</summary>
     public bool HasRecoverableContent => Slides.Count > 0;
+
+    internal string? ResolveHyperlink(string? target, int sourceSlidePosition) =>
+        _slideLinks?.Resolve(target, sourceSlidePosition) ?? target;
 
     /// <summary>Creates a conversion report for an OfficeIMO semantic-owner projection.</summary>
     public IWorkConversionReport CreateConversionReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
@@ -354,8 +360,10 @@ internal static partial class IWorkKeynoteReader {
             if (projectedSlide != null) slides.Add(projectedSlide);
             else omittedUnits.Add(new IWorkObjectIdentity(slide));
         }
+        IWorkKeynoteSlideLinks slideLinks = IWorkKeynoteSlideLinks.Create(source, nodes, nodePositions,
+            slides, projectionBudget, references);
         return new IWorkKeynoteProjection(source, slides, slideSize, diagnostics, supportsEditableReconstruction,
-            new IWorkObjectIdentity(document), omittedUnits.Items, references.Issues, references.Declarations.Issues);
+            new IWorkObjectIdentity(document), omittedUnits.Items, references.Issues, references.Declarations.Issues, slideLinks);
     }
 
     private static void MarkDrawableIncomplete(IWorkArchiveRecord drawable,
@@ -437,7 +445,7 @@ internal static partial class IWorkKeynoteReader {
             storage.EntryPath, storage.Identifier));
     }
 
-    private static IWorkArchiveRecord? DrawableStorage(IWorkObjectIndex index, IWorkArchiveRecord drawable,
+    internal static IWorkArchiveRecord? DrawableStorage(IWorkObjectIndex index, IWorkArchiveRecord drawable,
         IWorkSourceReferenceIssueCollector references,
         out bool complete) {
         complete = true;

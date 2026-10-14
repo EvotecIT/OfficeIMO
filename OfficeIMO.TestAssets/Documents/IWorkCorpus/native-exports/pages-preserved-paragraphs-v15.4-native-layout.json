@@ -1,0 +1,118 @@
+{
+  "source": "pages-preserved-paragraphs-edited-v15.4.pages",
+  "sourceSha256": "aacd285f5683da1fb82244701f3957baccaeeb20c746963f1b9a0eef7ea4fc7c",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "nativeWordExport": "pages-preserved-paragraphs-edited-v15.4.docx",
+  "nativeWordExportSha256": "3eb8db899647027e5c6546da0c3749a879073ee75d51c9fc2e50d0317010ff54",
+  "selectedStorageIdentifier": 3,
+  "paragraphs": [
+    {
+      "start": 0,
+      "styleChain": [
+        166,
+        118
+      ],
+      "lineSpacingMultiplier": 1,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTabSymbol": ".",
+      "tabStops": [],
+      "text": "Edited paragraph layout"
+    },
+    {
+      "start": 24,
+      "styleChain": [
+        167,
+        118
+      ],
+      "lineSpacingMultiplier": 1.5,
+      "spaceBeforePoints": 6.0,
+      "spaceAfterPoints": 9.0,
+      "decimalTabSymbol": ".",
+      "tabStops": [],
+      "text": "Relative spacing 1.5: this paragraph has six points before and nine points after. Its text wraps across lines so the native line spacing can be inspected alongside the exported paragraph settings."
+    },
+    {
+      "start": 221,
+      "styleChain": [
+        169,
+        118
+      ],
+      "lineSpacingMultiplier": 1,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTabSymbol": ".",
+      "tabStops": [
+        {
+          "positionPoints": 90.0,
+          "alignment": 0
+        },
+        {
+          "positionPoints": 180.0,
+          "alignment": 1
+        },
+        {
+          "positionPoints": 270.0,
+          "alignment": 2
+        },
+        {
+          "positionPoints": 360.0,
+          "alignment": 3
+        }
+      ],
+      "text": "Start\tLeft\tCenter\tRight\t234.56"
+    },
+    {
+      "start": 252,
+      "styleChain": [
+        165,
+        118
+      ],
+      "lineSpacingMultiplier": 2.0,
+      "spaceBeforePoints": 12.0,
+      "spaceAfterPoints": 18.0,
+      "decimalTabSymbol": ".",
+      "tabStops": [],
+      "text": "Double spacing: this paragraph has twelve points before and eighteen points after. Wrapped lines make the relative spacing visible without changing the font or body width."
+    },
+    {
+      "start": 424,
+      "styleChain": [
+        164,
+        118
+      ],
+      "lineSpacingMultiplier": 1.5,
+      "spaceBeforePoints": 6.0,
+      "spaceAfterPoints": 6.0,
+      "decimalTabSymbol": ".",
+      "tabStops": [],
+      "text": ""
+    },
+    {
+      "start": 425,
+      "styleChain": [
+        168,
+        118
+      ],
+      "lineSpacingMultiplier": 1.25,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 6.0,
+      "decimalTabSymbol": ".",
+      "tabStops": [],
+      "text": "Rich layout plain Za\u017c\u00f3\u0142\u0107 \ud83d\ude00"
+    },
+    {
+      "start": 453,
+      "styleChain": [
+        118
+      ],
+      "lineSpacingMultiplier": 1,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTabSymbol": ".",
+      "tabStops": [],
+      "text": "Native checked paragraph."
+    }
+  ],
+  "scope": "Selected body paragraph styles and parent chains; complete authored body text, relative spacing and tabs agree with the native Word export. Auxiliary messages and other native features are not assessed."
+}

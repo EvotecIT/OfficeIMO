@@ -15,6 +15,38 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointParagraphFlowContractTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void EmptyParagraphOutsideTheFrameReportsLossOnlyWhenItDisplacesVisibleText(bool table, bool followingText) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.SlideSize.SetSizePoints(300, 220);
+        var slide = presentation.AddSlide();
+        if (table) {
+            var cell = slide.AddTablePoints(1, 1, 20, 20, 240, 60).GetCell(0, 0);
+            cell.Text = "VISIBLE"; cell.FontName = "Helvetica"; cell.FontSize = 32;
+            cell.AddParagraph("");
+            if (followingText) cell.AddParagraph("CLIPPED");
+        } else {
+            var box = slide.AddTextBoxPoints("VISIBLE", 20, 20, 240, 60);
+            box.FontName = "Helvetica"; box.FontSize = 32;
+            box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+            box.AddParagraph("");
+            if (followingText) box.AddParagraph("CLIPPED");
+        }
+        var svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+        var losses = svg.Diagnostics.Where(diagnostic => diagnostic.Message.Contains("Clipped PowerPoint", StringComparison.Ordinal));
+        Assert.Equal(followingText, losses.Any());
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes());
+        Assert.Contains("VISIBLE", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        if (!table) {
+            var conversion = presentation.ToPdfDocumentResult();
+            Assert.Equal(followingText, conversion.Report.FidelityDiagnostics.Any(diagnostic => diagnostic.Code == "text-box-overflow"));
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void CondensedDescendersAreClippedOnlyAtTheTextBoxBoundary(bool rich) {

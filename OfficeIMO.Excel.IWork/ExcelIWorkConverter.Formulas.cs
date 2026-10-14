@@ -49,7 +49,7 @@ public static partial class ExcelIWorkConverter {
             foreach (IWorkTableCell cell in table.Cells) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!cell.FormulaIsComplete || cell.Formula == null) continue;
-                IWorkFormulaResult? result = cell.FormulaDefinition?.Render(qualifiers, projection.FormulaBudget!, own);
+                IWorkFormulaResult? result = cell.FormulaDefinition?.Render(qualifiers, projection.FormulaBudget!, own, cancellationToken);
                 string text = ExcelFormulaStorage.PrepareForXlsx(result?.Text ?? cell.Formula);
                 if (result?.IsComplete == false || text.Length > 8192) {
                     limitation = $"Numbers table '{table.Name}' contains a formula that cannot be bound within the supported XLSX reference or formula limits.";

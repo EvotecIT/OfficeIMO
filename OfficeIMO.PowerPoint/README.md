@@ -342,6 +342,8 @@ Use `slide.BackgroundColor` for a solid slide background or `slide.SetBackground
 
 Set `table.GetCell(row, column).FillColor` to an RGB hex color to replace the cell's local fill. Set `NoFill = true` to show the slide background through that cell and suppress table-theme shading. Setting `NoFill = false` removes that override; setting `FillColor = null` removes only a local solid fill. Cell indexes are zero-based. Explicit no-fill survives PPTX save/reopen, image export and native PPT conversion.
 
+Use `cell.SetBorders(PowerPointTableCellBorders.Bottom, "FF0000", 3)` to set selected edges while preserving the others. Widths are in points and must fit DrawingML's 0–1584-point range. `cell.HideBorders(...)` explicitly hides selected edges and overrides table styling; `cell.ClearBorders(...)` removes local edge declarations so they can inherit the table style. Setting a solid border after hiding it replaces the no-fill declaration.
+
 ### Charts from data
 
 ```csharp

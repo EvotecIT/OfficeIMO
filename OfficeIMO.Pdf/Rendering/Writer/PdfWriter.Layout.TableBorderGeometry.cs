@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
         ref double x, ref double y, ref double width, ref double height) {
         double left = Inset(border.Left, border.LeftBorderSnapshot);
         double right = Inset(border.Right, border.RightBorderSnapshot);
-        double top = Inset(border.Top, border.TopBorderSnapshot);
+        double top = Inset(border.Top, border.TopBorderSnapshot) + border.PaintTopInset;
         double bottom = Inset(border.Bottom, border.BottomBorderSnapshot);
         x += left;
         y += bottom;

@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "profile": "Preservation-aware existing Numbers Decimal128/boolean cell replacement",
+  "license": "MIT; newly authored OfficeIMO fixtures and derived evidence",
+  "application": {
+    "name": "Numbers",
+    "version": "14.5",
+    "build": "7045.0.17"
+  },
+  "host": {
+    "os": "macOS27.0.1(26A434)",
+    "architecture": "arm64"
+  },
+  "candidateBase": "74e21dbeef75dedfe391972b32ddd053e3e1b2df",
+  "artifacts": {
+    "preserved": {
+      "path": "numbers-preserved-scalars-v14.5.numbers",
+      "bytes": 92182,
+      "sha256": "588a8c65a12f75d5969f73eff4bf8bfe8fef5134f9d3700ce1f8b3dcc77afb98"
+    },
+    "nativeEdited": {
+      "path": "numbers-preserved-scalars-edited-v14.5.numbers",
+      "bytes": 88709,
+      "sha256": "f2018a01070409319fd0b2fcd11ab2c67abd875385914e94593182d988babf7b"
+    },
+    "nativeXlsx": {
+      "path": "numbers-preserved-scalars-edited-v14.5.xlsx",
+      "bytes": 7189,
+      "sha256": "c8437a3cb165441ab8a69eae3a77015a11858618ee4417dfaf29bdd24445054a"
+    },
+    "nativePdf": {
+      "path": "numbers-preserved-scalars-edited-v14.5.pdf",
+      "bytes": 74368,
+      "sha256": "0b18dafbfc1f13bb01be8b5ba669f4f527a7fc454c7e21b66c5e227d307aa083"
+    },
+    "officeimoXlsx": {
+      "path": "numbers-preserved-scalars-officeimo-v14.5.xlsx",
+      "bytes": 5513,
+      "sha256": "be9b947e7b1a837e4e1be365eedce533b5115039baa867d14e9a99ac8c4bcd8d"
+    },
+    "nativeEditedOfficeimoXlsx": {
+      "path": "numbers-preserved-scalars-edited-officeimo-v14.5.xlsx",
+      "bytes": 5513,
+      "sha256": "818835a186c1fc363f1876fd49cb399eb7a39f9444e9f35abe5c8de58b98163c"
+    },
+    "rawPreservation": {
+      "path": "numbers-preserved-scalars-v14.5-rawPreservation.json",
+      "bytes": 1147,
+      "sha256": "a802247ea18957af9e31e0cb15e96f6761061643241a8a5a19db9f438387eba5"
+    },
+    "nativeEditedDecode": {
+      "path": "numbers-preserved-scalars-v14.5-nativeEditedDecode.json",
+      "bytes": 1044,
+      "sha256": "97e709697b637ab75a741d7ce66e28338ab51d8ebfd1622f00572da41130d948"
+    },
+    "allCellDecode": {
+      "path": "numbers-preserved-scalars-v14.5-allCellDecode.json",
+      "bytes": 1817,
+      "sha256": "27d4ac4a6f3e98f952d79ce504e2c307fe9115a9a4dcf947161b1b2a5785304e"
+    },
+    "exportDecode": {
+      "path": "numbers-preserved-scalars-v14.5-exportDecode.json",
+      "bytes": 2358,
+      "sha256": "6d0a9bdbe9f5c31c499176f50f3720568f02e86986d80645c3dca29799fb4447"
+    },
+    "native-open-budget": {
+      "path": "numbers-preserved-scalars-v14.5-native-open-budget.png",
+      "bytes": 125739,
+      "sha256": "65569514c670bfa1dd33afba3e6cac2fac3d3d5d25c9a0ce0f8cfb59e1274b60"
+    },
+    "native-open-empty": {
+      "path": "numbers-preserved-scalars-v14.5-native-open-empty.png",
+      "bytes": 54663,
+      "sha256": "265ba13f15a72daedc95bc848b68a2846a6596e32410fff63522aed141b6a385"
+    },
+    "native-edit-budget": {
+      "path": "numbers-preserved-scalars-v14.5-native-edit-budget.png",
+      "bytes": 128347,
+      "sha256": "0709a5d87a54ae0d40bc222e526ceb3798837cc69aaa4bcf9961ae77c4d5fd25"
+    },
+    "native-reopen-budget": {
+      "path": "numbers-preserved-scalars-v14.5-native-reopen-budget.png",
+      "bytes": 125769,
+      "sha256": "fde34a631ec96c6d868ceaabad9e15689ee47d1859bcbfc1c42fd7f3e49b40fd"
+    },
+    "native-pdf-page-1": {
+      "path": "numbers-preserved-scalars-v14.5-native-pdf-page-1.png",
+      "bytes": 32501,
+      "sha256": "c432298822d26d6aac5fe768b19497aec5edebadbf4d08934051b0a741a2b836"
+    },
+    "native-pdf-page-2": {
+      "path": "numbers-preserved-scalars-v14.5-native-pdf-page-2.png",
+      "bytes": 4429,
+      "sha256": "0c905380e1abc0d026d141f7a9373cd16c1d16a61bf1192be956da33d8da3d26"
+    },
+    "input": {
+      "path": "numbers-created-edited-v14.5.numbers",
+      "bytes": 86050,
+      "sha256": "c907c567584786ce9c5183a376f61d813f3bf56757de531cbdbfb1fefb4fcfd6"
+    }
+  },
+  "nativeAcceptance": {
+    "openWithoutRepair": true,
+    "allSheetsAndTablesInspected": true,
+    "numericEdit": "Data!B2 42.125 to43.125",
+    "savedClosedReopened": true,
+    "xlsxExport": "One worksheet per table, no summary",
+    "pdfExport": "Two sheets, fit each sheet to one page, best image quality",
+    "allPdfPagesRenderedAndInspected": true,
+    "ownedAppClosed": true
+  },
+  "independentPreservation": {
+    "source": "numbers-created-edited-v14.5.numbers",
+    "output": "numbers-preserved-scalars.numbers",
+    "sourceSha256": "c907c567584786ce9c5183a376f61d813f3bf56757de531cbdbfb1fefb4fcfd6",
+    "outputSha256": "588a8c65a12f75d5969f73eff4bf8bfe8fef5134f9d3700ce1f8b3dcc77afb98",
+    "fileEntries": 103,
+    "recordsIncludingAuxiliary": 316,
+    "changedEntries": [
+      "Index/Tables/Tile-150-2.iwa",
+      "Index/Tables/Tile-175-2.iwa"
+    ],
+    "changedTiles": [
+      150,
+      175
+    ],
+    "cells": [
+      [
+        141,
+        2,
+        2,
+        "number",
+        42.125
+      ],
+      [
+        141,
+        2,
+        3,
+        "boolean",
+        false
+      ],
+      [
+        141,
+        3,
+        2,
+        "number",
+        -7.5
+      ],
+      [
+        141,
+        3,
+        3,
+        "boolean",
+        true
+      ],
+      [
+        166,
+        1,
+        2,
+        "number",
+        123.75
+      ],
+      [
+        166,
+        2,
+        1,
+        "boolean",
+        true
+      ]
+    ],
+    "onlyDeclaredScalarSpansDiffer": true,
+    "rawHeadersSiblingsAndOtherBytesIdentical": true,
+    "numbersParser": "4.19.0",
+    "protobuf": "7.36.2",
+    "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917"
+  },
+  "independentExports": {
+    "allTypedCellsMatchNativeAndOfficeimoXlsx": true,
+    "allTextAndBooleanValuesRetained": true,
+    "nativePdfPages": 2,
+    "nativePdfFonts": [
+      "/AAAAAB+ArialMT",
+      "/AAAAAC+ArialMT",
+      "/AAAAAE+AppleColorEmoji"
+    ],
+    "pdfDecoderWarnings": "pypdf reports three zero-offset object entries in the native Quartz PDF; content and both pages were independently decoded/rendered."
+  },
+  "limits": [
+    "Complete modern Numbers sources with no selected formulas or unsupported cell features.",
+    "Existing same-kind Decimal128 numbers and double-backed booleans only; one-based coordinates; shared tiles rejected.",
+    "Active version-five BNC storage and absent or exact empty version-four legacy placeholder for the selected cell.",
+    "Only fixed-width scalar ranges change. Styles, raw headers, sibling/unknown bytes, identities, references, resources and package membership remain intact.",
+    "Native previews and visual caches remain unrefreshed and unassessed with explicit acceptance; wider metadata and recalculation unqualified.",
+    "Native appearance is fixture-specific on Numbers14.5; other versions, fonts and platforms require qualification.",
+    "Inherited Numbers padding remains an explicit XLSX loss; complete composed PDF remains rejected.",
+    "No source text edits, insertion, type/layout changes, formulas or nested-index mutations."
+  ],
+  "recordedUtc": "2026-10-10T22:27:04.967688+00:00"
+}

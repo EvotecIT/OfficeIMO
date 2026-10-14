@@ -57,7 +57,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (OpenXmlElement element in tree.ChildElements) {
                 PowerPointShape? shape = CreateShapeFromElement(element, ownerPart);
                 if (shape != null) {
-                    shapes.Add(shape.AttachTo(this));
+                    shapes.Add(shape.AttachTo(this, ownerPart));
                 }
             }
 

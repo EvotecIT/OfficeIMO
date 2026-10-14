@@ -27,7 +27,7 @@ public sealed partial class PdfOptions {
             _suppressEvenPageTextWatermark = false;
         }
     }
-    internal PdfTextWatermark? GetTextWatermarkForPage(int pageNumber) {
+    internal PdfTextWatermark? GetTextWatermarkForPage(int pageNumber, int? visiblePageNumber = null) {
         if (pageNumber == 1 && (_firstPageTextWatermark != null || _suppressFirstPageTextWatermark)) {
             return _suppressFirstPageTextWatermark
                 ? null
@@ -42,13 +42,14 @@ public sealed partial class PdfOptions {
             return (_firstPageTextWatermark ?? _textWatermark)?.Clone();
         }
 
-        if (pageNumber > 0 && pageNumber % 2 == 0 && (_evenPageTextWatermark != null || _suppressEvenPageTextWatermark)) {
+        int parityPageNumber = UsePageNumberParityForHeaderFooter ? visiblePageNumber ?? pageNumber : pageNumber;
+        if (parityPageNumber > 0 && parityPageNumber % 2 == 0 && (_evenPageTextWatermark != null || _suppressEvenPageTextWatermark)) {
             return _suppressEvenPageTextWatermark
                 ? null
                 : _evenPageTextWatermark?.Clone();
         }
 
-        if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {
+        if (DifferentOddAndEvenPagesHeaderFooter && parityPageNumber > 0 && parityPageNumber % 2 == 0) {
             if (_suppressEvenPageTextWatermark) {
                 return null;
             }
@@ -80,7 +81,7 @@ public sealed partial class PdfOptions {
             _suppressEvenPageImageWatermark = false;
         }
     }
-    internal PdfImageWatermark? GetImageWatermarkForPage(int pageNumber) {
+    internal PdfImageWatermark? GetImageWatermarkForPage(int pageNumber, int? visiblePageNumber = null) {
         if (pageNumber == 1 && (_firstPageImageWatermark != null || _suppressFirstPageImageWatermark)) {
             return _suppressFirstPageImageWatermark
                 ? null
@@ -95,13 +96,14 @@ public sealed partial class PdfOptions {
             return (_firstPageImageWatermark ?? _imageWatermark)?.Clone();
         }
 
-        if (pageNumber > 0 && pageNumber % 2 == 0 && (_evenPageImageWatermark != null || _suppressEvenPageImageWatermark)) {
+        int parityPageNumber = UsePageNumberParityForHeaderFooter ? visiblePageNumber ?? pageNumber : pageNumber;
+        if (parityPageNumber > 0 && parityPageNumber % 2 == 0 && (_evenPageImageWatermark != null || _suppressEvenPageImageWatermark)) {
             return _suppressEvenPageImageWatermark
                 ? null
                 : _evenPageImageWatermark?.Clone();
         }
 
-        if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {
+        if (DifferentOddAndEvenPagesHeaderFooter && parityPageNumber > 0 && parityPageNumber % 2 == 0) {
             if (_suppressEvenPageImageWatermark) {
                 return null;
             }

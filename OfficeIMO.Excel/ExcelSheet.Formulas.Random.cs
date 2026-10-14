@@ -16,10 +16,14 @@ namespace OfficeIMO.Excel {
             if (!IsFiniteFormulaNumber(lower) || !IsFiniteFormulaNumber(upper)) return false;
             double first = lower.Number!.Value, last = upper.Number!.Value;
             const double maximumExactInteger = 9007199254740991d; // 2^53 - 1
-            if (first != Math.Truncate(first) || last != Math.Truncate(last)
-                || first < -maximumExactInteger || first > maximumExactInteger
+            if (first < -maximumExactInteger || first > maximumExactInteger
                 || last < -maximumExactInteger || last > maximumExactInteger) return false;
             if (first > last) { result = FormulaArgumentValue.Error("#NUM!"); return true; }
+            first = Math.Ceiling(first);
+            last = Math.Floor(last);
+            // Empty integer intervals have different native Numbers and Excel
+            // results. Leave their caches intact under this bounded evaluator.
+            if (first > last) return false;
             double number = first;
             if (first != last) {
                 ulong count = (ulong)((long)last - (long)first + 1);

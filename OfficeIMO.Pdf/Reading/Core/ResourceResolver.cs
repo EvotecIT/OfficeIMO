@@ -23,7 +23,7 @@ internal static partial class ResourceResolver {
             GetFontWidthProviders(resources, objects, fonts));
     }
 
-    private static Dictionary<string, PdfFontResource> GetFontsForResources(
+    internal static Dictionary<string, PdfFontResource> GetFontsForResources(
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects,
         Func<string, PdfDictionary, Dictionary<int, PdfIndirectObject>, PdfFontResource>? fontFactory) {

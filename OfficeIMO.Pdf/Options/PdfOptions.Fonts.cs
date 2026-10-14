@@ -243,6 +243,35 @@ public sealed partial class PdfOptions {
                _usedEmbeddedFallbackFontSlots.Contains(PdfStandardFontMapper.GetFontFamily(font));
     }
 
+    /// <summary>Resolves an inherited body family without replacing explicit presentation slots or their resources.</summary>
+    internal bool TryUseInheritedOfficeFontFamily(string? familyName, bool embedSystemFont, bool requireEmbeddedFont,
+        bool replaceBodyResources = false) {
+        if (string.IsNullOrWhiteSpace(familyName)) return false;
+        bool mapped = PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfStandardFont standardFont);
+        PdfEmbeddedFontFamily? embeddedFamily = null;
+        if (embedSystemFont) TryLoadOfficeFontFamily(familyName!, out embeddedFamily);
+        if ((!mapped || requireEmbeddedFont) && embeddedFamily == null) return false;
+
+        PdfStandardFont family = mapped ? PdfStandardFontMapper.GetFontFamily(standardFont) : PdfStandardFont.Helvetica;
+        if (embeddedFamily != null) {
+            // An explicit converter body override may replace an unused body
+            // resource. Header and footer selections retain their own slots.
+            var reserved = replaceBodyResources ? new HashSet<PdfStandardFont>() :
+                CreateRegisteredFontFamilySlots(includeDocumentFontSlots: false);
+            if (_hasExplicitHeaderFont) AddRegisteredFontFamilySlot(reserved, HeaderFont);
+            if (_hasExplicitFooterFont) AddRegisteredFontFamilySlot(reserved, FooterFont);
+            // A presentation slot can retain a standard face while the body
+            // embeds another family with the same standard-font alias.
+            if (reserved.Contains(family) && !EmbeddedFontFamilySlotMatches(family, familyName!) &&
+                !TrySelectAvailableFontFamilySlot(familyName!, reserved, out family)) return false;
+            RegisterFontFamily(family, embeddedFamily);
+        }
+
+        DefaultFont = family;
+        ApplyInheritedFontFamily(family);
+        return true;
+    }
+
     private bool TryUseOfficeFontFamilyCore(string? familyName, bool embedSystemFont, bool requireEmbeddedFont) {
         if (string.IsNullOrWhiteSpace(familyName)) {
             return false;

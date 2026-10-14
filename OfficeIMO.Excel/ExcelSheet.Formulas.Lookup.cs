@@ -18,19 +18,21 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateLookupValue(string function, string args, out FormulaArgumentValue result) {
             result = default;
-            var tokens = SplitFormulaArguments(args);
+            var tokens = SplitFormulaArguments(args, preserveEmpty: function == "XLOOKUP");
             if (function == "XLOOKUP") {
                 return TryEvaluateXLookupValue(tokens, out result);
             }
 
             if (tokens.Count != 4
                 || !TryResolveFormulaArgument(tokens[0], out var lookupValue)
+                || lookupValue.IsUnresolvedFormula
                 || !TryGetWholeNumberArgument(tokens[2], out int resultIndex)
-                || !IsExactLookupMode(tokens[3])
-                || !TryResolveFormulaRangeReference(tokens[1], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2)
-                || !TryGetFormulaRangeCellCount(r1, c1, r2, c2, out _)) {
+                || !IsExactLookupMode(tokens[3])) {
                 return false;
             }
+            if (!TryResolveFormulaRangeReference(tokens[1], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2))
+                return _formulaReferenceError.IsError;
+            if (!TryGetFormulaRangeCellCount(r1, c1, r2, c2, out _)) return false;
 
             if (lookupValue.IsUnresolvedFormula) return false;
             if (lookupValue.IsError) { result = lookupValue; return true; }
@@ -85,13 +87,12 @@ namespace OfficeIMO.Excel {
             if (tokens.Count < 3 || tokens.Count > 6
                 || !TryResolveFormulaArgument(tokens[0], out var lookupValue)
                 || !TryResolveFormulaRange(tokens[1], out var lookupValues, ref remainingCellBudget)
-                || !TryResolveFormulaRange(tokens[2], out var returnValues, ref remainingCellBudget)
-                || lookupValues.Count != returnValues.Count) {
+                || !TryResolveFormulaRange(tokens[2], out var returnValues, ref remainingCellBudget)) {
                 return false;
             }
 
             int matchMode = 0;
-            if (tokens.Count >= 5 && !TryGetWholeNumberArgument(tokens[4], out matchMode)) {
+            if (tokens.Count >= 5 && tokens[4].Length > 0 && !TryGetWholeNumberArgument(tokens[4], out matchMode)) {
                 return false;
             }
 
@@ -100,12 +101,14 @@ namespace OfficeIMO.Excel {
             }
 
             int searchMode = 1;
-            if (tokens.Count >= 6
+            if (tokens.Count >= 6 && tokens[5].Length > 0
                 && (!TryGetWholeNumberArgument(tokens[5], out searchMode) || (searchMode != 1 && searchMode != -1))) {
                 return false;
             }
 
             if (lookupValue.IsUnresolvedFormula) return false;
+            if (_formulaReferenceError.IsError) return true;
+            if (lookupValues.Count != returnValues.Count) return false;
             if (lookupValue.IsError) { result = lookupValue; return true; }
             if (TryFindLookupPosition(lookupValue, lookupValues, matchMode, searchMode, out int position, out FormulaArgumentValue searchFailure)) {
                 var returnValue = returnValues[position - 1];
@@ -115,7 +118,7 @@ namespace OfficeIMO.Excel {
 
             if (searchFailure.IsUnresolvedFormula) return false;
             if (searchFailure.IsError) { result = searchFailure; return true; }
-            if (tokens.Count >= 4) {
+            if (tokens.Count >= 4 && tokens[3].Length > 0) {
                 if (!TryResolveFormulaArgument(tokens[3], out result) || result.IsUnresolvedFormula || !result.HasValue) return false;
                 return true;
             }
@@ -134,16 +137,13 @@ namespace OfficeIMO.Excel {
             var argumentSets = new List<List<double>>();
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string token in tokens) {
-                if (!TryResolveFormulaArgumentNumbers(token, out var values, ref remainingCellBudget) || values.Count == 0) {
+                if (!TryResolveFormulaArgumentNumbers(token, out var values, ref remainingCellBudget)) {
                     return false;
                 }
-
-                if (argumentSets.Count > 0 && values.Count != argumentSets[0].Count) {
-                    return false;
-                }
-
                 argumentSets.Add(values);
             }
+            if (_formulaReferenceError.IsError) return true;
+            if (argumentSets.Any(values => values.Count == 0 || values.Count != argumentSets[0].Count)) return false;
 
             for (int index = 0; index < argumentSets[0].Count; index++) {
                 double product = 1d;

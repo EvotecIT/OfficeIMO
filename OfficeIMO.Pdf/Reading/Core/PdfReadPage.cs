@@ -747,6 +747,11 @@ public sealed partial class PdfReadPage {
                 pageResources,
                 operationCheck);
             cancellationCheck?.Invoke();
+            if (!invokedResources.HasObjectPaint &&
+                !HasIndirectPaintResources(pageResources, operationCheck, cancellationToken)) {
+                cancellationCheck?.Invoke();
+                return Array.Empty<PdfImagePlacement>();
+            }
             CollectImagePlacementsAndForms(
                 content,
                 pageResources,
@@ -1088,6 +1093,11 @@ public sealed partial class PdfReadPage {
             initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity,
             inheritedActualTextState: inheritedActualTextState,
             onActualTextForm: (offset, state) => actualTextForms[offset] = state));
+
+        // Text interpretation has already validated the stream and its limits.
+        // A missing Do token rules out forms; strings containing Do simply keep
+        // the conservative second scan.
+        if (content.IndexOf("Do", StringComparison.Ordinal) < 0) return;
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,

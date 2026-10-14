@@ -1,0 +1,306 @@
+{
+  "source": "/Volumes/Samsung/Development/Scratch/officeimo-iwork-implementation/native-pages-images/evidence/created-first/pages-created-image-only.pages",
+  "sha256": "95671db9bf34a93b716ac58fe0f94e7ec9adf03996e35c422b1f3a38413f4cba",
+  "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+  "recordCount": 25,
+  "page": {
+    "width": 612.0,
+    "height": 792.0,
+    "margins": [
+      72.0,
+      72.0,
+      72.0,
+      72.0
+    ]
+  },
+  "paragraphCount": 1,
+  "text": "\ufffc\n",
+  "runs": [
+    {
+      "start": 0,
+      "end": 2,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    }
+  ],
+  "paragraphLayouts": [
+    {
+      "start": 0,
+      "styleId": 35,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": "",
+      "tabStops": []
+    }
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "type": 10000,
+      "references": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "type": 2001,
+      "references": [
+        5,
+        7,
+        9,
+        10,
+        34,
+        35,
+        36
+      ]
+    },
+    {
+      "id": 4,
+      "type": 10001,
+      "references": [
+        5,
+        10,
+        11,
+        12,
+        13,
+        35,
+        36
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "references": [
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        35,
+        36
+      ]
+    },
+    {
+      "id": 6,
+      "type": 10012,
+      "references": []
+    },
+    {
+      "id": 7,
+      "type": 10011,
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 10143,
+      "references": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "id": 9,
+      "type": 2024,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 10,
+      "type": 2023,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 11,
+      "type": 2050,
+      "references": [
+        10,
+        35
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2025,
+      "references": [
+        5,
+        35
+      ]
+    },
+    {
+      "id": 13,
+      "type": 3016,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 14,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 16,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 17,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 18,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 19,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 20,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 21,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 33,
+      "type": 3005,
+      "references": [
+        3,
+        13
+      ]
+    },
+    {
+      "id": 34,
+      "type": 2003,
+      "references": [
+        33
+      ]
+    },
+    {
+      "id": 35,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 36,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "references": []
+    }
+  ],
+  "nativeTables": [],
+  "inlineTables": [],
+  "imageResources": [
+    {
+      "id": 33,
+      "data_id": 32,
+      "path": "Data/image-32.png",
+      "bytes": 220,
+      "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+      "position": [
+        0.0,
+        0.0
+      ],
+      "frame": [
+        120.0,
+        80.0
+      ],
+      "pixel_size": [
+        96.0,
+        64.0
+      ],
+      "image_attributes_extension": 100,
+      "description": "Image only"
+    }
+  ],
+  "inlineImages": [
+    {
+      "start": 0,
+      "attachmentId": 34,
+      "drawableId": 33,
+      "widthPoints": 120.0,
+      "heightPoints": 80.0
+    }
+  ],
+  "scope": "Owned body paragraphs, inline PNG/JPEG images, scalar tables and graph declarations; native application acceptance is separate."
+}

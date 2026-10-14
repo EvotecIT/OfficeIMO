@@ -61,10 +61,28 @@ public sealed partial class PdfOptions {
         }
     }
 
+    internal void ReserveEmptyRunningContentDistance(bool isHeader, PdfRunningContentVariant variant) {
+        PdfRunningContent? content = variant == PdfRunningContentVariant.FirstPage
+            ? isHeader ? FirstPageHeaderContent : FirstPageFooterContent
+            : variant == PdfRunningContentVariant.EvenPages
+                ? isHeader ? EvenPageHeaderContent : EvenPageFooterContent
+                : isHeader ? HeaderContent : FooterContent;
+        SetRunningContent(content?.WithReservedEmptyDistance(), isHeader, variant);
+    }
+
     internal void ClearRunningContentForPage(int variantPageNumber, bool isHeader) {
         PdfRunningContentVariant variant = variantPageNumber == 1 && DifferentFirstPageHeaderFooter
             ? PdfRunningContentVariant.FirstPage
             : IsEvenPageVariant(variantPageNumber) ? PdfRunningContentVariant.EvenPages : PdfRunningContentVariant.Default;
         SetRunningContent(null, isHeader, variant);
+    }
+
+    internal void RetainRunningContentTextProjection(bool isHeader, PdfRunningContentVariant variant) {
+        PdfRunningContent? content = variant == PdfRunningContentVariant.FirstPage
+            ? isHeader ? FirstPageHeaderContent : FirstPageFooterContent
+            : variant == PdfRunningContentVariant.EvenPages
+                ? isHeader ? EvenPageHeaderContent : EvenPageFooterContent
+                : isHeader ? HeaderContent : FooterContent;
+        SetRunningContent(content?.WithTextProjection(), isHeader, variant);
     }
 }

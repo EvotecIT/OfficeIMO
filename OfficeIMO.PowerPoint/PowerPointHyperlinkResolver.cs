@@ -16,6 +16,25 @@ namespace OfficeIMO.PowerPoint {
             SlidePart? sourceSlidePart, A.HyperlinkOnClick? hyperlink) {
             if (ownerPart == null || hyperlink == null) return null;
 
+            if (string.Equals(hyperlink.Action?.Value, "ppaction://hlinkshowjump?jump=nextslide",
+                    StringComparison.OrdinalIgnoreCase)) {
+                PresentationPart? show = sourceSlidePart?.GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+                P.SlideIdList? orderedSlides = show?.Presentation?.SlideIdList;
+                if (show != null && orderedSlides != null) {
+                    int position = 0;
+                    foreach (P.SlideId slideId in orderedSlides.Elements<P.SlideId>()) {
+                        position++;
+                        string? id = slideId.RelationshipId?.Value;
+                        if (id != null && show.TryGetPartById(id, out OpenXmlPart? part)
+                            && ReferenceEquals(part, sourceSlidePart)) {
+                            // A final-slide next action has no PDF page target; keep it explicit for omission reporting.
+                            return new Uri("#slide-" + (position + 1).ToString(CultureInfo.InvariantCulture), UriKind.Relative);
+                        }
+                    }
+                }
+                return null;
+            }
+
             string? relationshipId = hyperlink.Id?.Value;
             if (string.IsNullOrWhiteSpace(relationshipId)) return null;
 
@@ -105,6 +124,9 @@ namespace OfficeIMO.PowerPoint {
                     CultureInfo.InvariantCulture, out slideNumber)
                 && slideNumber >= 1;
         }
+
+        internal static string GetSlideDestinationName(int slideNumber) =>
+            "powerpoint-slide-" + slideNumber.ToString(CultureInfo.InvariantCulture);
 
         private static Uri ResolvePartUri(Uri sourcePartUri,
             Uri relationshipUri) {

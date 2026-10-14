@@ -1,0 +1,326 @@
+{
+  "provider": "numbers-parser4.19.0; pinned Apple schemas; Poppler",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "sources": [
+    {
+      "source": "pages-list-continuation-v15.4.pages",
+      "sha256": "4696ff27d21db00e93d7a7985aba09c22f5f483bf714ce97c680e1a5528a4d53",
+      "items": [
+        {
+          "text": "Initial seven",
+          "level": 0,
+          "number": 7,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Initial eight",
+          "level": 0,
+          "number": 8,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Continued nine",
+          "level": 0,
+          "number": 9,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested first",
+          "level": 1,
+          "number": 1,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested second",
+          "level": 1,
+          "number": 2,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Parent ten",
+          "level": 0,
+          "number": 10,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested after parent",
+          "level": 1,
+          "number": 1,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested restart five",
+          "level": 1,
+          "number": 5,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested restart six",
+          "level": 1,
+          "number": 6,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested continued seven",
+          "level": 1,
+          "number": 7,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Original parent eleven",
+          "level": 0,
+          "number": 11,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Parent restart three",
+          "level": 0,
+          "number": 3,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Parent restart four",
+          "level": 0,
+          "number": 4,
+          "paragraphDefaultPoints": 11,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        }
+      ]
+    },
+    {
+      "source": "pages-list-marker-size-roundtrip-v15.4.pages",
+      "sha256": "c74495f1952adb4b0ce431f2fc72ec311d7c7cf9ae770696699c7aa4df7bfb83",
+      "items": [
+        {
+          "text": "Initial seven",
+          "level": 0,
+          "number": 7,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Initial eight",
+          "level": 0,
+          "number": 8,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Continued nine",
+          "level": 0,
+          "number": 9,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested first",
+          "level": 1,
+          "number": 1,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested second",
+          "level": 1,
+          "number": 2,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Parent ten",
+          "level": 0,
+          "number": 10,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested after parent",
+          "level": 1,
+          "number": 1,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested restart five",
+          "level": 1,
+          "number": 5,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested restart six",
+          "level": 1,
+          "number": 6,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Nested continued seven",
+          "level": 1,
+          "number": 7,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Original parent eleven",
+          "level": 0,
+          "number": 11,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Parent restart three",
+          "level": 0,
+          "number": 3,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        },
+        {
+          "text": "Parent restart four",
+          "level": 0,
+          "number": 4,
+          "paragraphDefaultPoints": 12,
+          "bodyPoints": 12,
+          "markerScale": 0.9166667,
+          "markerPoints": 11,
+          "textOffsetPoints": 16.5
+        }
+      ]
+    }
+  ],
+  "strictDocxVariants": 4,
+  "finalParagraphChanges": "Only 13 leading-run sizes and 13 paragraph-mark sizes:11 to12 points. Generated section revision and relationship IDs are outside this comparison.",
+  "pdfs": [
+    {
+      "path": "pages-list-continuation-v15.4.pdf",
+      "markerCount": 13,
+      "markerPoints": 11,
+      "wordBounds": 55,
+      "maximumNativeWordBoundsDeltaPoints": 0.0,
+      "maximumWordStartDeltaPoints": 0.0
+    },
+    {
+      "path": "pages-list-marker-size-current-native.pdf",
+      "markerCount": 13,
+      "markerPoints": 12,
+      "wordBounds": 55,
+      "maximumNativeWordBoundsDeltaPoints": 1.2656000000000063,
+      "maximumWordStartDeltaPoints": 0.0
+    },
+    {
+      "path": "pages-list-marker-size-mark-only-native.pdf",
+      "markerCount": 13,
+      "markerPoints": 12,
+      "wordBounds": 55,
+      "maximumNativeWordBoundsDeltaPoints": 1.5000000000000142,
+      "maximumWordStartDeltaPoints": 1.5000000000000142
+    },
+    {
+      "path": "pages-list-marker-size-mark-and-empty-run-native.pdf",
+      "markerCount": 13,
+      "markerPoints": 11,
+      "wordBounds": 55,
+      "maximumNativeWordBoundsDeltaPoints": 0.0,
+      "maximumWordStartDeltaPoints": 0.0
+    },
+    {
+      "path": "pages-list-marker-size-roundtrip-v15.4.pdf",
+      "markerCount": 13,
+      "markerPoints": 11,
+      "wordBounds": 55,
+      "maximumNativeWordBoundsDeltaPoints": 0.0,
+      "maximumWordStartDeltaPoints": 0.0
+    }
+  ],
+  "limits": [
+    "Two-level Pages15.4 body lists; Calibri11 markers and ArialMT12 body text.",
+    "Other scales, fonts, containers and producer versions require separate native evidence."
+  ]
+}

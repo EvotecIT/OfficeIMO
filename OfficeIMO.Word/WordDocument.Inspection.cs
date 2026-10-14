@@ -50,6 +50,7 @@ namespace OfficeIMO.Word {
         /// <param name="cancellationToken">Cancellation checked between source sections, paragraphs, table cells and notes.</param>
         public WordDocumentSnapshot CreateInspectionSnapshot(bool includeImageBytes, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
+            using var storyScope = WordHeaderFooterResolutionSnapshot.Begin(this, cancellationToken);
             using var visibilityScope = WordComplexFieldRunVisibility.BeginConversionScope();
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup(),
                 WordDocumentTraversal.BuildResolvedListMarkers(this)) {

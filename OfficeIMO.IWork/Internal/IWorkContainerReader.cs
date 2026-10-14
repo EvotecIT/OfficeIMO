@@ -7,16 +7,22 @@ namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkPackageData {
     internal IWorkPackageData(IWorkContainerKind containerKind, IReadOnlyList<IWorkPackageEntry> entries,
-        long containerLengthBytes, IReadOnlyList<string>? sourceFilePaths = null) {
+        long containerLengthBytes, IReadOnlyList<string>? sourceFilePaths = null,
+        IReadOnlyList<IWorkPackageEntry>? containerEntries = null, string? sourceDirectoryPath = null) {
         ContainerKind = containerKind;
         Entries = entries;
         ContainerLengthBytes = containerLengthBytes;
         SourceFilePaths = sourceFilePaths ?? Array.Empty<string>();
+        ContainerEntries = containerEntries ?? entries;
+        SourceDirectoryPath = sourceDirectoryPath;
     }
 
     internal IWorkContainerKind ContainerKind { get; }
     internal IReadOnlyList<IWorkPackageEntry> Entries { get; }
     internal long ContainerLengthBytes { get; }
+    // Retain physical entries before nested Index.zip expansion. Sharing entry instances adds no payload copies.
+    internal IReadOnlyList<IWorkPackageEntry> ContainerEntries { get; }
+    internal string? SourceDirectoryPath { get; }
     // Native paths cannot be reconstructed from normalized archive names on POSIX.
     internal IReadOnlyList<string> SourceFilePaths { get; }
 }
@@ -124,10 +130,11 @@ internal static class IWorkContainerReader {
         }
         OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
         long containerLengthBytes = total;
+        IWorkPackageEntry[] containerEntries = entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray();
         if (expandNestedIndex) ExpandNestedIndex(entries, ref total, ref nodeCount, options, cancellationToken);
         return new IWorkPackageData(IWorkContainerKind.DirectoryBundle,
             entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray(), containerLengthBytes,
-            sourceFilePaths.ToArray());
+            sourceFilePaths.ToArray(), containerEntries, physicalRoot);
     }
 
     private static IWorkPackageData ReadZip(Stream stream, IWorkReadOptions options,
@@ -142,10 +149,12 @@ internal static class IWorkContainerReader {
                 cancellationToken);
         }
         bool nested = entries.ContainsKey("Index.zip");
+        IWorkPackageEntry[] containerEntries = entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray();
         ExpandNestedIndex(entries, ref total, ref nodeCount, options, cancellationToken);
         return new IWorkPackageData(
             nested ? IWorkContainerKind.ZipPackageWithNestedIndex : IWorkContainerKind.ZipPackage,
-            entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray(), stream.Length);
+            entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray(), stream.Length,
+            containerEntries: containerEntries);
     }
 
     private static void ExpandNestedIndex(Dictionary<string, IWorkPackageEntry> entries, ref long total,

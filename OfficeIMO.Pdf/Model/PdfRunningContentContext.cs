@@ -25,9 +25,9 @@ public sealed class PdfRunningContentContext {
     public int DocumentPageNumber { get; }
     /// <summary>Total physical pages in the document.</summary>
     public int DocumentPages { get; }
-    /// <summary>Current one-based physical page within its page group.</summary>
+    /// <summary>Current one-based physical page within the tracked source section, or the PDF page group when no source sections are tracked.</summary>
     public int SectionPageNumber { get; }
-    /// <summary>Physical page count in the current page group, independent of visible numbering and restarts.</summary>
+    /// <summary>Physical page count in the tracked source section or PDF page group, independent of visible numbering and restarts.</summary>
     public int SectionPages { get; }
     /// <summary>Width of the page's content frame in points, including mirrored margins.</summary>
     public double ContentWidth { get; }

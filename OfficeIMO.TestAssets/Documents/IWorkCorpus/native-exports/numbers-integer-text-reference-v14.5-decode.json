@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "producer": "Numbers 14.5 (7045.0.17)",
+  "decoder": "numbers-parser 4.19.0",
+  "source": "numbers-integer-text-reference-v14.5.numbers",
+  "nativeXlsx": "numbers-integer-text-reference-v14.5.xlsx",
+  "changedSource": "numbers-integer-text-reference-changed-v14.5.numbers",
+  "changedXlsx": "numbers-integer-text-reference-changed-v14.5.xlsx",
+  "cells": [
+    {
+      "row": 4,
+      "column": 2,
+      "formula": "GCD(Operands::$B$4,6)",
+      "excelFormula": "GCD('Inputs'!$B$4,6)",
+      "nativeValue": 6,
+      "nativeXlsxAddress": "C5",
+      "referenceTableUuid": "f7e78586-7d28-5df7-b4d5-3d005bd773af",
+      "nodeTypes": [
+        36,
+        17,
+        16
+      ]
+    },
+    {
+      "row": 4,
+      "column": 3,
+      "formula": "LCM(Operands::$B$4,6)",
+      "excelFormula": "LCM('Inputs'!$B$4,6)",
+      "nativeValue": 12,
+      "nativeXlsxAddress": "D5",
+      "referenceTableUuid": "f7e78586-7d28-5df7-b4d5-3d005bd773af",
+      "nodeTypes": [
+        36,
+        17,
+        16
+      ]
+    },
+    {
+      "row": 7,
+      "column": 2,
+      "formula": "GCD(Operands::$B$4)",
+      "excelFormula": "GCD('Inputs'!$B$4)",
+      "nativeValue": 12,
+      "nativeXlsxAddress": "C8",
+      "referenceTableUuid": "f7e78586-7d28-5df7-b4d5-3d005bd773af",
+      "nodeTypes": [
+        36,
+        16
+      ]
+    },
+    {
+      "row": 7,
+      "column": 3,
+      "formula": "LCM(Operands::$B$4)",
+      "excelFormula": "LCM('Inputs'!$B$4)",
+      "nativeValue": 12,
+      "nativeXlsxAddress": "D8",
+      "referenceTableUuid": "f7e78586-7d28-5df7-b4d5-3d005bd773af",
+      "nodeTypes": [
+        36,
+        16
+      ]
+    }
+  ],
+  "changedCells": [
+    {
+      "row": 4,
+      "column": 2,
+      "formula": "GCD(Operands::$B$4,6)",
+      "excelFormula": "GCD('Inputs'!$B$4,6)",
+      "nativeValue": 6,
+      "nativeXlsxAddress": "C5",
+      "referenceTableUuid": "f7e78586-7d28-5df7-b4d5-3d005bd773af",
+      "nodeTypes": [
+        36,
+        17,
+        16
+      ]
+    },
+    {
+      "row": 4,
+      "column": 3,
+      "formula": "LCM(Operands::$B$4,6)",
+      "excelFormula": "LCM('Inputs'!$B$4,6)",
+      "nativeValue": 18,
+      "nativeXlsxAddress": "D5",
+      "referenceTableUuid": "f7e78586-7d28-5df7-b4d5-3d005bd773af",
+      "nodeTypes": [
+        36,
+        17,
+        16
+      ]
+    },
+    {
+      "row": 7,
+      "column": 2,
+      "formula": "GCD(Operands::$B$4)",
+      "excelFormula": "GCD('Inputs'!$B$4)",
+      "nativeValue": 18,
+      "nativeXlsxAddress": "C8",
+      "referenceTableUuid": "f7e78586-7d28-5df7-b4d5-3d005bd773af",
+      "nodeTypes": [
+        36,
+        16
+      ]
+    },
+    {
+      "row": 7,
+      "column": 3,
+      "formula": "LCM(Operands::$B$4)",
+      "excelFormula": "LCM('Inputs'!$B$4)",
+      "nativeValue": 18,
+      "nativeXlsxAddress": "D8",
+      "referenceTableUuid": "f7e78586-7d28-5df7-b4d5-3d005bd773af",
+      "nodeTypes": [
+        36,
+        16
+      ]
+    }
+  ],
+  "qualifiedFormulaCells": 4,
+  "nativeFormulaCells": 14,
+  "inputs": [
+    {
+      "path": "numbers-integer-text-reference-v14.5.numbers",
+      "bytes": 81403,
+      "sha256": "c7af6b7727f6dae5d4de8048f3ecfd71bab549bcec773459fcdd2dd23d868347"
+    },
+    {
+      "path": "numbers-integer-text-reference-v14.5.xlsx",
+      "bytes": 7317,
+      "sha256": "f68a2e4ef66baf008861da2581b29bdcaccc1654707ef5aabf5f93e0e1ab6947"
+    },
+    {
+      "path": "numbers-integer-text-reference-changed-v14.5.numbers",
+      "bytes": 81355,
+      "sha256": "5f335e1dfea1dd1fdba85bf8984f8a1526c71f64d0293da62764a68834f3e6ee"
+    },
+    {
+      "path": "numbers-integer-text-reference-changed-v14.5.xlsx",
+      "bytes": 7315,
+      "sha256": "0a608b9d34e302f6f922759526033992d3d9538b0bcb77ee90d522708b63b9c4"
+    }
+  ],
+  "limits": [
+    "Canonical nonnegative integer text in direct scalar cell references only.",
+    "Entered one-cell ranges normalize to native single-cell AST nodes.",
+    "No wider text ranges, blanks, Booleans, localized text, formula dependencies or appearance equivalence."
+  ]
+}

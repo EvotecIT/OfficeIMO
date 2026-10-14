@@ -275,14 +275,6 @@ namespace OfficeIMO.Excel {
                 && string.Equals(element.NamespaceUri, "http://schemas.openxmlformats.org/spreadsheetml/2006/main", StringComparison.Ordinal);
         }
 
-        private static void SetUniformBorder(Border border, BorderStyleValues style, string? hexColor) {
-            var argb = string.IsNullOrWhiteSpace(hexColor) ? null : NormalizeHexColor(hexColor!);
-            border.LeftBorder = CreateBorderSide<LeftBorder>(style, argb);
-            border.RightBorder = CreateBorderSide<RightBorder>(style, argb);
-            border.TopBorder = CreateBorderSide<TopBorder>(style, argb);
-            border.BottomBorder = CreateBorderSide<BottomBorder>(style, argb);
-        }
-
         private static string? NormalizeOptionalHexColor(string? hexColor) {
             return string.IsNullOrWhiteSpace(hexColor) ? null : NormalizeHexColor(hexColor!);
         }

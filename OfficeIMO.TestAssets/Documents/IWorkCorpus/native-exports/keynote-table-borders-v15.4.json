@@ -1,0 +1,213 @@
+{
+  "title": "Keynote native table borders and sparse shared-edge edits",
+  "recordedUtc": "2026-10-09T21:58:57.977624+00:00",
+  "license": "Authored from the OfficeIMO scalar-table example and modified/exported in Apple Keynote. The repository MIT license applies; no Apple template or font files are distributed.",
+  "producer": {
+    "application": "Keynote Creator Studio",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "operatingSystem": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "baseReference": "native-exports/keynote-created-tables-v15.4.json",
+  "sourceEdits": {
+    "table": "Values",
+    "headerRows": 1,
+    "headerColumns": 1,
+    "footerRows": 1,
+    "outlinePoints": 2,
+    "bodyHorizontalVisible": false,
+    "headerRowVerticalVisible": false,
+    "B2Bottom": {
+      "widthPoints": 3,
+      "rgb": "FF3333",
+      "order": 5
+    },
+    "B2Right": {
+      "widthPoints": 0,
+      "explicitEmpty": true,
+      "order": 6
+    }
+  },
+  "files": [
+    {
+      "path": "native-exports/keynote-table-borders-v15.4.key",
+      "bytes": 168530,
+      "sha256": "2032ce6cdee7f75da8de21d502b47d4e5c7f4eb4d152786a84dd81feda176d45",
+      "role": "Native-authored border edits, saved in Keynote"
+    },
+    {
+      "path": "native-exports/keynote-table-borders-v15.4.pdf",
+      "bytes": 101518,
+      "sha256": "214fe2ef8c04c4cfecbb02e2150f6828775468e8c564959a2ceb19e6bc16f4bf",
+      "role": "Native Apple all-slide PDF export"
+    },
+    {
+      "path": "native-exports/keynote-table-borders-v15.4.pptx",
+      "bytes": 17831,
+      "sha256": "2701e1bbdc157c0b5bdeb007c3474712ac210bd486a7053b31156b619a190b37",
+      "role": "Native Apple PPTX export"
+    }
+  ],
+  "independentDecode": {
+    "tool": "Build/IWork/extract-keynote-table-borders.py",
+    "schemaSource": "https://github.com/orcastor/iwork-converter",
+    "schemaCommit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schemaLicense": "MIT",
+    "numbersParserVersion": "4.19.0",
+    "sourceSha256": "2032ce6cdee7f75da8de21d502b47d4e5c7f4eb4d152786a84dd81feda176d45",
+    "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917",
+    "model": 163,
+    "styleChain": [
+      676,
+      164
+    ],
+    "sidecar": 631,
+    "outlinesPoints": {
+      "header_row_border_stroke": 2.0,
+      "header_column_border_stroke": 2.0,
+      "footer_row_border_stroke": 2.0,
+      "table_body_horizontal_border_stroke": 2.0,
+      "table_body_vertical_border_stroke": 2.0
+    },
+    "hiddenBodyHorizontalAndHeaderVertical": true,
+    "layers": {
+      "right_column_stroke_layers": {
+        "row_column_index": 1,
+        "stroke_runs": [
+          {
+            "origin": 1,
+            "length": 1,
+            "stroke": {
+              "color": {
+                "model": "rgb",
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 1.0,
+                "rgbspace": "srgb"
+              },
+              "width": 0.0,
+              "cap": "ButtCap",
+              "join": "MiterJoin",
+              "miter_limit": 4.0,
+              "pattern": {
+                "type": "TSDEmptyPattern",
+                "phase": 0.0,
+                "count": 0,
+                "pattern": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "order": 6
+          }
+        ]
+      },
+      "bottom_row_stroke_layers": {
+        "row_column_index": 1,
+        "stroke_runs": [
+          {
+            "origin": 1,
+            "length": 1,
+            "stroke": {
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.2,
+                "b": 0.2,
+                "a": 1.0,
+                "rgbspace": "srgb"
+              },
+              "width": 3.0,
+              "cap": "ButtCap",
+              "join": "MiterJoin",
+              "miter_limit": 10.0,
+              "pattern": {
+                "type": "TSDSolidPattern",
+                "phase": 0.0,
+                "count": 0,
+                "pattern": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "order": 5
+          }
+        ]
+      }
+    },
+    "disabledCategoryGroups": [
+      {
+        "tableModel": 119,
+        "group": 626,
+        "enabled": false
+      },
+      {
+        "tableModel": 163,
+        "group": 643,
+        "enabled": false
+      },
+      {
+        "tableModel": 201,
+        "group": 660,
+        "enabled": false
+      }
+    ]
+  },
+  "acceptance": {
+    "nativeSaveAndExportObserved": true,
+    "nativeBorderControlsAndSelectedCellInspected": true,
+    "ownedApplicationClosed": true,
+    "sourceIssueCounts": [
+      0,
+      0
+    ],
+    "strictOfficeIMOPptxSavedReopened": true,
+    "controlledSourceEdgesChecked": true,
+    "directOfficeIMOPdfAllSlidesInspected": true
+  },
+  "boundaries": [
+    "Keynote 15.4 macOS arm64 only; native Pages/Numbers borders and other producers are unqualified.",
+    "Solid opaque strokes and explicit invisible edges; multiple header/footer bands, patterned/translucent strokes and active category/pivot layouts need separate qualification.",
+    "Native locale, emoji and font substitution differences retain their existing qualification boundaries."
+  ],
+  "reproduction": [
+    "Compile the pinned KN/TST protobuf descriptor set used by verify-keynote-creation.py.",
+    "Run Build/IWork/extract-keynote-table-borders.py with the source, descriptor and an evidence output path.",
+    "Run the border contracts in OfficeIMO.IWork.Tests; saved output assertions include DOCX, XLSX and PPTX."
+  ],
+  "renderedQualification": {
+    "allThreeNativeAndOfficeIMOPagesInspected": true,
+    "ownedScalarTableAllThreePagesInspected": true,
+    "profile": "Strict editable PPTX reconstruction, saved/reopened through PowerPoint and rendered by OfficeIMO.PowerPoint.Pdf with explicit installed Arial/Times New Roman and test-only Noto Emoji fallback; Poppler90DPI comparison.",
+    "retained": "Two-point outlines, hidden body-horizontal/header-vertical edges, three-point redB2 bottom, hiddenB2 right, empty-table outlines and regular header/footer text.",
+    "knownDifferences": [
+      "Native Polish number/boolean display versus invariant destination values",
+      "Declared Helvetica-to-Arial substitution and font metrics",
+      "Native color emoji versus monochrome fallback"
+    ],
+    "artifacts": [
+      {
+        "kind": "strict saved/reopened PPTX",
+        "bytes": 29370,
+        "sha256": "49b6ccecdb1759ec2353ef54cb669427ec75cc6d8256dc73b08f4cd51f1f5838"
+      },
+      {
+        "kind": "direct PowerPoint PDF",
+        "bytes": 106117,
+        "sha256": "adc79ad35a7e5c4a1e92286579904d6a1fa7a15a03cacce8ff5623e2a274c483"
+      }
+    ]
+  }
+}

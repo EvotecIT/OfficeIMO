@@ -1,0 +1,609 @@
+{
+  "schemaVersion": 1,
+  "source": "pages-table-borders-v15.4.pages",
+  "sourceSha256": "d6fefca93e07ab4c2f8557f91ad6dd34bca5864c0372733751d74db992fcc65d",
+  "sourceProducerReference": "pages-table-borders-v15.4.json",
+  "destinationProducer": "Microsoft Word 16.113.3 (16.113.26092714)",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "license": "MIT, OfficeIMO contributors",
+  "purpose": "Physical fixed-row boxes and vertical-merge continuation bottom margins in Word DOCX and the shared Word PDF renderer.",
+  "recipe": "Open each retained DOCX in Word, inspect at 100%, use local macOS Print > PDF > Save as PDF, then close without saving and quit the owned application. Rasterize every one-page PDF at 1600 pixels maximum dimension and inspect it. Read PDF text/fonts with pypdf and raster stroke centers with Pillow/NumPy; independently compare DOCX content and edges through Build/IWork/verify-pages-table-borders.py.",
+  "nativeApplication": {
+    "initiallyRunning": false,
+    "openedWithoutRepair": true,
+    "allThreeDocumentViewsInspected": true,
+    "allThreeNativePdfPagesInspected": true,
+    "ownedApplicationClosed": true,
+    "onlineConversion": false,
+    "printerDelivery": false
+  },
+  "sourceImmutable": true,
+  "wordContractReference": "https://learn.microsoft.com/en-us/openspecs/office_standards/ms-oe376/3b8129c1-9aac-4611-a50e-247d13a382b2",
+  "rowMapping": {
+    "sourcePhysicalHeightsPoints": [
+      32,
+      31,
+      32,
+      32
+    ],
+    "bottomPaddingPoints": 4,
+    "docxExactDeclarationsTwips": [
+      560,
+      540,
+      560,
+      560
+    ],
+    "wordPhysicalHeightsPoints": [
+      32,
+      31,
+      32,
+      32
+    ],
+    "totalPhysicalHeightPoints": 127,
+    "maximumDeclarationTwips": 31680,
+    "minimumExactDeclarationTwips": 1,
+    "automaticRows": "Separate minimum-height constraint profile; native automatic sizing is not qualified here."
+  },
+  "mergeControls": {
+    "origin": "Controlled Word documents authored with OfficeIMO; destination-semantics oracles, not independent Apple source documents.",
+    "unspacedExpectedPhysicalHeightPoints": {
+      "horizontal": 20,
+      "verticalRowsWithNeighbor": [
+        20,
+        24
+      ],
+      "fullWidthVerticalTotal": 48
+    },
+    "spacedExpectedSecondRowAdvancePoints": 63.5,
+    "spacedNativeMeasuredAdvancePoints": 63.6,
+    "spacedOfficeimoMeasuredAdvancePoints": 63.5,
+    "nativeTextCoordinateTolerancePoints": 0.25,
+    "rasterStrokeTolerancePoints": 0.5,
+    "semantics": "Vertical continuations retain bottom margins. Horizontal continuations removed during merge normalization do not contribute. Explicit zero margins override inherited conditional padding."
+  },
+  "editableReadback": {
+    "tool": "Build/IWork/verify-pages-table-borders.py",
+    "method": "Python stdlib ZIP/XML; no OfficeIMO loads",
+    "documents": 4,
+    "valuesEach": 16,
+    "cellEdgesEach": 64,
+    "boldCellsEach": 10,
+    "emptyD3": true
+  },
+  "sourceBaseRevision": "bfce41d246004b5302ab70aa1c16c9234dbf58bc",
+  "productionSourceFiles": [
+    {
+      "path": "OfficeIMO.IWork/Internal/IWorkTableBorderReader.cs",
+      "sha256": "22f0ba3a5895a207616b3000a8489270e13ff6295cae60b153a0494dee5e2e53"
+    },
+    {
+      "path": "OfficeIMO.IWork/Internal/IWorkTableBorderOverrides.cs",
+      "sha256": "80919df1854c2197f47a759e3bdb104407cc918969b0e7ca7c65a62149d4c717"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.Validation.cs",
+      "sha256": "58c3c29a74a211e621c109ccf6a888b5eccd315c3cdf6aaf21bd0031d29a90d8"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.TableRowHeights.cs",
+      "sha256": "ec39d10a02c5e9c39be43822baab233ce9ac21ca7acdce79a32bcc3647044a84"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.Tables.cs",
+      "sha256": "20e9c680abe046ee261f4bc68ee30180536755527706a4a28924cfbd7264be94"
+    },
+    {
+      "path": "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.Tables.cs",
+      "sha256": "d2d582461c98bd27f5577bafbf17fdf3f07cf955cf2615c749c1376adfeca641"
+    },
+    {
+      "path": "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.TableFrames.cs",
+      "sha256": "7d5adb2b4a502c09c2c20c413dd0193ea277c562c795255fc2ddc81b5f5f326e"
+    },
+    {
+      "path": "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.TableConditionalPaddings.cs",
+      "sha256": "83a6580ce9973439ac164d4296d1b37f13ae61a3ad4b490c5808a8cfc0a2b885"
+    }
+  ],
+  "loadedAssemblies": [
+    {
+      "name": "OfficeIMO.IWork.dll",
+      "sha256": "eb3a9b2a2fc29a9f116265454fc1eebea01e603766c1818b7ca40693086c985a"
+    },
+    {
+      "name": "OfficeIMO.Word.dll",
+      "sha256": "ff849f52a4ef88f5e783d7ef5c54a24dc1dc611c4ef127f7ed1c30e26b1df06d"
+    },
+    {
+      "name": "OfficeIMO.Word.IWork.dll",
+      "sha256": "a0b4bae4f49ea3f8d9473bdb4c69bcd009357ad9fd97826a7df0b0f0baa0228a"
+    },
+    {
+      "name": "OfficeIMO.Workflows.IWork.dll",
+      "sha256": "024ef651d4b32106d8312d1ac7e1829e8e2c0c9a860350026cdc8c4c754d5c48"
+    },
+    {
+      "name": "OfficeIMO.Word.Pdf.dll",
+      "sha256": "6d3e16fdf1e86770f69ee7aecb192a459baf4ac59475c64f134ba0247bec65d6"
+    }
+  ],
+  "conversion": {
+    "explicitPartialEditable": true,
+    "visualFallback": false,
+    "diagnosticCodes": [
+      "IWORK_SOURCE_READ",
+      "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED",
+      "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION"
+    ],
+    "completeIWorkPdfRejectedUnderBothPartialSettings": true
+  },
+  "rendering": {
+    "resourcePolicy": "PdfResourcePolicy.CreatePortableDeterministic",
+    "callerFallback": "SIL OFL Carlito Regular/Bold/Italic/BoldItalic from repository assets",
+    "diagnostics": [
+      {
+        "Code": "NativeFontFamilySubstituted",
+        "Message": "The source font family 'TimesNewRomanPSMT' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+        "LossKind": 1,
+        "Source": "OfficeIMO.Word.Pdf",
+        "Location": "word:font[TimesNewRomanPSMT]"
+      },
+      {
+        "Code": "NativeFontFamilySubstituted",
+        "Message": "The source font family 'Arial-BoldMT' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+        "LossKind": 1,
+        "Source": "OfficeIMO.Word.Pdf",
+        "Location": "word:font[Arial-BoldMT]"
+      },
+      {
+        "Code": "NativeFontFamilySubstituted",
+        "Message": "The source font family 'ArialMT' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+        "LossKind": 1,
+        "Source": "OfficeIMO.Word.Pdf",
+        "Location": "word:font[ArialMT]"
+      }
+    ],
+    "fontRedistribution": "No font files added. Native PDF files contain producer-subset font resources."
+  },
+  "independentReadback": {
+    "method": "Independent pypdf text/font readback, Pillow raster stroke centers, and Python stdlib ZIP/XML normalization; no OfficeIMO loads.",
+    "normalization": [
+      "Internal relationship targets resolved to package-absolute part names; relationship-only structural whitespace removed.",
+      "Relationship IDs replaced by Type,Target,TargetMode tuples in relationships and referring XML.",
+      "Generated section revision identifier w:sectPr/@w:rsidR removed; every other value retained."
+    ],
+    "acceptedDocx": "pages-table-row-height-officeimo.docx",
+    "freshWorkflowDocx": "pages-table-row-height-workflow.docx",
+    "normalizedPackagePartsMatch": true,
+    "normalizedParts": [
+      {
+        "path": "[Content_Types].xml",
+        "sha256": "c63934b12fed05da2f6d3436203bad9fa6279f07a0f6ee2a9721119659413969"
+      },
+      {
+        "path": "_rels/.rels",
+        "sha256": "452316560c6acc8264b199f171e182f17c038d6f3a8474a6f45c25fe810eca43"
+      },
+      {
+        "path": "word/_rels/document.xml.rels",
+        "sha256": "b3f8d205893cdaa16196cf7df2732ef27e4eb355d8588bfbf554c53c1eaa578d"
+      },
+      {
+        "path": "word/document.xml",
+        "sha256": "c79f1f4451ecdc23c53e617c43cc6729f01f31a7d0741ebf707ab1bd39f7a2dd"
+      },
+      {
+        "path": "word/endnotes.xml",
+        "sha256": "18198537fad9907f73f89851ca9c0bc7ee89dac4f301b8336572007a95ac3cc1"
+      },
+      {
+        "path": "word/fontTable.xml",
+        "sha256": "51e3a43845ba5c6174481229bc5d45301472aab5d2423b06152adedb5d380d83"
+      },
+      {
+        "path": "word/footer1.xml",
+        "sha256": "6046bcdc3448fa32f7f9deb9b60186a3b55bedc32e85b7d362e5f32b9f1b8113"
+      },
+      {
+        "path": "word/footnotes.xml",
+        "sha256": "6a75c4226ae0329e3207c45df8bfd862c4d2c60d7c705fd244a544ec29b280f3"
+      },
+      {
+        "path": "word/header1.xml",
+        "sha256": "7116caba58e54fcb172100a071918ff45bcdca41ca4eb6e782e076e1eec78304"
+      },
+      {
+        "path": "word/settings.xml",
+        "sha256": "599562d8ca2886d1855b70dc57cef05b6f7cfb5f4e5bbfbc1fc3173e800ca917"
+      },
+      {
+        "path": "word/styles.xml",
+        "sha256": "1746a2f40270226757ea967f0d231951585d2fc425590e57e1dd3bacfc8b4720"
+      },
+      {
+        "path": "word/theme/theme1.xml",
+        "sha256": "5c5ed68f44bd6f017d983f62fdcb70b958d3cab0bf11fb758ac7b21eb91ed37c"
+      },
+      {
+        "path": "word/webSettings.xml",
+        "sha256": "ff29f6044e37c57d18ea9225420f976f828a5852f162033aec18ecb826ccb87a"
+      }
+    ],
+    "rasterMeasurementTolerancePoints": 0.5,
+    "pdfs": [
+      {
+        "pdf": "pages-table-row-height-word-v16.113.3.pdf",
+        "sha256": "e9de21fd69d4f4e3f55ac0978d93e068edb97524e0af8798ee548c02d164f6ff",
+        "pages": 1,
+        "pageInspected": true,
+        "text": " \n \n Corner One Two Three Row A Red edge Hidden edge Body Row B Green edge Body  Footer End Last Tail  ",
+        "fonts": [
+          "/AAAAAC+Calibri",
+          "/AAAAAE+TimesNewRomanPSMT",
+          "/AAAAAG+Arial-BoldMT",
+          "/AAAAAI+ArialMT"
+        ],
+        "colors": [
+          {
+            "rgb": [
+              0,
+              102,
+              204
+            ],
+            "horizontalStrokeCentersPoints": [
+              86.3775,
+              213.5925
+            ],
+            "advancesPoints": [
+              127.215
+            ]
+          },
+          {
+            "rgb": [
+              0,
+              128,
+              0
+            ],
+            "horizontalStrokeCentersPoints": [
+              181.4175
+            ],
+            "advancesPoints": []
+          }
+        ],
+        "labels": {}
+      },
+      {
+        "pdf": "pages-table-row-height-officeimo-rendered.pdf",
+        "sha256": "98b220b698eb0e0304e1228ec43e74315a3108b1d83ade99c4eeea7ef28445fe",
+        "pages": 1,
+        "pageInspected": true,
+        "text": "Corner One Two Three\nRow A Red edge Hidden edge Body\nRow B Green edge Body \nFooter End Last Tail",
+        "fonts": [
+          "/Helvetica",
+          "/Helvetica-Bold"
+        ],
+        "colors": [
+          {
+            "rgb": [
+              0,
+              102,
+              204
+            ],
+            "horizontalStrokeCentersPoints": [
+              86.3775,
+              213.5925
+            ],
+            "advancesPoints": [
+              127.215
+            ]
+          },
+          {
+            "rgb": [
+              0,
+              128,
+              0
+            ],
+            "horizontalStrokeCentersPoints": [
+              181.4175
+            ],
+            "advancesPoints": []
+          }
+        ],
+        "labels": {}
+      },
+      {
+        "pdf": "word-merge-row-margins-v16.113.3.pdf",
+        "sha256": "d674dfc6a925ed86c7b95b90328b3f8771d36767ca1b39cf62447050aa2e1667",
+        "pages": 1,
+        "pageInspected": true,
+        "text": "Horizontal merge Anchor  Vertical merge with active neighbor Anchor    Full-width vertical merge Anchor \n ",
+        "fonts": [
+          "/AAAAAC+Calibri"
+        ],
+        "colors": [
+          {
+            "rgb": [
+              0,
+              102,
+              204
+            ],
+            "horizontalStrokeCentersPoints": [
+              94.7925,
+              114.5925
+            ],
+            "advancesPoints": [
+              19.799999999999997
+            ]
+          },
+          {
+            "rgb": [
+              0,
+              128,
+              0
+            ],
+            "horizontalStrokeCentersPoints": [
+              160.6275,
+              180.92249999999999,
+              204.6825
+            ],
+            "advancesPoints": [
+              20.294999999999987,
+              23.76000000000002
+            ]
+          },
+          {
+            "rgb": [
+              204,
+              0,
+              0
+            ],
+            "horizontalStrokeCentersPoints": [
+              250.7175,
+              298.7325
+            ],
+            "advancesPoints": [
+              48.015000000000015
+            ]
+          }
+        ],
+        "labels": {}
+      },
+      {
+        "pdf": "word-merge-row-margins-officeimo.pdf",
+        "sha256": "61ba25b59847664cd1e712791427d096372df1f3da7a2736ca2814063a14c7b6",
+        "pages": 1,
+        "pageInspected": true,
+        "text": "Horizontal merge\nAnchor\nVertical merge with active neighbor\nAnchor\nFull-width vertical merge\nAnchor",
+        "fonts": [
+          "/Helvetica"
+        ],
+        "colors": [
+          {
+            "rgb": [
+              0,
+              102,
+              204
+            ],
+            "horizontalStrokeCentersPoints": [
+              93.8025,
+              114.0975
+            ],
+            "advancesPoints": [
+              20.295
+            ]
+          },
+          {
+            "rgb": [
+              0,
+              128,
+              0
+            ],
+            "horizontalStrokeCentersPoints": [
+              158.1525,
+              178.4475,
+              202.2075
+            ],
+            "advancesPoints": [
+              20.294999999999987,
+              23.76000000000002
+            ]
+          },
+          {
+            "rgb": [
+              204,
+              0,
+              0
+            ],
+            "horizontalStrokeCentersPoints": [
+              246.51,
+              294.2775
+            ],
+            "advancesPoints": [
+              47.767499999999984
+            ]
+          }
+        ],
+        "labels": {}
+      },
+      {
+        "pdf": "word-spaced-row-margins-v16.113.3.pdf",
+        "sha256": "a83b39bde02b3729bece6d10b64907b7c1e526303b2a61bd5b3849174f211941",
+        "pages": 1,
+        "pageInspected": true,
+        "text": "Frame0 Frame1 \nFrame3 \nFrame4 Frame5 \n ",
+        "fonts": [
+          "/AAAAAC+ArialMT",
+          "/AAAAAE+Calibri"
+        ],
+        "colors": [],
+        "labels": {
+          "Frame0": {
+            "x": 90.239976,
+            "y": 695.76
+          },
+          "Frame1": {
+            "x": 222.23997599999998,
+            "y": 695.76
+          },
+          "Frame3": {
+            "x": 222.23997599999998,
+            "y": 647.76
+          },
+          "Frame4": {
+            "x": 90.239976,
+            "y": 584.16
+          },
+          "Frame5": {
+            "x": 222.23997599999998,
+            "y": 584.16
+          }
+        },
+        "frame3ToFrame5AdvancePoints": 63.60000000000002
+      },
+      {
+        "pdf": "word-spaced-row-margins-officeimo.pdf",
+        "sha256": "0613e3c86dc0608e07a53916674454026205ab9c95649b0df5299e6258b1d8d3",
+        "pages": 1,
+        "pageInspected": true,
+        "text": "Frame0 Frame1\nFrame3\nFrame4 Frame5",
+        "fonts": [
+          "/Helvetica"
+        ],
+        "colors": [],
+        "labels": {
+          "Frame0": {
+            "x": 90.15,
+            "y": 695.84
+          },
+          "Frame1": {
+            "x": 222.15,
+            "y": 695.84
+          },
+          "Frame3": {
+            "x": 222.15,
+            "y": 647.84
+          },
+          "Frame4": {
+            "x": 90.15,
+            "y": 584.34
+          },
+          "Frame5": {
+            "x": 222.15,
+            "y": 584.34
+          }
+        },
+        "frame3ToFrame5AdvancePoints": 63.5
+      }
+    ]
+  },
+  "limits": [
+    "The source is the controlled imported-and-natively-edited Pages 15.4 border fixture; arbitrary templates, merged Apple source tables and other producer versions require separate evidence.",
+    "This qualifies the physical fixed-row mapping in Word and the selected shared Word PDF margin behavior. Leading attachment-paragraph placement, table width, native Pages reimport sizing, pagination and typography remain separate. No complete iWork PDF qualification is claimed.",
+    "The controlled Word merge documents qualify row-height semantics. Auto-fit widths, table placement and overall rendered equivalence are not qualified by these controls.",
+    "Minimum-height source constraints remain separate from native automatic layout. Conditional padding precedence also has managed regression coverage; the native controls use direct padding.",
+    "The actual NativeAOT receipt on the preceding source revision does not qualify these new row-height changes."
+  ],
+  "artifacts": [
+    {
+      "path": "pages-table-row-height-officeimo.docx",
+      "bytes": 19731,
+      "sha256": "050c98a3950046fc7c349a15ae971eca75fa2cdf20dded8f560a7deb6171def6"
+    },
+    {
+      "path": "pages-table-row-height-workflow.docx",
+      "bytes": 19732,
+      "sha256": "111c3430f441248b6d36fd42bc8cc21816ab5907a7b07c3deaf976fc41a53424"
+    },
+    {
+      "path": "pages-table-row-height-word-v16.113.3.pdf",
+      "bytes": 26099,
+      "sha256": "e9de21fd69d4f4e3f55ac0978d93e068edb97524e0af8798ee548c02d164f6ff"
+    },
+    {
+      "path": "pages-table-row-height-word-v16.113.3.png",
+      "bytes": 92359,
+      "sha256": "cf6e7cdab56e6ac81dcd91b1915a943d1553cf8b19a1339582edf7a1200bd8d3"
+    },
+    {
+      "path": "pages-table-row-height-word-v16.113.3-page1.png",
+      "bytes": 31367,
+      "sha256": "258ecc1460dab11e0718800c58d3b8cc9a119010f3396b0f78ec8a5a70804977"
+    },
+    {
+      "path": "pages-table-row-height-officeimo-rendered.pdf",
+      "bytes": 1581,
+      "sha256": "98b220b698eb0e0304e1228ec43e74315a3108b1d83ade99c4eeea7ef28445fe"
+    },
+    {
+      "path": "pages-table-row-height-officeimo-rendered-page1.png",
+      "bytes": 31701,
+      "sha256": "e9fe609171666bfc72ef3e4d440a9cf5cf5389e054790880d3d8574619583b94"
+    },
+    {
+      "path": "word-merge-row-margins.docx",
+      "bytes": 18766,
+      "sha256": "aa644facb2cb82d4849de8321dfa5544290b6799047661709be2e6a11a6bf25a"
+    },
+    {
+      "path": "word-merge-row-margins-v16.113.3.pdf",
+      "bytes": 18182,
+      "sha256": "d674dfc6a925ed86c7b95b90328b3f8771d36767ca1b39cf62447050aa2e1667"
+    },
+    {
+      "path": "word-merge-row-margins-v16.113.3-page1.png",
+      "bytes": 25485,
+      "sha256": "1094b5411c6ea67ab4e722ceeabe5bc01bf7a9cf2d705c9462ff2c67156598c8"
+    },
+    {
+      "path": "word-merge-row-margins-officeimo.pdf",
+      "bytes": 1220,
+      "sha256": "61ba25b59847664cd1e712791427d096372df1f3da7a2736ca2814063a14c7b6"
+    },
+    {
+      "path": "word-merge-row-margins-officeimo-page1.png",
+      "bytes": 26007,
+      "sha256": "5dfabb44ca761218ecc328b517a8c55b0e8deca4564f066589c1fb833637f6ca"
+    },
+    {
+      "path": "word-spaced-row-margins.docx",
+      "bytes": 18670,
+      "sha256": "a4fbbab4b750f77c2eca090d1223d10252df435cfbe9883a7b95876f984f2f1b"
+    },
+    {
+      "path": "word-spaced-row-margins-v16.113.3.pdf",
+      "bytes": 15137,
+      "sha256": "a83b39bde02b3729bece6d10b64907b7c1e526303b2a61bd5b3849174f211941"
+    },
+    {
+      "path": "word-spaced-row-margins-v16.113.3-page1.png",
+      "bytes": 16507,
+      "sha256": "397620d138e15b54da7423d4ffd36557e392f9e11891536e339d7c9bae0fba28"
+    },
+    {
+      "path": "word-spaced-row-margins-officeimo.pdf",
+      "bytes": 1051,
+      "sha256": "0613e3c86dc0608e07a53916674454026205ab9c95649b0df5299e6258b1d8d3"
+    },
+    {
+      "path": "word-spaced-row-margins-officeimo-page1.png",
+      "bytes": 16702,
+      "sha256": "f77e6824be471916c9d6be9414a5189bb9c1cfbe31b6d111f2636655ceccfe62"
+    }
+  ],
+  "validation": {
+    "managedIWorkTests": {
+      "net8.0": 2768,
+      "net10.0": 2768,
+      "failed": 0,
+      "skipped": 0
+    },
+    "managedWordPdfTests": {
+      "net8.0": 1145,
+      "net10.0": 1145,
+      "failed": 0,
+      "skipped": 0
+    },
+    "builds": "Word.IWork all three targets; Word.Pdf net8.0/net10.0 and normal netstandard2.0 dependency graph. No new production dependencies.",
+    "actualNativeAot": "Separate gate; prior receipt on source revision 2a57e838 does not cover this mapping."
+  }
+}

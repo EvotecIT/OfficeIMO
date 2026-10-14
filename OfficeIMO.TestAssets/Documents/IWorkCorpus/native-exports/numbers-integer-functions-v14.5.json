@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "source": "numbers-integer-functions-v14.5.numbers",
+  "decode": "numbers-integer-functions-v14.5-decode.json",
+  "license": "MIT, OfficeIMO contributors",
+  "nativeProducer": "Numbers 14.5 (7045.0.17)",
+  "excelProducer": "Microsoft Excel 16.113.3",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "intake": "numbers-integer-functions-intake.xlsx",
+  "recipe": "Import the authored intake in Numbers, replace B13 with =2^53-1 and B14 with =2^53, save locally, export XLSX and one-page PDF. Open the XLSX in Excel, Save As a separate local copy, Calculate Now, then save. Original native exports remain unchanged.",
+  "rows": 18,
+  "columns": 8,
+  "nativeFormulas": 70,
+  "qualifiedLiteralCalls": 19,
+  "sourceEditedCells": [
+    "B13",
+    "B14"
+  ],
+  "nativePdfPages": 1,
+  "allNativePdfPagesInspected": true,
+  "nativeAppScreenshotsInspected": true,
+  "ownedAppsClosed": true,
+  "limits": [
+    "Numbers source was created by importing the controlled XLSX and saved natively. B13 and B14 were then replaced natively by =2^53-1 and =2^53.",
+    "Excel results were captured after Calculate Now and saved to a separate local workbook.",
+    "Numbers rounds the B13/B14 power caches to 9007199254740990. G/H large literal operands are separately rounded import values.",
+    "Numeric-text range LCM and large results differ. Native Numbers error cells have no XLSX error code.",
+    "Native PDF and both app screenshots were inspected. This fixture does not qualify other producer versions or general native appearance."
+  ],
+  "artifacts": [
+    {
+      "path": "numbers-integer-functions-excel-v16.113.3-native.png",
+      "bytes": 130191,
+      "sha256": "085fb602acdcc41729941459deaf374b43bab38cdfcd91bfd0ba619a69cd048f"
+    },
+    {
+      "path": "numbers-integer-functions-excel-v16.113.3.xlsx",
+      "bytes": 12339,
+      "sha256": "97ff465153b546d902276fe5da50597f3e9a716829adefe696f8b4cfba1c0dc2"
+    },
+    {
+      "path": "numbers-integer-functions-intake.xlsx",
+      "bytes": 6158,
+      "sha256": "027f9a66bb292f0603a7775eb2a08b39a652386e1ddbc3a1fb1b36cbb5080cc2"
+    },
+    {
+      "path": "numbers-integer-functions-v14.5-decode.json",
+      "bytes": 65274,
+      "sha256": "3e027ae62e79d0ad9b76f5faa7ee2c444d7a7c24e49d6ea4746469f8f95280da"
+    },
+    {
+      "path": "numbers-integer-functions-v14.5-native-pdf.png",
+      "bytes": 82946,
+      "sha256": "ac182c840f79ca425dc330a43bf013f24dbcaeac8e9dc8369b9e9a1b52088826"
+    },
+    {
+      "path": "numbers-integer-functions-v14.5-native.png",
+      "bytes": 94356,
+      "sha256": "101749e5f0c4175e8d63dddc77f314c28bf690e7698eefcaba17e4fe761eaeb5"
+    },
+    {
+      "path": "numbers-integer-functions-v14.5.numbers",
+      "bytes": 684594,
+      "sha256": "99f2f0445b9985feac658fa876502c854452026e383f078d41d41260a9cfc0b1"
+    },
+    {
+      "path": "numbers-integer-functions-v14.5.pdf",
+      "bytes": 70339,
+      "sha256": "b3e3be1bb63736c6368af308088eaef982d2ecc4b83caaf6d19b106f51f3c4c5"
+    },
+    {
+      "path": "numbers-integer-functions-v14.5.xlsx",
+      "bytes": 7798,
+      "sha256": "0a6259a8df8fc6119dc90d8eb814b3e3b4f8f43531a3cc627d15a959a86a904d"
+    }
+  ],
+  "sharedExcelRecalculatedFormulas": 68
+}

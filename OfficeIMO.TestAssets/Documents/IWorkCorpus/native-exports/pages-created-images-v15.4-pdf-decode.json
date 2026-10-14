@@ -1,0 +1,195 @@
+{
+  "reader": "pypdf",
+  "version": "6.10.0",
+  "outputs": [
+    {
+      "path": "pages-created-images-v15.4.pdf",
+      "sha256": "3ccbd29b0a36ef9108a47b59174ac5a311042cee12514f88b000b267ffbb8146",
+      "bytes": 57164,
+      "pages": 1,
+      "mediaBox": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "text": "Before \n😀 \n \nBetween \n \n \nAfter \nGrid\n42\n",
+      "images": [
+        {
+          "name": "Im1.png",
+          "size": [
+            160,
+            160
+          ],
+          "mode": "RGBA",
+          "rgbaSha256": "1c66620504cdfd23722a6d4313791209437251da3840367f1842d863626340ee",
+          "alphaExtrema": [
+            0,
+            255
+          ]
+        },
+        {
+          "name": "Im2.png",
+          "size": [
+            96,
+            64
+          ],
+          "mode": "RGB",
+          "rgbaSha256": "186bf5df7596f086be9920cbcf632cc6b1dc1f9be42a988446894c400ba7280f",
+          "alphaExtrema": [
+            255,
+            255
+          ]
+        },
+        {
+          "name": "Im3.png",
+          "size": [
+            96,
+            64
+          ],
+          "mode": "RGBA",
+          "rgbaSha256": "0b7e68a13e4e6e583d61ef21ec5eb090f536862df012b335a2d0e8b11dcf7202",
+          "alphaExtrema": [
+            0,
+            255
+          ]
+        },
+        {
+          "name": "Im4.jpg",
+          "size": [
+            96,
+            64
+          ],
+          "mode": "RGB",
+          "rgbaSha256": "646a9fed80f0c222fa28e742a82fa82003bebb0b5a0afabfa54f56910133738f",
+          "alphaExtrema": [
+            255,
+            255
+          ]
+        }
+      ],
+      "fullTextPresent": true,
+      "contentExtractionOrderQualified": false,
+      "decodedPixelsMatchSource": true
+    },
+    {
+      "path": "pages-created-images-officeimo-v15.4.pdf",
+      "sha256": "1ee32d127c1ec7d71507f00cfe9c5866d2ef0f2008ea404582bb1446d340a320",
+      "bytes": 11306,
+      "pages": 1,
+      "mediaBox": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "text": "Before 😀\nBetween\nGrid \n 42\nAfter\n",
+      "images": [
+        {
+          "name": "Im1.png",
+          "size": [
+            96,
+            64
+          ],
+          "mode": "RGB",
+          "rgbaSha256": "186bf5df7596f086be9920cbcf632cc6b1dc1f9be42a988446894c400ba7280f",
+          "alphaExtrema": [
+            255,
+            255
+          ]
+        },
+        {
+          "name": "Im2.png",
+          "size": [
+            96,
+            64
+          ],
+          "mode": "RGBA",
+          "rgbaSha256": "0b7e68a13e4e6e583d61ef21ec5eb090f536862df012b335a2d0e8b11dcf7202",
+          "alphaExtrema": [
+            0,
+            255
+          ]
+        },
+        {
+          "name": "Im3.jpg",
+          "size": [
+            96,
+            64
+          ],
+          "mode": "RGB",
+          "rgbaSha256": "646a9fed80f0c222fa28e742a82fa82003bebb0b5a0afabfa54f56910133738f",
+          "alphaExtrema": [
+            255,
+            255
+          ]
+        }
+      ],
+      "fullTextPresent": true,
+      "contentExtractionOrderQualified": true,
+      "decodedPixelsMatchSource": true
+    },
+    {
+      "path": "pages-created-images-edited-officeimo-v15.4.pdf",
+      "sha256": "8106b917fcf5b501d0f8c06e05cebafc9d35d349c2abb7031bd2cd8ff0d86be2",
+      "bytes": 11307,
+      "pages": 1,
+      "mediaBox": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "text": "Before 😀\nBetween\nGrid \n 42\nAfter\n",
+      "images": [
+        {
+          "name": "Im1.png",
+          "size": [
+            96,
+            64
+          ],
+          "mode": "RGB",
+          "rgbaSha256": "186bf5df7596f086be9920cbcf632cc6b1dc1f9be42a988446894c400ba7280f",
+          "alphaExtrema": [
+            255,
+            255
+          ]
+        },
+        {
+          "name": "Im2.png",
+          "size": [
+            96,
+            64
+          ],
+          "mode": "RGBA",
+          "rgbaSha256": "0b7e68a13e4e6e583d61ef21ec5eb090f536862df012b335a2d0e8b11dcf7202",
+          "alphaExtrema": [
+            0,
+            255
+          ]
+        },
+        {
+          "name": "Im3.jpg",
+          "size": [
+            96,
+            64
+          ],
+          "mode": "RGB",
+          "rgbaSha256": "646a9fed80f0c222fa28e742a82fa82003bebb0b5a0afabfa54f56910133738f",
+          "alphaExtrema": [
+            255,
+            255
+          ]
+        }
+      ],
+      "fullTextPresent": true,
+      "contentExtractionOrderQualified": true,
+      "decodedPixelsMatchSource": true
+    }
+  ],
+  "limits": [
+    "Apple PDF emits table text after body text in pypdf extraction and contains repaired zero-offset xref entries for objects 8,21,22. Native visual body order is recorded separately.",
+    "Native emoji is a fourth image; OfficeIMO uses the explicit Noto Emoji fallback font.",
+    "Image payload colors and alpha retain the recorded pixels; font metrics, gaps and receiving-application pagination are not equivalent."
+  ]
+}

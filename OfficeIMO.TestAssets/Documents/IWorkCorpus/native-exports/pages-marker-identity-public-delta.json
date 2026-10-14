@@ -1,0 +1,101 @@
+{
+  "publicCases": 9,
+  "distinctIdentityPerMode": 3,
+  "periodBytesUnchangedInAllModes": true,
+  "nonPeriodChangesOnlyIdentityMetadata": true,
+  "nativeIwaArchivesByteIdentical": true,
+  "propertyPlistChangesOnlyConsistentUuidSubstitution": true,
+  "cases": [
+    {
+      "mode": "plain",
+      "style": "Period",
+      "changedEntries": [],
+      "newIdentifier": "be6b7c25-351a-5e1a-9a90-ffc2c893b8bd",
+      "beforeSha256": "B70D7651D395916396F79D638B1E3D65A7E1E775B105E2E7AB369C2A98A7DB77",
+      "afterSha256": "B70D7651D395916396F79D638B1E3D65A7E1E775B105E2E7AB369C2A98A7DB77"
+    },
+    {
+      "mode": "plain",
+      "style": "Parentheses",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "newIdentifier": "79afa54d-0f17-5242-a5ff-19a4b20e2260",
+      "beforeSha256": "56828F5EDB1B64B4390EA430754B652C5A32FC9C90F8A5F47E7D46E6BBB2AEB6",
+      "afterSha256": "254543AC76B918E775C89D5FD0FBC44291FAE42C488B19ABDACB098BAB12A0CB"
+    },
+    {
+      "mode": "plain",
+      "style": "ClosingParenthesis",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "newIdentifier": "84b20e37-aa7a-5d19-b902-f2d73d44c9ae",
+      "beforeSha256": "07E369FF554C1095D6920B0B72474B7E16426E3DF2B715CE5A51462C5E768356",
+      "afterSha256": "8959C19600A8EE5CC87C27BAA2E9B20F69963F71793307FC001E6D0F1DDFA597"
+    },
+    {
+      "mode": "mixed-font",
+      "style": "Period",
+      "changedEntries": [],
+      "newIdentifier": "a04de9f0-a431-5eb5-87a1-695d0f128730",
+      "beforeSha256": "C31F84AD2C73595132FF336D24CC89921E33513DFD5B0689552F6EC6C7CC04B6",
+      "afterSha256": "C31F84AD2C73595132FF336D24CC89921E33513DFD5B0689552F6EC6C7CC04B6"
+    },
+    {
+      "mode": "mixed-font",
+      "style": "Parentheses",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "newIdentifier": "6f3849e8-58f0-5d32-b229-3d06c5102923",
+      "beforeSha256": "0F038FA813BBADCCA5A12233D2186CAAD31D1A5B83ECFC1980C08349AE1022FE",
+      "afterSha256": "4FBF17767576356FCE2D71AFC202B816A7E9511598246A3E412CD607B3FA8762"
+    },
+    {
+      "mode": "mixed-font",
+      "style": "ClosingParenthesis",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "newIdentifier": "e0af416e-c119-5cff-af46-a2e03a7f2a86",
+      "beforeSha256": "5B9E2E43060B268007A75D5BEF3D4743D8BC49B80818D0A339784566D4D7EA4F",
+      "afterSha256": "ED16BBB07C224C5EC90250F5A8C8BF37778936E3AB773601ACF80304A87BBAF8"
+    },
+    {
+      "mode": "mixed-size",
+      "style": "Period",
+      "changedEntries": [],
+      "newIdentifier": "4e4f6096-becd-565c-ad8d-4580d8d1f0ca",
+      "beforeSha256": "557D306CA88E514FF5A3F25BD17B666CAC01DF55382DB212FCDABFFD98D35C3C",
+      "afterSha256": "557D306CA88E514FF5A3F25BD17B666CAC01DF55382DB212FCDABFFD98D35C3C"
+    },
+    {
+      "mode": "mixed-size",
+      "style": "Parentheses",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "newIdentifier": "d27353c6-fb8d-5651-bdb0-ddaa8f5236bb",
+      "beforeSha256": "56C551EB9D93AD9278FDE6A31FB39A152C1D6B5E6EC8C2753F29F69A75189368",
+      "afterSha256": "F5E68718399C8B77ADFE41B7A3FADF2450B16DDB8B833E841435F380B4FF98E0"
+    },
+    {
+      "mode": "mixed-size",
+      "style": "ClosingParenthesis",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "newIdentifier": "d0cfc80d-2e3a-54fa-a102-1ebfe42bff1f",
+      "beforeSha256": "3BCFA732AEAFB48CD38629B0FD7738F2D4DDD8CDAAEE730DD546F2A5C2CA183C",
+      "afterSha256": "C9B4E46EC59B3B105B9A3217C4CFC022B41423E247B6155989F94402854B80F9"
+    }
+  ],
+  "boundary": "This receipt checks identity metadata only. Completed Pages 15.4 open/edit/save/export/reopen acceptance is bound separately by pages-marker-identity-v15.4.json and pages-marker-identity-independent-verification.json."
+}

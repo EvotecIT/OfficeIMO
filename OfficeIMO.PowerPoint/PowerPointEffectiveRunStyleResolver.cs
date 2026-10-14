@@ -55,7 +55,7 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointEffectiveRunStyle Style { get; }
     }
 
-    internal static class PowerPointEffectiveRunStyleResolver {
+    internal static partial class PowerPointEffectiveRunStyleResolver {
         // Blank paragraphs still have a formatted paragraph mark and inherited line metrics.
         internal static PowerPointEffectiveRunStyle ResolveParagraph(
             PowerPointParagraph paragraph, A.ListStyle? listStyle, OpenXmlCompositeElement? masterTextStyle) {
