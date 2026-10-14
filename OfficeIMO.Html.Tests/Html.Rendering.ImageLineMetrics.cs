@@ -56,7 +56,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText tail = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene)
             .OfType<HtmlRenderText>(), item => item.Text == "TAIL");
 
-        Assert.Equal(74.1275D, tail.Y, 6);
+        // The following ordinary line now has its selected-font paint anchor;
+        // its flow origin and the image line's saved baseline remain separate.
+        Assert.Equal(74.1275D, tail.LayoutY, 6);
         Assert.Equal(93.3275D, NormalLineFollowingVisual(rendered).Y, 6);
 
         XElement savedText = Assert.Single(XDocument.Parse(document.ToSvg(options)).Descendants()

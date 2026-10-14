@@ -455,10 +455,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int firstInlineRun = targetRuns.Count;
         HtmlInlineEdgeScope? inlineEdgeScope = !IsReplacedImageElementTag(tag) && tag != "math"
             ? ResolveInlineEdgeScope(element, style, inheritedStyle, paintOffsetX) : null;
+        HtmlInlineRun? inlineStrutMarker = null;
         if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, true, link, paintOffsetX, paintOffsetY));
         else if (style.Display == "inline" && !IsReplacedImageElementTag(tag) && tag != "math") {
-            targetRuns.Add(new HtmlInlineRun(string.Empty, style, link, HtmlRenderStyleResolver.DescribeSource(element),
-                paintOffsetX, paintOffsetY, element) { IsInlineStrutMarker = true });
+            inlineStrutMarker = new HtmlInlineRun(string.Empty, style, link, HtmlRenderStyleResolver.DescribeSource(element),
+                paintOffsetX, paintOffsetY, element) { IsInlineStrutMarker = true };
+            targetRuns.Add(inlineStrutMarker);
         }
         AddUnicodeBidiBoundaryRun(style, element, opening: true, paintOffsetX, paintOffsetY, targetRuns);
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
@@ -486,6 +488,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
         AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
         if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, false, link, paintOffsetX, paintOffsetY));
+        // Non-empty descendants carry their ancestor struts with the content
+        // when wrapping. An extra opening marker would leave those struts on
+        // the preceding line after all of the inline's text moved away.
+        if (inlineStrutMarker != null && targetRuns.Skip(firstInlineRun + 1)
+            .Any(run => !string.IsNullOrWhiteSpace(run.Text) || run.AtomicBlock != null || run.LeaderPattern != null))
+            targetRuns.Remove(inlineStrutMarker);
         if (style.Display == "inline") CaptureInlineStrutStyles(targetRuns, firstInlineRun, style);
         AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
     }
@@ -793,6 +801,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             noWrapRangeStartedAfterContent,
                             width);
                     }
+                    // The break belongs to the committed line even when its inline
+                    // has no preceding glyphs. Carry its face and ancestor struts
+                    // without painting text or advancing the content cursor.
+                    line.Add(new InlineSegment(string.Empty, 0D, run, string.Empty));
                     lines.Add(line);
                     line = new InlineLine();
                     previousWasCollapsibleSpace = false;
