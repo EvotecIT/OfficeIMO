@@ -109,9 +109,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         InputPath = path;
         if (string.IsNullOrWhiteSpace(OutputDirectory) && _storage?.UsesProviderPublication(path) != true &&
             OfficeStorageIdentity.GetLocalPath(path) is { } localPath) {
-            OutputDirectory = Path.Combine(
-                Path.GetDirectoryName(localPath)!,
-                Path.GetFileNameWithoutExtension(localPath) + " pages");
+            OutputDirectory = Path.GetDirectoryName(localPath)!;
         }
     }
 
@@ -142,6 +140,9 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
 
         try {
             string destination = StudioStorageAccess.RequireLocalOutputFolder(OutputDirectory, _localizer);
+            string name = OfficeIMO.Core.Internal.OfficePortableFileName.SanitizeBaseName(
+                Path.GetFileNameWithoutExtension(OfficeStorageIdentity.GetFileName(InputPath)), maximumLength: 80);
+            destination = Path.Combine(destination, (name.Length == 0 ? "document" : name) + "-pages");
             var request = new PdfPageImageExportRequest {
                 InputPath = InputPath,
                 InputStream = _storage?.CreateWorkflowInput(InputPath),

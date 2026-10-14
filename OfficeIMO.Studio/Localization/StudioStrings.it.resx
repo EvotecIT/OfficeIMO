@@ -7177,4 +7177,7 @@ Opzione 2</value>
     <value>Assemblaggio non riuscito</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Scegli una cartella di destinazione locale. Usa Salva con nome per salvare singoli documenti nel cloud.</value></data>
+  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
+    <value>«{0}» esiste già. Il salvataggio lo sostituirà dopo le eventuali verifiche rimanenti. Continuare?</value>
+  </data>
 </root>

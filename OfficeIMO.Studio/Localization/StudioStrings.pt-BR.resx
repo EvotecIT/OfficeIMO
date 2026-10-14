@@ -7177,4 +7177,7 @@ Opção 2</value>
     <value>Falha na montagem</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Escolha uma pasta de saída local. Use Salvar como para salvar documentos individuais na nuvem.</value></data>
+  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
+    <value>“{0}” já existe. Ao salvar, ele será substituído após as etapas de revisão restantes. Continuar?</value>
+  </data>
 </root>

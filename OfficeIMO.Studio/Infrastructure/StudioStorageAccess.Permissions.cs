@@ -17,7 +17,7 @@ internal sealed partial class StudioStorageAccess {
         string key = OfficeStorageIdentity.Normalize(location);
         StudioStorageReference? reference;
         lock (_sync) _references.TryGetValue(key, out reference);
-        if (reference is null || OfficeMacFilePermission.IsNativeBookmark(reference.Bookmark)) return;
+        if (reference is null || reference.PermissionFolder is not null || OfficeMacFilePermission.IsNativeBookmark(reference.Bookmark)) return;
         // This runs only while the selected provider's read stream holds access,
         // including verification reads after a newly selected output is created.
         string bookmark = OfficeMacFilePermission.CreateBookmark(path);
@@ -30,6 +30,10 @@ internal sealed partial class StudioStorageAccess {
     private OfficeMacFilePermission? OpenNativePermission(string location) {
         StudioStorageReference? reference;
         lock (_sync) _references.TryGetValue(OfficeStorageIdentity.Normalize(location), out reference);
+        if (reference?.PermissionFolder is not null) {
+            EnsureFolderPermission(reference);
+            return null;
+        }
         return reference?.Bookmark is { } bookmark && OfficeMacFilePermission.IsNativeBookmark(bookmark)
             ? OfficeMacFilePermission.Open(bookmark, OfficeStorageIdentity.GetLocalPath(location)
                 ?? throw new IOException("Native permissions require a local file.")) : null;

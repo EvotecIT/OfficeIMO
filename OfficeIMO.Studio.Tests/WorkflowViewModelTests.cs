@@ -119,6 +119,7 @@ public sealed class WorkflowViewModelTests {
 
         Assert.True(pageExport.HasOutput);
         Assert.True(pageExport.HasBrowsableOutput);
+        Assert.StartsWith(Path.GetFullPath(imageFolder) + Path.DirectorySeparatorChar, pageExport.PublishedDirectory!);
         Assert.Single(Directory.GetFiles(pageExport.PublishedDirectory!, "*.png"));
 
         pageExport.PublishedDirectory = "content://provider/exported-pages";

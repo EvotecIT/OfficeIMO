@@ -4,7 +4,7 @@ using OfficeIMO.Internal;
 namespace OfficeIMO.Studio.Infrastructure;
 
 /// <summary>A durable provider reference. The bookmark grants access; the location identifies the document.</summary>
-internal sealed record StudioStorageReference(string Location, string Name, string? Bookmark = null);
+internal sealed record StudioStorageReference(string Location, string Name, string? Bookmark = null, string? PermissionFolder = null);
 
 internal sealed record StudioStorageSnapshot(byte[] Bytes, string Identity);
 internal sealed record StudioStoragePublication(string Fingerprint, string Identity);

@@ -52,7 +52,7 @@ internal sealed class StudioSessionStore(string path) {
                 string identity = OfficeStorageIdentity.GetPersistenceKey(location);
                 StudioStorageReference? reference = document.Storage;
                 if (reference is not null && (reference.Name is null || reference.Name.Length > 4096 ||
-                    reference.Bookmark?.Length > 32768 ||
+                    reference.Bookmark?.Length > 32768 || reference.PermissionFolder?.Length > 4096 ||
                     OfficeStorageIdentity.GetPersistenceKey(reference.Location) != identity)) continue;
                 if (!identities.Add(identity)) continue;
                 result.Add(document with { Path = location, View = document.View.Normalize() });

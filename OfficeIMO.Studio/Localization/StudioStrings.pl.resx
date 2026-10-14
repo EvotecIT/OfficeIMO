@@ -7177,4 +7177,7 @@ Opcja 2</value>
     <value>Łączenie nie powiodło się</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Wybierz lokalny folder wyjściowy. Aby zapisywać pojedyncze dokumenty w chmurze, użyj opcji Zapisz jako.</value></data>
+  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
+    <value>Plik „{0}” już istnieje. Zapis zastąpi go po zakończeniu pozostałych kroków przeglądu. Kontynuować?</value>
+  </data>
 </root>

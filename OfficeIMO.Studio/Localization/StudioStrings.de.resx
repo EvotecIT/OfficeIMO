@@ -7177,4 +7177,7 @@ Option 2</value>
     <value>Zusammenstellung fehlgeschlagen</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Wähle einen lokalen Ausgabeordner. Um einzelne Dokumente in der Cloud zu speichern, verwende Speichern unter.</value></data>
+  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
+    <value>„{0}“ ist bereits vorhanden. Beim Speichern wird die Datei nach den verbleibenden Prüfschritten ersetzt. Fortfahren?</value>
+  </data>
 </root>

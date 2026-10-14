@@ -25,16 +25,16 @@ internal sealed partial class MobileDocumentHost(
 
     public async Task<string?> PickSaveFileAsync(string title, string suggestedName, StudioFileType type, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        // UIKit's export picker may publish a placeholder while selecting the destination. Obtain consent first.
-        if (!await ShowAsync<bool>(new ProviderSaveDialogContent(suggestedName, services.Localizer))) return null;
+        // UIKit's save picker exports an empty placeholder. Select a folder without writing;
+        // the caller's final preview, ownership checks and atomic writer decide publication.
+        string? name = await ShowAsync<string>(new MobileFileNameDialogContent(title, suggestedName, type, services.Localizer));
+        if (name is null) return null;
+        string? folder = await PickFolderAsync(title, cancellationToken);
+        if (folder is null) return null;
+        string destination = services.Storage.SelectLocalFileDestination(folder, name);
+        if (File.Exists(destination) && !await ShowAsync<bool>(new MobileReplaceFileDialogContent(name, services.Localizer))) return null;
         cancellationToken.ThrowIfCancellationRequested();
-        IStorageFile? file = await Provider.SaveFilePickerAsync(new FilePickerSaveOptions {
-            Title = title, SuggestedFileName = suggestedName,
-            DefaultExtension = type.Extensions.FirstOrDefault(value => value != "*"),
-            FileTypeChoices = [ToFilter(type)]
-        });
-        string? location = await services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken);
-        return location;
+        return destination;
     }
 
     public async Task<string?> PickFolderAsync(string title, CancellationToken cancellationToken) {

@@ -3567,4 +3567,7 @@ Option 2</value>
     <value>Assembly failed</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Choose a local output folder. Use Save As to save individual documents to cloud storage.</value></data>
+  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
+    <value>“{0}” already exists. Save will replace it after any remaining review. Continue?</value>
+  </data>
 </root>

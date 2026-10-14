@@ -7177,4 +7177,7 @@ Opción 2</value>
     <value>Falló el ensamblado</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Elige una carpeta local de salida. Usa Guardar como para guardar documentos individuales en la nube.</value></data>
+  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
+    <value>«{0}» ya existe. Al guardar, se reemplazará tras los pasos de revisión pendientes. ¿Continuar?</value>
+  </data>
 </root>
