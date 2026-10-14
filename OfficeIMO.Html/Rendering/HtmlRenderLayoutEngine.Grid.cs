@@ -482,11 +482,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static double ResolveGridItemBaseline(GridItem item) {
         HtmlRenderText? firstText = EnumerateGridTextVisuals(item.Block!.Visuals)
+            .Where(text => !text.IsPaintOnly && !text.IsOutOfFlowPaint)
             .OrderBy(text => text.LayoutY)
             .ThenBy(text => text.X)
             .FirstOrDefault();
         if (firstText == null) return item.Block.Height;
-        return firstText.LayoutY + firstText.Font.Size;
+        // LayoutY is the line-box origin. Selected-face placement can move the
+        // positioned one-em anchor within it; CSS relative paint must not move
+        // the grid's alignment baseline with that visible displacement.
+        return firstText.Y - firstText.RelativePaintOffsetY + firstText.Font.Size;
     }
 
     private static IEnumerable<HtmlRenderText> EnumerateGridTextVisuals(IEnumerable<HtmlRenderVisual> visuals) {

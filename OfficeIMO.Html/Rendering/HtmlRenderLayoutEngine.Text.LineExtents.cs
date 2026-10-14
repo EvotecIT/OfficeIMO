@@ -7,15 +7,19 @@ namespace OfficeIMO.Html {
         /// leading belongs equally above and below each run's font box.
         /// </summary>
         private bool TryResolveTextOnlyLineMetrics(InlineLine line, HtmlRenderBoxStyle paragraphStyle,
-            ref double lineHeight, out double baseline) {
+            ref double lineHeight, out double baseline, out bool ordinaryLineCarrier) {
             baseline = 0D;
+            ordinaryLineCarrier = false;
             if (!line.HasFlowContent || IsVerticalWritingMode(paragraphStyle.WritingMode)
-                || line.Segments.Any(segment => segment.Run.AtomicBlock != null && !segment.Run.IsFlowMarker)
-                || !line.HasMixedTextSizes(paragraphStyle)
+                || line.Segments.Any(segment => segment.Run.AtomicBlock != null && !segment.Run.IsFlowMarker)) return false;
+            string strutText = line.Segments.FirstOrDefault(segment => segment.Text.Length > 0)?.Text ?? string.Empty;
+            bool selectedNormalFace = paragraphStyle.Font.Size > 0D
+                && !line.Segments.Any(segment => segment.Run.LeaderPattern != null)
+                && TryResolveNormalInlineTextMetrics(paragraphStyle, ResolveTextFaceMetrics(strutText, paragraphStyle), out _);
+            if (!selectedNormalFace && !line.HasMixedTextSizes(paragraphStyle)
                     && !line.Segments.Any(segment => Math.Abs(segment.Run.Style.BaselineOffset
                         - paragraphStyle.BaselineOffset) > 0.000001D)) return false;
-
-            string strutText = line.Segments.FirstOrDefault(segment => segment.Text.Length > 0)?.Text ?? string.Empty;
+            ordinaryLineCarrier = selectedNormalFace;
             double strutAscent = ResolveTextLineAscent(strutText, paragraphStyle);
             double ascent = strutAscent;
             double descent = paragraphStyle.LineHeight - strutAscent;
@@ -30,11 +34,9 @@ namespace OfficeIMO.Html {
             foreach (HtmlRenderBoxStyle style in line.EmptyInlineStrutStyles) AddStrut(string.Empty, style);
 
             lineHeight = Math.Max(lineHeight, ascent + descent);
-            // Retain the existing paragraph paint anchor. Only the extra top extent
-            // lifts that anchor; the selected face supplies line advance, not a global
-            // migration of ordinary text to browser-relative baseline coordinates.
-            // A short-line face which supplies the ascent already has a selected-face
-            // paint anchor. Preserve that route as well as ordinary paragraph anchors.
+            // A selected face supplies both its normal baseline and the line's
+            // participating extents. Unavailable faces retain their existing
+            // paragraph anchor; selected short lines retain their raw-face route.
             baseline = Math.Abs(shortLineAscent - ascent) < 0.000001D ? ascent
                 : ResolveInlineTextBaseline(strutText, paragraphStyle, hasImage: false) + ascent - strutAscent;
             return true;
@@ -53,6 +55,7 @@ namespace OfficeIMO.Html {
             // descendants, but cannot be passed to a positive-size font resolver.
             if (style.Font.Size == 0D) return style.LineHeight / 2D;
             HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(text, style);
+            if (TryResolveNormalInlineTextMetrics(style, face, out InlineTextLineMetrics normal)) return normal.Baseline;
             return IsUsableTextFaceMetrics(face)
                 ? (style.LineHeight - face!.Value.Height) / 2D + face.Value.BaselineOffset
                 : style.LineHeight / 2D + GetEffectiveTextFont(style).Size * 0.3D;

@@ -41,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // Text and empty struts use the same selected-face placement,
                 // including negative half-leading in lines shorter than an em.
                 ResolveInlineTextVerticalPlacement(segment, false, lineY, lineHeight, baseline,
-                    out double textY, out _, out _);
+                    true, out double textY, out _, out _);
                 segmentDecorationBaseline = textY - lineY + run.Style.Font.Size;
             }
             for (IElement? current = run.OwnerElement; current != null; current = current.ParentElement) {

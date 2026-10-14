@@ -146,7 +146,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         HtmlRenderDocument rendered = Render(Source(true), options);
         var face = Face(options);
         double usedLineHeight = Shape(control, "div#following").Y - 30D;
-        double selectedBaseline = lineHeight < 16D ? (usedLineHeight - face.Height) / 2D + face.Ascent : 16D;
+        double selectedBaseline = lineHeight < 16D ? (usedLineHeight - face.Height) / 2D + face.Ascent : 15D;
         double expectedTop = 30D + selectedBaseline - face.Ascent - 8D;
 
         if (content != "empty-standalone") {

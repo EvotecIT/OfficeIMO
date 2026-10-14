@@ -35,9 +35,9 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         // Canvas and outline writers must anchor a script to the original line's metrics.
         baselineFontSize ??= visual.Font.Size;
-        visual = visual.ResolveBaselineForPainting();
+        visual = visual.CopyStackingContextTo(visual.ResolveBaselineForPainting());
         if (visual.Y < 0D) {
-            HtmlRenderText shifted = (HtmlRenderText)visual.TranslatePaint(0D, -visual.Y, visual.PaintOrder);
+            HtmlRenderText shifted = (HtmlRenderText)visual.Translate(0D, -visual.Y, visual.PaintOrder);
             canvas.Effect(OfficeTransform.Translate(0D, visual.Y * PointsPerCssPixel), 1D,
                 nested => AddText(nested, shifted, webFonts, conversionReport, surfaceWidth, asSpan, logicalTextOwned, cancellationToken, baselineFontSize, suppressLink: suppressLink, preservePositionedFrame: preservePositionedFrame, constrainToSurface: constrainToSurface, logicalClip: logicalClip?.Translate(0D, -visual.Y)));
             return;
@@ -151,15 +151,20 @@ internal static partial class HtmlPdfRenderedConverter {
             visual.PaintTopOverflow * PointsPerCssPixel,
             fontMetricScale: PointsPerCssPixel);
         double logicalWidth = visual.TextPaintWidth ?? visual.TextAdvanceWidth ?? frameWidth;
+        // The source-em paint carrier may start above the line box. Its blank
+        // leading must not turn otherwise native visible glyphs into an
+        // invisible logical replacement merely because it crosses a page edge.
+        double logicalY = visual.UsesOrdinaryLineCarrier && visual.RelativePaintOffsetY == 0D
+            ? Math.Max(visual.Y, visual.LayoutY) : visual.Y;
         double logicalHeight = Math.Max(0.01D, Math.Min(visual.Height, visual.Font.Size));
-        var carrier = logicalClip?.ConstrainLogicalRectangle(visual.X, visual.Y, logicalWidth, logicalHeight)
-            ?? (X: visual.X, Y: visual.Y, Width: logicalWidth, Height: logicalHeight);
+        var carrier = logicalClip?.ConstrainLogicalRectangle(visual.X, logicalY, logicalWidth, logicalHeight)
+            ?? (X: visual.X, Y: logicalY, Width: logicalWidth, Height: logicalHeight);
         // Native text already carries transform-aware glyph geometry. Project
         // only page-space clipped native text; transformed logical/outlined
         // groups retain their own replacement carriers without changing the
         // native reader's existing partially-visible text policy.
         if (!logicalTextOwned && (!logicalClip.HasValue || logicalClip.Value.ConstrainToSurface)
-            && (carrier.X != visual.X || carrier.Y != visual.Y
+            && (carrier.X != visual.X || carrier.Y != logicalY
             || carrier.Width != logicalWidth || carrier.Height != logicalHeight)) {
             canvas.ActualText(pdfText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
                 carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel, Paint);

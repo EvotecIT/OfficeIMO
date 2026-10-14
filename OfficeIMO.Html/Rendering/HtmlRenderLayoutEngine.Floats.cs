@@ -230,6 +230,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             noWrapStrutStart,
                             noWrapRangeStartedAfterContent);
                     }
+                    // Finalization can move a nowrap suffix; attach the break's
+                    // struts to the line that is actually being committed.
+                    line.Add(new InlineSegment(string.Empty, 0D, run, string.Empty));
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight, includeEmpty: true);
                     previousWasCollapsibleSpace = false;
                     noWrapRangeStart = runPreventsWrapping ? 0 : -1;
@@ -453,7 +456,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (line.ParagraphStyle != null
                 && !TryResolveEmptyInlineBlockLineMetrics(line, line.ParagraphStyle, ref height, out _)) {
                 if (UsesNormalImageLineMetrics(line, line.ParagraphStyle)) ResolveInlineSharedBaseline(line, line.ParagraphStyle, ref height);
-                else TryResolveTextOnlyLineMetrics(line, line.ParagraphStyle, ref height, out _);
+                else TryResolveTextOnlyLineMetrics(line, line.ParagraphStyle, ref height, out _, out _);
             }
             y = line.Y + height;
             if (line.HasFlowContent || includeEmpty) context.FirstLineIndent = 0D;

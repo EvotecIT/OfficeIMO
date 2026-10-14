@@ -9,6 +9,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double lineY,
         double lineHeight,
         double baseline,
+        bool useOrdinaryFaceMetrics,
         out double textY,
         out double paintHeight,
         out double paintTopOverflow) {
@@ -21,14 +22,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : lineY + Math.Min(0D, (lineHeight - fontSize) / 2D);
         paintHeight = Math.Max(lineHeight, fontSize);
         paintTopOverflow = 0D;
-        HtmlTextFaceMetrics? face = ResolveInlineShortLineFace(segment);
+        HtmlTextFaceMetrics? face = useOrdinaryFaceMetrics && style.Font.Size > 0D
+            ? ResolveTextFaceMetrics(segment.Text, style)
+            : ResolveInlineShortLineFace(segment);
+        if (!IsUsableTextFaceMetrics(face)) return;
         if (!face.HasValue) return;
 
         // CSS centers the face's ascent/descent box in the used line height. Positioned Drawing
         // text anchors its baseline one em below Y, so translate that browser baseline back to Y.
         if (!alignBaseline) {
-            textY = lineY + (lineHeight - face.Value.Height) / 2D
-                + face.Value.BaselineOffset - fontSize;
+            textY = useOrdinaryFaceMetrics && TryResolveNormalInlineTextMetrics(style, face, out InlineTextLineMetrics metrics)
+                ? lineY + metrics.Baseline - fontSize
+                : lineY + (lineHeight - face.Value.Height) / 2D
+                    + face.Value.BaselineOffset - fontSize;
         }
         // This frame starts one source em above the baseline, rather than at the
         // face ascent. Its lower edge must include the selected face's descent.
@@ -65,6 +71,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private double ResolveInlineTextBaseline(string text, HtmlRenderBoxStyle style, bool hasImage) {
+        if (!hasImage && style.Font.Size > 0D
+            && TryResolveNormalInlineTextMetrics(style, ResolveTextFaceMetrics(text, style), out InlineTextLineMetrics normal))
+            return normal.Baseline;
         HtmlTextFaceMetrics? face = ResolveInlineShortLineFace(text, style);
         // Alignment and ink overflow are separate. The paragraph strut and each
         // text run use the same selected face, including beside an actual image.
@@ -87,6 +96,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && !double.IsNaN(face.Value.BaselineOffset) && !double.IsInfinity(face.Value.BaselineOffset)
         && face.Value.BaselineOffset >= 0D && face.Value.BaselineOffset <= face.Value.Height;
 
+    /// <summary>Resolves normal horizontal CSS line alignment without changing the selected program's raw metrics or glyph ink.</summary>
+    private static bool TryResolveNormalInlineTextMetrics(HtmlRenderBoxStyle style,
+        HtmlTextFaceMetrics? face, out InlineTextLineMetrics metrics) {
+        metrics = default;
+        if (style.Font.Size <= 0D || style.LineHeight < style.Font.Size || !IsUsableTextFaceMetrics(face)) return false;
+        double ascent = Math.Floor(face!.Value.BaselineOffset + 0.5D);
+        double descent = Math.Floor(face.Value.Height - face.Value.BaselineOffset + 0.5D);
+        double usedHeight = style.InlineAlignmentLineHeight
+            ?? HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(style.LineHeight, style.Font.Size);
+        double leadingUnits = (usedHeight - ascent - descent) * 64D;
+        // Divide signed fixed units before flooring the ascent share to a whole
+        // pixel; the remaining leading belongs below the alphabetic baseline.
+        double ascentLeading = Math.Floor(Math.Truncate(leadingUnits / 2D) / 64D);
+        metrics = new InlineTextLineMetrics(usedHeight, ascent + ascentLeading);
+        return true;
+    }
+
     private HtmlTextFaceMetrics? ResolveTextFaceMetrics(string text, HtmlRenderBoxStyle style) {
         IOfficeFontProgram? program = text.Length == 0
             ? _fonts.ResolveForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out _)
@@ -103,6 +129,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineSegment segment,
         double lineY,
         double lineHeight,
+        double textY,
         out double anchorY,
         out double anchorHeight) {
         anchorY = lineY;
@@ -114,5 +141,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // An inline anchor's CSS box follows its font's ascent/descent box, not
         // the full line box. Extra leading belongs to the line around it.
         anchorHeight = face.Value.Height;
+        if (TryResolveNormalInlineTextMetrics(segment.Run.Style, face, out _)) {
+            anchorY = textY + segment.Run.Style.Font.Size - Math.Floor(face.Value.BaselineOffset + 0.5D);
+        }
+    }
+
+    private readonly struct InlineTextLineMetrics {
+        internal InlineTextLineMetrics(double height, double baseline) {
+            Height = height;
+            Baseline = baseline;
+        }
+
+        internal double Height { get; }
+        internal double Baseline { get; }
     }
 }
