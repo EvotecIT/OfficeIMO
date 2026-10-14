@@ -210,6 +210,7 @@ try {
         NormalizePageRotation = 'FullRewrite'
         OrganizePages = 'FullRewrite'
         ImportPages = 'FullRewrite'
+        RotatePages = 'FullRewrite'
     }
     if ($pdfRecord.Count -ne 1 -or $null -eq $pdfRecord[0].pdfEvidence -or
         -not $pdfRecord[0].pdfEvidence.allStagesSucceeded -or

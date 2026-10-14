@@ -33,8 +33,8 @@ jobs:
       pipeline_config: Website/pipeline.json
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
-      dotnet_version: "10.0.112"
+      dotnet_version: "10.0.113"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: ecdd6e54ebade8175acaf105505f0e84917573d8
+      powerforge_ref: 3c6f7eca78796f3e2c885a40416101d706bd4ebd
       report_artifact_name: powerforge-website-reports

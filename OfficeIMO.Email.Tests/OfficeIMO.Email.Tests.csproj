@@ -40,6 +40,8 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
+    <!-- MsgReader's comparison fixtures otherwise restore its older CMS dependency. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
