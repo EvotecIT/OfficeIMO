@@ -52,8 +52,7 @@ namespace OfficeIMO.Excel {
                     protection.RemoveAttribute("password", string.Empty);
                 }
 
-                EnsureWorksheetElementOrder();
-                ws.Save();
+                EnsureWorksheetElementOrder(save: false);
             });
         }
 
@@ -88,7 +87,6 @@ namespace OfficeIMO.Excel {
                     ws.RemoveChild(ranges);
                 }
 
-                ws.Save();
             });
         }
     }

@@ -94,6 +94,10 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>Joins a workbook write lock held by any sheet and honors an explicit no-lock scope.</summary>
+        private bool HasCellValueWriteAccess => _isBatchOperation || Locking.IsNoLock
+            || _excelDocument.EnsureLock().IsWriteLockHeld;
+
         private void WriteLockConditional(Action action) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 MaterializeDeferredDataSetImportIfNeeded();

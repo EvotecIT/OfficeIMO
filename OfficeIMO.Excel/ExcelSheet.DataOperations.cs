@@ -415,7 +415,6 @@ namespace OfficeIMO.Excel {
 
                     count = replacements.Count;
                     ClearHeaderCache();
-                    ws.Save();
                 }
             });
             return count;

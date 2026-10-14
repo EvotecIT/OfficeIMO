@@ -218,9 +218,7 @@ namespace OfficeIMO.Excel {
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            cell.StyleIndex = baseStyleIndex == 0U
-                ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
-                : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
+            cell.StyleIndex = GetAutomaticNumberFormatStyleIndex(baseStyleIndex, duration: false);
             CompleteCellValueMutation(row, column);
         }
 
@@ -255,9 +253,7 @@ namespace OfficeIMO.Excel {
                 numericCell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
 
                 uint baseStyleIndex = numericCell.StyleIndex?.Value ?? 0U;
-                numericCell.StyleIndex = baseStyleIndex == 0U
-                    ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
-                    : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
+                numericCell.StyleIndex = GetAutomaticNumberFormatStyleIndex(baseStyleIndex, duration: false);
 
                 CompleteCellValueMutation(row, column);
                 return;
@@ -281,9 +277,7 @@ namespace OfficeIMO.Excel {
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            cell.StyleIndex = baseStyleIndex == 0U
-                ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
-                : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
+            cell.StyleIndex = GetAutomaticNumberFormatStyleIndex(baseStyleIndex, duration: false);
             CompleteCellValueMutation(row, column);
         }
 
@@ -294,9 +288,7 @@ namespace OfficeIMO.Excel {
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            cell.StyleIndex = baseStyleIndex == 0U
-                ? (_cellValueDefaultDurationStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 46))
-                : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDurationStyleIndexes, baseStyleIndex, 46);
+            cell.StyleIndex = GetAutomaticNumberFormatStyleIndex(baseStyleIndex, duration: true);
             CompleteCellValueMutation(row, column);
         }
 #endif
@@ -326,9 +318,7 @@ namespace OfficeIMO.Excel {
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            cell.StyleIndex = baseStyleIndex == 0U
-                ? (_cellValueDefaultDurationStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 46))
-                : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDurationStyleIndexes, baseStyleIndex, 46);
+            cell.StyleIndex = GetAutomaticNumberFormatStyleIndex(baseStyleIndex, duration: true);
             CompleteCellValueMutation(row, column);
         }
 

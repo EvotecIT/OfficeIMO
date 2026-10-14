@@ -2,7 +2,7 @@
 
 ## Excel worksheet persistence and wrapping
 
-Worksheet layout, merges, filters, comments, table settings, formulas, headers/footers and conditional-formatting edits are committed by `ExcelDocument.Save(...)` or configured save-on-dispose. Call `Save` before reading the underlying package streams through the low-level Open XML API. Setters with an explicit `save` argument still honor it; pass `save: false` when applying row or column outlines repeatedly.
+Worksheet layout, merges, filters, comments, table settings, formulas, headers/footers, conditional-formatting, view options, protection and text-replacement edits are committed by `ExcelDocument.Save(...)` or configured save-on-dispose. Call `Save` before reading the underlying package streams through the low-level Open XML API. Setters with an explicit `save` argument still honor it; pass `save: false` when applying row or column outlines repeatedly.
 
 `WrapCells`, automatic wrapping for multiline values and `CellWrapText` preserve the cell's existing alignment and other formatting. Workbooks that previously relied on wrapping to reset alignment should set the desired alignment explicitly.
 
