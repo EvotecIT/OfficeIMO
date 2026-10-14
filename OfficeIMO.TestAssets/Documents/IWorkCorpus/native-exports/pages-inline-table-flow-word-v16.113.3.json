@@ -1,0 +1,435 @@
+{
+  "schemaVersion": 1,
+  "source": "pages-table-borders-v15.4.pages",
+  "sourceSha256": "d6fefca93e07ab4c2f8557f91ad6dd34bca5864c0372733751d74db992fcc65d",
+  "nativeSourceReference": "pages-table-borders-v15.4.json",
+  "sourceBaseRevision": "bd795567f7bc4ec7fc28a3a4ec55f4ebf943fff1",
+  "productionSourceFiles": [
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.cs",
+      "sha256": "0cd694e332ea75fbebb0e10923c607d9d1d9f4a1294eae44d26c09dc13f698e8"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.Validation.cs",
+      "sha256": "eba4f72a649a59843396078677e4bfcef3e39ec75a118e7328028327d1979820"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.InlineObjects.cs",
+      "sha256": "96c3c9844a160d39e2c444e7f6d33ee1c3a395ef2df7fab43ffda1a104f79680"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.InlineTableLayout.cs",
+      "sha256": "bf80b1dbf28e3cc9d41f0d58377a95de733cd37828c1cdca7458e469e2053daf"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.TableRowHeights.cs",
+      "sha256": "ec39d10a02c5e9c39be43822baab233ce9ac21ca7acdce79a32bcc3647044a84"
+    }
+  ],
+  "loadedAssemblies": [
+    {
+      "name": "OfficeIMO.IWork.dll",
+      "sha256": "9458ffd7095b42bf54eb65241a8fe4bb937ff46b69479ded7a41038ea5f24b74"
+    },
+    {
+      "name": "OfficeIMO.Word.dll",
+      "sha256": "2bee0ddd7b5ed2c6aa51d2f1fd0eaf7809f2bcc0e34f77f854ef07f2231a81af"
+    },
+    {
+      "name": "OfficeIMO.Word.IWork.dll",
+      "sha256": "76665d77da9dddb4b6141f3807ad6392ee1e4241e617eefcf0127a26bd7d4e93"
+    },
+    {
+      "name": "OfficeIMO.Workflows.IWork.dll",
+      "sha256": "024ef651d4b32106d8312d1ac7e1829e8e2c0c9a860350026cdc8c4c754d5c48"
+    },
+    {
+      "name": "OfficeIMO.Word.Pdf.dll",
+      "sha256": "6d3e16fdf1e86770f69ee7aecb192a459baf4ac59475c64f134ba0247bec65d6"
+    }
+  ],
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64",
+    "sdk": "10.0.112"
+  },
+  "nativeApplications": [
+    "Pages 15.4 (7051.0.79)",
+    "Microsoft Word 16.113.3 (16.113.26092714)"
+  ],
+  "license": "Original controlled corpus and source-export attribution recorded in pages-table-borders-v15.4.json; no font binaries added.",
+  "qualifiedProfile": {
+    "soleAttachmentInEmptyNeutralBodyParagraph": true,
+    "noFloatingDrawables": true,
+    "autoResizeRows": false,
+    "mergedRanges": 0,
+    "offsetAndRotation": 0,
+    "pagePoints": [
+      612,
+      792
+    ],
+    "pageMarginsPoints": [
+      72,
+      72,
+      72,
+      72
+    ],
+    "columnWidthsPoints": [
+      108,
+      108,
+      108,
+      108
+    ],
+    "physicalRowHeightsPoints": [
+      32,
+      31,
+      32,
+      32
+    ],
+    "docxExactRowDeclarationsTwips": [
+      560,
+      540,
+      560,
+      560
+    ],
+    "docxFixedGridTwips": [
+      2160,
+      2160,
+      2160,
+      2160
+    ],
+    "docxWidthTwips": 8640,
+    "framePoints": [
+      0,
+      0,
+      432,
+      127
+    ]
+  },
+  "editableAcceptance": {
+    "defaultStrictComplete": true,
+    "partialPolicyAlsoCompleteForThisSource": true,
+    "layoutApproximationDiagnostic": false,
+    "firstBodyBlock": "w:tbl",
+    "values": 16,
+    "edges": 64,
+    "boldCells": 10,
+    "emptyD3": true,
+    "sourceUnits": 18,
+    "reconstructedSourceUnits": 18,
+    "omittedSourceUnits": 0,
+    "unassessedSourceUnits": 0,
+    "unassessedSourceRecords": 809,
+    "normalizedDirectAndWorkflowDocxParts": 13
+  },
+  "completePdf": {
+    "route": "pages-pdf",
+    "conversionStages": "iwork-editable,pdf",
+    "pages": 1,
+    "allNonemptyValuesInOrder": true,
+    "directAndWorkflowPdfByteIdentical": true,
+    "explicitPartialPolicyRejectedByCompleteOnlyWorkflow": true,
+    "resourcePolicy": "PdfResourcePolicy.CreatePortableDeterministic",
+    "callerFontInputs": "Repository SIL OFL Carlito Regular/Bold/Italic/BoldItalic; installed-font discovery disabled.",
+    "fidelityDiagnostics": [
+      {
+        "Code": "IWORK_SOURCE_READ",
+        "Message": "Read 809 IWA payload records from 50 package entries.",
+        "LossKind": 0,
+        "Source": "OfficeIMO.IWork",
+        "Location": null
+      },
+      {
+        "Code": "IWORK_RECORD_FIDELITY_UNASSESSED",
+        "Message": "809 source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content.",
+        "LossKind": 4,
+        "Source": "OfficeIMO.IWork",
+        "Location": null
+      },
+      {
+        "Code": "NativeFontFamilySubstituted",
+        "Message": "The source font family 'TimesNewRomanPSMT' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+        "LossKind": 1,
+        "Source": "OfficeIMO.Word.Pdf",
+        "Location": "word:font[TimesNewRomanPSMT]"
+      },
+      {
+        "Code": "NativeFontFamilySubstituted",
+        "Message": "The source font family 'Arial-BoldMT' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+        "LossKind": 1,
+        "Source": "OfficeIMO.Word.Pdf",
+        "Location": "word:font[Arial-BoldMT]"
+      },
+      {
+        "Code": "NativeFontFamilySubstituted",
+        "Message": "The source font family 'ArialMT' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+        "LossKind": 1,
+        "Source": "OfficeIMO.Word.Pdf",
+        "Location": "word:font[ArialMT]"
+      }
+    ]
+  },
+  "nativeAcceptance": {
+    "currentDocxOpenedWithoutRepairOrFontWarningInWordAndPages": true,
+    "wordZoomPercent": 100,
+    "pagesZoomPercent": 125,
+    "wordPrintToLocalPdfOnly": true,
+    "pagesReimportExportedToLocalPdf": true,
+    "sourceDocxSha256UnchangedAfterNativeOpen": true,
+    "allFourPdfPagesVisuallyInspected": true,
+    "independentReadback": "pages-inline-flow-independent-readback.json",
+    "rasterTolerancePoints": 0.5,
+    "wordAndOfficeimoFramePoints": [
+      432,
+      127
+    ],
+    "pagesDocxReimportFramePoints": [
+      432,
+      150
+    ],
+    "pagesDocxReimportHeightDifferencePoints": 23,
+    "ownedAppsClosed": true
+  },
+  "managedValidation": [
+    {
+      "receipt": "iwork-flow-all-net8.trx",
+      "sha256": "1f5d48f42324e21efa987c32c084e7e50903a41c0310dd5a2bebd98aa04caab5",
+      "passed": 2782,
+      "failed": 0
+    },
+    {
+      "receipt": "iwork-flow-all-net10.trx",
+      "sha256": "966015af8a1c274b87089652cc779e11a7de4f01e4ffb0ac4cbf671e56763743",
+      "passed": 2782,
+      "failed": 0
+    },
+    {
+      "receipt": "workflows-flow-all-net8.trx",
+      "sha256": "736572d09110d8a1d617ab8b82c6a964d3bad00dee31cc529c0220d65de5f58a",
+      "passed": 98,
+      "failed": 0
+    },
+    {
+      "receipt": "workflows-flow-all-net10.trx",
+      "sha256": "e8ad4b80659dbac58b15bc7394e7663943b6f45f269880db56909e288522187b",
+      "passed": 98,
+      "failed": 0
+    }
+  ],
+  "limits": [
+    "Complete editable content is distinct from no-loss or identical appearance; 809 preserved source records remain unassessed.",
+    "Pages 15.4 DOCX reimport is 23 points taller than the source and Word output. The Word mapping preserves physical source row boxes; receiving-application equivalence remains open.",
+    "Portable PDF font substitution retains Helvetica/Helvetica-Bold selection at 14 points; rasterized bold weight, source font metrics and typography equivalence are unqualified.",
+    "Floating drawables preserve paragraph anchors. Meaningful host paragraph properties, automatic rows, merges, missing page dimensions, nonzero offsets/rotation and mismatched or oversize frames remain outside complete geometry mapping.",
+    "This receipt qualifies managed DOCX/PDF and native desktop opening/rendering for the recorded fixture. NativeAOT, other platforms, published packages and native hosts need their own evidence."
+  ],
+  "reproduction": [
+    "Convert the pinned Pages source with default ToWordDocumentResult and RequireCompleteEditableReconstruction; save/reopen DOCX.",
+    "Run complete pages-docx/pages-pdf workflows with the recorded portable font profile and default iWork acceptance.",
+    "Run Build/IWork/verify-pages-table-borders.py with the pinned source decode JSON and both generated DOCX paths.",
+    "Open the exact generated DOCX in Word/Pages; export local PDFs; independently decode text/fonts and measure blue outer stroke centers with Pillow at144 dpi and0.5 point tolerance."
+  ],
+  "artifacts": [
+    {
+      "path": "pages-inline-flow.docx",
+      "bytes": 19717,
+      "sha256": "a41a92c71e98d59ac53b1674bde7fc2b895814942a2dfff23803c0f64191b044"
+    },
+    {
+      "path": "pages-inline-flow-workflow.docx",
+      "bytes": 19716,
+      "sha256": "b7fc629ccfa7dc460595ed41fda560b59e41a5b81d949486a4c4ae0e68c05ee4"
+    },
+    {
+      "path": "pages-inline-flow-word-v16.113.3.pdf",
+      "bytes": 26085,
+      "sha256": "1dc1239aef776633bce9167556bd7ce5bcd7bc0a204dd562285f32faee70540d"
+    },
+    {
+      "path": "pages-inline-flow-word-v16.113.3-page1.png",
+      "bytes": 31296,
+      "sha256": "6ced704df422ce3dcdc7b7d15c760a238e28b0dd97ca98d32181d0f2503d5979"
+    },
+    {
+      "path": "pages-inline-flow-word-open.png",
+      "bytes": 91683,
+      "sha256": "37e1395756e9e08f62ad6671fa24a2b741c6c59863b448c424a6ba767e5c9486"
+    },
+    {
+      "path": "pages-inline-flow-workflow.pdf",
+      "bytes": 1567,
+      "sha256": "6d5324586a3fd4aabb8bb3d769d6966cef5e6eea0087d852f8d449c3e04caabc"
+    },
+    {
+      "path": "pages-inline-flow-workflow-page1.png",
+      "bytes": 31048,
+      "sha256": "9276e761f4a9a030f8ee6d080f3301e2af5476cf93a7ee9c950c825e817c8a8f"
+    },
+    {
+      "path": "pages-inline-flow-pages-v15.4.pdf",
+      "bytes": 30007,
+      "sha256": "1dee39a525ae85eb6cc2f0af1bcf3671a503e0707d08e6f9f93c09871bb4496c"
+    },
+    {
+      "path": "pages-inline-flow-pages-v15.4-page1.png",
+      "bytes": 31706,
+      "sha256": "f38c9830f731f026367d461a0d814c039edf0fff8091d6d3f4db63a41bce3113"
+    },
+    {
+      "path": "pages-inline-flow-pages-v15.4-open.png",
+      "bytes": 65337,
+      "sha256": "169f857fbc25375fcdbfbe4d6d793d77cd86f8b99e289f8c695e2d62e83c8744"
+    },
+    {
+      "path": "pages-inline-flow-independent-readback.json",
+      "bytes": 12707,
+      "sha256": "4446450a3181a1127ecf87486efe714c3693cba99821a9ccce915d72a233c1fd"
+    },
+    {
+      "path": "pages-inline-flow-docx-readback.json",
+      "bytes": 662,
+      "sha256": "a1754a114b38d8f798169d2faeabd83888f7c7a941958c4cc37559f9dfb6aba0"
+    },
+    {
+      "path": "pages-adjacent-tables-controlled.pages",
+      "bytes": 612,
+      "sha256": "2ab211edcfd8678b91af8c521048b71e3fb3698d1088437fef5f44d4820c62b7"
+    },
+    {
+      "path": "pages-adjacent-tables-before.docx",
+      "bytes": 18522,
+      "sha256": "90266d917ccc657258173bd70d8685e247646895e6dc9bb8ef00ea8a11fc297c"
+    },
+    {
+      "path": "pages-adjacent-tables-after.docx",
+      "bytes": 18525,
+      "sha256": "c5569bb92c20ecd40fe88187d3e2bfa2562351ad45f38351041060b30e63302d"
+    },
+    {
+      "path": "pages-three-adjacent-tables-after.docx",
+      "bytes": 18537,
+      "sha256": "da43667e997d8be054154fac6ee7f7525a33c88dbbcc0f257e4d2a849cc5246d"
+    },
+    {
+      "path": "pages-adjacent-tables-before-word.png",
+      "bytes": 78172,
+      "sha256": "3a1e4f514c921d75ed19d0d851e1db2201d643874f99754cec48cbc75fed74ab"
+    },
+    {
+      "path": "pages-adjacent-tables-after-word.png",
+      "bytes": 78176,
+      "sha256": "cc6436b61e8cd42a4b6c33eccef44bde742155c86b7f76e1f99952aa6618bd9b"
+    }
+  ],
+  "postReviewQualification": {
+    "baseRevision": "5f08846773fc179e2323b900278dbb9ba660a5ff",
+    "productionSourceFiles": [
+      {
+        "path": "OfficeIMO.Word.IWork/WordIWorkConverter.cs",
+        "sha256": "0cd694e332ea75fbebb0e10923c607d9d1d9f4a1294eae44d26c09dc13f698e8"
+      },
+      {
+        "path": "OfficeIMO.Word.IWork/WordIWorkConverter.Validation.cs",
+        "sha256": "eba4f72a649a59843396078677e4bfcef3e39ec75a118e7328028327d1979820"
+      },
+      {
+        "path": "OfficeIMO.Word.IWork/WordIWorkConverter.InlineObjects.cs",
+        "sha256": "c5cc19fe685bad22c476050111a3cb6829348c33df1aa491001665a7fdb36488"
+      },
+      {
+        "path": "OfficeIMO.Word.IWork/WordIWorkConverter.InlineTableLayout.cs",
+        "sha256": "bf80b1dbf28e3cc9d41f0d58377a95de733cd37828c1cdca7458e469e2053daf"
+      },
+      {
+        "path": "OfficeIMO.Word.IWork/WordIWorkConverter.TableRowHeights.cs",
+        "sha256": "ec39d10a02c5e9c39be43822baab233ce9ac21ca7acdce79a32bcc3647044a84"
+      }
+    ],
+    "loadedAssemblies": [
+      {
+        "name": "OfficeIMO.IWork.dll",
+        "sha256": "9458ffd7095b42bf54eb65241a8fe4bb937ff46b69479ded7a41038ea5f24b74"
+      },
+      {
+        "name": "OfficeIMO.Word.dll",
+        "sha256": "2bee0ddd7b5ed2c6aa51d2f1fd0eaf7809f2bcc0e34f77f854ef07f2231a81af"
+      },
+      {
+        "name": "OfficeIMO.Word.IWork.dll",
+        "sha256": "7b7ba27842225c453e599dee8b5772e7044f32411b74b7a4f1cecae9dcb0ce13"
+      },
+      {
+        "name": "OfficeIMO.Workflows.IWork.dll",
+        "sha256": "024ef651d4b32106d8312d1ac7e1829e8e2c0c9a860350026cdc8c4c754d5c48"
+      },
+      {
+        "name": "OfficeIMO.Word.Pdf.dll",
+        "sha256": "6d3e16fdf1e86770f69ee7aecb192a459baf4ac59475c64f134ba0247bec65d6"
+      }
+    ],
+    "change": "Retain an attachment paragraph when removing it would make independent source tables adjacent in DOCX.",
+    "singleTableProfile": {
+      "equivalentNormalizedDocxParts": 13,
+      "pdfByteIdentical": true,
+      "pdfSha256": "6d5324586a3fd4aabb8bb3d769d6966cef5e6eea0087d852f8d449c3e04caabc"
+    },
+    "consecutiveTables": {
+      "source": "pages-adjacent-tables-controlled.pages",
+      "provenance": "Test-derived synthetic boundary fixture from IWorkBoundaryTests.InlineFlowPackage; not an Apple-produced source.",
+      "sourceSha256": "2ab211edcfd8678b91af8c521048b71e3fb3698d1088437fef5f44d4820c62b7",
+      "beforeSourceSha256": "dae9f899202c72c1d26b56ff8ec710fb917491972a1ccd2fa0b372cf08f5f2cd",
+      "sourcePackageEntryPayloadsByteIdentical": true,
+      "beforeDocx": "pages-adjacent-tables-before.docx",
+      "afterDocx": "pages-adjacent-tables-after.docx",
+      "nativeApplication": "Microsoft Word 16.113.3 (16.113.26092714)",
+      "beforeNativeTablesRowsColumns": [
+        [
+          6,
+          2
+        ]
+      ],
+      "afterNativeTablesRowsColumns": [
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "nativeOpenWithoutRepairWarning": true,
+      "nativeZoomPercent": 100,
+      "screenshotsVisuallyInspected": true,
+      "ownedApplicationClosed": true,
+      "managedBoundaries": "Two and three strict fixed-grid tables; two partial-geometry tables; save/reopen XML validation retains paragraph separators.",
+      "limits": "Native opening proves distinct table identity for the two-table fixture; source appearance, pagination and three-table native rendering are unqualified."
+    },
+    "managedValidation": [
+      {
+        "receipt": "iwork-flow-final-net8.trx",
+        "sha256": "aa6887d26deb1a67d97e59d64675530a5b993c46a549e1753fa6f4c1666dc661",
+        "passed": 2785,
+        "failed": 0
+      },
+      {
+        "receipt": "iwork-flow-final-net10.trx",
+        "sha256": "e602c0d819146bf715bad47032bfbba82a67c60db0205e5d4bb33b99ce58c11a",
+        "passed": 2785,
+        "failed": 0
+      },
+      {
+        "receipt": "workflows-iwork-flow-final-net8.trx",
+        "sha256": "2d42cab882e119dcf82478ab476f9a7418445b83ab38087ee29ba97f0f15ea4e",
+        "passed": 98,
+        "failed": 0
+      },
+      {
+        "receipt": "workflows-iwork-flow-final-net10.trx",
+        "sha256": "d2329053d82ef761ccc99aaa60809dac123abd5e04ba67f0d21b089122398ddb",
+        "passed": 98,
+        "failed": 0
+      }
+    ]
+  }
+}

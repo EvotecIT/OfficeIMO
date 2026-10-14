@@ -355,6 +355,7 @@ public sealed class OfficeOutputWorkflowTests {
         Assert.Equal(3, result.SourceCount);
         Assert.Equal(3, result.PageCount);
         Assert.Equal(3, PdfDocument.Load(output).Inspect().PageCount);
+        Assert.Equal(new FileInfo(output).Length, result.OutputBytes);
         Assert.Equal(
             ["first.pdf", "image.png", "third.docx"],
             result.Diagnostics

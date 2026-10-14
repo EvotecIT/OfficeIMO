@@ -78,7 +78,7 @@ public sealed class ProjectCalendarCollection : IReadOnlyList<ProjectCalendar> {
     /// <summary>Creates an explicit Monday-Friday 08:00-12:00/13:00-17:00 working week.</summary>
     public ProjectCalendar AddStandardWorkingWeek(string name = "Standard") {
         var calendar = Add(name);
-        foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+        foreach (DayOfWeek day in global::OfficeIMO.Internal.EnumCompat.GetValues<DayOfWeek>())
             calendar.SetWorkingDay(day, day == DayOfWeek.Saturday || day == DayOfWeek.Sunday
                 ? Array.Empty<ProjectWorkingTime>() : new[] { ProjectWorkingTime.Hours(8, 12), ProjectWorkingTime.Hours(13, 17) });
         return calendar;

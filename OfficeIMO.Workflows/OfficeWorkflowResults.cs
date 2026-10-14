@@ -106,7 +106,8 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
         PdfHealthReport? healthReport = null,
         OfficeWorkflowOutputRecovery? recovery = null,
         OfficeIMO.Pdf.PdfSignatureValidationReport? signatureReport = null,
-        OfficeWorkflowConversionEvidence? conversionEvidence = null) {
+        OfficeWorkflowConversionEvidence? conversionEvidence = null,
+        string? outputSha256 = null) {
         RequestId = requestId;
         Operation = operation;
         Status = status;
@@ -114,6 +115,7 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
         OutputPath = outputPath;
         InputBytes = inputBytes;
         OutputBytes = outputBytes;
+        OutputSha256 = outputSha256;
         Duration = duration;
         Summary = summary;
         Diagnostics = diagnostics.ToArray();
@@ -139,6 +141,8 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
     public long InputBytes { get; }
     /// <summary>Published artifact size, or zero for report-only operations.</summary>
     public long OutputBytes { get; }
+    /// <summary>SHA-256 of the captured published artifact when available; never reread from its final path.</summary>
+    public string? OutputSha256 { get; }
     /// <summary>Total execution duration.</summary>
     public TimeSpan Duration { get; }
     /// <summary>User-facing outcome.</summary>

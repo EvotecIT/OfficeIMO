@@ -8,20 +8,34 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     private static bool RequiresNativeRunningStory(WordHeaderFooter? story) => story != null &&
         (story.ChildElements.Any(element => element is W.Table || element.Descendants<W.Table>().Any()) ||
+        NativeRunningStoryUsesSectionPageCount(story));
+
+    private static bool NativeRunningStoryUsesSectionPageCount(WordHeaderFooter? story) => story != null &&
         story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
             ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())
             .Any(paragraph => GetNativeHeaderFooterVisibleTextRuns(new WordParagraph(story.Document, paragraph))
-                .Any(item => item.IsField && item.Text == "{sectionpages}")));
+                .Any(item => item.IsField && item.Text == "{sectionpages}"));
+
+    private static bool UsesNativeSectionPageCounts(WordSection section) =>
+        new WordHeaderFooter?[] { section.ResolveDefaultHeader(), section.ResolveDefaultFooter(),
+            section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+            section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+            section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null,
+            section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null }
+        .Any(NativeRunningStoryUsesSectionPageCount);
 
     private static bool UsesNativeRunningHeader(WordSection section, WordToPdfOptions? options) => UsesNativeRunningStories(section, options, false,
-        section.Header?.Default, section.DifferentFirstPage ? section.Header?.First : null,
-        section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null);
+        section.ResolveDefaultHeader(), section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+        section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null);
 
     private static bool UsesNativeRunningFooter(WordSection section, WordToPdfOptions? options) => UsesNativeRunningStories(section, options, true,
-        section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
-        section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null);
+        section.ResolveDefaultFooter(), section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+        section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
 
     private static bool UsesNativeRunningStories(WordSection section, WordToPdfOptions? options, bool isFooter, params WordHeaderFooter?[] variants) {
+        // Required table/field stories retain rich flow for every active sibling.
+        // The paragraph renderer qualifies non-intersecting fixed page anchors;
+        // other mixed/nested boxes retain bounded flow with approximation reports.
         if (variants.Any(RequiresNativeRunningStory)) return true;
         bool hasNumberedParagraph = false;
         bool hasParagraph = false;
@@ -30,11 +44,12 @@ public static partial class WordPdfConverterExtensions {
         double width = GetNativePageSize(section, options).Width - margins.Left - margins.Right;
         foreach (WordHeaderFooter? story in variants) {
             if (story == null) continue;
+            hasParagraph |= !story.ChildElements.Any();
             double minimumHeight = 0D;
             double joinedLineHeight = double.PositiveInfinity;
             ordinaryStoriesSupported &= story.ChildElements.All(element => element is W.Paragraph);
-            // Admission switches all active variants. Preserve the source-order
-            // text-box path until flow can retain its mixed and nested content.
+            // Without a required table/field story, retain the established simple
+            // projection. It preserves its distinct presentation override contract.
             if (story.ChildElements.Any(element => element.Descendants<W.TextBoxContent>().Any())) return false;
             foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
@@ -97,50 +112,83 @@ public static partial class WordPdfConverterExtensions {
         if (UsesNativeRunningHeader(section, options)) {
             double distance = section.Margins.HeaderDistance / 20D;
             page.Header(header => {
-                header.Content(CreateNativeRunningStory(section.Header?.Default, section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DifferentFirstPage)
-                    header.FirstPageContent(CreateNativeRunningStory(section.Header?.First, section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DocumentOddEvenSettingEnabled)
-                    header.EvenPagesContent(CreateNativeRunningStory(section.Header?.Even, section, options, fontMap, listMarkers, defaults, false), distance);
+                if (section.ResolveDefaultHeader() != null)
+                    header.Content(CreateNativeRunningStory(section.ResolveDefaultHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
+                if (section.DifferentFirstPage && section.ResolveFirstHeader() != null)
+                    header.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
+                if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null)
+                    header.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
             });
-            if (!new[] { section.Header?.Default, section.DifferentFirstPage ? section.Header?.First : null,
-                    section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null }.Any(RequiresNativeRunningStory))
+            ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: true, section.ResolveDefaultHeader(),
+                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null);
+            if (!new[] { section.ResolveDefaultHeader(), section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                    section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: true);
-        }
+        } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: false);
         if (UsesNativeRunningFooter(section, options)) {
             double distance = section.Margins.FooterDistance / 20D;
             page.Footer(footer => {
-                footer.Content(CreateNativeRunningStory(section.Footer?.Default, section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DifferentFirstPage)
-                    footer.FirstPageContent(CreateNativeRunningStory(section.Footer?.First, section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DocumentOddEvenSettingEnabled)
-                    footer.EvenPagesContent(CreateNativeRunningStory(section.Footer?.Even, section, options, fontMap, listMarkers, defaults, true), distance);
+                if (section.ResolveDefaultFooter() != null)
+                    footer.Content(CreateNativeRunningStory(section.ResolveDefaultFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
+                if (section.DifferentFirstPage && section.ResolveFirstFooter() != null)
+                    footer.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
+                if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenFooter() != null)
+                    footer.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
             });
-            if (!new[] { section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
-                    section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null }.Any(RequiresNativeRunningStory))
+            ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.ResolveDefaultFooter(),
+                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
+            RetainNativeTextFreeFooterProjection(page.Options, section.ResolveDefaultFooter(), listMarkers, fontMap,
+                PdfCore.PdfRunningContentVariant.Default);
+            if (section.DifferentFirstPage)
+                RetainNativeTextFreeFooterProjection(page.Options, section.ResolveFirstFooter(), listMarkers, fontMap,
+                    PdfCore.PdfRunningContentVariant.FirstPage);
+            if (section.DocumentOddEvenSettingEnabled)
+                RetainNativeTextFreeFooterProjection(page.Options, section.ResolveEvenFooter(), listMarkers, fontMap,
+                    PdfCore.PdfRunningContentVariant.EvenPages);
+            if (!new[] { section.ResolveDefaultFooter(), section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                    section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: false);
-        }
+        } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: true);
     }
 
     private static Func<PdfCore.PdfRunningContentContext, Action<PdfCore.PdfContentBuilder>> CreateNativeRunningStory(
         WordHeaderFooter? story, WordSection section, WordToPdfOptions? options, NativeFontMap fontMap,
-        IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults, bool isFooter) {
+        IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults, bool isFooter,
+        bool includeGeneratedPageNumber = true) {
+        defaults = defaults with { RunningStoryHasDisallowedTextBoxPeers = HasNativeRunningStoryPeerConstraint(story, defaults) };
         IReadOnlyList<WordElement> elements = story == null ? Array.Empty<WordElement>() : CollapseNativeParagraphElements(story.Elements);
         RecordNativeRunningStoryJoinDiagnostics(elements, listMarkers, defaults, fontMap, options);
         // Running callbacks are evaluated while the PDF is written, after the
         // operation report is captured. Discover approximation diagnostics now.
         if (story != null)
             foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
-                ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>()))
-                RecordNativeMixedTextBoxDiagnostic(GetNativeRuns(new WordParagraph(story.Document, source)), options,
-                    "header/footer paragraph");
-        bool addPageNumber = isFooter && options?.IncludePageNumbers == true &&
-            (story == null || GetNativeHeaderFooterText(story, listMarkers, fontMap)?.HasPageTokens != true);
+                ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
+                if (source.Ancestors<W.TextBoxContent>().Any()) continue;
+                var paragraph = new WordParagraph(story.Document, source);
+                List<WordParagraph> runs = GetNativeRuns(paragraph);
+                // Context-dependent fields are assessed when materialized. Keep
+                // their conservative report rather than prequalifying cached text.
+                if (source.Descendants<W.SimpleField>().Any() || source.Descendants<W.FieldChar>().Any() ||
+                    !TryPrepareNativeAnchoredRunningTextBoxParagraph(GetNativePageSize(section, options), paragraph,
+                        runs, null, null, options, defaults with { RunningContentSection = section }, fontMap, out _))
+                    RecordNativeMixedTextBoxDiagnostic(paragraph, runs, options, "header/footer paragraph");
+            }
+        // A text-free source footer owns blank geometry; its generated number
+        // keeps the established text projection and physical margin. Missing
+        // variants have no native story and must not acquire an exclusion.
+        bool addPageNumber = includeGeneratedPageNumber && isFooter && options?.IncludePageNumbers == true &&
+            GetNativeHeaderFooterText(story, listMarkers, fontMap) is { HasPageTokens: false };
+        WordHeaderFooterResolutionSnapshot? resolutionSnapshot = WordHeaderFooterResolutionSnapshot.Current(section._document);
         return context => content => {
+            using IDisposable? resolutionScope = resolutionSnapshot?.Use();
             options?.CancellationToken.ThrowIfCancellationRequested();
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
                 new PdfCore.PageSize(context.PageWidth, context.PageHeight)), preserveInitialSpacingBefore: true);
-            NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context };
+            NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context, RunningContentSection = section };
+            if (story != null && !story.ChildElements.Any())
+                RenderNativeImplicitRunningParagraph(flow, story, runningDefaults, fontMap);
             var notes = new NativeNoteNumbering(section._document, options);
             notes.BeginSection(section);
             var destinations = new Dictionary<W.Paragraph, string>();

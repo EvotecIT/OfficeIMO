@@ -1,0 +1,77 @@
+{
+  "source": {
+    "path": "native-exports/keynote-scale-512-v15.4.key",
+    "sha256": "805f383fc8055b52a6527f1e57bb9bd923b8f629aa32c0cdd78c772b8b827692",
+    "bytes": 1286730
+  },
+  "producer": "Apple Keynote",
+  "producerVersion": "15.4",
+  "producerBuild": "7051.0.79",
+  "producerBundleId": "com.apple.Keynote",
+  "nativeHost": {
+    "os": "macOS 27.0.1",
+    "osBuild": "26A434",
+    "architecture": "arm64",
+    "hardware": "Mac16,10 Apple M4"
+  },
+  "provenance": {
+    "derivedFrom": "native-exports/keynote-colors-v15.4.key",
+    "baseSha256": "d9c7c5d0b1bb2bff80e44ea683239601dcc5c2e632205ad8611bb0110f3502f1",
+    "nativeActions": "Opened a copy in Keynote 15.4, selected both slide navigator entries and duplicated the pair eight times: 2 to 512. Saved, exported all slides to PDF and PowerPoint, closed and reopened the native source, navigated to slide 512 and inspected its text and presenter note. No repair prompt appeared. Closed the owned document and quit the initially closed application.",
+    "sourceModified": true,
+    "license": "Derivative of the existing nim-iwork MIT fixture; its attribution applies. No standalone fonts distributed."
+  },
+  "exportOptions": "PDF best image quality, all 512 slides; notes, build stages, skipped slides, comments and password off. PowerPoint export without password.",
+  "exports": {
+    "applePdf": {
+      "path": "native-exports/keynote-scale-512-v15.4.pdf",
+      "bytes": 675973,
+      "sha256": "9d38d977397a60e77a4b6f13650f518b56f99bb533648649833e0c5148e7c65f"
+    },
+    "applePptx": {
+      "path": "native-exports/keynote-scale-512-v15.4.pptx",
+      "bytes": 923642,
+      "sha256": "c82191c62449f6def3000e3551ee22c867a976f753868e037ef329b1f7f1ead9"
+    }
+  },
+  "independentEvidence": {
+    "path": "native-exports/keynote-scale-512-v15.4-decode.json",
+    "provider": "numbers-parser 4.19.0 and pinned Keynote protobuf descriptors; ElementTree OOXML; pypdf 6.10.0 and Poppler 26.09.0",
+    "verifiedNativeSlides": 512,
+    "verifiedApplePptxSlides": 512,
+    "verifiedApplePdfPages": 512,
+    "checks": "Distinct ordered source identities, initialized selected records, text, notes, RGB backgrounds, frame geometry, visible status and canvas. PDF text normalizes fi ligatures and validates exactly one bullet on odd pages."
+  },
+  "nativeReopen": {
+    "repairPrompt": false,
+    "lastSlideInspected": 512,
+    "lastSlidePresenterNotes": "note text here",
+    "applicationClosedAfterCheck": true
+  },
+  "representativeRenders": {
+    "renderer": "pdftocairo 26.09.0",
+    "options": "-r 72 -singlefile -png",
+    "visuallyInspectedSlides": [
+      1,
+      2,
+      255,
+      256,
+      511,
+      512
+    ],
+    "hashes": {
+      "1": "176128b8c9530e80f700b4265fdc1589abba68a237c404d9a0641a9cc2bbe095",
+      "2": "69928a0554d5e9f35cfdc49495f48483da48b821caeca12d29668802b2138b3b",
+      "255": "176128b8c9530e80f700b4265fdc1589abba68a237c404d9a0641a9cc2bbe095",
+      "256": "69928a0554d5e9f35cfdc49495f48483da48b821caeca12d29668802b2138b3b",
+      "511": "176128b8c9530e80f700b4265fdc1589abba68a237c404d9a0641a9cc2bbe095",
+      "512": "69928a0554d5e9f35cfdc49495f48483da48b821caeca12d29668802b2138b3b"
+    }
+  },
+  "oracleLimits": [
+    "Poppler bbox extraction places fi ligatures outside their text positions. Complete PDF text uses pypdf; bbox supplies canvas dimensions only.",
+    "pdftoppm Splash produced blank text on selected later pages. pdftocairo Cairo rendered all six representative pages correctly.",
+    "pypdf reports wrong-pointing object offsets for objects 2120 and 2121 in this Apple-produced PDF. No PDF conformance claim."
+  ],
+  "limits": "One Apple Keynote 15.4 source with 256 repetitions of two text layouts. All slides receive semantic checks; six representative PDF pages receive visual inspection. Auxiliary/opaque native records, varied object types, full typography, other producers/platforms, native rendering of the reconstructed PPTX, and performance budgets are separate qualification boundaries."
+}

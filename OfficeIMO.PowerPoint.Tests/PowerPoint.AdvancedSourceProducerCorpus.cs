@@ -493,14 +493,5 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
             .Select(value => value.ToString("x2")));
     }
 
-    private static string GetRepositoryRoot() {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")))
-                return directory.FullName;
-            directory = directory.Parent;
-        }
-        throw new DirectoryNotFoundException(
-            "Could not locate the OfficeIMO repository root.");
-    }
+    private static string GetRepositoryRoot() => RepositoryTestPaths.Find();
 }

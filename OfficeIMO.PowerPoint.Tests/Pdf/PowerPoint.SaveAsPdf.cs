@@ -1395,7 +1395,8 @@ public class PowerPointSaveAsPdfTests {
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("30 76 150 70 re", raw, StringComparison.Ordinal);
+        Assert.Contains("30 146 m", raw, StringComparison.Ordinal);
+        Assert.Contains("180 76 l", raw, StringComparison.Ordinal);
         Assert.Contains("120 146 m", raw, StringComparison.Ordinal);
         Assert.Contains("120 76 l", raw, StringComparison.Ordinal);
         Assert.Contains("30 118 m", raw, StringComparison.Ordinal);
@@ -1628,6 +1629,10 @@ public class PowerPointSaveAsPdfTests {
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
         Assert.Contains("StyledSerif", text, StringComparison.Ordinal);
         Assert.Contains("DefaultSerif", text, StringComparison.Ordinal);
+        var defaultWord = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "DefaultSerif");
+        Assert.All(defaultWord.Letters, letter => Assert.Contains("Times", letter.FontName, StringComparison.Ordinal));
+        var styledWord = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "StyledSerif");
+        Assert.All(styledWord.Letters, letter => Assert.Contains("Georgia", letter.FontName, StringComparison.Ordinal));
     }
 
     [Fact]

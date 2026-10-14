@@ -126,7 +126,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return null;
         }
 
-        string directionalText = string.Concat(lines.SelectMany(static line => line).Select(static segment => segment.Text));
+        string directionalText = string.Concat(lines.SelectMany(static line => line).Select(static segment =>
+            segment.Text.Length == 0 && segment.LogicalText == "\t" ? "\t" : segment.Text));
         if (!OfficeTextElements.ContainsBidiControl(directionalText)) return null;
 
         var visibleLines = new List<IReadOnlyList<InlineBidiElement>>(lines.Count);
@@ -157,6 +158,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
             CheckCancellation();
             InlineSegment segment = segments[segmentIndex];
+            if (segment.Text.Length == 0 && segment.LogicalText == "\t") {
+                // A preserved tab is a width-bearing source segment even though it paints no glyph.
+                visibleElements.Add(new InlineBidiElement(string.Empty, "\t", segmentIndex, 0, segment.Width));
+                continue;
+            }
             IReadOnlyList<string> paintElements = OfficeTextElements.Split(segment.Text);
             IReadOnlyList<string> logicalElements = OfficeTextElements.Split(segment.LogicalText);
             OfficeFontInfo effectiveFont = GetEffectiveTextFont(segment.Run.Style);
@@ -201,6 +207,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<InlineSegment> sources,
         IReadOnlyList<InlineBidiElement> ordered) {
         var result = new List<InlineSegment>();
+        var firstGroups = new InlineSegment?[sources.Count];
+        var lastGroups = new InlineSegment?[sources.Count];
         int start = 0;
         while (start < ordered.Count) {
             int end = start + 1;
@@ -212,23 +220,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .OrderBy(static element => element.SourceElementIndex)
                 .Select(static element => element.LogicalText));
             double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
-            result.Add(new InlineSegment(
+            int sourceIndex = ordered[start].SourceSegmentIndex;
+            var group = new InlineSegment(
                 text,
                 segmentWidth,
-                sources[ordered[start].SourceSegmentIndex].Run,
+                sources[sourceIndex].Run,
                 logicalText,
                 bidiResolved: true,
-                logicalEndProgress: sources[ordered[start].SourceSegmentIndex].LogicalEndProgress));
+                logicalEndProgress: sources[sourceIndex].LogicalEndProgress);
+            result.Add(group);
+            firstGroups[sourceIndex] ??= group;
+            lastGroups[sourceIndex] = group;
             start = end;
         }
         // Reordering may split a source segment into several visual groups.
         // Its box edges belong to the two visual ends, never to every group.
-        foreach (IGrouping<int, InlineBidiElement> source in ordered.GroupBy(element => element.SourceSegmentIndex)) {
-            HtmlInlineRun run = sources[source.Key].Run;
-            InlineSegment[] groups = result.Where(segment => ReferenceEquals(segment.Run, run)).ToArray();
-            if (groups.Length == 0) continue;
-            groups[0].LeadingAdvance += sources[source.Key].LeadingAdvance;
-            groups[groups.Length - 1].TrailingAdvance += sources[source.Key].TrailingAdvance;
+        for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
+            if (firstGroups[sourceIndex] is not InlineSegment first || lastGroups[sourceIndex] is not InlineSegment last) continue;
+            first.LeadingAdvance += sources[sourceIndex].LeadingAdvance;
+            last.TrailingAdvance += sources[sourceIndex].TrailingAdvance;
         }
         return result.AsReadOnly();
     }

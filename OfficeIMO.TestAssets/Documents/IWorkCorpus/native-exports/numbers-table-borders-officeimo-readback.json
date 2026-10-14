@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "oracle": "openpyxl 3.1.5 and independent ZIP/XML readback",
+  "scope": "16 source values, 64 edges, 10 bold cells and typed styled blank",
+  "workbooks": [
+    {
+      "path": "numbers-table-borders-v14.5.xlsx",
+      "sha256": "c54562907c40affd5aadd60263dd98340a39fb821ce328b65f8e0dbd095c4531",
+      "bytes": 6024,
+      "values": 16,
+      "borders": 64,
+      "boldCells": 10,
+      "styledD3": "blank; no value, string or formula",
+      "blankXml": "<ns0:c xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" r=\"D3\" s=\"11\" />"
+    },
+    {
+      "path": "numbers-table-borders-officeimo.xlsx",
+      "sha256": "c25ce669ba01e3a8e0c9b9545cceabd5afa3fad83f2c86058b23771b2146ce8e",
+      "bytes": 5113,
+      "values": 16,
+      "borders": 64,
+      "boldCells": 10,
+      "styledD3": "blank; no value, string or formula",
+      "blankXml": "<ns0:c xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" r=\"D3\" s=\"106\" />"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-excel-v16.113.3.xlsx",
+      "sha256": "d3f2b7da8f3d0ea91719cfbcee753c2af08d5c3415035c14a5221171d27f53dd",
+      "bytes": 9131,
+      "values": 16,
+      "borders": 64,
+      "boldCells": 10,
+      "styledD3": "blank; no value, string or formula",
+      "blankXml": "<ns0:c xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" r=\"D3\" s=\"7\" />"
+    }
+  ]
+}

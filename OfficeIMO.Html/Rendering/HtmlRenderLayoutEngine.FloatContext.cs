@@ -13,12 +13,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false, "float-clearance");
 
     private HtmlRenderBoxStyle PlaceIndependentBlockBesideFloats(HtmlRenderBoxStyle style, double width,
-        InlineFloatContext context, ref double y) {
+        InlineFloatContext context, ref double y, double? minimumOuterWidth = null) {
         if (!context.HasFloats || !EstablishesIndependentFloatContext(style)) return style;
         double height = Math.Max(style.LineHeight, style.ExplicitHeight ?? 0D);
         InlineFloatBand band = context.ResolveUsableBand(ref y, height);
-        while (ResolveBoxWidth(Math.Max(1D, band.Width - style.MarginLeft - style.MarginRight), style)
-            + style.MarginLeft + style.MarginRight > band.Width + 0.0001D) {
+        while (Math.Max(minimumOuterWidth ?? 0D,
+            ResolveBoxWidth(Math.Max(1D, band.Width - style.MarginLeft - style.MarginRight), style)
+                + style.MarginLeft + style.MarginRight) > band.Width + 0.0001D) {
             double next = context.NextBottomAfter(y);
             if (next <= y + 0.0001D) break;
             y = next;

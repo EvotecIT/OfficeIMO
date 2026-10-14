@@ -87,10 +87,12 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText plain = Assert.Single(control, item => item.Text == "MMMMMMMM");
         Assert.Equal(plain.TextAdvanceWidth!.Value, script.TextAdvanceWidth!.Value, 6);
         Assert.True(Assert.Single(actual, item => item.Text == "TAIL").LayoutY > script.LayoutY);
-        Assert.Equal(Assert.Single(control, item => item.Text == "TAIL").LayoutY,
-            Assert.Single(actual, item => item.Text == "TAIL").LayoutY, 6);
-        Assert.Equal(Assert.Single(control, item => item.Text == "FOLLOWING").LayoutY,
-            Assert.Single(actual, item => item.Text == "FOLLOWING").LayoutY, 6);
+        HtmlRenderText tail = Assert.Single(actual, item => item.Text == "TAIL");
+        Assert.Equal(Assert.Single(control, item => item.Text == "TAIL").X, tail.X, 6);
+        // Baseline displacement can enlarge the script's line without changing
+        // its horizontal wrapping. The following block must clear the last line.
+        Assert.True(Assert.Single(actual, item => item.Text == "FOLLOWING").LayoutY
+            >= tail.LayoutY + tail.LineHeight - 0.000001D);
 
         static HtmlRenderText[] Text(string html) =>
             EnumerateRenderVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene).OfType<HtmlRenderText>().ToArray();

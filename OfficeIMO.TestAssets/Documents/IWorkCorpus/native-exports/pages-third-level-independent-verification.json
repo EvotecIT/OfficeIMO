@@ -1,0 +1,280 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "cases": [
+    {
+      "source": "pages-third-level-created.pages",
+      "sha256": "50a5285d449da02eef7682a6a18b1f7103f6192304cc1f3173c52cac5576f775",
+      "items": [
+        [
+          0,
+          7,
+          "Parent seven"
+        ],
+        [
+          1,
+          1,
+          "Child one"
+        ],
+        [
+          2,
+          1,
+          "Grandchild one"
+        ],
+        [
+          2,
+          2,
+          "Grandchild two"
+        ],
+        [
+          2,
+          3,
+          "Grandchild continued three"
+        ],
+        [
+          1,
+          2,
+          "Child two resets grandchild"
+        ],
+        [
+          2,
+          1,
+          "Grandchild reset one"
+        ],
+        [
+          2,
+          5,
+          "Grandchild restart five"
+        ],
+        [
+          0,
+          3,
+          "Separate root three"
+        ],
+        [
+          2,
+          6,
+          "Resumed grandchild six"
+        ],
+        [
+          0,
+          8,
+          "Parent eight resets descendants"
+        ],
+        [
+          1,
+          1,
+          "Child reset one"
+        ],
+        [
+          2,
+          1,
+          "Grandchild reset after root one"
+        ],
+        [
+          0,
+          4,
+          "Parent restart four"
+        ],
+        [
+          1,
+          1,
+          "Child after restart one"
+        ],
+        [
+          2,
+          1,
+          "Grandchild after restart one"
+        ]
+      ]
+    },
+    {
+      "source": "pages-third-level-saved-v15.4.pages",
+      "sha256": "7e4c273343e1c34a5752f07bb4369c9ec9a052a240cb62fadade43315f5900e2",
+      "items": [
+        [
+          0,
+          7,
+          "Parent seven"
+        ],
+        [
+          1,
+          1,
+          "Child one"
+        ],
+        [
+          2,
+          1,
+          "Grandchild one"
+        ],
+        [
+          2,
+          2,
+          "Grandchild two"
+        ],
+        [
+          2,
+          3,
+          "Grandchild continued three"
+        ],
+        [
+          1,
+          2,
+          "Child two resets grandchild"
+        ],
+        [
+          2,
+          1,
+          "Grandchild reset one"
+        ],
+        [
+          2,
+          5,
+          "Grandchild restart five"
+        ],
+        [
+          0,
+          3,
+          "Separate root three"
+        ],
+        [
+          2,
+          6,
+          "Resumed grandchild six"
+        ],
+        [
+          0,
+          8,
+          "Parent eight resets descendants"
+        ],
+        [
+          1,
+          1,
+          "Child reset one"
+        ],
+        [
+          2,
+          1,
+          "Grandchild reset after root one"
+        ],
+        [
+          0,
+          4,
+          "Parent restart four"
+        ],
+        [
+          1,
+          1,
+          "Child after restart one"
+        ],
+        [
+          2,
+          1,
+          "Grandchild after restart one"
+        ]
+      ],
+      "nativeExportsVerified": [
+        "docx",
+        "pdf"
+      ]
+    },
+    {
+      "source": "pages-third-level-edited-v15.4.pages",
+      "sha256": "b37a9b20f9bfed513498b70110d20ed8784b4b6513f17709dddb557b7fb0c1c0",
+      "items": [
+        [
+          0,
+          7,
+          "Parent seven"
+        ],
+        [
+          1,
+          1,
+          "Child one"
+        ],
+        [
+          2,
+          1,
+          "Grandchild one"
+        ],
+        [
+          2,
+          2,
+          "Grandchild two"
+        ],
+        [
+          2,
+          3,
+          "Grandchild continued three"
+        ],
+        [
+          1,
+          2,
+          "Child two resets grandchild"
+        ],
+        [
+          2,
+          1,
+          "Grandchild reset one"
+        ],
+        [
+          2,
+          5,
+          "Grandchild restart five"
+        ],
+        [
+          0,
+          3,
+          "Separate root three"
+        ],
+        [
+          2,
+          6,
+          "Resumed grandchild six"
+        ],
+        [
+          0,
+          8,
+          "Parent eight resets descendants"
+        ],
+        [
+          1,
+          1,
+          "Child reset one"
+        ],
+        [
+          2,
+          1,
+          "Grandchild reset after root one"
+        ],
+        [
+          0,
+          4,
+          "Parent restart four"
+        ],
+        [
+          1,
+          1,
+          "Child after restart one"
+        ],
+        [
+          2,
+          1,
+          "Grandchild after restart one"
+        ],
+        [
+          2,
+          2,
+          "Native grandchild two"
+        ]
+      ],
+      "nativeExportsVerified": [
+        "docx",
+        "pdf"
+      ]
+    }
+  ],
+  "destination": "OfficeIMO DOCX reopened and rendered by Pages 15.4",
+  "scope": "Levels 0,1,2, counters and selected indents; no wider typography or producer claim."
+}

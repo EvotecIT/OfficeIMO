@@ -68,7 +68,7 @@ public sealed partial class IWorkBoundaryTests {
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
             var target = reopened.Sheets.Single(s => s.Name == mapping.DestinationName).CellAt(8, 1);
-            Assert.Equal("", target.GetValue<string>());
+            Assert.Null(target.GetValue<string>());
             Assert.Equal(explicitlySelected, target.GetStyle().NumberFormatCode?.Contains('%') == true);
         }
     }
@@ -90,7 +90,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("@", reference.CellAt(row + 1, 1).GetStyle().NumberFormatCode);
             Assert.Equal(reference.CellAt(row + 1, 1).GetStyle().NumberFormatCode,
                 sheet.CellAt(row, 1).GetStyle().NumberFormatCode);
-            Assert.Equal("", sheet.CellAt(row, 1).GetValue<string>());
+            Assert.Null(reference.CellAt(row + 1, 1).GetValue<string>());
+            Assert.Null(sheet.CellAt(row, 1).GetValue<string>());
+            Assert.False(sheet.TryGetCellValueSnapshot(row, 1, out _));
         }
         Assert.Empty(reopened.ValidateOpenXml());
     }
@@ -133,7 +135,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(21, blanks.Length);
         foreach (var cell in blanks) {
             Assert.Equal("#,##0.###############", sheet.CellAt(cell.Row, cell.Column).GetStyle().NumberFormatCode);
-            Assert.Equal("", sheet.CellAt(cell.Row, cell.Column).GetValue<string>());
+            Assert.Null(sheet.CellAt(cell.Row, cell.Column).GetValue<string>());
+            Assert.False(sheet.TryGetCellValueSnapshot(cell.Row, cell.Column, out _));
         }
         Assert.Empty(reopened.ValidateOpenXml());
     }

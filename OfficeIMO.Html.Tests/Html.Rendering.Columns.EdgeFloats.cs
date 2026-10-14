@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText bottom = Assert.Single(text, t => t.Text == "Bottom");
         HtmlRenderText note = Assert.Single(text, t => t.Text == "Note");
         Assert.Equal(10D, top.Y, 3);
-        Assert.Equal(30D, call.Y, 3);
+        Assert.Equal(30D, call.LayoutY, 3);
         Assert.True(bottom.Y >= call.Y + call.Height);
         Assert.True(note.Y >= bottom.Y + 20D);
         Assert.True(note.Y + note.Height <= 110D + 0.001D);

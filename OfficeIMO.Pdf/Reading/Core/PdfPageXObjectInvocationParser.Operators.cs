@@ -5,6 +5,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         // Paint callbacks can recursively parse forms and soft masks. Keep the dispatch frame
         // small instead of retaining every operator's graphics-state temporaries on that stack.
         private void ApplyOperator(string op, double paintOrder, bool hasInvalidOperands) {
+            OperatorVisitor?.Invoke(op);
             _currentPaintOrder = paintOrder;
             switch (op) {
                 case "q":

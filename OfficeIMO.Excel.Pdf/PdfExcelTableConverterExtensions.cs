@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Converts structured logical PDF tables into Excel worksheets.
     /// </summary>
-    public static class PdfExcelTableConverterExtensions {
+    public static partial class PdfExcelTableConverterExtensions {
         /// <summary>Imports logical PDF tables from an opened PDF into a new editable Excel document.</summary>
         public static ExcelDocument ImportTablesToExcelDocument(
             this PdfCore.PdfDocument document,
@@ -245,6 +245,7 @@ namespace OfficeIMO.Excel.Pdf {
                 if (options.AutoFitColumns) {
                     sheet.AutoFitColumns(ct: options.CancellationToken);
                 }
+                bool columnProportionsApplied = ApplyColumnProportions(sheet, extraction.Table.Columns, columns.Count, options);
 
                 string actualTableName = FindActualTableName(workbook, sheet.Name, range, requestedTableName);
                 results.Add(new PdfExcelTableImportEntry(
@@ -267,7 +268,8 @@ namespace OfficeIMO.Excel.Pdf {
                     currencyTokens,
                     currencyAffixPositions,
                     currencyAffixUsesSpacing,
-                    confirmedHeader));
+                    confirmedHeader,
+                    columnProportionsApplied));
             }
 
             options.CancellationToken.ThrowIfCancellationRequested();

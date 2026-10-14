@@ -146,7 +146,10 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderStyledWord(content, StyledWordWidth(calibration.Width));
         HtmlRenderText left = StyledWordText(rendered, "steradian"), right = StyledWordText(rendered, "(b)");
 
-        Assert.Equal(calibration.Right.Y - calibration.Left.Y + 24D, right.Y - left.Y, 6);
+        Assert.Equal(24D, right.LayoutY - left.LayoutY, 6);
+        HtmlRenderText scriptLine = StyledWordText(RenderStyledWord(
+            "<sup><em id='right'>(b)</em></sup>", "width:220px;white-space:nowrap"), "(b)");
+        Assert.Equal(scriptLine.Y - scriptLine.LayoutY, right.Y - right.LayoutY, 6);
         Assert.Equal(left.X, right.X, 6);
         AssertStyledWordRun(calibration.Left, left);
         AssertStyledWordRun(calibration.Right, right);

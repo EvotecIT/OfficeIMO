@@ -5,12 +5,11 @@ internal static partial class IWorkTextReader {
     private static void AssessUnmappedTypography(IWorkWireMessage message, IWorkArchiveRecord record,
         IWorkSourceDeclarationIssueCollector declarations, ref bool complete) {
         bool unmapped = false;
-        // TSWP.CharacterStylePropertiesArchive: script, capitalization, baseline shift, kerning, tracking.
+        // TSWP.CharacterStylePropertiesArchive: script, capitalization, baseline shift, kerning.
         AssessEnum(10, 2);
         AssessEnum(13, 3);
         AssessFloat(14);
         AssessFloat(15);
-        AssessFloat(27);
         if (unmapped) complete = false;
 
         void AssessEnum(int field, ulong maximum) {
@@ -37,5 +36,20 @@ internal static partial class IWorkTextReader {
                     : IWorkSourceDeclarationIssueKind.UnsupportedField);
             unmapped = true;
         }
+    }
+
+    private static void OverlayCharacterTracking(IWorkWireMessage message, TextStyleData data,
+        IWorkArchiveRecord record, IWorkSourceDeclarationIssueCollector declarations, ref bool complete) {
+        if (!message.HasField(27)) return;
+        float? tracking = message.GetFloat(27);
+        if (message.FieldCount(27) != 1 || message.HasUnexpectedWireKind(27, IWorkWireKind.Fixed32)
+            || !tracking.HasValue || !IsFinite(tracking.Value)) {
+            declarations.Record(record, "11/27", message.FieldCount(27), IWorkSourceDeclarationIssueKind.InvalidValue);
+            complete = false;
+            return;
+        }
+        // Native Keynote exports multiply this font-relative value by the effective
+        // font size: -0.02 at 116 pt becomes PPTX character spacing of -232/100 pt.
+        data.CharacterTrackingEm = tracking.Value;
     }
 }

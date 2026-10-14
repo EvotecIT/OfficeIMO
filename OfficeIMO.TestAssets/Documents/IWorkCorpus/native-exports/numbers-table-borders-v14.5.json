@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "source": "numbers-table-borders-v14.5.numbers",
+  "decode": "numbers-table-borders-v14.5-decode.json",
+  "nativeProducer": "Numbers 14.5 (7045.0.17)",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "license": "MIT, OfficeIMO contributors",
+  "intake": "numbers-table-borders-intake.xlsx",
+  "recipe": "Import the controlled XLSX in Numbers, crop the table to four rows and columns, set one header row, one header column and one footer row. Change B2 bottom from red 3pt to red 2pt in Numbers. Save locally, reopen, export XLSX and one-page PDF. The later order-3 edit overrides the adjacent order-2 3pt edge.",
+  "rows": 4,
+  "columns": 4,
+  "headerRows": 1,
+  "headerColumns": 1,
+  "footerRows": 1,
+  "cellEdges": 64,
+  "nativePdfPages": 1,
+  "nativePdfPagesInspected": 1,
+  "nativeAppScreenshotsInspected": true,
+  "ownedAppsClosed": true,
+  "independentDecode": {
+    "tool": "Build/IWork/extract-numbers-table-borders.py",
+    "numbersParserVersion": "4.19.0",
+    "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917",
+    "descriptorSource": "https://github.com/orcastor/iwork-converter/tree/be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "descriptorLicense": "MIT",
+    "qualifiedEdges": 64,
+    "nativeXlsxEdgesAgree": true
+  },
+  "limits": [
+    "Controlled imported-and-natively-edited Numbers source; this does not establish arbitrary templates or producer versions.",
+    "One- and two-point visible strokes qualify native thin/medium XLSX mapping. Hidden edges use zero width. Other widths and exact native print layout remain separate.",
+    "Source header and footer regions are recovered. XLSX uses resolved cell edges; it does not inherit Numbers table roles.",
+    "Native cells declare padding without an XLSX equivalent. Editable XLSX therefore uses the explicit partial policy and reports IWORK_NUMBERS_CELL_PADDING_OMITTED.",
+    "The iWork PDF route requires complete editable reconstruction and rejects this fixture. A PDF of the partial XLSX is separate appearance evidence, not complete native-document acceptance."
+  ],
+  "artifacts": [
+    {
+      "path": "numbers-table-borders-intake.xlsx",
+      "bytes": 5429,
+      "sha256": "746bb11ca57a1b75844e47a16dedcbeddfc02bc847c27ca075be885fe2de8a8b"
+    },
+    {
+      "path": "numbers-table-borders-v14.5-decode.json",
+      "bytes": 14062,
+      "sha256": "68f424577914412972fbf212f81cb3b85e46a3dff1fe3840a40ec1b8abd281ed"
+    },
+    {
+      "path": "numbers-table-borders-v14.5-native.png",
+      "bytes": 94534,
+      "sha256": "c62b7bd160b2493ba80373f35da9a41518c31b0e49086fc779a245a289ba25fa"
+    },
+    {
+      "path": "numbers-table-borders-v14.5-page1.png",
+      "bytes": 22915,
+      "sha256": "194d8cb2d9592241d42a69935eaf2766552b35368ef0479ea7a09d555ff0a858"
+    },
+    {
+      "path": "numbers-table-borders-v14.5-reopened.png",
+      "bytes": 75025,
+      "sha256": "1647f85dd61183b5b6c00070f61fc009ac67bc3e55de272d64abe7beb0c9a439"
+    },
+    {
+      "path": "numbers-table-borders-v14.5.numbers",
+      "bytes": 678192,
+      "sha256": "f26c9e0ef5e2e385dee2d117a491a9f078ab29bdf206154be774a922185a0911"
+    },
+    {
+      "path": "numbers-table-borders-v14.5.pdf",
+      "bytes": 30123,
+      "sha256": "94b41069593f9d2b34c0cb05579b5edeb76fc43803665511890d58811453169f"
+    },
+    {
+      "path": "numbers-table-borders-v14.5.xlsx",
+      "bytes": 6024,
+      "sha256": "c54562907c40affd5aadd60263dd98340a39fb821ce328b65f8e0dbd095c4531"
+    },
+    {
+      "path": "numbers-table-borders-officeimo.xlsx",
+      "bytes": 5113,
+      "sha256": "c25ce669ba01e3a8e0c9b9545cceabd5afa3fad83f2c86058b23771b2146ce8e"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-from-xlsx.pdf",
+      "bytes": 2058,
+      "sha256": "54ca5923c3087c3ac2cc69e4b89dff12ddb68103066238fef2a02d2596e2db2f"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-from-xlsx-page1.png",
+      "bytes": 19531,
+      "sha256": "ccd8e149c9e7d1b0ebb6ef502fdf34f511ef7c934d684420f278ced6bed56595"
+    },
+    {
+      "path": "numbers-table-borders-native-xlsx-officeimo.pdf",
+      "bytes": 2121,
+      "sha256": "eb5fa4170bf283694a91ece5836c0d1879e3c70f20d667bf2926f655e0e13655"
+    },
+    {
+      "path": "numbers-table-borders-native-xlsx-officeimo-page1.png",
+      "bytes": 19369,
+      "sha256": "bc8b096164a715cfd8e66d50a6806936bdf4380092a03b3fa054e96af0839b06"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-excel-v16.113.3.xlsx",
+      "bytes": 9131,
+      "sha256": "d3f2b7da8f3d0ea91719cfbcee753c2af08d5c3415035c14a5221171d27f53dd"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-excel-v16.113.3-open.png",
+      "bytes": 335294,
+      "sha256": "3b62a3a5eaa8c97ec705b2bec82ab171a09b974a1469ed5780cd14ad8fcea53c"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-excel-v16.113.3-reopened.png",
+      "bytes": 333689,
+      "sha256": "0430e719a5f184f71cf71a69406583c6e7f50197a3fc614d754e33915b247d9c"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-readback.json",
+      "bytes": 1436,
+      "sha256": "1da2556849d3361ae017b366352d5170b924406b57c53a03a4a970de4233a957"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-excel-v16.113.3.json",
+      "bytes": 1579,
+      "sha256": "c57adfd1d151e724262780eb7f1fe18835b87e8f42a44daec1d3f81a4e3ac684"
+    }
+  ],
+  "officeimoQualification": {
+    "sourceProjectionAndSavedXlsx": "All 16 source cell values, including the genuinely blank styled D3, and 64 independently decoded edges agree; saved XLSX validates and reopens. Explicit empty text and formula text results are tested separately. The source remains unchanged.",
+    "policy": "Explicit partial editable reconstruction with IWORK_NUMBERS_CELL_PADDING_OMITTED. Complete editable acceptance and both complete/partial PDF requests reject the source.",
+    "workflowSourceUnits": 3,
+    "workflowReconstructedUnits": 3,
+    "workflowOmittedUnits": 0,
+    "workflowUnassessedUnits": 0,
+    "independentExtractorByteIdentical": true,
+    "appearance": "Both one-page XLSX-to-PDF outputs and the one-page native PDF were inspected. Colors, the hidden edge and edited-edge locations agree. This is separate appearance evidence for partial XLSX, not complete iWork PDF acceptance.",
+    "renderingProfile": "Caller-provided Carlito regular/bold/italic/bold-italic fallback faces; portable deterministic resource policy. Latin text uses standard PDF Helvetica/Helvetica-Bold in these outputs.",
+    "renderingLimits": [
+      "Native Arial and PDF standard font appearance differ; bold declarations remain in both saved XLSX and PDF operators.",
+      "XLSX thin/medium styles render at 0.5/1.25 points in the shared PDF owner, versus native 1/2-point strokes. Exact native stroke thickness is not qualified.",
+      "Native page placement, paper orientation, column geometry and print footer differ from reconstructed output; exact native print layout is not qualified."
+    ],
+    "checks": [
+      "IWorkNumbersBorderCorpusTests",
+      "IWorkWorkflowNumbersBorderPdfTests",
+      "ExcelCustomIndexedColorTests",
+      "NativeNumbersBorderSmoke"
+    ],
+    "sourceRevision": "58dcd0f87560cc3b7fa100b35cb2e025a34541a7",
+    "independentXlsxReadback": "openpyxl 3.1.5 and ZIP/XML readback confirm 16 values, 64 borders, ten bold-cell declarations and a styled D3 with no value/string/formula.",
+    "nativeExcelAcceptance": "numbers-table-borders-officeimo-excel-v16.113.3.json"
+  }
+}

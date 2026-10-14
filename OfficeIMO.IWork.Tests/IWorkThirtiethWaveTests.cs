@@ -60,6 +60,10 @@ public sealed partial class IWorkBoundaryTests {
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
         Assert.Equal(16840U, Assert.Single(reopened.Sections).PageSettings.Width.GetValueOrDefault());
+        // The one-pixel preview uses a one-point minimum frame, expressed as pixels by WordImage.
+        WordImage savedPreview = Assert.Single(reopened.Images);
+        Assert.Equal(96d / 72d, savedPreview.Width!.Value, precision: 8);
+        Assert.Equal(96d / 72d, savedPreview.Height!.Value, precision: 8);
     }
 
     [Fact]

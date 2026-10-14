@@ -4,6 +4,7 @@ using OfficeIMO.Html.Css;
 using OfficeIMO.Html.Dom;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
+using OfficeIMO.Security;
 
 const string marker = "AotMarker";
 const string html = "<style>@namespace svg url('http://www.w3.org/2000/svg');body{margin:0}" +
@@ -147,6 +148,28 @@ if (advancedRender.Pages.Count != 1
 }
 if (!advancedSvg.Contains("data:image/png;base64", StringComparison.Ordinal)) {
     throw new InvalidOperationException("The NativeAOT advanced packet lost its generated marker image.");
+}
+
+if (OfficeProtectionCapabilityCatalog.Current.SchemaVersion != 2
+    || OfficeProtectionCapabilityCatalog.Current.Capabilities.Count == 0) {
+    throw new InvalidOperationException("The NativeAOT protection catalog lost its validated capability rows.");
+}
+foreach (OfficeImageFormat format in Enum.GetValues<OfficeImageFormat>()) {
+    if (OfficeRasterImageFormats.GetCapabilities(format).Format != format) {
+        throw new InvalidOperationException("The NativeAOT raster catalog lost a defined format.");
+    }
+}
+var metadata = new OfficeImageMetadata();
+var rationalTag = new OfficeExifTag(65000, OfficeExifDataType.SignedRational);
+var doubleTag = new OfficeExifTag(65001, OfficeExifDataType.Double);
+metadata.SetExifValue(rationalTag, new[] { new OfficeSignedRational(-1, 3), new OfficeSignedRational(7, -2) });
+metadata.SetExifValue(doubleTag, new[] { -1.5D, 2.25D });
+OfficeImageMetadata decodedMetadata = OfficeImageMetadata.ParseExifProfile(metadata.EncodeExifProfile()!);
+if (decodedMetadata.GetExifValue(rationalTag)!.Value is not OfficeSignedRational[] rationalValues
+    || rationalValues.Length != 2 || rationalValues[0].Numerator != -1 || rationalValues[1].Denominator != -2
+    || decodedMetadata.GetExifValue(doubleTag)!.Value is not double[] doubleValues
+    || !doubleValues.SequenceEqual(new[] { -1.5D, 2.25D })) {
+    throw new InvalidOperationException("The NativeAOT metadata decoder lost typed EXIF arrays.");
 }
 
 Console.WriteLine("OfficeIMO HTML NativeAOT smoke passed.");

@@ -1,10 +1,13 @@
+using System.Threading;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.Word.IWork;
 
 public static partial class WordIWorkConverter {
     private static string? FindWordProjectionLimitation(IWorkPagesProjection projection,
-        bool allowPartialEditableReconstruction) {
+        bool allowPartialEditableReconstruction, HashSet<ulong> standaloneInlineTables, HashSet<ulong> inlineDrawables,
+        CancellationToken cancellationToken) {
         const long MaximumDestinationTableCells = 1_000_000;
         long destinationTableCells = 0;
         string? inlineLimitation = FindInlineObjectLimitation(projection);
@@ -48,7 +51,8 @@ public static partial class WordIWorkConverter {
             return "Pages contains a list nesting level outside the DOCX numbering range.";
         }
         if (!allowPartialEditableReconstruction && AllPagesText(projection)
-                .SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null)) {
+                .SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null
+                    && !CanApplyQualifiedListLayout(paragraph))) {
             return "Pages character-marker geometry has not been qualified for DOCX numbering.";
         }
         if (AllPagesText(projection).SelectMany(content => content.Paragraphs)
@@ -92,6 +96,11 @@ public static partial class WordIWorkConverter {
             if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                 return "Pages tables exceed the bounded DOCX destination cell budget.";
             }
+            if (TableBorderWidths(table, cancellationToken).Any(width => width < 0.25d || width > 12d
+                || !allowPartialEditableReconstruction && !IsExactDestinationUnit(width, 8d)))
+                return $"Pages table '{table.Name}' has border widths outside the DOCX quarter-to-twelve-point range or eighth-point precision.";
+            if (!allowPartialEditableReconstruction && table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))
+                return $"Pages table '{table.Name}' has varying borders along a merged perimeter that requires explicit partial reconstruction.";
             if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
                 && (cell.Value == null || !cell.CachedValueIsComplete))) {
                 return $"Pages table '{table.Name}' contains a formula without a complete cached value that the DOCX owner cannot evaluate.";
@@ -100,27 +109,25 @@ public static partial class WordIWorkConverter {
                 && cell.RichText is { IsComplete: false })) {
                 return $"Pages table '{table.Name}' contains formula cached text with incomplete formatting that the DOCX owner cannot preserve.";
             }
-            if (!FitsSignedTwips(table.DefaultRowHeight, allowPartialEditableReconstruction)
-                || !FitsSignedTwips(table.DefaultColumnWidth, allowPartialEditableReconstruction)
-                || table.RowHeights.Values.Any(height => !FitsSignedTwips(height, allowPartialEditableReconstruction))
-                || table.ColumnWidths.Values.Any(width => !FitsSignedTwips(width, allowPartialEditableReconstruction))) {
+            if (WordTableDimensions(table).Any(size => !FitsSignedTwips(size, allowPartialEditableReconstruction))) {
                 return $"Pages table '{table.Name}' has sizing outside the DOCX measurement range.";
             }
-            if (table.Cells.Any(cell => cell.Padding != null
-                && PaddingPoints(cell.Padding).Any(points => Math.Round(points * 20d, MidpointRounding.AwayFromZero) > short.MaxValue
+            if (table.CellPaddings.Any(padding => PaddingPoints(padding).Any(points => Math.Round(points * 20d, MidpointRounding.AwayFromZero) > short.MaxValue
                     || !allowPartialEditableReconstruction && !IsExactDestinationUnit(points, 20d)))) {
                 return $"Pages table '{table.Name}' has cell padding outside the DOCX cell-margin range or twip precision.";
             }
-            if (!allowPartialEditableReconstruction && table.Geometry is { } geometry
-                && (Math.Abs(geometry.LeftPoints) > 0.000001d
-                    || Math.Abs(geometry.TopPoints) > 0.000001d
-                    || Math.Abs(geometry.WidthPoints) > 0.000001d
-                    || Math.Abs(geometry.HeightPoints) > 0.000001d
-                    || Math.Abs(geometry.RotationDegrees) > 0.000001d)) {
+            if (WordTableRowHeights(table, cancellationToken)
+                .Any(height => height is > 31_680 || table.AutoResizeRows != true && height is <= 0)) {
+                return $"Pages table '{table.Name}' has a row height outside Word's DOCX range, or a fixed physical row box too small for its bottom padding.";
+            }
+            if (!allowPartialEditableReconstruction && HasTableGeometry(table)
+                && !CanApplyInlineTableGeometry(table, projection.PageLayout, standaloneInlineTables, cancellationToken)) {
                 return $"Pages table '{table.Name}' has positioned, sized, or rotated drawable geometry that the DOCX table owner cannot preserve.";
             }
             destinationTableCells += tableCells;
         }
+        if (PagesDecimalTabSymbols(projection, cancellationToken).Length > 1)
+            return "Pages decimal tabs use different or unspecified separators that cannot share one DOCX document setting.";
         foreach (IWorkTextBox textBox in projection.TextBoxObjects) {
             if (textBox.Geometry is { } geometry
                 && (!FitsEmuOffset(geometry.LeftPoints, allowPartialEditableReconstruction) || !FitsEmuOffset(geometry.TopPoints, allowPartialEditableReconstruction)
@@ -130,12 +137,15 @@ public static partial class WordIWorkConverter {
             }
         }
         foreach (IWorkImageAsset image in projection.Images) {
+            // A body attachment determines inline placement. Pages may save a fractional
+            // cached flow position, which is not a destination offset and is not rounded.
+            bool positioned = !IsInlineImage(image, inlineDrawables);
             if (image.Geometry is { } geometry
                 && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0
                     || !FitsEmuExtent(geometry.WidthPoints, allowPartialEditableReconstruction)
                     || !FitsEmuExtent(geometry.HeightPoints, allowPartialEditableReconstruction)
-                    || !FitsEmuOffset(geometry.LeftPoints, allowPartialEditableReconstruction)
-                    || !FitsEmuOffset(geometry.TopPoints, allowPartialEditableReconstruction)
+                    || positioned && (!FitsEmuOffset(geometry.LeftPoints, allowPartialEditableReconstruction)
+                        || !FitsEmuOffset(geometry.TopPoints, allowPartialEditableReconstruction))
                     || Math.Abs(geometry.RotationDegrees) > 0.000001d)) {
                 return "A Pages image has unsupported placement, rotation, or extent for the DOCX image owner.";
             }
@@ -153,6 +163,9 @@ public static partial class WordIWorkConverter {
                 return "Pages paragraph formatting exceeds the DOCX measurement range.";
         }
         foreach (IWorkTextStyle style in AllPagesRunStyles(projection)) {
+            if (style.CharacterTrackingEm.HasValue && (!style.CharacterSpacingPoints.HasValue
+                || !FitsSignedTwips(style.CharacterSpacingPoints, allowPartialEditableReconstruction)))
+                return "Pages character tracking has no qualified font size or exceeds the DOCX measurement range or twip precision.";
             if (style.Color is { Alpha: < byte.MaxValue } || style.BackgroundColor is { Alpha: < byte.MaxValue })
                 return "Pages contains transparent text colors that cannot be represented by the DOCX owner.";
             if (style.FontSizePoints is double fontSize
@@ -163,6 +176,16 @@ public static partial class WordIWorkConverter {
         return null;
     }
 
+    private static bool CanApplyQualifiedListLayout(IWorkTextParagraph paragraph) =>
+        CanApplyQualifiedListLayout(paragraph, out _);
+
+    private static bool CanApplyQualifiedListLayout(IWorkTextParagraph paragraph, out double markerSize) {
+        return IWorkDecimalListLayout.TryResolve(paragraph, out markerSize, out double textOffset)
+            && markerSize <= int.MaxValue / 2d
+            && FitsSignedTwips(textOffset, allowRounding: true)
+            && FitsSignedTwips(paragraph.ListLayout!.MarkerIndentPoints + textOffset, allowRounding: true);
+    }
+
     private static IEnumerable<double> PaddingPoints(IWorkCellPadding padding) {
         yield return padding.LeftPoints;
         yield return padding.TopPoints;
@@ -170,18 +193,26 @@ public static partial class WordIWorkConverter {
         yield return padding.BottomPoints;
     }
 
-    private static bool RequiresWordRounding(IWorkPagesProjection projection) =>
+    private static bool RequiresWordRounding(IWorkPagesProjection projection, HashSet<ulong> inlineDrawables,
+        CancellationToken cancellationToken) =>
         WordTwipMeasurements(projection).Any(value => value.HasValue && !IsExactDestinationUnit(value.Value, 20d))
+        || projection.Tables.SelectMany(table => TableBorderWidths(table, cancellationToken)).Any(width => !IsExactDestinationUnit(width, 8d))
         || AllPagesParagraphStyles(projection).Any(style => style.LineSpacingMultiplier is double multiplier
             && !IsExactDestinationUnit(multiplier, 240d))
         || AllPagesRunStyles(projection)
             .Any(style => style.FontSizePoints is double size && !IsExactDestinationUnit(size, 2d))
-        || projection.TextBoxObjects.Select(box => box.Geometry)
-            .Concat(projection.Images.Select(image => image.Geometry))
-            .Any(geometry => geometry != null && (!IsExactDestinationUnit(geometry.LeftPoints, 12700d)
-                || !IsExactDestinationUnit(geometry.TopPoints, 12700d)
-                || !IsExactDestinationUnit(geometry.WidthPoints, 12700d)
-                || !IsExactDestinationUnit(geometry.HeightPoints, 12700d)));
+        || AllPagesRunStyles(projection).Any(style => style.CharacterSpacingPoints is double spacing && !IsExactDestinationUnit(spacing, 20d))
+        || projection.TextBoxObjects.Any(box => RequiresWordGeometryRounding(box.Geometry, positioned: true))
+        || projection.Images.Any(image => RequiresWordGeometryRounding(image.Geometry, !IsInlineImage(image, inlineDrawables)));
+
+    private static bool IsInlineImage(IWorkImageAsset image, HashSet<ulong> inlineDrawables) =>
+        image.SourceIdentity is { } identity && inlineDrawables.Contains(identity.RecordIdentifier);
+
+    private static bool RequiresWordGeometryRounding(IWorkGeometry? geometry, bool positioned) => geometry != null
+        && (positioned && (!IsExactDestinationUnit(geometry.LeftPoints, 12700d)
+                || !IsExactDestinationUnit(geometry.TopPoints, 12700d))
+            || !IsExactDestinationUnit(geometry.WidthPoints, 12700d)
+            || !IsExactDestinationUnit(geometry.HeightPoints, 12700d));
 
     private static IEnumerable<double?> WordTwipMeasurements(IWorkPagesProjection projection) {
         if (projection.PageLayout is { } layout) {
@@ -195,13 +226,9 @@ public static partial class WordIWorkConverter {
             yield return layout.FooterMarginPoints;
         }
         foreach (IWorkTable table in projection.Tables) {
-            yield return table.DefaultRowHeight;
-            yield return table.DefaultColumnWidth;
-            foreach (double height in table.RowHeights.Values) yield return height;
-            foreach (double width in table.ColumnWidths.Values) yield return width;
-            foreach (IWorkTableCell cell in table.Cells)
-                if (cell.Padding != null)
-                    foreach (double points in PaddingPoints(cell.Padding)) yield return points;
+            foreach (double? size in WordTableDimensions(table)) yield return size;
+            foreach (IWorkCellPadding padding in table.CellPaddings)
+                foreach (double points in PaddingPoints(padding)) yield return points;
         }
         foreach (IWorkParagraphStyle style in AllPagesParagraphStyles(projection)) {
             yield return style.FirstLineIndentPoints;
@@ -213,6 +240,15 @@ public static partial class WordIWorkConverter {
         }
     }
 
+    private static IEnumerable<double?> WordTableDimensions(IWorkTable table) {
+        // DOCX writes effective sizes, so a fully overridden axis never uses its default.
+        // The projection contains unique, in-range indices; counting keeps this sparse.
+        if (table.RowHeights.Count < table.RowCount) yield return table.DefaultRowHeight;
+        foreach (double height in table.RowHeights.Values) yield return height;
+        if (table.ColumnWidths.Count < table.ColumnCount) yield return table.DefaultColumnWidth;
+        foreach (double width in table.ColumnWidths.Values) yield return width;
+    }
+
     private static IEnumerable<IWorkParagraphStyle> TableParagraphStyles(IWorkTable table) =>
         new[] { table.TextStyles.Body, table.TextStyles.HeaderRow, table.TextStyles.HeaderColumn, table.TextStyles.FooterRow }
             .Concat(table.Cells.Select(cell => cell.ParagraphStyle)).Where(style => style != null).Cast<IWorkParagraphStyle>();
@@ -220,6 +256,13 @@ public static partial class WordIWorkConverter {
     private static IEnumerable<IWorkParagraphStyle> AllPagesParagraphStyles(IWorkPagesProjection projection) =>
         AllPagesText(projection).SelectMany(content => content.Paragraphs).Select(paragraph => paragraph.Style)
             .Concat(projection.Tables.SelectMany(TableParagraphStyles));
+
+    private static string?[] PagesDecimalTabSymbols(IWorkPagesProjection projection, CancellationToken cancellationToken) =>
+        new[] { projection.Body }.Concat(projection.Sections.SelectMany(section => section.HeaderContents.Concat(section.FooterContents)))
+            .Concat(projection.TextBoxObjects.Select(box => box.Content))
+            .SelectMany(content => global::OfficeIMO.IWork.Internal.IWorkDecimalTabLayout.Symbols(content, cancellationToken: cancellationToken))
+            .Concat(projection.Tables.SelectMany(table => global::OfficeIMO.IWork.Internal.IWorkDecimalTabLayout.Symbols(table, cancellationToken)))
+            .Distinct(StringComparer.Ordinal).Take(2).ToArray();
 
     private static IEnumerable<IWorkTextStyle> AllPagesRunStyles(IWorkPagesProjection projection) =>
         AllPagesText(projection).SelectMany(content => content.Paragraphs).SelectMany(paragraph => paragraph.Runs).Select(run => run.Style)

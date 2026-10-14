@@ -426,10 +426,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (legacyBorderWidth > 0 && !style.BorderDeclared) {
             style.Borders = HtmlRenderBorderEdges.Uniform(legacyBorderWidth, "solid", OfficeColor.FromRgb(128, 128, 128));
         }
-        // Ordinary block placement may have centered the authored width already.
-        // Columns determine the table's final width, so resolve auto margins there.
-        if (style.MarginLeftAuto) style.MarginLeft = 0D;
-        if (style.MarginRightAuto) style.MarginRight = 0D;
+        // Replace only previously resolved auto-margin space. The remaining
+        // margins still carry authored values and float-avoidance offsets.
+        RemoveHorizontalAutoMarginShares(style);
         return legacyBorderWidth;
     }
 

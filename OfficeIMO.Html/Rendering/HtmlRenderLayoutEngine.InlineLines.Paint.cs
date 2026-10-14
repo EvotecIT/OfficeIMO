@@ -79,7 +79,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
             bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle);
             bool emptyAtomicBaseline = TryResolveEmptyInlineBlockLineMetrics(current, paragraphStyle, ref lineHeight, out double resolvedEmptyBaseline);
-            double baseline = emptyAtomicBaseline ? resolvedEmptyBaseline : alignTextBaseline || current.HasReplacedImage
+            double resolvedTextBaseline = 0D;
+            bool textLineMetrics = !emptyAtomicBaseline
+                && TryResolveTextOnlyLineMetrics(current, paragraphStyle, ref lineHeight, out resolvedTextBaseline);
+            alignTextBaseline |= textLineMetrics;
+            double baseline = emptyAtomicBaseline ? resolvedEmptyBaseline : textLineMetrics ? resolvedTextBaseline : alignTextBaseline || current.HasReplacedImage
                 ? ResolveInlineSharedBaseline(current, paragraphStyle, ref lineHeight)
                 : current.ResolveBaseline(paragraphStyle);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
@@ -190,19 +194,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                 } else if (segment.Text.Length > 0) {
                     double textLineHeight = current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline ? segment.Run.Style.LineHeight : lineHeight;
+                    double paintLineHeight = textLineHeight;
                     if (current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline) {
                         // A smaller run shares the line baseline without extending
                         // its inherited leading below the containing line box.
                         double baselineOffset = Math.Max(0D, baseline - segment.Run.Style.Font.Size);
-                        textLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - baselineOffset));
+                        paintLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - baselineOffset));
+                        if (!textLineMetrics) textLineHeight = paintLineHeight;
                     }
                     ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline, lineY,
-                        textLineHeight, baseline, out double textY, out double paintHeight,
+                        paintLineHeight, baseline, out double textY, out double paintHeight,
                         out double paintTopOverflow);
                     // A legal zero CSS line height still paints glyphs. Retain that
                     // metric while giving their fragmentation carrier the same
                     // positive minimum used by the containing line box.
-                    double textLayoutHeight = textLineHeight == 0D ? 0.01D : textLineHeight;
+                    double textLayoutHeight = textLineMetrics ? lineHeight : textLineHeight == 0D ? 0.01D : textLineHeight;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
                         textY - paintTopOverflow, Math.Max(0.01D, segment.Width),
                         paintHeight + paintTopOverflow, inlineBounds);

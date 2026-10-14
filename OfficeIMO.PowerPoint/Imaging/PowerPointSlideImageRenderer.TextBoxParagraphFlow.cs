@@ -30,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            var numberingState = new Dictionary<int, int>();
+            var numberingState = new PowerPointParagraphNumberingState();
             List<PowerPointParagraphDrawing> paragraphDrawings = CreateTextBoxParagraphDrawings(textBox, paragraphs, numberingState, textWidth, mapping, colorScheme, measure, defaultFontFamily);
             double flowHeight = paragraphDrawings.Sum(paragraph => paragraph.TotalHeight);
             double currentY = top + marginTop + ResolveTextBoxVerticalOffset(textBox.TextVerticalAlignment, textHeight, flowHeight);
@@ -39,6 +39,11 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < paragraphDrawings.Count; i++) {
                 PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
                 currentY += paragraph.SpaceBefore;
+                if (!paragraph.HasContent) {
+                    // Empty paragraphs affect following origins but have no content to clip.
+                    currentY += paragraph.Height + paragraph.SpaceAfter;
+                    continue;
+                }
                 // Paragraph leading controls the next origin, not a separate clipping frame.
                 // Condensed lines may paint below their final line box inside the text box.
                 double visibleHeight = Math.Max(0D, contentBottom - currentY);
@@ -104,14 +109,14 @@ namespace OfficeIMO.PowerPoint {
         private static List<PowerPointParagraphDrawing> CreateTextBoxParagraphDrawings(
             PowerPointTextBox textBox,
             IReadOnlyList<PowerPointParagraph> paragraphs,
-            Dictionary<int, int> numberingState,
+            PowerPointParagraphNumberingState numberingState,
             double textWidth,
             PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure, string? defaultFontFamily) {
             var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
             for (int i = 0; i < paragraphs.Count; i++) {
                 PowerPointParagraph paragraph = paragraphs[i];
-                string? marker = CreateParagraphMarker(paragraph, numberingState);
+                string? marker = numberingState.CreateMarker(paragraph);
                 OfficeTextParagraphIndent indent = CreateParagraphIndent(paragraph, mapping);
                 OfficeTextAlignment alignment = MapTextAlignment(paragraph.Alignment);
                 List<OfficeRichTextRun> richRuns = CreateParagraphRichTextRuns(textBox, paragraph, marker, colorScheme, mapping, defaultFontFamily);
@@ -270,6 +275,8 @@ namespace OfficeIMO.PowerPoint {
             internal string Text { get; }
 
             internal IReadOnlyList<OfficeRichTextRun> RichRuns { get; }
+
+            internal bool HasContent => Text.Length > 0 || RichRuns.Any(run => run.Text.Length > 0);
 
             internal OfficeFontInfo Font { get; }
 

@@ -7,15 +7,28 @@ namespace OfficeIMO.IWork.Benchmarks;
 
 public sealed partial class IWorkRuntimeWorkload {
     private readonly bool _native;
+    private readonly bool _nativeKeynoteScale;
     private static readonly string[] NativePagesText = ["hello pages", "", "second paragraph with some words\""];
     private static readonly object[,] NativeNumbersCells = { { "a", "b", "C" }, { 1d, 2d, 3d }, { "x", "y", "Z" } };
 
+    /// <summary>Gets the explicitly accepted native Numbers cell-padding omission count; zero in other lanes.</summary>
+    public int KnownPaddingOmissionCount { get; private set; }
+    /// <summary>Gets the pinned Numbers automatic-decimal and border-width approximation count.</summary>
+    public int KnownNumbersApproximationCount { get; private set; }
+
     /// <summary>Loads a pinned independent corpus fixture outside measurement.</summary>
-    public IWorkRuntimeWorkload(string kind, string corpusRoot) {
+    public IWorkRuntimeWorkload(string kind, string corpusRoot) : this(kind, corpusRoot, false) { }
+
+    /// <summary>Loads the pinned 512-slide Apple-produced repeated-layout reference outside measurement.</summary>
+    public static IWorkRuntimeWorkload OpenLargeNativeKeynote(string corpusRoot) => new("Keynote", corpusRoot, true);
+
+    private IWorkRuntimeWorkload(string kind, string corpusRoot, bool largeKeynote) {
         _kind = Enum.Parse<IWorkDocumentKind>(kind, ignoreCase: false);
+        _nativeKeynoteScale = largeKeynote;
         var (name, hash, units) = _kind switch {
             IWorkDocumentKind.Pages => ("nim-iwork/simple.pages", "5AEE6D03277D2DB2104F593E64AFE081DEC539F0117B97124B6F99158124C93E", 3),
             IWorkDocumentKind.Numbers => ("nim-iwork/simple.numbers", "D0B00D9CAE5985CCCAA3B2FB251FAE92EB0E38360FB4B5DF8B4350EB658F752B", 9),
+            IWorkDocumentKind.Keynote when largeKeynote => ("native-exports/keynote-scale-512-v15.4.key", "805F383FC8055B52A6527F1E57BB9BD923B8F629AA32C0CDD78C772B8B827692", 512),
             IWorkDocumentKind.Keynote => ("native-exports/keynote-colors-v15.4.key", "D9C7C5D0B1BB2BFF80E44EA683239601DCC5C2E632205AD8611BB0110F3502F1", 2),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
@@ -24,6 +37,29 @@ public sealed partial class IWorkRuntimeWorkload {
         if (InputSha256 != hash) throw new InvalidDataException("Native runtime fixture differs from its qualified hash.");
         _units = units;
         _native = true;
+    }
+
+    private void ValidateNativeNumbersConversionPolicy(IWorkConversionReport report) {
+        KnownPaddingOmissionCount = report.Diagnostics.Count(diagnostic =>
+            diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
+            && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
+        KnownNumbersApproximationCount = report.Diagnostics.Count(diagnostic =>
+            diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation
+            && diagnostic.Code is "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED" or "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED");
+        if (!report.IsPartialEditableReconstruction || report.HasErrors || KnownPaddingOmissionCount != 1
+            || KnownNumbersApproximationCount != 2
+            || report.ReconstructedItemCount != _units + 2 // Nine cells, one sheet and one table.
+            || report.SourceUnits.Count == 0
+            || report.SourceUnits.Any(unit => unit.Disposition != IWorkSourceUnitDisposition.Reconstructed)
+            || report.SourceReferenceIssues.Count != 0 || report.SourceDeclarationIssues.Count != 0
+            || report.SourceCellIssues.Count != 0 || report.FormulaCells.Count != 0
+            || report.Diagnostics.Any(diagnostic => diagnostic.LossKind != global::OfficeIMO.OfficeConversionLossKind.None
+                && !(diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission
+                    && diagnostic.Code is "IWORK_NUMBERS_CELL_PADDING_OMITTED" or "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION")
+                && !(diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation
+                    && diagnostic.Code is "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED" or "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED")))
+            throw new InvalidDataException("The pinned Numbers workload accepts only its known cell-padding omission: "
+                + string.Join("; ", report.Diagnostics.Select(diagnostic => diagnostic.Code)));
     }
 
     private void ValidateNative() {

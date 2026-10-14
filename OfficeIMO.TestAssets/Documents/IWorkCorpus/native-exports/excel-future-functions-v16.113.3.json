@@ -1,0 +1,469 @@
+{
+  "producer": "Microsoft Excel 16.113.3 (16.113.26092714)",
+  "decoder": "Python standard-library zipfile and ElementTree; no OfficeIMO decoder",
+  "authoring": {
+    "sourceRevision": "c612e177b5edfb75265220b4c38cfc1b9816d186",
+    "owner": "OfficeIMO.Excel/ExcelFormulaStorage.cs",
+    "ownerSha256": "69652fe5a44d5ced1add55e9084133b095dcf6d0daab323093a73d600eef0c7f",
+    "publicApis": [
+      "CellFormula",
+      "SetArrayFormula"
+    ],
+    "cachedInputs": false
+  },
+  "specification": "https://learn.microsoft.com/en-us/openspecs/office_standards/ms-xlsx/5d1b6d44-6fc1-4ecd-8fef-0b27406cc2bf",
+  "functions": [
+    "IFNA",
+    "MINIFS",
+    "MAXIFS"
+  ],
+  "formulaCells": 32,
+  "input": "excel-future-functions-qualified-input.xlsx",
+  "native": "excel-future-functions-qualified-native-v16.113.3.xlsx",
+  "editedNative": "excel-future-functions-qualified-edited-native-v16.113.3.xlsx",
+  "edit": {
+    "cell": "B2",
+    "before": 10,
+    "after": 50
+  },
+  "negativeControl": {
+    "input": "excel-future-functions-bare-input.xlsx",
+    "native": "excel-future-functions-bare-native-v16.113.3.xlsx",
+    "bareNormalNameErrors": 8,
+    "bareArrayNameErrors": 8,
+    "qualifiedControls": 16
+  },
+  "cells": [
+    {
+      "address": "E2",
+      "row": 2,
+      "column": 5,
+      "formula": "_xlfn.IFNA(NA(),99)",
+      "nativeFormula": "_xlfn.IFNA(NA(),99)",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "99",
+      "editedValue": "99"
+    },
+    {
+      "address": "F2",
+      "row": 2,
+      "column": 6,
+      "formula": "_xlfn.IFNA(NA(),99)",
+      "nativeFormula": "_xlfn.IFNA(NA(),99)",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "99",
+      "editedValue": "99"
+    },
+    {
+      "address": "G2",
+      "row": 2,
+      "column": 7,
+      "formula": "_xlfn.IFNA(NA(),99)",
+      "nativeFormula": "_xlfn.IFNA(NA(),99)",
+      "formulaType": "array",
+      "formulaRange": "G2:G2",
+      "kind": "n",
+      "value": "99",
+      "editedValue": "99"
+    },
+    {
+      "address": "H2",
+      "row": 2,
+      "column": 8,
+      "formula": "_xlfn.IFNA(NA(),99)",
+      "nativeFormula": "_xlfn.IFNA(NA(),99)",
+      "formulaType": "array",
+      "formulaRange": "H2:H2",
+      "kind": "n",
+      "value": "99",
+      "editedValue": "99"
+    },
+    {
+      "address": "E3",
+      "row": 3,
+      "column": 5,
+      "formula": "_xlfn.IFNA(1/0,99)",
+      "nativeFormula": "_xlfn.IFNA(1/0,99)",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "e",
+      "value": "#DIV/0!",
+      "editedValue": "#DIV/0!"
+    },
+    {
+      "address": "F3",
+      "row": 3,
+      "column": 6,
+      "formula": "_xlfn.IFNA(1/0,99)",
+      "nativeFormula": "_xlfn.IFNA(1/0,99)",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "e",
+      "value": "#DIV/0!",
+      "editedValue": "#DIV/0!"
+    },
+    {
+      "address": "G3",
+      "row": 3,
+      "column": 7,
+      "formula": "_xlfn.IFNA(1/0,99)",
+      "nativeFormula": "_xlfn.IFNA(1/0,99)",
+      "formulaType": "array",
+      "formulaRange": "G3:G3",
+      "kind": "e",
+      "value": "#DIV/0!",
+      "editedValue": "#DIV/0!"
+    },
+    {
+      "address": "H3",
+      "row": 3,
+      "column": 8,
+      "formula": "_xlfn.IFNA(1/0,99)",
+      "nativeFormula": "_xlfn.IFNA(1/0,99)",
+      "formulaType": "array",
+      "formulaRange": "H3:H3",
+      "kind": "e",
+      "value": "#DIV/0!",
+      "editedValue": "#DIV/0!"
+    },
+    {
+      "address": "E4",
+      "row": 4,
+      "column": 5,
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"EU\")",
+      "nativeFormula": "_xlfn.MINIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "10",
+      "editedValue": "30"
+    },
+    {
+      "address": "F4",
+      "row": 4,
+      "column": 6,
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"EU\")",
+      "nativeFormula": "_xlfn.MINIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "10",
+      "editedValue": "30"
+    },
+    {
+      "address": "G4",
+      "row": 4,
+      "column": 7,
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"EU\")",
+      "nativeFormula": "_xlfn.MINIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": "array",
+      "formulaRange": "G4:G4",
+      "kind": "n",
+      "value": "10",
+      "editedValue": "30"
+    },
+    {
+      "address": "H4",
+      "row": 4,
+      "column": 8,
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"EU\")",
+      "nativeFormula": "_xlfn.MINIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": "array",
+      "formulaRange": "H4:H4",
+      "kind": "n",
+      "value": "10",
+      "editedValue": "30"
+    },
+    {
+      "address": "E5",
+      "row": 5,
+      "column": 5,
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\")",
+      "nativeFormula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "30",
+      "editedValue": "50"
+    },
+    {
+      "address": "F5",
+      "row": 5,
+      "column": 6,
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\")",
+      "nativeFormula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "30",
+      "editedValue": "50"
+    },
+    {
+      "address": "G5",
+      "row": 5,
+      "column": 7,
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\")",
+      "nativeFormula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": "array",
+      "formulaRange": "G5:G5",
+      "kind": "n",
+      "value": "30",
+      "editedValue": "50"
+    },
+    {
+      "address": "H5",
+      "row": 5,
+      "column": 8,
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\")",
+      "nativeFormula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": "array",
+      "formulaRange": "H5:H5",
+      "kind": "n",
+      "value": "30",
+      "editedValue": "50"
+    },
+    {
+      "address": "E6",
+      "row": 6,
+      "column": 5,
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"missing\")",
+      "nativeFormula": "_xlfn.MINIFS(B2:B4,A2:A4,\"missing\")",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "0",
+      "editedValue": "0"
+    },
+    {
+      "address": "F6",
+      "row": 6,
+      "column": 6,
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"missing\")",
+      "nativeFormula": "_xlfn.MINIFS(B2:B4,A2:A4,\"missing\")",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "0",
+      "editedValue": "0"
+    },
+    {
+      "address": "G6",
+      "row": 6,
+      "column": 7,
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"missing\")",
+      "nativeFormula": "_xlfn.MINIFS(B2:B4,A2:A4,\"missing\")",
+      "formulaType": "array",
+      "formulaRange": "G6:G6",
+      "kind": "n",
+      "value": "0",
+      "editedValue": "0"
+    },
+    {
+      "address": "H6",
+      "row": 6,
+      "column": 8,
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"missing\")",
+      "nativeFormula": "_xlfn.MINIFS(B2:B4,A2:A4,\"missing\")",
+      "formulaType": "array",
+      "formulaRange": "H6:H6",
+      "kind": "n",
+      "value": "0",
+      "editedValue": "0"
+    },
+    {
+      "address": "E7",
+      "row": 7,
+      "column": 5,
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"missing\")",
+      "nativeFormula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"missing\")",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "0",
+      "editedValue": "0"
+    },
+    {
+      "address": "F7",
+      "row": 7,
+      "column": 6,
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"missing\")",
+      "nativeFormula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"missing\")",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "0",
+      "editedValue": "0"
+    },
+    {
+      "address": "G7",
+      "row": 7,
+      "column": 7,
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"missing\")",
+      "nativeFormula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"missing\")",
+      "formulaType": "array",
+      "formulaRange": "G7:G7",
+      "kind": "n",
+      "value": "0",
+      "editedValue": "0"
+    },
+    {
+      "address": "H7",
+      "row": 7,
+      "column": 8,
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"missing\")",
+      "nativeFormula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"missing\")",
+      "formulaType": "array",
+      "formulaRange": "H7:H7",
+      "kind": "n",
+      "value": "0",
+      "editedValue": "0"
+    },
+    {
+      "address": "E8",
+      "row": 8,
+      "column": 5,
+      "formula": "_xlfn.IFNA(_xlfn.MINIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "nativeFormula": "_xlfn.IFNA(_xlfn.MINIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "10",
+      "editedValue": "30"
+    },
+    {
+      "address": "F8",
+      "row": 8,
+      "column": 6,
+      "formula": "_xlfn.IFNA(_xlfn.MINIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "nativeFormula": "_xlfn.IFNA(_xlfn.MINIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "10",
+      "editedValue": "30"
+    },
+    {
+      "address": "G8",
+      "row": 8,
+      "column": 7,
+      "formula": "_xlfn.IFNA(_xlfn.MINIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "nativeFormula": "_xlfn.IFNA(_xlfn.MINIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "formulaType": "array",
+      "formulaRange": "G8:G8",
+      "kind": "n",
+      "value": "10",
+      "editedValue": "30"
+    },
+    {
+      "address": "H8",
+      "row": 8,
+      "column": 8,
+      "formula": "_xlfn.IFNA(_xlfn.MINIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "nativeFormula": "_xlfn.IFNA(_xlfn.MINIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "formulaType": "array",
+      "formulaRange": "H8:H8",
+      "kind": "n",
+      "value": "10",
+      "editedValue": "30"
+    },
+    {
+      "address": "E9",
+      "row": 9,
+      "column": 5,
+      "formula": "_xlfn.ifna(_xlfn.maxifs(B2:B4,A2:A4,\"EU\"),99)",
+      "nativeFormula": "_xlfn.IFNA(_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "30",
+      "editedValue": "50"
+    },
+    {
+      "address": "F9",
+      "row": 9,
+      "column": 6,
+      "formula": "_xlfn.ifna(_xlfn.maxifs(B2:B4,A2:A4,\"EU\"),99)",
+      "nativeFormula": "_xlfn.IFNA(_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "formulaType": null,
+      "formulaRange": null,
+      "kind": "n",
+      "value": "30",
+      "editedValue": "50"
+    },
+    {
+      "address": "G9",
+      "row": 9,
+      "column": 7,
+      "formula": "_xlfn.ifna(_xlfn.maxifs(B2:B4,A2:A4,\"EU\"),99)",
+      "nativeFormula": "_xlfn.IFNA(_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "formulaType": "array",
+      "formulaRange": "G9:G9",
+      "kind": "n",
+      "value": "30",
+      "editedValue": "50"
+    },
+    {
+      "address": "H9",
+      "row": 9,
+      "column": 8,
+      "formula": "_xlfn.ifna(_xlfn.maxifs(B2:B4,A2:A4,\"EU\"),99)",
+      "nativeFormula": "_xlfn.IFNA(_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\"),99)",
+      "formulaType": "array",
+      "formulaRange": "H9:H9",
+      "kind": "n",
+      "value": "30",
+      "editedValue": "50"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "excel-future-functions-bare-input.xlsx",
+      "bytes": 4442,
+      "sha256": "6674081e0bfc750b694b40e666fede803f79a6f77c619e32ed74d146144765be"
+    },
+    {
+      "path": "excel-future-functions-bare-native-v16.113.3.xlsx",
+      "bytes": 9919,
+      "sha256": "853ad8954b5f140133244b84c6952df6bc6e6421111597d4882f530ab3150488"
+    },
+    {
+      "path": "excel-future-functions-qualified-input.xlsx",
+      "bytes": 4354,
+      "sha256": "c34ec400ee5024b50483dc2ac82ce34a62eb0383b0150fc22f62cf8d1f91ebdf"
+    },
+    {
+      "path": "excel-future-functions-qualified-native-v16.113.3.xlsx",
+      "bytes": 9825,
+      "sha256": "03b864b1babd6b2c74ec4b4cd9992ce90caa2f934fa8c0caf0d10775927087ff"
+    },
+    {
+      "path": "excel-future-functions-qualified-edited-native-v16.113.3.xlsx",
+      "bytes": 9858,
+      "sha256": "330dfa9372c6dacd5e42dcdfa2bb6efc88766c3664a5bb5ebff5a617d5493439"
+    },
+    {
+      "path": "excel-bare-versus-qualified.png",
+      "bytes": 345247,
+      "sha256": "9fc1dec8b7b2bfb92bfb4be712e3569fb3357678661f4df3810d599b1a66940a"
+    },
+    {
+      "path": "excel-qualified-recalculated.png",
+      "bytes": 340942,
+      "sha256": "d0ba164d6b1273ad718e2f23daee94e49bd5d48383455edc2abca4c98adca630"
+    },
+    {
+      "path": "excel-qualified-edited-recalculated.png",
+      "bytes": 343397,
+      "sha256": "f84581a5563c5ccea61b1e7ad822d56639b4eca9efa4eb16af829304f8f9546c"
+    }
+  ],
+  "limits": [
+    "Eight controlled expressions in normal and single-cell array formulas; typed errors and numeric criteria only.",
+    "Native Excel canonicalizes lower-case function identifiers; authored case is recorded separately.",
+    "Wider future functions, dynamic spills, other applications and producer versions retain separate qualification gates."
+  ]
+}

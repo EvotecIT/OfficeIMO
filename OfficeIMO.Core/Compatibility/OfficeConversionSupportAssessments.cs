@@ -9,6 +9,9 @@ internal sealed record OfficeConversionSupportAssessment(
 
 internal static class OfficeConversionSupportAssessments {
     internal static OfficeConversionSupportAssessment Get(string routeId) {
+        if (routeId is "pages-pdf" or "numbers-pdf" or "keynote-pdf") return Targeted(
+            "Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
+            "Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific.");
         if (routeId is "visio-binary-vsdx" or "visio-binary-vssx" or "visio-binary-vstx" or "visio-binary-svg" or "visio-binary-pdf")
             return Targeted(
                 "Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",

@@ -21,7 +21,7 @@ public sealed partial class RtfDocument {
             sections.Add(section);
         }
         // An independent document must not inherit the preceding destination's header stories.
-        foreach (RtfHeaderFooterKind kind in Enum.GetValues(typeof(RtfHeaderFooterKind))) {
+        foreach (RtfHeaderFooterKind kind in global::OfficeIMO.Internal.EnumCompat.GetValues<RtfHeaderFooterKind>()) {
             RtfHeaderFooter? declaration = firstHeaders.LastOrDefault(item => item.Kind == kind);
             if (declaration == null) {
                 declaration = new RtfHeaderFooter(kind);

@@ -97,17 +97,20 @@ internal static partial class PdfPageXObjectInvocationParser {
         PdfStrokeDashPattern? initialStrokeDashPattern = null,
         Func<string, int?>? mcidForProperty = null,
         Action? operationCheck = null,
-        PdfTextStateSnapshot? initialTextState = null) {
+        PdfTextStateSnapshot? initialTextState = null,
+        Action<string>? operatorVisitor = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
         var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, visibleShadingWithIntentVisitor, graphicsEffectPaintVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialAuthoredBlendMode, initialHasUnsupportedBlendMode, initialHasUnsupportedPaintState, initialHasUnsupportedImagePaintEffect, initialImagePaintEffectState, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, visibleColorSpaceVisitor, initialStrokeDashPattern, mcidForProperty, operationCheck);
         parser.InitializeTextState(initialTextState ?? PdfTextStateSnapshot.Default);
+        parser.OperatorVisitor = operatorVisitor;
         return parser.Parse();
     }
 
     private sealed partial class Parser {
+        internal Action<string>? OperatorVisitor { get; set; }
         private readonly string _content;
         private readonly double _pageHeight;
         private readonly double? _pageWidth;

@@ -213,6 +213,10 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                 else if (matches.Length > 1 && matches.All(choice => choice.Route.TargetExtension == matches[0].Route.TargetExtension)) {
                     var preferred = OfficeWorkflowCatalog.Find(Path.GetExtension(fileName), matches[0].Route.TargetExtension, executableOnly: true);
                     route = matches.FirstOrDefault(choice => choice.Route.Id == preferred?.Id);
+                } else {
+                    // Keep the established editable iWork intake default when a PDF route is also available.
+                    // An explicitly selected matching PDF route was already chosen above.
+                    route = matches.SingleOrDefault(choice => ConversionJobViewModel.IsEditableIWorkRoute(choice.Route.Id));
                 }
             }
             if (route is null) {

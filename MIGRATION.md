@@ -1,10 +1,69 @@
 # Upgrading OfficeIMO
 
-## Excel import cancellation and date conversion
+## Excel future-function spelling
 
-`ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
+Normal and array formula authoring stores `IFNA`, `MINIFS` and `MAXIFS` with the XLSX `_xlfn.` prefix. For example, `CellFormula(1, 1, "IFNA(NA(),99)")` stores `_xlfn.IFNA(NA(),99)`, which `GetFormulaText` returns. Update literal formula-text comparisons to use that stored spelling. Prefix expansion above 8,192 characters throws before changing the destination cells.
 
-`DateTimeOffsetWriteStrategy` runs once for each `CellValue` write, including writes that cannot use the direct-save buffer. Numeric writes use that converted value; dates outside Excel's numeric range retain the ISO text fallback. Do not depend on repeated callback invocations when a write falls back to the worksheet DOM.
+## Formula entry in generated Numbers files
+
+Regenerate Numbers files created by the earlier scalar-table codec when native formula editing is required. The current creator registers every table with the native calculation engine; earlier generated files can leave newly entered formulas blank. Preservation-aware source saving retains the original graph and does not repair those registrations. Reading and converting existing scalar values remain supported.
+
+## Numbers table-cell padding
+
+Numbers conversion reads padding from applicable body, header and footer cell styles, including empty cells. XLSX has no equivalent four-sided cell padding setting, so these tables produce `IWORK_NUMBERS_CELL_PADDING_OMITTED`. A conversion previously reported as complete can now require explicit partial acceptance.
+
+To retain the editable values, formulas and supported styles while accepting this omission, use the result API and inspect its report:
+
+```csharp
+using OfficeIMO.Excel.IWork;
+using OfficeIMO.IWork;
+
+IWorkSourceDocument source = IWorkSourceDocument.Open("source.numbers");
+using NumbersToExcelResult result = source.ToExcelDocumentResult(
+    new IWorkConversionOptions {
+        Mode = IWorkConversionMode.EditableOnly,
+        AllowPartialEditableReconstruction = true
+    });
+foreach (var diagnostic in result.Report.Diagnostics)
+    Console.WriteLine(diagnostic.Code);
+result.Value.Save("converted.xlsx");
+```
+
+`ToExcelDocument` and the complete-reconstruction guards still reject partial output, including when the options permit it. Keep the default policy when completeness is required and handle rejection or an available permitted preview. The complete Numbers-to-PDF workflow also rejects padding loss; enabling partial editable reconstruction does not permit an incomplete PDF.
+
+## Shared native iWork character runs
+
+Replace `IWorkKeynoteTextRun` with `IWorkTextRunData` when calling `AddRichText` or constructing native Keynote text runs. The immutable run contract and defaults are unchanged. The same type supplies runs to `IWorkPagesDocument.AddRichParagraph`; use an explicit 12-point size for ordinary Pages body text because the shared run constructor retains Keynote's 32-point default. `AddParagraph` defaults to 12 points.
+
+## PowerPoint font resets and iWork table roles
+
+Setting `Bold = false` or `Italic = false` on a PowerPoint run, text box or table cell writes an explicit regular-font override. It overrides inherited formatting after save/reopen; it no longer removes the declaration and exposes a parent's bold or italic setting.
+
+iWork table conversion applies source fonts, fills and borders without adding bold text from header/footer roles or PowerPoint heading and banding presets. Apply destination styling explicitly when it is desired. PowerPoint PDF export uses resolved cell edges without drawing its default grid over them; an explicitly configured PDF table style retains its caller-selected grid.
+
+## PDF attachment authoring limits
+
+Generated PDF catalog attachments now default to 128 MiB per payload and 256 MiB
+across the catalog. Previously accepted larger inputs require explicit positive
+`PdfOptions.MaxEmbeddedFileBytes` and `MaxTotalEmbeddedFileBytes` values before
+calling `AddEmbeddedFile`, fluent attachment helpers, or invoice helpers.
+For example, use `MaxEmbeddedFileBytes = 256L * 1024 * 1024` and
+`MaxTotalEmbeddedFileBytes = 512L * 1024 * 1024` for a trusted workflow accepting
+256 MiB files within a 512 MiB collection.
+
+Structure attachments use the same defaults through
+`PdfCanvasStructureOptions.MaxAssociatedFileBytes` and
+`MaxTotalAssociatedFileBytes`. Raise those limits as well when attaching a larger
+trusted file to a structure element. Saving enforces the document's per-file
+limit and combined total across catalog files and distinct emitted structure
+files; repeated identical structure associations sharing one file specification
+count once. Over-budget admission or save throws `InvalidDataException`.
+
+Standalone `PdfEmbeddedFile` constructors retain their existing behavior.
+Read/edit operations continue to use their explicit `PdfLoadOptions` limits.
+The authoring limits bound admitted and emitted payload bytes, not defensive
+copies or peak process memory. See [attachment authoring limits](OfficeIMO.Pdf/README.md#attachment-authoring-limits)
+for configuration and destination-preservation behavior.
 
 ## Excel worksheet page-fit inspection
 
@@ -18,6 +77,12 @@ Update inspection and export code to treat null fit dimensions as inactive and
 to use `Scale` for percentage-based printing. To enable page fitting, configure
 it through `sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U)` for one page wide
 with no height limit, instead of relying on cached dimensions in the worksheet XML.
+
+## Excel import cancellation and date conversion
+
+`ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
+
+`DateTimeOffsetWriteStrategy` runs once for each `CellValue` write, including writes that cannot use the direct-save buffer. Numeric writes use that converted value; dates outside Excel's numeric range retain the ISO text fallback. Do not depend on repeated callback invocations when a write falls back to the worksheet DOM.
 
 ## PDF form value assessment
 

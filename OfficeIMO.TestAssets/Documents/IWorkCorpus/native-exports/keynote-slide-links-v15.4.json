@@ -1,0 +1,406 @@
+{
+  "schemaVersion": 1,
+  "license": "Authored fixture content: MIT, OfficeIMO repository; native producer metadata and export provenance retained",
+  "producer": {
+    "name": "Apple Keynote",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "macOS": "27.0.1 (26A434)"
+  },
+  "provenance": "An OfficeIMO-created three-slide PPTX imported into Keynote. A native next-slide frame link was added and its label edited before native save and exports.",
+  "files": [
+    {
+      "path": "keynote-slide-links-v15.4.key",
+      "bytes": 585058,
+      "sha256": "c62ffa05b40dac34b26073fdc918804dc08ce8456da343e404912c90aff7806b",
+      "role": "native saved source"
+    },
+    {
+      "path": "keynote-slide-links-v15.4.pdf",
+      "bytes": 11929,
+      "sha256": "b3ef48ebe35a82cedbe3196fd577b7ed4b81a79322844e2b6d6037d914c27d31",
+      "role": "Apple PDF export"
+    },
+    {
+      "path": "keynote-slide-links-v15.4.pptx",
+      "bytes": 30099,
+      "sha256": "23e5c9f97befb70394b23f5b56144e73b22516e69e69600d7926f3abbe108c50",
+      "role": "Apple PowerPoint export"
+    }
+  ],
+  "exportOptions": {
+    "allSlides": true,
+    "pdfQuality": "best",
+    "password": false,
+    "presenterNotes": false,
+    "comments": false,
+    "buildStages": false
+  },
+  "expected": {
+    "slides": 3,
+    "canvasPoints": [
+      960,
+      540
+    ],
+    "text": [
+      "Slide links",
+      "Go to slide two",
+      "Frame to next slide",
+      "Back to slide one",
+      "Final slide"
+    ],
+    "linkTargetPages": [
+      2,
+      2,
+      1
+    ]
+  },
+  "independentDecode": {
+    "source": "keynote-slide-links-v15.4.key",
+    "sourceSha256": "c62ffa05b40dac34b26073fdc918804dc08ce8456da343e404912c90aff7806b",
+    "provider": "numbers-parser",
+    "providerVersion": "4.19.0",
+    "descriptorSha256": "2c46d6ee3eaf4d8419d0cc8329b74776f69517c1e14de0571e0434e29c4fc216",
+    "metadataRecord": 2,
+    "uuidPath": "PackageMetadata.3 / ComponentInfo.11 / ObjectUUIDMapEntry.2",
+    "uuidEncoding": "consecutive little-endian lower and upper words",
+    "selectedNodes": [
+      {
+        "position": 1,
+        "node": 904,
+        "slide": 734,
+        "uuid": "b8df70db-4312-48ea-9642-608f0781bf1f",
+        "lower": 16881763285852020664,
+        "upper": 2287689005197705878
+      },
+      {
+        "position": 2,
+        "node": 924,
+        "slide": 798,
+        "uuid": "1fb800a1-9682-4993-9868-f35e294f1088",
+        "lower": 10613157580333168671,
+        "upper": 9804423427890833560
+      },
+      {
+        "position": 3,
+        "node": 932,
+        "slide": 858,
+        "uuid": "08b2dcd5-7544-45f5-bc81-bd7d95555ed4",
+        "lower": 17673607585575252488,
+        "upper": 15302762684399583676
+      }
+    ],
+    "selectedLinks": [
+      {
+        "sourceSlide": 1,
+        "kind": "text",
+        "record": 1222,
+        "storage": 912,
+        "offset": 0,
+        "text": "Go to slide two",
+        "target": "?slideid=1FB800A1-9682-4993-9868-F35E294F1088"
+      },
+      {
+        "sourceSlide": 1,
+        "kind": "frame",
+        "record": 917,
+        "text": "Frame to next slide",
+        "target": "?slide=next"
+      },
+      {
+        "sourceSlide": 2,
+        "kind": "text",
+        "record": 1224,
+        "storage": 928,
+        "offset": 0,
+        "text": "Back to slide one",
+        "target": "?slideid=B8DF70DB-4312-48EA-9642-608F0781BF1F"
+      }
+    ],
+    "limits": "Three selected slide nodes and their text/frame links; export targets and appearance are separate evidence.",
+    "schemaSource": "https://github.com/orcastor/iwork-converter",
+    "schemaCommit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schemaLicense": "MIT, Steve Dunham"
+  },
+  "independentExports": {
+    "reader": "pypdf 6.10.0",
+    "pages": 3,
+    "pdfLinks": [
+      {
+        "sourcePage": 1,
+        "destinationPage": 2,
+        "rect": [
+          67.2,
+          368.072,
+          229.848,
+          396.4
+        ]
+      },
+      {
+        "sourcePage": 1,
+        "destinationPage": 2,
+        "rect": [
+          543.6,
+          310,
+          776.4,
+          380
+        ]
+      },
+      {
+        "sourcePage": 2,
+        "destinationPage": 1,
+        "rect": [
+          63.6,
+          383.184,
+          280.376,
+          416.4
+        ]
+      }
+    ],
+    "pptxLinks": [
+      {
+        "sourceSlide": 1,
+        "action": "ppaction://hlinksldjump",
+        "relationship": "rId2",
+        "target": "slide2.xml"
+      },
+      {
+        "sourceSlide": 1,
+        "action": "ppaction://hlinksldjump",
+        "relationship": "rId2",
+        "target": "slide2.xml"
+      },
+      {
+        "sourceSlide": 1,
+        "action": "ppaction://hlinkshowjump?jump=nextslide",
+        "relationship": "",
+        "target": null
+      },
+      {
+        "sourceSlide": 2,
+        "action": "ppaction://hlinksldjump",
+        "relationship": "rId2",
+        "target": "slide1.xml"
+      },
+      {
+        "sourceSlide": 2,
+        "action": "ppaction://hlinksldjump",
+        "relationship": "rId2",
+        "target": "slide1.xml"
+      }
+    ]
+  },
+  "independentFinalPdf": {
+    "reader": "pypdf 6.10.0",
+    "outputs": [
+      {
+        "file": "keynote-slide-links-v15.4.pdf",
+        "pages": 3,
+        "links": [
+          {
+            "sourcePage": 1,
+            "destinationPage": 2,
+            "rect": [
+              67.2,
+              368.072,
+              229.848,
+              396.4
+            ]
+          },
+          {
+            "sourcePage": 1,
+            "destinationPage": 2,
+            "rect": [
+              543.6,
+              310.0,
+              776.4,
+              380.0
+            ]
+          },
+          {
+            "sourcePage": 2,
+            "destinationPage": 1,
+            "rect": [
+              63.6,
+              383.184,
+              280.376,
+              416.4
+            ]
+          }
+        ],
+        "sha256": "b3ef48ebe35a82cedbe3196fd577b7ed4b81a79322844e2b6d6037d914c27d31"
+      },
+      {
+        "file": "keynote-slide-links-officeimo.pdf",
+        "pages": 3,
+        "links": [
+          {
+            "sourcePage": 1,
+            "destinationPage": 2,
+            "rect": [
+              67.2,
+              370.96,
+              225.936,
+              394.0
+            ]
+          },
+          {
+            "sourcePage": 1,
+            "destinationPage": 2,
+            "rect": [
+              543.6,
+              310.0,
+              776.4,
+              380.0
+            ]
+          },
+          {
+            "sourcePage": 2,
+            "destinationPage": 1,
+            "rect": [
+              63.6,
+              386.72,
+              276.82,
+              413.6
+            ]
+          }
+        ],
+        "sha256": "1d4100e1456c83da33d20510c4606f0b4d0d015e9de9b2b448628c9efc1b6cf1"
+      },
+      {
+        "file": "apple-pptx-officeimo.pdf",
+        "pages": 3,
+        "links": [
+          {
+            "sourcePage": 1,
+            "destinationPage": 2,
+            "rect": [
+              67.2,
+              368.652,
+              225.942,
+              395.46
+            ]
+          },
+          {
+            "sourcePage": 1,
+            "destinationPage": 2,
+            "rect": [
+              543.6,
+              310.0,
+              776.4,
+              380.0
+            ]
+          },
+          {
+            "sourcePage": 2,
+            "destinationPage": 1,
+            "rect": [
+              67.2,
+              383.944,
+              280.44,
+              415.22
+            ]
+          }
+        ],
+        "sha256": "a5c181ae8b6ef9829e32e164a4da665af5d918b93130b2b4e0cb9141c83e3e08"
+      }
+    ]
+  },
+  "sourceFont": {
+    "requested": "HelveticaNeue",
+    "installedFile": "/System/Library/Fonts/HelveticaNeue.ttc",
+    "sha256": "f589d70dc741853a336fcb0d11aa1505d1646898fba2340a0f5999ea920406b3",
+    "standaloneFontsDistributed": false
+  },
+  "managedAcceptance": {
+    "defaultEditablePolicy": true,
+    "completeEditableReconstruction": true,
+    "pptxSavedAndReopened": true,
+    "rawNativeTargetsRetained": true,
+    "textFrameInsetSourcePoints": 3.5999999046325684,
+    "textFrameInsetPptxPoints": 3.6,
+    "completePdfWorkflowSucceeded": true,
+    "pdfReopened": true,
+    "omittedSourceUnits": 0,
+    "pdfOmissionOrClipping": false
+  },
+  "nativeAcceptance": {
+    "allThreeSourceSlidesInspected": true,
+    "nativeSaveAndExports": true,
+    "ownedApplicationClosed": true,
+    "nativeSavedSourceReopen": "not separately qualified",
+    "nativeLinkActivation": "not qualified; windowed playback did not expose a clickable offscreen target"
+  },
+  "renderAssessment": {
+    "renderer": "Poppler pdftoppm, 72dpi",
+    "pages": [
+      {
+        "page": 1,
+        "apple": {
+          "pngSha256": "5266895b1028de4c9f1b9894748e3d3f2280645e466167918dbca5e0e61f8028",
+          "rgbSha256": "cf80087a750ac6144a812100aaa38b09cba9f7de9ae8dcd48b70d9e928686117",
+          "size": [
+            960,
+            540
+          ]
+        },
+        "officeimo": {
+          "pngSha256": "8645b180eccec523983bdfcdffd592f94eb654c1a08bd1a38ee3190107faa206",
+          "rgbSha256": "d6ecf860cd3525849639f87bdbbd3727a2079299bce9d2f962b6076c7f031462",
+          "size": [
+            960,
+            540
+          ]
+        }
+      },
+      {
+        "page": 2,
+        "apple": {
+          "pngSha256": "63229445ae2ba5c08f2eed15f2ead2f300d5bb4c5d8835e6b2ecebf57fef8a2d",
+          "rgbSha256": "3c25f5d3e2bacca7c1e5087e04a130864f5c21e9f3e1745a7d5f5016b190d450",
+          "size": [
+            960,
+            540
+          ]
+        },
+        "officeimo": {
+          "pngSha256": "dfb9538e5c58726e689f9be184f96a22b3c049aa61a5d37356d6e9c86ebb9e32",
+          "rgbSha256": "324c62278b6e9e696d67087e6b26ffc8c49770df6de946eb45ac68314f181243",
+          "size": [
+            960,
+            540
+          ]
+        }
+      },
+      {
+        "page": 3,
+        "apple": {
+          "pngSha256": "46ec21b475d9348f87fd634da2dbf9917c496d089a6d08a2cc8ac60ab4bd951e",
+          "rgbSha256": "cb2c2e21cdd2b42bc1bc3210b656812f730c129d7fc22d39791d066571fc70ef",
+          "size": [
+            960,
+            540
+          ]
+        },
+        "officeimo": {
+          "pngSha256": "71c767edc566037525905b673a12107aa043c113ffae8dc5100a1033316c64ce",
+          "rgbSha256": "52d80baeea5e7601805cf6f2995d5845477ae4bf43de63807fbcd49e67dee99d",
+          "size": [
+            960,
+            540
+          ]
+        }
+      }
+    ],
+    "allPagesInspected": true,
+    "content": "All five labels visible in order with their underlines and frame placement",
+    "differences": "HelveticaNeue is reported as substituted by standard PDF Helvetica under the default resource policy; small baseline and width differences remain",
+    "exactTypographyQualified": false
+  },
+  "referenceLimitations": [
+    "Keynote 15.4 fixture only; additional versions and actions remain unqualified",
+    "Native references qualify text and frame links; image/table/group cases have separate managed artifact checks",
+    "pypdf reported two dangling zero-offset objects in the Apple PDF and still resolved every page and target",
+    "Apple-exported PPTX to PDF retains all three targets but independently reports font substitution and text-box-overflow; it is not a complete-content workflow reference"
+  ]
+}

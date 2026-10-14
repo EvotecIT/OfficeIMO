@@ -6,7 +6,8 @@ using OfficeIMO.Workflows.IWork;
 namespace OfficeIMO.Studio.Features.Workflows;
 
 public sealed partial class ConversionJobViewModel {
-    public bool SupportsIWorkOptions => Route.Route.Id is "pages-docx" or "numbers-xlsx" or "keynote-pptx";
+    internal static bool IsEditableIWorkRoute(string id) => id is "pages-docx" or "numbers-xlsx" or "keynote-pptx";
+    public bool SupportsIWorkOptions => IsEditableIWorkRoute(Route.Route.Id);
     public bool IsNumbersImport => Route.Route.Id == "numbers-xlsx";
     public IReadOnlyList<IWorkConversionMode> IWorkModes { get; } = Enum.GetValues<IWorkConversionMode>();
 

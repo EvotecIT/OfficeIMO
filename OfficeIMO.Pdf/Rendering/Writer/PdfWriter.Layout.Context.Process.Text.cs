@@ -144,6 +144,11 @@ internal static partial class PdfWriter {
                 PdfKeepTogetherOverflowBehavior.Reject;
             bool SkipColumnsForParagraphOverflow() => splittingConstrainedParagraph &&
                 paragraphStyle?.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages;
+            // Every column shares this partial physical frame. Ordinary used
+            // columns still advance in reading order when just their tail fills.
+            bool AdvancePastPartialColumn(double height) => CanOverflowImportedExactLine(paragraphStyle) &&
+                activeColumnFlow is { } column && IsPartialPhysicalColumnFrame() &&
+                height > column.Top - column.ParentOptions.MarginBottom + .001D;
             if (activeColumnFlow is { Options.BalanceParagraphLines: false, Options.BalanceLastPage: true } &&
                 lineHeights.Sum() <= GetMaximumBlockContinuationHeight() + 0.001D) {
                 paragraphStyle = paragraphStyle?.Clone() ?? new PdfParagraphStyle();
@@ -162,6 +167,7 @@ internal static partial class PdfWriter {
             }
             bool IsKeptInCurrentFrame() {
                 if (paragraphStyle?.KeepTogether != true) return false;
+                if (lines.Count == 1 && CanOverflowImportedExactLine(paragraphStyle)) return false;
                 if (paragraphStyle.KeepTogetherOverflow != PdfKeepTogetherOverflowBehavior.Reject &&
                     MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter) > GetMaximumBlockContinuationHeight() + .001D) {
                     splittingConstrainedParagraph = true;
@@ -276,17 +282,20 @@ internal static partial class PdfWriter {
             bool firstLogicalLine = true;
             textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             void NewParagraphPage() {
+                double firstBodyHeight = GetTextLineAdmissionHeight(lines[lineIndex], lineHeights[lineIndex],
+                    lineIndex == lines.Count - 1, spacingAfter, floatingLineGaps?[lineIndex] ?? 0D);
+                firstBodyHeight += GetRunningBodyContinuationReservation();
+                bool forcePhysicalPage = SkipColumnsForParagraphOverflow() || AdvancePastPartialColumn(firstBodyHeight);
                 if (activeColumnFlow?.Options.BalanceLastPage == true) {
                     PdfParagraphStyle continuationStyle = paragraphStyle?.Clone() ?? new PdfParagraphStyle();
                     if (!firstLogicalLine) { continuationStyle.SpacingBefore = 0D; continuationStyle.FirstLineIndent = 0D; }
                     var remainingRuns = firstLogicalLine ? rpb.Runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
-                    QueueColumnBalanceRemainder(new RichParagraphBlock(remainingRuns, rpb.Align, rpb.DefaultColor, continuationStyle), blockList, blockIndex);
+                    QueueColumnBalanceRemainder(new RichParagraphBlock(remainingRuns, rpb.Align, rpb.DefaultColor, continuationStyle), blockList, blockIndex,
+                        forcePhysicalPage);
                 }
-                double firstBodyHeight = GetTextLineAdmissionHeight(lines[lineIndex], lineHeights[lineIndex],
-                    lineIndex == lines.Count - 1, spacingAfter, floatingLineGaps?[lineIndex] ?? 0D);
-                firstBodyHeight += GetRunningBodyContinuationReservation();
-                NewPage(forcePhysicalPage: SkipColumnsForParagraphOverflow(), firstBodyHeight: firstBodyHeight,
-                    firstBodyAllowsFooterOverlap: paragraphStyle?.AllowFirstLineOverlapWithRunningFooter == true && activeColumnFlow == null);
+                NewPage(forcePhysicalPage: forcePhysicalPage, firstBodyHeight: firstBodyHeight,
+                    firstBodyAllowsFooterOverlap: paragraphStyle?.AllowFirstLineOverlapWithRunningFooter == true && activeColumnFlow == null,
+                    firstBodyAllowsExactOverflow: CanOverflowImportedExactLine(paragraphStyle));
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
                 if (activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
@@ -331,13 +340,15 @@ internal static partial class PdfWriter {
                 double minimumLineHeight = GetTextLineAdmissionHeight(lines[lineIndex], lineHeights[lineIndex],
                     lineIndex == lines.Count - 1, spacingAfter, floatingLineGaps?[lineIndex] ?? 0D);
                 if (minimumLineHeight > GetMaximumParagraphContinuationHeight() + .001D &&
+                    !CanOverflowImportedExactLine(paragraphStyle) &&
                     !CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))
                     throw new ArgumentException("Paragraph line height exceeds the available page content height.");
-                while (ShouldAdvanceForBlockHeight(minimumLineHeight)) {
+                while (ShouldAdvanceForBlockHeight(minimumLineHeight) || AdvancePastPartialColumn(minimumLineHeight)) {
                     NewParagraphPage();
                     minimumLineHeight = GetTextLineAdmissionHeight(lines[lineIndex], lineHeights[lineIndex],
                         lineIndex == lines.Count - 1, spacingAfter, floatingLineGaps?[lineIndex] ?? 0D);
                     if (minimumLineHeight > GetMaximumParagraphContinuationHeight() + .001D &&
+                        !CanOverflowImportedExactLine(paragraphStyle) &&
                         !CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))
                         throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 }
@@ -350,7 +361,8 @@ internal static partial class PdfWriter {
 
                 double segmentSpacingBefore = firstSegment && y < frameStart - 0.001 ? spacingBefore : 0;
                 if (available < segmentSpacingBefore + minimumLineHeight &&
-                    !(y >= frameStart - .001D && CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))) {
+                    !(y >= frameStart - .001D && (CanOverflowImportedExactLine(paragraphStyle) ||
+                        CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight)))) {
                     NewParagraphPage();
                     minimumLineHeight = GetTextLineAdmissionHeight(lines[lineIndex], lineHeights[lineIndex],
                         lineIndex == lines.Count - 1, spacingAfter, floatingLineGaps?[lineIndex] ?? 0D);
@@ -379,7 +391,7 @@ internal static partial class PdfWriter {
                 }
 
                 if (take == 0 && y >= frameStart - .001D &&
-                    CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight)) {
+                    (CanOverflowImportedExactLine(paragraphStyle) || CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))) {
                     take = 1;
                     heightSum = lineHeights[lineIndex];
                 }
@@ -398,6 +410,16 @@ internal static partial class PdfWriter {
                     NewParagraphPage();
                     firstSegment = false;
                     continue;
+                }
+
+                if (activeColumnFlow is { } column && CanOverflowImportedExactLine(paragraphStyle)) {
+                    double physicalHeight = column.Top - column.ParentOptions.MarginBottom;
+                    for (int index = lineIndex; index < lineIndex + take; index++) {
+                        if (lineHeights[index] > physicalHeight + .001D) {
+                            column.RequiresPhysicalContinuation = true;
+                            break;
+                        }
+                    }
                 }
 
                 if (segmentSpacingBefore > 0) {

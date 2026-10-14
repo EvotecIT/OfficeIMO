@@ -196,9 +196,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
                     }
+                    // Absolute fixed tracks can enlarge a table beyond its
+                    // authored width. Float fitting must use that same minimum.
+                    double? tableMinimumOuterWidth = childStyle.Display == "table"
+                        && childStyle.TableLayout == "fixed" && childStyle.ExplicitWidth.HasValue
+                        && (floatContext.HasFloats || activeFloats?.Count > 0)
+                            ? ResolveFixedTableIntrinsicOuterWidth(element, childStyle, width, depth + 1)
+                            : null;
                     if (activeFloats == null) {
                         double blockY = Math.Max(flowHeight, floatContext.Clearance(childStyle.ClearSide));
-                        childStyle = PlaceIndependentBlockBesideFloats(childStyle, width, floatContext, ref blockY);
+                        childStyle = PlaceIndependentBlockBesideFloats(childStyle, width, floatContext, ref blockY, tableMinimumOuterWidth);
                         if (blockY > flowHeight) {
                             blocks.Add(CreateFloatClearanceBlock(width, blockY - flowHeight));
                             flowHeight = blockY;
@@ -211,7 +218,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ? anticipatedMargins.Allocated - anticipatedMargins.Collapsed : 0D;
                     HtmlRenderBoxStyle unavoidedStyle = childStyle.Clone();
                     childStyle = AvoidActiveFloatsForFormattingContext(
-                        unavoidedStyle, width, flowHeight, activeFloats);
+                        unavoidedStyle, width, flowHeight, activeFloats, minimumOuterWidth: tableMinimumOuterWidth);
                     childStyle = ResolveOrdinaryIntrinsicWidths(element, childStyle, width, depth + 1);
                     childStyle = ResolveNormalFlowHorizontalAutoMargins(element, childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
@@ -233,16 +240,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             -flowHeight - childStyle.MarginTop - childStyle.BorderTopWidth - childStyle.PaddingTop)).ToArray() : null,
                         childFloats, floatContext.At(width, 0D, flowHeight - anticipatedMarginAdjustment));
                     HtmlRenderFlowBlock childBlock = LayoutPlacedChild();
-                    if (activeFloats?.Count > 0 && EstablishesFloatContainingBlock(unavoidedStyle)
-                        && !unavoidedStyle.ExplicitHeight.HasValue) {
-                        // Auto height is only known after layout. Recheck the
+                    if (activeFloats?.Count > 0 && AvoidsActiveFloatsAsBlock(unavoidedStyle)
+                        && (!unavoidedStyle.ExplicitHeight.HasValue || unavoidedStyle.Display == "table")) {
+                        // Auto height and a table's height beyond its authored
+                        // minimum are only known after layout. Recheck the
                         // float bands with that height so a short box can stay
                         // beside a float without a taller box crossing a later one.
                         for (int attempt = 0; attempt <= activeFloats.Count; attempt++) {
                             double measuredHeight = Math.Max(0.01D,
                                 childBlock.Height - childStyle.MarginTop - childStyle.MarginBottom);
                             HtmlRenderBoxStyle measuredStyle = AvoidActiveFloatsForFormattingContext(
-                                unavoidedStyle, width, flowHeight, activeFloats, measuredHeight);
+                                unavoidedStyle, width, flowHeight, activeFloats, measuredHeight, tableMinimumOuterWidth);
                             measuredStyle = ResolveOrdinaryIntrinsicWidths(element, measuredStyle, width, depth + 1);
                             measuredStyle = ResolveNormalFlowHorizontalAutoMargins(element, measuredStyle, width);
                             if (Math.Abs(measuredStyle.MarginTop - childStyle.MarginTop) <= 0.0001D

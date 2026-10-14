@@ -35,6 +35,9 @@ internal static partial class PdfWriter {
                     pageGroupStack.Push(currentPageGroupId);
                     currentOpts = pageBlock.Options;
                     currentPageGroupId = nextPageGroupId++;
+                    int? enclosingRunningSectionId = currentRunningSectionId;
+                    currentRunningSectionId = pageBlock.Blocks.Count > 0
+                        ? (pageBlock.Blocks[0] as RunningContentSectionBlock)?.SectionId : null;
                     currentPage = null;
                     StartPage(currentOpts);
                     ProcessBlocks(pageBlock.Blocks);
@@ -45,6 +48,12 @@ internal static partial class PdfWriter {
                     currentOpts = optionsStack.Peek();
                     currentPageBaseOptions = currentOpts;
                     currentPage = null;
+                    currentRunningSectionId = enclosingRunningSectionId;
+                    continue;
+                }
+
+                if (block is RunningContentSectionBlock runningSection) {
+                    currentRunningSectionId = runningSection.SectionId;
                     continue;
                 }
 
@@ -76,6 +85,11 @@ internal static partial class PdfWriter {
                 }
                 if (block is PageBreakBlock pageBreak) {
                     pendingFloatingBookmarks.Clear();
+                    // A paragraph's page-break-before already holds on a fresh
+                    // first column. Running stories alone must not emit a blank
+                    // page, but an empty later column still needs a page break.
+                    if (!pageBreak.PreserveEmptyPage && !HasCurrentPageBodyContent() &&
+                        (activeColumnFlow == null || activeColumnFlow.ColumnIndex == 0)) continue;
                     if (activeColumnFlow != null) AdvanceColumnFrame(forcePhysicalPage: true, pageBreak.PreserveEmptyPage);
                     else NewPage(pageBreak.PreserveEmptyPage);
                     continue;

@@ -21,6 +21,12 @@ internal static partial class ManagedTextShapingTestAssets {
         return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1);
     }
 
+    internal static byte[] CreateFontWithDistinctGlyphOutlines(int firstScalar, int secondScalar) {
+        if (firstScalar >= secondScalar) throw new ArgumentException("Test glyph scalars must be in ascending order.", nameof(secondScalar));
+        return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { firstScalar, secondScalar }),
+            glyphCount: 3, distinctSecondGlyph: true);
+    }
+
     internal static byte[] CreateFontWithEmptyGlyphs(int glyphCount, params int[] scalars) =>
         CreateFontFromCmap(CreateFormat12Cmap(scalars), glyphCount: glyphCount, emptyGlyphs: true);
 

@@ -28,7 +28,10 @@ namespace OfficeIMO.Excel {
                 } else {
                     evaluated = TryEvaluateFormulaValueCore(formula, out result);
                 }
-                if (_formulaReferenceError.IsError) { result = _formulaReferenceError; return true; }
+                // A reference error is a result only after the owning expression
+                // qualifies every required input. It must never turn an unsupported
+                // expression into an error that IFERROR can silently replace.
+                if (evaluated && _formulaReferenceError.IsError) { result = _formulaReferenceError; return true; }
                 return evaluated;
             } finally {
                 _formulaReferenceError = previousError;

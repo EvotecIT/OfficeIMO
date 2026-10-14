@@ -1,0 +1,839 @@
+{
+  "extractorVersion": "numbers-parser 4.19.0",
+  "qualification": "Selected fixed abbreviated duration declarations, raw seconds and typed formula caches paired with native XLSX export. Native PDF and destination application display require separate evidence.",
+  "source": "numbers-duration-seconds-v14.5.numbers",
+  "sourceSha256": "08936b0937a8b07cd70e567f213f2f77c7389f4362b4f2791dc239fd9c4ec823",
+  "nativeExport": "numbers-duration-seconds-v14.5.xlsx",
+  "nativeExportSha256": "92808e6bf1a42cde39e58f2657bbc71217b20b6f59761167f8ff061b8354b851",
+  "fieldNumbers": {
+    "format_type": 1,
+    "duration_style": 7,
+    "duration_unit_largest": 15,
+    "duration_unit_smallest": 16,
+    "use_automatic_duration_units": 40
+  },
+  "profiles": [
+    {
+      "sheet": "Hours to seconds",
+      "table": "Tabela 1",
+      "rows": 10,
+      "columns": 5,
+      "cells": [
+        {
+          "row": 2,
+          "column": 3,
+          "address": "C2",
+          "seconds": 0.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.0,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 2,
+          "column": 4,
+          "address": "D2",
+          "seconds": 0.0,
+          "isFormula": true,
+          "formula": "C2+C2",
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.0,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": "C2+C2"
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "address": "C3",
+          "seconds": 60.99999999999999,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.0007060185185185185,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 3,
+          "column": 4,
+          "address": "D3",
+          "seconds": 121.99999999999999,
+          "isFormula": true,
+          "formula": "C3+C3",
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.001412037037037037,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": "C3+C3"
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "address": "C4",
+          "seconds": 3661.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.04237268518518519,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 4,
+          "column": 4,
+          "address": "D4",
+          "seconds": 7322.0,
+          "isFormula": true,
+          "formula": "C4+C4",
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.08474537037037037,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": "C4+C4"
+        },
+        {
+          "row": 5,
+          "column": 3,
+          "address": "C5",
+          "seconds": 129661.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 1.500706018518519,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 5,
+          "column": 4,
+          "address": "D5",
+          "seconds": 259322.0,
+          "isFormula": true,
+          "formula": "C5+C5",
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 3.001412037037037,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": "C5+C5"
+        },
+        {
+          "row": 6,
+          "column": 3,
+          "address": "C6",
+          "seconds": -3661.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -0.04237268518518519,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 6,
+          "column": 4,
+          "address": "D6",
+          "seconds": -7322.0,
+          "isFormula": true,
+          "formula": "C6+C6",
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -0.08474537037037037,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": "C6+C6"
+        },
+        {
+          "row": 7,
+          "column": 3,
+          "address": "C7",
+          "seconds": 3661.7500000000005,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.04238136574074074,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 7,
+          "column": 4,
+          "address": "D7",
+          "seconds": 7323.500000000001,
+          "isFormula": true,
+          "formula": "C7+C7",
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.08476273148148149,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": "C7+C7"
+        },
+        {
+          "row": 8,
+          "column": 3,
+          "address": "C8",
+          "seconds": -0.75,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -8.680555555555556e-06,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 8,
+          "column": 4,
+          "address": "D8",
+          "seconds": -1.5,
+          "isFormula": true,
+          "formula": "C8+C8",
+          "durationFormatHex": "088c0238017804800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 4,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -1.736111111111111e-05,
+          "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+          "nativeFormula": "C8+C8"
+        }
+      ]
+    },
+    {
+      "sheet": "Minutes to seconds",
+      "table": "Tabela 1",
+      "rows": 10,
+      "columns": 5,
+      "cells": [
+        {
+          "row": 2,
+          "column": 3,
+          "address": "C2",
+          "seconds": 0.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.0,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 2,
+          "column": 4,
+          "address": "D2",
+          "seconds": 0.0,
+          "isFormula": true,
+          "formula": "C2+C2",
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.0,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": "C2+C2"
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "address": "C3",
+          "seconds": 60.99999999999999,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.0007060185185185185,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 3,
+          "column": 4,
+          "address": "D3",
+          "seconds": 121.99999999999999,
+          "isFormula": true,
+          "formula": "C3+C3",
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.001412037037037037,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": "C3+C3"
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "address": "C4",
+          "seconds": 3661.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.04237268518518519,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 4,
+          "column": 4,
+          "address": "D4",
+          "seconds": 7322.0,
+          "isFormula": true,
+          "formula": "C4+C4",
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.08474537037037037,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": "C4+C4"
+        },
+        {
+          "row": 5,
+          "column": 3,
+          "address": "C5",
+          "seconds": 129661.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 1.500706018518519,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 5,
+          "column": 4,
+          "address": "D5",
+          "seconds": 259322.0,
+          "isFormula": true,
+          "formula": "C5+C5",
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 3.001412037037037,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": "C5+C5"
+        },
+        {
+          "row": 6,
+          "column": 3,
+          "address": "C6",
+          "seconds": -3661.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -0.04237268518518519,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 6,
+          "column": 4,
+          "address": "D6",
+          "seconds": -7322.0,
+          "isFormula": true,
+          "formula": "C6+C6",
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -0.08474537037037037,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": "C6+C6"
+        },
+        {
+          "row": 7,
+          "column": 3,
+          "address": "C7",
+          "seconds": 3661.7500000000005,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.04238136574074074,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 7,
+          "column": 4,
+          "address": "D7",
+          "seconds": 7323.500000000001,
+          "isFormula": true,
+          "formula": "C7+C7",
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.08476273148148149,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": "C7+C7"
+        },
+        {
+          "row": 8,
+          "column": 3,
+          "address": "C8",
+          "seconds": -0.75,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -8.680555555555556e-06,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 8,
+          "column": 4,
+          "address": "D8",
+          "seconds": -1.5,
+          "isFormula": true,
+          "formula": "C8+C8",
+          "durationFormatHex": "088c0238017808800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 8,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -1.736111111111111e-05,
+          "nativeFormatCode": "[m]\"m\" s\"s\"",
+          "nativeFormula": "C8+C8"
+        }
+      ]
+    },
+    {
+      "sheet": "Seconds only",
+      "table": "Tabela 1",
+      "rows": 10,
+      "columns": 5,
+      "cells": [
+        {
+          "row": 2,
+          "column": 3,
+          "address": "C2",
+          "seconds": 0.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.0,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 2,
+          "column": 4,
+          "address": "D2",
+          "seconds": 0.0,
+          "isFormula": true,
+          "formula": "C2+C2",
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.0,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": "C2+C2"
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "address": "C3",
+          "seconds": 60.99999999999999,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.0007060185185185185,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 3,
+          "column": 4,
+          "address": "D3",
+          "seconds": 121.99999999999999,
+          "isFormula": true,
+          "formula": "C3+C3",
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.001412037037037037,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": "C3+C3"
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "address": "C4",
+          "seconds": 3661.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.04237268518518519,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 4,
+          "column": 4,
+          "address": "D4",
+          "seconds": 7322.0,
+          "isFormula": true,
+          "formula": "C4+C4",
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.08474537037037037,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": "C4+C4"
+        },
+        {
+          "row": 5,
+          "column": 3,
+          "address": "C5",
+          "seconds": 129661.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 1.500706018518519,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 5,
+          "column": 4,
+          "address": "D5",
+          "seconds": 259322.0,
+          "isFormula": true,
+          "formula": "C5+C5",
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 3.001412037037037,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": "C5+C5"
+        },
+        {
+          "row": 6,
+          "column": 3,
+          "address": "C6",
+          "seconds": -3661.0,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -0.04237268518518519,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 6,
+          "column": 4,
+          "address": "D6",
+          "seconds": -7322.0,
+          "isFormula": true,
+          "formula": "C6+C6",
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -0.08474537037037037,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": "C6+C6"
+        },
+        {
+          "row": 7,
+          "column": 3,
+          "address": "C7",
+          "seconds": 3661.7500000000005,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.04238136574074074,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 7,
+          "column": 4,
+          "address": "D7",
+          "seconds": 7323.500000000001,
+          "isFormula": true,
+          "formula": "C7+C7",
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": 0.08476273148148149,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": "C7+C7"
+        },
+        {
+          "row": 8,
+          "column": 3,
+          "address": "C8",
+          "seconds": -0.75,
+          "isFormula": false,
+          "formula": null,
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -8.680555555555556e-06,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": null
+        },
+        {
+          "row": 8,
+          "column": 4,
+          "address": "D8",
+          "seconds": -1.5,
+          "isFormula": true,
+          "formula": "C8+C8",
+          "durationFormatHex": "088c0238017810800110c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 16,
+            "duration_unit_smallest": 16,
+            "use_automatic_duration_units": false
+          },
+          "nativeValueDays": -1.736111111111111e-05,
+          "nativeFormatCode": "[s]\"s\"",
+          "nativeFormula": "C8+C8"
+        }
+      ]
+    }
+  ]
+}

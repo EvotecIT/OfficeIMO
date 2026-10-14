@@ -279,6 +279,11 @@ to `100vw` when no supported size matches. Resource policy is applied before can
 selection. Static rendering derives device density from
 `HtmlRenderMediaFeatures.ResolutionDpi`.
 
+Density descriptors must be positive finite numbers, such as `1.5x`, `.5x` or
+`1e2x`. A leading `+`, a trailing decimal point, zero, negative values and nonfinite
+values are invalid. Candidates with invalid descriptors are discarded before
+responsive selection.
+
 ## Direct HTML rendering
 
 ```csharp
@@ -552,11 +557,22 @@ font size before resolving these dependent values. Keyword baseline shifts use
 bounded offsets; mixed-font line boxes and browser-relative baseline fidelity remain
 limited.
 
+Horizontal text-only lines combine each run's selected-face ascent and descent,
+half-leading and resolved vertical offset when advancing following content,
+including beside floats. Mixed sizes retain the paragraph paint anchor and lift it
+by any extra top extent. Font-metric rounding, keyword shifts, mixed faces and
+atomic baselines retain their browser-relative qualification limits.
+
 The PDF adapter paints the scene's resolved size and vertical offset. Logical
 replacement text owns its painted content once, so independent PDF text extraction
 does not repeat the visible glyphs alongside their replacement. Page image exports
 retain the same scene geometry and page count; font rasterization can differ between
 viewers.
+`OfficeImageExportOptions.MaximumRasterPixels` limits HTML raster export,
+including intermediate effect surfaces. `HtmlToPdfOptions.MaximumRasterPixels`
+also applies to managed raster fallback during PDF conversion. Encoded-byte
+limits remain separate.
+
 Raster decoding preserves encoded color channels and does not automatically apply embedded ICC or
 PNG gamma conversion. Normalize source colors explicitly when color-managed output is required.
 

@@ -262,15 +262,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
-        private void RebuildInlineEdges(InlineSegment removed, bool preserveScopeContent) {
+        private void RebuildInlineEdges(InlineSegment removed) {
             foreach (HtmlInlineEdgeScope scope in removed.Run.InlineEdgeScopes) {
-                if (!preserveScopeContent && ReferenceEquals(scope.FirstContent, removed)) {
+                if (ReferenceEquals(scope.FirstContent, removed)) {
                     scope.FirstContent = Segments.FirstOrDefault(segment => segment.Run.InlineEdgeScopes.Contains(scope));
                 }
-                if (!preserveScopeContent && ReferenceEquals(scope.LastContent, removed)) {
+                if (ReferenceEquals(scope.LastContent, removed)) {
                     scope.LastContent = Segments.LastOrDefault(segment => segment.Run.InlineEdgeScopes.Contains(scope));
                 }
             }
+            RebuildInlineEdges();
+        }
+
+        private void RebuildInlineEdges() {
             _inlineEdges.Clear();
             Width = Segments.Sum(segment => segment.Width);
             foreach (InlineSegment segment in Segments) {

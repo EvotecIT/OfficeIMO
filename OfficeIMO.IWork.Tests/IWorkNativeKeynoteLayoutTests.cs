@@ -10,6 +10,29 @@ public sealed class IWorkNativeKeynoteLayoutTests {
     private static string Corpus(string path) => Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", path);
 
     [Fact]
+    public void Native_uuid_and_next_slide_links_survive_default_editable_conversion_and_save_reopen() {
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
+            Corpus("native-exports/keynote-slide-links-v15.4.key"));
+        result.Report.RequireCompleteEditableReconstruction();
+        Assert.Equal(3, result.Value.Slides.Count);
+        IWorkTextBox[] sourceBoxes = result.Projection.Slides[0].TextBoxes.ToArray();
+        Assert.Equal("?slide=next", sourceBoxes.Single(box => box.Content.PlainText == "Frame to next slide").Hyperlink);
+        Assert.Equal("?slideid=1FB800A1-9682-4993-9868-F35E294F1088",
+            sourceBoxes.Single(box => box.Content.PlainText == "Go to slide two").Content.Paragraphs[0].Runs[0].Hyperlink);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        PowerPointTextBox frame = reopened.Slides[0].TextBoxes.Single(box => box.Text == "Frame to next slide");
+        Assert.Equal("#slide-2", frame.Hyperlink!.OriginalString);
+        Assert.Equal(3.6, frame.TextMarginLeftPoints);
+        Assert.Equal("#slide-2", reopened.Slides[0].TextBoxes.Single(box => box.Text == "Go to slide two")
+            .Paragraphs[0].Runs[0].Hyperlink!.OriginalString);
+        Assert.Equal("#slide-1", reopened.Slides[1].TextBoxes.Single().Paragraphs[0].Runs[0].Hyperlink!.OriginalString);
+        Assert.Equal("Final slide", reopened.Slides[2].TextBoxes.Single().Text);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
     public void Native_placeholder_geometry_text_frame_and_bullet_layout_match_Apple_export() {
         using var apple = PresentationDocument.Open(Corpus("native-exports/keynote-simple-v15.4.pptx"), false);
         SlidePart referenceSlide = apple.PresentationPart!.SlideParts.Single(part =>

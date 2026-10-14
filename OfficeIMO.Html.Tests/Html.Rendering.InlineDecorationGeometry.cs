@@ -151,9 +151,9 @@ public sealed class HtmlInlineDecorationGeometryTests {
 
         if (content != "empty-standalone") {
             HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => Enumerate(page.Scene))
-                .OfType<HtmlRenderText>().Where(text => text.Text == "Text"));
+                .OfType<HtmlRenderText>(), text => text.Text == "Text");
             HtmlRenderText controlText = Assert.Single(control.Pages.SelectMany(page => Enumerate(page.Scene))
-                .OfType<HtmlRenderText>().Where(text => text.Text == "Text"));
+                .OfType<HtmlRenderText>(), text => text.Text == "Text");
             Assert.Equal(text.Y + text.Font.Size - face.Ascent - 8D,
                 Shape(rendered, "span#text-owner").Y, 6);
             Assert.Equal(expectedTop, Shape(rendered, "span#text-owner").Y, 6);

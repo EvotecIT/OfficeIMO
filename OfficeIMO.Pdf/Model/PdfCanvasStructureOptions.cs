@@ -7,6 +7,9 @@ public sealed class PdfCanvasStructureOptions {
     private int _columnSpan = 1;
     private int _rowSpan = 1;
     private List<PdfEmbeddedFile>? _associatedFiles;
+    private long _maxAssociatedFileBytes = PdfAttachmentAdmission.DefaultMaximumFileBytes;
+    private long _maxTotalAssociatedFileBytes = PdfAttachmentAdmission.DefaultMaximumTotalBytes;
+    private long _totalAssociatedFileBytes;
 
     internal string? StructureElementKey { get; set; }
     /// <summary>Explicit sibling order supplied by an owning source adapter; null retains arrival order.</summary>
@@ -44,6 +47,28 @@ public sealed class PdfCanvasStructureOptions {
         set => _rowSpan = ValidateSpan(value, nameof(RowSpan));
     }
 
+    /// <summary>Maximum payload bytes in each file admitted to this structure element. Defaults to 128 MiB.</summary>
+    /// <remarks>Must be positive. Set an explicit larger value for trusted larger files. The document's <see cref="PdfOptions.MaxEmbeddedFileBytes"/> also applies at emission. This does not limit defensive copies or peak process memory.</remarks>
+    public long MaxAssociatedFileBytes {
+        get => _maxAssociatedFileBytes;
+        set {
+            PdfAttachmentAdmission.ValidateMaximum(value, nameof(MaxAssociatedFileBytes));
+            ValidateAssociatedFileLimits(value, _maxTotalAssociatedFileBytes);
+            _maxAssociatedFileBytes = value;
+        }
+    }
+
+    /// <summary>Maximum aggregate payload bytes admitted to this structure element. Defaults to 256 MiB.</summary>
+    /// <remarks>Must be positive. The document's <see cref="PdfOptions.MaxTotalEmbeddedFileBytes"/> separately bounds distinct emitted attachments. This does not limit snapshot multiplicity or peak process memory.</remarks>
+    public long MaxTotalAssociatedFileBytes {
+        get => _maxTotalAssociatedFileBytes;
+        set {
+            PdfAttachmentAdmission.ValidateMaximum(value, nameof(MaxTotalAssociatedFileBytes));
+            ValidateAssociatedFileLimits(_maxAssociatedFileBytes, value);
+            _maxTotalAssociatedFileBytes = value;
+        }
+    }
+
     /// <summary>Files associated with this structure element. Returned descriptions and payloads are independent copies.</summary>
     public IReadOnlyList<PdfEmbeddedFile> AssociatedFiles => _associatedFiles == null
         ? Array.Empty<PdfEmbeddedFile>()
@@ -53,13 +78,18 @@ public sealed class PdfCanvasStructureOptions {
     /// <remarks>Requires <see cref="PdfTaggedStructureMode.CatalogMarkers"/>. A MIME type is required. File names must be unique within the generated document,
     /// except that identical structure attachments may share one file specification. Plain PDF output
     /// uses PDF 2.0 for these associations; PDF/A-3 groundwork uses PDF 1.7. This does not request or prove conformance.</remarks>
+    /// <exception cref="InvalidDataException">The payload or projected structure collection exceeds its configured byte limit.</exception>
     public PdfCanvasStructureOptions AddAssociatedFile(PdfEmbeddedFile file) {
         Guard.NotNull(file, nameof(file));
         if (string.IsNullOrWhiteSpace(file.MimeType))
             throw new ArgumentException("A structure-associated file requires a MIME type.", nameof(file));
         if (_associatedFiles?.Any(existing => string.Equals(existing.FileName, file.FileName, StringComparison.Ordinal)) == true)
             throw new ArgumentException("Structure-associated file names must be unique.", nameof(file));
-        (_associatedFiles ??= new List<PdfEmbeddedFile>()).Add(file.Clone());
+        PdfAttachmentAdmission.EnsureFileBytes(file.ByteLength, MaxAssociatedFileBytes, file.FileName);
+        long projectedBytes = PdfAttachmentAdmission.GetProjectedBytes(_totalAssociatedFileBytes, file.ByteLength, MaxTotalAssociatedFileBytes);
+        PdfEmbeddedFile snapshot = file.Clone();
+        (_associatedFiles ??= new List<PdfEmbeddedFile>()).Add(snapshot);
+        _totalAssociatedFileBytes = projectedBytes;
         return this;
     }
 
@@ -67,15 +97,30 @@ public sealed class PdfCanvasStructureOptions {
     // making an additional byte-array copy for every page fragment of the same structure element.
     internal IReadOnlyList<PdfEmbeddedFile> AssociatedFileSnapshots => _associatedFiles ?? (IReadOnlyList<PdfEmbeddedFile>)Array.Empty<PdfEmbeddedFile>();
 
-    internal PdfCanvasStructureOptions Clone() => new PdfCanvasStructureOptions {
-        AlternativeText = AlternativeText,
-        HeaderScope = HeaderScope,
-        ColumnSpan = ColumnSpan,
-        RowSpan = RowSpan,
-        StructureElementKey = StructureElementKey,
-        LogicalOrder = LogicalOrder,
-        _associatedFiles = _associatedFiles == null ? null : new List<PdfEmbeddedFile>(_associatedFiles)
-    };
+    internal PdfCanvasStructureOptions Clone() {
+        ValidateAssociatedFileLimits(_maxAssociatedFileBytes, _maxTotalAssociatedFileBytes);
+        return new PdfCanvasStructureOptions {
+            AlternativeText = AlternativeText,
+            HeaderScope = HeaderScope,
+            ColumnSpan = ColumnSpan,
+            RowSpan = RowSpan,
+            MaxAssociatedFileBytes = MaxAssociatedFileBytes,
+            MaxTotalAssociatedFileBytes = MaxTotalAssociatedFileBytes,
+            _totalAssociatedFileBytes = _totalAssociatedFileBytes,
+            StructureElementKey = StructureElementKey,
+            LogicalOrder = LogicalOrder,
+            _associatedFiles = _associatedFiles == null ? null : new List<PdfEmbeddedFile>(_associatedFiles)
+        };
+    }
+
+    private void ValidateAssociatedFileLimits(long maximumFileBytes, long maximumTotalBytes) {
+        long totalBytes = 0L;
+        if (_associatedFiles == null) return;
+        foreach (PdfEmbeddedFile file in _associatedFiles) {
+            PdfAttachmentAdmission.EnsureFileBytes(file.ByteLength, maximumFileBytes, file.FileName);
+            totalBytes = PdfAttachmentAdmission.GetProjectedBytes(totalBytes, file.ByteLength, maximumTotalBytes);
+        }
+    }
 
     private static int ValidateSpan(int value, string parameterName) {
         if (value < 1 || value > 1000) throw new ArgumentOutOfRangeException(parameterName, "Canvas table spans must be between 1 and 1000.");

@@ -1,0 +1,301 @@
+{
+  "producer": "Apple Numbers 14.5 (7045.0.17), macOS 27.0.1 (26A434)",
+  "provenance": "OfficeIMO-authored cache-free OOXML intake; imported, evaluated, saved and exported by Numbers. A separate cache-free copy is evaluated and saved by Microsoft Excel 16.113.3. Native caches come from those applications, not the OfficeIMO evaluator.",
+  "license": "MIT, OfficeIMO contributors",
+  "extractorVersion": "numbers-parser 4.19.0",
+  "qualification": "Sixteen native expressions, IDs and caches agree with the Numbers XLSX export. Seven nonempty integer intervals agree with native Excel; empty integer intervals have different native results and retain producer caches without local evaluation. Reversed bounds have native Numbers errors without exported error caches; Excel has #NUM!. This evidence does not establish identical random sequences, full appearance, or other producer versions.",
+  "fixtures": [
+    {
+      "source": "numbers-fractional-bounds-v14.5.numbers",
+      "sheet": "Fractional bounds",
+      "table": "Tabela 1",
+      "rows": 17,
+      "columns": 5,
+      "artifacts": [
+        {
+          "path": "numbers-fractional-bounds-v14.5.numbers",
+          "sha256": "68bae33ba49853beeb15bb084c5625d4c89a1f091e6756cb62c2d92ca4bb26c7"
+        },
+        {
+          "path": "numbers-fractional-bounds-v14.5.xlsx",
+          "sha256": "156f7be72b3946b80bbcd1dbbdd8b59c37f889181cb8ae038bb199ba1b5072e9"
+        },
+        {
+          "path": "numbers-fractional-bounds-intake.xlsx",
+          "sha256": "e8cc7e2e978dea2d2ff26ea9778779d4aaa30cca9a858a1a7f58932b79e489f1"
+        },
+        {
+          "path": "excel-fractional-bounds-v16.113.3.xlsx",
+          "sha256": "594c55a1d0c1b933e708233e51f7a12ac9d7c89f4bfe7ed073c4c8a744aa7fcd"
+        },
+        {
+          "path": "numbers-fractional-native-v14.5.png",
+          "sha256": "829976acc5bef84e295ce9375b9b2c6ba9479e6661e194fa5450c4b3c47cd460"
+        },
+        {
+          "path": "excel-fractional-native-v16.113.3.png",
+          "sha256": "b1569cf84640945a56a1199a495e04599eadf32793acf4f87b575aae74cb3a04"
+        }
+      ],
+      "cells": [
+        {
+          "row": 2,
+          "column": 2,
+          "formula": "RANDBETWEEN(1.1,1.9)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 2.0,
+          "localEvaluation": "empty-integer-interval"
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "formula": "RANDBETWEEN(-1.9,-1.1)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": -1.0,
+          "localEvaluation": "empty-integer-interval"
+        },
+        {
+          "row": 4,
+          "column": 2,
+          "formula": "RANDBETWEEN(7.1,7.1)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 8.0,
+          "localEvaluation": "empty-integer-interval"
+        },
+        {
+          "row": 5,
+          "column": 2,
+          "formula": "RANDBETWEEN(-7.1,-7.1)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": -7.0,
+          "localEvaluation": "empty-integer-interval"
+        },
+        {
+          "row": 6,
+          "column": 2,
+          "formula": "RANDBETWEEN(0.1,0.9)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 1.0,
+          "localEvaluation": "empty-integer-interval"
+        },
+        {
+          "row": 7,
+          "column": 2,
+          "formula": "RANDBETWEEN(-0.9,-0.1)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 0.0,
+          "localEvaluation": "empty-integer-interval"
+        },
+        {
+          "row": 8,
+          "column": 2,
+          "formula": "RANDBETWEEN(1.9,1.1)",
+          "nativeNumericCache": null,
+          "nativeXlsxHasCache": false,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": "#NUM!",
+          "localEvaluation": "reversed-bounds"
+        },
+        {
+          "row": 9,
+          "column": 2,
+          "formula": "RANDBETWEEN(-1.1,-1.9)",
+          "nativeNumericCache": null,
+          "nativeXlsxHasCache": false,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": "#NUM!",
+          "localEvaluation": "reversed-bounds"
+        },
+        {
+          "row": 10,
+          "column": 2,
+          "formula": "RANDBETWEEN(1.1,2.9)",
+          "nativeNumericCache": 2.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 2.0,
+          "localEvaluation": "integer-interval"
+        },
+        {
+          "row": 11,
+          "column": 2,
+          "formula": "RANDBETWEEN(-2.9,-1.1)",
+          "nativeNumericCache": -2.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": -2.0,
+          "localEvaluation": "integer-interval"
+        },
+        {
+          "row": 12,
+          "column": 2,
+          "formula": "RANDBETWEEN(-0.9,0.9)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 0.0,
+          "localEvaluation": "integer-interval"
+        },
+        {
+          "row": 13,
+          "column": 2,
+          "formula": "RANDBETWEEN(1,1.9)",
+          "nativeNumericCache": 1.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 1.0,
+          "localEvaluation": "integer-interval"
+        },
+        {
+          "row": 14,
+          "column": 2,
+          "formula": "RANDBETWEEN(-1.9,-1)",
+          "nativeNumericCache": -1.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": -1.0,
+          "localEvaluation": "integer-interval"
+        },
+        {
+          "row": 15,
+          "column": 2,
+          "formula": "RANDBETWEEN(0,0.9)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 0.0,
+          "localEvaluation": "integer-interval"
+        },
+        {
+          "row": 16,
+          "column": 2,
+          "formula": "RANDBETWEEN(-0.9,0)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 0.0,
+          "localEvaluation": "integer-interval"
+        },
+        {
+          "row": 17,
+          "column": 2,
+          "formula": "RANDBETWEEN(2147483648.1,2147483648.9)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ],
+          "nativeExcelCache": 2147483649.0,
+          "localEvaluation": "empty-integer-interval"
+        }
+      ]
+    }
+  ],
+  "comparisonProducer": "Microsoft Excel 16.113.3, macOS 27.0.1 (26A434)"
+}

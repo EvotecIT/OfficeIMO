@@ -111,11 +111,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double tableWidth, bool anonymous) {
         if (!style.MarginLeftAuto && !style.MarginRightAuto) return;
         double freeSpace = Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - tableWidth);
-        if (style.MarginLeftAuto && style.MarginRightAuto) {
-            style.MarginLeft += freeSpace / 2D;
-            style.MarginRight += freeSpace / 2D;
-        } else if (style.MarginLeftAuto) style.MarginLeft += freeSpace;
-        else style.MarginRight += freeSpace;
+        ApplyHorizontalAutoMarginFreeSpace(style, freeSpace);
         if (!anonymous) _layoutStyles[table] = style.Clone();
     }
 }

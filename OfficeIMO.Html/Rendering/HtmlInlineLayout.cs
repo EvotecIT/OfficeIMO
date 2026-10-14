@@ -61,4 +61,3 @@ internal sealed class HtmlInlineLayout {
     internal IReadOnlyList<HtmlRenderContinuationGroup> ContinuationGroups { get; }
     internal IReadOnlyList<HtmlRenderTrailingGroup> TrailingGroups { get; }
 }
-

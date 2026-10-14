@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <PublishAot>true</PublishAot>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Workflows.IWork/OfficeIMO.Workflows.IWork.csproj" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-edited-v15.4.pages" Link="Corpus/pages-created-edited-v15.4.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-mixed-size-edited-v15.4.pages" Link="Corpus/pages-mixed-size-edited-v15.4.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-preserved-paragraphs-edited-v15.4.key" Link="Corpus/keynote-preserved-paragraphs-edited-v15.4.key" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-edited-v14.5.numbers" Link="Corpus/numbers-created-edited-v14.5.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/synthetic/numbers-unpadded-scalar.numbers" Link="Corpus/numbers-unpadded-scalar.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf" Link="Fonts/Carlito-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf" Link="Fonts/Carlito-Bold.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Italic.ttf" Link="Fonts/Carlito-Italic.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-BoldItalic.ttf" Link="Fonts/Carlito-BoldItalic.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansJP-OfficeIMO-Common.ttf" Link="Fonts/NotoSansJP-OfficeIMO-Common.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Drawing.Tests/TestAssets/NotoEmoji-VariableFont_wght.ttf" Link="Fonts/NotoEmoji-VariableFont_wght.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,2055 @@
+{
+  "provider": "numbers-parser4.19.0; pinned Apple schemas; Poppler",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "cases": [
+    {
+      "source": "pages-mixed-size-orders-v15.4.pages",
+      "sha256": "790e81e27f3d4fb35cd24955d25f4e886b85da8d767b22e0eae4b120530d0635",
+      "numberedItems": 17,
+      "firstRunMarkerSizes": [
+        18,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        8,
+        8,
+        12,
+        12,
+        12,
+        12,
+        12
+      ],
+      "strictSavedDocxSizesAndFontsVerified": true,
+      "nativeDocxTypographyDifferences": [
+        {
+          "text": "Child one serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Child one serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Child one serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep two serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep two serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep two serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 1 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 1 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 1 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 2 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 2 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 2 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 3 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 3 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 3 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 4 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 4 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 4 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 5 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 5 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 5 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 6 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 6 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 6 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 7 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 7 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 7 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 8 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 8 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 8 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono child serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono child serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono child serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono marker serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono marker serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono marker serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Resumed child serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Resumed child serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Resumed child serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root eight serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root eight serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Root eight serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root seven serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root seven serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Root seven serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif child serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif child serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif child serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif marker serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif marker serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif marker serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        }
+      ]
+    },
+    {
+      "source": "pages-mixed-size-created.pages",
+      "sha256": "93d7f058b22ffd8e85f12876b47f0d45815a06c87bf53c5d0393841d95b0bfc4",
+      "numberedItems": 17,
+      "firstRunMarkerSizes": [
+        18,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        8,
+        8,
+        12,
+        12,
+        12,
+        12,
+        12
+      ],
+      "strictSavedDocxSizesAndFontsVerified": true,
+      "nativeDocxTypographyDifferences": []
+    },
+    {
+      "source": "pages-mixed-size-saved-v15.4.pages",
+      "sha256": "ce5a910f44c5fea30980dbe5f3d6eedd71cb2ee3c52f6b76bca41a501a3174ba",
+      "numberedItems": 17,
+      "firstRunMarkerSizes": [
+        18,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        8,
+        8,
+        12,
+        12,
+        12,
+        12,
+        12
+      ],
+      "strictSavedDocxSizesAndFontsVerified": true,
+      "nativeDocxTypographyDifferences": [
+        {
+          "text": "Child one serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Child one serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Child one serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep two serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep two serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep two serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 1 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 1 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 1 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 2 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 2 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 2 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 3 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 3 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 3 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 4 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 4 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 4 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 5 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 5 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 5 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 6 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 6 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 6 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 7 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 7 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 7 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 8 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 8 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 8 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono child serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono child serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono child serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono marker serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono marker serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono marker serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Resumed child serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Resumed child serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Resumed child serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root eight serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root eight serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Root eight serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root seven serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root seven serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Root seven serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif child serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif child serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif child serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif marker serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif marker serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif marker serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        }
+      ]
+    },
+    {
+      "source": "pages-mixed-size-edited-v15.4.pages",
+      "sha256": "6511df28a9eb82c1a3f437165395f4541d07afecdcf96e1b8256f3793e15f9d8",
+      "numberedItems": 18,
+      "firstRunMarkerSizes": [
+        18,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        8,
+        8,
+        12,
+        12,
+        12,
+        12,
+        12,
+        8
+      ],
+      "strictSavedDocxSizesAndFontsVerified": true,
+      "nativeDocxTypographyDifferences": [
+        {
+          "text": "Child one serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Child one serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Child one serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep native serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep native serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep native serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep two serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep two serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Deep two serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 1 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 1 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 1 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 2 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 2 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 2 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 3 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 3 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 3 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 4 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 4 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 4 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 5 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 5 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 5 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 6 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 6 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 6 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 7 serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 7 serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Depth 7 serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono child serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono child serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono child serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono marker serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono marker serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Mono marker serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Native child plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Resumed child serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Resumed child serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Resumed child serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root eight serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root eight serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Root eight serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root native serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Root native serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Root native serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif child serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif child serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif child serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif marker serif mono plain",
+          "expectedFamily": "Arial",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif marker serif mono plain",
+          "expectedFamily": "Courier New",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": false,
+          "actualBold": false,
+          "expectedItalic": true,
+          "actualItalic": false
+        },
+        {
+          "text": "Serif marker serif mono plain",
+          "expectedFamily": "Times New Roman",
+          "actualFamily": "Arial Unicode MS",
+          "expectedBold": true,
+          "actualBold": false,
+          "expectedItalic": false,
+          "actualItalic": false
+        }
+      ]
+    }
+  ],
+  "pdfs": [
+    {
+      "path": "pages-mixed-size-orders-v15.4.pdf",
+      "fonts": [
+        "AAAAAB+ArialMT                       TrueType          MacRoman         yes yes no       6  0",
+        "AAAAAC+TimesNewRomanPS-BoldMT        TrueType          MacRoman         yes yes no       7  0",
+        "AAAAAD+CourierNewPS-ItalicMT         TrueType          MacRoman         yes yes no       8  0",
+        "AAAAAE+TimesNewRomanPSMT             TrueType          MacRoman         yes yes no       9  0",
+        "AAAAAF+CourierNewPSMT                TrueType          MacRoman         yes yes no      10  0"
+      ],
+      "nativeMarkers": [
+        {
+          "marker": "7.",
+          "text": "Root seven serif mono plain",
+          "sizePoints": 18.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 1 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 2 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 3 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 4 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 5 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 6 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 7 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 8 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "2.",
+          "text": "Deep two serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "8.",
+          "text": "Root eight serif mono plain",
+          "sizePoints": 8.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Child one serif mono plain",
+          "sizePoints": 8.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "(3)",
+          "text": "Serif marker serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAE+TimesNewRomanPSMT"
+        },
+        {
+          "marker": "(1)",
+          "text": "Serif child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAE+TimesNewRomanPSMT"
+        },
+        {
+          "marker": "5)",
+          "text": "Mono marker serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAF+CourierNewPSMT"
+        },
+        {
+          "marker": "1)",
+          "text": "Mono child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAF+CourierNewPSMT"
+        },
+        {
+          "marker": "2.",
+          "text": "Resumed child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        }
+      ]
+    },
+    {
+      "path": "pages-mixed-size-orders-v15.4-officeimo.pdf",
+      "fonts": [
+        "Helvetica                            Type 1            WinAnsi          no  no  no       2  0",
+        "Times-Roman                          Type 1            WinAnsi          no  no  no       7  0",
+        "Times-Bold                           Type 1            WinAnsi          no  no  no       5  0",
+        "Courier                              Type 1            WinAnsi          no  no  no       8  0",
+        "Courier-Oblique                      Type 1            WinAnsi          no  no  no       6  0"
+      ]
+    },
+    {
+      "path": "pages-mixed-size-orders-v15.4-caller-fonts.pdf",
+      "fonts": [
+        "Arial-Regular                        CID TrueType      Identity-H       yes no  yes      2  0",
+        "TimesNewRoman-Regular                CID TrueType      Identity-H       yes no  yes      3  0",
+        "TimesNewRoman-Bold                   CID TrueType      Identity-H       yes no  yes      4  0",
+        "CourierNew-Regular                   CID TrueType      Identity-H       yes no  yes      5  0",
+        "CourierNew-Italic                    CID TrueType      Identity-H       yes no  yes      6  0"
+      ]
+    },
+    {
+      "path": "pages-mixed-size-created-officeimo.pdf",
+      "fonts": [
+        "Helvetica                            Type 1            WinAnsi          no  no  no       2  0",
+        "Times-Roman                          Type 1            WinAnsi          no  no  no       7  0",
+        "Times-Bold                           Type 1            WinAnsi          no  no  no       5  0",
+        "Courier                              Type 1            WinAnsi          no  no  no       8  0",
+        "Courier-Oblique                      Type 1            WinAnsi          no  no  no       6  0"
+      ]
+    },
+    {
+      "path": "pages-mixed-size-created-caller-fonts.pdf",
+      "fonts": [
+        "Arial-Regular                        CID TrueType      Identity-H       yes no  yes      2  0",
+        "TimesNewRoman-Regular                CID TrueType      Identity-H       yes no  yes      3  0",
+        "TimesNewRoman-Bold                   CID TrueType      Identity-H       yes no  yes      4  0",
+        "CourierNew-Regular                   CID TrueType      Identity-H       yes no  yes      5  0",
+        "CourierNew-Italic                    CID TrueType      Identity-H       yes no  yes      6  0"
+      ]
+    },
+    {
+      "path": "pages-mixed-size-saved-v15.4.pdf",
+      "fonts": [
+        "AAAAAB+ArialMT                       TrueType          MacRoman         yes yes no       6  0",
+        "AAAAAC+TimesNewRomanPS-BoldMT        TrueType          MacRoman         yes yes no       7  0",
+        "AAAAAD+CourierNewPS-ItalicMT         TrueType          MacRoman         yes yes no       8  0",
+        "AAAAAE+TimesNewRomanPSMT             TrueType          MacRoman         yes yes no       9  0",
+        "AAAAAF+CourierNewPSMT                TrueType          MacRoman         yes yes no      10  0"
+      ],
+      "nativeMarkers": [
+        {
+          "marker": "7.",
+          "text": "Root seven serif mono plain",
+          "sizePoints": 18.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 1 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 2 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 3 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 4 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 5 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 6 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 7 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 8 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "2.",
+          "text": "Deep two serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "8.",
+          "text": "Root eight serif mono plain",
+          "sizePoints": 8.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Child one serif mono plain",
+          "sizePoints": 8.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "(3)",
+          "text": "Serif marker serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAE+TimesNewRomanPSMT"
+        },
+        {
+          "marker": "(1)",
+          "text": "Serif child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAE+TimesNewRomanPSMT"
+        },
+        {
+          "marker": "5)",
+          "text": "Mono marker serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAF+CourierNewPSMT"
+        },
+        {
+          "marker": "1)",
+          "text": "Mono child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAF+CourierNewPSMT"
+        },
+        {
+          "marker": "2.",
+          "text": "Resumed child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        }
+      ]
+    },
+    {
+      "path": "pages-mixed-size-saved-v15.4-officeimo.pdf",
+      "fonts": [
+        "Helvetica                            Type 1            WinAnsi          no  no  no       2  0",
+        "Times-Roman                          Type 1            WinAnsi          no  no  no       7  0",
+        "Times-Bold                           Type 1            WinAnsi          no  no  no       5  0",
+        "Courier                              Type 1            WinAnsi          no  no  no       8  0",
+        "Courier-Oblique                      Type 1            WinAnsi          no  no  no       6  0"
+      ]
+    },
+    {
+      "path": "pages-mixed-size-saved-v15.4-caller-fonts.pdf",
+      "fonts": [
+        "Arial-Regular                        CID TrueType      Identity-H       yes no  yes      2  0",
+        "TimesNewRoman-Regular                CID TrueType      Identity-H       yes no  yes      3  0",
+        "TimesNewRoman-Bold                   CID TrueType      Identity-H       yes no  yes      4  0",
+        "CourierNew-Regular                   CID TrueType      Identity-H       yes no  yes      5  0",
+        "CourierNew-Italic                    CID TrueType      Identity-H       yes no  yes      6  0"
+      ]
+    },
+    {
+      "path": "pages-mixed-size-edited-v15.4.pdf",
+      "fonts": [
+        "AAAAAB+ArialMT                       TrueType          MacRoman         yes yes no       6  0",
+        "AAAAAC+TimesNewRomanPS-BoldMT        TrueType          MacRoman         yes yes no       7  0",
+        "AAAAAD+CourierNewPS-ItalicMT         TrueType          MacRoman         yes yes no       8  0",
+        "AAAAAE+TimesNewRomanPSMT             TrueType          MacRoman         yes yes no       9  0",
+        "AAAAAF+CourierNewPSMT                TrueType          MacRoman         yes yes no      10  0"
+      ],
+      "nativeMarkers": [
+        {
+          "marker": "7.",
+          "text": "Root native serif mono plain",
+          "sizePoints": 18.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 1 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 2 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 3 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 4 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 5 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 6 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 7 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Deep native serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "2.",
+          "text": "Deep two serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "8.",
+          "text": "Root eight serif mono plain",
+          "sizePoints": 8.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Child one serif mono plain",
+          "sizePoints": 8.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "(3)",
+          "text": "Serif marker serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAE+TimesNewRomanPSMT"
+        },
+        {
+          "marker": "(1)",
+          "text": "Serif child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAE+TimesNewRomanPSMT"
+        },
+        {
+          "marker": "5)",
+          "text": "Mono marker serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAF+CourierNewPSMT"
+        },
+        {
+          "marker": "1)",
+          "text": "Mono child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAF+CourierNewPSMT"
+        },
+        {
+          "marker": "2.",
+          "text": "Resumed child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "3.",
+          "text": "Native child plain",
+          "sizePoints": 8.0,
+          "family": "AAAAAB+ArialMT"
+        }
+      ]
+    },
+    {
+      "path": "pages-mixed-size-edited-v15.4-officeimo.pdf",
+      "fonts": [
+        "Helvetica                            Type 1            WinAnsi          no  no  no       2  0",
+        "Times-Roman                          Type 1            WinAnsi          no  no  no       7  0",
+        "Times-Bold                           Type 1            WinAnsi          no  no  no       5  0",
+        "Courier                              Type 1            WinAnsi          no  no  no       8  0",
+        "Courier-Oblique                      Type 1            WinAnsi          no  no  no       6  0"
+      ]
+    },
+    {
+      "path": "pages-mixed-size-edited-v15.4-caller-fonts.pdf",
+      "fonts": [
+        "Arial-Regular                        CID TrueType      Identity-H       yes no  yes      2  0",
+        "TimesNewRoman-Regular                CID TrueType      Identity-H       yes no  yes      3  0",
+        "TimesNewRoman-Bold                   CID TrueType      Identity-H       yes no  yes      4  0",
+        "CourierNew-Regular                   CID TrueType      Identity-H       yes no  yes      5  0",
+        "CourierNew-Italic                    CID TrueType      Identity-H       yes no  yes      6  0"
+      ]
+    },
+    {
+      "path": "pages-mixed-size-officeimo-docx-final-v15.4.pdf",
+      "fonts": [
+        "AAAAAB+ArialMT                       TrueType          MacRoman         yes yes no       6  0",
+        "AAAAAC+TimesNewRomanPS-BoldMT        TrueType          MacRoman         yes yes no       7  0",
+        "AAAAAD+CourierNewPS-ItalicMT         TrueType          MacRoman         yes yes no       8  0",
+        "AAAAAE+TimesNewRomanPSMT             TrueType          MacRoman         yes yes no       9  0",
+        "AAAAAF+CourierNewPSMT                TrueType          MacRoman         yes yes no      10  0"
+      ],
+      "nativeMarkers": [
+        {
+          "marker": "7.",
+          "text": "Root seven serif mono plain",
+          "sizePoints": 18.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 1 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 2 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 3 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 4 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 5 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 6 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 7 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Depth 8 serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "2.",
+          "text": "Deep two serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "8.",
+          "text": "Root eight serif mono plain",
+          "sizePoints": 8.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "1.",
+          "text": "Child one serif mono plain",
+          "sizePoints": 8.0,
+          "family": "AAAAAB+ArialMT"
+        },
+        {
+          "marker": "(3)",
+          "text": "Serif marker serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAE+TimesNewRomanPSMT"
+        },
+        {
+          "marker": "(1)",
+          "text": "Serif child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAE+TimesNewRomanPSMT"
+        },
+        {
+          "marker": "5)",
+          "text": "Mono marker serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAF+CourierNewPSMT"
+        },
+        {
+          "marker": "1)",
+          "text": "Mono child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAF+CourierNewPSMT"
+        },
+        {
+          "marker": "2.",
+          "text": "Resumed child serif mono plain",
+          "sizePoints": 12.0,
+          "family": "AAAAAB+ArialMT"
+        }
+      ]
+    }
+  ],
+  "receivingDocxGeometry": {
+    "wordBounds": 110,
+    "maximumDeltaPoints": 0.0
+  },
+  "limits": [
+    "One-page body lists with whole-point run sizes at marker scale1, paragraph default12 and three font families.",
+    "Marker size follows the first run; paragraph-default size governs the em indentation.",
+    "Fractional mixed sizes, other marker scales, bullets, tiered numbering and additional containers remain unqualified.",
+    "Native DOCX typography differences, portable PDF substitution and caller-font embedding have separate evidence.",
+    "Loaded rich-run editing, visual-cache regeneration and other runtime architectures retain separate gates."
+  ]
+}

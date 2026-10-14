@@ -1,14 +1,20 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    // A table border box avoids outside floats even though its cells, rather
+    // than the table itself, contain descendant floats.
+    private static bool AvoidsActiveFloatsAsBlock(HtmlRenderBoxStyle style) =>
+        style.Display == "table" || EstablishesFloatContainingBlock(style);
+
     private static HtmlRenderBoxStyle AvoidActiveFloatsForFormattingContext(
         HtmlRenderBoxStyle style,
         double containingWidth,
         double flowHeight,
         IReadOnlyList<HtmlFloatExclusion>? activeFloats,
-        double? measuredHeight = null) {
+        double? measuredHeight = null,
+        double? minimumOuterWidth = null) {
         if (activeFloats == null || activeFloats.Count == 0
-            || !EstablishesFloatContainingBlock(style)) return style;
+            || !AvoidsActiveFloatsAsBlock(style)) return style;
 
         double originalTop = flowHeight + style.MarginTop;
         double top = originalTop;
@@ -17,6 +23,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.MinWidth.HasValue) requiredWidth = Math.Max(requiredWidth, style.MinWidth.Value);
         if (!style.BorderBox) requiredWidth += style.HorizontalInsets;
         requiredWidth += style.MarginLeft + style.MarginRight;
+        requiredWidth = Math.Max(requiredWidth, minimumOuterWidth ?? 0D);
         double extent = measuredHeight ?? (style.ExplicitHeight.HasValue
                 ? Math.Max(0.01D, Math.Max(style.ExplicitHeight.Value, style.MinHeight ?? 0D) + style.VerticalInsets)
                 : Math.Max(0.01D, (style.MinHeight ?? 0D) + style.VerticalInsets));

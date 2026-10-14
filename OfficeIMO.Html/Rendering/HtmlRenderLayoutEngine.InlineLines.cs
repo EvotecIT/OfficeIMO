@@ -56,14 +56,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && !segment.Run.IsFlowMarker) _flowContentCount++;
         }
 
-        internal void RemoveAt(int index, bool preserveScopeContent = false) {
+        internal void RemoveAt(int index) {
             InlineSegment removed = Segments[index];
             if (Segments[index].Run.RunningStringElement == null
                 && Segments[index].Run.RunningElementAssignment == null
                 && !Segments[index].Run.IsFlowMarker) _flowContentCount--;
             Width -= Segments[index].Width;
             Segments.RemoveAt(index);
-            if (_inlineEdges.Count > 0) RebuildInlineEdges(removed, preserveScopeContent);
+            if (_inlineEdges.Count > 0) RebuildInlineEdges(removed);
+        }
+
+        /// <summary>
+        /// Removes fragments being moved to another line while preserving their
+        /// scope content anchors, rebuilding the remaining line's edges once.
+        /// </summary>
+        internal void RemoveRange(int index, int count) {
+            for (int offset = 0; offset < count; offset++) {
+                InlineSegment removed = Segments[index + offset];
+                if (removed.Run.RunningStringElement == null
+                    && removed.Run.RunningElementAssignment == null
+                    && !removed.Run.IsFlowMarker) _flowContentCount--;
+                Width -= removed.Width;
+            }
+            Segments.RemoveRange(index, count);
+            if (_inlineEdges.Count > 0) RebuildInlineEdges();
         }
 
         internal void SetSegmentWidth(int index, double width) {
@@ -79,7 +95,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
             }
             if (!HasReplacedImage) {
-                if (Segments.Count > 0 && HasMixedTextSizes(Segments[0].Run.Style)) {
+                // Content-derived atomic baselines retain their separate route.
+                // Text-only face metrics are resolved by the layout engine below.
+                if (Segments.Any(segment => segment.Run.AtomicBlock != null && !segment.Run.IsFlowMarker)
+                    && HasMixedTextSizes(Segments[0].Run.Style)) {
                     double textBaseline = 0D;
                     double textDescent = 0D;
                     foreach (InlineSegment segment in Segments) {

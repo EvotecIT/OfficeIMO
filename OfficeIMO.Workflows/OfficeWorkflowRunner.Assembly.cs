@@ -166,7 +166,6 @@ public sealed partial class OfficeWorkflowRunner {
             string publishedPath = await PublishAsync(stagingPath, validated.OutputPath, validated.ConflictPolicy,
                 validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
-            long outputBytes = new FileInfo(publishedPath).Length;
             Report(progress, validated.Id, "complete", "Assembled PDF is ready", 1D);
             return new PdfAssemblyResult(
                 validated.Id,
@@ -176,7 +175,7 @@ public sealed partial class OfficeWorkflowRunner {
                 sourceCount,
                 pageCount,
                 inputBytes,
-                outputBytes,
+                stagedOutputBytes,
                 stopwatch.Elapsed,
                 $"Assembled {sourceCount:N0} {(sourceCount == 1 ? "input" : "inputs")} into {pageCount:N0} PDF {(pageCount == 1 ? "page" : "pages")}.",
                 diagnostics);

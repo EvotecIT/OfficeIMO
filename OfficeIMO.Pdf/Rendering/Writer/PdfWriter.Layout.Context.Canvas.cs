@@ -460,18 +460,7 @@ internal static partial class PdfWriter {
                 BeginRotatedCanvasFrame(item.X, bottomY, item.Width, item.Height, item.RotationAngle);
             }
 
-            if (style.Background.HasValue || (style.BorderColor.HasValue && style.BorderWidth > 0D)) {
-                OfficeIMO.Drawing.OfficeShape shape = style.CornerRadius > 0D
-                    ? OfficeIMO.Drawing.OfficeShape.RoundedRectangle(item.Width, item.Height, style.CornerRadius)
-                    : OfficeIMO.Drawing.OfficeShape.Rectangle(item.Width, item.Height);
-                shape.FillColor = style.Background?.ToOfficeColor();
-                shape.FillOpacity = style.Background.HasValue ? style.BackgroundOpacity : null;
-                shape.StrokeColor = style.BorderWidth > 0D ? style.BorderColor?.ToOfficeColor() : null;
-                shape.StrokeWidth = style.BorderWidth;
-                shape.StrokeDashStyle = style.BorderDashStyle;
-                shape.StrokeLineCap = style.BorderLineCap;
-                shape.StrokeLineJoin = style.BorderLineJoin;
-
+            if (CreateCanvasTextBoxShape(item.Width, item.Height, style) is { } shape) {
                 ShapeBlock block = PdfDocument.CreateShapeBlock(shape, PdfAlign.Left, spacingBefore: 0D, spacingAfter: 0D);
                 PdfDrawingStyle drawingStyle = ResolveDrawingStyle(block, currentOpts);
                 PdfDocument.ValidateDrawingStyle(drawingStyle, "Canvas text box");
@@ -479,21 +468,20 @@ internal static partial class PdfWriter {
             }
 
             double paddingLeft = style.EffectivePaddingLeft;
-            double paddingRight = style.EffectivePaddingRight;
             double paddingTop = style.EffectivePaddingTop;
             double paddingBottom = style.EffectivePaddingBottom;
             double textX = item.X + paddingLeft;
-            double textWidth = item.Width - paddingLeft - paddingRight;
             double textHeight = item.Height - paddingTop - paddingBottom;
             double textTopY = topY - paddingTop;
             double textBottomY = bottomY + paddingBottom;
-            double size = style.FontSize ?? currentOpts.DefaultFontSize;
-            double leading = style.LineHeight ?? size * 1.2D;
-            PdfStandardFont baseFont = ChooseNormal(style.Font ?? currentOpts.DefaultFont);
+            var prepared = PrepareCanvasTextBoxText(item.Runs, item.Width, style, currentOpts);
+            double textWidth = prepared.TextWidth;
+            double size = prepared.FontSize;
+            double leading = prepared.Leading;
+            PdfStandardFont baseFont = prepared.BaseFont;
             var blockText = new RichParagraphBlock(item.Runs, style.Align, style.TextColor);
-            var wrap = WrapRichRunsCore(item.Runs, textWidth, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
-            if (wrap.Lines.Count > 0) {
-                double textContentHeight = MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, leading);
+            if (prepared.Lines.Count > 0) {
+                double textContentHeight = prepared.ContentHeight;
                 if (textContentHeight > textHeight + 0.01D) {
                     item.DiagnosticHandler?.Invoke(new PdfLayoutDiagnostic(
                         PdfLayoutDiagnosticKind.ClippedContent,
@@ -511,8 +499,8 @@ internal static partial class PdfWriter {
                 WriteClippedRichParagraph(
                     sb,
                     blockText,
-                    wrap.Lines,
-                    wrap.LineHeights,
+                    prepared.Lines,
+                    prepared.LineHeights,
                     currentOpts,
                     FirstTextBaselineFromTop(baseFont, size, textTopY - verticalOffset),
                     size,
@@ -543,15 +531,6 @@ internal static partial class PdfWriter {
 
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
-        }
-
-        private static double GetCanvasTextBoxVerticalOffset(PdfVerticalAlign align, double boxHeight, double contentHeight) {
-            double unusedHeight = System.Math.Max(0D, boxHeight - contentHeight);
-            return align switch {
-                PdfVerticalAlign.Middle => unusedHeight / 2D,
-                PdfVerticalAlign.Bottom => unusedHeight,
-                _ => 0D
-            };
         }
 
         private void RenderCanvasShape(PdfCanvasShapeItem item) {

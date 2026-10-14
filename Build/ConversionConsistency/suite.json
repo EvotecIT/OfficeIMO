@@ -15,7 +15,7 @@
         "differentRatio": 0.06,
         "meanAbsoluteError": 7
       },
-      "evidence": "Authored labels, baseline positions within 0.25px, and a color region validate content and placement. Managed PDF and image routes allow 3 percent changed pixels with mean channel error capped at 3. The pinned source-HTML Chromium reference has separate measured baselines and regions and allows 6 percent changed pixels with mean channel error capped at 7.",
+      "evidence": "Authored labels, baseline positions within 0.25px, and a color region validate content and placement. The pinned face, inherited 32px line height and explicit sub/sup offsets give the script line a 41px advance, independently confirmed in Chromium. Managed PDF and image routes allow 3 percent changed pixels with mean channel error capped at 3. The source-HTML Chromium reference has separate measured baselines and regions and allows 6 percent changed pixels with mean channel error capped at 7.",
       "visualTolerance": {
         "channel": 32,
         "differentRatio": 0.03,
@@ -39,12 +39,12 @@
             {
               "text": "Water",
               "x": 16,
-              "baseline": 84
+              "baseline": 88.70686849
             },
             {
               "text": "SVG LABEL",
               "x": 16,
-              "baseline": 192
+              "baseline": 201
             }
           ],
           "browserTextPositions": [
@@ -69,7 +69,7 @@
             {
               "id": "green-marker",
               "x": 16,
-              "y": 224,
+              "y": 244,
               "width": 32,
               "height": 48,
               "color": "#087f5b",
@@ -97,9 +97,17 @@
       "format": "html",
       "source": "OfficeIMO.Examples/Converters/Html/Content/Reports/delivery-register.html",
       "captureBrowserReference": true,
-      "browserVisualTolerance": { "channel": 32, "differentRatio": 0.06, "meanAbsoluteError": 7 },
+      "browserVisualTolerance": {
+        "channel": 32,
+        "differentRatio": 0.06,
+        "meanAbsoluteError": 7
+      },
       "evidence": "Two authored register pages with 40 action IDs, a completion chart, typed effort cells and sub/superscripts. Managed and pinned Chromium baselines, page geometry, chart and table regions are checked independently. Managed output routes allow 3 percent changed pixels with mean channel error capped at 3; the source-HTML browser comparison allows 6 percent and 7 respectively for the declared line-box and table-metric differences.",
-      "visualTolerance": { "channel": 32, "differentRatio": 0.03, "meanAbsoluteError": 3 },
+      "visualTolerance": {
+        "channel": 32,
+        "differentRatio": 0.03,
+        "meanAbsoluteError": 3
+      },
       "pages": [
         {
           "width": 792,
@@ -129,24 +137,88 @@
             "ACT-020"
           ],
           "textPositions": [
-            { "text": "Service delivery review", "x": 24, "baseline": 48 },
-            { "text": "ACT-001", "x": 28, "baseline": 203.4 },
-            { "text": "ACT-020", "x": 28, "baseline": 602.4 },
-            { "text": "REGISTER PAGE 1", "x": 24, "baseline": 631.4 }
+            {
+              "text": "Service delivery review",
+              "x": 24,
+              "baseline": 48
+            },
+            {
+              "text": "ACT-001",
+              "x": 28,
+              "baseline": 203.4
+            },
+            {
+              "text": "ACT-020",
+              "x": 28,
+              "baseline": 602.4
+            },
+            {
+              "text": "REGISTER PAGE 1",
+              "x": 24,
+              "baseline": 631.4
+            }
           ],
           "browserTextPositions": [
-            { "text": "Service delivery review", "x": 24, "baseline": 48 },
-            { "text": "ACT-001", "x": 28, "baseline": 203 },
-            { "text": "ACT-020", "x": 28, "baseline": 602 },
-            { "text": "REGISTER PAGE 1", "x": 24, "baseline": 632 }
+            {
+              "text": "Service delivery review",
+              "x": 24,
+              "baseline": 48
+            },
+            {
+              "text": "ACT-001",
+              "x": 28,
+              "baseline": 203
+            },
+            {
+              "text": "ACT-020",
+              "x": 28,
+              "baseline": 602
+            },
+            {
+              "text": "REGISTER PAGE 1",
+              "x": 24,
+              "baseline": 632
+            }
           ],
           "regions": [
-            { "id": "completion", "x": 24, "y": 126, "width": 280, "height": 12, "color": "#087f5b", "minimumPixels": 3000 },
-            { "id": "table-header", "x": 24, "y": 168, "width": 744, "height": 21, "color": "#17324d", "minimumPixels": 13000 }
+            {
+              "id": "completion",
+              "x": 24,
+              "y": 126,
+              "width": 280,
+              "height": 12,
+              "color": "#087f5b",
+              "minimumPixels": 3000
+            },
+            {
+              "id": "table-header",
+              "x": 24,
+              "y": 168,
+              "width": 744,
+              "height": 21,
+              "color": "#17324d",
+              "minimumPixels": 13000
+            }
           ],
           "browserRegions": [
-            { "id": "completion", "x": 24, "y": 126, "width": 280, "height": 12, "color": "#087f5b", "minimumPixels": 3000 },
-            { "id": "table-header", "x": 24, "y": 164, "width": 744, "height": 21, "color": "#17324d", "minimumPixels": 11500 }
+            {
+              "id": "completion",
+              "x": 24,
+              "y": 126,
+              "width": 280,
+              "height": 12,
+              "color": "#087f5b",
+              "minimumPixels": 3000
+            },
+            {
+              "id": "table-header",
+              "x": 24,
+              "y": 164,
+              "width": 744,
+              "height": 21,
+              "color": "#17324d",
+              "minimumPixels": 11500
+            }
           ]
         },
         {
@@ -177,16 +249,48 @@
             "ACT-040"
           ],
           "textPositions": [
-            { "text": "Action register continued", "x": 24, "baseline": 42 },
-            { "text": "ACT-021", "x": 28, "baseline": 119 },
-            { "text": "ACT-040", "x": 28, "baseline": 518 },
-            { "text": "REGISTER PAGE 2", "x": 24, "baseline": 547 }
+            {
+              "text": "Action register continued",
+              "x": 24,
+              "baseline": 42
+            },
+            {
+              "text": "ACT-021",
+              "x": 28,
+              "baseline": 119
+            },
+            {
+              "text": "ACT-040",
+              "x": 28,
+              "baseline": 518
+            },
+            {
+              "text": "REGISTER PAGE 2",
+              "x": 24,
+              "baseline": 547
+            }
           ],
           "browserTextPositions": [
-            { "text": "Action register continued", "x": 24, "baseline": 43 },
-            { "text": "ACT-021", "x": 28, "baseline": 119 },
-            { "text": "ACT-040", "x": 28, "baseline": 518 },
-            { "text": "REGISTER PAGE 2", "x": 24, "baseline": 548 }
+            {
+              "text": "Action register continued",
+              "x": 24,
+              "baseline": 43
+            },
+            {
+              "text": "ACT-021",
+              "x": 28,
+              "baseline": 119
+            },
+            {
+              "text": "ACT-040",
+              "x": 28,
+              "baseline": 518
+            },
+            {
+              "text": "REGISTER PAGE 2",
+              "x": 24,
+              "baseline": 548
+            }
           ]
         }
       ]

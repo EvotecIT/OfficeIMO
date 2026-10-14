@@ -234,7 +234,7 @@ internal static partial class PdfWriter {
         }
 
         private static bool IsNonVisualFlowMarker(IPdfBlock block) =>
-            block is BookmarkBlock;
+            block is BookmarkBlock or RunningContentSectionBlock;
 
         private double MeasureKeepWithNextBlockHeight(IPdfBlock block, double frameX, double frameWidth, double fontSize) {
             if (block is HeadingBlock heading) {
@@ -507,7 +507,7 @@ internal static partial class PdfWriter {
             ContainerClosingSpace closingSpace = default) {
             for (int index = 0; index < blocks.Count; index++) {
                 IPdfBlock block = blocks[index];
-                if (block is BookmarkBlock || block is ColumnBreakBlock) {
+                if (block is BookmarkBlock or RunningContentSectionBlock or ColumnBreakBlock) {
                     continue;
                 }
 
@@ -676,6 +676,7 @@ internal static partial class PdfWriter {
 
                 RecordFlowPlacement(y);
                 double consumed = Math.Min(remaining, available);
+                if (consumed > 0D) RecordRunningContentSection();
                 y -= consumed;
                 remaining -= consumed;
                 if (remaining > 0.001D) {

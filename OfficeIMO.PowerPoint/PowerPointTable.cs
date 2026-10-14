@@ -15,12 +15,13 @@ namespace OfficeIMO.PowerPoint {
         private const int EmusPerPoint = 12700;
         private readonly SlidePart? _slidePart;
 
-        internal PowerPointTable(GraphicFrame frame, SlidePart? slidePart = null) : base(frame) {
-            _slidePart = slidePart;
+        internal PowerPointTable(GraphicFrame frame, OpenXmlPartContainer? ownerPart = null) : base(frame, ownerPart) {
+            _slidePart = ownerPart as SlidePart;
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
-        internal SlidePart? SlidePart => _slidePart;
+        internal SlidePart? SlidePart => _slidePart ?? OwnerSlide?.SlidePart;
+        internal PowerPointTableCell WrapCell(A.TableCell cell) => new(cell, SlidePart, RelationshipOwnerPart ?? SlidePart);
         internal A.Table TableElement => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
 
         /// <summary>

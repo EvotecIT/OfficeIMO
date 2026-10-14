@@ -12,7 +12,7 @@ public static partial class PowerPointPdfConverterExtensions {
         double groupX, double groupY, double groupWidth, double groupHeight,
         int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, int groupDepth) {
         if (options.MaxGroupShapeDepth >= 0 && groupDepth >= options.MaxGroupShapeDepth) {
-            AddWarning(options, slideNumber, "group-depth-limit", "Skipped nested PowerPoint group shape content because MaxGroupShapeDepth was reached.");
+            AddWarning(options, slideNumber, "group-depth-limit", "Skipped nested PowerPoint group shape content because MaxGroupShapeDepth was reached.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
@@ -43,7 +43,7 @@ public static partial class PowerPointPdfConverterExtensions {
             bool renderable = IsLineShape(child) ? width >= 0 && height >= 0 && (width > 0 || height > 0)
                 : width > 0 && height > 0;
             if (!renderable) {
-                if (warnInvalidBounds) AddWarning(options, slideNumber, "invalid-shape-bounds", "Skipped a PowerPoint group child with non-positive PDF bounds.");
+                if (warnInvalidBounds) AddWarning(options, slideNumber, "invalid-shape-bounds", "Skipped a PowerPoint group child with non-positive PDF bounds.", lossKind: OfficeConversionLossKind.Omission);
                 continue;
             }
 

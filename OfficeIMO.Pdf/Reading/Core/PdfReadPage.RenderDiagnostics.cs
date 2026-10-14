@@ -245,8 +245,9 @@ public sealed partial class PdfReadPage {
         var activeStreams = new HashSet<PdfStream>();
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
             content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
-        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
-        Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+        PdfFontResourceSet fontResources = _fontResourceCache.GetOrCreate(resources, _objects);
+        Dictionary<string, PdfFontResource> fonts = fontResources.Fonts;
+        Dictionary<string, Func<byte[], double>> widthProviders = fontResources.WidthProviders;
         Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
         Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
@@ -1113,7 +1114,7 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectFontCapabilityDiagnostics(PdfDictionary resources, HashSet<string> invokedFonts, HashSet<string> failedType3Fonts, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
-        foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values) {
+        foreach (PdfFontResource font in _fontResourceCache.GetFonts(resources, _objects).Values) {
             if (!invokedFonts.Contains(font.ResourceName) || font.EmbeddedTrueTypeFont != null) continue;
             string capabilityId;
             if (string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal)) {

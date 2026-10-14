@@ -392,7 +392,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool canClearObstruction = context.NextBottomAfter(y) > y + 0.0001D;
             if (startedAfterContent || canClearObstruction) {
                 IReadOnlyList<HtmlRenderBoxStyle> rangeStruts = line.TakeEmptyInlineStruts(strutRangeStart);
-                while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart, preserveScopeContent: true);
+                line.RemoveRange(rangeStart, line.Segments.Count - rangeStart);
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
                 if (rangeWidth > line.AvailableWidth + 0.0001D) {
                     MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, rangeWidth);
@@ -450,7 +450,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (line.Segments.Count > 0 || includeEmpty) {
             lines.Add(line);
             double height = line.ResolveLineHeight(defaultLineHeight);
-            if (line.ParagraphStyle != null) TryResolveEmptyInlineBlockLineMetrics(line, line.ParagraphStyle, ref height, out _);
+            if (line.ParagraphStyle != null
+                && !TryResolveEmptyInlineBlockLineMetrics(line, line.ParagraphStyle, ref height, out _)) {
+                TryResolveTextOnlyLineMetrics(line, line.ParagraphStyle, ref height, out _);
+            }
             y = line.Y + height;
             if (line.HasFlowContent || includeEmpty) context.FirstLineIndent = 0D;
         }
