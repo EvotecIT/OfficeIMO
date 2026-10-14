@@ -1507,5 +1507,378 @@
       "sha256": "0307816f4eb5a58fce5fcc7985fa48d3ab9a5e5fe047c700dae6a82c33aec98d"
     },
     "hostedGateBoundary": "Prior hosted evidence belongs to PR3e621e. New published head needs current-head checks and delayed review sweep; no merge/release authorization inferred."
+  },
+  "featureIntegration": {
+    "capturedUtc": "2026-10-14T11:28:36.232932+00:00",
+    "state": "HTML feature integration locally qualified on its own SDK; later lock/format changes retain distinct proof",
+    "frameworkCompiledCodeCommit": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+    "renderConversionAotCompiledCodeCommit": "89ac19d87c246a0b67dcc3ef4c7c5ff17c830f6b",
+    "sdk": "10.0.303",
+    "sdkBoundary": "Intentional compiler floor for optional source scripting provider. Receiving static PR remains on its own SDK10.0.112. No SDK downgrade or implicit whole-worker/platform acceptance.",
+    "frameworkChecks": [
+      {
+        "label": "feature-integration-html-net10.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "6186",
+          "passed": "6186",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-html-net10.0/command.json",
+          "bytes": 2318,
+          "sha256": "7725b31b9b05a844c447b7be2df09d14a79f0b9786e9af67b2385f1caf00a3ce"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-html-net10.0/results/tests.trx",
+          "bytes": 9597111,
+          "sha256": "f6579322290b52641033962bf5ba196214994abff16ff4dc9d3a36cc7a96264d"
+        }
+      },
+      {
+        "label": "feature-integration-html-net8.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "6186",
+          "passed": "6186",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-html-net8.0/command.json",
+          "bytes": 2313,
+          "sha256": "02fe765a576dde3b527a6cafd87bcd9cad2309fe16457ff9f62acbc11ea085d0"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-html-net8.0/results/tests.trx",
+          "bytes": 9584738,
+          "sha256": "9a4319bd6bc78ce3fcb1371be7e7fb2c3bf9cf3f8b20c608d71f3a6c840a8420"
+        }
+      },
+      {
+        "label": "feature-integration-powerpoint-net10.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "1",
+          "passed": "1",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-powerpoint-net10.0/command.json",
+          "bytes": 2434,
+          "sha256": "4b5fb295e9e6fed2858f7246b5c9a0778ef75d42584f55a1bfb966db9517f05f"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-powerpoint-net10.0/results/tests.trx",
+          "bytes": 3115,
+          "sha256": "fc85c6d825e59c1ec3758c93ccf68331048b850cece4c411061cbaa2640f4364"
+        }
+      },
+      {
+        "label": "feature-integration-powerpoint-net8.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "1",
+          "passed": "1",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-powerpoint-net8.0/command.json",
+          "bytes": 2430,
+          "sha256": "38aea2adb871fa1eb88693c82d5ddd9348ea2ac3f4591b7dacf6278853415d77"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-powerpoint-net8.0/results/tests.trx",
+          "bytes": 3112,
+          "sha256": "ac2923bf0efea4be1ede5628047a1b6955f01e3cc4a06664c51d0b2ab1c541ba"
+        }
+      },
+      {
+        "label": "feature-integration-pdf-net10.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "445",
+          "passed": "445",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-pdf-net10.0/command.json",
+          "bytes": 4220,
+          "sha256": "aa45315b1c545f712b9eb334ac9daa644a9638f4a26e636b6ac370b0aa8df179"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-pdf-net10.0/results/tests.trx",
+          "bytes": 688884,
+          "sha256": "d33c67ddc4510859d156464dfab4dfe70acdafb7aa56a11855cb3329d52b1e16"
+        }
+      },
+      {
+        "label": "feature-integration-pdf-net8.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "445",
+          "passed": "445",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-pdf-net8.0/command.json",
+          "bytes": 4216,
+          "sha256": "c73e1c2d18fbe8a204737ac40b9d862fb3d3a4feeacb169f0a8c4b1e63f78578"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-pdf-net8.0/results/tests.trx",
+          "bytes": 687993,
+          "sha256": "1c1fbccbaea3c6293ace0fdb4ff60bdf64110755e54be46c0c5b28b1d2b45617"
+        }
+      },
+      {
+        "label": "feature-integration-word-net10.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "46",
+          "passed": "46",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-word-net10.0/command.json",
+          "bytes": 3551,
+          "sha256": "237369eea674f02d855c4fbed776d0647ccbe32e843e463c8b8b24b78ae06204"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-word-net10.0/results/tests.trx",
+          "bytes": 70925,
+          "sha256": "b44d7af3bbe795980b2485ff3312856d03eaf9c4b1414c60d54d784d6e2b87e7"
+        }
+      },
+      {
+        "label": "feature-integration-word-net8.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "46",
+          "passed": "46",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-word-net8.0/command.json",
+          "bytes": 3547,
+          "sha256": "cba91a4a19efaa36a2113d6fdde7d717d09f29d39f0dcea94585d1fb107dd245"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-word-net8.0/results/tests.trx",
+          "bytes": 70832,
+          "sha256": "d3bcc6285b7323899d296483ff841e54aef18291648d70c5b574e0b2a092db66"
+        }
+      },
+      {
+        "label": "feature-integration-tool-net10.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "26",
+          "passed": "26",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-tool-net10.0/command.json",
+          "bytes": 2354,
+          "sha256": "85cf9ad713745b78c6f8a0bd6103a525b93f2f987d83ee0c034dd4685c8c0ba5"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-tool-net10.0/results/tests.trx",
+          "bytes": 42500,
+          "sha256": "2739029c7e2d1d4d357c407bdbd22b89c548e8ee3daa96e1e9ca0aafccd32e39"
+        }
+      },
+      {
+        "label": "feature-integration-tool-net8.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "26",
+          "passed": "26",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-tool-net8.0/command.json",
+          "bytes": 2350,
+          "sha256": "74e62098778fad0a02528f89ef1490450b49da35dc42905575a3f08e95f6fccd"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-tool-net8.0/results/tests.trx",
+          "bytes": 42447,
+          "sha256": "3f2068c5cd9ae64ca3ad040d3300c4727332ad1d575f5a001e191d2adcfcf7dc"
+        }
+      },
+      {
+        "label": "feature-exact-line-column-word-net10.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "51",
+          "passed": "51",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-exact-line-column-word-net10.0/command.json",
+          "bytes": 2782,
+          "sha256": "1e1eb64cc2f372f72b357280a792257b63c5564db8abff22586e2902c9c24601"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-exact-line-column-word-net10.0/results/tests.trx",
+          "bytes": 82306,
+          "sha256": "32df40bc8dec2581d84e7d9108848677a05eb8dec83d28cd8d11b316f0c52cd1"
+        }
+      },
+      {
+        "label": "feature-exact-line-column-word-net8.0",
+        "sourceHead": "5a650c8bbafcbd0410ce1be8d0fc11eb80dad4e5",
+        "counts": {
+          "total": "51",
+          "passed": "51",
+          "failed": "0"
+        },
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-exact-line-column-word-net8.0/command.json",
+          "bytes": 2778,
+          "sha256": "7866f45395687f1a73e77566aad3cfd0c27b836904adfd1747b98f13e249356e"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-exact-line-column-word-net8.0/results/tests.trx",
+          "bytes": 82203,
+          "sha256": "46e674f5f75ca07a80f2453e6f2f34c37de79d7a0ce1a48a5646c12953b400b9"
+        }
+      }
+    ],
+    "laterChangeBoundary": {
+      "filesBetweenFrameworkAndRenderCandidate": [
+        "Build/ConversionConsistency/suite.json"
+      ],
+      "change": "Three independent Chromium expected geometry values corrected to observed authored script offsets; managed expectations and all tolerances unchanged.",
+      "classification": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-browser-geometry-classification.json",
+        "bytes": 2050,
+        "sha256": "b6dfbb1506fabfe2527e4bee244e5757c9cc4eb8c34c5ce04e0456c6fe415838"
+      }
+    },
+    "renderChecks": {
+      "sourceBoundQualification": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-requalification-result.json",
+        "bytes": 16372,
+        "sha256": "012df87eb742cb8e1ffb6c3989986fb7d337550ddc4cff0968b35245a17a7a53"
+      },
+      "canonicalH4Exports": 76,
+      "splitWitnesses": 30,
+      "publicNativeArtifacts": 102,
+      "nativeNistPages": 29,
+      "nistPagesByProfile": [
+        10,
+        10,
+        9
+      ],
+      "allArtifactsExactlyMatchReceivingAfcf": true,
+      "original01bEquivalence": "Fails for the same three footnote exports and one split; preserved and diagnosed separately from current-correctness acceptance.",
+      "historicalSourceRecovery": "The original mutable-R source-path guard failed after namespace formatting. A successor maps only four stale source references to exact git-show afcf bytes whose size/hash match F89; original failure and equality proof remain retained. No workload, predicate or input-byte relaxation."
+    },
+    "conversionAndAotGates": [
+      {
+        "label": "feature-conversion-qualified-build",
+        "sourceHead": "89ac19d87c246a0b67dcc3ef4c7c5ff17c830f6b",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-conversion-qualified-build/command.json",
+          "bytes": 2120,
+          "sha256": "1a920b6f48bc09ab45b5ddf3f6eea7ab2c160c17a3e559aa1e9bb64dbdbf494d"
+        }
+      },
+      {
+        "label": "feature-conversion-qualified",
+        "sourceHead": "89ac19d87c246a0b67dcc3ef4c7c5ff17c830f6b",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-conversion-qualified/command.json",
+          "bytes": 2258,
+          "sha256": "2349f61debde97098c0f94c1d891c07a47bb6530f792e6525caee6b1bfae0f82"
+        }
+      },
+      {
+        "label": "feature-aot-publish",
+        "sourceHead": "89ac19d87c246a0b67dcc3ef4c7c5ff17c830f6b",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-aot-publish/command.json",
+          "bytes": 2235,
+          "sha256": "c3164948574fc44e1e247db151a095c4ea1f23ed8b136c26d0cb9c402d797ccb"
+        }
+      },
+      {
+        "label": "feature-aot-native-run",
+        "sourceHead": "89ac19d87c246a0b67dcc3ef4c7c5ff17c830f6b",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-aot-native-run/command.json",
+          "bytes": 1979,
+          "sha256": "a09ff8c94326227cba449c968710fc8f358c37b10a3da70de4e452a79886382a"
+        }
+      }
+    ],
+    "conversionArtifactReadback": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-conversion-qualified-byte-comparison.json",
+      "bytes": 11764,
+      "sha256": "7f62c8744884be037e8d6d68fbf98a2d98df7ea8cad48414b198d358d1eea3b4"
+    },
+    "protectedFrameworkCompilerProof": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/protected-proof/manifest.json",
+      "bytes": 10658,
+      "sha256": "d15ee43ad5e86b26ea92034d858e275efed02b6706b0d645f0f60a740f25aab0"
+    },
+    "protectedRenderCompilerProof": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-feature-integration-source-only/protected-compiler-runtime-proof/manifest.json",
+      "bytes": 203154,
+      "sha256": "230ebb3d57172f93db5636f3bf7b58f98ec3f453caeba9380494381e80aa6321"
+    },
+    "storageCleanup": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/integration-wave-cleanup-result.json",
+      "bytes": 23922,
+      "sha256": "0e3d49392812e21d53141dbfae09978942a65c4da4ff669b2c76b37fc1eb257e"
+    },
+    "limits": [
+      "Source-bound .NET8/.NET10 correctness and osx-arm64 static NativeAOT only; current-head hosted CI belongs to receiving PR, not the feature checkpoint.",
+      "No whole-worker AOT, original-font appearance, assistive-technology/manual accessibility, timing, peak-memory or Windows profiling acceptance.",
+      "Earlier package-consumer qualification retains its actual source/feed boundaries; no claim that all packages were rebuilt at F89."
+    ],
+    "additionalConverterStorageCleanup": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/converter-final-cleanup-result.json",
+      "bytes": 3417,
+      "sha256": "b11075d6b00c8b2eed7ac8f70eef66f0c19a7ed4ab59f7203b95cfc9dcac3bc8"
+    },
+    "integratedCommitBeforeEvidence": "81cc8dbcc292b7d15c87179275781062834d44a3",
+    "receivingIntegratedCommit": "7486cbb16c",
+    "postQualificationChangeBoundary": {
+      "changedCSharpFiles": [
+        "OfficeIMO.Html.Tests/Html.Rendering.Tables.FloatMargins.cs",
+        "OfficeIMO.Html.Tests/Html.Rendering.TextLineExtents.cs",
+        "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.AutoMargins.cs",
+        "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.LineExtents.cs"
+      ],
+      "allFourBodiesExactlyInvertibleToQualifiedF89": true,
+      "proof": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/windows-lock-style-storage/qualification-final.json",
+        "bytes": 5590,
+        "sha256": "963451e9515ceba44c1443d412e9e64f1f55696bdd64011a7bb06530007fd78c"
+      },
+      "all56SdkLocksExactlyMatchQualifiedGeneratedFBytes": true,
+      "sdkLockQualification": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/lock-qualification/qualification.json",
+        "bytes": 4127,
+        "sha256": "8e0e53f05e71762a01fe3bf2ec1fb9d4a9dd8e3aea7f53dd7ccda1236408328b"
+      },
+      "onlyOtherProjectDeclarationChangeAfterLockQualification": [
+        "OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj"
+      ],
+      "emailTestOnlyServicingProof": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/email-net472-servicing/proof.json",
+        "bytes": 19389,
+        "sha256": "ba5b52ab39c8649ac22330d55d99ce4f57d8697158850a4ab462eafa17b17161"
+      },
+      "broaderRunBoundary": "No broad framework/render/AOT repeat at the metadata/namespace/lock commits. Actual source-bound executions above plus exact body/lock equivalence cover the checkpoint; no native Windows execution or timing acceptance implied."
+    },
+    "finalCleanup": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/sdk-email-final-cleanup-result.json",
+      "bytes": 7281,
+      "sha256": "dc2f8ab3b4484a25a1328fdd5da2488ec0dc88747d12a1c7714664b4d1dbdafd"
+    },
+    "checkpointRole": "Long-lived integration branch backup, distinct from the selected ready static PR and its current-head hosted gates."
   }
 }
