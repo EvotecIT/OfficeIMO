@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ref double lineHeight, out double baseline) {
         baseline = 0D;
         if (!line.HasFlowContent || IsVerticalWritingMode(paragraphStyle.WritingMode)
-            || line.Segments.Any(segment => segment.Run.AtomicBlock != null)
+            || line.Segments.Any(segment => segment.Run.AtomicBlock != null && !segment.Run.IsFlowMarker)
             || !line.HasMixedTextSizes(paragraphStyle)
                 && !line.Segments.Any(segment => Math.Abs(segment.Run.Style.BaselineOffset
                     - paragraphStyle.BaselineOffset) > 0.000001D)) return false;

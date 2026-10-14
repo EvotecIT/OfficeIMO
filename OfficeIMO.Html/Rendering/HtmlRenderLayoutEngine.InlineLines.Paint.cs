@@ -194,14 +194,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                 } else if (segment.Text.Length > 0) {
                     double textLineHeight = current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline ? segment.Run.Style.LineHeight : lineHeight;
-                    if (!textLineMetrics && (current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline)) {
+                    double paintLineHeight = textLineHeight;
+                    if (current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline) {
                         // A smaller run shares the line baseline without extending
                         // its inherited leading below the containing line box.
                         double baselineOffset = Math.Max(0D, baseline - segment.Run.Style.Font.Size);
-                        textLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - baselineOffset));
+                        paintLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - baselineOffset));
+                        if (!textLineMetrics) textLineHeight = paintLineHeight;
                     }
                     ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline, lineY,
-                        textLineHeight, baseline, out double textY, out double paintHeight,
+                        paintLineHeight, baseline, out double textY, out double paintHeight,
                         out double paintTopOverflow);
                     // A legal zero CSS line height still paints glyphs. Retain that
                     // metric while giving their fragmentation carrier the same
