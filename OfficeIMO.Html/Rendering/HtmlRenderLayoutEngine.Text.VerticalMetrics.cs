@@ -38,23 +38,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double ResolveInlineSharedBaseline(InlineLine line, HtmlRenderBoxStyle paragraphStyle, ref double lineHeight) {
         bool hasImage = line.HasReplacedImage;
+        bool useNormalImageMetrics = UsesNormalImageLineMetrics(line, paragraphStyle);
         string strutText = line.Segments.FirstOrDefault(segment => segment.Run.AtomicBlock == null
             && segment.Text.Length > 0)?.Text ?? string.Empty;
-        double baseline = ResolveInlineTextBaseline(strutText, paragraphStyle, hasImage);
-        double descent = Math.Max(0D, paragraphStyle.LineHeight - baseline);
+        InlineTextLineMetrics strut = ResolveInlineSharedTextMetrics(strutText, paragraphStyle, hasImage, useNormalImageMetrics);
+        double baseline = strut.Baseline;
+        double descent = Math.Max(0D, strut.Height - baseline);
         foreach (InlineSegment segment in line.Segments) {
             HtmlRenderFlowBlock? atomic = segment.Run.AtomicBlock;
             if (atomic != null && !hasImage) continue;
-            double sourceBaseline = atomic != null
-                ? Math.Min(atomic.Height, Math.Max(0D, segment.Run.AtomicBaseline ?? atomic.Height))
-                : ResolveInlineTextBaseline(segment.Text, segment.Run.Style, hasImage);
+            InlineTextLineMetrics source = atomic != null
+                ? new InlineTextLineMetrics(atomic.Height,
+                    Math.Min(atomic.Height, Math.Max(0D, segment.Run.AtomicBaseline ?? atomic.Height)))
+                : ResolveInlineSharedTextMetrics(segment.Text, segment.Run.Style, hasImage, useNormalImageMetrics);
+            double sourceBaseline = source.Baseline;
             baseline = Math.Max(baseline, sourceBaseline);
-            descent = Math.Max(descent, (atomic?.Height ?? segment.Run.Style.LineHeight) - sourceBaseline);
+            descent = Math.Max(descent, source.Height - sourceBaseline);
         }
-        // Replaced images occupy flow space through their baseline. When a
-        // selected short-line face raises that baseline, advance the line by the
-        // same ascent/descent so a following block or legal cut cannot cross it.
-        if (hasImage) lineHeight = Math.Max(lineHeight, baseline + descent);
+        // Replace the preliminary em-based estimate with the same used metrics
+        // that align the image. Keeping its old descent as a minimum would leave
+        // text-containing image lines taller than their image-only equivalents.
+        if (hasImage) lineHeight = useNormalImageMetrics
+            ? Math.Max(0.01D, baseline + descent)
+            : Math.Max(lineHeight, baseline + descent);
         return baseline;
     }
 

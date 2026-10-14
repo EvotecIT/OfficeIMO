@@ -42,6 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 annotationStyle = annotationStyle.Clone();
                 annotationStyle.Font = annotationStyle.Font.WithSize(Math.Max(1D, rubyStyle.Font.Size * 0.5D));
                 annotationStyle.LineHeight = Math.Max(annotationStyle.Font.Size, rubyStyle.LineHeight * 0.5D);
+                annotationStyle.InlineAlignmentLineHeight = null;
             }
             HtmlInlineLayout annotationLayout = LayoutInlineNodes(
                 annotation.ChildNodes,

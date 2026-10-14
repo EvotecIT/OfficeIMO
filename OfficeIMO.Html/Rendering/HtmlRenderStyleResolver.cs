@@ -222,7 +222,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : double.NaN;
         string fontPalette = ResolveInheritedKeyword(computed.GetValue("font-palette"), parent?.FontPalette, "normal");
 
-        double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent);
+        double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent, out double alignmentLineHeight);
         string verticalAlign = ResolveTextVerticalAlign(pseudoElement ? string.Empty : tag, computed);
         int baselineLevel = ResolveTextBaselineLevel(verticalAlign, parent?.BaselineLevel ?? 0);
         double baselineOffset = ResolveTextBaselineOffset(
@@ -270,6 +270,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
             CharacterAdvance = _activeCharacterAdvance,
             LineHeight = lineHeight,
+            InlineAlignmentLineHeight = alignmentLineHeight,
             LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
@@ -843,27 +844,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         bool rightToLeft = string.Equals(direction, "rtl", StringComparison.Ordinal);
         if (string.Equals(value, "end", StringComparison.OrdinalIgnoreCase)) return rightToLeft ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
         return rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;
-    }
-
-    private double ResolveLineHeight(string value, double fontSize) {
-        if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return fontSize * _options.DefaultLineHeight;
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier) && multiplier >= 0D) return fontSize * multiplier;
-        return TryResolveLength(value, fontSize, fontSize, _rootFontSize, out double lineHeight) && lineHeight >= 0D
-            ? lineHeight
-            : fontSize * _options.DefaultLineHeight;
-    }
-
-    private double ResolveComputedLineHeight(HtmlComputedStyle computed, double fontSize, HtmlRenderBoxStyle? parent) {
-        string value = computed.GetValue("line-height");
-        // A length or percentage becomes an absolute computed line height on its
-        // originating element. A unitless number remains a multiplier when inherited.
-        if (parent != null && computed.IsInheritedValue("line-height")
-            && !string.IsNullOrWhiteSpace(value)
-            && !string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)
-            && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
-            return parent.LineHeight;
-        }
-        return ResolveLineHeight(value, fontSize);
     }
 
     private static string ResolveSemanticRole(string tag) {
