@@ -1680,7 +1680,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (startedAfterContent && rangeStart < line.Segments.Count && line.Width > line.ResolveAvailableWidth(width) + 0.0001D) {
             var range = line.Segments.Skip(rangeStart).ToArray();
             IReadOnlyList<HtmlRenderBoxStyle> rangeStruts = line.TakeEmptyInlineStruts(strutRangeStart);
-            while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart, preserveScopeContent: true);
+            line.RemoveRange(rangeStart, line.Segments.Count - rangeStart);
             TrimTrailingWhitespace(line);
             if (line.Segments.Count > 0) lines.Add(line);
             line = new InlineLine();
