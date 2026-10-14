@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Managed, bounded Cabinet and passive Windows Installer inspection, member reads and payload extraction.</Description>
+    <Description>Managed, bounded ZIP extraction and Cabinet/Windows Installer inspection, member reads and payload extraction.</Description>
     <AssemblyName>OfficeIMO.Archives</AssemblyName>
     <AssemblyTitle>OfficeIMO.Archives</AssemblyTitle>
     <VersionPrefix>3.4.5</VersionPrefix>
@@ -10,7 +10,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Archives</PackageId>
-    <PackageTags>archives;cab;msi;extraction;officeimo</PackageTags>
+    <PackageTags>archives;zip;cab;msi;extraction;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -29,4 +29,5 @@
     <None Include="SUPPORT.md" Pack="true" PackagePath="\" />
     <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'"><Reference Include="System.IO.Compression" /></ItemGroup>
 </Project>

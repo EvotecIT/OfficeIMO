@@ -23,6 +23,16 @@ public sealed class ArchiveInspectionTests {
     }
 
     [Fact]
+    public void ZipExtractionSupportDoesNotDispatchPassiveInspectionToTheMsiReader() {
+        using var source = new MemoryStream();
+        using (var zip = new System.IO.Compression.ZipArchive(source, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true)) { }
+        source.Position = 3;
+        Assert.Throws<NotSupportedException>(() => ArchiveInspector.Open(source));
+        Assert.Equal(3, source.Position);
+        Assert.True(source.CanRead);
+    }
+
+    [Fact]
     public void RawCabNamesAndDuplicateRecordsRemainSeparateWithoutFilesystemExtraction() {
         byte[] cabinet = ArchiveFixtures.StoredCab(("../escape.txt", Encoding.UTF8.GetBytes("first")),
             ("../escape.txt", Encoding.UTF8.GetBytes("second")));
@@ -78,6 +88,24 @@ public sealed class ArchiveInspectionTests {
         Assert.Equal(ArchiveFixtures.StoredCab("PayloadKey", Encoding.UTF8.GetBytes("hello")), Bytes(raw));
         Assert.Equal(inspection.StorageStreams.OrderBy(stream => stream.DirectoryOrder).Select(stream => stream.RawName),
             inspection.StorageStreams.Select(stream => stream.RawName));
+    }
+
+    [Fact]
+    public void MsiInspectionPreservesAuthoredSpellingWhileExtractionUsesInstalledNames() {
+        const string directory = "Templates. /PolicyDefinitions";
+        const string filename = "SHORT~1|Template.admx . ";
+        byte[] bytes = ArchiveFixtures.MsiAliasFiles(false, new MsiFixtureFile(filename, "A", parent: directory));
+        using var source = new MemoryStream(bytes);
+        using ArchiveInspection inspection = ArchiveInspector.Open(source);
+        ArchiveInspectionEntry entry = Assert.Single(inspection.Entries);
+        Assert.Equal(filename, entry.RawFileName);
+        Assert.Equal(directory + "/Template.admx . ", entry.AuthoredPath);
+        using Stream payload = inspection.OpenRead(entry.Ordinal);
+        Assert.Equal("A", Text(payload));
+        using var fixture = new ArchiveFixtures();
+        ArchiveExtractionResult extracted = ArchiveExtractor.Extract(fixture.Package(bytes), fixture.Destination);
+        Assert.Equal("Templates/PolicyDefinitions/Template.admx", Assert.Single(extracted.Files).RelativePath);
+        Assert.Equal("A", File.ReadAllText(Path.Combine(fixture.Destination, "Templates", "PolicyDefinitions", "Template.admx")));
     }
 
     [Fact]

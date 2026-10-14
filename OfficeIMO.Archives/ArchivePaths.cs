@@ -10,9 +10,24 @@ namespace OfficeIMO.Archives;
 internal sealed class ArchivePaths {
     private readonly HashSet<string> _files = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _directories = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _explicitDirectories = new(StringComparer.OrdinalIgnoreCase);
     private readonly ArchiveLimits _limits;
     internal ArchivePaths(ArchiveLimits limits) => _limits = limits;
     internal string Add(string authored) {
+        string path = Validate(authored);
+        string key = path.Normalize(NormalizationForm.FormC);
+        if (!_files.Add(key) || _directories.ContainsKey(key)) throw new InvalidDataException("Archive member paths collide: " + authored);
+        AddParents(path, authored);
+        return path;
+    }
+    /// <summary>Registers an explicit directory record, such as a ZIP entry ending in '/', without publishing a file.</summary>
+    internal void AddDirectory(string authored) {
+        string path = Validate(authored);
+        if (!_explicitDirectories.Add(path.Normalize(NormalizationForm.FormC)))
+            throw new InvalidDataException("Archive directory records collide: " + authored);
+        AddParents(path + "/", authored);
+    }
+    private string Validate(string authored) {
         string path = authored.Replace('\\', '/');
         if (OfficeArchiveSafety.IsUnsafePath(path))
             throw new InvalidDataException("Archive member has an unsafe or oversized relative path: " + authored);
@@ -20,8 +35,9 @@ internal sealed class ArchivePaths {
         foreach (string part in parts) ValidateSegment(part);
         ArchiveLimits.Check(path.Length, _limits.PathLength, "MaxPathLength");
         ArchiveLimits.Check(parts.Length, _limits.Depth, "MaxPathDepth");
-        string key = path.Normalize(NormalizationForm.FormC);
-        if (!_files.Add(key) || _directories.ContainsKey(key)) throw new InvalidDataException("Archive member paths collide: " + authored);
+        return path;
+    }
+    private void AddParents(string path, string authored) {
         int separator = path.IndexOf('/');
         while (separator >= 0) {
             string parent = path.Substring(0, separator);
@@ -32,16 +48,16 @@ internal sealed class ArchivePaths {
             } else _directories.Add(parentKey, parent);
             separator = path.IndexOf('/', separator + 1);
         }
-        return path;
     }
     internal static void ValidateSegment(string part) {
         if (part.Length == 0 || part.Length > 255 || Encoding.UTF8.GetByteCount(part) > 255)
             throw new InvalidDataException("Archive member has an empty or oversized path segment.");
         int dot = part.IndexOf('.');
-        string baseName = dot < 0 ? part : part.Substring(0, dot);
+        // Win32 ignores spaces before the extension when matching devices, so "CON .txt" is CON.
+        string baseName = (dot < 0 ? part : part.Substring(0, dot)).TrimEnd(' ');
         if (part.EndsWith(".", StringComparison.Ordinal)
             || part.EndsWith(" ", StringComparison.Ordinal) || part.Any(c => c < 32 || ":<>\"|?*/\\".IndexOf(c) >= 0)
-            || IsDevice(baseName)) throw new InvalidDataException("Archive member has a nonportable path segment: " + part);
+            || IsDevice(baseName)) throw new InvalidDataException("Archive member has a nonportable path segment: '" + part + "'");
     }
     /// <summary>Rejects a linked node or links inside a controlled subtree, trusting caller and OS ancestors.</summary>
     internal static void RejectLinks(string fullPath, string? controlledRoot = null) {

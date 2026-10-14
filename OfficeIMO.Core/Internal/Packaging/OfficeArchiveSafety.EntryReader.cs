@@ -10,7 +10,11 @@ internal static partial class OfficeArchiveSafety {
     /// <summary>Opens a validated compressed range without ZipArchive's declared-size output clamp.
     /// The caller must enforce decoded length, cancellation and CRC on the returned stream.</summary>
     internal static Stream OpenEntryPayload(byte[] bytes, ZipArchiveEntry entry,
-        Provenance.OfficeProvenanceZip.OfficeProvenanceZipEntryMetadata metadata) {
+        Provenance.OfficeProvenanceZip.OfficeProvenanceZipEntryMetadata metadata) => OpenEntryPayload(bytes, entry, metadata, CancellationToken.None);
+
+    internal static Stream OpenEntryPayload(byte[] bytes, ZipArchiveEntry entry,
+        Provenance.OfficeProvenanceZip.OfficeProvenanceZipEntryMetadata metadata, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         long compressedLength = entry.CompressedLength;
         int start = metadata.PayloadOffset;
         if (compressedLength < 0 || compressedLength > int.MaxValue || start < 0
@@ -21,9 +25,19 @@ internal static partial class OfficeArchiveSafety {
         ushort localFlags = Provenance.OfficeProvenanceBinary.ReadUInt16(bytes, metadata.LocalHeaderOffset + 6, littleEndian: true);
         ushort localMethod = Provenance.OfficeProvenanceBinary.ReadUInt16(bytes, metadata.LocalHeaderOffset + 8, littleEndian: true);
         if (localFlags != metadata.GeneralPurposeFlags || localMethod != metadata.CompressionMethod
-            || (localFlags & 1) != 0 || localMethod is not (0 or 8)) {
+            || !HasSupportedZipFlags(localFlags, localMethod)) {
             throw new InvalidDataException("ZIP entry uses conflicting, encrypted or unsupported compression metadata.");
         }
+        using (var validation = new MemoryStream(bytes, writable: false)) {
+            var local = new byte[30];
+            ReadExactlyAt(validation, metadata.LocalHeaderOffset, local, local.Length);
+            if (!TryFindZip64Extra(metadata.CentralExtraField, 0, metadata.CentralExtraField.Length, out int zip64Offset, out _))
+                throw new InvalidDataException("ZIP central extra fields are malformed or repeat ZIP64 metadata.");
+            ValidateLocalIntegrity(validation, local, metadata.LocalHeaderOffset, start, metadata.PayloadUpperBound,
+                metadata.Checksum, compressedLength, entry.Length, zip64Offset >= 0);
+        }
+        if (localMethod == 8 && !OfficeDeflateStreamValidator.TryValidateExact(bytes, start, checked((int)compressedLength), entry.Length, cancellationToken))
+            throw new InvalidDataException("ZIP member has invalid or incomplete Deflate framing.");
         var compressed = new MemoryStream(bytes, start, checked((int)compressedLength), writable: false);
         return localMethod == 0 ? compressed : new DeflateStream(compressed, CompressionMode.Decompress);
     }

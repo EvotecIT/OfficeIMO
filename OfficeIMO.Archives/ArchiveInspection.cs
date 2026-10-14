@@ -22,6 +22,8 @@ public sealed partial class ArchiveInspection : IDisposable {
         _limits = limits; _directoryRecords = directoryRecords; InputLength = input.LongLength;
         using var source = new MemoryStream(input, writable: false);
         Format = ArchiveExtractor.Detect(source, token);
+        if (Format != ArchiveFormat.Cab && Format != ArchiveFormat.Msi)
+            throw new NotSupportedException("Passive archive inspection supports Cabinet and Windows Installer containers.");
         StorageStreams = Array.Empty<ArchiveStorageStream>();
         try {
             var budget = new OfficeCabinetDirectoryBudget(directoryRecords);
