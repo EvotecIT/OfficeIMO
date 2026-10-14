@@ -18,6 +18,7 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class WorksheetPersistenceState {
+            internal readonly WorksheetReadCache ReadCaches = new();
             internal readonly HashSet<OpenXmlPart> PartSaves = new();
             internal readonly Dictionary<VmlDrawingPart, XDocument> CommentVmlDocuments = new();
             internal bool RequiresSavePreparation;

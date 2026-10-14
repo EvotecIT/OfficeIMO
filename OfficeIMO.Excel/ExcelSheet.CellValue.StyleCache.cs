@@ -42,9 +42,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Discards automatic date/time formats after a shared format replacement or rollback.</summary>
         private void RefreshAutomaticCellFormatCaches() {
-            CellFormats? formats = _excelDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet?.CellFormats;
-            CellFormatCacheRevision? revision = formats == null ? null
-                : CellFormatCacheRevisions.GetValue(formats, static _ => new CellFormatCacheRevision());
+            CellFormatCacheRevision? revision = GetCurrentCellFormatCacheRevision();
             if (ReferenceEquals(_cellValueStyleRevision, revision)
                 && _cellValueStyleRevisionNumber == (revision?.Number ?? 0)) return;
 
@@ -54,6 +52,12 @@ namespace OfficeIMO.Excel {
             _cellValueDurationStyleIndexes = null;
             _cellValueDefaultDateStyleIndex = null;
             _cellValueDefaultDurationStyleIndex = null;
+        }
+
+        private CellFormatCacheRevision? GetCurrentCellFormatCacheRevision() {
+            CellFormats? formats = _excelDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet?.CellFormats;
+            return formats == null ? null
+                : CellFormatCacheRevisions.GetValue(formats, static _ => new CellFormatCacheRevision());
         }
     }
 }

@@ -51,10 +51,10 @@ namespace OfficeIMO.Excel {
         private int _lastCellReferenceRowIndex;
         private string? _lastCellReferenceRowText;
         private SharedStringCache? _cellTextSharedStringCache;
-        private readonly object _findFirstCacheLock = new object();
-        private string? _findFirstCacheText;
-        private string? _findFirstCacheAddress;
-        private bool _findFirstCacheHasValue;
+        private object _findFirstCacheLock => Persistence.ReadCaches.FindFirstLock;
+        private ref string? _findFirstCacheText => ref Persistence.ReadCaches.FindFirstText;
+        private ref string? _findFirstCacheAddress => ref Persistence.ReadCaches.FindFirstAddress;
+        private ref bool _findFirstCacheHasValue => ref Persistence.ReadCaches.FindFirstHasValue;
         private static int _instancesCreated;
 
         internal static int InstancesCreatedForTests => Volatile.Read(ref _instancesCreated);

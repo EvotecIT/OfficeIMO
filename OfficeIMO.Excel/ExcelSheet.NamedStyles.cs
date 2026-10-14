@@ -144,6 +144,8 @@ namespace OfficeIMO.Excel {
                     for (int column = c1; column <= c2; column++) GetCell(row, column).StyleIndex = cellFormatId;
                 }
                 SaveStylesheet(_excelDocument.WorkbookPartRoot.WorkbookStylesPart!);
+                ClearHeaderCacheForCellMutation(r1, c1);
+                if (c2 != c1) ClearHeaderCacheForCellMutation(r1, c2);
                 return checked((int)cellCount);
             }, new ExcelMutationPlanOptions(), cancellationToken);
         }

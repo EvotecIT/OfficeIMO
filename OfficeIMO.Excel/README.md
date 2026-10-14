@@ -82,6 +82,8 @@ For reports written cell by cell, group formatting in `sheet.Batch(target => { .
 
 Automatic date and duration formatting uses the current named-style definition, including after a style is redefined on another worksheet. Existing cells with their own formatting overrides retain those overrides.
 
+Header lookups and text searches share their cache state across wrappers for the same worksheet, including when `SheetCachingEnabled` is false. Header names follow the current number format and date-reading options; custom value converters run for each requested header read.
+
 `WrapCells`, `CellWrapText` and automatic wrapping for multiline values preserve existing alignment and other formatting. Styled hyperlinks preserve the cell's alignment, protection and other font details while applying blue text and an underline. `ExcelSaveOptions.ValidateOpenXml` validates the encoded package before writing the destination, including when a fast package writer is used. Fast writers favor write throughput over ZIP size; set `DisableFastPackageWriter = true` when the standard packaging path is preferred.
 
 OfficeIMO.Excel is optimized for fast tabular reads and writes, but it is not

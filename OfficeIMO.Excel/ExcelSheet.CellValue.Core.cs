@@ -120,6 +120,12 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryGetCellValueSharedStringIndex(string text, out int index, out bool containsLineBreak) {
+            SharedStringTable? table = _excelDocument.WorkbookPartRoot.SharedStringTablePart?.SharedStringTable;
+            if (_cellValueSharedStringIndexCache != null && (_cellValueSharedStringTable == null
+                || !_cellValueSharedStringTable.TryGetTarget(out SharedStringTable? cachedTable)
+                || !ReferenceEquals(cachedTable, table))) {
+                _cellValueSharedStringIndexCache = null;
+            }
             if (_cellValueSharedStringIndexCache != null
                 && _cellValueSharedStringIndexCache.TryGetValue(text, out CellValueSharedStringIndexCacheEntry entry)) {
                 index = entry.Index;
@@ -133,6 +139,10 @@ namespace OfficeIMO.Excel {
         }
 
         private void AddCellValueSharedStringIndex(string text, int index, bool containsLineBreak) {
+            SharedStringTable? table = _excelDocument.WorkbookPartRoot.SharedStringTablePart?.SharedStringTable;
+            if (table == null) return;
+            if (_cellValueSharedStringTable == null) _cellValueSharedStringTable = new WeakReference<SharedStringTable>(table);
+            else _cellValueSharedStringTable.SetTarget(table);
             var cache = _cellValueSharedStringIndexCache;
             if (cache == null) {
                 cache = new Dictionary<string, CellValueSharedStringIndexCacheEntry>(StringComparer.Ordinal);

@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Threading;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -197,6 +198,122 @@ namespace OfficeIMO.Tests {
             Assert.NotEmpty(saved.CellAt(20, 1).GetFormattedText());
             Assert.NotEmpty(saved.CellAt(21, 1).GetFormattedText());
 #endif
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void BulkMutation_held_wrappers_share_header_and_search_cache_invalidation(bool replaceAll) {
+            using var seed = new MemoryStream();
+            using (var creator = ExcelDocument.Create(seed)) {
+                ExcelSheet sheet = creator.AddWorksheet("Aliases");
+                sheet.CellValue(1, 1, "Old");
+                sheet.CellValue(1, 2, "Other");
+                sheet.CellValue(2, 1, "Value");
+                creator.Save(seed);
+            }
+            using var document = ExcelDocument.Load(seed);
+            document.SheetCachingEnabled = false;
+            ExcelSheet held = document.Sheets.Single();
+            Dictionary<string, int> originalSnapshot = held.GetHeaderMap();
+            Assert.Equal(1, originalSnapshot["Old"]);
+            Assert.Equal("A1", held.FindFirst("Old"));
+            ExcelSheet alias = document.Sheets.Single();
+            if (replaceAll) Assert.Equal(1, alias.ReplaceAll("Old", "New"));
+            else alias.CellValue(1, 1, "New");
+            Dictionary<string, int> updated = held.GetHeaderMap();
+            Assert.False(updated.ContainsKey("Old"));
+            Assert.Equal(1, updated["New"]);
+            Assert.Null(held.FindFirst("Old"));
+            Assert.Equal("A1", held.FindFirst("New"));
+            held.SetByHeader(2, "New", "Written");
+            alias.CellValue(1, 1, "Newest");
+            Assert.Equal(1, held.GetHeaderMap()["Newest"]);
+            Assert.True(originalSnapshot.ContainsKey("Old"));
+            Assert.False(originalSnapshot.ContainsKey("Newest"));
+            using var destination = new MemoryStream();
+            document.Save(destination, new ExcelSaveOptions { ValidateOpenXml = true });
+            using var reopened = ExcelDocument.Load(destination);
+            Assert.Equal("Newest", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Written", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
+        }
+
+        [Fact]
+        public void BulkMutation_held_wrapper_shared_string_indexes_bind_to_the_restored_table() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                document.SheetCachingEnabled = false;
+                ExcelSheet held = document.AddWorksheet("Values");
+                ExcelSheet owner = document.AddWorksheet("Transaction");
+                held.CellValue(1, 1, "Stable");
+                Assert.Throws<InvalidOperationException>(() => owner.ApplyTransactionalMutation(_ => {
+                    held.CellValue(2, 1, "Transient");
+                    throw new InvalidOperationException("Rollback");
+                }, 1, new ExcelMutationPlanOptions(), default));
+                owner.CellValue(2, 1, "Replacement");
+                held.CellValue(2, 1, "Transient");
+                document.Save(stream, new ExcelSaveOptions { ValidateOpenXml = true });
+            }
+            using var reopened = ExcelDocument.Load(stream);
+            Assert.Equal("Transient", reopened.Sheets.Single(sheet => sheet.Name == "Values").CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Replacement", reopened.Sheets.Single(sheet => sheet.Name == "Transaction").CellAt(2, 1).GetValue<string>());
+        }
+
+        [Fact]
+        public void BulkMutation_shared_header_cache_respects_date_options_converters_and_cancellation() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Headers");
+            sheet.CellValue(1, 1, 45292D);
+            sheet.CellValue(2, 1, "Value");
+            sheet.FormatCell(1, 1, "yyyy-mm-dd");
+            var rawOptions = new ExcelReadOptions { TreatDatesUsingNumberFormat = false };
+            Assert.Equal(1, sheet.GetHeaderMap(rawOptions)["45292"]);
+            Assert.False(sheet.GetHeaderMap().ContainsKey("45292"));
+            Assert.Equal(1, sheet.GetHeaderMap(rawOptions)["45292"]);
+            string converted = "Converted";
+            var converterOptions = new ExcelReadOptions {
+                CellValueConverter = _ => new ExcelCellValue(converted)
+            };
+            Assert.Equal(1, sheet.GetHeaderMap(converterOptions)["Converted"]);
+            converted = "Changed";
+            Assert.Equal(1, sheet.GetHeaderMap(converterOptions)["Changed"]);
+            Assert.False(sheet.GetHeaderMap().ContainsKey("Changed"));
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            Assert.Throws<OperationCanceledException>(() => {
+                sheet.GetHeaderMap(new ExcelReadOptions { CancellationToken = cancellation.Token });
+            });
+        }
+
+        [Theory]
+        [InlineData("cell")]
+        [InlineData("range")]
+        [InlineData("apply")]
+        [InlineData("redefine")]
+        public void BulkMutation_header_cache_follows_number_format_and_named_style_changes(string route) {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Headers");
+            ExcelSheet source = document.AddWorksheet("Styles");
+            sheet.CellValue(1, 1, 45292D);
+            sheet.CellValue(2, 1, "Value");
+            source.CellValue(1, 1, "Date style");
+            source.FormatCell(1, 1, "yyyy-mm-dd");
+            source.CellValue(1, 2, "General style");
+            source.DefineNamedStyle("Header", 1, route == "redefine" ? 2 : 1);
+            if (route == "redefine") sheet.ApplyNamedStyle("Header", "A1");
+            Assert.Equal(1, sheet.GetHeaderMap()["45292"]);
+            switch (route) {
+                case "cell": sheet.FormatCell(1, 1, "yyyy-mm-dd"); break;
+                case "range": sheet.FormatRange("A1:A1", "yyyy-mm-dd"); break;
+                case "apply": sheet.ApplyNamedStyle("Header", "A1"); break;
+                case "redefine": source.DefineNamedStyle("Header", 1, 1); break;
+            }
+            Dictionary<string, int> changed = sheet.GetHeaderMap();
+            Assert.False(changed.ContainsKey("45292"));
+            Assert.Single(changed);
+            Assert.Equal(1, changed.Values.Single());
+            sheet.RefreshHeaderCache();
+            Assert.Equal(sheet.GetHeaderMap(), changed);
         }
 
         private static object AutomaticFormatValue(string kind) => kind switch {

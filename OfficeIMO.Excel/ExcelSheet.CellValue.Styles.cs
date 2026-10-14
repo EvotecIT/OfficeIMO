@@ -944,6 +944,7 @@ namespace OfficeIMO.Excel {
                 format.ApplyNumberFormat = true;
             });
             SaveStylesheet(stylesPart);
+            ClearHeaderCacheForCellMutation(row, column);
         }
 
         private void FormatRangeCore(int firstRow, int firstColumn, int lastRow, int lastColumn, string numberFormat) {
@@ -971,6 +972,8 @@ namespace OfficeIMO.Excel {
             }
 
             SaveStylesheet(stylesPart);
+            ClearHeaderCacheForCellMutation(firstRow, firstColumn);
+            if (lastColumn != firstColumn) ClearHeaderCacheForCellMutation(firstRow, lastColumn);
         }
 
     }
