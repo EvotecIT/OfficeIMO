@@ -1,0 +1,800 @@
+{
+  "schema": 1,
+  "qualifiedUtc": "2026-10-14T17:14:14.159691+00:00",
+  "scope": "Variable-font coordinate normalization and preservation of selected font instances through optical sizing and managed shaping. Rendering proof covers the named font controls.",
+  "integratedSourceCommit": "5cfaeb04206b151d3c2accc51f6eef70b21be9b0",
+  "compiledSourceBase": "5539bbc96a641ebf1371d0da008414819c4a93ae",
+  "sourceFiles": [
+    {
+      "path": "OfficeIMO.Core/OfficeFontVariationModel.cs",
+      "bytes": 14940,
+      "sha256": "375dca5529fb6c312f91848d605c3b0213eb7f2a1881e81236c870b15f5746db"
+    },
+    {
+      "path": "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj",
+      "bytes": 19128,
+      "sha256": "d2007310ea7214e734c01935fc1a5db51b0ff3c93de58db007c3775e61ed0244"
+    },
+    {
+      "path": "OfficeIMO.TestAssets/ManagedTextShapingTestAssets.cs",
+      "bytes": 44329,
+      "sha256": "52b831406fe0ee9df654bff8f855f6c471944715372263516006310104626a6e"
+    },
+    {
+      "path": "OfficeIMO.Drawing.Tests/Drawing.TrueTypeVariableFonts.Normalization.cs",
+      "bytes": 4041,
+      "sha256": "b6fce9fabd3798ec5675e721798bd69864628097d300a0e93b776a50e1705185"
+    },
+    {
+      "path": "OfficeIMO.TestAssets/ManagedTextShapingTestAssets.Variations.cs",
+      "bytes": 6107,
+      "sha256": "284f1ecd1e33cf9c3fe891fe14c4b22025fe48da67a11b8ad9c8671f5640fc17"
+    },
+    {
+      "path": "OfficeIMO.Drawing.Tests/Drawing.FontOpticalSize.cs",
+      "bytes": 12154,
+      "sha256": "63d719cfa4a02389bf0da55f7825dbff9845bac308e192245e22769518edaec7"
+    },
+    {
+      "path": "OfficeIMO.Core/OfficeTrueTypeFont.OpticalSize.cs",
+      "bytes": 1367,
+      "sha256": "65911fd06305ce0bbf56f385f4f63380943b1e35006ee48550b3a2dfe2bf7d11"
+    },
+    {
+      "path": "OfficeIMO.Core/OfficeManagedTextShapingProvider.FontPrograms.cs",
+      "bytes": 2932,
+      "sha256": "b95ce0a5617b22f84a4777aa36ab2a2774f82714bc9c1a7fdd1467a0fc4dcaff"
+    }
+  ],
+  "sourceCommitBoundary": "Tests and consumers compiled the eight recorded source-file hashes over base 5539. The integrated commit contains byte-identical sources; retained assembly informational versions are not relabelled as a build of that later commit.",
+  "sdk": "10.0.303",
+  "productionDependenciesChanged": false,
+  "publicApiChanged": false,
+  "normalizationPolicy": {
+    "input": "Clamp to authored 16.16 axis bounds, then floor(value * 65536 + 0.5), including signed half-steps.",
+    "intermediate": "Fixed 16.16 division and multiplication truncate toward zero using bounded signed 64-bit intermediates. OpenType does not prescribe intermediate division rounding.",
+    "final": "Clamp to [-65536, 65536], then ((fixed + 2) >> 2) / 16384.",
+    "postNormalization": "Subsequent gvar, CFF2 and item-variation scalar and delta accumulation retain their existing double precision.",
+    "selectedDesignAndIdentity": "Canonical design values remain exact doubles in built-in instance identity, optical selection, cloning and caching. Internal managed shaping reuses the selected immutable program.",
+    "publicProviderProjection": "Existing public and optional provider coordinates remain float projections; this qualification does not extend their precision contract."
+  },
+  "normativeReference": "https://learn.microsoft.com/en-us/typography/opentype/spec/otvaroverview#coordinate-scales-and-normalization",
+  "regressionsAndFocusedProof": [
+    {
+      "lane": "red-net10.0",
+      "counters": {
+        "total": "11",
+        "executed": "11",
+        "passed": "4",
+        "failed": "7",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/results/red-net10.0.trx",
+        "bytes": 40063,
+        "sha256": "213179126195421cf0c2a3415fbca188cb32a12b6a58a4768e8869022b9fbfce"
+      },
+      "log": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/red-net10.0.log",
+        "bytes": 11572,
+        "sha256": "e8e7e6146cd3b887d34ccdd7bdcdd1e7aa2e4aeb056c0869389dc8dbe8626f71"
+      }
+    },
+    {
+      "lane": "optical-red-net10.0",
+      "counters": {
+        "total": "2",
+        "executed": "2",
+        "passed": "1",
+        "failed": "1",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/results/optical-red-net10.0.trx",
+        "bytes": 7413,
+        "sha256": "91b6d721bd535e0e05f498df8f69a0be2069ae81f023fd8edb9e4209281978db"
+      },
+      "log": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/optical-red-net10.0.log",
+        "bytes": 3322,
+        "sha256": "09922895ff6ca71ea8241a2515ebc61fb3c1b63f802a3389ea7b46f88460fcff"
+      }
+    },
+    {
+      "lane": "wide-optical-red-net10.0",
+      "counters": {
+        "total": "2",
+        "executed": "2",
+        "passed": "0",
+        "failed": "2",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/results/wide-optical-red-net10.0.trx",
+        "bytes": 8666,
+        "sha256": "778ecb3be03a6874c41c418c5ab2d0274371b1727725f59069f5fec3a68cfda8"
+      },
+      "log": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/wide-optical-red-net10.0.log",
+        "bytes": 3518,
+        "sha256": "0b211d3c604ccf087788a42fe1bbe48919affca40860ce567571220b604193c3"
+      }
+    },
+    {
+      "lane": "positioning-red-net10.0",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "0",
+        "failed": "1",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/results/positioning-red-net10.0.trx",
+        "bytes": 4910,
+        "sha256": "2eb896941ecf18bfb488710bc78fdea9d49e0d1dc339fc4cac56737c6124cb59"
+      },
+      "log": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/positioning-red-net10.0.log",
+        "bytes": 2385,
+        "sha256": "c8ce858b16a30ab0aa06eebbd41925643b3aa368fee8e01952fa93e796d2afe2"
+      }
+    },
+    {
+      "lane": "positioning-green-net10.0",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "1",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/results/positioning-green-net10.0.trx",
+        "bytes": 3165,
+        "sha256": "a50fef23795ffc2af3d7789c8d592b380ee597650e5957075b239786b91ef83a"
+      },
+      "log": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/positioning-green-net10.0.log",
+        "bytes": 1546,
+        "sha256": "6872f1890bde534e08777a19cdcd33bb3ca3a2f9190ae02bb56220d92c65ee2d"
+      }
+    },
+    {
+      "lane": "complete-final-net8.0",
+      "counters": {
+        "total": "153",
+        "executed": "153",
+        "passed": "153",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/results/complete-final-net8.0.trx",
+        "bytes": 249990,
+        "sha256": "f8e514826830d129cb502ecd06177387d47100a736f605872d17479347c823b1"
+      },
+      "log": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/complete-final-net8.0.log",
+        "bytes": 1536,
+        "sha256": "14a812bf7b796b8e7050b1855dadc26835a77da8348c68d98c92116aa1b3ab74"
+      }
+    },
+    {
+      "lane": "complete-final-net10.0",
+      "counters": {
+        "total": "153",
+        "executed": "153",
+        "passed": "153",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/results/complete-final-net10.0.trx",
+        "bytes": 250297,
+        "sha256": "22f42cf434cacdb47ee8f99e57c40219e4377253427fd3a8cf2326ee7c7a0d14"
+      },
+      "log": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/complete-final-net10.0.log",
+        "bytes": 1544,
+        "sha256": "a7e258bab5094be3495381677e936d81c5c484349962563b6a067fb6472f1825"
+      }
+    }
+  ],
+  "modernBroaderProof": [
+    {
+      "lane": "closure-html-net8.0",
+      "command": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/closure-html-net8.0/command.json",
+        "bytes": 3312,
+        "sha256": "0a1f0748628481285a48c25b5c9d74aa56eb696777e735b87c3e43a84e8fd36e"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/closure-html-net8.0/results/tests.trx",
+        "bytes": 9993014,
+        "sha256": "599d78b67fc0936258c3302ef46c06e8fe69115848d51a579d0ed15a2ae46580"
+      },
+      "counters": {
+        "total": "6186",
+        "executed": "6186",
+        "passed": "6186",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "compiledBase": "5539bbc96a641ebf1371d0da008414819c4a93ae"
+    },
+    {
+      "lane": "closure-pdf-net8.0",
+      "command": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/closure-pdf-net8.0/command.json",
+        "bytes": 5487,
+        "sha256": "63deafd1ff303d98e629e79ba4715a27a05e6be2ff40a3e4ada3ff5d78ff2670"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/closure-pdf-net8.0/results/tests.trx",
+        "bytes": 815144,
+        "sha256": "8044c9092d177153e561e7c81bcc7a98bb2134a0dc55a8a1dddfd512e781d66c"
+      },
+      "counters": {
+        "total": "503",
+        "executed": "503",
+        "passed": "503",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "compiledBase": "5539bbc96a641ebf1371d0da008414819c4a93ae"
+    },
+    {
+      "lane": "closure-html-net10.0",
+      "command": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/closure-html-net10.0/command.json",
+        "bytes": 3317,
+        "sha256": "8a19e83ec59454d1ab0766873acccc16d7a4f346819233b20a2ab2eeb700fc7a"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/closure-html-net10.0/results/tests.trx",
+        "bytes": 10005387,
+        "sha256": "cfe122c42d3b93212cc865fc0bb756df645c105af6910aef23aaf769c1d6e322"
+      },
+      "counters": {
+        "total": "6186",
+        "executed": "6186",
+        "passed": "6186",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "compiledBase": "5539bbc96a641ebf1371d0da008414819c4a93ae"
+    },
+    {
+      "lane": "closure-pdf-net10.0",
+      "command": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/closure-pdf-net10.0/command.json",
+        "bytes": 5491,
+        "sha256": "5a3c48cda72f86d3325e8f19643d88c8ed2bf86a8c611d3de737049a571a3e41"
+      },
+      "trx": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/closure-pdf-net10.0/results/tests.trx",
+        "bytes": 816151,
+        "sha256": "f7bc6cedaaf3d0e9a6ef3e472127f7b2476958d9eab1c0967e7b51a2d2baaccf"
+      },
+      "counters": {
+        "total": "503",
+        "executed": "503",
+        "passed": "503",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "compiledBase": "5539bbc96a641ebf1371d0da008414819c4a93ae"
+    }
+  ],
+  "focusedProofBoundary": "Normal source Drawing.Tests project with repository targets preserved before scratch-only suppression of unrelated nonfont assetcopies. Final153 includes109 font contract cases,24 managedprovider cases and20 existing rasterprovider methods perframework. Not fullDrawing/solution/platform/native/browser proof. OptionalHarfBuzz2cases/framework passed on earlier reviewed normalizationcandidate, before optical lifetime remediations; not counted as final153.",
+  "performanceExcluded": true,
+  "selectedPdfFilter": "(FullyQualifiedName~PdfImportedLineFrameFitTests|FullyQualifiedName~PdfContainerClosingPaddingTests|FullyQualifiedName~PdfCanvasNavigationEffectsTests|FullyQualifiedName~PdfFontFamilyTests|FullyQualifiedName~PdfInlineScriptExtractionTests|FullyQualifiedName~PdfTextEncodingCanvasGroupsTests|FullyQualifiedName~PdfRichFontUsageTests|FullyQualifiedName~PdfTableTextReuseTests|FullyQualifiedName~PdfEmptyColumnPageBreakTests|FullyQualifiedName~PdfDocumentCanvasTests|FullyQualifiedName~LinkAnnotations_RenderForParagraphHeadingAndTableCells|FullyQualifiedName~ImageLink_RendersAnnotationFromFinalImagePlacement|FullyQualifiedName~RowColumnImageLink_RendersLinkAnnotation|FullyQualifiedName~ShapeLink_RendersAnnotationFromFinalShapePlacement|FullyQualifiedName~ConvenienceVectorLink_RendersAnnotationFromFinalPlacement|FullyQualifiedName~ComposeConvenienceVectorLinks_RenderLinkAnnotations|FullyQualifiedName~DrawingLink_RendersAnnotationFromFinalDrawingPlacement|FullyQualifiedName~RowColumnConvenienceVectorLinks_RenderLinkAnnotations|FullyQualifiedName~RowColumnShapeAndDrawingLinks_RenderLinkAnnotations|FullyQualifiedName~WrappedHeadingLink_RendersAnnotationForEachVisualLine|FullyQualifiedName~RowColumnHeadingLink_AlignsAnnotationWithRightAlignedText|FullyQualifiedName~RowColumnHeadingLink_RendersLinkAnnotation|FullyQualifiedName~RowColumnTableWithLinks_RendersTableCellLinkAnnotations|FullyQualifiedName~Tables_DeclareRichCellRunFontsBeforeRendering|FullyQualifiedName~Bookmark_RejectsInvalidNamesAndDuplicateNames|FullyQualifiedName~BookmarkLinks_RejectInvalidTargetsAndMissingBookmarks|FullyQualifiedName~Bookmark_RendersNamedDestinationNameTreeAndInspectorReadsIt|FullyQualifiedName~BookmarkLink_RendersGoToAnnotationAndInspectorReadsTarget|FullyQualifiedName~RowColumnBookmark_RendersNamedDestinationAtColumnFlowPosition|FullyQualifiedName~RowColumnBookmarkOnly_RendersZeroHeightNamedDestination|FullyQualifiedName~PdfEmbeddedFontRenderingTests|FullyQualifiedName~PdfConversionTypographyTests|FullyQualifiedName~PdfDrawingNumericFontTests|FullyQualifiedName~PdfCachedCffFontsTests|FullyQualifiedName~PdfFontProgramCacheTests|FullyQualifiedName~PdfFontMeasurementTests)&Category!=Performance",
+  "compatibilityCompilation": [
+    {
+      "target": "netstandard2.0",
+      "command": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/core-netstandard2.0/command.json",
+        "bytes": 3029,
+        "sha256": "a68132c9c78c8295f37e58901c54cdd6b9f8fd5c77cc8c9597e035034e974b6e"
+      },
+      "runtimeExecuted": false,
+      "frameworkOverrideOnMac": false
+    },
+    {
+      "target": "net472",
+      "command": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/core-net472/command.json",
+        "bytes": 3039,
+        "sha256": "4e7941208221994e4319e7c517e439d4c77c2c7ca532962aea5aa6f7d88303cf"
+      },
+      "runtimeExecuted": false,
+      "frameworkOverrideOnMac": true
+    }
+  ],
+  "render": {
+    "record": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/final-result.json",
+      "bytes": 19861,
+      "sha256": "bc01b410a16126481ca9080a84e4c8be4b9f8af4d72b139c70660084e9ebcced"
+    },
+    "comparison": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/final-comparison.json",
+      "bytes": 74772,
+      "sha256": "52f36550c149b21a56d2d6a6ddd2d066564cc9c69879317e0ed5ed81bba4f469"
+    },
+    "normalProjectReferenceConsumer": true,
+    "noPrivateDllReplacement": true,
+    "actualLoadedOwners": [
+      {
+        "name": "OfficeIMO.Core.dll",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/graph/bin/RenderNormalizationControl/release/OfficeIMO.Core.dll",
+        "bytes": 4788736,
+        "sha256": "a50d6134abb83b47a062d079233bf89f4e7ff0567f6f01835f84add3622513b4",
+        "assemblyVersion": "3.4.5.0",
+        "informationalVersion": "3.4.5+5539bbc96a641ebf1371d0da008414819c4a93ae",
+        "moduleVersionId": "af45bff7-8a47-4bb5-ac3e-dd4a85430f58",
+        "expectedIdentityAvailable": true
+      },
+      {
+        "name": "OfficeIMO.Html.AngleSharp.dll",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/graph/bin/RenderNormalizationControl/release/OfficeIMO.Html.AngleSharp.dll",
+        "bytes": 48640,
+        "sha256": "905d7fcad119592d987b04448acb35048f5bf14999ad1658dd16cb09cf738d49",
+        "assemblyVersion": "3.4.5.0",
+        "informationalVersion": "3.4.5+5539bbc96a641ebf1371d0da008414819c4a93ae",
+        "moduleVersionId": "544b87bc-3e5c-481f-b5fb-5eb00f253b09",
+        "expectedIdentityAvailable": true
+      },
+      {
+        "name": "OfficeIMO.Html.Core.dll",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/graph/bin/RenderNormalizationControl/release/OfficeIMO.Html.Core.dll",
+        "bytes": 150016,
+        "sha256": "f4a74ac5329289a425ba1614fa7214bdd292db2ad846de388cc3216d398e7207",
+        "assemblyVersion": "3.4.5.0",
+        "informationalVersion": "3.4.5+5539bbc96a641ebf1371d0da008414819c4a93ae",
+        "moduleVersionId": "b8ab0726-0d7f-4e69-b33c-16870ec28dde",
+        "expectedIdentityAvailable": true
+      },
+      {
+        "name": "OfficeIMO.Html.Pdf.dll",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/graph/bin/RenderNormalizationControl/release/OfficeIMO.Html.Pdf.dll",
+        "bytes": 292864,
+        "sha256": "5bab18f7a655c747fca12973a6609e252e6ec23af6c68f25d867894330adfea9",
+        "assemblyVersion": "3.4.5.0",
+        "informationalVersion": "3.4.5+5539bbc96a641ebf1371d0da008414819c4a93ae",
+        "moduleVersionId": "3f0ded37-84c5-4f04-86c0-1bdcf7cae3ae",
+        "expectedIdentityAvailable": true
+      },
+      {
+        "name": "OfficeIMO.Html.dll",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/graph/bin/RenderNormalizationControl/release/OfficeIMO.Html.dll",
+        "bytes": 2462720,
+        "sha256": "b4b82ea2b88581ba1fe4819f39c44d689ec5efd6119b872c6dbf3f70c08d26d9",
+        "assemblyVersion": "3.4.5.0",
+        "informationalVersion": "3.4.5+5539bbc96a641ebf1371d0da008414819c4a93ae",
+        "moduleVersionId": "143e0a02-ba79-4bdc-b322-d4c5b244cf94",
+        "expectedIdentityAvailable": true
+      },
+      {
+        "name": "OfficeIMO.Pdf.dll",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/graph/bin/RenderNormalizationControl/release/OfficeIMO.Pdf.dll",
+        "bytes": 8105472,
+        "sha256": "b3a76359baf9085a0d91f134d060fdd5b080d380f1a979c1db406f68d1a29008",
+        "assemblyVersion": "3.4.5.0",
+        "informationalVersion": "3.4.5+5539bbc96a641ebf1371d0da008414819c4a93ae",
+        "moduleVersionId": "01210585-9aac-4a02-8da6-7b8c1b7ea288",
+        "expectedIdentityAvailable": true
+      }
+    ],
+    "roles": 5,
+    "originalOccurrences": 31,
+    "originalUniqueGlyphKeys": 18,
+    "models": 6,
+    "originalReaderMappingPassed": 31,
+    "midpointWitness": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/output-final/captured-source39-input-midpoint.json",
+      "bytes": 676,
+      "sha256": "11675a8d6a26d05577d8b58178cae9950205b22c28bfd05d881cad3584afb485"
+    },
+    "publicHtmlPositioningWitness": {
+      "red": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/shaping-witness/checksum-red-result.json",
+        "bytes": 1832,
+        "sha256": "797aac4b3142bc4c33273c6e14957ed5e237e2f4e3c11e2610c7524a1d5555ba"
+      },
+      "green": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/shaping-witness/final-result.json",
+        "bytes": 1836,
+        "sha256": "ac8bc50aada7cbb28fd8ba8e7d1e12e6ed369b53f102ed4c9a417ca1c286017e"
+      },
+      "actualLoadedOwnerBinding": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/shaping-witness/final-runtime/runtime-versions.json",
+        "bytes": 6389,
+        "sha256": "827a0a43c384a8b612571a8cc8ceb0b33c155ddcc7b49e7372e0f0326b569d23"
+      },
+      "runtimeBinding": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/shaping-witness/final-runtime-binding.json",
+        "bytes": 5852,
+        "sha256": "c5aeafa74c022d1316552ece63bfc2d8324add1095e6dba734d685f0fb113e9f"
+      },
+      "commands": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/shaping-witness/final-commands.json",
+        "bytes": 1590,
+        "sha256": "a3e8f8031eac2ebfd0fbe99937ce820c00513642f85b73648f3d8614e936b0fc"
+      },
+      "defaultNegativeControlDesignUnits": 2152,
+      "endpointExpectedAndActualDesignUnits": 2122,
+      "same6OwnerDllHashesAsRenderConsumer": true,
+      "sourceFixtureChecksum": "Shared existingSFNTchecksum owner refreshes clonedfvar checksum andhead adjustment; only authoredopszrange/requiredchecksums change"
+    },
+    "declaredVsExplicit700": {
+      "artifacts": [
+        {
+          "kind": "png",
+          "new": {
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/output-final/declared700/paint.png",
+            "bytes": 7529,
+            "sha256": "c636fe98a85a6b797c3d39504d3328ef7c3560dc075ddc377ee22ae2691611a3"
+          },
+          "comparison": {
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/output-final/explicit700/paint.png",
+            "bytes": 7529,
+            "sha256": "c636fe98a85a6b797c3d39504d3328ef7c3560dc075ddc377ee22ae2691611a3"
+          },
+          "byteExactlyEqual": true
+        },
+        {
+          "kind": "svg",
+          "new": {
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/output-final/declared700/paint.svg",
+            "bytes": 562346,
+            "sha256": "0d55181be788a72e969a382cb023c2bb4eb32cfe2d24ae171f9813e6538d3e7c"
+          },
+          "comparison": {
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/output-final/explicit700/paint.svg",
+            "bytes": 251284,
+            "sha256": "8f707c2791d38a7caa380ffdbdeadae360e7eb4b633d073468a9ecebe206d234"
+          },
+          "byteExactlyEqual": false
+        },
+        {
+          "kind": "pdf",
+          "new": {
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/output-final/declared700/paint.pdf",
+            "bytes": 11023,
+            "sha256": "a499a160c6003f3dda7b0054a9e44eb59025296ec3ce938f17ac6a084d6033ed"
+          },
+          "comparison": {
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/output-final/explicit700/paint.pdf",
+            "bytes": 11023,
+            "sha256": "a499a160c6003f3dda7b0054a9e44eb59025296ec3ce938f17ac6a084d6033ed"
+          },
+          "byteExactlyEqual": true
+        }
+      ],
+      "contoursExactlyEqual": true
+    },
+    "oldToNewSummary": {
+      "declared700": {
+        "changedContourKeys": 18,
+        "maxCoordinateDifferenceDesignUnits": 0.01318359375,
+        "changedAdvanceKeys": [],
+        "decodedPixels": {
+          "size": [
+            360,
+            240
+          ],
+          "changedPixels": 29,
+          "totalPixels": 86400,
+          "maximum8BitChannelDifference": 1
+        }
+      },
+      "explicit400": {
+        "changedContourKeys": 0,
+        "maxCoordinateDifferenceDesignUnits": 0,
+        "changedAdvanceKeys": [],
+        "decodedPixels": {
+          "size": [
+            360,
+            240
+          ],
+          "changedPixels": 0,
+          "totalPixels": 86400,
+          "maximum8BitChannelDifference": 0
+        }
+      },
+      "explicit600": {
+        "changedContourKeys": 18,
+        "maxCoordinateDifferenceDesignUnits": 0.01318359375,
+        "changedAdvanceKeys": [],
+        "decodedPixels": {
+          "size": [
+            360,
+            240
+          ],
+          "changedPixels": 14,
+          "totalPixels": 86400,
+          "maximum8BitChannelDifference": 1
+        }
+      },
+      "explicit700": {
+        "changedContourKeys": 18,
+        "maxCoordinateDifferenceDesignUnits": 0.01318359375,
+        "changedAdvanceKeys": [],
+        "decodedPixels": {
+          "size": [
+            360,
+            240
+          ],
+          "changedPixels": 29,
+          "totalPixels": 86400,
+          "maximum8BitChannelDifference": 1
+        }
+      },
+      "explicitF2Dot14Control": {
+        "changedContourKeys": 0,
+        "maxCoordinateDifferenceDesignUnits": 0.0,
+        "changedAdvanceKeys": [],
+        "decodedPixels": {
+          "size": [
+            360,
+            240
+          ],
+          "changedPixels": 0,
+          "totalPixels": 86400,
+          "maximum8BitChannelDifference": 0
+        }
+      },
+      "static40": {
+        "changedContourKeys": 0,
+        "maxCoordinateDifferenceDesignUnits": 0,
+        "changedAdvanceKeys": [],
+        "decodedPixels": {
+          "size": [
+            360,
+            240
+          ],
+          "changedPixels": 0,
+          "totalPixels": 86400,
+          "maximum8BitChannelDifference": 0
+        }
+      }
+    },
+    "final18ArtifactsByteEqualToEarlierCorrectedControls": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/render-next/pre-remediation-to-final-artifacts.json",
+      "bytes": 3551,
+      "sha256": "43b11a02f363c211c49bb821d9733d530ffd2a5006ff594a35ba68c8284c1ae6"
+    },
+    "independentFinalPdfVisual": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-variation-normalization/root-pdf-visual/final-result.json",
+      "bytes": 1352,
+      "sha256": "832c46445a091d367a347771867ffa78c798a1a1b65153fd685f4126abb94027"
+    },
+    "svgBoundary": "SVG XML/embedded font/authored axis readback only. SVG requests browser-native shaping; no browser SVG visual qualification."
+  },
+  "nativeProducerControl": {
+    "record": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/native-coretext-font-control/comparison.json",
+      "bytes": 230933,
+      "sha256": "77db49dfa86f05e45dc635f24f1b7c1614da7dffe09c86c30c55f661cc78ff6d"
+    },
+    "os": "Version 27.0.1 (Build 26A434)",
+    "inputTableIdentityVerified": true,
+    "selectedGlyphs": 18,
+    "weights": [
+      400,
+      400.0152587890625,
+      600,
+      699.98779296875,
+      700,
+      700.018310546875
+    ],
+    "pinnedSkiaSource": {
+      "url": "https://skia.googlesource.com/skia/+/9d07e5bad9e3e21da2426946e589daa647218271/src/core/SkGeometry.cpp",
+      "sha256": "1385aead3db61b80a6ed235b9bbeab1460dac38d7f7bacc3a42a1a19a3d62485"
+    },
+    "native700MaximumResidualDesignUnits": 0.00012486440209613647,
+    "interpretation": "Current byte-backed CoreText paths and the pinned Skia float32 quadratic conversion explain the selected rounding observations. The original browser font association, OS and build remain unproven. No admission threshold or guard changed."
+  },
+  "review": {
+    "fullReadOnlyPass": true,
+    "singleTargetedConfirmation": true,
+    "boundedCanonicalLifetimeClosurePass": true,
+    "finalManagedShapingRemediation": "The primary reviewed trusted program reuse and its real HTML/raster callers directly, then validated the public HTML red/green witness and 153 focused cases per framework. Public requests with no internal key and the existing optional float-provider boundary are preserved.",
+    "remainingValidatedInScopeDefects": 0
+  },
+  "protectedBroaderCompilerProof": [
+    {
+      "manifest": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/protected-net10/manifest.json",
+        "bytes": 1195104,
+        "sha256": "7a73b59e992ca6f500b683aa073e3c711816613ef8f6da890afb5d3c4fd9de63"
+      },
+      "archive": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/protected-net10/compiler-inputs-source-results-deduplicated.zip",
+        "bytes": 51014074,
+        "sha256": "53ace9f7b11128523e0c9573c40de8041c3b8a804e59ff4c2c6a7cc7aa566a21"
+      },
+      "predecessorArchives": [],
+      "fullReadbackVerified": true
+    },
+    {
+      "manifest": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/protected-closure-net8.0/manifest.json",
+        "bytes": 1841909,
+        "sha256": "289de04d3c0d19204ebeb6de0a649a16bd1a36df8330f89788f265f867deb6b6"
+      },
+      "archive": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/protected-closure-net8.0/compiler-source-results-deduplicated.zip",
+        "bytes": 33486699,
+        "sha256": "2a03c8b9de9b9352946184b3203aa1459d0b93ac4db54cb3749590b40c3449fe"
+      },
+      "predecessorArchives": [
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/protected-net10/compiler-inputs-source-results-deduplicated.zip",
+          "bytes": 51014074,
+          "sha256": "53ace9f7b11128523e0c9573c40de8041c3b8a804e59ff4c2c6a7cc7aa566a21"
+        }
+      ],
+      "fullReadbackVerified": true
+    },
+    {
+      "manifest": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/protected-closure-net10.0/manifest.json",
+        "bytes": 1864830,
+        "sha256": "222581258e8cbee1caf6a179024030ce8f22f533c84973241b09f44575e3d1e7"
+      },
+      "archive": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/protected-closure-net10.0/compiler-source-results-deduplicated.zip",
+        "bytes": 32087654,
+        "sha256": "0b1c4edd96f198355bc478ab4298fbd2c28d73687360b409067d2234637160dd"
+      },
+      "predecessorArchives": [
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/font-normalization-broad/protected-net10/compiler-inputs-source-results-deduplicated.zip",
+          "bytes": 51014074,
+          "sha256": "53ace9f7b11128523e0c9573c40de8041c3b8a804e59ff4c2c6a7cc7aa566a21"
+        }
+      ],
+      "fullReadbackVerified": true
+    }
+  ],
+  "cleanup": {
+    "broadGraphLogicalBytesRemoved": 3608075638,
+    "fontTaskLogicalBytesRemoved": 1014885112,
+    "broadGraphAbsent": true,
+    "fontGraphsAbsent": true,
+    "sharedCachesDeleted": false,
+    "additionalDisposableOutputRemovedBytes": 31601305
+  },
+  "limits": [
+    "Original browser axis and font-byte association, and strict font admission, remain unproven. The guard and tolerance are unchanged.",
+    "The five-word controls do not establish whole-page H10 appearance or browser parity.",
+    "SVG proof covers XML, embedded fonts and readback; browser SVG paint was not inspected.",
+    "Optional HarfBuzz and public shaping requests retain their float API boundary; no new high-precision provider claim is made.",
+    "No manual assistive-technology checks, Windows/Linux native execution, host budgets, new AOT proof or packed-consumer qualification. Historical 19-package proof is not relabelled as proof of this candidate.",
+    "Windows profiling remains deferred."
+  ]
+}
