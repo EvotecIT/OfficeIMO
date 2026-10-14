@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 
 internal static class HtmlRenderCssValues {
     /// <summary>
-    /// Resolves the used CSS line height for inline image alignment. Unitless
+    /// Resolves the used CSS line height for horizontal inline layout. Unitless
     /// multipliers use the rounded font-size basis and truncate to a layout unit;
     /// absolute computed lengths round to the nearest layout unit instead.
     /// </summary>

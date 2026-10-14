@@ -161,7 +161,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 rowGroupElement,
                 rowGroupStyle,
                 cellLayouts,
-                Math.Max(1D, rowHeight),
+                rowHeight,
                 headerRowSet.Contains(row),
                 footerRowSet.Contains(row), row.Anonymous, row.ContinuationElement, row.StructureKey));
             DecrementOccupancy(occupiedColumns);
@@ -259,7 +259,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     cellX,
                     rowY,
                     cell.Width,
-                    cellHeight,
+                    Math.Max(0.01D, cellHeight),
                     cellVisuals,
                     rowVisuals.Count,
                     HtmlRenderStyleResolver.DescribeSource(cell.Element),
@@ -274,7 +274,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentX,
                 rowY,
                 contentWidth,
-                row.Height,
+                Math.Max(0.01D, row.Height),
                 rowVisuals,
                 visuals.Count,
                 HtmlRenderStyleResolver.DescribeSource(row.Element),
@@ -619,44 +619,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return HtmlRenderTableHeaderScope.Column;
     }
 
-    private TableCaptionLayout? LayoutTableCaption(
-        IElement? element,
-        double tableWidth,
-        HtmlRenderBoxStyle tableStyle,
-        int depth) {
-        if (element == null) return null;
-
-        HtmlRenderBoxStyle style = _styleResolver.Resolve(element, tableWidth, tableStyle);
-        _layoutStyles[element] = style.Clone();
-        if (tableStyle.UnsupportedCaptionSide.Length == 0) ReportUnsupportedTableValues(element, style);
-        if (style.Display == "none") return null;
-
-        double availableWidth = Math.Max(1D, tableWidth - style.MarginLeft - style.MarginRight);
-        double boxWidth = ResolveBoxWidth(availableWidth, style);
-        double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
-        HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth + 1, null, element);
-        double contentHeight = Math.Max(style.LineHeight, inline.Height);
-        double boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
-        var visuals = new List<HtmlRenderVisual>();
-        AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
-        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
-        foreach (HtmlRenderVisual visual in inline.Visuals) visuals.Add(visual.Translate(contentX, contentY, visuals.Count));
-        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
-        IReadOnlyList<HtmlRenderVisual> semanticVisuals = new[] {
-            new HtmlRenderSemanticGroup(
-                HtmlRenderSemanticGroupRole.Caption,
-                style.MarginLeft,
-                style.MarginTop,
-                boxWidth,
-                boxHeight,
-                visuals,
-                0,
-                HtmlRenderStyleResolver.DescribeSource(element))
-        };
-        return new TableCaptionLayout(style.CaptionSide, style.MarginTop + boxHeight + style.MarginBottom, semanticVisuals);
-    }
-
     private void ReportUnsupportedTableValues(IElement element, HtmlRenderBoxStyle style) {
         var details = new List<string>(2);
         if (style.UnsupportedCaptionSide.Length > 0) details.Add("caption-side=" + style.UnsupportedCaptionSide);
@@ -671,14 +633,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             HtmlRenderStyleResolver.DescribeSource(element),
             string.Join(";", details));
-    }
-
-    private static void AppendTableCaption(
-        ICollection<HtmlRenderVisual> target,
-        TableCaptionLayout caption,
-        double x,
-        double y) {
-        foreach (HtmlRenderVisual visual in caption.Visuals) target.Add(visual.Translate(x, y, target.Count));
     }
 
 }
