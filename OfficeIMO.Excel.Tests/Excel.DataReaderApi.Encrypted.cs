@@ -103,7 +103,10 @@ public partial class Excel {
     public async Task EncryptedReader_BoundsInputAndRestoresStreamsOnLimitFailure() {
         byte[] encrypted = EncryptedReaderFixture("xlsx");
         var options = new ExcelReadOptions { MaxInputBytes = encrypted.Length - 1 };
-        Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReader(encrypted, "hunter2", options));
+        var limit = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReader(encrypted, "hunter2", options));
+        Assert.Equal("excel", limit.Owner);
+        Assert.Equal(nameof(ExcelReadOptions.MaxInputBytes), limit.LimitName);
+        Assert.Equal(encrypted.Length - 1, limit.Maximum);
         using var source = new MemoryStream(encrypted, writable: false);
         Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReader(source, "hunter2", options));
         Assert.Equal(0, source.Position);

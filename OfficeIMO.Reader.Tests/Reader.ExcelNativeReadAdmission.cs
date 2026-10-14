@@ -145,18 +145,6 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
         Assert.Contains(recovered.Chunks, chunk => chunk.Text.Contains("second", StringComparison.Ordinal));
     }
 
-    [Fact]
-    public void CanonicalDecryptedPackageAdmissionRetainsItsOwner() {
-        byte[] encrypted = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Documents", "ExcelEncryptionCorpus", "agile-aes256-sha512.xlsx"));
-        byte[] plain = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Documents", "ExcelEncryptionCorpus", "agile-aes256-sha512.plain.xlsx"));
-        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-            OfficeIMO.Core.Internal.OfficeEncryption.DecryptPackage(encrypted, "hunter2", default, plain.Length - 1));
-        Assert.Equal("encryption", error.Owner); Assert.Equal("MaximumDecryptedPackageBytes", error.LimitName); Assert.Equal(plain.Length - 1, error.Maximum);
-        Assert.Equal(plain, OfficeIMO.Core.Internal.OfficeEncryption.DecryptPackage(encrypted, "hunter2"));
-        error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReader(encrypted, "hunter2", new ExcelReadOptions { MaxInputBytes = encrypted.Length - 1 }));
-        Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxInputBytes), error.LimitName); Assert.Equal(encrypted.Length - 1, error.Maximum);
-    }
-
     private static ExcelReadOptions Configure(string name, long maximum) {
         var options = new ExcelReadOptions { HasHeaderRow = false };
         switch (name) {
