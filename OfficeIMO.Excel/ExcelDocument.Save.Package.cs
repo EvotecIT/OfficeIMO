@@ -578,10 +578,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var errors = ValidateOpenXml(finalizedBytes);
-            if (errors.Count > 0) {
-                throw new InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
-            }
+            using var stream = new MemoryStream(finalizedBytes, writable: false);
+            ThrowIfOpenXmlValidationFails(stream, options);
         }
 
         internal static void ThrowIfOpenXmlValidationFails(
@@ -589,9 +587,17 @@ namespace OfficeIMO.Excel {
             ExcelSaveOptions? options,
             CancellationToken cancellationToken = default) {
             if (options?.ValidateOpenXml != true) return;
+            using var stream = File.OpenRead(packagePath);
+            ThrowIfOpenXmlValidationFails(stream, options, cancellationToken);
+        }
 
+        private static void ThrowIfOpenXmlValidationFails(
+            Stream packageStream,
+            ExcelSaveOptions? options,
+            CancellationToken cancellationToken = default) {
+            if (options?.ValidateOpenXml != true) return;
             cancellationToken.ThrowIfCancellationRequested();
-            using SpreadsheetDocument document = SpreadsheetDocument.Open(packagePath, false);
+            using SpreadsheetDocument document = SpreadsheetDocument.Open(packageStream, false);
             var validator = new OpenXmlValidator();
             var errors = validator.Validate(document, cancellationToken)
                 .Select(error => $"{error.ErrorType}: {error.Description} at {error.Path}")

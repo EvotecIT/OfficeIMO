@@ -308,69 +308,22 @@ namespace OfficeIMO.Excel {
             // Ensure primitives
             EnsureDefaultStylePrimitives(stylesheet);
 
-            // Ensure hyperlink font (blue + underline) exists
-            const string hyperlinkRgb = "FF0563C1"; // Excel default hyperlink blue
-            var fontsEl = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
-            int hyperlinkFontIndex = -1;
-            int idx = 0;
-            foreach (var f in fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()) {
-                bool hasUnderline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(f.Underline);
-                string rgb = f.Color?.Rgb?.Value ?? string.Empty;
-                if (hasUnderline && string.Equals(rgb, hyperlinkRgb, StringComparison.OrdinalIgnoreCase)) {
-                    hyperlinkFontIndex = idx;
-                    break;
-                }
-                idx++;
+            int fontCount = stylesheet.Fonts!.ChildElements.Count;
+            int formatCount = stylesheet.CellFormats!.ChildElements.Count;
+            ApplyDerivedCellFormat(stylesheet, cell, "hyperlink", () => {
+                CellFormat baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
+                uint fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => {
+                    SetFontColor(font, "FF0563C1");
+                    SetUnderline(font, UnderlineValues.Single);
+                });
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FontId = fontId;
+                    format.ApplyFont = true;
+                });
+            });
+            if (stylesheet.Fonts.ChildElements.Count != fontCount || stylesheet.CellFormats.ChildElements.Count != formatCount) {
+                SaveStylesheet(stylesPart);
             }
-            if (hyperlinkFontIndex == -1) {
-                var font = new DocumentFormat.OpenXml.Spreadsheet.Font {
-                    Color = new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = hyperlinkRgb },
-                    Underline = new DocumentFormat.OpenXml.Spreadsheet.Underline()
-                };
-                fontsEl.Append(font);
-                hyperlinkFontIndex = fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().Count() - 1;
-            }
-
-            // Base on existing style
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
-            var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat {
-                NumberFormatId = 0U,
-                FontId = 0U,
-                FillId = 0U,
-                BorderId = 0U,
-                FormatId = 0U
-            };
-
-            // Try to find an existing format matching base but with hyperlink font
-            int hyperlinkFormatIndex = -1;
-            for (int i = 0; i < cellFormats.Count; i++) {
-                var cf = cellFormats[i];
-                if ((cf.NumberFormatId?.Value ?? 0U) == (baseFormat.NumberFormatId?.Value ?? 0U)
-                    && (cf.FillId?.Value ?? 0U) == (baseFormat.FillId?.Value ?? 0U)
-                    && (cf.BorderId?.Value ?? 0U) == (baseFormat.BorderId?.Value ?? 0U)
-                    && (cf.FormatId?.Value ?? 0U) == (baseFormat.FormatId?.Value ?? 0U)
-                    && (cf.FontId?.Value ?? 0U) == (uint)hyperlinkFontIndex) {
-                    hyperlinkFormatIndex = i;
-                    break;
-                }
-            }
-            if (hyperlinkFormatIndex == -1) {
-                var newFormat = new CellFormat {
-                    NumberFormatId = baseFormat.NumberFormatId ?? 0U,
-                    FontId = (uint)hyperlinkFontIndex,
-                    FillId = baseFormat.FillId ?? 0U,
-                    BorderId = baseFormat.BorderId ?? 0U,
-                    FormatId = baseFormat.FormatId ?? 0U,
-                    ApplyFont = true
-                };
-                cellFormatsEl.Append(newFormat);
-                hyperlinkFormatIndex = cellFormatsEl.Elements<CellFormat>().Count() - 1;
-                stylesPart.Stylesheet.Save();
-            }
-
-            cell.StyleIndex = (uint)hyperlinkFormatIndex;
         }
 
         private void ApplyHyperlinkStyle(string reference) {

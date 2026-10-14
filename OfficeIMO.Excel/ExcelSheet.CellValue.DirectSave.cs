@@ -151,7 +151,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TrySetPendingDirectCellValue(int row, int column, object? value) {
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 return TrySetPendingDirectCellValueLocked(row, column, value);
             }
 
@@ -183,7 +183,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TrySetPendingDirectCellFormula(int row, int column, string formula) {
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 return TrySetPendingDirectCellFormulaLocked(row, column, formula);
             }
 

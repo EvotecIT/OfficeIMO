@@ -595,12 +595,15 @@ namespace OfficeIMO.Excel {
         /// <summary>Applies a simple report header style.</summary>
         public ExcelRange HeaderStyle() => SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
 
+        // One write lock and one style scope per range: indexed style lookups and at most one stylesheet save.
         private void ForEachCell(Action<int, int> apply) {
-            for (int row = FirstRow; row <= LastRow; row++) {
-                for (int column = FirstColumn; column <= LastColumn; column++) {
-                    apply(row, column);
+            Sheet.RangeEdit(() => {
+                for (int row = FirstRow; row <= LastRow; row++) {
+                    for (int column = FirstColumn; column <= LastColumn; column++) {
+                        apply(row, column);
+                    }
                 }
-            }
+            });
         }
 
         private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string address) {

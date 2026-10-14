@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
                 var tableAutoFilter = table!.Elements<AutoFilter>().FirstOrDefault();
                 if (!A1.TryParseRange(tableRange!, out _, out int c1, out _, out int c2)) {
                     tableAutoFilter?.Remove();
-                    tableDefinitionPart.Table?.Save();
+                    DeferPartSave(tableDefinitionPart);
                     continue;
                 }
 
@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 NormalizeAutoFilterColumns(tableAutoFilter, c2 - c1 + 1);
-                tableDefinitionPart.Table?.Save();
+                DeferPartSave(tableDefinitionPart);
             }
 
             var worksheetAutoFilter = ws.Elements<AutoFilter>().FirstOrDefault();

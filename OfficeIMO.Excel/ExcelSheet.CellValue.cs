@@ -44,6 +44,7 @@ namespace OfficeIMO.Excel {
         private Dictionary<uint, uint>? _cellValueDateStyleIndexes;
         private Dictionary<uint, uint>? _cellValueDurationStyleIndexes;
         private Dictionary<string, CellValueSharedStringIndexCacheEntry>? _cellValueSharedStringIndexCache;
+        private WeakReference<SharedStringTable>? _cellValueSharedStringTable;
         private uint? _cellValueDefaultDateStyleIndex;
         private uint? _cellValueDefaultDurationStyleIndex;
         private CellValueDirectSaveBuffer? _pendingCellValueDirectSaveBuffer;

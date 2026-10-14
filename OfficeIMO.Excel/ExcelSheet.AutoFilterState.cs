@@ -197,7 +197,6 @@ namespace OfficeIMO.Excel {
                     .FirstOrDefault(item => item.ColumnId?.Value == columnOffset);
                 if (column == null) return;
                 column.Remove();
-                WorksheetRoot.Save();
                 removed = true;
             });
             return removed;

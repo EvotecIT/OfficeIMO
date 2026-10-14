@@ -18,6 +18,16 @@ OfficeIMO 3.5.0 removes `OfficeIMO.Zip`. Replace its package reference and names
 
 Traversal retains its limits, descriptors and ingestion warnings. Use `ArchiveReader.ReadZip` with `ArchiveReadOptions` for verified member content in memory, or `ArchiveExtractor` for transactional filesystem extraction. Those content operations reject unsafe or corrupt selected payloads.
 
+## Excel worksheet persistence and wrapping
+
+Worksheet layout, merges, filters, comments, table settings, formulas, headers/footers, conditional-formatting, view options, protection and text-replacement edits are committed by `ExcelDocument.Save(...)` or configured save-on-dispose. Call `Save` before reading the underlying package streams through the low-level Open XML API. Setters with an explicit `save` argument still honor it; pass `save: false` when applying row or column outlines repeatedly.
+
+`WrapCells`, automatic wrapping for multiline values and `CellWrapText` preserve the cell's existing alignment and other formatting. Workbooks that previously relied on wrapping to reset alignment should set the desired alignment explicitly.
+
+Styled hyperlinks retain alignment, protection and font details while applying blue text and an underline. Set the desired font or alignment explicitly if a workbook relied on hyperlink styling to reset those properties.
+
+`ValidateOpenXml = true` permits eligible fast package writers. Their ZIP compression favors write throughput and can produce larger files than the standard save path. Set `DisableFastPackageWriter = true` together with validation to retain standard package finalization.
+
 ## Excel future-function spelling
 
 Normal and array formula authoring stores `IFNA`, `MINIFS` and `MAXIFS` with the XLSX `_xlfn.` prefix. For example, `CellFormula(1, 1, "IFNA(NA(),99)")` stores `_xlfn.IFNA(NA(),99)`, which `GetFormulaText` returns. Update literal formula-text comparisons to use that stored spelling. Prefix expansion above 8,192 characters throws before changing the destination cells.
