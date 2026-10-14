@@ -200,7 +200,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     // authored width. Float fitting must use that same minimum.
                     double? tableMinimumOuterWidth = childStyle.Display == "table"
                         && childStyle.TableLayout == "fixed" && childStyle.ExplicitWidth.HasValue
-                        && !childStyle.ExplicitWidthUsesPercentage
                         && (floatContext.HasFloats || activeFloats?.Count > 0)
                             ? ResolveFixedTableIntrinsicOuterWidth(element, childStyle, width, depth + 1)
                             : null;
@@ -242,8 +241,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         childFloats, floatContext.At(width, 0D, flowHeight - anticipatedMarginAdjustment));
                     HtmlRenderFlowBlock childBlock = LayoutPlacedChild();
                     if (activeFloats?.Count > 0 && AvoidsActiveFloatsAsBlock(unavoidedStyle)
-                        && !unavoidedStyle.ExplicitHeight.HasValue) {
-                        // Auto height is only known after layout. Recheck the
+                        && (!unavoidedStyle.ExplicitHeight.HasValue || unavoidedStyle.Display == "table")) {
+                        // Auto height and a table's height beyond its authored
+                        // minimum are only known after layout. Recheck the
                         // float bands with that height so a short box can stay
                         // beside a float without a taller box crossing a later one.
                         for (int attempt = 0; attempt <= activeFloats.Count; attempt++) {

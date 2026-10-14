@@ -24,6 +24,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("table", "width:100px;table-layout:fixed", "<colgroup><col span='2' style='width:100px'></colgroup><tr><td></td><td></td></tr>", 200D)]
+    [InlineData("table", "width:50%;table-layout:fixed", "<colgroup><col span='2' style='width:100px'></colgroup><tr><td></td><td></td></tr>", 300D)]
     [InlineData("table", "width:200px;height:40px", "", 200D)]
     [InlineData("table", "", "<tr><td style='width:200px'></td></tr>", 200D)]
     [InlineData("div", "display:table;width:200px", "<div style='display:table-row'><div style='display:table-cell;height:40px'></div></div>", 200D)]
@@ -34,16 +35,18 @@ public sealed partial class HtmlRenderingTests {
                 + " id='grid' style='" + sizing + ";margin:0 auto;background:blue'>"
                 + content + "</" + tag + ">", pagedReflow);
 
-            AssertTableFloatBand(rendered, "left", tag + "#grid", 350D, expectedWidth);
+            AssertTableFloatBand(rendered, "left", tag + "#grid", 300D + (300D - expectedWidth) / 2D, expectedWidth);
         }
     }
 
     [Theory]
-    [InlineData("left", 350D)]
-    [InlineData("right", 50D)]
-    public void HtmlTables_PagedHeightRecheckAvoidsAFloatStartingInsideTheTable(string side, double expectedX) {
+    [InlineData("left", "auto", 350D)]
+    [InlineData("right", "auto", 50D)]
+    [InlineData("left", "10px", 350D)]
+    [InlineData("right", "10px", 50D)]
+    public void HtmlTables_PagedHeightRecheckAvoidsAFloatStartingInsideTheTable(string side, string height, double expectedX) {
         HtmlRenderDocument rendered = RenderTableFloatMargins(side,
-            "<table id='grid' style='width:200px;margin:0 auto;background:blue'><tr><td></td></tr></table>",
+            "<table id='grid' style='width:200px;height:" + height + ";margin:0 auto;background:blue'><tr><td></td></tr></table>",
             pagedReflow: true, delayedFloat: true);
 
         AssertTableFloatBand(rendered, side, "table#grid", expectedX, 200D, sameTop: false);
@@ -55,12 +58,14 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("left")]
-    [InlineData("right")]
-    public void HtmlTables_FixedExpandedWidthMovesBelowAFloatWhenTheFreeBandIsTooNarrow(string side) {
+    [InlineData("left", "100px")]
+    [InlineData("right", "100px")]
+    [InlineData("left", "50%")]
+    [InlineData("right", "50%")]
+    public void HtmlTables_FixedExpandedWidthMovesBelowAFloatWhenTheFreeBandIsTooNarrow(string side, string width) {
         foreach (bool pagedReflow in new[] { false, true }) {
             HtmlRenderDocument rendered = RenderTableFloatMargins(side,
-                "<table id='grid' style='width:100px;table-layout:fixed;margin:0 auto;background:blue'>"
+                "<table id='grid' style='width:" + width + ";table-layout:fixed;margin:0 auto;background:blue'>"
                 + "<colgroup><col span='2' style='width:200px'></colgroup><tr><td></td><td></td></tr></table>", pagedReflow);
             HtmlRenderShape table = FixedMinimumShape(rendered, "table#grid");
             HtmlRenderShape floating = FixedMinimumShape(rendered, "span#float");
