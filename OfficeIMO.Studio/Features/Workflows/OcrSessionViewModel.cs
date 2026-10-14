@@ -84,8 +84,22 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     public string? RecognitionUnavailableReason { get; }
 
     /// <summary>Shared check for the recognition engine, shown above the queue.</summary>
-    public OcrReadinessViewModel? Readiness { get; internal set; }
-    public bool IsRecognitionAvailable => RecognitionUnavailableReason is null;
+    private OcrReadinessViewModel? _readiness;
+    public OcrReadinessViewModel? Readiness {
+        get => _readiness;
+        internal set {
+            if (_readiness is not null) _readiness.PropertyChanged -= ReadinessChanged;
+            _readiness = value;
+            if (_readiness is not null) _readiness.PropertyChanged += ReadinessChanged;
+            ReadinessChanged(this, new PropertyChangedEventArgs(nameof(OcrReadinessViewModel.IsReady)));
+        }
+    }
+    private void ReadinessChanged(object? sender, PropertyChangedEventArgs args) {
+        if (args.PropertyName != nameof(OcrReadinessViewModel.IsReady)) return;
+        OnPropertyChanged(nameof(IsRecognitionAvailable));
+        NotifyCommands();
+    }
+    public bool IsRecognitionAvailable => RecognitionUnavailableReason is null && Readiness?.IsReady != false;
     public bool CanRun => IsRecognitionAvailable && !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
         Languages.Any(item => item.IsSelected) && Items.Any(item => item.Status is null);
     public bool CanRetry => IsRecognitionAvailable && !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
@@ -192,7 +206,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
             void Apply(OfficeOcrSessionResult result) {
                 var item = candidates.First(entry => entry.Id == result.Id);
                 item.Apply(result);
-                if (history.TryGetValue(item.Id, out var record)) record.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
+                if (history.TryGetValue(item.Id, out var record)) record.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery, hasNotes: item.HasNotes);
             }
             var completed = new Progress<OfficeOcrSessionResult>(result => {
                 if (ReferenceEquals(_cancellation, operation) && !_disposed) Apply(result);
@@ -232,6 +246,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     public void Dispose() {
         if (_disposed) return;
         _disposed = true; _cancellation?.Cancel(); PdfReview?.Dispose(); ImageReview?.Dispose();
+        if (_readiness is not null) _readiness.PropertyChanged -= ReadinessChanged;
         if (SelectedItem is not null) SelectedItem.PropertyChanged -= SelectedItemChanged;
         foreach (var language in Languages) language.PropertyChanged -= LanguageChanged;
     }

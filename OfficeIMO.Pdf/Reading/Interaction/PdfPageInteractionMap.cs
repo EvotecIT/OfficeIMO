@@ -264,10 +264,12 @@ public sealed partial class PdfPageInteractionMap {
         var text = new StringBuilder();
         for (int i = 0; i < selected.Count; i++) {
             string element = selected[i].Text ?? string.Empty;
-            if (i > 0 && text.Length > 0 && !char.IsWhiteSpace(text[text.Length - 1]) && (element.Length == 0 || !char.IsWhiteSpace(element[0]))) {
+            if (i > 0 && text.Length > 0) {
                 PdfTextBreak separator = GetTextBreak(selected[i - 1], selected[i]);
-                if (separator == PdfTextBreak.Space) text.Append(' ');
-                else if (separator == PdfTextBreak.Line) text.Append(Environment.NewLine);
+                if (separator == PdfTextBreak.Space && !char.IsWhiteSpace(text[text.Length - 1]) &&
+                    (element.Length == 0 || !char.IsWhiteSpace(element[0]))) text.Append(' ');
+                else if (separator == PdfTextBreak.Line && text[text.Length - 1] is not ('\r' or '\n') &&
+                    (element.Length == 0 || element[0] is not ('\r' or '\n'))) text.Append(Environment.NewLine);
             }
             text.Append(element);
         }

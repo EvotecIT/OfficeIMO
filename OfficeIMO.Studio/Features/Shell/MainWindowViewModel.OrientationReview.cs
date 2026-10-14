@@ -7,6 +7,7 @@ using OfficeIMO.Ocr;
 using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Pdf.Ocr;
 using OfficeIMO.Studio.Features.Workspace;
+using OfficeIMO.Studio.Features.Workflows;
 using OfficeIMO.Studio.Infrastructure;
 
 namespace OfficeIMO.Studio.Features.Shell;
@@ -26,7 +27,8 @@ public sealed partial class MainWindowViewModel {
     private PdfWorkspaceOrientationReview? _orientationReview;
     public ObservableCollection<PageOrientationChoice> OrientationChoices { get; } = new();
     public bool HasOrientationReview => _orientationReview is not null;
-    public bool CanDetectPageOrientation => CanRotateSelection && StudioOcrProvider.UnavailableReason is null;
+    public bool CanDetectPageOrientation => CanRotateSelection && StudioOcrProvider.UnavailableReason is null &&
+        (_hasOrientationProvider || OcrReadiness.IsReady);
     public bool CanApplyOrientationReview => HasOrientationReview && OrientationChoices.Any(choice => choice.IsAccepted && choice.CanAccept);
     public bool HasOrientationPreview => OrientationBefore is not null && OrientationAfter is not null;
     [ObservableProperty] private PageOrientationChoice? _selectedOrientationChoice;
@@ -34,6 +36,11 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty] private Bitmap? _orientationAfter;
 
     private readonly Func<CancellationToken, Task<IOcrEngine>> _createOrientationEngine;
+    private readonly bool _hasOrientationProvider;
+
+    private void OnOcrReadinessChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args) {
+        if (args.PropertyName == nameof(OcrReadinessViewModel.IsReady)) OnPropertyChanged(nameof(CanDetectPageOrientation));
+    }
     private async Task<IOcrEngine> CreateOrientationEngineAsync(CancellationToken token) =>
         (await _services.Ocr.CreateSessionAsync(new TesseractOcrSessionOptions {
             CustomLanguageExpression = "osd", ProvisionMissingLanguageData = false

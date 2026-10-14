@@ -13,7 +13,10 @@
     ./Build/Studio/Sync-StudioAppleStrings.ps1 -DerivedDataPath /tmp/studio-derived
 #>
 [CmdletBinding()]
-param([string] $DerivedDataPath = (Join-Path ([System.IO.Path]::GetTempPath()) 'officeimo-studio-strings'))
+param(
+    [string] $DerivedDataPath = (Join-Path ([System.IO.Path]::GetTempPath()) 'officeimo-studio-strings'),
+    [switch] $Unsigned
+)
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
@@ -22,9 +25,10 @@ $project = Join-Path $PSScriptRoot '..' '..' 'Apple' 'OfficeIMOStudio'
 $catalog = Join-Path $project 'Shared' 'Localizable.xcstrings'
 
 $xcodeProject = Join-Path $project 'OfficeIMOStudio.xcodeproj'
+$signing = if ($Unsigned) { @('CODE_SIGNING_ALLOWED=NO', 'CODE_SIGNING_REQUIRED=NO') } else { @() }
 xcodebuild -project $xcodeProject -scheme OfficeIMOStudio-iOS -configuration Debug `
-    -destination 'generic/platform=iOS Simulator' -derivedDataPath $DerivedDataPath build -quiet
-xcodebuild -project $xcodeProject -scheme OfficeIMOStudio-macOS -configuration Debug -derivedDataPath $DerivedDataPath build -quiet
+    -destination 'generic/platform=iOS Simulator' -derivedDataPath $DerivedDataPath build -quiet @signing
+xcodebuild -project $xcodeProject -scheme OfficeIMOStudio-macOS -configuration Debug -derivedDataPath $DerivedDataPath build -quiet @signing
 # Each platform's own build, without any other configurations the folder holds.
 $extracted = Get-ChildItem -Path (Join-Path $DerivedDataPath 'Build/Intermediates.noindex') -Recurse -Filter '*.stringsdata' |
     Where-Object { $_.FullName -like '*Debug-iphonesimulator*' -or $_.FullName -match '[/\\]Debug[/\\]' }

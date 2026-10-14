@@ -58,6 +58,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     private(set) lazy var forms = FormController(session: session, scrollView: self)
     private(set) lazy var drag = PageDragController(session: session, scrollView: self)
     private var handledRequest: UUID?
+    private var pendingRequest: CanvasRequest?
     private var laidOutWidth: CGFloat = 0
     private var fitZoom: CGFloat = 1
 
@@ -75,6 +76,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
             self?.markup.revisionShown(revision)
             self?.drag.revisionShown(revision)
         }
+        tiles.renderFailed = { [weak self] error in self?.session.errorMessage = error.localizedDescription }
         swipes[0].direction = .left
         swipes[1].direction = .right
         for swipe in swipes {
@@ -123,8 +125,9 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
 
     func handle(_ request: CanvasRequest) {
         guard request.id != handledRequest else { return }
+        guard laidOutWidth > 0 else { pendingRequest = request; return }
         handledRequest = request.id
-        guard laidOutWidth > 0 else { return }
+        pendingRequest = nil
         switch request.kind {
         case .showPage(let page): scroll(toPage: page, animated: true)
         case .zoomIn: setZoom(zoomScale * 1.25)
@@ -166,6 +169,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         }
         centerContent()
         updateTiles(settled: !isZooming && !isZoomBouncing)
+        if let pendingRequest { handle(pendingRequest) }
         markup.layout(isZooming: isZooming || isZoomBouncing)
         forms.layout()
         textSelection.layoutHandles()

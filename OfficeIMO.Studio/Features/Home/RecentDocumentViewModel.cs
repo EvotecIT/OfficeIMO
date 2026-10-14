@@ -29,24 +29,29 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
 
     private bool _thumbnailRequested;
     private string? _thumbnailFingerprint;
-    private CancellationToken _thumbnailCancellation;
+    private CancellationTokenSource? _thumbnailCancellation;
     private int _thumbnailRequestVersion;
 
-    /// <summary>Starts loading the first-page preview once; cards without a preview keep the document glyph.</summary>
     /// <summary>Drops the preview and abandons any pending render, leaving the generic document tile.</summary>
     internal void ClearThumbnail() {
         _thumbnailRequestVersion++;
         _thumbnailRequested = false;
+        _thumbnailCancellation?.Cancel();
+        _thumbnailCancellation?.Dispose();
+        _thumbnailCancellation = null;
         Thumbnail = null;
     }
 
     internal async void EnsureThumbnail(CancellationToken cancellationToken = default) {
         string? fingerprint = RecentDocumentThumbnails.GetFingerprint(Path);
         if (_thumbnailRequested && string.Equals(fingerprint, _thumbnailFingerprint, StringComparison.Ordinal) &&
-            !_thumbnailCancellation.IsCancellationRequested) return;
+            _thumbnailCancellation?.IsCancellationRequested == false) return;
         _thumbnailRequested = true;
         _thumbnailFingerprint = fingerprint;
-        _thumbnailCancellation = cancellationToken;
+        _thumbnailCancellation?.Cancel();
+        _thumbnailCancellation?.Dispose();
+        _thumbnailCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cancellationToken = _thumbnailCancellation.Token;
         int version = ++_thumbnailRequestVersion;
         try {
             RecentDocumentPreview? preview = await RecentDocumentThumbnails.GetAsync(Path, cancellationToken);

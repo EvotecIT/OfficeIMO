@@ -33,11 +33,15 @@ struct DocumentFacts: Decodable, Sendable {
     let maxRenderPixels: Int64?
     /// Whether pages can be rotated, deleted, duplicated, reordered and inserted, and extracted to a new PDF.
     let canMutatePages: Bool?
+    let canRotatePages: Bool?
+    let canInsertBlankPages: Bool?
     let canExtractPages: Bool?
     /// Whether annotations can be added, changed and removed.
     let canEditAnnotations: Bool?
     /// Whether the document permits printing.
     let canPrint: Bool?
+    /// The engine's quality limit for user-password documents that allow only low-resolution printing.
+    let maxPrintDpi: Double?
     /// Whether pages from other PDFs can be inserted.
     let canImportPages: Bool?
     /// Whether recognized text can be added to the pages.
@@ -48,6 +52,7 @@ struct DocumentFacts: Decodable, Sendable {
     let isEncrypted: Bool?
     /// Whether its password protection can change without the owner password.
     let canChangeProtection: Bool?
+    let requiresOwnerPasswordForProtection: Bool?
     /// Whether a certificate signature can be added.
     let canSign: Bool?
 
@@ -85,7 +90,7 @@ struct SearchResult: Decodable, Sendable {
         var cgRect: CGRect { CGRect(x: x, y: y, width: width, height: height) }
     }
 
-    struct Hit: Decodable, Sendable, Identifiable {
+    struct Hit: Decodable, Sendable, Identifiable, Equatable {
         let page: Int
         let occurrence: Int
         let text: String
@@ -239,18 +244,20 @@ struct RenderedPage: Sendable {
 actor EngineDocument {
     let handle: officeimo_document
     private let queue: DispatchSerialQueue
+    private var currentURL: URL
 
     nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
 
-    private init(handle: officeimo_document, queue: DispatchSerialQueue) {
+    private init(handle: officeimo_document, queue: DispatchSerialQueue, url: URL) {
         self.handle = handle
         self.queue = queue
+        currentURL = url
     }
 
     deinit { officeimo_document_close(handle) }
 
     /// Opens a PDF the app can currently read. The app keeps security-scoped access open for the call.
-    static func open(_ url: URL, password: String? = nil) async throws -> EngineDocument {
+    static func open(_ url: URL, password: String? = nil, recoveryIdentity: String? = nil) async throws -> EngineDocument {
         let queue = DispatchSerialQueue(label: "OfficeIMO.Document", qos: .userInitiated)
         let handle: officeimo_document = try await withCheckedThrowingContinuation { continuation in
             queue.async {
@@ -259,7 +266,11 @@ actor EngineDocument {
                         var document: officeimo_document = 0
                         var error: UnsafeMutablePointer<CChar>?
                         let status = url.path.withCString { path in
-                            withOptionalCString(password) { officeimo_document_open(path, $0, 0, &document, &error) }
+                            withOptionalCString(password) { password in
+                                withOptionalCString(recoveryIdentity) {
+                                    officeimo_document_open_with_recovery_identity(path, password, $0, 0, &document, &error)
+                                }
+                            }
                         }
                         try check(status, error)
                         return document
@@ -267,7 +278,7 @@ actor EngineDocument {
                 })
             }
         }
-        return EngineDocument(handle: handle, queue: queue)
+        return EngineDocument(handle: handle, queue: queue, url: url)
     }
 
     func facts() throws -> DocumentFacts {
@@ -275,6 +286,23 @@ actor EngineDocument {
         var error: UnsafeMutablePointer<CChar>?
         try check(officeimo_document_info_json(handle, &json, &error), error)
         return try JSONDecoder().decode(DocumentFacts.self, from: Data((takeString(json) ?? "").utf8))
+    }
+
+    func setRecoveryIdentity(_ identity: String?) async throws {
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            let status = withOptionalCString(identity) { officeimo_document_set_recovery_identity(handle, $0, cancellation, &error) }
+            try check(status, error)
+        }
+    }
+
+    func resolveRecovery(restore: Bool) async throws {
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            let status = restore ? officeimo_document_restore_recovery(handle, cancellation, &error)
+                : officeimo_document_discard_recovery(handle, cancellation, &error)
+            try check(status, error)
+        }
     }
 
     /// Renders a page (numbered from 1) at scale pixels per PDF point.
@@ -360,13 +388,18 @@ actor EngineDocument {
     func makeSearchable(progress: @escaping @Sendable (_ page: Int, _ pageCount: Int) -> Void) async throws -> SearchableSummary {
         let recognizer = Unmanaged.passRetained(PageRecognizer(progress: progress))
         defer { recognizer.release() }
-        return try await withEngineCancellation { cancellation in
-            var json: UnsafeMutablePointer<CChar>?
-            var error: UnsafeMutablePointer<CChar>?
-            let status = officeimo_document_make_searchable_json(handle, PageRecognizer.callback, recognizer.toOpaque(), cancellation, &json, &error)
-            let result = takeString(json)
-            try check(status, error)
-            return try JSONDecoder().decode(SearchableSummary.self, from: Data((result ?? "{}").utf8))
+        let worker = recognizer.takeUnretainedValue()
+        return try await withTaskCancellationHandler {
+            try await withEngineCancellation { cancellation in
+                var json: UnsafeMutablePointer<CChar>?
+                var error: UnsafeMutablePointer<CChar>?
+                let status = officeimo_document_make_searchable_json(handle, PageRecognizer.callback, recognizer.toOpaque(), cancellation, &json, &error)
+                let result = takeString(json)
+                try check(status, error)
+                return try JSONDecoder().decode(SearchableSummary.self, from: Data((result ?? "{}").utf8))
+            }
+        } onCancel: {
+            worker.cancel()
         }
     }
 
@@ -424,7 +457,12 @@ actor EngineDocument {
     }
 
     func addAnnotation(_ request: AnnotationRequest) async throws {
-        let json = String(decoding: try JSONEncoder().encode(request), as: UTF8.self)
+        try await addAnnotations([request])
+    }
+
+    /// A drawing is published all at once, with one matching engine undo entry.
+    func addAnnotations(_ requests: [AnnotationRequest]) async throws {
+        let json = String(decoding: try JSONEncoder().encode(requests), as: UTF8.self)
         try await withEngineCancellation { cancellation in
             var error: UnsafeMutablePointer<CChar>?
             try check(json.withCString { officeimo_document_add_annotation_json(handle, $0, cancellation, &error) }, error)
@@ -534,18 +572,15 @@ actor EngineDocument {
     /// Saves in place when url is nil, otherwise to url, which becomes the document's location. A failed save leaves
     /// the previous file intact.
     func save(to url: URL? = nil) async throws {
+        let destination = url ?? currentURL
         try await withEngineCancellation { cancellation in
             var error: UnsafeMutablePointer<CChar>?
-            let status: Int32
-            if let url {
-                status = try withSecurityScope(url) {
-                    url.path.withCString { officeimo_document_save(handle, $0, cancellation, &error) }
-                }
-            } else {
-                status = officeimo_document_save(handle, nil, cancellation, &error)
+            let status = try withSecurityScope(destination) {
+                destination.path.withCString { officeimo_document_save(handle, $0, cancellation, &error) }
             }
             try check(status, error)
         }
+        currentURL = destination
     }
 }
 

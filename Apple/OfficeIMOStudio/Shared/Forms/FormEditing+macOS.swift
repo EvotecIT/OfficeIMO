@@ -36,6 +36,7 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
         if editing?.field.name != field.name { finish(commit: true) }
         switch field.kind {
         case .text: beginTyping(page: page, field: field, box: layout().layoutRect(widget.bounds.cgRect, page: page))
+        case .combo where field.editable: beginTyping(page: page, field: field, box: layout().layoutRect(widget.bounds.cgRect, page: page))
         case .checkbox, .radio: session.toggle(field, widget: widget)
         case .combo, .list: showChoices(field, box: layout().layoutRect(widget.bounds.cgRect, page: page))
         default: return false
@@ -56,9 +57,12 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
     }
 
     private func beginTyping(page: Int, field: FormField, box: CGRect) {
-        guard editing?.field.name != field.name, let pages else { return }
+        guard let pages else { return }
+        if let editing, editing.field.name == field.name, editing.page == page, editing.control.frame == box { return }
+        let pendingText = editing?.field.name == field.name ? editing?.control.stringValue : nil
+        finish(commit: true)
         let control = field.password ? NSSecureTextField() : NSTextField()
-        control.stringValue = field.text
+        control.stringValue = pendingText ?? field.text
         control.font = .systemFont(ofSize: max(8, min(box.height * (field.multiline ? 0.4 : 0.62), 24)))
         control.isBezeled = false
         control.drawsBackground = true

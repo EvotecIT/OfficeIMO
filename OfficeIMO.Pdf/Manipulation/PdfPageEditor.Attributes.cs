@@ -13,15 +13,15 @@ internal static partial class PdfPageEditor {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (plan.ExecutionMode == PdfMutationExecutionMode.FullRewrite) {
-            Dictionary<int, PdfIndirectObject> objects = document.Objects;
-            return PdfPageExtractor.ExtractPages(
-                objects,
-                document.UncheckedMetadata,
-                document.Pages.Select(static page => page.ObjectNumber).ToArray(),
-                overrides,
-                catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, document.TrailerRaw, document, cancellationToken),
-                fileVersion: PdfPageExtractor.GetSourceFileVersion(pdf),
-                cancellationToken: cancellationToken);
+            return PdfDocumentObjectGraphRewriter.Rewrite(pdf, document, readOptions, null, (objects, security) => {
+                foreach (var item in overrides) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (objects[item.Key].Value is not PdfDictionary page)
+                        throw new InvalidOperationException("The selected page does not resolve to a page dictionary.");
+                    foreach (var entry in item.Value) page.Items[entry.Key] = entry.Value;
+                }
+                return security.InfoObjectNumber;
+            }, cancellationToken: cancellationToken);
         }
 
         if (overrides.Count == 0) return (byte[])pdf.Clone();
@@ -59,7 +59,7 @@ internal static partial class PdfPageEditor {
         PdfLoadOptions outputOptions = PdfLoadOptions.ForGeneratedOutput(
             readOptions, pdf, output, new PdfGeneratedOutputGrowth(additionalRevisions: 1));
         PdfSignatureMutationReport proof = PdfSignatureMutationAnalyzer.Analyze(
-            pdf, output, PdfMutationOperation.ModifyPageAttributes,
+            pdf, output, plan.Operation,
             readOptions: readOptions, afterReadOptions: outputOptions);
         if (!proof.IsPreservedAppendOnlyMutation) {
             throw new InvalidOperationException("The page-attribute update did not preserve the input prefix, revision chain, and existing signature byte ranges.");

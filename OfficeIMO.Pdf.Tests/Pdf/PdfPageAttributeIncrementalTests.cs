@@ -34,7 +34,7 @@ public class PdfPageAttributeIncrementalTests {
         PdfOperationResult<PdfDocument> selectorResult = original.Pages.RotateResult(90, PdfPageSelector.Parse("1"));
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, selectorResult.MutationPlan!.ExecutionMode);
         Assert.Equal(90, selectorResult.RequireValue().Inspect().Pages[0].RotationDegrees);
-        Assert.Equal(PdfMutationOperation.ModifyPageAttributes, rotated.Pipeline.Steps.Last().MutationOperation);
+        Assert.Equal(PdfMutationOperation.RotatePages, rotated.Pipeline.Steps.Last().MutationOperation);
 
         PdfDocument insertedPage = PdfDocument.Create().Paragraph(p => p.Text("Inserted"));
         Assert.Equal(before.PageCount + 1, original.Pages.Insert(1, insertedPage).Inspect().PageCount);

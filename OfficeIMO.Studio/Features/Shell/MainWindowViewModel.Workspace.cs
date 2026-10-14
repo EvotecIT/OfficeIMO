@@ -74,6 +74,8 @@ public sealed partial class MainWindowViewModel {
 
     public bool CanResizeSelection => HasOrganizerSelection && _workspace?.CanResizePages == true;
 
+    public bool CanInsertBlankPages => !IsWorkspaceBusy && _workspace?.CanInsertBlankPages == true;
+
     public bool CanExtractSelection => HasOrganizerSelection && CanExtractPages;
 
     public bool CanDeleteSelection => CanMutateSelection && _workspace is not null && _organizerSelection.Count < _workspace.Pages.Count;
@@ -119,6 +121,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanRotateSelection));
         OnPropertyChanged(nameof(CanNormalizePageRotation));
         OnPropertyChanged(nameof(CanDetectPageOrientation));
+        OnPropertyChanged(nameof(CanInsertBlankPages));
         OnPropertyChanged(nameof(CanCropSelection));
         OnPropertyChanged(nameof(CanResizeSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
@@ -245,16 +248,16 @@ public sealed partial class MainWindowViewModel {
     private async Task CropSelectedAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
         if (_workspace is null || pages.Length == 0 || !CanCropSelection) return;
-        await RunMutationAsync(token => _workspace.CropByMarginAsync(pages, CropMargin, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
-        EndCropPreview();
+        if (await RunMutationAsync(token => _workspace.CropByMarginAsync(pages, CropMargin, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true))
+            EndCropPreview();
     }
 
     [RelayCommand]
     private async Task ResetCropSelectedAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
         if (_workspace is null || pages.Length == 0 || !CanCropSelection) return;
-        await RunMutationAsync(token => _workspace.ResetCropAsync(pages, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
-        EndCropPreview();
+        if (await RunMutationAsync(token => _workspace.ResetCropAsync(pages, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true))
+            EndCropPreview();
     }
 
     [RelayCommand]
@@ -459,6 +462,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasRecovery));
         OnPropertyChanged(nameof(CanMutatePages));
         OnPropertyChanged(nameof(CanRotatePages));
+        OnPropertyChanged(nameof(CanInsertBlankPages));
         OnPropertyChanged(nameof(CanNormalizePageRotation));
         OnPropertyChanged(nameof(CanDetectPageOrientation));
         OnPropertyChanged(nameof(CanCropPages));

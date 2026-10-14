@@ -13,7 +13,10 @@ public sealed partial class OfficeRasterCanvas {
         int height = ReducedSamplingDimension(image.Height, footprintY);
         if (width == image.Width && height == image.Height) return image;
         _cancellationToken.ThrowIfCancellationRequested();
-        if (ImageCache != null && ImageCache.TryGetFiltered(image, width, height, out OfficeRasterImage cached)) return cached;
+        if (ImageCache != null && ImageCache.TryGetFiltered(image, width, height, out OfficeRasterImage cached)) {
+            _transformedTextBudget.ChargeIntermediateSurfacePixels((long)cached.Width * cached.Height);
+            return cached;
+        }
         _transformedTextBudget.ChargeIntermediateSurfacePixels(
             OfficeRasterResampler.GetAdditionalHighQualityPixelBufferCost(image.Width, image.Height, width, height));
         OfficeRasterImage filtered = OfficeRasterResampler.Resize(image, width, height, OfficeRasterResamplingMode.Area,

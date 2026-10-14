@@ -66,6 +66,7 @@ internal static class StudioNativeAbi {
 [JsonSerializable(typeof(StudioNativeProtectionRequest))]
 [JsonSerializable(typeof(StudioNativeSigningRequest))]
 [JsonSerializable(typeof(StudioNativeAnnotationRequest))]
+[JsonSerializable(typeof(IReadOnlyList<StudioNativeAnnotationRequest>))]
 [JsonSerializable(typeof(StudioNativeAnnotationList))]
 [JsonSerializable(typeof(StudioNativeAnnotationUpdate))]
 [JsonSerializable(typeof(StudioNativePageText))]

@@ -43,6 +43,9 @@ final class PageTiles {
     private var shownRevision: Int64?
     /// Called once each revision's images cover the visible area.
     var revisionShown: ((Int64) -> Void)?
+    var renderFailed: ((Error) -> Void)?
+    private var failedPages = Set<Int>()
+    private var failureLayers: [CALayer] = []
     private var highlights: [SearchResult.Hit] = []
     private var currentHighlight: Int?
     private var highlightLayers: [CALayer] = []
@@ -55,6 +58,9 @@ final class PageTiles {
     func show(_ engine: EngineDocument, facts: DocumentFacts) {
         guard engine !== self.engine || facts.revision != self.facts?.revision else { return }
         cancelAll()
+        failedPages.removeAll()
+        failureLayers.forEach { $0.removeFromSuperlayer() }
+        failureLayers.removeAll()
         let newLayout = PageLayout(pages: facts.pages, mode: mode, shownPage: shownPage, rotation: rotation)
         let keepsLayout = engine === self.engine && newLayout == layout
         self.engine = engine
@@ -86,6 +92,8 @@ final class PageTiles {
         let newLayout = PageLayout(pages: facts.pages, mode: mode, shownPage: shownPage, rotation: rotation)
         guard newLayout != layout else { return false }
         cancelAll()
+        failedPages.removeAll()
+        failureLayers.removeAll()
         apply(newLayout)
         lastVisible = .null
         return true
@@ -188,7 +196,7 @@ final class PageTiles {
 
     /// Marks search hits on the pages, the current one more strongly. Rectangles are in the displayed page's points.
     func highlight(_ hits: [SearchResult.Hit], current: Int?) {
-        guard hits.map(\.occurrence) != highlights.map(\.occurrence) || current != currentHighlight else { return }
+        guard hits != highlights || current != currentHighlight else { return }
         highlights = hits
         currentHighlight = current
         withoutAnimation { drawHighlights() }
@@ -283,15 +291,21 @@ final class PageTiles {
     }
 
     private func renderPreview(_ page: Int, facts: DocumentFacts) {
-        guard let engine else { return }
+        guard let engine, !failedPages.contains(page) else { return }
         let scale = previewScale(page)
         let size = facts.pageImageSize(page: page, scale: scale)
         let revision = facts.revision
         previewTasks[page] = Task {
-            let image = try? await engine.renderRegion(page, scale: scale, x: 0, y: 0, width: size.width, height: size.height)
+            let image: CGImage
+            do { image = try await engine.renderRegion(page, scale: scale, x: 0, y: 0, width: size.width, height: size.height) }
+            catch {
+                guard !Task.isCancelled, revision == self.facts?.revision else { return }
+                previewTasks[page] = nil
+                fail(page: page, error: error)
+                return
+            }
             guard !Task.isCancelled, revision == self.facts?.revision else { return }
             previewTasks[page] = nil
-            guard let image else { return }
             let preview = imageLayer(image, frame: CGRect(x: 0, y: 0, width: Double(size.width) / scale, height: Double(size.height) / scale))
             withoutAnimation { clipLayers[page - 1].insertSublayer(preview, at: 0) }
             previews[page] = preview
@@ -356,14 +370,20 @@ final class PageTiles {
     }
 
     private func renderTile(_ key: TileKey) {
-        guard let engine, let pixels = pixelRect(key), pixels.width > 0, pixels.height > 0 else { return }
+        guard let engine, !failedPages.contains(key.page), let pixels = pixelRect(key), pixels.width > 0, pixels.height > 0 else { return }
         let revision = facts?.revision
         tileTasks[key] = Task {
-            let image = try? await engine.renderRegion(key.page, scale: key.scale, x: pixels.x, y: pixels.y,
-                                                      width: pixels.width, height: pixels.height)
+            let image: CGImage
+            do { image = try await engine.renderRegion(key.page, scale: key.scale, x: pixels.x, y: pixels.y,
+                                                      width: pixels.width, height: pixels.height) }
+            catch {
+                guard !Task.isCancelled, revision == self.facts?.revision else { return }
+                tileTasks[key] = nil
+                fail(page: key.page, error: error)
+                return
+            }
             guard !Task.isCancelled, revision == self.facts?.revision else { return }
             tileTasks[key] = nil
-            guard let image else { return }
             let tile = imageLayer(image, frame: pageRect(key))
             tile.zPosition = key.scale == tileScale ? 2 : 1
             withoutAnimation { clipLayers[key.page - 1].addSublayer(tile) }
@@ -388,6 +408,30 @@ final class PageTiles {
     }
 
     // MARK: Layers
+
+    /// A failed revision must not keep showing an earlier revision or silently retry on every scroll.
+    private func fail(page: Int, error: Error) {
+        guard failedPages.insert(page).inserted else { return }
+        previewTasks[page]?.cancel()
+        previewTasks[page] = nil
+        for (key, task) in tileTasks where key.page == page { task.cancel(); tileTasks[key] = nil }
+        withoutAnimation {
+            staleLayers.forEach { $0.removeFromSuperlayer() }
+            staleLayers.removeAll()
+            let notice = CATextLayer()
+            notice.string = error.localizedDescription
+            notice.fontSize = 12
+            notice.isWrapped = true
+            notice.alignmentMode = .center
+            notice.foregroundColor = CGColor(gray: 0.2, alpha: 1)
+            notice.backgroundColor = CGColor(gray: 1, alpha: 1)
+            notice.frame = clipLayers[page - 1].bounds.insetBy(dx: 12, dy: 12)
+            notice.zPosition = 5
+            clipLayers[page - 1].addSublayer(notice)
+            failureLayers.append(notice)
+        }
+        renderFailed?(error)
+    }
 
     private func imageLayer(_ image: CGImage, frame: CGRect) -> CALayer {
         let layer = CALayer()

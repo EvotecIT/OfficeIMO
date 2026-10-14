@@ -6,9 +6,14 @@ namespace OfficeIMO.Studio.Features.Home;
 internal interface IRecentDocumentStore {
     IReadOnlyList<RecentDocumentViewModel> Load();
 
+    IReadOnlyList<RecentDocumentViewModel> LoadRetained() => Load();
+
     void Save(IReadOnlyList<RecentDocumentViewModel> documents);
 
     void Clear();
+
+    void Remove(string path) => Save(LoadRetained().Where(document =>
+        OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path) != OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(path)).ToArray());
 }
 
 internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
@@ -29,6 +34,10 @@ internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
 
     public IReadOnlyList<RecentDocumentViewModel> Load() {
         if (!_enabled()) return [];
+        return LoadRetained();
+    }
+
+    public IReadOnlyList<RecentDocumentViewModel> LoadRetained() {
         try {
             if (!File.Exists(_path) || new FileInfo(_path).Length > MaximumBytes) return [];
             RecentDocumentEntry?[]? entries = JsonSerializer.Deserialize<RecentDocumentEntry?[]>(File.ReadAllText(_path));
@@ -59,6 +68,15 @@ internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
 
     public void Save(IReadOnlyList<RecentDocumentViewModel> documents) {
         if (!_enabled()) return;
+        SaveRetained(documents);
+    }
+
+    public void Remove(string path) {
+        string key = OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(path);
+        SaveRetained(LoadRetained().Where(document => OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path) != key).ToArray());
+    }
+
+    private void SaveRetained(IReadOnlyList<RecentDocumentViewModel> documents) {
         try {
             string? directory = Path.GetDirectoryName(_path);
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);

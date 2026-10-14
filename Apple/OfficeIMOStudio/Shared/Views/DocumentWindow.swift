@@ -12,6 +12,7 @@ struct DocumentWindow: View {
     @State private var noteText = ""
     @State private var importPassword = ""
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.dismiss) private var dismiss
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
     #endif
@@ -43,17 +44,29 @@ struct DocumentWindow: View {
             .task {
                 if session.isPageListShown == nil { session.isPageListShown = !isCompact }
                 session.undoManager = undoManager
-                await session.load()
+                await session.load(originalURL: fileURL)
             }
             .onChange(of: undoManager) { session.undoManager = undoManager }
+            .onChange(of: fileURL) { _, url in Task { await session.updateOriginalURL(url) } }
+            .confirmationDialog("Recover Unsaved Changes", isPresented: recoveryPrompt, titleVisibility: .visible) {
+                Button("Restore Changes") { session.resolveRecovery(restore: true) }
+                Button("Discard Recovery Copy", role: .destructive) { session.resolveRecovery(restore: false) }
+                Button("Cancel", role: .cancel) { session.cancelOpening(); dismiss() }
+            } message: {
+                Text("A recovery copy contains changes from the last session. Restore them or discard the copy to keep the saved document.")
+            }
             .alert("Password Required", isPresented: passwordPrompt) {
                 SecureField("Password", text: $password)
                 Button("Open") {
                     let entered = password
                     password = ""
-                    Task { await session.load(password: entered) }
+                    Task { await session.load(password: entered, originalURL: fileURL) }
                 }
-                Button("Cancel", role: .cancel) { password = "" }
+                Button("Cancel", role: .cancel) {
+                    password = ""
+                    session.cancelOpening()
+                    dismiss()
+                }
             } message: {
                 if case .needsPassword(retry: true) = session.state {
                     Text("The password is incorrect. Try again.")
@@ -122,6 +135,11 @@ struct DocumentWindow: View {
             } message: {
                 Text(session.errorMessage ?? "")
             }
+    }
+
+    private var recoveryPrompt: Binding<Bool> {
+        // Dismissing the popover must not silently skip the recovery decision.
+        Binding { session.needsRecoveryDecision } set: { _ in }
     }
 
     private var noticeShown: Binding<Bool> {
@@ -233,11 +251,11 @@ struct DocumentWindow: View {
     }
 
     private var exportShown: Binding<Bool> {
-        Binding { session.extractedPages != nil } set: { if !$0 { session.extractedPages = nil } }
+        Binding { session.extractedPages != nil } set: { _ in }
     }
 
     private var exportedFileShown: Binding<Bool> {
-        Binding { session.exportedFile != nil } set: { if !$0 { session.exportedFile = nil } }
+        Binding { session.exportedFile != nil } set: { _ in }
     }
 
     private var errorShown: Binding<Bool> {

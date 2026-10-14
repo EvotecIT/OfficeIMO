@@ -17,7 +17,13 @@ extension DocumentSession {
             _ = await load.value
             return
         }
-        let load = Task<FormFields?, Never> { try? await engine.formFields(page: page) }
+        let load = Task<FormFields?, Never> {
+            do { return try await engine.formFields(page: page) }
+            catch {
+                if !Task.isCancelled { errorMessage = error.localizedDescription }
+                return nil
+            }
+        }
         formLoads[page] = load
         let fields = await load.value
         formLoads[page] = nil

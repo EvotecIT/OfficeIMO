@@ -23,6 +23,7 @@ struct DocumentShareButton: View {
                 }
             }
         }
+        .disabled(session.isWorking || session.hasPendingMarkup)
         .popover(isPresented: $isPresented) {
             ActivityView(items: [shared ?? fileURL],
                          activities: session.canPrint ? [PrintActivity { session.print() }] : [],

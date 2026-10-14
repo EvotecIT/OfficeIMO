@@ -16,9 +16,10 @@ internal static partial class PdfTaggedPageOrganizer {
             int copiedPage = Allocate(); copies.Add(page, copiedPage);
             var copy = (PdfDictionary)Clone(sourcePage, 0); objects.Add(copiedPage, new PdfIndirectObject(copiedPage, 0, copy));
             output[index] = copiedPage;
-            foreach (int annotation in AnnotationNumbers(objects, sourcePage))
-                if (copies.TryGetValue(annotation, out int mapped) && objects[mapped].Value is PdfDictionary dictionary)
-                    dictionary.Items["P"] = new PdfReference(copiedPage, 0);
+            if (copy.Items.TryGetValue("Annots", out var annotations) && PdfObjectLookup.Resolve(objects, annotations) is PdfArray annotationArray)
+                foreach (var annotation in annotationArray.Items)
+                    if (PdfObjectLookup.Resolve(objects, annotation) is PdfDictionary dictionary)
+                        dictionary.Items["P"] = new PdfReference(copiedPage, 0);
             CopyStructure(objects, catalog, page, copiedPage, copies, Clone, Allocate, token);
             CopyFields(objects, catalog, copies, copiedPage, token);
 

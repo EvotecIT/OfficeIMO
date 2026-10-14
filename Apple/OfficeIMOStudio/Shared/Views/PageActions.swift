@@ -16,7 +16,7 @@ struct PageActionButtons: View {
         } primaryAction: {
             session.rotate(pages, degrees: 90)
         }
-        .disabled(pages.isEmpty || !session.canEditPages)
+        .disabled(pages.isEmpty || !session.canRotatePages)
         .help("Rotate Right; hold for Rotate Left")
 
         Button("Duplicate", systemImage: "plus.square.on.square") { session.duplicate(pages) }
@@ -27,7 +27,7 @@ struct PageActionButtons: View {
 
         Menu("More", systemImage: "ellipsis") {
             Button("Insert Blank Page", systemImage: "doc.badge.plus") { session.insertBlankPage() }
-                .disabled(!session.canEditPages)
+                .disabled(!session.canInsertBlankPages)
             Button("Insert Pages from File…", systemImage: "doc.badge.arrow.up") { session.isChoosingPagesToImport = true }
                 .disabled(!session.canImportPages)
             Button("Extract Pages…", systemImage: "doc.on.doc") { session.extract(pages) }
@@ -47,13 +47,17 @@ struct PageContextMenu: View {
 
     var body: some View {
         Button("Rotate Left", systemImage: "rotate.left") { session.rotate(pages, degrees: -90) }
+            .disabled(!session.canRotatePages)
         Button("Rotate Right", systemImage: "rotate.right") { session.rotate(pages, degrees: 90) }
+            .disabled(!session.canRotatePages)
         Divider()
         Button("Duplicate", systemImage: "plus.square.on.square") { session.duplicate(pages) }
+            .disabled(!session.canEditPages)
         Button("Insert Blank Page After", systemImage: "doc.badge.plus") {
             session.selection = [pages.last ?? page]
             session.insertBlankPage()
         }
+        .disabled(!session.canInsertBlankPages)
         Button("Insert Pages from File…", systemImage: "doc.badge.arrow.up") {
             session.selection = [pages.last ?? page]
             session.isChoosingPagesToImport = true
@@ -63,7 +67,7 @@ struct PageContextMenu: View {
             .disabled(!session.canExtractPages)
         Divider()
         Button("Delete", systemImage: "trash", role: .destructive) { session.delete(pages) }
-            .disabled(pages.count >= session.pageCount)
+            .disabled(pages.count >= session.pageCount || !session.canEditPages)
     }
 }
 

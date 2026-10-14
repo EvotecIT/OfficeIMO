@@ -44,7 +44,12 @@ extension DocumentSession {
             return
         }
         let load = Task {
-            if let read = try? await engine.structure() { structure = read }
+            do {
+                let read = try await engine.structure()
+                if read.revision == revision { structure = read }
+            } catch {
+                if !Task.isCancelled { errorMessage = error.localizedDescription }
+            }
         }
         structureLoad = load
         await load.value
@@ -105,7 +110,7 @@ extension DocumentSession {
     /// Attaches a file the user chose. The engine reads a copy, so the file's security scope is needed only here.
     func attach(_ url: URL) {
         guard canEditAttachments else { return }
-        let folder = FileManager.default.temporaryDirectory.appending(path: "Attaching/\(UUID().uuidString)", directoryHint: .isDirectory)
+        let folder = StudioTemporaryFiles.root.appending(path: "Attaching/\(UUID().uuidString)", directoryHint: .isDirectory)
         let copy = folder.appending(path: url.lastPathComponent)
         do {
             let accessing = url.startAccessingSecurityScopedResource()
@@ -126,7 +131,7 @@ extension DocumentSession {
 
     func removeAttachment(_ attachment: DocumentStructure.Attachment) {
         guard canEditAttachments else { return }
-        editStructure(String(localized: "Delete Attachment"), EditRequest(removeAttachment: attachment.fileName))
+        editStructure(String(localized: "Delete Attachment"), EditRequest(removeAttachment: attachment.id))
     }
 
     /// Writes an attachment's contents, then asks where to save them.
@@ -134,7 +139,7 @@ extension DocumentSession {
         Task {
             do {
                 exportedFile = try await writeOutput(named: attachment.fileName, contentType: .data) { engine, url in
-                    _ = try await engine.write(WriteRequest(attachment: .init(fileName: attachment.fileName, path: url.path)))
+                    _ = try await engine.write(WriteRequest(attachment: .init(fileName: attachment.fileName, path: url.path, id: attachment.id)))
                     return nil
                 }
             } catch {
@@ -227,10 +232,10 @@ extension DocumentSession {
     private func writeOutput(named name: String, contentType: UTType,
                              write: @escaping @Sendable (EngineDocument, URL) async throws -> String?) async throws -> ExportedFile? {
         guard let engine else { return nil }
-        let folder = FileManager.default.temporaryDirectory.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
+        let folder = StudioTemporaryFiles.root.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
         let url = folder.appending(path: name, directoryHint: contentType == .folder ? .isDirectory : .notDirectory)
-        isWorking = true
-        defer { isWorking = false }
+        isRunningOperation = true
+        defer { isRunningOperation = false }
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             let notes = try await write(engine, url)
@@ -329,15 +334,21 @@ struct ExportedDocument: FileDocument {
     static let readableContentTypes: [UTType] = [.pdf, .plainText, .markdown, .json, .html, .folder, .data]
     /// The export panel saves only these types; anything else would be saved as the first, a PDF.
     static let writableContentTypes: [UTType] = readableContentTypes + ExportFormat.documents.map(\.contentType)
-    let wrapper: FileWrapper
+    private let serialized: Data
 
     init(url: URL) throws {
-        wrapper = try FileWrapper(url: url, options: .immediate)
+        let wrapper = try FileWrapper(url: url, options: .immediate)
+        guard let data = wrapper.serializedRepresentation else { throw CocoaError(.fileReadCorruptFile) }
+        serialized = data
     }
 
     init(configuration: ReadConfiguration) throws {
-        wrapper = configuration.file
+        guard let data = configuration.file.serializedRepresentation else { throw CocoaError(.fileReadCorruptFile) }
+        serialized = data
     }
 
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper { wrapper }
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        guard let wrapper = FileWrapper(serializedRepresentation: serialized) else { throw CocoaError(.fileReadCorruptFile) }
+        return wrapper
+    }
 }

@@ -135,6 +135,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<OfficeIMO.Ocr.IOcrEngine>>? orientationEngineFactory = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _createOrientationEngine = orientationEngineFactory ?? CreateOrientationEngineAsync;
+        _hasOrientationProvider = orientationEngineFactory is not null;
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -246,6 +247,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             OcrSession.PropertyChanged += OnWorkflowPropertyChanged;
         }
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
+        OcrReadiness.PropertyChanged += OnOcrReadinessChanged;
         _services.DocumentHistory.RecentDocumentsChanged += OnRecentDocumentsChanged;
         _services.Preferences.Changed += OnPreferencesChanged;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
@@ -545,10 +547,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     private void ForgetRecentDocument(RecentDocumentViewModel document) {
         string key = OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path);
-        UpdateRecentDocuments(() => {
-            foreach (RecentDocumentViewModel stale in RecentDocuments.Where(entry =>
-                OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(entry.Path) == key).ToArray()) RecentDocuments.Remove(stale);
-        });
+        _recentDocumentStore?.Remove(document.Path);
+        foreach (RecentDocumentViewModel stale in RecentDocuments.Where(entry =>
+            OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(entry.Path) == key).ToArray()) {
+            stale.ClearThumbnail();
+            RecentDocuments.Remove(stale);
+        }
+        OnPropertyChanged(nameof(HasRecentDocuments));
+        _services.DocumentHistory.NotifyRecentDocumentsChanged(this);
     }
 
     [RelayCommand]
@@ -579,7 +585,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     private void ReloadRecentDocuments() {
         if (_recentDocumentStore is null) return;
-        IReadOnlyList<RecentDocumentViewModel> stored = _recentDocumentStore.Load();
+        IReadOnlyList<RecentDocumentViewModel> stored = !_services.DocumentHistory.RememberHistory && RecentDocuments.Count > 0
+            ? _recentDocumentStore.LoadRetained() : _recentDocumentStore.Load();
         RecentDocuments.Clear();
         foreach (RecentDocumentViewModel document in stored) RecentDocuments.Add(document);
         OnPropertyChanged(nameof(HasRecentDocuments));
@@ -671,6 +678,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         _services.DocumentHistory.RecentDocumentsChanged -= OnRecentDocumentsChanged;
         _services.Preferences.Changed -= OnPreferencesChanged;
+        OcrReadiness.PropertyChanged -= OnOcrReadinessChanged;
         if (_ownsWorkbenches) DisposeWorkbenches();
 
         CancelCurrentOperation();
@@ -716,12 +724,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
         ClearOrientationReview();
         ClearFormPreview();
-        if (isDocumentTransition) SaveDocumentViewState();
+        if (isDocumentTransition) {
+            SaveDocumentViewState();
+            _dismissedSecurityWarning = null;
+        }
         CancelPendingRedaction();
         LastRedactionSummary = null;
         LastRedactionCopyPath = null;
         ClearObjectSelection();
-        ResetRenderingNotices(isDocumentTransition);
+        ResetRenderingNotices(isDocumentTransition, workspace);
         foreach (PdfPageViewModel page in Pages) page.Dispose();
         foreach (PdfOrganizerPageViewModel page in OrganizerPages) page.Dispose();
         Pages.Clear();

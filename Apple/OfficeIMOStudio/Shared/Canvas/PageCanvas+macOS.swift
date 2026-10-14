@@ -42,6 +42,7 @@ final class PageScrollView: NSScrollView {
     private let session: DocumentSession
     private let pages = FlippedView()
     private var handledRequest: UUID?
+    private var pendingRequest: CanvasRequest?
     private var laidOutWidth: CGFloat = 0
     private var fitZoom: CGFloat = 1
     private var isMagnifying = false
@@ -62,6 +63,7 @@ final class PageScrollView: NSScrollView {
             self?.markup.revisionShown(revision)
             self?.drag.revisionShown(revision)
         }
+        tiles.renderFailed = { [weak self] error in self?.session.errorMessage = error.localizedDescription }
         hasVerticalScroller = true
         hasHorizontalScroller = true
         autohidesScrollers = true
@@ -105,8 +107,9 @@ final class PageScrollView: NSScrollView {
 
     func handle(_ request: CanvasRequest) {
         guard request.id != handledRequest else { return }
+        guard laidOutWidth > 0 else { pendingRequest = request; return }
         handledRequest = request.id
-        guard laidOutWidth > 0 else { return }
+        pendingRequest = nil
         switch request.kind {
         case .showPage(let page): scroll(toPage: page)
         case .zoomIn: setZoom(magnification * 1.25)
@@ -147,6 +150,7 @@ final class PageScrollView: NSScrollView {
             viewChanged()
         }
         updateTiles()
+        if let pendingRequest { handle(pendingRequest) }
     }
 
     override func viewDidChangeBackingProperties() {

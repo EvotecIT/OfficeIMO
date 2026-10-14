@@ -589,7 +589,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageAttributes, () => Rotate(rotationDegrees, selection, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages, () => Rotate(rotationDegrees, selection, options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
@@ -603,7 +603,7 @@ public sealed partial class PdfDocumentPages {
     /// Attempts to create a new PDF with parsed page ranges rotated, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, string pageRanges, PdfLoadOptions? options = null) {
-        return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageAttributes, () => Rotate(rotationDegrees, PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages, () => Rotate(rotationDegrees, PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
     /// <summary>Sets a typed boundary box for selected pages, or every page when no page numbers are supplied.</summary>

@@ -46,13 +46,18 @@ enum DocumentConversion {
 
     /// Converts a document to a new PDF named after it.
     static func convert(_ input: URL) async throws -> (url: URL, result: ConversionResult) {
-        let folder = FileManager.default.temporaryDirectory.appending(path: "Converted/\(UUID().uuidString)", directoryHint: .isDirectory)
+        let folder = StudioTemporaryFiles.root.appending(path: "Converted/\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let output = folder.appending(path: input.deletingPathExtension().lastPathComponent + ".pdf")
         let accessing = input.startAccessingSecurityScopedResource()
         defer { if accessing { input.stopAccessingSecurityScopedResource() } }
-        let result = try await Engine.convertToPDF(input, at: output)
-        return (output, result)
+        do {
+            let result = try await Engine.convertToPDF(input, at: output)
+            return (output, result)
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
     }
 }
 

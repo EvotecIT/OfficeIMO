@@ -10,7 +10,9 @@ enum ConversionSources {
     static func newDocumentFromFile() async throws -> URL? {
         let types = try await DocumentConversion.contentTypes()
         guard let input = await DocumentPickerSession(types: types).run() else { return nil }
-        return try await DocumentConversion.convert(input).url
+        let output = try await DocumentConversion.convert(input).url
+        StudioTemporaryFiles.markReturnedOutput(output)
+        return output
     }
 }
 

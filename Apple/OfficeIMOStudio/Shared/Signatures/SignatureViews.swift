@@ -16,7 +16,10 @@ struct SignatureMenu: View {
             if !store.signatures.isEmpty {
                 Menu("Remove Signature", systemImage: "trash") {
                     ForEach(store.signatures) { signature in
-                        Button(role: .destructive) { store.remove(signature) } label: {
+                        Button(role: .destructive) {
+                            do { try store.remove(signature) }
+                            catch { session.errorMessage = error.localizedDescription }
+                        } label: {
                             Label { Text("Signature") } icon: { SignatureImage(signature: signature) }
                         }
                     }
@@ -123,7 +126,8 @@ struct SignaturePad: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         if let signature = Signature(drawn: strokes) {
-                            SignatureStore.shared.add(signature)
+                            do { try SignatureStore.shared.add(signature) }
+                            catch { session.errorMessage = error.localizedDescription; return }
                             session.beginSigning(with: signature)
                         }
                         dismiss()

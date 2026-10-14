@@ -15,8 +15,13 @@ enum ScanSources {
         panel.message = String(localized: "Choose images for the pages of a new PDF.")
         panel.prompt = String(localized: "Create PDF")
         guard panel.runModal() == .OK else { return }
-        let images = panel.urls.compactMap(ScanBuilder.image(at:))
-        make(images, newDocument)
+        do {
+            let images = try panel.urls.map { url in
+                guard let image = ScanBuilder.image(at: url) else { throw CocoaError(.fileReadCorruptFile, userInfo: [NSFilePathErrorKey: url.path]) }
+                return image
+            }
+            make(images, newDocument)
+        } catch { NSAlert(error: error).runModal() }
     }
 
     /// Makes a document from images Continuity Camera delivers.
@@ -24,11 +29,14 @@ enum ScanSources {
         let imageProviders = providers.filter { $0.canLoadObject(ofClass: NSImage.self) }
         guard !imageProviders.isEmpty else { return false }
         Task {
-            var images: [CGImage] = []
-            for provider in imageProviders {
-                if let image = await load(provider) { images.append(image) }
-            }
-            make(images, newDocument)
+            do {
+                var images: [CGImage] = []
+                for provider in imageProviders {
+                    guard let image = await load(provider) else { throw CocoaError(.fileReadCorruptFile) }
+                    images.append(image)
+                }
+                make(images, newDocument)
+            } catch { NSAlert(error: error).runModal() }
         }
         return true
     }

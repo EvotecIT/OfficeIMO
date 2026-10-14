@@ -19,9 +19,8 @@ internal sealed class StudioPreferencesService {
     /// <summary>Persists and applies a change; a failed write leaves the current preferences unchanged and throws.</summary>
     internal void Update(Func<StudioPreferences, StudioPreferences> update) {
         ArgumentNullException.ThrowIfNull(update);
-        StudioPreferences next = update(Current).Normalize();
+        StudioPreferences next = _store.Update(update);
         if (next == Current) return;
-        _store.Save(next);
         Current = next;
         Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -33,14 +32,15 @@ internal sealed class StudioPreferencesService {
     /// </summary>
     internal void UpdatePresentation(Func<StudioPreferences, StudioPreferences> update) {
         ArgumentNullException.ThrowIfNull(update);
-        StudioPreferences next = update(Current).Normalize();
-        if (next == Current) return;
+        StudioPreferences next;
         Exception? failure = null;
         try {
-            _store.Save(next);
+            next = _store.Update(update);
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            next = update(Current).Normalize();
             failure = error;
         }
+        if (next == Current && failure is null) return;
         Current = next;
         Changed?.Invoke(this, EventArgs.Empty);
         if (failure is not null) PersistenceFailed?.Invoke(this, failure);

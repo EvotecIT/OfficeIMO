@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -15,6 +16,8 @@ internal sealed class OfficeRasterImageCache {
     private readonly long _capacityBytes;
     private readonly Dictionary<Key, LinkedListNode<Entry>> _entries = new();
     private readonly LinkedList<Entry> _recent = new();
+    private readonly ConditionalWeakTable<object, SourceIdentity> _sourceIdentities = new();
+    private long _nextIdentity;
     private long _usedBytes;
 
     internal OfficeRasterImageCache(long capacityBytes) {
@@ -27,16 +30,26 @@ internal sealed class OfficeRasterImageCache {
     }
 
     /// <summary>A decoded image for its encoded bytes.</summary>
-    internal bool TryGetDecoded(byte[] encoded, out OfficeRasterImage image) => TryGet(new Key(encoded, 0, 0), out image);
+    internal bool TryGetDecoded(byte[] encoded, out OfficeRasterImage image) => TryGet(CreateKey(encoded, 0, 0), out image);
 
-    internal void AddDecoded(byte[] encoded, OfficeRasterImage image) => Add(new Key(encoded, 0, 0), image);
+    internal void AddDecoded(byte[] encoded, OfficeRasterImage image) => Add(CreateKey(encoded, 0, 0), image);
 
     /// <summary>A decoded image reduced to a sampling size.</summary>
     internal bool TryGetFiltered(OfficeRasterImage source, int width, int height, out OfficeRasterImage image) =>
-        TryGet(new Key(source, width, height), out image);
+        TryGet(CreateKey(source, width, height), out image);
 
     internal void AddFiltered(OfficeRasterImage source, int width, int height, OfficeRasterImage image) =>
-        Add(new Key(source, width, height), image);
+        Add(CreateKey(source, width, height), image);
+
+    // A derivative's identity must not retain its potentially oversized decoded source or encoded bytes.
+    private Key CreateKey(object source, int width, int height) => new(
+        _sourceIdentities.GetValue(source, _ => new SourceIdentity(Interlocked.Increment(ref _nextIdentity))).Value,
+        width, height);
+
+    private sealed class SourceIdentity {
+        internal SourceIdentity(long value) => Value = value;
+        internal long Value { get; }
+    }
 
     private bool TryGet(Key key, out OfficeRasterImage image) {
         lock (_sync) {
@@ -67,23 +80,23 @@ internal sealed class OfficeRasterImageCache {
     }
 
     private readonly struct Key : IEquatable<Key> {
-        private readonly object _source;
+        private readonly long _source;
         private readonly int _width;
         private readonly int _height;
 
-        internal Key(object source, int width, int height) {
+        internal Key(long source, int width, int height) {
             _source = source;
             _width = width;
             _height = height;
         }
 
-        public bool Equals(Key other) => ReferenceEquals(_source, other._source) && _width == other._width && _height == other._height;
+        public bool Equals(Key other) => _source == other._source && _width == other._width && _height == other._height;
 
         public override bool Equals(object? obj) => obj is Key other && Equals(other);
 
         public override int GetHashCode() {
             unchecked {
-                return (RuntimeHelpers.GetHashCode(_source) * 397 ^ _width) * 397 ^ _height;
+                return (_source.GetHashCode() * 397 ^ _width) * 397 ^ _height;
             }
         }
     }

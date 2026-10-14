@@ -82,10 +82,12 @@ struct PageText: Decodable, Sendable {
         var result = ""
         for index in range where index < count {
             let text = texts[index]
-            if index > range.lowerBound, let last = result.last, !last.isWhitespace, text.first?.isWhitespace != true {
+            if index > range.lowerBound, let last = result.last {
                 switch breaks[index] {
-                case .space: result.append(" ")
-                case .line: result.append("\n")
+                case .space:
+                    if !last.isWhitespace, text.first?.isWhitespace != true { result.append(" ") }
+                case .line:
+                    if !last.isNewline, text.first?.isNewline != true { result.append("\n") }
                 case .none: break
                 }
             }

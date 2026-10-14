@@ -21,6 +21,7 @@ public sealed partial class OcrReadinessViewModel : ObservableObject, IDisposabl
         _localizer = localizer;
         _engineFound = engineFound ?? (path => TesseractRuntime.TryDiscover(path, out _));
         if (_preferences is not null) _preferences.Changed += OnPreferencesChanged;
+        Refresh();
     }
 
     [ObservableProperty]
@@ -31,14 +32,19 @@ public sealed partial class OcrReadinessViewModel : ObservableObject, IDisposabl
     [ObservableProperty]
     private bool _canSetUp;
 
+    /// <summary>True when this distribution permits recognition and its configured runtime can be found.</summary>
+    [ObservableProperty]
+    private bool _isReady;
+
     public bool HasNotice => Notice is not null;
 
     internal void Refresh() {
         if (StudioOcrProvider.UnavailableReason is { } reason) {
-            (Notice, CanSetUp) = (reason, false);
+            (Notice, CanSetUp, IsReady) = (reason, false, false);
             return;
         }
         bool found = _engineFound(_preferences?.Current.OcrExecutablePath);
+        IsReady = found;
         (Notice, CanSetUp) = found ? (null, false) : (_localizer.Get("Ocr.Notice.EngineMissing"), true);
     }
 
@@ -49,7 +55,7 @@ public sealed partial class OcrReadinessViewModel : ObservableObject, IDisposabl
     private void SetUp() => SetUpRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnPreferencesChanged(object? sender, EventArgs e) {
-        if (HasNotice) Refresh();
+        Refresh();
     }
 
     public void Dispose() {

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -13,6 +14,7 @@ public sealed partial class MainWindowViewModel {
     private const int RenderingNoticeListedPages = 5;
     private readonly SortedSet<int> _renderingNoticePages = new();
     private bool _renderingNoticeDismissed;
+    private long _renderingNoticeRevision = -1;
 
     public bool HasRenderingNotice =>
         _renderingNoticePages.Count > 0 && !_renderingNoticeDismissed && WorkspaceMode == StudioWorkspaceMode.PdfWorkspace;
@@ -49,10 +51,20 @@ public sealed partial class MainWindowViewModel {
         UpdateRenderingNotice(page);
     }
 
-    private void ResetRenderingNotices(bool newDocument) {
+    private void ResetRenderingNotices(bool newDocument, PdfWorkspace? workspace) {
         foreach (PdfPageViewModel page in Pages) page.PropertyChanged -= OnPageRenderingNoticeChanged;
-        _renderingNoticePages.Clear();
-        if (newDocument) _renderingNoticeDismissed = false;
+        long revision = workspace?.Revision ?? -1;
+        bool pagesChanged = revision != _renderingNoticeRevision && workspace?.Journal.LastOrDefault()?.Kind is
+            PdfWorkspaceOperationKind.Reorder or PdfWorkspaceOperationKind.Delete or PdfWorkspaceOperationKind.Duplicate or
+            PdfWorkspaceOperationKind.Import or PdfWorkspaceOperationKind.InsertBlank or PdfWorkspaceOperationKind.Undo or
+            PdfWorkspaceOperationKind.Redo or PdfWorkspaceOperationKind.RecoveryRestore;
+        // Page numbers no longer identify the same content after organization or history navigation. Reassess those
+        // pages as they render; retain known notes across ordinary presentation rebuilds and page-local edits.
+        if (newDocument || pagesChanged) {
+            _renderingNoticePages.Clear();
+            if (newDocument) _renderingNoticeDismissed = false;
+        }
+        _renderingNoticeRevision = revision;
         NotifyRenderingNotice();
     }
 

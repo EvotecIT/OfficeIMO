@@ -67,7 +67,10 @@ final class DocumentSession {
     private(set) var engine: EngineDocument?
     private(set) var facts: DocumentFacts?
     private(set) var state = LoadState.loading
-    var isWorking = false
+    var needsRecoveryDecision = false
+    var isRunningOperation = false
+    private var pendingEdits = 0
+    var isWorking: Bool { isRunningOperation || pendingEdits > 0 }
     var errorMessage: String?
 
     var task = StudioTask.read
@@ -177,7 +180,7 @@ final class DocumentSession {
     @ObservationIgnored private var searchTask: Task<Void, Never>?
 
     /// Engine edits run one after another, in the order they were asked for.
-    private var edits: Task<Void, Never>?
+    var edits: Task<Void, Never>?
 
     init(document: StudioDocument) {
         self.document = document
@@ -185,17 +188,18 @@ final class DocumentSession {
 
     var revision: Int64 { facts?.revision ?? -1 }
     var pageCount: Int { facts?.pages.count ?? 0 }
-    var isReady: Bool { if case .ready = state { true } else { false } }
+    var isReady: Bool { if case .ready = state { !needsRecoveryDecision } else { false } }
 
     // MARK: Opening
 
-    func load(password: String? = nil) async {
+    func load(password: String? = nil, originalURL: URL? = nil) async {
         guard engine == nil else { return }
         state = .loading
         do {
-            let engine = try await document.openEngine(password: password)
+            let engine = try await document.openEngine(password: password, originalURL: originalURL)
             self.engine = engine
             facts = try await engine.facts()
+            needsRecoveryDecision = facts?.hasRecovery == true
             state = .ready
         } catch let error as EngineError where error.status == .passwordRequired || error.status == .invalidPassword {
             state = .needsPassword(retry: error.status == .invalidPassword)
@@ -205,6 +209,34 @@ final class DocumentSession {
     }
 
     // MARK: Navigation
+
+    func cancelOpening() {
+        needsRecoveryDecision = false
+        state = .failed(CocoaError(.userCancelled).localizedDescription)
+    }
+
+    func resolveRecovery(restore: Bool) {
+        guard let engine else { return }
+        isRunningOperation = true
+        needsRecoveryDecision = false
+        Task {
+            defer { isRunningOperation = false }
+            do {
+                try await engine.resolveRecovery(restore: restore)
+                facts = try await engine.facts()
+                if restore {
+                    registerUndo(String(localized: "Restore Changes"), steps: 1)
+                    document.objectWillChange.send()
+                }
+            } catch { state = .failed(error.localizedDescription) }
+        }
+    }
+
+    func updateOriginalURL(_ url: URL?) async {
+        guard let engine else { return }
+        do { try await engine.setRecoveryIdentity(StudioDocument.recoveryIdentity(for: url)) }
+        catch { errorMessage = error.localizedDescription }
+    }
 
     func show(page: Int) {
         guard (1...max(pageCount, 1)).contains(page) else { return }
@@ -227,111 +259,17 @@ final class DocumentSession {
 
     // MARK: Editing
 
-    var canEditPages: Bool { isReady && facts?.canMutatePages != false }
-    var canEditAnnotations: Bool { isReady && facts?.canEditAnnotations != false }
-    var canExtractPages: Bool { isReady && facts?.canExtractPages != false }
-    var canImportPages: Bool { isReady && facts?.canImportPages != false }
+    var canEditPages: Bool { isReady && !isWorking && facts?.canMutatePages == true }
+    var canRotatePages: Bool { isReady && !isWorking && facts?.canRotatePages == true }
+    var canInsertBlankPages: Bool { isReady && !isWorking && facts?.canInsertBlankPages == true }
+    var canEditAnnotations: Bool { isReady && !isWorking && facts?.canEditAnnotations == true }
+    var canExtractPages: Bool { isReady && !isWorking && facts?.canExtractPages == true }
+    var canImportPages: Bool { isReady && !isWorking && facts?.canImportPages == true }
     var canMakeSearchable: Bool { isReady && !isWorking && facts?.canMakeSearchable != false }
 
     /// The pages a page command applies to: the selection in the Pages task, otherwise the current page.
     var targetPages: [Int] {
         task == .pages && !selection.isEmpty ? selection.sorted() : [currentPage]
-    }
-
-    func rotate(_ pages: [Int], degrees: Int) {
-        guard !pages.isEmpty else { return }
-        edit(degrees < 0 ? String(localized: "Rotate Left") : String(localized: "Rotate Right")) { try await $0.rotatePages(pages, degrees: degrees) }
-    }
-
-    /// Deletes pages; a document keeps at least one.
-    func delete(_ pages: [Int]) {
-        guard !pages.isEmpty, pages.count < pageCount else { return }
-        let remaining = pageCount - pages.count
-        edit(pages.count == 1 ? String(localized: "Delete Page") : String(localized: "Delete Pages")) { try await $0.deletePages(pages) } then: { session in
-            session.selection = []
-            session.currentPage = min(session.currentPage, remaining)
-        }
-    }
-
-    /// Duplicates pages; each copy follows its page, and the copies become the selection.
-    func duplicate(_ pages: [Int]) {
-        let pages = pages.sorted()
-        guard !pages.isEmpty else { return }
-        // Each copy lands after its page, shifted by the copies inserted before it.
-        let copies = Set(pages.enumerated().map { index, page in page + index + 1 })
-        edit(pages.count == 1 ? String(localized: "Duplicate Page") : String(localized: "Duplicate Pages")) { try await $0.duplicatePages(pages) } then: { session in
-            session.selection = copies
-        }
-    }
-
-    /// Moves pages, in their current order, before a page, or to the end with the page count + 1.
-    func move(_ pages: [Int], before target: Int) {
-        let moving = pages.sorted()
-        let count = pageCount
-        guard !moving.isEmpty, (1...count + 1).contains(target) else { return }
-        let set = Set(moving)
-        var order = (1...count).filter { !set.contains($0) }
-        let position = order.firstIndex { $0 >= target } ?? order.count
-        order.insert(contentsOf: moving, at: position)
-        guard order != Array(1...count) else { return }
-        let moved = Set((position + 1)...(position + moving.count))
-        let newOrder = order
-        edit(moving.count == 1 ? String(localized: "Move Page") : String(localized: "Move Pages")) { try await $0.reorderPages(newOrder) } then: { session in
-            session.selection = moved
-        }
-    }
-
-    /// Inserts a blank page the size of the page it follows, after the last target page.
-    func insertBlankPage() {
-        guard let facts, let after = targetPages.last, facts.pages.indices.contains(after - 1) else { return }
-        let size = facts.pages[after - 1].displaySize
-        edit(String(localized: "Insert Blank Page")) {
-            try await $0.insertBlankPage(before: after + 1, width: size.width, height: size.height)
-        } then: { session in
-            session.selection = [after + 1]
-            session.show(page: after + 1)
-        }
-    }
-
-    /// Inserts the pages of files the user chose after the target pages, as one undoable change: PDFs, images and
-    /// documents the engine converts, which become PDFs first.
-    func importPages(from urls: [URL]) {
-        guard !urls.isEmpty, let after = targetPages.last else { return }
-        Task {
-            isWorking = true
-            var sources: [ImportSource] = []
-            do {
-                for url in urls { sources.append(ImportSource(url: try await PageSources.pdf(for: url))) }
-            } catch {
-                isWorking = false
-                errorMessage = error.localizedDescription
-                return
-            }
-            isWorking = false
-            importPages(sources, before: after + 1)
-        }
-    }
-
-    /// Supplies the password a pending import asked for and tries again.
-    func continueImport(password: String) {
-        guard var pending = pendingImport else { return }
-        pendingImport = nil
-        pending.sources[pending.needed.source].password = password
-        importPages(pending.sources, before: pending.before)
-    }
-
-    private func importPages(_ sources: [ImportSource], before page: Int) {
-        let pagesBefore = pageCount
-        edit(String(localized: "Insert Pages")) {
-            _ = try await $0.importPages(sources, before: page)
-        } then: { session in
-            let inserted = session.pageCount - pagesBefore
-            guard inserted > 0 else { return }
-            session.selection = Set(page..<(page + inserted))
-            session.show(page: page)
-        } passwordNeeded: { [weak self] needed in
-            self?.pendingImport = PendingImport(sources: sources, before: page, needed: needed)
-        }
     }
 
     /// Reads the pages' text with Vision and adds it to the document, so scanned pages can be searched, selected and
@@ -364,16 +302,17 @@ final class DocumentSession {
         guard let engine, !pages.isEmpty else { return }
         let base = (facts?.fileName as NSString?)?.deletingPathExtension ?? "Document"
         let name = pages.count == 1 ? String(localized: "\(base) – Page \(pages[0]).pdf") : String(localized: "\(base) – \(pages.count) Pages.pdf")
-        let folder = FileManager.default.temporaryDirectory.appending(path: "Extracted/\(UUID().uuidString)", directoryHint: .isDirectory)
+        let folder = StudioTemporaryFiles.root.appending(path: "Extracted/\(UUID().uuidString)", directoryHint: .isDirectory)
         let url = folder.appending(path: name)
-        isWorking = true
+        isRunningOperation = true
         Task {
-            defer { isWorking = false }
+            defer { isRunningOperation = false }
             do {
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                 try await engine.extractPages(pages, to: url)
                 extractedPages = ExtractedPages(url: url, document: try ExtractedPDF(url: url))
             } catch {
+                try? FileManager.default.removeItem(at: folder)
                 errorMessage = error.localizedDescription
             }
         }
@@ -395,7 +334,13 @@ final class DocumentSession {
         if let text = pageText(page) { return text }
         guard let engine, canCopyText, (1...max(pageCount, 1)).contains(page) else { return nil }
         if let load = pageTextLoads[page] { return await load.value }
-        let load = Task<PageText?, Never> { try? await engine.pageText(page: page) }
+        let load = Task<PageText?, Never> {
+            do { return try await engine.pageText(page: page) }
+            catch {
+                if !Task.isCancelled { errorMessage = error.localizedDescription }
+                return nil
+            }
+        }
         pageTextLoads[page] = load
         let text = await load.value
         pageTextLoads[page] = nil
@@ -454,17 +399,7 @@ final class DocumentSession {
     func addMarkup(_ requests: [AnnotationRequest], name: String, then: ((DocumentSession) -> Void)? = nil,
                    failed: (() -> Void)? = nil) {
         guard !requests.isEmpty else { return }
-        edit(name, steps: requests.count, { engine in
-            for (index, request) in requests.enumerated() {
-                do {
-                    try await engine.addAnnotation(request)
-                } catch {
-                    // Additions that went through are taken back, so the drawing stays one change or none.
-                    for _ in 0..<index { try? await engine.undo() }
-                    throw error
-                }
-            }
-        }, then: then, failed: failed)
+        edit(name, { try await $0.addAnnotations(requests) }, then: then, failed: failed)
     }
 
     /// Asks the page view to add its pending drawing, as Done and leaving the task do.
@@ -480,15 +415,17 @@ final class DocumentSession {
         addMarkup([request], name: String(localized: "Add Note"))
     }
 
-    var canUndoEdit: Bool { (hasPendingMarkup && markupUndoManager?.canUndo == true) || facts?.canUndo == true }
-    var canRedoEdit: Bool { (hasPendingMarkup && markupUndoManager?.canRedo == true) || facts?.canRedo == true }
+    var canUndoEdit: Bool { !isWorking && ((hasPendingMarkup && markupUndoManager?.canUndo == true) || facts?.canUndo == true) }
+    var canRedoEdit: Bool { !isWorking && ((hasPendingMarkup && markupUndoManager?.canRedo == true) || facts?.canRedo == true) }
 
     /// Undo acts on the pending drawing first, then on the document, as ⌘Z does from the canvas.
     func undoEdit() {
+        guard !isWorking else { return }
         if hasPendingMarkup, let markup = markupUndoManager, markup.canUndo { markup.undo() } else { undoManager?.undo() }
     }
 
     func redoEdit() {
+        guard !isWorking else { return }
         if hasPendingMarkup, let markup = markupUndoManager, markup.canRedo { markup.redo() } else { undoManager?.redo() }
     }
 
@@ -499,7 +436,12 @@ final class DocumentSession {
         }
         let page = currentPage
         guard pageAnnotations?.page != page || pageAnnotations?.revision != revision else { return }
-        pageAnnotations = try? await engine.annotations(page: page)
+        do {
+            let annotations = try await engine.annotations(page: page)
+            if annotations.revision == revision && page == currentPage { pageAnnotations = annotations }
+        } catch {
+            if !Task.isCancelled { errorMessage = error.localizedDescription }
+        }
     }
 
     func removeAnnotation(_ annotation: AnnotationList.Annotation) {
@@ -558,13 +500,18 @@ final class DocumentSession {
                          succeeded: ((DocumentSession) -> Void)? = nil) {
         guard let engine else { return }
         let previous = edits
-        isWorking = true
+        pendingEdits += 1
         edits = Task {
+            defer { pendingEdits -= 1 }
             await previous?.value
             do {
+                try Task.checkCancellation()
                 try await edit(engine)
                 facts = try await engine.facts()
+                currentPage = min(max(currentPage, 1), max(pageCount, 1))
+                selection = selection.filter { (1...max(pageCount, 1)).contains($0) }
                 if textSelection?.revision != revision { textSelection = nil }
+                document.objectWillChange.send()
                 succeeded?(self)
                 if searchResult != nil { runSearch() }
             } catch let needed as ImportPasswordNeeded where passwordNeeded != nil {
@@ -582,7 +529,6 @@ final class DocumentSession {
                 failed?()
                 errorMessage = error.localizedDescription
             }
-            isWorking = false
         }
     }
 
@@ -762,12 +708,6 @@ extension FocusedValues {
 }
 
 /// An import waiting for a password: what to import, where, and which PDF needs it.
-struct PendingImport: Identifiable {
-    let id = UUID()
-    var sources: [ImportSource]
-    let before: Int
-    let needed: ImportPasswordNeeded
-}
 
 /// Which page Make Searchable is reading, from 1; 0 before the first.
 struct RecognitionProgress: Equatable {

@@ -78,8 +78,7 @@ public sealed class StudioViewRotationInteractionTests {
                 canvas = await Canvas();
                 var annotation = canvas.Scene!.Interactions!.Regions.Single(region => region.Kind == PdfInteractionKind.Annotation);
                 Point movedCenter = At((annotation.Quad.Left + annotation.Quad.Right) / 2, (annotation.Quad.Top + annotation.Quad.Bottom) / 2);
-                window.MouseDown(movedCenter, MouseButton.Left);
-                window.MouseUp(movedCenter, MouseButton.Left);
+                Assert.NotNull(canvas.SelectedObject);
                 bounds = canvas.SelectedObject!.Bounds;
                 Point centerAfter = At(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2);
                 double pointScale = canvas.Bounds.Width / canvas.Scene!.Drawing.Width;

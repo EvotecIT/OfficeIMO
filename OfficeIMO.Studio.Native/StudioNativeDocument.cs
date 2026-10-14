@@ -28,9 +28,10 @@ internal sealed partial class StudioNativeDocument : IDisposable {
     /// Opens a PDF the host can currently read. On Apple platforms the host resolves the security-scoped URL and keeps
     /// access open for the duration of each call that reads or writes the file.
     /// </summary>
-    internal static async Task<StudioNativeDocument> OpenAsync(string path, string? password, CancellationToken cancellationToken) {
+    internal static async Task<StudioNativeDocument> OpenAsync(string path, string? password, CancellationToken cancellationToken, string? recoveryIdentity = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A document path is required.", nameof(path));
-        PdfWorkspace workspace = await PdfWorkspace.OpenAsync(path, cancellationToken, StudioNativeEngine.CreateRecoveryStore(), password).ConfigureAwait(false);
+        PdfWorkspace workspace = await PdfWorkspace.OpenAsync(path, cancellationToken, StudioNativeEngine.CreateRecoveryStore(), password,
+            recoveryIdentity: recoveryIdentity).ConfigureAwait(false);
         return new StudioNativeDocument(workspace);
     }
 
@@ -40,7 +41,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             PdfDocumentViewInfo view = _workspace.ViewInfo;
             return new StudioNativeDocumentInfo(
                 StudioNativeAbi.Version, _workspace.FileName, _workspace.Path, _workspace.FileSize, _workspace.Revision,
-                _workspace.IsDirty, _workspace.CanUndo, _workspace.CanRedo, _workspace.RecoveryPath is not null, view.CanExtractText, view.CanExtractContent,
+                _workspace.IsDirty, _workspace.CanUndo, _workspace.CanRedo, _workspace.HasRecovery, view.CanExtractText, view.CanExtractContent,
                 _workspace.Pages.Select(page => {
                     (double width, double height) = PdfDocumentSession.GetPhysicalSize(page);
                     return new StudioNativePageInfo(page.PageNumber, width, height, page.RotationDegrees);
@@ -48,7 +49,10 @@ internal sealed partial class StudioNativeDocument : IDisposable {
                 StudioPdfSecurityPolicy.MaximumRasterPixels, _workspace.CanMutatePages, _workspace.CanExtractPages, _workspace.CanEditAnnotations,
                 !view.Security.HasEncryption || view.Security.HasOwnerAuthorization || view.Security.AllowsPrinting == true,
                 _workspace.CanImportPages, _workspace.CanEditPageContent && view.CanExtractText, _workspace.CanFillForms,
-                _workspace.IsEncrypted, _workspace.CanChangeEncryption(null), _workspace.CanSign);
+                _workspace.IsEncrypted, _workspace.CanChangeEncryption(null), _workspace.CanSign, _workspace.CanRotatePages,
+                _workspace.CanInsertBlankPages,
+                view.Security.HasEncryption && !view.Security.HasOwnerAuthorization && view.Security.AllowsHighQualityPrinting != true ? 150D : null,
+                _workspace.RequiresOwnerPasswordForEncryption);
         } finally { _gate.Release(); }
     }
 
@@ -116,7 +120,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
     internal Task ExtractPagesAsync(IReadOnlyList<int> pageNumbers, string path, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination is required.", nameof(path));
         // The local path keeps the workflow runner, and the conversions it roots, out of the NativeAOT library.
-        return RunAsync(() => _workspace.ExtractToLocalFileAsync(RequirePages(pageNumbers), path, cancellationToken), cancellationToken);
+        return RunAsync(() => _workspace.ExtractToLocalFileAsync(RequirePages(pageNumbers, preserveDuplicates: true), path, cancellationToken), cancellationToken);
     }
 
     /// <summary>
@@ -283,7 +287,25 @@ internal sealed partial class StudioNativeDocument : IDisposable {
     /// Adds a markup annotation as one undoable change. Geometry is in points of the page as displayed, from its
     /// top-left corner; the workspace maps it to the page's own space through its box, rotation and user unit.
     /// </summary>
-    internal Task AddAnnotationAsync(StudioNativeAnnotationRequest request, CancellationToken cancellationToken) {
+    internal Task AddAnnotationAsync(StudioNativeAnnotationRequest request, CancellationToken cancellationToken) =>
+        AddAnnotationsAsync([request], cancellationToken);
+
+    internal Task AddAnnotationsAsync(IReadOnlyList<StudioNativeAnnotationRequest> requests, CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(requests);
+        var captured = requests.ToArray();
+        var prepared = captured.Select(PrepareAnnotation).ToArray();
+        return RunAsync(() => {
+            foreach (var request in captured) {
+                if (request.Page < 1 || request.Page > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(requests), "The page does not exist.");
+                if (request.LinkPage is { } target && (target < 1 || target > _workspace.Pages.Count))
+                    throw new ArgumentOutOfRangeException(nameof(requests), "The link's page does not exist.");
+            }
+            if (!_workspace.CanEditAnnotations) throw new NotSupportedException("This document's annotations can't be changed.");
+            return _workspace.AddMarkupAsync(prepared, cancellationToken);
+        }, cancellationToken);
+    }
+
+    private static (PdfEditorTool Tool, PdfEditorGesture Gesture, PdfEditorProperties Properties) PrepareAnnotation(StudioNativeAnnotationRequest request) {
         ArgumentNullException.ThrowIfNull(request);
         if (!Enum.TryParse(request.Tool, ignoreCase: true, out PdfEditorTool tool) || !AnnotationTools.Contains(tool))
             throw new ArgumentException($"'{request.Tool}' is not a markup tool.", nameof(request));
@@ -323,13 +345,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         var properties = new PdfEditorProperties(request.Text ?? string.Empty, request.Author ?? string.Empty,
             new PdfColor(color.Red, color.Green, color.Blue), stamp, linkUri, request.FontSize ?? 12D,
             LinkPageNumber: request.LinkPage, StrokeWidth: width, Opacity: request.Opacity, LineEndEnding: request.LineEnd);
-        return RunAsync(() => {
-            if (request.Page < 1 || request.Page > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(request), "The page does not exist.");
-            if (request.LinkPage is { } target && (target < 1 || target > _workspace.Pages.Count))
-                throw new ArgumentOutOfRangeException(nameof(request), "The link's page does not exist.");
-            if (!_workspace.CanEditAnnotations) throw new NotSupportedException("This document's annotations can't be changed.");
-            return _workspace.ApplyEditorGestureAsync(tool, gesture, properties, cancellationToken);
-        }, cancellationToken);
+        return (tool, gesture, properties);
     }
 
     /// <summary>The markup annotations on a page, with rectangles in points of the page as displayed.</summary>
@@ -373,14 +389,8 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             if (!(Finite(bounds.Width) > 0D && Finite(bounds.Height) > 0D)) throw new ArgumentException("An annotation needs a width and a height.", nameof(update));
             return RunAsync(() => SetAnnotationBoundsAsync(update.ObjectNumber, bounds, cancellationToken), cancellationToken);
         }
-        return RunAsync(() => {
-            PdfAnnotation current = _workspace.AnnotationMetadata.FirstOrDefault(annotation => annotation.ObjectNumber == update.ObjectNumber)
-                ?? throw new ArgumentException("The annotation does not exist.", nameof(update));
-            PdfColor color = update.Color is { } given ? new PdfColor(given.Red, given.Green, given.Blue)
-                : current.Color is { Count: 3 } rgb ? new PdfColor(rgb[0], rgb[1], rgb[2]) : new PdfColor(1D, 0.85D, 0D);
-            return _workspace.UpdateAnnotationAsync(update.ObjectNumber, update.Contents ?? current.Contents ?? string.Empty,
-                update.Author ?? current.Title ?? string.Empty, color, cancellationToken);
-        }, cancellationToken);
+        return RunAsync(() => _workspace.UpdateAnnotationAsync(update.ObjectNumber, update.Contents, update.Author,
+            update.Color is { } given ? new PdfColor(given.Red, given.Green, given.Blue) : null, cancellationToken), cancellationToken);
     }
 
     /// <summary>
@@ -559,11 +569,11 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         return _session;
     }
 
-    private int[] RequirePages(IReadOnlyList<int> pageNumbers) {
+    private int[] RequirePages(IReadOnlyList<int> pageNumbers, bool preserveDuplicates = false) {
         if (pageNumbers.Count == 0) throw new ArgumentException("Choose at least one page.", nameof(pageNumbers));
         int count = _workspace.Pages.Count;
         if (pageNumbers.Any(page => page < 1 || page > count)) throw new ArgumentOutOfRangeException(nameof(pageNumbers), "The page does not exist.");
-        return pageNumbers.Distinct().Order().ToArray();
+        return preserveDuplicates ? pageNumbers.ToArray() : pageNumbers.Distinct().ToArray();
     }
 
     private async Task RunAsync(Func<Task> operation, CancellationToken cancellationToken) {
@@ -602,7 +612,8 @@ internal sealed record StudioNativeDocumentInfo(
     int AbiVersion, string FileName, string Path, long FileSize, long Revision, bool IsDirty, bool CanUndo, bool CanRedo, bool HasRecovery,
     bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages, long MaxRenderPixels, bool CanMutatePages,
     bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages, bool CanMakeSearchable, bool CanFillForms,
-    bool IsEncrypted, bool CanChangeProtection, bool CanSign);
+    bool IsEncrypted, bool CanChangeProtection, bool CanSign, bool CanRotatePages, bool CanInsertBlankPages,
+    double? MaxPrintDpi, bool RequiresOwnerPasswordForProtection);
 
 internal sealed record StudioNativePageInfo(int Number, double Width, double Height, int Rotation);
 

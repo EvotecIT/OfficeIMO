@@ -20,6 +20,7 @@ enum ConversionSources {
                 withExtendedLifetime(filter) {}
                 guard response == .OK, let input = panel.url else { return }
                 let converted = try await DocumentConversion.convert(input)
+                defer { StudioTemporaryFiles.removeGeneratedPDF(converted.url) }
                 let document = try StudioDocument(contentsOf: converted.url)
                 newDocument { document }
             } catch {

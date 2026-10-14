@@ -23,11 +23,12 @@ internal sealed partial class StudioNativeDocument {
             IReadOnlyList<StudioNativeOutlineItem> outline = Outline(_workspace.DocumentInfo?.Outlines ?? [], editable: true, ref nextId);
             StudioNativeAttachment[] attachments = _workspace.Attachments
                 .Select(static attachment => new StudioNativeAttachment(attachment.UnicodeFileName ?? attachment.FileName, attachment.SizeBytes,
-                    attachment.Description, attachment.MimeType)).ToArray();
+                    attachment.Description, attachment.MimeType, AttachmentId(attachment))).ToArray();
             bool hasForms = _workspace.CreateDocumentSnapshot().Inspect().FormFields.Count > 0;
             return new StudioNativeStructure(StudioNativeAbi.Version, _workspace.Revision, properties, _workspace.CanEditMetadata, outline,
-                _workspace.CanEditBookmarks, attachments, _workspace.CanEditAttachments, _workspace.CanCropPages, _workspace.CanMutatePages,
-                _workspace.CanEditPageContent, hasForms, hasForms && _workspace.CanFlattenForms, HasMarkup() && _workspace.CanEditAnnotations);
+                _workspace.CanEditBookmarks, attachments, _workspace.CanEditAttachments, _workspace.CanCropPages, _workspace.CanResizePages,
+                _workspace.CanEditPageContent, hasForms, hasForms && _workspace.CanFlattenForms, HasMarkup() && _workspace.CanEditAnnotations,
+                _workspace.CanRedact);
         } finally { _gate.Release(); }
 
         static string? Timestamp(DateTimeOffset? value) => value?.ToString("o", CultureInfo.InvariantCulture);
@@ -127,7 +128,7 @@ internal sealed partial class StudioNativeDocument {
 
     private Task Crop(StudioNativeCropEdit crop, CancellationToken cancellationToken) {
         if (!_workspace.CanCropPages) throw new NotSupportedException("This document's pages can't be cropped.");
-        int[] pages = RequirePages(crop.Pages ?? []);
+        int[] pages = AllOrChosenPages(crop.Pages);
         foreach (int page in pages) {
             (double width, double height) = DisplayedSize(page);
             if (crop.Left + crop.Right >= width - 1D || crop.Top + crop.Bottom >= height - 1D)
@@ -137,20 +138,23 @@ internal sealed partial class StudioNativeDocument {
     }
 
     private (double Width, double Height) DisplayedSize(int page) {
-        (double width, double height) = PdfDocumentSession.GetPhysicalSize(_workspace.Pages[page - 1]);
+        (double width, double height) = CurrentSession().GetDisplaySize(page);
         return (width, height);
     }
 
     private Task Resize(StudioNativePageSizeEdit size, CancellationToken cancellationToken) {
-        if (!_workspace.CanMutatePages) throw new NotSupportedException("This document's pages can't be resized.");
+        if (!_workspace.CanResizePages) throw new NotSupportedException("This document's pages can't be resized.");
         if (!double.IsFinite(size.Width) || !double.IsFinite(size.Height) || size.Width < 72D || size.Height < 72D || size.Width > 14400D || size.Height > 14400D)
             throw new ArgumentOutOfRangeException(nameof(size), "A page is between 72 and 14,400 points on each side.");
         PdfPageResizeMode mode = size.Mode switch {
             null or "fit" => PdfPageResizeMode.Fit, "fill" => PdfPageResizeMode.Fill, "stretch" => PdfPageResizeMode.Stretch,
             _ => throw new ArgumentException($"“{size.Mode}” isn't a way to fit content.", nameof(size))
         };
-        return _workspace.ResizePagesAsync(RequirePages(size.Pages ?? []), new PageSize(size.Width, size.Height), mode, cancellationToken);
+        return _workspace.ResizePagesAsync(AllOrChosenPages(size.Pages), new PageSize(size.Width, size.Height), mode, cancellationToken);
     }
+
+    private int[] AllOrChosenPages(IReadOnlyList<int>? pages) => pages is { Count: > 0 }
+        ? RequirePages(pages) : Enumerable.Range(1, _workspace.Pages.Count).ToArray();
 
     private Task StampHeaderFooter(StudioNativeHeaderFooterEdit edit, CancellationToken cancellationToken) {
         RequirePageContent();
@@ -223,9 +227,17 @@ internal sealed partial class StudioNativeDocument {
         return _workspace.RemoveAttachmentAsync(FindAttachment(fileName), cancellationToken);
     }
 
-    private PdfAttachmentInfo FindAttachment(string fileName) =>
-        _workspace.Attachments.FirstOrDefault(item => string.Equals(item.UnicodeFileName ?? item.FileName, fileName, StringComparison.Ordinal))
-        ?? throw new ArgumentException($"The document has no attachment “{fileName}”.", nameof(fileName));
+    private static string AttachmentId(PdfAttachmentInfo attachment) =>
+        $"attachment:{attachment.FileSpecObjectNumber}:{attachment.Source}:{attachment.Name}";
+
+    private PdfAttachmentInfo FindAttachment(string identifier) {
+        PdfAttachmentInfo? identified = _workspace.Attachments.FirstOrDefault(item => AttachmentId(item) == identifier);
+        if (identified is not null) return identified;
+        PdfAttachmentInfo[] matches = _workspace.Attachments.Where(item =>
+            string.Equals(item.UnicodeFileName ?? item.FileName, identifier, StringComparison.Ordinal)).ToArray();
+        return matches.Length == 1 ? matches[0] : throw new ArgumentException(matches.Length == 0
+            ? $"The document has no attachment “{identifier}”." : "Choose an attachment by its identifier; this filename is shared by several attachments.", nameof(identifier));
+    }
 
     private void RequirePageContent() {
         if (!_workspace.CanEditPageContent) throw new NotSupportedException("This document's pages can't be stamped.");
@@ -248,11 +260,10 @@ internal sealed partial class StudioNativeDocument {
             .Count(static output => output is not null);
         if (named != 1) throw new ArgumentException("Name exactly one output.", nameof(request));
         StudioNativeHealthCopy? health = request.Optimize ?? request.Repair ?? request.Sanitize;
-        if (health?.Path is { } healthPath && string.Equals(Path.GetFullPath(healthPath), Path.GetFullPath(_workspace.Path), StringComparison.Ordinal))
-            throw new ArgumentException("Write the copy to another file than the document.", nameof(request));
         await EnterAsync(cancellationToken).ConfigureAwait(false);
         try {
             if (health is not null) {
+                health = health with { Path = _workspace.ValidateCopyDestination(health.Path!) };
                 string kind = request.Optimize is not null ? "optimize" : request.Repair is not null ? "repair" : "sanitize";
                 (IReadOnlyList<string> copies, string summary) = await WriteHealthCopyAsync(health, kind, cancellationToken).ConfigureAwait(false);
                 return new StudioNativeWriteResult(StudioNativeAbi.Version, _workspace.Revision, copies, summary);
@@ -290,9 +301,17 @@ internal sealed partial class StudioNativeDocument {
             cancellationToken.ThrowIfCancellationRequested();
             int[] pages = RequirePages(parts[index].Pages ?? []);
             string name = SafeFileName(parts[index].Name) ?? $"{baseName} {Describe(pages)}";
-            string path = FreePath(split.Directory, name, taken);
-            await _workspace.ExtractToLocalFileAsync(pages, path, cancellationToken).ConfigureAwait(false);
-            written.Add(path);
+            while (true) {
+                string path = FreePath(split.Directory, name, taken);
+                try {
+                    await _workspace.ExtractToLocalFileAsync(pages, path, cancellationToken, replaceExisting: false).ConfigureAwait(false);
+                    written.Add(path);
+                    break;
+                } catch (IOException) when (File.Exists(path)) {
+                    // Another writer took this name after selection. Publication never replaced it; try the next name.
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+            }
         }
         return written;
 
@@ -318,7 +337,7 @@ internal sealed partial class StudioNativeDocument {
 
     private async Task<IReadOnlyList<string>> SaveAttachmentAsync(StudioNativeAttachmentSave save, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(save.Path)) throw new ArgumentException("A destination is required.", nameof(save));
-        await _workspace.SaveAttachmentAsync(FindAttachment(save.FileName ?? string.Empty), save.Path, cancellationToken).ConfigureAwait(false);
+        await _workspace.SaveAttachmentAsync(FindAttachment(save.Id ?? save.FileName ?? string.Empty), save.Path, cancellationToken).ConfigureAwait(false);
         return [save.Path];
     }
 
@@ -361,11 +380,12 @@ internal sealed record StudioNativeProperties(string? Title, string? Author, str
 /// <summary>An outline entry; entries without an id have no page and can't be changed, nor can their children.</summary>
 internal sealed record StudioNativeOutlineItem(string? Id, string Title, int? Page, IReadOnlyList<StudioNativeOutlineItem> Children);
 
-internal sealed record StudioNativeAttachment(string FileName, long Size, string? Description, string? MimeType);
+internal sealed record StudioNativeAttachment(string FileName, long Size, string? Description, string? MimeType, string Id);
 
 internal sealed record StudioNativeStructure(int AbiVersion, long Revision, StudioNativeProperties Properties, bool CanEditProperties,
     IReadOnlyList<StudioNativeOutlineItem> Outline, bool CanEditOutline, IReadOnlyList<StudioNativeAttachment> Attachments,
-    bool CanEditAttachments, bool CanCrop, bool CanResize, bool CanStampPages, bool HasForms, bool CanFlattenForms, bool CanFlattenMarkup);
+    bool CanEditAttachments, bool CanCrop, bool CanResize, bool CanStampPages, bool HasForms, bool CanFlattenForms, bool CanFlattenMarkup,
+    bool CanRedact);
 
 /// <summary>One bookmark change: <c>op</c> is add, rename, remove, move, retarget or rebuild.</summary>
 internal sealed record StudioNativeOutlineEdit(string Op, string? Id = null, string? Title = null, int? Page = null, string? ParentId = null,
@@ -404,7 +424,7 @@ internal sealed record StudioNativeSplitPart(IReadOnlyList<int>? Pages, string? 
 /// <summary>Parts written into <c>directory</c>: every <c>pagesPerPart</c> pages, or the listed parts, such as one per top-level bookmark.</summary>
 internal sealed record StudioNativeSplit(string? Directory, int? PagesPerPart = null, IReadOnlyList<StudioNativeSplitPart>? Parts = null);
 
-internal sealed record StudioNativeAttachmentSave(string? FileName, string? Path);
+internal sealed record StudioNativeAttachmentSave(string? FileName, string? Path, string? Id = null);
 
 /// <summary>The document's text as <c>text</c>, <c>markdown</c> or structured <c>json</c>.</summary>
 internal sealed record StudioNativeExport(string? Format, string? Path);

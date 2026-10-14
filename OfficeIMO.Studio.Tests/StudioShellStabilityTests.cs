@@ -99,9 +99,8 @@ public sealed class StudioShellStabilityTests {
             PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
         Task connected = stalled.WaitForConnectionAsync();
         using StudioSingleInstance later = AcquireFromAnotherLaunch(name);
-        var clock = System.Diagnostics.Stopwatch.StartNew();
-        Assert.False(await Task.Run(() => later.TryForward([Path.Combine(Path.GetTempPath(), "stalled.pdf")], TimeSpan.FromMilliseconds(500))));
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(5));
+        Assert.False(await Task.Run(() => later.TryForward([Path.Combine(Path.GetTempPath(), "stalled.pdf")], TimeSpan.FromMilliseconds(500)))
+            .WaitAsync(TimeSpan.FromSeconds(5)));
         await connected.WaitAsync(TimeSpan.FromSeconds(5));
     }
 

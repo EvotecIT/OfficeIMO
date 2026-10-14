@@ -66,6 +66,22 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.Equal(90, (await reopened.GetInfoAsync(default)).Pages[0].Rotation);
     }
 
+    [Fact]
+    public async Task A_drawing_is_atomic_and_has_one_undo_entry() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePdf(), null, default);
+        var note = new StudioNativeAnnotationRequest("Note", 1, new StudioNativeRectangle(10, 10, 25, 25), Text: "First");
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.AddAnnotationsAsync([note, note with { Page = 99 }], default));
+        Assert.False((await document.GetInfoAsync(default)).IsDirty);
+        Assert.Empty((await document.GetAnnotationsAsync(1, default)).Annotations);
+        await document.AddAnnotationsAsync([note, note with { Page = 2, Text = "Second" }], default);
+        Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations);
+        Assert.Single((await document.GetAnnotationsAsync(2, default)).Annotations);
+        await document.UndoAsync(default);
+        Assert.Empty((await document.GetAnnotationsAsync(1, default)).Annotations);
+        Assert.Empty((await document.GetAnnotationsAsync(2, default)).Annotations);
+        Assert.False((await document.GetInfoAsync(default)).CanUndo);
+    }
+
     // Pages of distinct widths, so a page's width identifies it after an edit.
     private string CreatePagesOfWidths(params double[] widths) => CreatePagesOfWidthsAt("widths.pdf", widths);
 
@@ -358,10 +374,10 @@ public sealed class StudioNativeEngineTests : IDisposable {
         long revision = (await document.GetInfoAsync(default)).Revision;
         string extracted = Path.Combine(_root, "extracted.pdf");
 
-        await document.ExtractPagesAsync([3, 1], extracted, default);
+        await document.ExtractPagesAsync([3, 1, 3], extracted, default);
 
         using StudioNativeDocument copy = await StudioNativeDocument.OpenAsync(extracted, null, default);
-        Assert.Equal(new[] { 300D, 320D }, await WidthsAsync(copy));
+        Assert.Equal(new[] { 320D, 300D, 320D }, await WidthsAsync(copy));
         StudioNativeDocumentInfo info = await document.GetInfoAsync(default);
         Assert.Equal(revision, info.Revision);
         Assert.False(info.IsDirty);

@@ -96,10 +96,7 @@ public sealed partial class MainWindow {
                     ShowIntakeError(_services.Localizer.Get("Activation.Unsupported"));
                     continue;
                 }
-                if (!ViewModel.CanStartDocumentTransition || (!isPdf && !ViewModel.ConversionWorkbench.CanEditQueue)) {
-                    ShowIntakeError(_services.Localizer.Get("Activation.Busy"));
-                    continue;
-                }
+                if (!await WaitForForwardedIntakeAsync(isPdf)) return;
                 try {
                     if (isPdf) {
                         await TabHost.OpenDocumentAsync(path);
@@ -120,8 +117,35 @@ public sealed partial class MainWindow {
         ? StringComparer.OrdinalIgnoreCase
         : StringComparer.Ordinal;
 
+    // The pipe already acknowledged these files. Keep them until the current operation releases the workspace.
+    private async Task<bool> WaitForForwardedIntakeAsync(bool isPdf) {
+        while (!_windowClosed) {
+            MainWindowViewModel document = ViewModel;
+            var conversion = document.ConversionWorkbench;
+            bool Ready() => document.CanStartDocumentTransition && (isPdf || conversion.CanEditQueue);
+            if (Ready()) return true;
+            var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            System.ComponentModel.PropertyChangedEventHandler wake = (_, _) => changed.TrySetResult();
+            EventHandler closed = (_, _) => changed.TrySetResult();
+            document.PropertyChanged += wake;
+            conversion.PropertyChanged += wake;
+            TabHost.PropertyChanged += wake;
+            Closed += closed;
+            try {
+                if (_windowClosed || !ReferenceEquals(document, ViewModel) || Ready()) changed.TrySetResult();
+                await changed.Task;
+            } finally {
+                document.PropertyChanged -= wake;
+                conversion.PropertyChanged -= wake;
+                TabHost.PropertyChanged -= wake;
+                Closed -= closed;
+            }
+        }
+        return false;
+    }
+
     private void BringToFront() {
-        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        if (WindowState == WindowState.Minimized) WindowState = _stateBeforeMinimize;
         Activate();
     }
 

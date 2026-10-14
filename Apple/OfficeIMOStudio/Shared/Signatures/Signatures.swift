@@ -48,25 +48,24 @@ final class SignatureStore {
         }
     }
 
-    func add(_ signature: Signature) {
-        signatures.append(signature)
-        save()
+    func add(_ signature: Signature) throws {
+        try save(signatures + [signature])
     }
 
-    func remove(_ signature: Signature) {
-        signatures.removeAll { $0.id == signature.id }
-        save()
+    func remove(_ signature: Signature) throws {
+        try save(signatures.filter { $0.id != signature.id })
     }
 
-    private func save() {
-        guard let data = try? JSONEncoder().encode(signatures) else { return }
-        try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+    private func save(_ next: [Signature]) throws {
+        let data = try JSONEncoder().encode(next)
+        try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
         // Signatures are personal: the file is protected while the device is locked.
         #if os(iOS)
-        try? data.write(to: file, options: [.atomic, .completeFileProtection])
+        try data.write(to: file, options: [.atomic, .completeFileProtection])
         #else
-        try? data.write(to: file, options: .atomic)
+        try data.write(to: file, options: .atomic)
         #endif
+        signatures = next
     }
 }
 

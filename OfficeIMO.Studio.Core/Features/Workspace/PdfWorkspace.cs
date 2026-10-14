@@ -48,7 +48,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         PdfWorkspaceRecoveryStore recoveryStore,
         string? recoveryPath,
         Func<string, CancellationToken, ValueTask<bool>>? canPublishOutput,
-        StudioDocumentStorage storage) {
+        StudioDocumentStorage storage, string? recoveryIdentity) {
         Path = path;
         _bytes = bytes;
         _baseFingerprint = baseFingerprint;
@@ -61,6 +61,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         RecoveryPath = recoveryPath;
         _canPublishOutput = canPublishOutput;
         _storage = storage;
+        _recoveryIdentity = recoveryIdentity;
     }
 
     internal event EventHandler? Changed;
@@ -96,11 +97,13 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal bool CanMutatePages => CanPlan(PdfMutationOperation.OrganizePages);
 
-    internal bool CanRotatePages => CanPlan(PdfMutationOperation.ModifyPageAttributes);
+    internal bool CanRotatePages => CanPlan(PdfMutationOperation.RotatePages);
 
     internal bool CanCropPages => CanPlan(PdfMutationOperation.ModifyPageAttributes);
 
     internal bool CanResizePages => CanPlan(PdfMutationOperation.ModifyPageTree);
+
+    internal bool CanInsertBlankPages => CanPlan(PdfMutationOperation.ModifyPageTree);
 
     internal bool CanExtractPages => CanPlan(PdfMutationOperation.ExtractPages);
 
@@ -151,9 +154,11 @@ internal sealed partial class PdfWorkspace : IDisposable {
         PdfWorkspaceRecoveryStore? recoveryStore = null,
         string? password = null,
         Func<string, CancellationToken, ValueTask<bool>>? canPublishOutput = null,
-        StudioDocumentStorage? storage = null) {
+        StudioDocumentStorage? storage = null, string? recoveryIdentity = null) {
         storage ??= new StudioDocumentStorage();
         string fullPath = OfficeStorageIdentity.Normalize(path);
+        recoveryIdentity = recoveryIdentity is null ? null : OfficeStorageIdentity.Normalize(recoveryIdentity);
+        if (recoveryIdentity?.Length > 4096) throw new ArgumentException("The recovery identity is too long.", nameof(recoveryIdentity));
         if (!string.Equals(System.IO.Path.GetExtension(storage.Describe(fullPath).Name), ".pdf", StringComparison.OrdinalIgnoreCase)) {
             throw new NotSupportedException("OfficeIMO Studio currently opens PDF documents.");
         }
@@ -175,7 +180,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             analysis.Preflight,
             readOptions,
             store,
-            store.Find(fullPath, baseFingerprint), canPublishOutput, storage);
+            store.Find(recoveryIdentity ?? fullPath, baseFingerprint), canPublishOutput, storage, recoveryIdentity);
     }
 
     internal PdfDocument CreateDocumentSnapshot() {
@@ -238,8 +243,10 @@ internal sealed partial class PdfWorkspace : IDisposable {
             cancellationToken, progress);
 
     internal Task InsertBlankAsync(int insertBeforePageNumber, double width, double height, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
-        PdfDocument blank = PdfDocument.Create(compose => compose.Page(page => page.Size(width, height)));
-        return MutateAsync(PdfWorkspaceOperationKind.InsertBlank, "Inserted a blank page", Array.Empty<int>(), document => document.Pages.Insert(insertBeforePageNumber, blank), cancellationToken, progress);
+        // The blank has no external content to copy. Preserve the primary catalog at every insertion position,
+        // including its boundaries, and demand the page-tree permission rather than external import permission.
+        return MutateBytesAsync(PdfWorkspaceOperationKind.InsertBlank, "Inserted a blank page", Array.Empty<int>(),
+            bytes => PdfTaggedPageOrganizer.InsertBlank(bytes, insertBeforePageNumber, width, height, _readOptions, cancellationToken), cancellationToken, progress);
     }
 
     internal Task ApplyEditorGestureAsync(
@@ -346,9 +353,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal Task UpdateAnnotationAsync(
         int objectNumber,
-        string contents,
-        string author,
-        PdfColor color,
+        string? contents,
+        string? author,
+        PdfColor? color,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateAnnotationBytesAsync(
@@ -356,9 +363,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
             "Updated annotation",
             Array.Empty<int>(),
             bytes => LoadDocument(bytes).Annotations.Update(objectNumber, new PdfAnnotationUpdateOptions {
-                Contents = contents ?? string.Empty,
-                Title = author ?? string.Empty,
-                Color = new[] { color.R, color.G, color.B },
+                Contents = contents,
+                Title = author,
+                Color = color is { } value ? new[] { value.R, value.G, value.B } : null,
                 RegenerateAppearance = true
             }),
             cancellationToken,
@@ -430,7 +437,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             byte[] recovered = await Task.Run(
-                () => _recoveryStore.ReadVerifiedSnapshot(Path, _baseFingerprint)
+                () => _recoveryStore.ReadVerifiedSnapshot(RecoveryIdentity, _baseFingerprint)
                     ?? throw new InvalidDataException("The recovery snapshot is no longer valid. The open document has not been changed."),
                 cancellationToken).ConfigureAwait(false);
             (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
@@ -463,7 +470,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         ThrowIfDisposed();
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            await _recoveryStore.DeleteAsync(Path, cancellationToken).ConfigureAwait(false);
+            await _recoveryStore.DeleteAsync(RecoveryIdentity, cancellationToken).ConfigureAwait(false);
             RecoveryPath = null;
             Changed?.Invoke(this, EventArgs.Empty);
         } finally { _operationGate.Release(); }
@@ -528,7 +535,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
             long nextRevision = ++_nextRevision;
             await _recoveryStore
-                .WriteAsync(Path, _baseFingerprint, candidateBytes, nextRevision, cancellationToken)
+                .WriteAsync(RecoveryIdentity, _baseFingerprint, candidateBytes, nextRevision, cancellationToken)
                 .ConfigureAwait(false);
 
             var nextIdentities = BuildAnnotationIdentities(candidateAnalysis.Info, _annotationIdentities, getAnnotationMapping?.Invoke());
@@ -583,11 +590,11 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
             if (restore.Revision != _savedRevision) {
                 await _recoveryStore
-                    .WriteAsync(Path, _baseFingerprint, restore.Bytes, restore.Revision, cancellationToken)
+                    .WriteAsync(RecoveryIdentity, _baseFingerprint, restore.Bytes, restore.Revision, cancellationToken)
                     .ConfigureAwait(false);
             } else {
                 // Keep history and in-memory edits intact if cleanup fails or is canceled.
-                await _recoveryStore.DeleteAsync(Path, cancellationToken).ConfigureAwait(false);
+                await _recoveryStore.DeleteAsync(RecoveryIdentity, cancellationToken).ConfigureAwait(false);
             }
 
             source.RemoveLast();

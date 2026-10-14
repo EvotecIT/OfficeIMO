@@ -69,6 +69,18 @@ void officeimo_cancellation_free(officeimo_cancellation cancellation);
 /* Opens a PDF. password may be NULL; OFFICEIMO_PASSWORD_REQUIRED or OFFICEIMO_INVALID_PASSWORD asks the host to prompt. */
 int32_t officeimo_document_open(const char *path, const char *password, officeimo_cancellation cancellation,
                                 officeimo_document *document, char **error);
+
+/* Opens an app-owned working file, keeping crash recovery under the original document's stable opaque identity.
+ * identity is UTF-8, at most 4096 characters. NULL retains path-based recovery. No original file is read through it.
+ * When info.hasRecovery is true, offer restore or discard before editing. Restore is undoable and marks the document
+ * dirty; discard removes the pending snapshot without changing the document. Update identity when the original moves.
+ */
+int32_t officeimo_document_open_with_recovery_identity(const char *path, const char *password, const char *identity,
+    officeimo_cancellation cancellation, officeimo_document *document, char **error);
+int32_t officeimo_document_set_recovery_identity(officeimo_document document, const char *identity,
+    officeimo_cancellation cancellation, char **error);
+int32_t officeimo_document_restore_recovery(officeimo_document document, officeimo_cancellation cancellation, char **error);
+int32_t officeimo_document_discard_recovery(officeimo_document document, officeimo_cancellation cancellation, char **error);
 /*
  * Releases the document. Unsaved changes are discarded with their recovery copy; the host asks the user first. A host
  * that ends without closing keeps the recovery copy, which the next open reports as hasRecovery.
@@ -80,12 +92,16 @@ void officeimo_document_close(officeimo_document document);
  * { "abiVersion", "fileName", "path", "fileSize", "revision", "isDirty", "canUndo", "canRedo",
  *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
  *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations", "canPrint", "canImportPages",
- *   "canMakeSearchable", "canFillForms", "isEncrypted", "canChangeProtection", "canSign" }
+ *   "canMakeSearchable", "canFillForms", "isEncrypted", "canChangeProtection", "canSign", "canRotatePages",
+ *   "canInsertBlankPages", "maxPrintDpi", "requiresOwnerPasswordForProtection" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
- * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows rotating, deleting,
- * duplicating, reordering and inserting pages; canExtractPages allows officeimo_document_extract_pages; canEditAnnotations
+ * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows deleting,
+ * duplicating and reordering pages; canRotatePages and canInsertBlankPages describe their own operations independently.
+ * canExtractPages allows officeimo_document_extract_pages; canEditAnnotations
  * allows adding, changing and removing annotations, which a tagged or signed document may take as an appended revision.
  * canPrint is false when the document's permissions forbid printing and it was not opened with its owner password;
+ * maxPrintDpi is 150 for user-authorized low-resolution printing, otherwise null. Print hosts must honor this ceiling.
+ * requiresOwnerPasswordForProtection is true only when owner authorization is the remaining protection-change barrier.
  * canImportPages allows officeimo_document_import_pages_json; canMakeSearchable allows officeimo_document_make_searchable_json;
  * canFillForms allows officeimo_document_fill_form_json. isEncrypted reports a password-protected document;
  * canChangeProtection allows officeimo_document_save_protected_copy_json without the owner password; canSign allows
@@ -255,6 +271,7 @@ int32_t officeimo_document_search_stream_json(officeimo_document document, const
  * quads, or bounds without them; the others take bounds. bounds may be left out when strokes are given. Colours are
  * from 0 through 1, strokeWidth is in points and opacity above 0 through 1; text is the annotation's contents.
  */
+/* request also accepts an array of these annotations, committed atomically as one undoable revision. */
 int32_t officeimo_document_add_annotation_json(officeimo_document document, const char *request,
                                                officeimo_cancellation cancellation, char **error);
 
@@ -333,7 +350,7 @@ int32_t officeimo_document_save_signed_copy_json(officeimo_document document, co
 /*
  * The document's structure as JSON: { "abiVersion", "revision", "properties": { "title", "author", "subject", "keywords",
  * "created", "modified" }, "canEditProperties", "outline": [ { "id", "title", "page", "children": [ ] } ], "canEditOutline",
- * "attachments": [ { "fileName", "size", "description", "mimeType" } ], "canEditAttachments", "canCrop", "canResize",
+ * "attachments": [ { "id", "fileName", "size", "description", "mimeType" } ], "canEditAttachments", "canCrop", "canResize",
  * "canStampPages", "hasForms", "canFlattenForms", "canFlattenMarkup" }. created and modified are ISO 8601 times. An outline entry without an id
  * has no page in this document; it and its children are shown but can't be changed.
  */
@@ -366,7 +383,7 @@ int32_t officeimo_document_edit_json(officeimo_document document, const char *re
  * Writes an output, leaving the document unchanged, described as JSON naming exactly one of:
  *   "split": { "directory", "pagesPerPart" } or { "directory", "parts": [ { "pages", "name" } ] }: at least two parts,
  *     each a new PDF in directory, named from the document and its pages unless a name is given.
- *   "attachment": { "fileName", "path" }: saves an attachment's contents.
+ *   "attachment": { "id", "path" }: saves the identified attachment's contents. A unique fileName is also accepted.
  *   "export": { "format", "path" }: the document's text as "text", "markdown" or structured "json"; the document converted
  *     to "word", "excel" (its tables), "powerpoint" or "html"; or, with "images", its embedded images saved into the folder
  *     path names.

@@ -48,7 +48,8 @@ final class PagePrinting: Sendable {
         let pixelsPerPoint = max(hypot(device.a, device.b), hypot(device.c, device.d), 1)
         let width = (rotated ? rect.height : rect.width)
         let height = (rotated ? rect.width : rect.height)
-        let scale = facts.renderScale(page: number, fillingPixelWidth: width * pixelsPerPoint)
+        let scale = min(facts.renderScale(page: number, fillingPixelWidth: width * pixelsPerPoint),
+                        (facts.maxPrintDpi ?? .infinity) / 72)
         let pixels = facts.pageImageSize(page: number, scale: scale)
         let image: CGImage
         do {

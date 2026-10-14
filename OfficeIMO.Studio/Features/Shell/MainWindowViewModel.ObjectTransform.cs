@@ -41,8 +41,33 @@ public sealed partial class MainWindowViewModel {
             (gesture.Selection.Kind == PdfEditorSelectionKind.Image ? !CanEditPageContent : !CanEditAnnotations)) return;
         long revision = workspace.Revision;
         PdfImageEditLayer layer = PlaceEditedImageBehindContent ? PdfImageEditLayer.BehindExistingContent : PdfImageEditLayer.AboveExistingContent;
+        Guid[] annotationIdentities = gesture.KeepSelection && gesture.Selection.Kind == PdfEditorSelectionKind.Annotation
+            ? (gesture.Annotations is { Count: > 0 } annotations ? annotations : [gesture.Selection])
+                .Where(item => item.ObjectNumber.HasValue).Select(item => workspace.GetAnnotationIdentity(item.ObjectNumber!.Value)).ToArray()
+            : [];
         ClearObjectSelection();
-        await RunMutationAsync(token => workspace.TransformSelectedObjectAsync(gesture, revision, layer, token, CreateProgress()), CancellationToken.None).ConfigureAwait(true);
+        bool applied = await RunMutationAsync(token => workspace.TransformSelectedObjectAsync(gesture, revision, layer, token, CreateProgress()), CancellationToken.None).ConfigureAwait(true);
+        if (!applied || !gesture.KeepSelection || !ReferenceEquals(_workspace, workspace)) return;
+        try {
+            if (annotationIdentities.Length > 0) {
+                var selected = workspace.AnnotationMetadata.Where(annotation => annotation.ObjectNumber is int number &&
+                    annotationIdentities.Contains(workspace.GetAnnotationIdentity(number))).Select(annotation =>
+                        new PdfEditorSelection(PdfEditorSelectionKind.Annotation, annotation.PageNumber!.Value, default,
+                            ObjectNumber: annotation.ObjectNumber, Subtype: annotation.Subtype)).ToArray();
+                OnPageAnnotationsSelected(new(selected, false));
+            } else {
+                // Image placements belong to a revision. Reacquire the transformed placement before the next key press.
+                var matches = workspace.CreateDocumentSnapshot().Render.Interactions(gesture.Selection.PageNumber).Regions
+                    .Where(region => region.Kind == PdfInteractionKind.Image &&
+                        Math.Abs(region.Quad.Left - gesture.Target.Left) < 0.01 && Math.Abs(region.Quad.Top - gesture.Target.Top) < 0.01 &&
+                        Math.Abs(region.Quad.Right - gesture.Target.Right) < 0.01 && Math.Abs(region.Quad.Bottom - gesture.Target.Bottom) < 0.01).ToArray();
+                if (matches.Length == 1) {
+                    var region = matches[0];
+                    ApplyObjectSelection(new(PdfEditorSelectionKind.Image, gesture.Selection.PageNumber, gesture.Target,
+                        ObjectNumber: region.ObjectNumber, Subtype: region.Subtype, ImagePlacement: region.ImagePlacement));
+                }
+            }
+        } catch (Exception exception) { ErrorMessage = Infrastructure.StudioMessages.Describe(exception); }
     }
 
     [RelayCommand]

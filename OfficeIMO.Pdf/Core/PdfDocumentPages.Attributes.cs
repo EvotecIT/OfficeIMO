@@ -12,7 +12,7 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(edits, nameof(edits));
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Edit page attributes", PdfPreflightCapability.ManipulatePages,
-            PdfMutationOperation.ModifyPageAttributes, () => _document.ApplyMutation(
+            PdfPageEditor.GetAttributeOperation(edits), () => _document.ApplyMutation(
                 input => PdfPageEditor.EditPageAttributes(input, edits, effective, cancellationToken), effective,
                 operationName: nameof(ApplyAttributes), cancellationToken: cancellationToken), effective,
             cancellationToken: cancellationToken);
@@ -47,7 +47,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return _document.TryMutationOperation("Turn pages", PdfPreflightCapability.ManipulatePages,
-            PdfMutationOperation.ModifyPageAttributes, () => _document.ApplyMutation(
+            PdfMutationOperation.RotatePages, () => _document.ApplyMutation(
                 input => PdfPageEditor.EditPageAttributes(input, new[] { PdfPageAttributeEdit.RotateBy(rotationDegrees,
                     ResolveSelector(selector, options ?? _document.ReadOptions)) }, options ?? _document.ReadOptions), options ?? _document.ReadOptions,
                 operationName: nameof(RotateBy)), options);
@@ -56,7 +56,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>Turns pages resolved by a document-relative expression and reports the mutation route.</summary>
     public PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, string selector, PdfLoadOptions? options = null) =>
         _document.TryMutationOperation("Turn pages", PdfPreflightCapability.ManipulatePages,
-            PdfMutationOperation.ModifyPageAttributes, () => _document.ApplyMutation(
+            PdfMutationOperation.RotatePages, () => _document.ApplyMutation(
                 input => PdfPageEditor.EditPageAttributes(input, new[] { PdfPageAttributeEdit.RotateBy(rotationDegrees,
                     ResolveSelector(PdfPageSelector.Parse(selector), options ?? _document.ReadOptions)) }, options ?? _document.ReadOptions), options ?? _document.ReadOptions,
                 operationName: nameof(RotateBy)), options);

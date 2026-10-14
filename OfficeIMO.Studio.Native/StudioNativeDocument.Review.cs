@@ -136,8 +136,13 @@ internal sealed partial class StudioNativeDocument {
             }
         }, cancellationToken).ConfigureAwait(false);
         string temporary = copy.Path + ".officeimo-" + Guid.NewGuid().ToString("N")[..8];
-        await File.WriteAllBytesAsync(temporary, output, cancellationToken).ConfigureAwait(false);
-        File.Move(temporary, copy.Path, overwrite: true);
+        try {
+            await File.WriteAllBytesAsync(temporary, output, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporary, copy.Path, overwrite: true);
+        } finally {
+            if (File.Exists(temporary)) File.Delete(temporary);
+        }
         return ([copy.Path], summary);
     }
 
@@ -159,7 +164,7 @@ internal sealed partial class StudioNativeDocument {
             StudioNativeRedactionApply apply = request.Apply!;
             IReadOnlyList<StudioNativeRedactionMark> areas = apply.Areas ?? [];
             if (areas.Count == 0 && apply.Find is null) throw new ArgumentException("Mark at least one area to redact.", nameof(request));
-            if (!_workspace.CanEditPageContent) throw new NotSupportedException("This document's pages can't be redacted.");
+            if (!_workspace.CanRedact) throw new NotSupportedException("This document's pages can't be redacted.");
             byte[] snapshot = _workspace.CopyBytes();
             var planned = new List<PdfRedactionArea>(areas.Count);
             if (apply.Find is { } search) {

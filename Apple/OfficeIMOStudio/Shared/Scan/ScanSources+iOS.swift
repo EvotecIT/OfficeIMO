@@ -11,14 +11,18 @@ enum ScanSources {
 
     /// A new searchable PDF from the document camera, for the launch screen's Scan Document.
     static func newDocumentFromCamera() async throws -> URL? {
-        guard let images = await CameraSession().run(), !images.isEmpty else { return nil }
-        return try await ScanBuilder.makePDF(from: images, named: ScanBuilder.newName)
+        guard let images = try await CameraSession().run(), !images.isEmpty else { return nil }
+        let output = try await ScanBuilder.makePDF(from: images, named: ScanBuilder.newName)
+        StudioTemporaryFiles.markReturnedOutput(output)
+        return output
     }
 
     /// A new searchable PDF from photos, one page each in the order chosen.
     static func newDocumentFromPhotos() async throws -> URL? {
-        guard let images = await PhotosSession().run(), !images.isEmpty else { return nil }
-        return try await ScanBuilder.makePDF(from: images, named: ScanBuilder.newName)
+        guard let images = try await PhotosSession().run(), !images.isEmpty else { return nil }
+        let output = try await ScanBuilder.makePDF(from: images, named: ScanBuilder.newName)
+        StudioTemporaryFiles.markReturnedOutput(output)
+        return output
     }
 
     /// Presents a picker over the frontmost screen once any sheet or menu on its way out has gone, as UIKit ignores a
@@ -41,35 +45,41 @@ enum ScanSources {
 
 @MainActor
 private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraViewControllerDelegate {
-    private var continuation: CheckedContinuation<[CGImage]?, Never>?
+    private var continuation: CheckedContinuation<[CGImage]?, any Error>?
     private var keepAlive: CameraSession?
 
-    func run() async -> [CGImage]? {
-        await withCheckedContinuation { continuation in
+    func run() async throws -> [CGImage]? {
+        try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
             let camera = VNDocumentCameraViewController()
             camera.delegate = self
             keepAlive = self
-            Task { if !(await ScanSources.present(camera)) { self.finish(nil, from: nil) } }
+            Task { if !(await ScanSources.present(camera)) { self.finish(.failure(CocoaError(.featureUnsupported)), from: nil) } }
         }
     }
 
     func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
-        let images = (0..<scan.pageCount).compactMap { upright(scan.imageOfPage(at: $0)) }
-        finish(images, from: controller)
+        do {
+            guard scan.pageCount <= ScanBuilder.maximumPages else { throw CocoaError(.fileReadTooLarge) }
+            let images = try (0..<scan.pageCount).map { index in
+                guard let image = upright(scan.imageOfPage(at: index)) else { throw CocoaError(.fileReadCorruptFile) }
+                return image
+            }
+            finish(.success(images), from: controller)
+        } catch { finish(.failure(error), from: controller) }
     }
 
     func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
-        finish(nil, from: controller)
+        finish(.success(nil), from: controller)
     }
 
     func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: any Error) {
-        finish(nil, from: controller)
+        finish(.failure(error), from: controller)
     }
 
-    private func finish(_ images: [CGImage]?, from controller: UIViewController?) {
+    private func finish(_ result: Result<[CGImage]?, any Error>, from controller: UIViewController?) {
         controller?.dismiss(animated: true)
-        continuation?.resume(returning: images)
+        continuation?.resume(with: result)
         continuation = nil
         keepAlive = nil
     }
@@ -77,20 +87,20 @@ private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraVie
 
 @MainActor
 private final class PhotosSession: NSObject, PHPickerViewControllerDelegate {
-    private var continuation: CheckedContinuation<[CGImage]?, Never>?
+    private var continuation: CheckedContinuation<[CGImage]?, any Error>?
     private var keepAlive: PhotosSession?
 
-    func run() async -> [CGImage]? {
-        await withCheckedContinuation { continuation in
+    func run() async throws -> [CGImage]? {
+        try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
             var configuration = PHPickerConfiguration()
             configuration.filter = .images
-            configuration.selectionLimit = 0
+            configuration.selectionLimit = ScanBuilder.maximumPages
             configuration.selection = .ordered
             let picker = PHPickerViewController(configuration: configuration)
             picker.delegate = self
             keepAlive = self
-            Task { if !(await ScanSources.present(picker)) { self.finish(nil) } }
+            Task { if !(await ScanSources.present(picker)) { self.finish(.failure(CocoaError(.featureUnsupported))) } }
         }
     }
 
@@ -98,24 +108,32 @@ private final class PhotosSession: NSObject, PHPickerViewControllerDelegate {
         let providers = results.map(\.itemProvider)
         Task {
             picker.dismiss(animated: true)
-            var images: [CGImage] = []
-            for provider in providers where provider.canLoadObject(ofClass: UIImage.self) {
-                if let image = await Self.load(provider), let upright = upright(image) { images.append(upright) }
-            }
-            finish(images.isEmpty ? nil : images)
+            do {
+                guard providers.count <= ScanBuilder.maximumPages else { throw CocoaError(.fileReadTooLarge) }
+                var images: [CGImage] = []
+                for provider in providers {
+                    let image = try await Self.load(provider)
+                    guard let upright = upright(image) else { throw CocoaError(.fileReadCorruptFile) }
+                    images.append(upright)
+                }
+                finish(.success(images.isEmpty ? nil : images))
+            } catch { finish(.failure(error)) }
         }
     }
 
-    private static func load(_ provider: NSItemProvider) async -> UIImage? {
-        await withCheckedContinuation { continuation in
-            _ = provider.loadObject(ofClass: UIImage.self) { object, _ in
-                continuation.resume(returning: object as? UIImage)
+    private static func load(_ provider: NSItemProvider) async throws -> UIImage {
+        guard provider.canLoadObject(ofClass: UIImage.self) else { throw CocoaError(.fileReadCorruptFile) }
+        return try await withCheckedThrowingContinuation { continuation in
+            _ = provider.loadObject(ofClass: UIImage.self) { object, error in
+                if let error { continuation.resume(throwing: error) }
+                else if let image = object as? UIImage { continuation.resume(returning: image) }
+                else { continuation.resume(throwing: CocoaError(.fileReadCorruptFile)) }
             }
         }
     }
 
-    private func finish(_ images: [CGImage]?) {
-        continuation?.resume(returning: images)
+    private func finish(_ result: Result<[CGImage]?, any Error>) {
+        continuation?.resume(with: result)
         continuation = nil
         keepAlive = nil
     }

@@ -1,4 +1,5 @@
 import CoreGraphics
+import CryptoKit
 import Foundation
 import Synchronization
 import SwiftUI
@@ -13,6 +14,7 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
     /// The engine's copy of the document, inside the app's temporary folder.
     let workingCopy: URL
     private let opened = Mutex<EngineDocument?>(nil)
+    private let initializationError: Error?
 
     /// A blank page, for the system's New command: Letter where it is the common paper size, otherwise A4.
     init() {
@@ -25,18 +27,27 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
             context.endPDFPage()
             context.closePDF()
         }
-        try? (data as Data).write(to: workingCopy)
+        do {
+            guard data.length > 0 else { throw CocoaError(.fileWriteUnknown) }
+            try FileManager.default.createDirectory(at: workingCopy.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try (data as Data).write(to: workingCopy)
+            initializationError = nil
+        } catch { initializationError = error }
     }
 
     init(configuration: ReadConfiguration) throws {
         guard let data = configuration.file.regularFileContents else { throw CocoaError(.fileReadCorruptFile) }
         workingCopy = Self.makeWorkingCopyURL(named: configuration.file.filename ?? "Document.pdf")
+        initializationError = nil
+        try FileManager.default.createDirectory(at: workingCopy.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: workingCopy)
     }
 
     /// Opens a file the app can read directly, without the system's document browser.
     init(contentsOf url: URL) throws {
         workingCopy = Self.makeWorkingCopyURL(named: url.lastPathComponent)
+        initializationError = nil
+        try FileManager.default.createDirectory(at: workingCopy.deletingLastPathComponent(), withIntermediateDirectories: true)
         try FileManager.default.copyItem(at: url, to: workingCopy)
     }
 
@@ -46,10 +57,11 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
     }
 
     /// Opens the working copy in the engine once; later calls return the same document.
-    func openEngine(password: String? = nil) async throws -> EngineDocument {
+    func openEngine(password: String? = nil, originalURL: URL? = nil) async throws -> EngineDocument {
+        if let initializationError { throw initializationError }
         if let document = opened.withLock({ $0 }) { return document }
         try await EngineRuntime.ready()
-        let document = try await EngineDocument.open(workingCopy, password: password)
+        let document = try await EngineDocument.open(workingCopy, password: password, recoveryIdentity: Self.recoveryIdentity(for: originalURL))
         return opened.withLock { current in
             if let current { return current }
             current = document
@@ -64,25 +76,31 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
 
     /// Runs on the system's saving thread: the engine saves its working copy, which becomes the saved file.
     func fileWrapper(snapshot: EngineDocument?, configuration: WriteConfiguration) throws -> FileWrapper {
+        if let initializationError { throw initializationError }
         try snapshot?.saveInPlaceAndWait()
         return try FileWrapper(url: workingCopy, options: .immediate)
     }
 
     private static func makeWorkingCopyURL(named name: String) -> URL {
         let folder = workingCopies.appending(path: UUID().uuidString, directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder.appending(path: name)
     }
 
-    static let workingCopies = FileManager.default.temporaryDirectory.appending(path: "WorkingCopies", directoryHint: .isDirectory)
+    /// The original URL identifies recovery without retaining a user's full path in recovery metadata.
+    static func recoveryIdentity(for url: URL?) -> String? {
+        guard let url else { return nil }
+        let digest = SHA256.hash(data: Data(url.standardizedFileURL.absoluteString.utf8))
+        return "studio-document://sha256/" + digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    static let workingCopies = StudioTemporaryFiles.root.appending(path: "WorkingCopies", directoryHint: .isDirectory)
 
     /// Copies of open documents written for sharing; a destination may still read one after the share sheet closes.
-    static let sharedCopies = FileManager.default.temporaryDirectory.appending(path: "Shared", directoryHint: .isDirectory)
+    static let sharedCopies = StudioTemporaryFiles.root.appending(path: "Shared", directoryHint: .isDirectory)
 
     /// Removes working and shared copies left by an earlier process.
     static func removeStaleWorkingCopies() {
-        try? FileManager.default.removeItem(at: workingCopies)
-        try? FileManager.default.removeItem(at: sharedCopies)
+        StudioTemporaryFiles.removeStale()
     }
 }
 

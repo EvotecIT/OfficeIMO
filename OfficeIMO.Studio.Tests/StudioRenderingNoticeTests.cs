@@ -38,12 +38,24 @@ public sealed class StudioRenderingNoticeTests {
                 Assert.Equal(services.Localizer.Format("Notices.RenderingLimitationPages", "2, 3"), document.RenderingNotice);
                 Assert.Equal(services.Localizer.Format("Notices.ShowPage", 2), document.RenderingNoticeAction);
 
+                document.SetOrganizerSelection([document.OrganizerPages[0]]);
+                await document.RotateRightCommand.ExecuteAsync(null);
+                Assert.False(document.HasError, document.ErrorMessage);
+                Assert.Equal(services.Localizer.Format("Notices.RenderingLimitationPages", "2, 3"), document.RenderingNotice);
+
+                // Organization changes page identities. Old page numbers must not survive into the new notice.
+                await document.ReorderByDropAsync(3, 1);
+                Assert.False(document.HasError, document.ErrorMessage);
+                foreach (PdfPageViewModel page in document.Pages) page.AttachToViewport();
+                await WaitUntilAsync(() => document.Pages.All(page => !page.IsRendering && page.HasDiagnostics));
+                Assert.Equal(services.Localizer.Format("Notices.RenderingLimitationPages", "1, 3"), document.RenderingNotice);
+
                 // The notice belongs to the document view, leads to the page, and can be put away for this document.
                 document.ShowJobsCommand.Execute(null);
                 Assert.False(document.HasRenderingNotice);
                 document.ShowRenderingNoticePageCommand.Execute(null);
                 Assert.True(document.IsPdfWorkspaceMode);
-                Assert.Same(document.Pages[1], document.SelectedPage);
+                Assert.Same(document.Pages[0], document.SelectedPage);
                 document.DismissRenderingNoticeCommand.Execute(null);
                 Assert.False(document.HasRenderingNotice);
             } finally { window.Close(); }

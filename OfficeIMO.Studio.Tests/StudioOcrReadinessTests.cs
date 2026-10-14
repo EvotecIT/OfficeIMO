@@ -24,7 +24,10 @@ public sealed class StudioOcrReadinessTests {
             try {
                 window.Show();
                 MainWindowViewModel document = window.ViewModel;
-                Assert.False(document.OcrReadiness.HasNotice);
+                Assert.True(document.OcrReadiness.HasNotice);
+                Assert.False(document.OcrReadiness.IsReady);
+                Assert.False(document.CanDetectPageOrientation);
+                Assert.False(document.OcrSession.IsRecognitionAvailable);
 
                 document.ShowOcrCommand.Execute(null);
                 Assert.True(document.OcrReadiness.HasNotice);
@@ -54,6 +57,7 @@ public sealed class StudioOcrReadinessTests {
         readiness.Refresh();
         Assert.False(readiness.HasNotice);
         Assert.False(readiness.CanSetUp);
+        Assert.True(readiness.IsReady);
     }
 
     private static void Layout(Window window) {

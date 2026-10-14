@@ -75,5 +75,8 @@ public enum PdfMutationOperation {
     OrganizePages,
 
     /// <summary>Insert source page graphs while preserving the primary catalog and combining tagged structure ownership.</summary>
-    ImportPages
+    ImportPages,
+
+    /// <summary>Set or change page rotation without changing boundary boxes, content, or membership.</summary>
+    RotatePages
 }

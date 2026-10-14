@@ -25,7 +25,7 @@ struct DocumentStructure: Decodable, Sendable {
         let size: Int64
         let description: String?
         let mimeType: String?
-        var id: String { fileName }
+        let id: String
     }
 
     let revision: Int64
@@ -38,6 +38,7 @@ struct DocumentStructure: Decodable, Sendable {
     let canCrop: Bool
     let canResize: Bool
     let canStampPages: Bool
+    let canRedact: Bool?
     let hasForms: Bool
     let canFlattenForms: Bool
     /// Whether the document has markup, other than links, that can become part of its pages.
@@ -181,6 +182,7 @@ struct WriteRequest: Encodable, Sendable {
     struct AttachmentSave: Encodable, Sendable {
         var fileName: String
         var path: String
+        var id: String?
     }
     struct Export: Encodable, Sendable {
         var format: String

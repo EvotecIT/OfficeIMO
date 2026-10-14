@@ -26,11 +26,17 @@ internal static class PdfAppearancePlacement {
         double minY = Math.Min(Math.Min(p1.Y, p2.Y), Math.Min(p3.Y, p4.Y));
         double maxX = Math.Max(Math.Max(p1.X, p2.X), Math.Max(p3.X, p4.X));
         double maxY = Math.Max(Math.Max(p1.Y, p2.Y), Math.Max(p3.Y, p4.Y));
-        double sx = width / (maxX - minX), sy = height / (maxY - minY);
+        if (!Finite(x) || !Finite(y) || !Finite(width) || !Finite(height) ||
+            !Finite(minX) || !Finite(minY) || !Finite(maxX) || !Finite(maxY))
+            throw new InvalidOperationException("The transformed appearance geometry is not finite.");
+        if (width <= 0 || height <= 0 || maxX <= minX || maxY <= minY) return false;
+        double extentX = maxX - minX, extentY = maxY - minY;
+        if (!Finite(extentX) || !Finite(extentY))
+            throw new InvalidOperationException("The transformed appearance extents are not finite.");
+        double sx = width / extentX, sy = height / extentY;
         double tx = x - minX * sx, ty = y - minY * sy;
-        if (width <= 0 || height <= 0 || maxX <= minX || maxY <= minY || sx <= 0 || sy <= 0 ||
-            !Finite(sx) || !Finite(sy) || !Finite(tx) || !Finite(ty))
-            return false;
+        if (sx <= 0 || sy <= 0 || !Finite(sx) || !Finite(sy) || !Finite(tx) || !Finite(ty))
+            throw new InvalidOperationException("The appearance placement cannot be represented by finite positive scales.");
         // The Do operator applies the appearance's own Matrix after this outer transform.
         placement = new Matrix2D(sx, 0, 0, sy, tx, ty);
         return true;

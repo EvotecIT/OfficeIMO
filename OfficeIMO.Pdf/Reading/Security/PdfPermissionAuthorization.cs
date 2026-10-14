@@ -31,7 +31,7 @@ internal static class PdfPermissionAuthorization {
                 return security.AllowsCopying == true && security.AllowsDocumentAssembly == true;
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.OrganizePages:
-            case PdfMutationOperation.ModifyPageAttributes:
+            case PdfMutationOperation.RotatePages:
                 return security.AllowsDocumentAssembly == true;
             case PdfMutationOperation.ModifyAnnotations:
                 return security.AllowsAnnotationChanges == true || security.AllowsModification == true;

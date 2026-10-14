@@ -37,6 +37,13 @@ public sealed class StudioPendingChangeTests {
             Assert.All(document.OrganizerPages, page => Assert.Null(page.CropPreviewMargin));
             Assert.False(document.IsDirty);
 
+            document.CropMargin = 200;
+            await document.CropSelectedCommand.ExecuteAsync(null);
+            Assert.True(document.HasPendingCrop);
+            Assert.NotNull(document.ErrorMessage);
+            Assert.Equal(200D, document.OrganizerPages[3].CropPreviewMargin);
+            Assert.False(document.IsDirty);
+
             document.CropMargin = 24;
             await document.CropSelectedCommand.ExecuteAsync(null);
             Assert.True(document.IsDirty);

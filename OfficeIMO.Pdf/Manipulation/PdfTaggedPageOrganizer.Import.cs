@@ -3,12 +3,28 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTaggedPageOrganizer {
+    /// <summary>Inserts an engine-created blank page without requiring permission to copy existing content.</summary>
+    internal static byte[] InsertBlank(byte[] targetPdf, int insertBeforePage, double width, double height,
+        PdfLoadOptions? targetOptions, CancellationToken token = default) {
+        byte[] blank = PdfDocument.Create(compose => compose.Page(page => page.Size(width, height))).ToBytes(cancellationToken: token);
+        return ImportCore(targetPdf, blank, insertBeforePage, [1], targetOptions, null,
+            PdfMutationOperation.ModifyPageTree, token);
+    }
+
     internal static byte[] Import(byte[] targetPdf, byte[] sourcePdf, int insertBeforePage,
-        int[] selectedPages, PdfLoadOptions? targetOptions, PdfLoadOptions? sourceOptions, CancellationToken token = default) {
-        var (_, target) = PdfMutationPlanner.RequireFullRewriteDocument(targetPdf, PdfMutationOperation.ImportPages, targetOptions, cancellationToken: token);
+        int[] selectedPages, PdfLoadOptions? targetOptions, PdfLoadOptions? sourceOptions, CancellationToken token = default) =>
+        ImportCore(targetPdf, sourcePdf, insertBeforePage, selectedPages, targetOptions, sourceOptions, PdfMutationOperation.ImportPages, token);
+
+    private static byte[] ImportCore(byte[] targetPdf, byte[] sourcePdf, int insertBeforePage,
+        int[] selectedPages, PdfLoadOptions? targetOptions, PdfLoadOptions? sourceOptions,
+        PdfMutationOperation targetOperation, CancellationToken token) {
+        var (_, target) = PdfMutationPlanner.RequireFullRewriteDocument(targetPdf, targetOperation, targetOptions, cancellationToken: token);
         var (_, source) = PdfMutationPlanner.RequireFullRewriteDocument(sourcePdf, PdfMutationOperation.ImportPages, sourceOptions, cancellationToken: token);
         if (insertBeforePage < 1 || insertBeforePage > target.Pages.Count + 1) throw new ArgumentOutOfRangeException(nameof(insertBeforePage));
         int[] selection = selectedPages.Length == 0 ? Enumerable.Range(1, source.Pages.Count).ToArray() : selectedPages;
+        if (selection.Length == 0) throw new ArgumentException("Source PDF does not contain any pages.", nameof(sourcePdf));
+        if (selection.Any(page => page < 1 || page > source.Pages.Count))
+            throw new ArgumentOutOfRangeException(nameof(selectedPages), "A selected page is outside the source document.");
         byte[] selected = Rewrite(sourcePdf, source, selection, sourceOptions, token: token);
         PdfLoadOptions selectedOptions = PdfLoadOptions.ForGeneratedOutput(sourceOptions, sourcePdf, selected);
         var incoming = PdfReadDocument.Open(selected, selectedOptions, token);

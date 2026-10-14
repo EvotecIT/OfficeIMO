@@ -91,7 +91,11 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
         addedStrokes = 0
         canvas.undoManager?.removeAllActions()
         session.hasPendingMarkup = !canvas.drawing.strokes.isEmpty
-        if !isActive { canvas.removeFromSuperview() }
+        canvas.isUserInteractionEnabled = isActive
+        if !isActive {
+            if session.hasPendingMarkup { commit() }
+            if self.clearAfterRevision == nil { canvas.removeFromSuperview() }
+        }
     }
 
     private func move(to newPage: Int) {
@@ -140,6 +144,7 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
                               color: key.color, strokeWidth: key.width, opacity: key.opacity)
         }
         guard !requests.isEmpty else { return }
+        canvas.isUserInteractionEnabled = false
         clearAfterRevision = session.revision
         addedStrokes = strokes.count
         // A failed addition keeps the strokes, so the drawing can be added again or erased.
@@ -147,6 +152,7 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
             guard let self else { return }
             clearAfterRevision = nil
             addedStrokes = 0
+            canvas.isUserInteractionEnabled = isActive
             if !isActive { canvas.removeFromSuperview() }
         })
     }

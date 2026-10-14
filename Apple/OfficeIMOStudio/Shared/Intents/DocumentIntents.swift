@@ -27,7 +27,7 @@ struct CombinePDFsIntent: AppIntent {
             return try work.copy(file, as: fileExtension.isEmpty ? "\(index + 1).pdf" : "\(index + 1).\(fileExtension)")
         }
         let output = try await DocumentActions.combine(inputs, names: files.map(\.filename), into: work.output(named: name))
-        return .result(value: IntentFile(fileURL: output, filename: output.lastPathComponent, type: .pdf))
+        return .result(value: work.takeOutput(output))
     }
 }
 
@@ -44,8 +44,9 @@ struct MakePDFFromImagesIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
-        _ = try await ActionFolder.prepare()
+        try await EngineRuntime.ready()
         let url = try await DocumentActions.pdf(fromImages: images.map(\.data))
+        StudioTemporaryFiles.markReturnedOutput(url)
         return .result(value: IntentFile(fileURL: url, filename: url.lastPathComponent, type: .pdf))
     }
 }
@@ -69,7 +70,7 @@ struct ExtractPagesIntent: AppIntent {
         let base = (file.filename as NSString).deletingPathExtension
         let output = try await DocumentActions.extract(pages, from: try work.copy(file, as: "source.pdf"), named: file.filename,
                                                        into: work.output(named: String(localized: "\(base) – Pages \(pages)")))
-        return .result(value: IntentFile(fileURL: output, filename: output.lastPathComponent, type: .pdf))
+        return .result(value: work.takeOutput(output))
     }
 }
 
@@ -107,7 +108,7 @@ struct MakePDFSearchableIntent: AppIntent {
         let base = (file.filename as NSString).deletingPathExtension
         let output = try await DocumentActions.makeSearchable(try work.copy(file, as: "source.pdf"), named: file.filename,
                                                               into: work.output(named: base))
-        return .result(value: IntentFile(fileURL: output, filename: output.lastPathComponent, type: .pdf))
+        return .result(value: work.takeOutput(output))
     }
 }
 
@@ -128,7 +129,7 @@ struct ConvertToPDFIntent: AppIntent {
         let input = try work.copy(file, as: file.filename)
         let output = try await DocumentActions.convert(input, named: file.filename,
                                                        into: work.output(named: (file.filename as NSString).deletingPathExtension))
-        return .result(value: IntentFile(fileURL: output, filename: output.lastPathComponent, type: .pdf))
+        return .result(value: work.takeOutput(output))
     }
 }
 
@@ -166,8 +167,9 @@ enum IntentProblem: Error, CustomLocalizedStringResourceConvertible {
 enum PageRange {
     static func parse(_ text: String, pageCount: Int) -> [Int]? {
         var pages: [Int] = []
-        for part in text.split(whereSeparator: { $0 == "," || $0 == ";" }) {
-            let bounds = part.split(whereSeparator: { $0 == "-" || $0 == "–" }).map { $0.trimmingCharacters(in: .whitespaces) }
+        guard pageCount > 0 else { return nil }
+        for part in text.split(omittingEmptySubsequences: false, whereSeparator: { $0 == "," || $0 == ";" }) {
+            let bounds = part.split(omittingEmptySubsequences: false, whereSeparator: { $0 == "-" || $0 == "–" }).map { $0.trimmingCharacters(in: .whitespaces) }
             guard (1...2).contains(bounds.count), let first = Int(bounds[0]), let last = Int(bounds[bounds.count - 1]),
                   (1...pageCount).contains(first), (1...pageCount).contains(last) else { return nil }
             pages += first <= last ? Array(first...last) : Array((last...first).reversed())
@@ -183,6 +185,7 @@ enum DocumentActions {
     static func combine(_ inputs: [URL], names: [String], into output: URL) async throws -> URL {
         guard inputs.count >= 2 else { throw IntentProblem.message(String(localized: "Choose at least two files to combine.")) }
         var pdfs: [URL] = []
+        defer { for pdf in pdfs where !inputs.contains(pdf) { StudioTemporaryFiles.removeGeneratedPDF(pdf) } }
         for input in inputs { pdfs.append(try await PageSources.pdf(for: input)) }
         let document = try await open(pdfs[0], named: names[0])
         do {
@@ -196,7 +199,9 @@ enum DocumentActions {
 
     /// A searchable PDF with a page for each image, its text recognized on this device.
     static func pdf(fromImages images: [Data]) async throws -> URL {
+        guard images.count <= ScanBuilder.maximumPages else { throw CocoaError(.fileReadTooLarge) }
         let pages = images.compactMap(ScanBuilder.image(from:))
+        guard pages.count == images.count else { throw CocoaError(.fileReadCorruptFile) }
         guard !pages.isEmpty else { throw IntentProblem.message(String(localized: "None of the files is an image OfficeIMO Studio can read.")) }
         return try await ScanBuilder.makePDF(from: pages, named: ScanBuilder.newName)
     }
@@ -262,22 +267,36 @@ enum DocumentActions {
 }
 
 /// A private folder for one action: copies of its inputs and its output, which the system takes over once returned.
-struct ActionFolder {
+final class ActionFolder {
     let folder: URL
+    private var hasReturnedOutput = false
+
+    deinit {
+        try? FileManager.default.removeItem(at: hasReturnedOutput ? folder.appending(path: "Inputs") : folder)
+    }
+
+    func takeOutput(_ url: URL) -> IntentFile {
+        hasReturnedOutput = true
+        StudioTemporaryFiles.markReturnedOutput(url)
+        return IntentFile(fileURL: url, filename: url.lastPathComponent, type: .pdf)
+    }
 
     /// Starts the engine, as an action may run before any document window, and makes the folder.
     static func prepare() async throws -> ActionFolder {
         try await EngineRuntime.ready()
+        StudioTemporaryFiles.removeStale()
         return try ActionFolder()
     }
 
     private init() throws {
-        folder = FileManager.default.temporaryDirectory.appending(path: "Shortcuts/\(UUID().uuidString)", directoryHint: .isDirectory)
+        folder = StudioTemporaryFiles.root.appending(path: "Shortcuts/\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder.appending(path: "Inputs", directoryHint: .isDirectory), withIntermediateDirectories: true)
     }
 
     func copy(_ file: IntentFile, as name: String) throws -> URL {
-        let url = folder.appending(path: "Inputs/\(name)")
+        let safe = (name as NSString).lastPathComponent
+        guard !safe.isEmpty, safe != ".", safe != ".." else { throw CocoaError(.fileWriteInvalidFileName) }
+        let url = folder.appending(path: "Inputs/\(safe)")
         try file.data.write(to: url)
         return url
     }

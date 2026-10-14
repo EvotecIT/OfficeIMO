@@ -92,7 +92,7 @@ public sealed partial class PdfDocumentPages {
         return _document.TryMutationOperation(
             "Rotate pages",
             PdfPreflightCapability.ManipulatePages,
-            PdfMutationOperation.ModifyPageAttributes,
+            PdfMutationOperation.RotatePages,
             () => Rotate(rotationDegrees, ResolveSelector(selector, effectiveOptions), effectiveOptions),
             options);
     }

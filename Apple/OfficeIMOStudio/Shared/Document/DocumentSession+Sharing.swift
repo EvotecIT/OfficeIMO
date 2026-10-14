@@ -6,12 +6,19 @@ extension DocumentSession {
     /// The document as it is shown, for sharing: the saved file when nothing is unsaved, otherwise a copy of the open
     /// revision under the document's name, so what is shared matches the window.
     func shareableFile(saved fileURL: URL) async throws -> URL {
+        await edits?.value
+        guard !hasPendingMarkup else { throw CocoaError(.userCancelled) }
         guard facts?.isDirty == true, let engine else { return fileURL }
         let folder = StudioDocument.sharedCopies.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let copy = folder.appending(path: fileURL.lastPathComponent)
-        try await engine.saveCopy(to: copy)
-        return copy
+        do {
+            try await engine.saveCopy(to: copy)
+            return copy
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
     }
 }
 

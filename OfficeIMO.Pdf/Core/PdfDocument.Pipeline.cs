@@ -78,6 +78,7 @@ public sealed partial class PdfDocument {
                 return PdfMutationOperation.ModifyPageTree;
             case "Rotate":
             case "RotateBy":
+                return PdfMutationOperation.RotatePages;
             case "SetPageBox":
             case "ApplyAttributes":
                 return PdfMutationOperation.ModifyPageAttributes;

@@ -39,7 +39,8 @@ internal sealed partial class PdfWorkspace {
     /// and output publication as the workflow, without the workflow runner and its conversions, so a NativeAOT host
     /// stays small; provider locations go through <see cref="ExtractAsync"/>.
     /// </summary>
-    internal async Task ExtractToLocalFileAsync(IReadOnlyList<int> pageNumbers, string outputPath, CancellationToken token) {
+    internal async Task ExtractToLocalFileAsync(IReadOnlyList<int> pageNumbers, string outputPath, CancellationToken token,
+        bool replaceExisting = true) {
         ThrowIfDisposed();
         if (!CanExtractPages) throw new InvalidOperationException("This document cannot safely extract pages.");
         if (pageNumbers.Count == 0) throw new ArgumentException("Choose at least one page.", nameof(pageNumbers));
@@ -61,7 +62,8 @@ internal sealed partial class PdfWorkspace {
                 throw new InvalidDataException("The saved extraction does not contain the requested number of pages.");
             return saved;
         }, token).ConfigureAwait(false);
-        await WriteWorkspaceOutputAsync(destination, (stream, writeToken) => stream.WriteAsync(bytes.AsMemory(), writeToken).AsTask(), token)
+        await WriteWorkspaceOutputAsync(destination, (stream, writeToken) => stream.WriteAsync(bytes.AsMemory(), writeToken).AsTask(), token,
+            conflictPolicy: replaceExisting ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists)
             .ConfigureAwait(false);
     }
 }

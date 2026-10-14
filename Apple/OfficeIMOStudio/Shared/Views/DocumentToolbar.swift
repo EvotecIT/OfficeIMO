@@ -42,6 +42,7 @@ struct DocumentToolbar: ToolbarContent {
                 .help("Shapes")
                 ColorPicker("Colour", selection: markupColor, supportsOpacity: false)
                 Button("Add Note", systemImage: "note.text.badge.plus") { isAddingNote = true }
+                    .disabled(!session.canEditAnnotations)
             }
             if session.task == .read {
                 ControlGroup {
@@ -64,6 +65,7 @@ struct DocumentToolbar: ToolbarContent {
                 undoRedo
                 shapesMenu
                 Button("Add Note", systemImage: "note.text.badge.plus") { isAddingNote = true }
+                    .disabled(!session.canEditAnnotations)
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done", systemImage: "checkmark") { session.task = .read }
@@ -225,6 +227,7 @@ struct DocumentToolbar: ToolbarContent {
             #else
             ShareLink(item: SharedDocument(session: session, fileURL: fileURL),
                       preview: SharePreview(fileURL.deletingPathExtension().lastPathComponent))
+                .disabled(session.isWorking || session.hasPendingMarkup)
             #endif
         }
     }

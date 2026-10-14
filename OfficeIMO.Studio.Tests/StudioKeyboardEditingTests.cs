@@ -15,7 +15,10 @@ public sealed class StudioKeyboardEditingTests {
             var selection = new PdfEditorSelection(kind, 1, new PdfEditorVisualBounds(100, 100, 200, 150), ObjectNumber: 7);
             using var canvas = new PdfPageCanvas { Scene = TestPdfPageScenes.Create(), SelectionMode = mode, SelectedObject = selection };
             var transforms = new List<PdfEditorVisualBounds>();
-            canvas.ObjectTransformCompleted += gesture => transforms.Add(gesture.Target);
+            canvas.ObjectTransformCompleted += gesture => {
+                Assert.True(gesture.KeepSelection);
+                transforms.Add(gesture.Target);
+            };
             KeyModifiers primary = Features.Shell.StudioShortcuts.PrimaryModifier;
 
             Press(canvas, Key.Right, primary);

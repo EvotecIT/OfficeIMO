@@ -41,7 +41,10 @@ public sealed partial class MobileWorkspaceView : UserControl {
         AttachedToVisualTree += (_, _) => ObserveDocument();
         DetachedFromVisualTree += (_, _) => {
             CompleteCloseDecision(UnsavedChangesDecision.Cancel);
-            if (_observedDocument is not null) _observedDocument.PropertyChanged -= OnDocumentChanged;
+            if (_observedDocument is not null) {
+                _observedDocument.PropertyChanged -= OnDocumentChanged;
+                _observedDocument.OcrReadiness.SetUpRequested -= OnOcrSetUpRequested;
+            }
             _observedDocument = null;
         };
         KeyDown += OnWorkspaceKeyDown;

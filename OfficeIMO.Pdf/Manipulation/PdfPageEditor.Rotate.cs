@@ -17,7 +17,7 @@ internal static partial class PdfPageEditor {
     private static byte[] RotatePageAttributes(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, int[] pageNumbers, bool relative) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyPageAttributes, readOptions);
+        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.RotatePages, readOptions);
 
         int normalizedRotation = NormalizeRotation(rotationDegrees);
         var document = PdfReadDocument.Open(pdf, readOptions);

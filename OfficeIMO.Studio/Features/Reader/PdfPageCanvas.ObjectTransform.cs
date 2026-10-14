@@ -42,7 +42,7 @@ public sealed partial class PdfPageCanvas {
             (dx, dy) = TurnKeyboardPoint(dx, dy, -ViewRotationDegrees);
             target = new PdfEditorVisualBounds(bounds.Left + dx, bounds.Top + dy, bounds.Right + dx, bounds.Bottom + dy);
         }
-        ObjectTransformCompleted?.Invoke(new(selected, target, SelectedAnnotations.ToArray()));
+        ObjectTransformCompleted?.Invoke(new(selected, target, SelectedAnnotations.ToArray(), KeepSelection: true));
         return true;
     }
 

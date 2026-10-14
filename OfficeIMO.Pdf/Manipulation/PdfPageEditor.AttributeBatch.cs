@@ -3,12 +3,17 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageEditor {
+    internal static PdfMutationOperation GetAttributeOperation(IReadOnlyList<PdfPageAttributeEdit> edits) =>
+        edits.Count > 0 && edits.All(edit => edit is not null &&
+            edit.Operation is PdfPageAttributeEdit.Kind.SetRotation or PdfPageAttributeEdit.Kind.RotateBy)
+            ? PdfMutationOperation.RotatePages : PdfMutationOperation.ModifyPageAttributes;
+
     internal static byte[] EditPageAttributes(byte[] pdf, IReadOnlyList<PdfPageAttributeEdit> edits,
         PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(edits, nameof(edits));
         if (edits.Count == 0) throw new ArgumentException("Supply at least one page-attribute edit.", nameof(edits));
-        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyPageAttributes,
+        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, GetAttributeOperation(edits),
             readOptions, cancellationToken: cancellationToken);
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();

@@ -160,6 +160,36 @@ public sealed class StudioNativeStructureTests : IDisposable {
     }
 
     [Fact]
+    public async Task Omitted_crop_and_resize_page_lists_apply_to_every_page() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("all-pages.pdf", "One", "Two"), null, default);
+        await document.EditAsync(new StudioNativeEditRequest(Crop: new StudioNativeCropEdit(null, 10, 10, 10, 10)), default);
+        Assert.All((await document.GetInfoAsync(default)).Pages, page => {
+            Assert.Equal(380D, page.Width);
+            Assert.Equal(280D, page.Height);
+        });
+        await document.EditAsync(new StudioNativeEditRequest(PageSize: new StudioNativePageSizeEdit(null, 500, 600)), default);
+        Assert.All((await document.GetInfoAsync(default)).Pages, page => {
+            Assert.Equal(500D, page.Width);
+            Assert.Equal(600D, page.Height);
+        });
+    }
+
+    [Fact]
+    public async Task Tagged_document_resize_capability_matches_the_operation() {
+        string path = Path.Combine(_root, "tagged.pdf");
+        PdfDocument.Create(document => document.Page(page => page.Size(400, 300)
+            .Content(content => content.Column(column => column.Item().Paragraph(paragraph => paragraph.Text("Tagged page"))))),
+            new PdfOptions().EnableTaggedPdfCatalogMarkers()).Save(path);
+        Assert.True(PdfDocument.Preflight(File.ReadAllBytes(path)).DocumentInfo!.HasTaggedContent);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+        Assert.True((await document.GetInfoAsync(default)).CanMutatePages);
+        StudioNativeStructure structure = await document.GetStructureAsync(default);
+        Assert.False(structure.CanResize);
+        await Assert.ThrowsAsync<NotSupportedException>(() => document.EditAsync(
+            new StudioNativeEditRequest(PageSize: new StudioNativePageSizeEdit([1], 500, 600)), default));
+    }
+
+    [Fact]
     public async Task Flattening_draws_the_form_into_its_pages() {
         string path = Path.Combine(_root, "form.pdf");
         File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => {

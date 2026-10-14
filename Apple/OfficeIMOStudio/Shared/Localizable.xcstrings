@@ -636,6 +636,46 @@
         }
       }
     },
+    "A recovery copy contains changes from the last session. Restore them or discard the copy to keep the saved document." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Wiederherstellungskopie enthält Änderungen aus der letzten Sitzung. Stelle die Änderungen wieder her oder verwirf die Kopie, um das gesicherte Dokument beizubehalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una copia de recuperación contiene cambios de la última sesión. Restáurelos o descarte la copia para conservar el documento guardado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une copie de récupération contient des modifications de la dernière session. Restaurez-les ou supprimez la copie pour conserver le document enregistré."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una copia di recupero contiene modifiche dell'ultima sessione. Ripristina le modifiche oppure elimina la copia per mantenere il documento salvato."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopia odzyskiwania zawiera zmiany z ostatniej sesji. Przywróć je lub odrzuć kopię, aby pozostawić zapisany dokument bez zmian."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma cópia de recuperação contém alterações da última sessão. Restaure as alterações ou descarte a cópia para manter o documento salvo sem alterações."
+          }
+        }
+      }
+    },
     "A3" : {
       "localizations" : {
         "de" : {
@@ -4632,6 +4672,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dígitos: %lld"
+          }
+        }
+      }
+    },
+    "Discard Recovery Copy" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederherstellungskopie verwerfen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descartar copia de recuperación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer la copie de récupération"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina copia di recupero"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odrzuć kopię odzyskiwania"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descartar cópia de recuperação"
           }
         }
       }
@@ -12276,6 +12356,46 @@
         }
       }
     },
+    "Recover Unsaved Changes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungesicherte Änderungen wiederherstellen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperar cambios sin guardar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récupérer les modifications non enregistrées"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recupera modifiche non salvate"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odzyskaj niezapisane zmiany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperar alterações não salvas"
+          }
+        }
+      }
+    },
     "Rectangle" : {
       "localizations" : {
         "de" : {
@@ -13112,6 +13232,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redimensionar anotação"
+          }
+        }
+      }
+    },
+    "Restore Changes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen wiederherstellen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurar cambios"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurer les modifications"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristina modifiche"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć zmiany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurar alterações"
           }
         }
       }

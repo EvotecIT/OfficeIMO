@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 extension DocumentSession {
-    var canRedact: Bool { isReady && currentStructure?.canStampPages == true }
+    var canRedact: Bool { isReady && !isWorking && currentStructure?.canRedact == true }
     var canCheck: Bool { isReady }
 
     /// Checks the document's signatures, a standard or its health; the document is unchanged.
@@ -133,10 +133,10 @@ extension DocumentSession {
     private func writeOutputFile(named name: String, write: @escaping @Sendable (EngineDocument, URL) async throws -> String?,
                                  summary: (String?) -> Void) async throws -> ExportedFile? {
         guard let engine else { return nil }
-        let folder = FileManager.default.temporaryDirectory.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
+        let folder = StudioTemporaryFiles.root.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
         let url = folder.appending(path: name)
-        isWorking = true
-        defer { isWorking = false }
+        isRunningOperation = true
+        defer { isRunningOperation = false }
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             summary(try await write(engine, url))

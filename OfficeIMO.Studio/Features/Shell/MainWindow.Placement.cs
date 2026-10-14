@@ -8,11 +8,13 @@ namespace OfficeIMO.Studio.Features.Shell;
 public sealed partial class MainWindow {
     private StudioWindowPlacement? _normalPlacement;
     private bool _restoreMaximized;
+    private WindowState _stateBeforeMinimize = WindowState.Normal;
 
     // Reopen where the user left the window; fall back to a size that fits the current screen.
     private void RestoreWindowPlacement() {
         PositionChanged += (_, _) => RememberNormalPlacement();
         PropertyChanged += (_, change) => {
+            if (change.Property == WindowStateProperty && WindowState != WindowState.Minimized) _stateBeforeMinimize = WindowState;
             if (change.Property == ClientSizeProperty || change.Property == WindowStateProperty) RememberNormalPlacement();
         };
         Opened += (_, _) => {
@@ -27,7 +29,11 @@ public sealed partial class MainWindow {
             Width = Math.Min(saved.Width, target.WorkingArea.Width / target.Scaling);
             Height = Math.Min(saved.Height, target.WorkingArea.Height / target.Scaling);
             WindowStartupLocation = WindowStartupLocation.Manual;
-            Position = new PixelPoint(saved.X, saved.Y);
+            int width = (int)Math.Ceiling(Width * target.Scaling);
+            int height = (int)Math.Ceiling(Height * target.Scaling);
+            Position = new PixelPoint(
+                Math.Clamp(saved.X, target.WorkingArea.X, Math.Max(target.WorkingArea.X, target.WorkingArea.Right - width)),
+                Math.Clamp(saved.Y, target.WorkingArea.Y, Math.Max(target.WorkingArea.Y, target.WorkingArea.Bottom - height)));
             _restoreMaximized = saved.Maximized;
             return;
         }
@@ -55,7 +61,8 @@ public sealed partial class MainWindow {
         StudioWindowPlacement? normal = _normalPlacement;
         if (normal is null) return;
         // Full screen is not restored at launch; the window returns to the state full screen was entered from.
-        WindowState saved = WindowState == WindowState.FullScreen ? _stateBeforeFullScreen : WindowState;
+        WindowState saved = WindowState == WindowState.Minimized ? _stateBeforeMinimize : WindowState;
+        if (saved == WindowState.FullScreen) saved = _stateBeforeFullScreen;
         StudioWindowPlacement placement = normal with { Maximized = saved == WindowState.Maximized };
         _services.Preferences.UpdatePresentation(current => current with { MainWindow = placement });
     }

@@ -9,10 +9,11 @@ enum SecuritySheet: String, Identifiable {
 
 extension DocumentSession {
     var isEncrypted: Bool { facts?.isEncrypted == true }
-    var canChangeSecurity: Bool { isReady && !isWorking }
+    var canChangeSecurity: Bool { isReady && !isWorking &&
+        (facts?.canChangeProtection == true || facts?.requiresOwnerPasswordForProtection == true) }
     var canSignWithCertificate: Bool { isReady && !isWorking && facts?.canSign == true }
     /// Whether changing the protection needs the document's permissions (owner) password.
-    var needsOwnerPassword: Bool { facts?.canChangeProtection == false }
+    var needsOwnerPassword: Bool { facts?.requiresOwnerPasswordForProtection == true }
 
     /// The document's name without its extension, for the names of copies.
     var documentBaseName: String {
@@ -48,10 +49,10 @@ extension DocumentSession {
     /// has closed.
     private func writeCopy(named name: String, write: @escaping @Sendable (EngineDocument, URL) async throws -> Void) async throws {
         guard let engine else { return }
-        let folder = FileManager.default.temporaryDirectory.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
+        let folder = StudioTemporaryFiles.root.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
         let url = folder.appending(path: name)
-        isWorking = true
-        defer { isWorking = false }
+        isRunningOperation = true
+        defer { isRunningOperation = false }
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try await write(engine, url)

@@ -12,7 +12,7 @@ namespace OfficeIMO.Studio.Native;
 /// Fallible calls return a status code and, on failure, a message through <c>error</c> (may be null if the host does
 /// not want it). Everything the library returns is released with <c>officeimo_free</c>; handles have their own release.
 /// </summary>
-internal static unsafe class StudioNativeExports {
+internal static unsafe partial class StudioNativeExports {
     [UnmanagedCallersOnly(EntryPoint = "officeimo_abi_version")]
     internal static int AbiVersion() => StudioNativeAbi.Version;
 
@@ -75,13 +75,17 @@ internal static unsafe class StudioNativeExports {
     // Documents --------------------------------------------------------------------------------------------------
 
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_open")]
-    internal static int DocumentOpen(byte* path, byte* password, nint cancellation, nint* document, byte** error) {
+    internal static int DocumentOpen(byte* path, byte* password, nint cancellation, nint* document, byte** error) =>
+        OpenDocument(path, password, null, cancellation, document, error);
+
+    private static int OpenDocument(byte* path, byte* password, byte* recoveryIdentity, nint cancellation, nint* document, byte** error) {
         if (document is null) return Fail(error, new ArgumentNullException(nameof(document)));
         *document = 0;
         string? location = StudioNativeAbi.FromUtf8(path);
         string? secret = StudioNativeAbi.FromUtf8(password);
+        string? identity = StudioNativeAbi.FromUtf8(recoveryIdentity);
         return Run(error, cancellation, token => {
-            StudioNativeDocument opened = StudioNativeDocument.OpenAsync(location!, secret, token).GetAwaiter().GetResult();
+            StudioNativeDocument opened = StudioNativeDocument.OpenAsync(location!, secret, token, identity).GetAwaiter().GetResult();
             *document = GCHandle.ToIntPtr(GCHandle.Alloc(opened));
         });
     }
@@ -332,11 +336,19 @@ internal static unsafe class StudioNativeExports {
     /// <summary>Adds a markup annotation described by a UTF-8 JSON request as one undoable change.</summary>
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_add_annotation_json")]
     internal static int DocumentAddAnnotationJson(nint document, byte* request, nint cancellation, byte** error) {
-        StudioNativeAnnotationRequest? parsed;
-        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeAnnotationRequest); }
+        IReadOnlyList<StudioNativeAnnotationRequest>? parsed;
+        try {
+            string text = StudioNativeAbi.FromUtf8(request) ?? "null";
+            if (text.TrimStart().StartsWith('[')) {
+                parsed = JsonSerializer.Deserialize(text, StudioNativeJson.Default.IReadOnlyListStudioNativeAnnotationRequest);
+            } else {
+                StudioNativeAnnotationRequest? single = JsonSerializer.Deserialize(text, StudioNativeJson.Default.StudioNativeAnnotationRequest);
+                parsed = single is null ? null : [single];
+            }
+        }
         catch (JsonException exception) { return Fail(error, new ArgumentException("The annotation request is not valid JSON.", exception)); }
         if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
-        return WithDocument(document, error, cancellation, (target, token) => target.AddAnnotationAsync(parsed, token).GetAwaiter().GetResult());
+        return WithDocument(document, error, cancellation, (target, token) => target.AddAnnotationsAsync(parsed, token).GetAwaiter().GetResult());
     }
 
     /// <summary>The markup annotations on a page as UTF-8 JSON.</summary>

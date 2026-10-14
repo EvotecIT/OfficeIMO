@@ -71,6 +71,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
     [NotifyPropertyChangedFor(nameof(HasStarted))]
     private ConversionJobState _state;
 
+
     /// <summary>Progress is shown once a job has started; a waiting job only shows its status.</summary>
     public bool HasStarted => State != ConversionJobState.Queued;
 

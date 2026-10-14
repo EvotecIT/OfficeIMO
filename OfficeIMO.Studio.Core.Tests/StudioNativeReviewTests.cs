@@ -173,6 +173,19 @@ public sealed class StudioNativeReviewTests : IDisposable {
     }
 
     [Fact]
+    public async Task Health_copies_reject_a_source_alias_without_changing_source_bytes() {
+        string source = CreateTextPdf("health-alias.pdf", "One");
+        string alias = Path.Combine(_root, "source-link.pdf");
+        File.CreateSymbolicLink(alias, source);
+        byte[] original = File.ReadAllBytes(source);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(source, null, default);
+        await Assert.ThrowsAsync<ArgumentException>(() => document.WriteAsync(
+            new StudioNativeWriteRequest(Optimize: new StudioNativeHealthCopy(alias)), default));
+        Assert.Equal(original, File.ReadAllBytes(source));
+        Assert.True(new FileInfo(alias).LinkTarget is not null);
+    }
+
+    [Fact]
     public async Task Redaction_finds_text_removes_it_verifiably_and_undoes_as_one_change() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("redact.pdf", "Account 4111 1111 belongs to Alex", "Nothing here"), null, default);
 

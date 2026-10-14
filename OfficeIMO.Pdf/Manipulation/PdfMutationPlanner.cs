@@ -389,6 +389,7 @@ internal static class PdfMutationPlanner {
                 return CanMergeDocuments(preflight);
             case PdfMutationOperation.ModifyPageContent:
             case PdfMutationOperation.ModifyPageTree:
+            case PdfMutationOperation.RotatePages:
             case PdfMutationOperation.ModifyPageAttributes:
                 return CanRewriteAllowingAuthorizedEncryption(preflight, operation);
             case PdfMutationOperation.NormalizePageRotation:
@@ -425,6 +426,7 @@ internal static class PdfMutationPlanner {
                 return report.CanAppendLongTermValidation;
             case PdfMutationOperation.ModifyAnnotations:
                 return report.CanAppendAnnotations;
+            case PdfMutationOperation.RotatePages:
             case PdfMutationOperation.ModifyPageAttributes:
                 return report.CanAppendPageAttributes;
             default:
@@ -456,7 +458,8 @@ internal static class PdfMutationPlanner {
             operation == PdfMutationOperation.FinalizeExternalSignature ||
             operation == PdfMutationOperation.EnrichLongTermValidation ||
             operation == PdfMutationOperation.ModifyAnnotations ||
-            operation == PdfMutationOperation.ModifyPageAttributes;
+            operation == PdfMutationOperation.ModifyPageAttributes ||
+            operation == PdfMutationOperation.RotatePages;
     }
 
     private static bool RequiresAppendOnlyByDefinition(PdfMutationOperation operation) =>
@@ -505,6 +508,7 @@ internal static class PdfMutationPlanner {
             case PdfMutationOperation.ImportPages:
                 return ReadOnly(PdfMutationStructure.PageTree, PdfMutationStructure.PageResources, PdfMutationStructure.TaggedContent,
                     PdfMutationStructure.Navigation, PdfMutationStructure.Catalog, PdfMutationStructure.AcroForm, PdfMutationStructure.Annotations);
+            case PdfMutationOperation.RotatePages:
             case PdfMutationOperation.ModifyPageAttributes:
                 return ReadOnly(PdfMutationStructure.PageAttributes);
             case PdfMutationOperation.NormalizePageRotation:
@@ -549,7 +553,7 @@ internal static class PdfMutationPlanner {
                 Add(permissions, PdfMutationPermissionCheck.FieldMdp);
                 break;
             case PdfMutationOperation.ModifyPageTree:
-            case PdfMutationOperation.ModifyPageAttributes:
+            case PdfMutationOperation.RotatePages:
             case PdfMutationOperation.OrganizePages:
                 Add(permissions, PdfMutationPermissionCheck.AssembleDocument);
                 Add(permissions, PdfMutationPermissionCheck.DocMdp);
@@ -653,6 +657,7 @@ internal static class PdfMutationPlanner {
                 Add(proofs, PdfMutationProof.FormFieldReadback);
                 Add(proofs, PdfMutationProof.AnnotationReadback);
                 break;
+            case PdfMutationOperation.RotatePages:
             case PdfMutationOperation.ModifyPageAttributes:
                 Add(proofs, PdfMutationProof.PageStructureReadback);
                 Add(proofs, PdfMutationProof.VisualRendering);
@@ -857,7 +862,7 @@ internal static class PdfMutationPlanner {
                         ? "append-only mutation is the safer available path"
                         : "full rewrite is blocked for this document structure";
                 Add(diagnostics, operation + " will use an append-only revision because " + reason + ".");
-                if (operation == PdfMutationOperation.ModifyPageAttributes) {
+                if (operation is PdfMutationOperation.ModifyPageAttributes or PdfMutationOperation.RotatePages) {
                     Add(diagnostics, "Only selected page dictionaries are appended; page membership, content, resources, and tagged structure are preserved.");
                 }
             }
@@ -900,6 +905,7 @@ internal static class PdfMutationPlanner {
                 return "Annotations";
             case PdfMutationOperation.ModifyPageTree:
                 return "PageTree";
+            case PdfMutationOperation.RotatePages:
             case PdfMutationOperation.ModifyPageAttributes:
                 return "PageAttributes";
             case PdfMutationOperation.ModifyAttachments:
@@ -1062,6 +1068,7 @@ internal static class PdfMutationPlanner {
             operation != PdfMutationOperation.ModifyPageContent &&
             operation != PdfMutationOperation.ModifyPageTree &&
             operation != PdfMutationOperation.ModifyPageAttributes &&
+            operation != PdfMutationOperation.RotatePages &&
             operation != PdfMutationOperation.NormalizePageRotation &&
             operation != PdfMutationOperation.OrganizePages &&
             operation != PdfMutationOperation.ImportPages &&
@@ -1309,7 +1316,7 @@ internal static class PdfMutationPlanner {
 
     private static void ValidateOperation(PdfMutationOperation operation) {
         int value = (int)operation;
-        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.ImportPages) {
+        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.RotatePages) {
             throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported PDF mutation operation.");
         }
     }

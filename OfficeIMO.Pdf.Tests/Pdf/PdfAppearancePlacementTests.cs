@@ -42,7 +42,7 @@ public sealed class PdfAppearancePlacementTests {
     public void OverflowedExtentsCannotCollapseAnAppearanceToZeroScale() {
         var dictionary = new PdfDictionary();
         dictionary.Items["BBox"] = Numbers(-double.MaxValue, 0, double.MaxValue, 22);
-        Assert.False(PdfAppearancePlacement.TryRead(dictionary, value => value, 30, 300, 180, 22, out _, out _));
+        Assert.Throws<InvalidOperationException>(() => PdfAppearancePlacement.TryRead(dictionary, value => value, 30, 300, 180, 22, out _, out _));
     }
 
     [Fact]
