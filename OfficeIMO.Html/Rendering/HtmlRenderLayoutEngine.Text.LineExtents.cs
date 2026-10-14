@@ -19,6 +19,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double strutAscent = ResolveTextLineAscent(strutText, paragraphStyle);
         double ascent = strutAscent;
         double descent = paragraphStyle.LineHeight - strutAscent;
+        double shortLineAscent = paragraphStyle.LineHeight < paragraphStyle.Font.Size
+            ? strutAscent : double.NegativeInfinity;
         foreach (InlineSegment segment in line.Segments) {
             HtmlInlineRun run = segment.Run;
             if (run.IsFlowMarker || run.RunningStringElement != null || run.RunningElementAssignment != null) continue;
@@ -31,22 +33,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Retain the existing paragraph paint anchor. Only the extra top extent
         // lifts that anchor; the selected face supplies line advance, not a global
         // migration of ordinary text to browser-relative baseline coordinates.
-        baseline = ResolveInlineTextBaseline(strutText, paragraphStyle, hasImage: false)
-            + ascent - strutAscent;
+        // A short-line face which supplies the ascent already has a selected-face
+        // paint anchor. Preserve that route as well as ordinary paragraph anchors.
+        baseline = Math.Abs(shortLineAscent - ascent) < 0.000001D ? ascent
+            : ResolveInlineTextBaseline(strutText, paragraphStyle, hasImage: false) + ascent - strutAscent;
         return true;
 
         void AddStrut(string text, HtmlRenderBoxStyle style) {
             double sourceAscent = ResolveTextLineAscent(text, style);
             double displacement = style.BaselineOffset - paragraphStyle.BaselineOffset;
+            if (style.LineHeight < style.Font.Size) shortLineAscent = Math.Max(shortLineAscent, sourceAscent - displacement);
             ascent = Math.Max(ascent, sourceAscent - displacement);
             descent = Math.Max(descent, style.LineHeight - sourceAscent + displacement);
         }
     }
 
     private double ResolveTextLineAscent(string text, HtmlRenderBoxStyle style) {
+        // Zero-size ancestors still contribute inherited leading around visible
+        // descendants, but cannot be passed to a positive-size font resolver.
+        if (style.Font.Size == 0D) return style.LineHeight / 2D;
         HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(text, style);
         return IsUsableTextFaceMetrics(face)
             ? (style.LineHeight - face!.Value.Height) / 2D + face.Value.BaselineOffset
-            : ResolveTextAscent(style);
+            : style.LineHeight / 2D + GetEffectiveTextFont(style).Size * 0.3D;
     }
 }

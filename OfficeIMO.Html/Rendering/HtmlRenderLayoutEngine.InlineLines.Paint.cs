@@ -194,7 +194,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                 } else if (segment.Text.Length > 0) {
                     double textLineHeight = current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline ? segment.Run.Style.LineHeight : lineHeight;
-                    if (current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline) {
+                    if (!textLineMetrics && (current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline)) {
                         // A smaller run shares the line baseline without extending
                         // its inherited leading below the containing line box.
                         double baselineOffset = Math.Max(0D, baseline - segment.Run.Style.Font.Size);
@@ -206,7 +206,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     // A legal zero CSS line height still paints glyphs. Retain that
                     // metric while giving their fragmentation carrier the same
                     // positive minimum used by the containing line box.
-                    double textLayoutHeight = textLineHeight == 0D ? 0.01D : textLineHeight;
+                    double textLayoutHeight = textLineMetrics ? lineHeight : textLineHeight == 0D ? 0.01D : textLineHeight;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
                         textY - paintTopOverflow, Math.Max(0.01D, segment.Width),
                         paintHeight + paintTopOverflow, inlineBounds);
