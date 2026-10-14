@@ -14,6 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlResolvedBorderRadii radii,
         IElement source,
         string sourceDescription) {
+        if (width <= 0.0001D || height <= 0.0001D) return;
         if (style.UnsupportedBorderPaint.Length > 0) {
             ReportStrokeFallback(
                 _reportedBorderPaintFallbacks,

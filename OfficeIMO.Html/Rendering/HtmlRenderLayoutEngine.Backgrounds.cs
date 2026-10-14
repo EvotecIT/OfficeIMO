@@ -20,7 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visuals.Add(new HtmlRenderLayoutBox(x, y, width, height, visuals.Count,
                 HtmlRenderStyleResolver.DescribeSource(source)));
         }
-        if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
+        if (!style.PaintVisible) return;
         int backgroundStart = visuals.Count;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
@@ -42,7 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         IElement source) {
-        if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
+        if (!style.PaintVisible) return;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddOutlinePaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
@@ -59,7 +59,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
-        if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
+        if (!style.PaintVisible) return;
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription, visualSourceDescription);
@@ -78,6 +78,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
+        // Outer shadows and outlines can expand a zero-layout box. Its own
+        // background still has no paint area, for ordinary and generated boxes.
+        if (width <= 0.0001D || height <= 0.0001D) return;
         if (style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0) {
             BackgroundPaintBox colorBox = ResolveBackgroundBox(
                 style.BackgroundColorClip, x, y, width, height, borderInsets, style, radii);
