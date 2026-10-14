@@ -209,6 +209,47 @@ namespace OfficeIMO.Tests {
             Assert.Contains(image.GetPixels(), value => value != 0);
         }
 
+        [Theory]
+        [InlineData(OfficeShapeKind.Rectangle, 1D)]
+        [InlineData(OfficeShapeKind.RoundedRectangle, 1D)]
+        [InlineData(OfficeShapeKind.Ellipse, 1D)]
+        [InlineData(OfficeShapeKind.Rectangle, 1.5D)]
+        [InlineData(OfficeShapeKind.RoundedRectangle, 1.5D)]
+        [InlineData(OfficeShapeKind.Ellipse, 1.5D)]
+        public void SparseFilledEffectsRetainTheirSceneAndPaintWithinThePixelLimit(OfficeShapeKind kind, double scale) {
+            var drawing = new OfficeDrawing(512D, 512D);
+            foreach (double position in new[] { 64.25D, 160.25D }) {
+                var layer = new OfficeDrawing(512D, 512D);
+                OfficeShape shape = kind == OfficeShapeKind.Rectangle ? OfficeShape.Rectangle(31.5D, 32.25D)
+                    : kind == OfficeShapeKind.Ellipse ? OfficeShape.Ellipse(31.5D, 32.25D)
+                    : OfficeShape.RoundedRectangle(31.5D, 32.25D, 8D);
+                shape.FillColor = OfficeColor.Red;
+                shape.StrokeWidth = 0D;
+                layer.AddShape(shape, position, position);
+                drawing.AddEffectDrawing(layer, OfficeTransform.Identity, .5D);
+            }
+            long rootPixels = (long)Math.Ceiling(512D * scale) * (long)Math.Ceiling(512D * scale);
+            OfficeColor background = OfficeColor.FromRgb(18, 52, 86);
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions {
+                    Scale = scale, Background = background, MaximumRasterPixels = rootPixels + 1L
+                });
+
+            Assert.Equal((int)Math.Ceiling(512D * scale), image.Width);
+            Assert.Equal(background, image.GetPixel(0, 0));
+            Assert.Equal(background, image.GetPixel((int)(300D * scale), (int)(300D * scale)));
+            OfficeColor composited = OfficeColor.FromRgb(137, 26, 43);
+            Assert.Equal(composited, image.GetPixel((int)(80D * scale), (int)(80D * scale)));
+            Assert.Equal(composited, image.GetPixel((int)(176D * scale), (int)(176D * scale)));
+            Assert.All(drawing.Elements, element => {
+                OfficeDrawingEffectGroup effect = Assert.IsType<OfficeDrawingEffectGroup>(element);
+                Assert.Equal(512D, effect.Drawing.Width);
+                Assert.Equal(512D, effect.Drawing.Height);
+            });
+            Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { Scale = scale, MaximumRasterPixels = rootPixels - 1L }));
+        }
+
         private static OfficeDrawing Solid(double width, double height) {
             OfficeDrawing drawing = new OfficeDrawing(width, height);
             OfficeShape rectangle = OfficeShape.Rectangle(width, height);

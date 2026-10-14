@@ -40,27 +40,38 @@ public partial class DrawingTests {
 
     [Fact]
     public void RasterCanvas_ProvidesAStableFontProgramCacheKeyAcrossCanvases() {
-        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap('A'));
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFont('A');
         var fonts = new OfficeFontFaceCollection().Add("Shaping Cache", fontData);
         OfficeFontFace face = Assert.Single(fonts.Faces);
-        var provider = new RasterMappingTextShapingProvider(
-            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 800));
-        var first = new OfficeRasterCanvas(
-            new OfficeRasterImage(40, 20),
-            font: null,
-            fonts: fonts,
-            textShapingProvider: provider);
-        var second = new OfficeRasterCanvas(
-            new OfficeRasterImage(40, 20),
-            font: null,
-            fonts: fonts,
-            textShapingProvider: provider);
+        var provider = new ManagedTextShapingTestAssets.RecordingProvider();
+        var firstImage = new OfficeRasterImage(40, 20, OfficeColor.White);
+        var secondImage = new OfficeRasterImage(40, 20, OfficeColor.White);
+        var first = new OfficeRasterCanvas(firstImage, font: null, fonts: fonts, textShapingProvider: provider);
+        var second = new OfficeRasterCanvas(secondImage, font: null, fonts: fonts, textShapingProvider: provider);
 
-        first.MeasureText("A", 12D, "Shaping Cache");
-        second.MeasureText("A", 12D, "Shaping Cache");
+        double firstWidth = first.MeasureText("A", 12D, "Shaping Cache");
+        first.DrawTextLine("A", 2D, 2D, 12D, OfficeColor.Black, alignment: OfficeTextAlignment.Left, fontFamily: "Shaping Cache");
+        OfficeTextShapingRequest firstRequest = Assert.Single(provider.Requests);
+        byte[] firstPixels = firstImage.GetPixels();
+        byte[] firstPublicSnapshot = firstRequest.FontData;
+        firstPublicSnapshot[0] ^= 0xff;
 
+        double secondWidth = second.MeasureText("AA", 12D, "Shaping Cache");
+        second.DrawTextLine("AA", 2D, 2D, 12D, OfficeColor.Black, alignment: OfficeTextAlignment.Left, fontFamily: "Shaping Cache");
+        Assert.Equal(firstWidth * 2D, secondWidth);
         Assert.Equal(2, provider.Requests.Count);
-        Assert.All(provider.Requests, request => Assert.Same(face.Program, request.FontProgramCacheKeyForShaping));
+        OfficeTextShapingRequest secondRequest = provider.Requests[1];
+        byte[] secondPublicSnapshot = secondRequest.FontData;
+        Array.Clear(secondPublicSnapshot, 0, secondPublicSnapshot.Length);
+
+        Assert.All(provider.Requests, request => {
+            Assert.Same(face.Program, request.FontProgramCacheKeyForShaping);
+            Assert.Equal(fontData, request.FontData);
+        });
+        Assert.Equal(fontData, face.Program.GetFontDataForShaping());
+        Assert.Equal(firstPixels, firstImage.GetPixels());
+        Assert.Contains(firstImage.GetPixels(), channel => channel == 0);
+        Assert.Contains(secondImage.GetPixels(), channel => channel == 0);
     }
 
     [Fact]

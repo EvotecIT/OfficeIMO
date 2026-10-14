@@ -325,6 +325,18 @@ internal static partial class HtmlPdfRenderedConverter {
             });
         }
 
+        IReadOnlyList<PdfCore.PdfTextEncodingDiagnostic> encodingDiagnostics = pdf.AnalyzeTextEncoding(cancellationToken);
+        if (encodingDiagnostics.Count > 0) {
+            throw new HtmlConversionException(diagnostics.Concat(encodingDiagnostics.Select(
+                diagnostic => new HtmlDiagnostic(
+                    "OfficeIMO.Html.Pdf",
+                    diagnostic.Code,
+                    diagnostic.Message,
+                    HtmlDiagnosticSeverity.Error,
+                    diagnostic.Source,
+                    detail: diagnostic.Location))));
+        }
+
         if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss
             && diagnostics.Any(static diagnostic =>
                 diagnostic.LossKind != OfficeConversionLossKind.None
@@ -626,7 +638,11 @@ internal static partial class HtmlPdfRenderedConverter {
         double top = group.ClipVertical ? (constrainToSurface ? Math.Max(0D, group.ClipY) : group.ClipY) : (constrainToSurface ? 0D : group.Y);
         double right = group.ClipHorizontal ? (constrainToSurface ? Math.Min(surfaceWidth, group.ClipX + group.ClipWidth) : group.ClipX + group.ClipWidth) : (constrainToSurface ? surfaceWidth : group.X + group.Width);
         double bottom = group.ClipVertical ? (constrainToSurface ? Math.Min(surfaceHeight, group.ClipY + group.ClipHeight) : group.ClipY + group.ClipHeight) : (constrainToSurface ? surfaceHeight : group.Y + group.Height);
-        if (right <= left + 0.0001D || bottom <= top + 0.0001D) return;
+        if (right <= left + 0.0001D || bottom <= top + 0.0001D) {
+            // A paint clip does not remove the source's navigation targets.
+            AddClippedNamedDestinations(canvas, group.Visuals, OfficeTransform.Identity, cancellationToken);
+            return;
+        }
         ClipBounds clip = ClipBounds.Intersect(activeClip, new ClipBounds(left, top, right, bottom, constrainToSurface: constrainToSurface));
         canvas.Clip(
             left * PointsPerCssPixel,

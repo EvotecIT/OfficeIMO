@@ -99,9 +99,11 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
             glyphs.Add(glyph);
             scalars.Add(scalar);
         }
-        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        bool[]? missingSpaces = FindMissingEmSpaces(glyphs, scalars);
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars, synthesizedSpaces: missingSpaces);
         for (int index = 0; index < glyphs.Count; index++) {
-            width = checked(width + AdvanceWidth(glyphs[index]) + positioning[index].XAdvance);
+            width = checked(width + TextAdvanceWidth(glyphs[index], OfficeMissingSpaceMetrics.IsSynthesized(missingSpaces, index)) +
+                positioning[index].XAdvance);
         }
         return width * scale;
     }
@@ -124,10 +126,12 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
                 elementIndexes.Add(elementIndex);
             }
         }
-        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        bool[]? missingSpaces = FindMissingEmSpaces(glyphs, scalars);
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars, synthesizedSpaces: missingSpaces);
         for (int index = 0; index < glyphs.Count; index++) {
             result[elementIndexes[index]] += checked(
-                AdvanceWidth(glyphs[index]) + positioning[index].XAdvance) * scale;
+                TextAdvanceWidth(glyphs[index], OfficeMissingSpaceMetrics.IsSynthesized(missingSpaces, index)) +
+                positioning[index].XAdvance) * scale;
         }
         return result;
     }
@@ -191,20 +195,30 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
             glyphIds.Add(glyph);
             scalars.Add(scalar);
         }
-        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars);
+        bool[]? missingSpaces = FindMissingEmSpaces(glyphIds, scalars);
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars, synthesizedSpaces: missingSpaces);
 
         for (int index = 0; index < glyphs.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             int glyphId = glyphs[index].Glyph;
             double glyphX = EnsureFiniteGeometry(cursor + positioning[index].XPlacement * scale);
-            RenderGlyph(glyphId, glyphX, baseline, scale, contours, ref pointCount, maximumPointCount, cancellationToken, operationBudget);
+            if (!OfficeMissingSpaceMetrics.IsSynthesized(missingSpaces, index))
+                RenderGlyph(glyphId, glyphX, baseline, scale, contours, ref pointCount, maximumPointCount, cancellationToken, operationBudget);
             int positionedAdvance = checked(
-                AdvanceWidth(glyphId) +
+                TextAdvanceWidth(glyphId, OfficeMissingSpaceMetrics.IsSynthesized(missingSpaces, index)) +
                 positioning[index].XAdvance);
             cursor = EnsureFiniteGeometry(cursor + positionedAdvance * scale);
         }
         return contours;
     }
+
+    private bool[]? FindMissingEmSpaces(IReadOnlyList<int> glyphs, IReadOnlyList<int> scalars) {
+        if (!OfficeMissingSpaceMetrics.ContainsUnmappedEmSpace(glyphs, scalars)) return null;
+        return OfficeMissingSpaceMetrics.FindMissingEmSpaces(glyphs, scalars, scalar => _reader.MapGlyph(scalar) != 0);
+    }
+
+    private int TextAdvanceWidth(int glyph, bool synthesizedSpace) =>
+        synthesizedSpace ? _reader.UnitsPerEm : AdvanceWidth(glyph);
 
     public bool TryGetGlyphMetrics(int scalar, out int glyphId, out int advanceWidth) {
         glyphId = _reader.MapGlyph(scalar);

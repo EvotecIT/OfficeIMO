@@ -9,15 +9,19 @@ public static partial class HtmlComputedStyleEngine {
     /// and source order, including rules whose host selector must stay universal.
     /// </summary>
     private sealed class StyleRuleIndex {
-        private readonly SelectorRuleBucket _elements = new SelectorRuleBucket();
+        private readonly SelectorRuleBucket _elements;
+        private readonly bool _quirksMode;
         private readonly Dictionary<HtmlPseudoElementKind, SelectorRuleBucket> _pseudoElements =
             new Dictionary<HtmlPseudoElementKind, SelectorRuleBucket>();
 
         internal StyleRuleIndex(
             IEnumerable<StyleRule> rules,
+            bool quirksMode,
             IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
             CustomPropertyRegistrations = customPropertyRegistrations
                 ?? new Dictionary<string, CustomPropertyRegistration>(HtmlCssPropertyNameComparer.Instance);
+            _quirksMode = quirksMode;
+            _elements = new SelectorRuleBucket(quirksMode);
             foreach (StyleRule rule in rules) {
                 if (!rule.PseudoElementKind.HasValue) {
                     _elements.Add(rule);
@@ -26,7 +30,7 @@ public static partial class HtmlComputedStyleEngine {
 
                 HtmlPseudoElementKind kind = rule.PseudoElementKind.Value;
                 if (!_pseudoElements.TryGetValue(kind, out SelectorRuleBucket? bucket)) {
-                    bucket = new SelectorRuleBucket();
+                    bucket = new SelectorRuleBucket(_quirksMode);
                     _pseudoElements[kind] = bucket;
                 }
                 bucket.Add(rule);
@@ -49,6 +53,9 @@ public static partial class HtmlComputedStyleEngine {
         private readonly Dictionary<string, List<StyleRule>> _tags = new Dictionary<string, List<StyleRule>>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, List<StyleRule>> _classes = new Dictionary<string, List<StyleRule>>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<StyleRule>> _ids = new Dictionary<string, List<StyleRule>>(StringComparer.Ordinal);
+        private readonly bool _quirksMode;
+
+        internal SelectorRuleBucket(bool quirksMode) { _quirksMode = quirksMode; }
 
         internal void Add(StyleRule rule) {
             switch (rule.CandidateKey.Kind) {
@@ -56,10 +63,10 @@ public static partial class HtmlComputedStyleEngine {
                     Add(_tags, rule.CandidateKey.Value, rule);
                     break;
                 case SelectorCandidateKind.Class:
-                    Add(_classes, rule.CandidateKey.Value, rule);
+                    Add(_classes, SelectorIdentityKey(rule.CandidateKey.Value, _quirksMode), rule);
                     break;
                 case SelectorCandidateKind.Id:
-                    Add(_ids, rule.CandidateKey.Value, rule);
+                    Add(_ids, SelectorIdentityKey(rule.CandidateKey.Value, _quirksMode), rule);
                     break;
                 default:
                     _universal.Add(rule);
@@ -72,8 +79,12 @@ public static partial class HtmlComputedStyleEngine {
             candidates.AddRange(_universal);
             AddMatches(_tags, element.LocalName ?? element.TagName ?? string.Empty, candidates);
             string? id = element.Id;
-            if (!string.IsNullOrEmpty(id)) AddMatches(_ids, id!, candidates);
-            foreach (string className in element.ClassList) AddMatches(_classes, className, candidates);
+            if (!string.IsNullOrEmpty(id)) AddMatches(_ids, SelectorIdentityKey(id!, _quirksMode), candidates);
+            HashSet<string>? matchedClasses = _quirksMode ? new HashSet<string>(StringComparer.Ordinal) : null;
+            foreach (string className in element.ClassList) {
+                string key = SelectorIdentityKey(className, _quirksMode);
+                if (matchedClasses == null || matchedClasses.Add(key)) AddMatches(_classes, key, candidates);
+            }
             if (candidates.Count > 1) candidates.Sort((left, right) => left.Order.CompareTo(right.Order));
             return candidates;
         }

@@ -158,6 +158,9 @@ internal sealed class HtmlRenderFlowBlock {
     internal double LayoutViewportWidth { get; }
     internal double LayoutViewportHeight { get; }
     internal double LeadingFlowAdjustment { get; }
+    // Stamped on the final ordinary LayoutElement result, for its immediate inline
+    // consumer. Derived/specialized blocks remain unqualified rather than guessed empty.
+    internal bool KnownNoInFlowLineBoxes { get; set; }
 
     internal HtmlRenderFlowBlock WithLayoutViewport(double width, double height) =>
         new HtmlRenderFlowBlock(
@@ -735,8 +738,19 @@ internal sealed class HtmlInlineRun {
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningElementAssignments { get; } = Array.Empty<HtmlCssRunningStringAssignment>();
     internal bool IsReplacedImage { get; }
     internal double? AtomicBaseline { get; }
+    internal bool HasEmptyInlineBlockBaseline { get; set; }
     internal bool IsBlockInterruption { get; }
     internal bool IsFlowMarker { get; }
+    internal HtmlInlineEdgeBoundary? InlineEdgeBoundary { get; set; }
+    internal IReadOnlyList<HtmlInlineEdgeScope> InlineEdgeScopes { get; set; } = Array.Empty<HtmlInlineEdgeScope>();
+    // Inline line-box metrics also belong to wrappers without decoration edges.
+    internal IReadOnlyList<HtmlRenderBoxStyle> InlineStrutStyles { get; set; } = Array.Empty<HtmlRenderBoxStyle>();
+    internal double InlineClosingAdvance { get; set; }
+    internal bool InlineTokenEndsRun { get; set; }
+    internal bool IsEmptyInlineBox { get; set; }
+    internal bool IsInlineStrutMarker { get; set; }
+    // Removed zero-font source text may retain a CSS whitespace opportunity without content or advance.
+    internal bool IsSuppressedWhitespaceBreak { get; set; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
     internal int? SemanticFragmentOrder { get; private set; }
@@ -747,6 +761,8 @@ internal sealed class HtmlInlineRun {
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
     internal bool TextTransformPending { get; private set; }
+    // Suppressed text participates in casing and first-letter selection before paint.
+    internal bool IsTextTransformContextOnly { get; set; }
     internal string? LeaderPattern { get; }
     internal bool IsFirstLetter { get; private set; }
     // A pseudo-element split retains the whole word's break decisions and logical text.
@@ -796,51 +812,20 @@ internal sealed class HtmlInlineRun {
             InlineSemanticGroupRole = InlineSemanticGroupRole,
             InlineSemanticGroupKey = InlineSemanticGroupKey,
             BookmarkAnchorText = BookmarkAnchorText,
+            IsTextTransformContextOnly = style.Font.Size <= 0D,
             IsFirstLetter = isFirstLetter,
             PreparedHyphenation = PreparedHyphenation,
             EndsFirstLine = EndsFirstLine,
-            FirstLineHyphen = FirstLineHyphen
+            FirstLineHyphen = FirstLineHyphen,
+            InlineEdgeScopes = InlineEdgeScopes,
+            InlineStrutStyles = InlineStrutStyles,
+            IsInlineStrutMarker = IsInlineStrutMarker,
+            IsSuppressedWhitespaceBreak = IsSuppressedWhitespaceBreak,
+            InlineClosingAdvance = InlineClosingAdvance,
+            InlineTokenEndsRun = InlineTokenEndsRun
         };
         return clone;
     }
-}
-
-internal sealed class HtmlInlineLayout {
-    internal HtmlInlineLayout(
-        IEnumerable<HtmlRenderVisual> visuals,
-        double height,
-        IEnumerable<double>? breakOffsets = null,
-        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null,
-        IEnumerable<HtmlInlineBreakProgress>? breakProgress = null,
-        bool supportsContinuationReflow = false,
-        double? normalFlowHeight = null,
-        IEnumerable<double>? lineBreakOffsets = null,
-        IEnumerable<HtmlFloatExclusion>? floatExclusions = null, HtmlRenderFlowBlock? interruptedFlow = null) {
-        Visuals = new List<HtmlRenderVisual>(visuals);
-        Height = height;
-        NormalFlowHeight = normalFlowHeight ?? height;
-        BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
-        LineBreakOffsets = new List<double>(lineBreakOffsets ?? BreakOffsets).AsReadOnly();
-        RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(
-            runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
-        BreakProgress = new List<HtmlInlineBreakProgress>(breakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
-        SupportsContinuationReflow = supportsContinuationReflow;
-        InterruptedFlow = interruptedFlow;
-        FloatExclusions = new List<HtmlFloatExclusion>(floatExclusions ?? Array.Empty<HtmlFloatExclusion>()).AsReadOnly();
-    }
-
-    internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
-    internal double Height { get; }
-    internal double NormalFlowHeight { get; }
-    /// <summary>Page-break candidates; may exclude line ends inside a floated box.</summary>
-    internal IReadOnlyList<double> BreakOffsets { get; }
-    /// <summary>All line ends used to count widows and orphans, including lines beside floats.</summary>
-    internal IReadOnlyList<double> LineBreakOffsets { get; }
-    internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
-    internal IReadOnlyList<HtmlInlineBreakProgress> BreakProgress { get; }
-    internal bool SupportsContinuationReflow { get; }
-    internal HtmlRenderFlowBlock? InterruptedFlow { get; }
-    internal IReadOnlyList<HtmlFloatExclusion> FloatExclusions { get; }
 }
 
 internal readonly struct HtmlFloatExclusion {

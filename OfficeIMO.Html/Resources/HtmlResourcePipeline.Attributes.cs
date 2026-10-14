@@ -200,7 +200,9 @@ public static partial class HtmlResourcePipeline {
             source.Trim(),
             resolved,
             isAllowed,
-            isAllowed ? string.Empty : GetDiagnosticCode(kind)));
+            isAllowed ? string.Empty : GetDiagnosticCode(kind),
+            baseUri,
+            policy?.ResolvedUrlTransform));
     }
 
     private static string GetDiagnosticCode(HtmlResourceKind kind) {

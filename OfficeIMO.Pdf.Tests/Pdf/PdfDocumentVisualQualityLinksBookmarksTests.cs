@@ -475,10 +475,26 @@ public partial class PdfDocumentVisualQualityTests {
                                 }))))))
             .ToBytes();
 
-        string pdf = Encoding.ASCII.GetString(bytes);
-
-        Assert.Contains("/BaseFont /Times-Roman", pdf, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /Courier", pdf, StringComparison.Ordinal);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
+        var expectedWords = new[] {
+            (Text: "Direct", Font: "Times-Roman"),
+            (Text: "table", Font: "Times-Roman"),
+            (Text: "Times", Font: "Times-Roman"),
+            (Text: "Column", Font: "Courier"),
+            (Text: "table", Font: "Courier"),
+            (Text: "Courier", Font: "Courier")
+        };
+        // Explicit run fonts retain their selected faces in a bold header.
+        // Verify both complete painted runs, not just their font-name markers.
+        Assert.Equal(expectedWords.Length, words.Length);
+        for (int index = 0; index < expectedWords.Length; index++) {
+            Assert.Equal(expectedWords[index].Text, words[index].Text);
+            Assert.All(words[index].Letters, letter => {
+                Assert.Equal(expectedWords[index].Font, letter.FontName);
+                Assert.Equal(11D, letter.PointSize, precision: 6);
+            });
+        }
     }
 
     [Fact]

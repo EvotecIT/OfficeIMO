@@ -73,17 +73,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlTextFaceMetrics? ResolveInlineShortLineFace(string text, HtmlRenderBoxStyle style) {
         if (style.LineHeight >= style.Font.Size) return null;
         HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(text, style);
-        if (!face.HasValue || face.Value.Height <= 0D
-            || double.IsNaN(face.Value.Height) || double.IsInfinity(face.Value.Height)
-            || double.IsNaN(face.Value.BaselineOffset) || double.IsInfinity(face.Value.BaselineOffset)
-            || face.Value.BaselineOffset < 0D || face.Value.BaselineOffset > face.Value.Height) return null;
-        return face;
+        return IsUsableTextFaceMetrics(face) ? face : null;
     }
 
+    private static bool IsUsableTextFaceMetrics(HtmlTextFaceMetrics? face) =>
+        face.HasValue && face.Value.Height > 0D && !double.IsNaN(face.Value.Height) && !double.IsInfinity(face.Value.Height)
+        && !double.IsNaN(face.Value.BaselineOffset) && !double.IsInfinity(face.Value.BaselineOffset)
+        && face.Value.BaselineOffset >= 0D && face.Value.BaselineOffset <= face.Value.Height;
+
     private HtmlTextFaceMetrics? ResolveTextFaceMetrics(string text, HtmlRenderBoxStyle style) {
-        if (_fonts.TryResolveFaceForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
-            && face?.Program is IOfficeFontBaselineMetrics baseline) {
-            return new HtmlTextFaceMetrics(face.Program.LineHeight(style.Font.Size),
+        IOfficeFontProgram? program = text.Length == 0
+            ? _fonts.ResolveForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out _)
+            : _fonts.TryResolveFaceForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
+                ? face?.Program : null;
+        if (program is IOfficeFontBaselineMetrics baseline) {
+            return new HtmlTextFaceMetrics(program.LineHeight(style.Font.Size),
                 baseline.BaselineOffset(style.Font.Size));
         }
         return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);

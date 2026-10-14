@@ -1,5 +1,6 @@
 using AngleSharp;
 using AngleSharp.Dom;
+using OfficeIMO.Html.Css;
 using OfficeIMO.Html.Dom;
 
 namespace OfficeIMO.Html.Providers;
@@ -23,6 +24,12 @@ public sealed class AngleSharpDomServices : IHtmlDomServices {
     public IReadOnlyList<HtmlElement> QuerySelectorAll(HtmlNode scope, string selector) {
         if (scope == null) throw new ArgumentNullException(nameof(scope));
         if (selector == null) throw new ArgumentNullException(nameof(selector));
+        HtmlCssSelectorList? owned = TryParseOwnedSelector(selector);
+        if (owned != null) {
+            var context = new HtmlCssSelectorMatchContext(null, default);
+            return scope.Descendants().OfType<HtmlElement>()
+                .Where(element => owned.Matches(new OwnedSelectorElement(element), context)).ToArray();
+        }
         var state = NativeDomBridge.GetState(scope);
         INode native = state.ToNative[scope.NodeId];
         try {
@@ -36,7 +43,21 @@ public sealed class AngleSharpDomServices : IHtmlDomServices {
     public bool Matches(HtmlElement element, string selector) {
         if (element == null) throw new ArgumentNullException(nameof(element));
         if (selector == null) throw new ArgumentNullException(nameof(selector));
+        HtmlCssSelectorList? owned = TryParseOwnedSelector(selector);
+        if (owned != null) return owned.Matches(element);
         try { return ((IElement)NativeDomBridge.GetNative(element)).Matches(selector); }
         catch (DomException error) { throw new ArgumentException("The CSS selector is invalid: " + error.Message, nameof(selector)); }
+    }
+
+    private static HtmlCssSelectorList? TryParseOwnedSelector(string selector) {
+        try {
+            HtmlCssSelectorListParseResult parsed = HtmlCssSelectorParser.ParseList(selector);
+            // Only complete supported lists enter the owned matcher. The provider retains
+            // unsupported syntax and its existing invalid-selector exception contract.
+            return parsed.IsSupported ? parsed.SelectorList : null;
+        } catch (HtmlCssSelectorLimitException) {
+            // Owned parser bounds do not narrow the provider's public query contract.
+            return null;
+        }
     }
 }

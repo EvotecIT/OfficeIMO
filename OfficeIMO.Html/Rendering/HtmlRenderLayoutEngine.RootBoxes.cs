@@ -23,7 +23,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private bool RequiresRootBox(IElement root, HtmlRenderBoxStyle style) =>
-        style.Position != "static" || style.HasBorderLayout || style.HorizontalInsets != 0D || style.VerticalInsets != 0D ||
+        style.Position != "static" || EstablishesTransformedContainingBlock(style) || style.HasBorderLayout || style.HorizontalInsets != 0D || style.VerticalInsets != 0D ||
         style.MarginLeft != 0D || style.MarginRight != 0D || style.MarginTop != 0D || style.MarginBottom != 0D;
 
     private HtmlRenderFlowBlock LayoutRootBox(IElement root, double width, HtmlRenderBoxStyle style,

@@ -29,27 +29,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.Borders.IsUniform) {
             HtmlRenderBorderSide border = style.Borders.Top;
             if (IsThreeDimensionalStroke(border.Style)) {
-                AddBorderSidePaint(visuals, HtmlBorderEdge.Top, border, x, y, width, height, radii, sourceDescription);
-                AddBorderSidePaint(visuals, HtmlBorderEdge.Right, border, x, y, width, height, radii, sourceDescription);
-                AddBorderSidePaint(visuals, HtmlBorderEdge.Bottom, border, x, y, width, height, radii, sourceDescription);
-                AddBorderSidePaint(visuals, HtmlBorderEdge.Left, border, x, y, width, height, radii, sourceDescription);
+                AddBorderSidePaint(visuals, HtmlBorderEdge.Top, border, x, y, width, height, radii, sourceDescription, style.BorderInsets);
+                AddBorderSidePaint(visuals, HtmlBorderEdge.Right, border, x, y, width, height, radii, sourceDescription, style.BorderInsets);
+                AddBorderSidePaint(visuals, HtmlBorderEdge.Bottom, border, x, y, width, height, radii, sourceDescription, style.BorderInsets);
+                AddBorderSidePaint(visuals, HtmlBorderEdge.Left, border, x, y, width, height, radii, sourceDescription, style.BorderInsets);
                 return;
             }
             if (border.Style == "double") {
                 double strokeWidth = Math.Max(0.01D, border.Width / 3D);
-                AddStrokeVisual(visuals, x, y, width, height, radii, border.Color, strokeWidth, "solid", sourceDescription + ":border-outer");
-                double inset = border.Width * 2D / 3D;
-                AddExpandedStrokeVisual(visuals, x, y, width, height, radii, border.Color, strokeWidth, "solid", -inset, sourceDescription + ":border-inner");
+                AddBoxBorderStrokeVisual(visuals, x, y, width, height, radii, border.Color, strokeWidth, "solid", border.Width / 6D, sourceDescription + ":border-outer");
+                AddBoxBorderStrokeVisual(visuals, x, y, width, height, radii, border.Color, strokeWidth, "solid", border.Width * 5D / 6D, sourceDescription + ":border-inner");
                 return;
             }
-            AddStrokeVisual(visuals, x, y, width, height, radii, border.Color, border.Width, border.Style, sourceDescription);
+            AddBoxBorderStrokeVisual(visuals, x, y, width, height, radii, border.Color, border.Width, border.Style, border.Width / 2D, sourceDescription);
             return;
         }
 
-        AddBorderSidePaint(visuals, HtmlBorderEdge.Top, style.Borders.Top, x, y, width, height, radii, sourceDescription);
-        AddBorderSidePaint(visuals, HtmlBorderEdge.Right, style.Borders.Right, x, y, width, height, radii, sourceDescription);
-        AddBorderSidePaint(visuals, HtmlBorderEdge.Bottom, style.Borders.Bottom, x, y, width, height, radii, sourceDescription);
-        AddBorderSidePaint(visuals, HtmlBorderEdge.Left, style.Borders.Left, x, y, width, height, radii, sourceDescription);
+        AddBorderSidePaint(visuals, HtmlBorderEdge.Top, style.Borders.Top, x, y, width, height, radii, sourceDescription, style.BorderInsets);
+        AddBorderSidePaint(visuals, HtmlBorderEdge.Right, style.Borders.Right, x, y, width, height, radii, sourceDescription, style.BorderInsets);
+        AddBorderSidePaint(visuals, HtmlBorderEdge.Bottom, style.Borders.Bottom, x, y, width, height, radii, sourceDescription, style.BorderInsets);
+        AddBorderSidePaint(visuals, HtmlBorderEdge.Left, style.Borders.Left, x, y, width, height, radii, sourceDescription, style.BorderInsets);
     }
 
     private void AddOutlinePaint(
@@ -126,7 +125,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             lossKind);
     }
 
-    private static void AddStrokeVisual(
+    /// <summary>
+    /// Paints a uniform CSS border on an inset centerline while preserving the
+    /// original rounded outer contour, including when the border exceeds a radius.
+    /// </summary>
+    private static void AddBoxBorderStrokeVisual(
         ICollection<HtmlRenderVisual> visuals,
         double x,
         double y,
@@ -136,12 +139,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeColor color,
         double strokeWidth,
         string style,
+        double inset,
         string source) {
-        OfficeShape shape = CreateBoxShape(width, height, radii);
+        double innerWidth = width - inset * 2D;
+        double innerHeight = height - inset * 2D;
+        if (innerWidth <= 0.01D || innerHeight <= 0.01D) return;
+        HtmlResolvedBorderRadii innerRadii = radii.Inset(inset, inset, inset, inset, innerWidth, innerHeight);
+        IReadOnlyList<OfficePathCommand> commands = innerRadii.IsZero
+            ? new[] {
+                OfficePathCommand.MoveTo(0D, 0D),
+                OfficePathCommand.LineTo(innerWidth, 0D),
+                OfficePathCommand.LineTo(innerWidth, innerHeight),
+                OfficePathCommand.LineTo(0D, innerHeight),
+                OfficePathCommand.Close()
+            }
+            : innerRadii.CreatePathCommands(innerWidth, innerHeight);
+        OfficeShape shape = OfficeShape.Path(width, height, commands.Select(command => command.Translate(-inset, -inset)));
         shape.FillColor = null;
         shape.StrokeColor = color;
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = MapStrokeDashStyle(style);
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+        shape.ClipPath = CreateBoxClipPath(width, height, radii);
         visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: source));
     }
 
@@ -177,20 +196,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         HtmlResolvedBorderRadii radii,
-        string source) {
+        string source,
+        HtmlRenderBorderInsets? boxBorderInsets = null) {
         if (!border.IsPainted) return;
         string edgeSource = source + ":border-" + edge.ToString().ToLowerInvariant();
         if (IsThreeDimensionalStroke(border.Style)) {
-            AddThreeDimensionalBorderSidePaint(visuals, edge, border, x, y, width, height, radii, edgeSource);
+            AddThreeDimensionalBorderSidePaint(visuals, edge, border, x, y, width, height, radii, edgeSource, boxBorderInsets);
             return;
         }
         if (border.Style != "double") {
-            AddBorderSideStroke(visuals, edge, border.Color, border.Width, border.Style, x, y, width, height, radii, edgeSource);
+            AddBorderSideStroke(visuals, edge, border.Color, border.Width, border.Style, x, y, width, height, radii, edgeSource, boxBorderInsets, 0.5D);
             return;
         }
 
         double strokeWidth = Math.Max(0.01D, border.Width / 3D);
-        AddBorderSideStroke(visuals, edge, border.Color, strokeWidth, "solid", x, y, width, height, radii, edgeSource + "-outer");
+        AddBorderSideStroke(visuals, edge, border.Color, strokeWidth, "solid", x, y, width, height, radii, edgeSource + "-outer", boxBorderInsets, 1D / 6D);
+        if (boxBorderInsets.HasValue) {
+            AddBorderSideStroke(visuals, edge, border.Color, strokeWidth, "solid", x, y, width, height, radii, edgeSource + "-inner", boxBorderInsets, 5D / 6D);
+            return;
+        }
         double inset = border.Width * 2D / 3D;
         double innerWidth = width - inset * 2D;
         double innerHeight = height - inset * 2D;
@@ -208,18 +232,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         HtmlResolvedBorderRadii radii,
-        string source) {
+        string source,
+        HtmlRenderBorderInsets? boxBorderInsets = null) {
         if (border.Style == "inset" || border.Style == "outset") {
             AddBorderSideStroke(
                 visuals, edge, ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
-                border.Width, "solid", x, y, width, height, radii, source);
+                border.Width, "solid", x, y, width, height, radii, source, boxBorderInsets, 0.5D);
             return;
         }
 
         double strokeWidth = Math.Max(0.01D, border.Width / 2D);
         AddBorderSideStroke(
             visuals, edge, ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
-            strokeWidth, "solid", x, y, width, height, radii, source + "-outer");
+            strokeWidth, "solid", x, y, width, height, radii, source + "-outer", boxBorderInsets, 0.25D);
+        if (boxBorderInsets.HasValue) {
+            AddBorderSideStroke(
+                visuals, edge, ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: true),
+                strokeWidth, "solid", x, y, width, height, radii, source + "-inner", boxBorderInsets, 0.75D);
+            return;
+        }
         double inset = border.Width / 2D;
         double innerWidth = width - inset * 2D;
         double innerHeight = height - inset * 2D;
@@ -259,8 +290,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         HtmlResolvedBorderRadii radii,
-        string source) {
-        OfficeShape shape = OfficeShape.Path(CreateBorderSidePath(edge, width, height, radii.Normalize(width, height)));
+        string source,
+        HtmlRenderBorderInsets? boxBorderInsets = null,
+        double insetFraction = 0D) {
+        OfficeShape shape;
+        if (boxBorderInsets.HasValue) {
+            // CSS borders occupy the border box. Stroke paths run through each band's
+            // center; unrelated edges with no border leave their axis unchanged.
+            HtmlRenderBorderInsets insets = boxBorderInsets.Value;
+            double left = insets.Left * insetFraction;
+            double top = insets.Top * insetFraction;
+            double right = insets.Right * insetFraction;
+            double bottom = insets.Bottom * insetFraction;
+            double innerWidth = width - left - right;
+            double innerHeight = height - top - bottom;
+            if (innerWidth <= 0.01D || innerHeight <= 0.01D) return;
+            HtmlResolvedBorderRadii innerRadii = radii.Inset(left, top, right, bottom, innerWidth, innerHeight);
+            IReadOnlyList<OfficePathCommand> commands = CreateBorderSidePath(edge, innerWidth, innerHeight, innerRadii);
+            shape = OfficeShape.Path(width, height, commands.Select(command => command.Translate(-left, -top)));
+            // Unequal adjacent widths can extend a rounded stroke beyond its outer
+            // contour. The CSS box clip contains that paint without clipping outlines.
+            shape.ClipPath = CreateBoxClipPath(width, height, radii);
+        } else {
+            shape = OfficeShape.Path(CreateBorderSidePath(edge, width, height, radii.Normalize(width, height)));
+        }
         shape.FillColor = null;
         shape.StrokeColor = color;
         shape.StrokeWidth = strokeWidth;

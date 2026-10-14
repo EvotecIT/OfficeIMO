@@ -10,7 +10,7 @@ using Xunit;
 
 namespace OfficeIMO.Drawing.Tests;
 
-public sealed class DrawingTrueTypeVariableFontTests {
+public sealed partial class DrawingTrueTypeVariableFontTests {
     [Fact]
     public void TrueTypeVariationAxesProduceDistinctDeterministicOutlinesAndMetrics() {
         byte[] data = ReadAsset("RobotoFlex.ttf");

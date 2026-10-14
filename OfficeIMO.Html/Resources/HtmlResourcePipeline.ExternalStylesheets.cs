@@ -99,7 +99,7 @@ public static partial class HtmlResourcePipeline {
                 source,
                 resolved,
                 allowed,
-                allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Stylesheet));
+                allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Stylesheet), baseUri, resourcePolicy.ResolvedUrlTransform);
             bool isApplicable = IsApplicableCssImport(
                 import.ConditionText,
                 options,
@@ -126,7 +126,7 @@ public static partial class HtmlResourcePipeline {
                     source,
                     resolved,
                     allowed,
-                    allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Font)));
+                    allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Font), baseUri, resourcePolicy.ResolvedUrlTransform));
             }
         }
 
@@ -162,7 +162,7 @@ public static partial class HtmlResourcePipeline {
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
             bool allowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(HtmlResourceKind.Image, resolved);
             imageResources.Add(new HtmlResourceReference(HtmlResourceKind.Image, "style", attribute, source, resolved, allowed,
-                allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Image)));
+                allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Image), baseUri, resourcePolicy.ResolvedUrlTransform));
         }
     }
 

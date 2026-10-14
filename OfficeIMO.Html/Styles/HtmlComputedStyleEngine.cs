@@ -54,6 +54,9 @@ public static partial class HtmlComputedStyleEngine {
         "text-align",
         "text-indent",
         "text-shadow",
+        "text-underline-offset",
+        "text-underline-position",
+        "text-decoration-skip-ink",
         "text-transform",
         "visibility",
         "widows",
@@ -133,6 +136,7 @@ public static partial class HtmlComputedStyleEngine {
         "break-inside",
         "caption-side",
         "clear",
+        "clip",
         "clip-path",
         "color",
         "column-gap",
@@ -282,6 +286,9 @@ public static partial class HtmlComputedStyleEngine {
         "text-decoration-color",
         "text-decoration-style",
         "text-decoration-thickness",
+        "text-underline-offset",
+        "text-underline-position",
+        "text-decoration-skip-ink",
         "text-overflow",
         "text-shadow",
         "text-transform",
@@ -423,7 +430,7 @@ public static partial class HtmlComputedStyleEngine {
             ParseCustomPropertyRegistrations(document, environment, budget);
         budget.ValidateRegistrationFanout(customPropertyRegistrations.Count, document.QuerySelectorAll("*").Length);
         IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment, budget);
-        var ruleIndex = new StyleRuleIndex(rules, customPropertyRegistrations);
+        var ruleIndex = new StyleRuleIndex(rules, UsesQuirksIdClassMatching(document), customPropertyRegistrations);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
         var pseudoElements = new Dictionary<IElement, HtmlPseudoElementStylePair>();
         IElement? root = document.DocumentElement ?? document.Body;
@@ -565,6 +572,8 @@ public static partial class HtmlComputedStyleEngine {
         // Store the HTML default in the computed snapshot so an explicit
         // display:inherit can copy a parent's tag default or hidden state.
         if (!resolvedProperties.ContainsKey("display")) resolvedProperties["display"] = HtmlElementDisplay.GetDefaultValue(element);
+        ApplyHtmlWhiteSpaceDefaults(element, properties.ContainsKey("white-space"), resolvedProperties,
+            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
             specifiedProperties, cascadePriorities, cascadeTraces);
