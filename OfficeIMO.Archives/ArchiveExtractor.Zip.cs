@@ -41,6 +41,10 @@ public static partial class ArchiveExtractor {
             string name = DecodeName(record);
             if (name.EndsWith("/", StringComparison.Ordinal) || name.EndsWith("\\", StringComparison.Ordinal)) {
                 if (length != 0) throw new InvalidDataException("A ZIP directory member has content: " + name);
+                using (var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, record, token))) {
+                    if (payload.Read(new byte[1], 0, 1) != 0 || payload.Crc32 != record.Crc32)
+                        throw new InvalidDataException("A ZIP directory member has invalid empty content: " + name);
+                }
                 paths.AddDirectory(name.Substring(0, name.Length - 1));
                 continue;
             }

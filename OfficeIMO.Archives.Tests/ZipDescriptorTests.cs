@@ -5,6 +5,43 @@ namespace OfficeIMO.Archives.Tests;
 
 public sealed partial class ZipExtractionTests {
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void DirectoryRecordsRejectInvalidEmptyPayloadsBeforePublication(int kind) {
+        byte[] compressed = kind switch { 0 => new byte[] { 65 }, 1 => Array.Empty<byte>(),
+            2 => new byte[] { 3, 0, 0 }, _ => new byte[] { 3, 0 } };
+        ushort method = kind == 0 || kind == 4 ? (ushort)0 : (ushort)8;
+        if (kind == 4) compressed = Array.Empty<byte>();
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = DirectoryZip(compressed, method, kind >= 3 ? 1U : 0U);
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination,
+            new ArchiveExtractionOptions { IncludeFile = _ => false }));
+        Assert.False(Directory.Exists(fixture.Destination));
+        Assert.Empty(Directory.GetDirectories(fixture.Root, ".officeimo-archive-*"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DirectoryRecordsAcceptVerifiedEmptyStoredAndDeflatePayloads(bool deflate) {
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = DirectoryZip(deflate ? new byte[] { 3, 0 } : Array.Empty<byte>(), deflate ? (ushort)8 : (ushort)0, 0);
+        Assert.Empty(ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination).Files);
+        Assert.True(Directory.Exists(fixture.Destination));
+    }
+
+    private static byte[] DirectoryZip(byte[] compressed, ushort method, uint crc) {
+        byte[] zip = PatchHeaders(ZipWithRawDeflate(compressed, 0, crc), method: method);
+        int central = (int)BitConverter.ToUInt32(zip, zip.Length - 6);
+        zip[30 + BitConverter.ToUInt16(zip, 26) - 1] = (byte)'/';
+        zip[central + 46 + BitConverter.ToUInt16(zip, central + 28) - 1] = (byte)'/';
+        return zip;
+    }
+
+    [Theory]
     [InlineData(0x0010, false)]
     [InlineData(0x0080, false)]
     [InlineData(0x0100, false)]
