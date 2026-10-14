@@ -1,0 +1,323 @@
+{
+  "schema": "officeimo.html.nist.bounded-structure-association-qualification/v1",
+  "state": "source-cell-association-qualified-broader-appearance-open",
+  "createdUtc": "2026-10-14T08:28:22.459262+00:00",
+  "scope": {
+    "pdfProducerHead": "3b366d381df10cc8c7c948096b63eb10ec6a8352",
+    "readerProducerHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+    "repositoryEdited": false,
+    "repositoryRebuilt": false,
+    "pdfsRegenerated": false,
+    "oldEvidenceModified": false,
+    "newProductApiOrDependency": false,
+    "windowsAccessed": false
+  },
+  "inputs": {
+    "bindings": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/nist-structure-association-35419c8104ce/input-bindings.json",
+      "bytes": 9399,
+      "sha256": "f5b9244ac213d8756cafe523536e866273dd954b7d851da7d5f34855291ed672"
+    },
+    "sourceOracle": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/combined-inline-sizing-next/qualification-remediation-next/nist-three-occurrences-current-investigation/chapter-table-acceptance-source-only/source-oracle.json",
+      "bytes": 241002,
+      "sha256": "2cf37c34f4e8c290c9455621c38ebabc817ed40c5f6534b531bbae623cae5bc4"
+    },
+    "sourceArchive": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/frozen-restored/nist/h10-nist-outline-fallback-91951f8ef/source.mhtml",
+      "bytes": 1099322,
+      "sha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa"
+    },
+    "originalObservations": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-source-only/nist3profiles-native28/execution-3b366d381df1/independent/source-association-repaired-observations.json",
+      "bytes": 5508956,
+      "sha256": "f022bd5a5a598f75d1722b1a97b21b9339a69369e78f123e26e222862f8eb5af"
+    },
+    "nativeReceipt": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-source-only/nist3profiles-native28/execution-3b366d381df1/independent/receipt.json",
+      "bytes": 169900,
+      "sha256": "c63b68c63bc9e6cbd333e02efea0519450eccbd72114aa1491928d6377ad7651"
+    },
+    "pdfs": [
+      {
+        "profile": "print-paged",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-source-only/nist3profiles-native28/execution-3b366d381df1/nist/print-paged.pdf",
+        "bytes": 1504811,
+        "sha256": "6303fdb5e6af0dbf3a9e3a99331544744e8243adf9e4dcecb5e1770f2e44e033"
+      },
+      {
+        "profile": "screen-media-paged",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-source-only/nist3profiles-native28/execution-3b366d381df1/nist/screen-media-paged.pdf",
+        "bytes": 1031562,
+        "sha256": "154c6283b49a41e7a2d3418707ae64534f049174032e607787c89376a3f68b53"
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-source-only/nist3profiles-native28/execution-3b366d381df1/nist/screen-snapshot-paged.pdf",
+        "bytes": 951601,
+        "sha256": "acd460ebd21b3efbbd14e7058c756db5d3937881e4ed3de6f294ddeb7477a259"
+      }
+    ]
+  },
+  "collectors": {
+    "source": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/nist-structure-association-35419c8104ce/Program.cs",
+      "bytes": 19034,
+      "sha256": "41604d5afdc09e8c6c914bf9721a824f814c4b17fa8e71a7fd9cb57b855b4416"
+    },
+    "project": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/nist-structure-association-35419c8104ce/Collector.csproj",
+      "bytes": 869,
+      "sha256": "09816c95ec636f272c1ee7d92e08321cf989fd9f79423e5c7ed3bc5fc2c75fcd"
+    },
+    "executable": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/nist-structure-association-35419c8104ce/bin/Release/net10.0/Collector.dll",
+      "bytes": 59904,
+      "sha256": "44b9ae3dc5b4a30b938628630ecaef2ee43712f5c8422486b355f447850e3571"
+    },
+    "independentScript": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/nist-structure-association-35419c8104ce/crosscheck.py",
+      "bytes": 11855,
+      "sha256": "ef7fd917043e11c6777d0caf9702b4138706fabe948fc4d2b8d9e926175192a1"
+    },
+    "publicOutput": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/nist-structure-association-35419c8104ce/owned-associations-v2.json",
+      "bytes": 1843925,
+      "sha256": "d5a621e4d24783aa166523cdde76fc5266acad149a5bfffb273aedda1a630ea0"
+    },
+    "independentOutput": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/nist-structure-association-35419c8104ce/independent-crosscheck.json",
+      "bytes": 197904,
+      "sha256": "eba575b1b64b9c323828c3ee7b3e31b993c04edfc61a69545d54bdd0f7decccf"
+    },
+    "loadedOwners": [
+      {
+        "name": "OfficeIMO.Pdf.dll",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/static-cost-pr-source-only/execution-effect-35419c8104ce/normal-graph/bin/PhaseObserver/release/OfficeIMO.Pdf.dll",
+        "bytes": 8101376,
+        "sha256": "5b25ac9f826b7bf9b236006a38c0fb502ac4f8bb2e090493fe83bab7e0cbe6a0",
+        "moduleVersionId": "fe37dfa1-8eff-4df8-ac5a-b2246f314108",
+        "informationalVersion": "3.4.5+35419c8104ce53b92d16ffc27c80e396d2c14845"
+      },
+      {
+        "name": "OfficeIMO.Core.dll",
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/static-cost-pr-source-only/execution-effect-35419c8104ce/normal-graph/bin/PhaseObserver/release/OfficeIMO.Core.dll",
+        "bytes": 4788224,
+        "sha256": "4f47adce30378990f1d676b35d2489fc7e5268d62b774b5c1b1a30710190c284",
+        "moduleVersionId": "d8aa9999-3afe-40e0-a5df-91c289c0e264",
+        "informationalVersion": "3.4.5+35419c8104ce53b92d16ffc27c80e396d2c14845"
+      }
+    ]
+  },
+  "controls": {
+    "tuplePageAndStreamCollision": "passed",
+    "headerBodyAndRepeatedIdentity": "passed",
+    "scope": "Two deterministic controls exercise the same tuple index and shape gate used for actual PDF associations."
+  },
+  "profiles": [
+    {
+      "profile": "print-paged",
+      "sourceTables": 5,
+      "sourceRows": 86,
+      "sourceCells": 364,
+      "logicalAssociationStates": {
+        "source-empty-exact": 13,
+        "source-exact": 351
+      },
+      "independentLogicalStates": {
+        "source-empty-exact": 13,
+        "source-exact": 351
+      },
+      "ownedTupleCount": 715,
+      "ownershipErrors": [],
+      "referencesWithoutLogicalSpans": 0,
+      "sourceHeaderCells": 29,
+      "sourceBodyCells": 335,
+      "headerInstances": 36,
+      "extraRepeatedHeaderInstances": 7,
+      "emptyActualTextPaintGroups": 0,
+      "emptyActualTextGroupsMarkedArtifact": 0,
+      "emptyActualTextGroupsWithoutSourceCellMcid": 0,
+      "outsideSourceCellsPublicSpanCount": 297,
+      "ambiguousOwnerSpans": 0,
+      "mcidValuesReusedAcrossPages": 205
+    },
+    {
+      "profile": "screen-media-paged",
+      "sourceTables": 5,
+      "sourceRows": 86,
+      "sourceCells": 364,
+      "logicalAssociationStates": {
+        "source-empty-exact": 13,
+        "source-exact": 351
+      },
+      "independentLogicalStates": {
+        "source-empty-exact": 13,
+        "source-exact": 351
+      },
+      "ownedTupleCount": 829,
+      "ownershipErrors": [],
+      "referencesWithoutLogicalSpans": 0,
+      "sourceHeaderCells": 29,
+      "sourceBodyCells": 335,
+      "headerInstances": 36,
+      "extraRepeatedHeaderInstances": 7,
+      "emptyActualTextPaintGroups": 1,
+      "emptyActualTextGroupsMarkedArtifact": 1,
+      "emptyActualTextGroupsWithoutSourceCellMcid": 1,
+      "outsideSourceCellsPublicSpanCount": 339,
+      "ambiguousOwnerSpans": 0,
+      "mcidValuesReusedAcrossPages": 169
+    },
+    {
+      "profile": "screen-snapshot-paged",
+      "sourceTables": 5,
+      "sourceRows": 86,
+      "sourceCells": 364,
+      "logicalAssociationStates": {
+        "source-empty-exact": 13,
+        "source-exact": 351
+      },
+      "independentLogicalStates": {
+        "source-empty-exact": 13,
+        "source-exact": 351
+      },
+      "ownedTupleCount": 806,
+      "ownershipErrors": [],
+      "referencesWithoutLogicalSpans": 0,
+      "sourceHeaderCells": 29,
+      "sourceBodyCells": 335,
+      "headerInstances": 29,
+      "extraRepeatedHeaderInstances": 0,
+      "emptyActualTextPaintGroups": 21,
+      "emptyActualTextGroupsMarkedArtifact": 21,
+      "emptyActualTextGroupsWithoutSourceCellMcid": 21,
+      "outsideSourceCellsPublicSpanCount": 301,
+      "ambiguousOwnerSpans": 0,
+      "mcidValuesReusedAcrossPages": 181
+    }
+  ],
+  "previousFlaggedCells": [
+    {
+      "profile": "print-paged",
+      "sourcePointer": "/tables/2/rows/22/cells/1",
+      "sourceDecodedHtmlLine": 657,
+      "originalState": "ambiguous-line-or-column-geometry",
+      "resolvedState": "source-exact",
+      "cellObject": 813,
+      "ownedPages": [
+        4
+      ],
+      "proof": "Same source row/header/span shape; exact tuple-owned TD logical text. Repeated TH content is assigned separately."
+    },
+    {
+      "profile": "print-paged",
+      "sourcePointer": "/tables/2/rows/22/cells/2",
+      "sourceDecodedHtmlLine": 657,
+      "originalState": "ambiguous-line-or-column-geometry",
+      "resolvedState": "source-exact",
+      "cellObject": 816,
+      "ownedPages": [
+        4
+      ],
+      "proof": "Same source row/header/span shape; exact tuple-owned TD logical text. Repeated TH content is assigned separately."
+    },
+    {
+      "profile": "print-paged",
+      "sourcePointer": "/tables/2/rows/22/cells/3",
+      "sourceDecodedHtmlLine": 657,
+      "originalState": "missing-or-extra-cell-text-association",
+      "resolvedState": "source-exact",
+      "cellObject": 818,
+      "ownedPages": [
+        4
+      ],
+      "proof": "Same source row/header/span shape; exact tuple-owned TD logical text. Repeated TH content is assigned separately."
+    },
+    {
+      "profile": "print-paged",
+      "sourcePointer": "/tables/2/rows/22/cells/4",
+      "sourceDecodedHtmlLine": 657,
+      "originalState": "missing-or-extra-cell-text-association",
+      "resolvedState": "source-exact",
+      "cellObject": 820,
+      "ownedPages": [
+        4
+      ],
+      "proof": "Same source row/header/span shape; exact tuple-owned TD logical text. Repeated TH content is assigned separately."
+    },
+    {
+      "profile": "screen-media-paged",
+      "sourcePointer": "/tables/2/rows/15/cells/1",
+      "sourceDecodedHtmlLine": 608,
+      "originalState": "ambiguous-line-or-column-geometry",
+      "resolvedState": "source-exact",
+      "cellObject": 861,
+      "ownedPages": [
+        4
+      ],
+      "proof": "Same source row/header/span shape; exact tuple-owned TD logical text. Repeated TH content is assigned separately."
+    },
+    {
+      "profile": "screen-media-paged",
+      "sourcePointer": "/tables/2/rows/15/cells/2",
+      "sourceDecodedHtmlLine": 608,
+      "originalState": "ambiguous-line-or-column-geometry",
+      "resolvedState": "source-exact",
+      "cellObject": 863,
+      "ownedPages": [
+        4
+      ],
+      "proof": "Same source row/header/span shape; exact tuple-owned TD logical text. Repeated TH content is assigned separately."
+    },
+    {
+      "profile": "screen-media-paged",
+      "sourcePointer": "/tables/2/rows/15/cells/3",
+      "sourceDecodedHtmlLine": 608,
+      "originalState": "missing-or-extra-cell-text-association",
+      "resolvedState": "source-exact",
+      "cellObject": 865,
+      "ownedPages": [
+        4
+      ],
+      "proof": "Same source row/header/span shape; exact tuple-owned TD logical text. Repeated TH content is assigned separately."
+    },
+    {
+      "profile": "screen-media-paged",
+      "sourcePointer": "/tables/2/rows/15/cells/4",
+      "sourceDecodedHtmlLine": 608,
+      "originalState": "missing-or-extra-cell-text-association",
+      "resolvedState": "source-exact",
+      "cellObject": 868,
+      "ownedPages": [
+        4
+      ],
+      "proof": "Same source row/header/span shape; exact tuple-owned TD logical text. Repeated TH content is assigned separately."
+    }
+  ],
+  "closedPreviousFlags": 8,
+  "remainingPreviousFlags": 0,
+  "interpretation": [
+    "All 5 tables, 86 source rows and 364 source cells are retained in every profile. Source order, header/body roles, column spans and row spans matched before source text was read for comparison.",
+    "A missing /Stm in structure references is resolved only through a single declared page /Contents stream. Full page/stream/MCID tuples remain required; collisions are not resolved using text or MCID alone.",
+    "Every body cell assembles from its actual structure-owned fragments. Every repeated header instance is compared separately against its same source header cell. No expected-text search, hard-coded object/native-word IDs, row masks, text suppression or deduplication occurs in association.",
+    "Independent pypdf structure, span-attribute and raw logical content decoding agrees with the public OfficeIMO reader. Both inspect OfficeIMO-generated PDFs; this is independent reader evidence against independent NIST HTML source, not independent PDF producer evidence.",
+    "Empty ActualText paint copies have no source-cell MCID and stay explicitly unmapped artifact paint. They are not silently assigned to a body cell, removed from native records or promoted to logical duplicates.",
+    "The current managed output field pageLocalMcidValuesReused groups identical stream+MCID pairs across pages; use the independently recorded mcidValuesReusedAcrossPages field for actual MCID-value reuse across distinct page/root streams."
+  ],
+  "validation": {
+    "buildCommand": "dotnet build Collector.csproj -c Release --nologo -v minimal --no-restore",
+    "buildResult": "passed; zero warnings; zero errors",
+    "managedCommand": "dotnet bin/Release/net10.0/Collector.dll input-bindings.json",
+    "managedResult": "passed all three source-shape and cell-text associations",
+    "independentCommand": "/Users/przemyslawklys/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 crosscheck.py",
+    "independentResult": "passed all tuple ancestry and 1092 source-cell comparisons; zero unsupported owned forms"
+  },
+  "remainingUnqualified": [
+    "Original captured-font fidelity and missing glyph coverage",
+    "Whole-page/chapter/table appearance and glyph ink, including the deliberately split snapshot boundary paint",
+    "Arbitrary reader behavior, per-page selection and assistive-technology reading order",
+    "Full NIST/H10 unfamiliar-page acceptance and platform budgets"
+  ],
+  "retention": "Original failed observations and every original PDF/PNG/native receipt are preserved at their original paths. This scratch folder contains only thin collectors, small build output and association evidence. The initial root-stream-unresolved collector attempt is retained separately as non-qualifying diagnostic provenance."
+}
