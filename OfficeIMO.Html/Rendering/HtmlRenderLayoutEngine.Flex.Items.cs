@@ -196,6 +196,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         Color = parentStyle.Color,
         Alignment = parentStyle.Alignment,
         LineHeight = parentStyle.LineHeight,
+        InlineAlignmentLineHeight = parentStyle.InlineAlignmentLineHeight,
         PreserveWhitespace = parentStyle.PreserveWhitespace,
         TextTransform = parentStyle.TextTransform,
         SemanticRole = semanticRole,
