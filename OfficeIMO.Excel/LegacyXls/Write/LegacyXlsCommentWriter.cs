@@ -348,6 +348,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             XDocument document;
+            sheet.CommitCommentVmlChanges();
             using (Stream stream = vmlPart.GetStream(FileMode.Open, FileAccess.Read)) {
                 if (stream.Length == 0) {
                     return shapes;

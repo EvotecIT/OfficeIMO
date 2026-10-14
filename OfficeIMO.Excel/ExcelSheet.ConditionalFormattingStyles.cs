@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
 
             formats.Append(candidate);
             formats.Count = (uint)formats.Elements<DifferentialFormat>().Count();
-            stylesheet.Save();
+            SaveStylesheet(stylesPart);
             return formats.Count!.Value - 1U;
         }
 

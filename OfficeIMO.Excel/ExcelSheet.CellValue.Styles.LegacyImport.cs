@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
                 CellFormat candidate = CreateLegacyCellFormat(stylesheet, workbook, format);
 
                 styleIndex = AppendOrReuseCellFormat(stylesheet, candidate);
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
 
             return styleIndex;
@@ -279,7 +279,7 @@ namespace OfficeIMO.Excel {
                     format.FontId = fontId;
                     format.ApplyFont = true;
                 });
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -344,7 +344,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyAlignment = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -391,7 +391,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyFill = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -442,7 +442,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyBorder = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -469,7 +469,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyProtection = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -492,7 +492,7 @@ namespace OfficeIMO.Excel {
                     format.QuotePrefix = quotePrefix;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 

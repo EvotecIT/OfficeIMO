@@ -554,19 +554,6 @@ namespace OfficeIMO.Excel {
             return list;
         }
 
-        private static System.Collections.Generic.IReadOnlyList<string> ValidateOpenXml(byte[] packageBytes) {
-            var list = new System.Collections.Generic.List<string>();
-            if (packageBytes == null || packageBytes.Length == 0) return list;
-
-            using var stream = new MemoryStream(packageBytes, writable: false);
-            using var document = SpreadsheetDocument.Open(stream, false);
-            var validator = new OpenXmlValidator();
-            foreach (var error in validator.Validate(document)) {
-                list.Add($"{error.ErrorType}: {error.Description} at {error.Path}");
-            }
-            return list;
-        }
-
         /// <summary>
         /// Asynchronously loads an Excel document from the specified path.
         /// </summary>

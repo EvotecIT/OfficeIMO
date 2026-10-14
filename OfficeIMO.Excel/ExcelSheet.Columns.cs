@@ -224,7 +224,6 @@ namespace OfficeIMO.Excel {
                     column.BestFit = null;
                 }
                 ReorderColumns(columns);
-                worksheet.Save();
             });
         }
 
@@ -248,7 +247,6 @@ namespace OfficeIMO.Excel {
                     columns.Append(column);
                 }
                 column.Hidden = hidden ? true : (bool?)null;
-                worksheet.Save();
             });
         }
     }

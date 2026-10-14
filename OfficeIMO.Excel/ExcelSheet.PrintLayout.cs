@@ -113,7 +113,6 @@ namespace OfficeIMO.Excel {
                 repeatLastColumn,
                 save: false);
 
-            WorksheetRoot.Save();
             return this;
         }
 

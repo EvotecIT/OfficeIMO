@@ -40,10 +40,9 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private bool _hasWorksheetMutations;
-        private bool _requiresSavePreparation;
-        private readonly List<TableDefinitionPart> _pendingTableDefinitionPartSaves = new();
         private Row? _lastAccessedRow;
         private int _lastAccessedRowIndex;
+        private Row? _rowElementCursor;
         private Cell? _lastAccessedCell;
         private int _lastAccessedCellRowIndex;
         private int _lastAccessedCellColumnIndex;
@@ -52,10 +51,10 @@ namespace OfficeIMO.Excel {
         private int _lastCellReferenceRowIndex;
         private string? _lastCellReferenceRowText;
         private SharedStringCache? _cellTextSharedStringCache;
-        private readonly object _findFirstCacheLock = new object();
-        private string? _findFirstCacheText;
-        private string? _findFirstCacheAddress;
-        private bool _findFirstCacheHasValue;
+        private object _findFirstCacheLock => Persistence.ReadCaches.FindFirstLock;
+        private ref string? _findFirstCacheText => ref Persistence.ReadCaches.FindFirstText;
+        private ref string? _findFirstCacheAddress => ref Persistence.ReadCaches.FindFirstAddress;
+        private ref bool _findFirstCacheHasValue => ref Persistence.ReadCaches.FindFirstHasValue;
         private static int _instancesCreated;
 
         internal static int InstancesCreatedForTests => Volatile.Read(ref _instancesCreated);
@@ -107,7 +106,7 @@ namespace OfficeIMO.Excel {
             var workbookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             _worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
             _hasWorksheetMutations = excelDocument.IsPackageDirty && _worksheetPart.IsRootElementLoaded;
-            _requiresSavePreparation = _hasWorksheetMutations;
+            _requiresSavePreparation |= _hasWorksheetMutations;
             _id = sheet.SheetId!;
             if (registerSheetWrapper) {
                 excelDocument.RegisterSheetWrapper(this);
@@ -126,7 +125,6 @@ namespace OfficeIMO.Excel {
             _excelDocument = excelDocument;
             _spreadSheetDocument = spreadSheetDocument;
             _hasWorksheetMutations = true;
-            _requiresSavePreparation = true;
 
             UInt32Value id = excelDocument.id.Max(v => v.Value) + 1;
             if (name == "") {
@@ -158,6 +156,7 @@ namespace OfficeIMO.Excel {
             this._sheet = sheet;
             this._id = sheet.SheetId!;
             this._worksheetPart = worksheetPart;
+            _requiresSavePreparation = true;
 
             excelDocument.id.Add(id);
             excelDocument.RegisterSheetWrapper(this);
@@ -444,22 +443,36 @@ namespace OfficeIMO.Excel {
             return _sheetDataCache;
         }
 
+        /// <summary>
+        /// Finds the row element for <paramref name="rowIndex"/> or inserts one in row order. The search resumes from
+        /// the row found by the previous call when that row is still in the sheet and not past the target, so
+        /// row-by-row layout loops stay linear instead of rescanning the sheet from its first row on every call.
+        /// </summary>
         private Row GetOrCreateRowElement(SheetData sheetData, int rowIndex) {
-            foreach (Row row in sheetData.Elements<Row>()) {
-                if (row.RowIndex != null) {
-                    if (row.RowIndex.Value == (uint)rowIndex) {
-                        return row;
-                    }
-                    if (row.RowIndex.Value > (uint)rowIndex) {
-                        var inserted = new Row { RowIndex = (uint)rowIndex };
-                        sheetData.InsertBefore(inserted, row);
-                        return inserted;
-                    }
+            uint target = (uint)rowIndex;
+            Row? cursor = _rowElementCursor;
+            Row? row = cursor != null && ReferenceEquals(cursor.Parent, sheetData) && cursor.RowIndex != null && cursor.RowIndex.Value <= target
+                ? cursor
+                : sheetData.GetFirstChild<Row>();
+            for (; row != null; row = row.NextSibling<Row>()) {
+                if (row.RowIndex == null) {
+                    continue;
+                }
+                if (row.RowIndex.Value == target) {
+                    _rowElementCursor = row;
+                    return row;
+                }
+                if (row.RowIndex.Value > target) {
+                    var inserted = new Row { RowIndex = target };
+                    sheetData.InsertBefore(inserted, row);
+                    _rowElementCursor = inserted;
+                    return inserted;
                 }
             }
 
-            var appended = new Row { RowIndex = (uint)rowIndex };
+            var appended = new Row { RowIndex = target };
             sheetData.Append(appended);
+            _rowElementCursor = appended;
             return appended;
         }
 
@@ -699,48 +712,5 @@ namespace OfficeIMO.Excel {
             // No local lock to dispose anymore - using document's lock
         }
 
-        /// <summary>
-        /// Persists pending changes on this worksheet to its underlying OpenXml part.
-        /// </summary>
-        internal void Commit() {
-            if (_pendingTableDefinitionPartSaves.Count > 0) {
-                foreach (var tableDefinitionPart in _pendingTableDefinitionPartSaves) {
-                    tableDefinitionPart.Table?.Save();
-                }
-
-                _pendingTableDefinitionPartSaves.Clear();
-            }
-
-            _worksheetPart?.Worksheet?.Save();
-            _requiresSavePreparation = false;
-        }
-
-        internal bool RequiresSavePreparation => _requiresSavePreparation;
-
-        internal void MarkRequiresSavePreparation() {
-            if (_requiresSavePreparation) {
-                return;
-            }
-
-            _requiresSavePreparation = true;
-            _excelDocument.MarkRequiresSavePreflight();
-        }
-
-        internal void MarkRequiresWorksheetPreparation() {
-            if (_requiresSavePreparation) {
-                return;
-            }
-
-            _requiresSavePreparation = true;
-            _excelDocument.MarkPackageDirty();
-        }
-
-        internal void DeferTableDefinitionPartSave(TableDefinitionPart tableDefinitionPart) {
-            if (!_pendingTableDefinitionPartSaves.Contains(tableDefinitionPart)) {
-                _pendingTableDefinitionPartSaves.Add(tableDefinitionPart);
-            }
-
-            MarkRequiresSavePreparation();
-        }
     }
 }

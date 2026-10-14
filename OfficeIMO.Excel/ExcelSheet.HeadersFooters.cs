@@ -417,7 +417,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 CleanupHeaderFooterPictureArtifacts();
-                ws.Save();
             });
         }
 
@@ -438,7 +437,6 @@ namespace OfficeIMO.Excel {
                 hf.FirstHeader = enabled ? BuildHeaderFooterSections(headerLeft, headerCenter, headerRight) is string header ? new FirstHeader(header) : null : null;
                 hf.FirstFooter = enabled ? BuildHeaderFooterSections(footerLeft, footerCenter, footerRight) is string footer ? new FirstFooter(footer) : null : null;
                 CleanupHeaderFooterPictureArtifacts();
-                WorksheetRoot.Save();
             });
         }
 
@@ -459,7 +457,6 @@ namespace OfficeIMO.Excel {
                 hf.EvenHeader = enabled ? BuildHeaderFooterSections(headerLeft, headerCenter, headerRight) is string header ? new EvenHeader(header) : null : null;
                 hf.EvenFooter = enabled ? BuildHeaderFooterSections(footerLeft, footerCenter, footerRight) is string footer ? new EvenFooter(footer) : null : null;
                 CleanupHeaderFooterPictureArtifacts();
-                WorksheetRoot.Save();
             });
         }
 
