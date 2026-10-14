@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "qualifiedAtUtc": "2026-10-14T22:25:12.694793+00:00",
+  "purpose": "Preserve the qualified static HTML baseline and forced-break contracts while integrating current upstream shared owners.",
+  "source": {
+    "commit": "0976ed6fc72a23effbc5d431e6658331485e5954",
+    "tree": "cbfb8b099ffc14fd63f113f8936218491ccf3a97",
+    "parents": [
+      "3272cedf869a4e7b20a32f3dfa73ba0cfa219bb8",
+      "3eb21ed25cb991b1e43d4f0002b96ecdb7fe272b"
+    ],
+    "compiledRuntimeTree": "e7b4f8a581302a2f8012ab974a1ed1a775fc7e77",
+    "postCompileChange": "Seven report-suite baseline expectations and their evidence sentence; production source unchanged.",
+    "compilerSdk": "10.0.303",
+    "host": "macOS arm64",
+    "resolvedConflicts": 18,
+    "qualifiedOrdinarySourceFilesByteIdentical": 23
+  },
+  "validation": [
+    {
+      "run": "archive-zip-net10.0",
+      "passed": 149,
+      "failed": 0,
+      "trxSha256": "d1122ba413f6778548b240748929671ac2ca9ee95f02ff65c8bb33f2523e3869",
+      "commandSha256": "49a06ad0cf4ec92da3ac6666860f324031764bbd4e6cda604e5c91c44925b7d8"
+    },
+    {
+      "run": "archive-zip-net8.0",
+      "passed": 149,
+      "failed": 0,
+      "trxSha256": "de882255666b5531fe90003c105048c3d814d09448b8952433950b549817b239",
+      "commandSha256": "a184d41a13f2e56c15a752d150041d267bd88851964016cf124367d5ac050085"
+    },
+    {
+      "run": "excel-bulk-net10",
+      "passed": 56,
+      "failed": 0,
+      "trxSha256": "6e557c3517f610a390e19cf79848068fc3029d72e8235ec7d9da6d28807508d1",
+      "commandSha256": "4c7246976832bb7105d97b01cde98d9947d8c91ebc1483e602d17c99b701d847"
+    },
+    {
+      "run": "html-broad-net10",
+      "passed": 6223,
+      "failed": 0,
+      "trxSha256": "348a26ff4527cbd64836cf848bf34f4b53a715877d940f7e0d112f552cda4b1b",
+      "commandSha256": "8797ad8d14ca5dac4470c16dbc149e262064c8dd0297e9852889ded4d43d2802"
+    },
+    {
+      "run": "html-broad-net8",
+      "passed": 6223,
+      "failed": 0,
+      "trxSha256": "70332d81cffdfba547d75906c1439a60211d53eaf52efe07a2d876dc2e1968b4",
+      "commandSha256": "06822632c0183b8dd0800c4fadc486975965eaa305577792541e249c97026f22"
+    },
+    {
+      "run": "html-focused-net10",
+      "passed": 408,
+      "failed": 0,
+      "trxSha256": "97636bca7555a96fac3158f93b25562337fc409e1a85ceb9ab20a51b82f570ed",
+      "commandSha256": "14fc4f858bdae880a29f1fb2aaef9cff05740c4955a1cfa70da758ff361c4004"
+    },
+    {
+      "run": "shaping-net10.0",
+      "passed": 101,
+      "failed": 0,
+      "trxSha256": "c3beef910de954bd6833a05f55df9647eb1e9b85b42ffcf11c589362fd9b8fc7",
+      "commandSha256": "50b6f528ef0c8d72ed7dfd350809555089a89050a1ad14b357fa149fade55149"
+    },
+    {
+      "run": "shaping-net8.0",
+      "passed": 101,
+      "failed": 0,
+      "trxSha256": "32cff1bc719cf05f7f88dfcf4feb48c350ce7f37d23bba130ced35d32499a495",
+      "commandSha256": "fb2dc95904b18b8f26452ca54d51ab8713b49c15d7f38bf62659a37f4db7b4ac"
+    }
+  ],
+  "savedRendering": {
+    "fixtures": 19,
+    "byteIdenticalPdfSvgOutputs": 76,
+    "media": [
+      "print",
+      "screen"
+    ],
+    "comparisonSourceCommit": "3272cedf869a4e7b20a32f3dfa73ba0cfa219bb8",
+    "proofSha256": "5dcc8f94c0ccfab4c15f75d039754051ca6fbba09b5934f877a33de114e1767b",
+    "limits": "Existing independent native witnesses are retained separately; preservation does not establish captured-font identity or whole-page acceptance."
+  },
+  "conversionReports": {
+    "cases": 2,
+    "pages": 3,
+    "passed": true,
+    "imageFormats": [
+      "PNG",
+      "SVG",
+      "JPEG",
+      "TIFF",
+      "WebP"
+    ],
+    "browserVersion": "153.0.8010.12",
+    "svgBrowserVersion": "153.0.8010.12",
+    "fontSha256": "f5f41dd4cd8281cf151091cef9e9add0cda9b6ccd1db2010f72c3f056f0775fb",
+    "resultSha256": "af10935849de6bababcce5f1eb89f54082bacdd9f369d118d570dbeceff9b347",
+    "bundleSha256": "30cf77a83383eb936c13e8bfa5d41498e1741c6fe1c1163cb12870f5520dbaa5",
+    "baselineAdoptions": [
+      {
+        "case": "text-geometry",
+        "page": 1,
+        "text": "PAGE-ONE",
+        "before": 36,
+        "after": 39,
+        "independentBrowserExpected": 39
+      },
+      {
+        "case": "text-geometry",
+        "page": 1,
+        "text": "Water",
+        "before": 88.70686849,
+        "after": 92,
+        "independentBrowserExpected": 92
+      },
+      {
+        "case": "delivery-register",
+        "page": 1,
+        "text": "ACT-001",
+        "before": 203.4,
+        "after": 203,
+        "independentBrowserExpected": 203
+      },
+      {
+        "case": "delivery-register",
+        "page": 1,
+        "text": "ACT-020",
+        "before": 602.4,
+        "after": 602,
+        "independentBrowserExpected": 602
+      },
+      {
+        "case": "delivery-register",
+        "page": 1,
+        "text": "REGISTER PAGE 1",
+        "before": 631.4,
+        "after": 632,
+        "independentBrowserExpected": 632
+      },
+      {
+        "case": "delivery-register",
+        "page": 2,
+        "text": "Action register continued",
+        "before": 42,
+        "after": 43,
+        "independentBrowserExpected": 43
+      },
+      {
+        "case": "delivery-register",
+        "page": 2,
+        "text": "REGISTER PAGE 2",
+        "before": 547,
+        "after": 548,
+        "independentBrowserExpected": 548
+      }
+    ],
+    "tolerancesUnchanged": true,
+    "browserOwner": {
+      "repository": "https://github.com/EvotecIT/HtmlTinkerX",
+      "commit": "5031eb16bb252501d384602d788b590b6ce70600",
+      "route": "Existing HtmlTinkerXProjectPath project-reference qualification. Public package pin remains 3.0.1.",
+      "boundary": "Local source integration proof; no package publication or downstream public-package qualification."
+    }
+  },
+  "nativeAot": {
+    "runtime": "native osx-arm64",
+    "executionExitCode": 0,
+    "stdout": "OfficeIMO HTML NativeAOT smoke passed.",
+    "binarySha256": "a00a452c2df12e1445208c204c67ab7144c164f95ff35a109d19ba1d73492b8e",
+    "publishCommandSha256": "4f3b4cea0c8a457db9f1feb61c04fbcaae5b47d3150e6b974fb35a09d46e1215",
+    "limits": "Focused HTML/CSS/rendering/metadata smoke; no whole-library AOT or Windows proof."
+  },
+  "review": {
+    "combinedBoundary": "Core ZIP and HTML consumers; Excel mutation/cache/persistence and HTML consumers; website and conversion metadata",
+    "fullPass": "No actionable findings",
+    "targetedConfirmation": "Seven independently supported baseline updates accepted; no tolerance inflation",
+    "proceduralException": "Targeted reviewer used git write-tree to obtain an existing tree, which can write Git metadata. No source/staging changes; coordinator verified source/index content.",
+    "fullReceiptSha256": "1b788185a75d24f9d202ae9cf0223be43e0aa166d001b1cc9134b5d99a85d74d",
+    "targetedReceiptSha256": "207cc4605d44fbbd3a725ac6074e9851a69b287ebff01d254bdb84d39c4abfac"
+  },
+  "storage": {
+    "logicalBytesRemoved": 3339024854,
+    "archives": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/master-integration/qualified-integration-proof.zip",
+        "bytes": 97691554,
+        "sha256": "9ef2055e5773e95bf5ab0788201595c850c5a1f34fe0fc157e6bcd9c62c6e661",
+        "mappedFiles": 2249,
+        "uniqueBlobs": 1557,
+        "allGraphFileMappings": 5884,
+        "allEntriesReadBack": true,
+        "noDeletion": true
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/master-integration/completed-framework-test-proof.zip",
+        "sha256": "4b9ac05f03fe6ed6416ab45ca271c2675b16dee6b9a62d78082f57c04fecb245",
+        "bytes": 11809308,
+        "allEntriesReadBack": true
+      }
+    ],
+    "retainedPurpose": "Current source/compiler/test/native-render proof for continued HTML work; generated graph, native publish output, temporary CLI state and superseded red report output removed."
+  },
+  "limits": [
+    "CSS normal used-line-height, raw link-box height and mixed-font decoration height remain open.",
+    "Original footer Mission retains 0.02125px earlier-flow residual; selected-face baseline correction is preserved.",
+    "Managed/browser report table-column widths and intervening line placement still differ within declared checks; no whole-page interchangeability claim.",
+    "Captured variable Inter/original font identity, all-page H10 appearance and manual accessibility remain open.",
+    "Focused macOS NativeAOT proof does not qualify whole-library AOT, other platforms or WASM.",
+    "Windows profiling remains deferred; native Windows correctness CI is a separate gate.",
+    "No merge, package release or deployment is claimed."
+  ]
+}
