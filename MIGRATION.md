@@ -6,6 +6,8 @@ Worksheet layout, comments, table settings, formulas, headers/footers and condit
 
 `WrapCells`, automatic wrapping for multiline values and `CellWrapText` preserve the cell's existing alignment and other formatting. Workbooks that previously relied on wrapping to reset alignment should set the desired alignment explicitly.
 
+`ValidateOpenXml = true` permits eligible fast package writers. Their ZIP compression favors write throughput and can produce larger files than the standard save path. Set `DisableFastPackageWriter = true` together with validation to retain standard package finalization.
+
 ## Excel future-function spelling
 
 Normal and array formula authoring stores `IFNA`, `MINIFS` and `MAXIFS` with the XLSX `_xlfn.` prefix. For example, `CellFormula(1, 1, "IFNA(NA(),99)")` stores `_xlfn.IFNA(NA(),99)`, which `GetFormulaText` returns. Update literal formula-text comparisons to use that stored spelling. Prefix expansion above 8,192 characters throws before changing the destination cells.

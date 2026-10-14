@@ -80,7 +80,7 @@ document.Save();
 
 For reports written cell by cell, group formatting in `sheet.Batch(target => { ... })`. Repeated styles share indexed lookups and the stylesheet is saved once when the batch ends. Layout and report metadata changes, including comments and table settings, reach the package at `document.Save(...)`. Setters with an explicit `save` argument retain that option; use `save: false` in repeated outline calls.
 
-`WrapCells`, `CellWrapText` and automatic wrapping for multiline values preserve existing alignment and other formatting. `ExcelSaveOptions.ValidateOpenXml` validates the encoded package before writing the destination, including when a fast package writer is used.
+`WrapCells`, `CellWrapText` and automatic wrapping for multiline values preserve existing alignment and other formatting. `ExcelSaveOptions.ValidateOpenXml` validates the encoded package before writing the destination, including when a fast package writer is used. Fast writers favor write throughput over ZIP size; set `DisableFastPackageWriter = true` when the standard packaging path is preferred.
 
 OfficeIMO.Excel is optimized for fast tabular reads and writes, but it is not
 only a streaming data pipe. The same first-party model authors and edits styles,
