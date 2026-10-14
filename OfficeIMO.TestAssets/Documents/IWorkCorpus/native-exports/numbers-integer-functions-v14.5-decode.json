@@ -1,0 +1,2944 @@
+{
+  "source": "numbers-integer-functions-v14.5.numbers",
+  "nativeXlsx": "numbers-integer-functions-v14.5.xlsx",
+  "excelXlsx": "numbers-integer-functions-excel-v16.113.3.xlsx",
+  "producer": "Numbers 14.5 (7045.0.17)",
+  "excelProducer": "Microsoft Excel 16.113.3",
+  "decoder": "numbers-parser 4.19.0",
+  "rows": 18,
+  "columns": 8,
+  "formulaCells": 70,
+  "cells": [
+    {
+      "row": 2,
+      "column": 2,
+      "address": "B2",
+      "case": "Positive",
+      "nativeType": "NumberCell",
+      "nativeValue": 24.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "24"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "24"
+      }
+    },
+    {
+      "row": 2,
+      "column": 3,
+      "address": "C2",
+      "case": "Positive",
+      "nativeType": "NumberCell",
+      "nativeValue": 36.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36"
+      }
+    },
+    {
+      "row": 2,
+      "column": 4,
+      "address": "D2",
+      "case": "Positive",
+      "nativeType": "NumberCell",
+      "nativeValue": 60.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60"
+      }
+    },
+    {
+      "row": 2,
+      "column": 5,
+      "address": "E2",
+      "case": "Positive",
+      "nativeType": "NumberCell",
+      "nativeValue": 12.0,
+      "formula": "GCD(B2:D2)",
+      "providerFormula": "GCD(B2:D2)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B2:D2)",
+        "value": "12"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B2:D2)",
+        "value": "12"
+      }
+    },
+    {
+      "row": 2,
+      "column": 6,
+      "address": "F2",
+      "case": "Positive",
+      "nativeType": "NumberCell",
+      "nativeValue": 360.0,
+      "formula": "LCM(B2:D2)",
+      "providerFormula": "LCM(B2:D2)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B2:D2)",
+        "value": "360"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B2:D2)",
+        "value": "360"
+      }
+    },
+    {
+      "row": 2,
+      "column": 7,
+      "address": "G2",
+      "case": "Positive",
+      "nativeType": "NumberCell",
+      "nativeValue": 12.0,
+      "formula": "GCD(24,36,60)",
+      "providerFormula": "GCD(24,36,60)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(24,36,60)",
+        "value": "12"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(24,36,60)",
+        "value": "12"
+      }
+    },
+    {
+      "row": 2,
+      "column": 8,
+      "address": "H2",
+      "case": "Positive",
+      "nativeType": "NumberCell",
+      "nativeValue": 360.0,
+      "formula": "LCM(24,36,60)",
+      "providerFormula": "LCM(24,36,60)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(24,36,60)",
+        "value": "360"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(24,36,60)",
+        "value": "360"
+      }
+    },
+    {
+      "row": 3,
+      "column": 2,
+      "address": "B3",
+      "case": "Single",
+      "nativeType": "NumberCell",
+      "nativeValue": 13.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "13"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "13"
+      }
+    },
+    {
+      "row": 3,
+      "column": 3,
+      "address": "C3",
+      "case": "Single",
+      "nativeType": "EmptyCell",
+      "nativeValue": null,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      }
+    },
+    {
+      "row": 3,
+      "column": 4,
+      "address": "D3",
+      "case": "Single",
+      "nativeType": "EmptyCell",
+      "nativeValue": null,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      }
+    },
+    {
+      "row": 3,
+      "column": 5,
+      "address": "E3",
+      "case": "Single",
+      "nativeType": "NumberCell",
+      "nativeValue": 13.0,
+      "formula": "GCD(B3:D3)",
+      "providerFormula": "GCD(B3:D3)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B3:D3)",
+        "value": "13"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B3:D3)",
+        "value": "13"
+      }
+    },
+    {
+      "row": 3,
+      "column": 6,
+      "address": "F3",
+      "case": "Single",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(B3:D3)",
+      "providerFormula": "LCM(B3:D3)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B3:D3)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B3:D3)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 3,
+      "column": 7,
+      "address": "G3",
+      "case": "Single",
+      "nativeType": "NumberCell",
+      "nativeValue": 13.0,
+      "formula": "GCD(13)",
+      "providerFormula": "GCD(13)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(13)",
+        "value": "13"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(13)",
+        "value": "13"
+      }
+    },
+    {
+      "row": 3,
+      "column": 8,
+      "address": "H3",
+      "case": "Single",
+      "nativeType": "NumberCell",
+      "nativeValue": 13.0,
+      "formula": "LCM(13)",
+      "providerFormula": "LCM(13)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(13)",
+        "value": "13"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(13)",
+        "value": "13"
+      }
+    },
+    {
+      "row": 4,
+      "column": 2,
+      "address": "B4",
+      "case": "All zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      }
+    },
+    {
+      "row": 4,
+      "column": 3,
+      "address": "C4",
+      "case": "All zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      }
+    },
+    {
+      "row": 4,
+      "column": 4,
+      "address": "D4",
+      "case": "All zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      }
+    },
+    {
+      "row": 4,
+      "column": 5,
+      "address": "E4",
+      "case": "All zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "GCD(B4:D4)",
+      "providerFormula": "GCD(B4:D4)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B4:D4)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B4:D4)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 4,
+      "column": 6,
+      "address": "F4",
+      "case": "All zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(B4:D4)",
+      "providerFormula": "LCM(B4:D4)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B4:D4)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B4:D4)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 4,
+      "column": 7,
+      "address": "G4",
+      "case": "All zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "GCD(0,0,0)",
+      "providerFormula": "GCD(0,0,0)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(0,0,0)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(0,0,0)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 4,
+      "column": 8,
+      "address": "H4",
+      "case": "All zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(0,0,0)",
+      "providerFormula": "LCM(0,0,0)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(0,0,0)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(0,0,0)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 5,
+      "column": 2,
+      "address": "B5",
+      "case": "Contains zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 12.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "12"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "12"
+      }
+    },
+    {
+      "row": 5,
+      "column": 3,
+      "address": "C5",
+      "case": "Contains zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      }
+    },
+    {
+      "row": 5,
+      "column": 4,
+      "address": "D5",
+      "case": "Contains zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 18.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "18"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "18"
+      }
+    },
+    {
+      "row": 5,
+      "column": 5,
+      "address": "E5",
+      "case": "Contains zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 6.0,
+      "formula": "GCD(B5:D5)",
+      "providerFormula": "GCD(B5:D5)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B5:D5)",
+        "value": "6"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B5:D5)",
+        "value": "6"
+      }
+    },
+    {
+      "row": 5,
+      "column": 6,
+      "address": "F5",
+      "case": "Contains zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(B5:D5)",
+      "providerFormula": "LCM(B5:D5)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B5:D5)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B5:D5)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 5,
+      "column": 7,
+      "address": "G5",
+      "case": "Contains zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 6.0,
+      "formula": "GCD(12,0,18)",
+      "providerFormula": "GCD(12,0,18)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(12,0,18)",
+        "value": "6"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(12,0,18)",
+        "value": "6"
+      }
+    },
+    {
+      "row": 5,
+      "column": 8,
+      "address": "H5",
+      "case": "Contains zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(12,0,18)",
+      "providerFormula": "LCM(12,0,18)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(12,0,18)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(12,0,18)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 6,
+      "column": 2,
+      "address": "B6",
+      "case": "Fractions",
+      "nativeType": "NumberCell",
+      "nativeValue": 24.900000000000002,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "24.9"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "24.9"
+      }
+    },
+    {
+      "row": 6,
+      "column": 3,
+      "address": "C6",
+      "case": "Fractions",
+      "nativeType": "NumberCell",
+      "nativeValue": 36.2,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36.2"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36.200000000000003"
+      }
+    },
+    {
+      "row": 6,
+      "column": 4,
+      "address": "D6",
+      "case": "Fractions",
+      "nativeType": "NumberCell",
+      "nativeValue": 60.800000000000004,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60.8"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60.8"
+      }
+    },
+    {
+      "row": 6,
+      "column": 5,
+      "address": "E6",
+      "case": "Fractions",
+      "nativeType": "NumberCell",
+      "nativeValue": 12.0,
+      "formula": "GCD(B6:D6)",
+      "providerFormula": "GCD(B6:D6)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B6:D6)",
+        "value": "12"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B6:D6)",
+        "value": "12"
+      }
+    },
+    {
+      "row": 6,
+      "column": 6,
+      "address": "F6",
+      "case": "Fractions",
+      "nativeType": "NumberCell",
+      "nativeValue": 360.0,
+      "formula": "LCM(B6:D6)",
+      "providerFormula": "LCM(B6:D6)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B6:D6)",
+        "value": "360"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B6:D6)",
+        "value": "360"
+      }
+    },
+    {
+      "row": 6,
+      "column": 7,
+      "address": "G6",
+      "case": "Fractions",
+      "nativeType": "NumberCell",
+      "nativeValue": 12.0,
+      "formula": "GCD(24.9,36.2,60.8)",
+      "providerFormula": "GCD(24.9,36.2,60.8)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(24.9,36.2,60.8)",
+        "value": "12"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(24.9,36.2,60.8)",
+        "value": "12"
+      }
+    },
+    {
+      "row": 6,
+      "column": 8,
+      "address": "H6",
+      "case": "Fractions",
+      "nativeType": "NumberCell",
+      "nativeValue": 360.0,
+      "formula": "LCM(24.9,36.2,60.8)",
+      "providerFormula": "LCM(24.9,36.2,60.8)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(24.9,36.2,60.8)",
+        "value": "360"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(24.9,36.2,60.8)",
+        "value": "360"
+      }
+    },
+    {
+      "row": 7,
+      "column": 2,
+      "address": "B7",
+      "case": "Negative",
+      "nativeType": "NumberCell",
+      "nativeValue": -24.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "-24"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "-24"
+      }
+    },
+    {
+      "row": 7,
+      "column": 3,
+      "address": "C7",
+      "case": "Negative",
+      "nativeType": "NumberCell",
+      "nativeValue": 36.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36"
+      }
+    },
+    {
+      "row": 7,
+      "column": 4,
+      "address": "D7",
+      "case": "Negative",
+      "nativeType": "NumberCell",
+      "nativeValue": 60.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60"
+      }
+    },
+    {
+      "row": 7,
+      "column": 5,
+      "address": "E7",
+      "case": "Negative",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "GCD(B7:D7)",
+      "providerFormula": "GCD(B7:D7)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B7:D7)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "GCD(B7:D7)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 7,
+      "column": 6,
+      "address": "F7",
+      "case": "Negative",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "LCM(B7:D7)",
+      "providerFormula": "LCM(B7:D7)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B7:D7)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(B7:D7)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 7,
+      "column": 7,
+      "address": "G7",
+      "case": "Negative",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "GCD(-24,36,60)",
+      "providerFormula": "GCD(-24,36,60)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(-24,36,60)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "GCD(-24,36,60)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 7,
+      "column": 8,
+      "address": "H7",
+      "case": "Negative",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "LCM(-24,36,60)",
+      "providerFormula": "LCM(-24,36,60)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(-24,36,60)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(-24,36,60)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 8,
+      "column": 2,
+      "address": "B8",
+      "case": "Small negative",
+      "nativeType": "NumberCell",
+      "nativeValue": -0.2,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "-0.2"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "-0.2"
+      }
+    },
+    {
+      "row": 8,
+      "column": 3,
+      "address": "C8",
+      "case": "Small negative",
+      "nativeType": "NumberCell",
+      "nativeValue": 36.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36"
+      }
+    },
+    {
+      "row": 8,
+      "column": 4,
+      "address": "D8",
+      "case": "Small negative",
+      "nativeType": "NumberCell",
+      "nativeValue": 60.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60"
+      }
+    },
+    {
+      "row": 8,
+      "column": 5,
+      "address": "E8",
+      "case": "Small negative",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "GCD(B8:D8)",
+      "providerFormula": "GCD(B8:D8)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B8:D8)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "GCD(B8:D8)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 8,
+      "column": 6,
+      "address": "F8",
+      "case": "Small negative",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "LCM(B8:D8)",
+      "providerFormula": "LCM(B8:D8)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B8:D8)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(B8:D8)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 8,
+      "column": 7,
+      "address": "G8",
+      "case": "Small negative",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "GCD(-0.2,36,60)",
+      "providerFormula": "GCD(-0.2,36,60)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(-0.2,36,60)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "GCD(-0.2,36,60)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 8,
+      "column": 8,
+      "address": "H8",
+      "case": "Small negative",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "LCM(-0.2,36,60)",
+      "providerFormula": "LCM(-0.2,36,60)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(-0.2,36,60)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(-0.2,36,60)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 9,
+      "column": 2,
+      "address": "B9",
+      "case": "Text",
+      "nativeType": "TextCell",
+      "nativeValue": "text",
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "s",
+        "formula": null,
+        "value": "text"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "s",
+        "formula": null,
+        "value": "text"
+      }
+    },
+    {
+      "row": 9,
+      "column": 3,
+      "address": "C9",
+      "case": "Text",
+      "nativeType": "NumberCell",
+      "nativeValue": 12.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "12"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "12"
+      }
+    },
+    {
+      "row": 9,
+      "column": 4,
+      "address": "D9",
+      "case": "Text",
+      "nativeType": "NumberCell",
+      "nativeValue": 18.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "18"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "18"
+      }
+    },
+    {
+      "row": 9,
+      "column": 5,
+      "address": "E9",
+      "case": "Text",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "GCD(B9:D9)",
+      "providerFormula": "GCD(B9:D9)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B9:D9)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "GCD(B9:D9)",
+        "value": "#VALUE!"
+      }
+    },
+    {
+      "row": 9,
+      "column": 6,
+      "address": "F9",
+      "case": "Text",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "LCM(B9:D9)",
+      "providerFormula": "LCM(B9:D9)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B9:D9)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(B9:D9)",
+        "value": "#VALUE!"
+      }
+    },
+    {
+      "row": 9,
+      "column": 7,
+      "address": "G9",
+      "case": "Text",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "GCD(\"text\",12,18)",
+      "providerFormula": "GCD(\"text\",12,18)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(\"text\",12,18)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "GCD(\"text\",12,18)",
+        "value": "#VALUE!"
+      }
+    },
+    {
+      "row": 9,
+      "column": 8,
+      "address": "H9",
+      "case": "Text",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "LCM(\"text\",12,18)",
+      "providerFormula": "LCM(\"text\",12,18)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(\"text\",12,18)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(\"text\",12,18)",
+        "value": "#VALUE!"
+      }
+    },
+    {
+      "row": 10,
+      "column": 2,
+      "address": "B10",
+      "case": "Numeric text",
+      "nativeType": "TextCell",
+      "nativeValue": "24",
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "s",
+        "formula": null,
+        "value": "24"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "s",
+        "formula": null,
+        "value": "24"
+      }
+    },
+    {
+      "row": 10,
+      "column": 3,
+      "address": "C10",
+      "case": "Numeric text",
+      "nativeType": "NumberCell",
+      "nativeValue": 36.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "36"
+      }
+    },
+    {
+      "row": 10,
+      "column": 4,
+      "address": "D10",
+      "case": "Numeric text",
+      "nativeType": "NumberCell",
+      "nativeValue": 60.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "60"
+      }
+    },
+    {
+      "row": 10,
+      "column": 5,
+      "address": "E10",
+      "case": "Numeric text",
+      "nativeType": "NumberCell",
+      "nativeValue": 12.0,
+      "formula": "GCD(B10:D10)",
+      "providerFormula": "GCD(B10:D10)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B10:D10)",
+        "value": "12"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B10:D10)",
+        "value": "12"
+      }
+    },
+    {
+      "row": 10,
+      "column": 6,
+      "address": "F10",
+      "case": "Numeric text",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(B10:D10)",
+      "providerFormula": "LCM(B10:D10)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B10:D10)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B10:D10)",
+        "value": "360"
+      }
+    },
+    {
+      "row": 10,
+      "column": 7,
+      "address": "G10",
+      "case": "Numeric text",
+      "nativeType": "NumberCell",
+      "nativeValue": 12.0,
+      "formula": "GCD(\"24\",36,60)",
+      "providerFormula": "GCD(\"24\",36,60)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(\"24\",36,60)",
+        "value": "12"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(\"24\",36,60)",
+        "value": "12"
+      }
+    },
+    {
+      "row": 10,
+      "column": 8,
+      "address": "H10",
+      "case": "Numeric text",
+      "nativeType": "NumberCell",
+      "nativeValue": 360.0,
+      "formula": "LCM(\"24\",36,60)",
+      "providerFormula": "LCM(\"24\",36,60)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(\"24\",36,60)",
+        "value": "360"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(\"24\",36,60)",
+        "value": "360"
+      }
+    },
+    {
+      "row": 11,
+      "column": 2,
+      "address": "B11",
+      "case": "Boolean",
+      "nativeType": "BoolCell",
+      "nativeValue": true,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "b",
+        "formula": null,
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "b",
+        "formula": null,
+        "value": "1"
+      }
+    },
+    {
+      "row": 11,
+      "column": 3,
+      "address": "C11",
+      "case": "Boolean",
+      "nativeType": "NumberCell",
+      "nativeValue": 12.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "12"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "12"
+      }
+    },
+    {
+      "row": 11,
+      "column": 4,
+      "address": "D11",
+      "case": "Boolean",
+      "nativeType": "NumberCell",
+      "nativeValue": 18.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "18"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "18"
+      }
+    },
+    {
+      "row": 11,
+      "column": 5,
+      "address": "E11",
+      "case": "Boolean",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "GCD(B11:D11)",
+      "providerFormula": "GCD(B11:D11)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B11:D11)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "GCD(B11:D11)",
+        "value": "#VALUE!"
+      }
+    },
+    {
+      "row": 11,
+      "column": 6,
+      "address": "F11",
+      "case": "Boolean",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "LCM(B11:D11)",
+      "providerFormula": "LCM(B11:D11)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B11:D11)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(B11:D11)",
+        "value": "#VALUE!"
+      }
+    },
+    {
+      "row": 11,
+      "column": 7,
+      "address": "G11",
+      "case": "Boolean",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "GCD(TRUE,12,18)",
+      "providerFormula": "GCD(TRUE,12,18)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(TRUE,12,18)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "GCD(TRUE,12,18)",
+        "value": "#VALUE!"
+      }
+    },
+    {
+      "row": 11,
+      "column": 8,
+      "address": "H11",
+      "case": "Boolean",
+      "nativeType": "ErrorCell",
+      "nativeValue": null,
+      "formula": "LCM(TRUE,12,18)",
+      "providerFormula": "LCM(TRUE,12,18)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(TRUE,12,18)",
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(TRUE,12,18)",
+        "value": "#VALUE!"
+      }
+    },
+    {
+      "row": 12,
+      "column": 2,
+      "address": "B12",
+      "case": "Blank",
+      "nativeType": "EmptyCell",
+      "nativeValue": null,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      }
+    },
+    {
+      "row": 12,
+      "column": 3,
+      "address": "C12",
+      "case": "Blank",
+      "nativeType": "EmptyCell",
+      "nativeValue": null,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      }
+    },
+    {
+      "row": 12,
+      "column": 4,
+      "address": "D12",
+      "case": "Blank",
+      "nativeType": "EmptyCell",
+      "nativeValue": null,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      }
+    },
+    {
+      "row": 12,
+      "column": 5,
+      "address": "E12",
+      "case": "Blank",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "GCD(B12:D12)",
+      "providerFormula": "GCD(B12:D12)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B12:D12)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B12:D12)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 12,
+      "column": 6,
+      "address": "F12",
+      "case": "Blank",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(B12:D12)",
+      "providerFormula": "LCM(B12:D12)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B12:D12)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B12:D12)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 12,
+      "column": 7,
+      "address": "G12",
+      "case": "Blank",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "GCD(0)",
+      "providerFormula": "GCD(0)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(0)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(0)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 12,
+      "column": 8,
+      "address": "H12",
+      "case": "Blank",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(0)",
+      "providerFormula": "LCM(0)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(0)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(0)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 13,
+      "column": 2,
+      "address": "B13",
+      "case": "Exact maximum",
+      "nativeType": "NumberCell",
+      "nativeValue": 9007199254740990.0,
+      "formula": "2^53-1",
+      "providerFormula": "2^53-1",
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "2^53-1",
+        "value": "9007199254740990"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "2^53-1",
+        "value": "9007199254740991"
+      }
+    },
+    {
+      "row": 13,
+      "column": 3,
+      "address": "C13",
+      "case": "Exact maximum",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "1"
+      }
+    },
+    {
+      "row": 13,
+      "column": 4,
+      "address": "D13",
+      "case": "Exact maximum",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "1"
+      }
+    },
+    {
+      "row": 13,
+      "column": 5,
+      "address": "E13",
+      "case": "Exact maximum",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "GCD(B13:D13)",
+      "providerFormula": "GCD(B13:D13)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B13:D13)",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B13:D13)",
+        "value": "1"
+      }
+    },
+    {
+      "row": 13,
+      "column": 6,
+      "address": "F13",
+      "case": "Exact maximum",
+      "nativeType": "NumberCell",
+      "nativeValue": 9007199254740990.0,
+      "formula": "LCM(B13:D13)",
+      "providerFormula": "LCM(B13:D13)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B13:D13)",
+        "value": "9007199254740990"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B13:D13)",
+        "value": "9007199254740991"
+      }
+    },
+    {
+      "row": 13,
+      "column": 7,
+      "address": "G13",
+      "case": "Exact maximum",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "GCD(9007199254740990,1,1)",
+      "providerFormula": "GCD(9007199254740990.0,1,1)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(9007199254740990,1,1)",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(9007199254740990,1,1)",
+        "value": "1"
+      }
+    },
+    {
+      "row": 13,
+      "column": 8,
+      "address": "H13",
+      "case": "Exact maximum",
+      "nativeType": "NumberCell",
+      "nativeValue": 9007199254740990.0,
+      "formula": "LCM(9007199254740990,1,1)",
+      "providerFormula": "LCM(9007199254740990.0,1,1)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(9007199254740990,1,1)",
+        "value": "9007199254740990"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(9007199254740990,1,1)",
+        "value": "9007199254740990"
+      }
+    },
+    {
+      "row": 14,
+      "column": 2,
+      "address": "B14",
+      "case": "Operand boundary",
+      "nativeType": "NumberCell",
+      "nativeValue": 9007199254740990.0,
+      "formula": "2^53",
+      "providerFormula": "2^53",
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "2^53",
+        "value": "9007199254740990"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "2^53",
+        "value": "9007199254740992"
+      }
+    },
+    {
+      "row": 14,
+      "column": 3,
+      "address": "C14",
+      "case": "Operand boundary",
+      "nativeType": "NumberCell",
+      "nativeValue": 4.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "4"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "4"
+      }
+    },
+    {
+      "row": 14,
+      "column": 4,
+      "address": "D14",
+      "case": "Operand boundary",
+      "nativeType": "NumberCell",
+      "nativeValue": 8.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "8"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "8"
+      }
+    },
+    {
+      "row": 14,
+      "column": 5,
+      "address": "E14",
+      "case": "Operand boundary",
+      "nativeType": "NumberCell",
+      "nativeValue": 2.0,
+      "formula": "GCD(B14:D14)",
+      "providerFormula": "GCD(B14:D14)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B14:D14)",
+        "value": "2"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B14:D14)",
+        "value": "4"
+      }
+    },
+    {
+      "row": 14,
+      "column": 6,
+      "address": "F14",
+      "case": "Operand boundary",
+      "nativeType": "NumberCell",
+      "nativeValue": 3.6028797018964e+16,
+      "formula": "LCM(B14:D14)",
+      "providerFormula": "LCM(B14:D14)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B14:D14)",
+        "value": "3.6028797018964e+16"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B14:D14)",
+        "value": "9007199254740992"
+      }
+    },
+    {
+      "row": 14,
+      "column": 7,
+      "address": "G14",
+      "case": "Operand boundary",
+      "nativeType": "NumberCell",
+      "nativeValue": 2.0,
+      "formula": "GCD(9007199254740990,4,8)",
+      "providerFormula": "GCD(9007199254740990.0,4,8)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(9007199254740990,4,8)",
+        "value": "2"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(9007199254740990,4,8)",
+        "value": "2"
+      }
+    },
+    {
+      "row": 14,
+      "column": 8,
+      "address": "H14",
+      "case": "Operand boundary",
+      "nativeType": "NumberCell",
+      "nativeValue": 3.6028797018964e+16,
+      "formula": "LCM(9007199254740990,4,8)",
+      "providerFormula": "LCM(9007199254740990.0,4,8)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(9007199254740990,4,8)",
+        "value": "3.6028797018964e+16"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(9007199254740990,4,8)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 15,
+      "column": 2,
+      "address": "B15",
+      "case": "LCM overflow",
+      "nativeType": "NumberCell",
+      "nativeValue": 134217728.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "134217728"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "134217728"
+      }
+    },
+    {
+      "row": 15,
+      "column": 3,
+      "address": "C15",
+      "case": "LCM overflow",
+      "nativeType": "NumberCell",
+      "nativeValue": 67108865.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "67108865"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "67108865"
+      }
+    },
+    {
+      "row": 15,
+      "column": 4,
+      "address": "D15",
+      "case": "LCM overflow",
+      "nativeType": "EmptyCell",
+      "nativeValue": null,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      }
+    },
+    {
+      "row": 15,
+      "column": 5,
+      "address": "E15",
+      "case": "LCM overflow",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "GCD(B15:D15)",
+      "providerFormula": "GCD(B15:D15)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B15:D15)",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B15:D15)",
+        "value": "1"
+      }
+    },
+    {
+      "row": 15,
+      "column": 6,
+      "address": "F15",
+      "case": "LCM overflow",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(B15:D15)",
+      "providerFormula": "LCM(B15:D15)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B15:D15)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B15:D15)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 15,
+      "column": 7,
+      "address": "G15",
+      "case": "LCM overflow",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "GCD(134217728,67108865)",
+      "providerFormula": "GCD(134217728,67108865)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 2
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(134217728,67108865)",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(134217728,67108865)",
+        "value": "1"
+      }
+    },
+    {
+      "row": 15,
+      "column": 8,
+      "address": "H15",
+      "case": "LCM overflow",
+      "nativeType": "NumberCell",
+      "nativeValue": 9007199388958720.0,
+      "formula": "LCM(134217728,67108865)",
+      "providerFormula": "LCM(134217728,67108865)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 2
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(134217728,67108865)",
+        "value": "9007199388958720"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "e",
+        "formula": "LCM(134217728,67108865)",
+        "value": "#NUM!"
+      }
+    },
+    {
+      "row": 16,
+      "column": 2,
+      "address": "B16",
+      "case": "Below one",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.25,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0.25"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0.25"
+      }
+    },
+    {
+      "row": 16,
+      "column": 3,
+      "address": "C16",
+      "case": "Below one",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.75,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0.75"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0.75"
+      }
+    },
+    {
+      "row": 16,
+      "column": 4,
+      "address": "D16",
+      "case": "Below one",
+      "nativeType": "EmptyCell",
+      "nativeValue": null,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": null
+      }
+    },
+    {
+      "row": 16,
+      "column": 5,
+      "address": "E16",
+      "case": "Below one",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "GCD(B16:D16)",
+      "providerFormula": "GCD(B16:D16)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B16:D16)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B16:D16)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 16,
+      "column": 6,
+      "address": "F16",
+      "case": "Below one",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(B16:D16)",
+      "providerFormula": "LCM(B16:D16)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B16:D16)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B16:D16)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 16,
+      "column": 7,
+      "address": "G16",
+      "case": "Below one",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "GCD(0.25,0.75)",
+      "providerFormula": "GCD(0.25,0.75)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 2
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(0.25,0.75)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(0.25,0.75)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 16,
+      "column": 8,
+      "address": "H16",
+      "case": "Below one",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(0.25,0.75)",
+      "providerFormula": "LCM(0.25,0.75)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 2
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(0.25,0.75)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(0.25,0.75)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 17,
+      "column": 2,
+      "address": "B17",
+      "case": "Zero before large",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      }
+    },
+    {
+      "row": 17,
+      "column": 3,
+      "address": "C17",
+      "case": "Zero before large",
+      "nativeType": "NumberCell",
+      "nativeValue": 134217728.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "134217728"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "134217728"
+      }
+    },
+    {
+      "row": 17,
+      "column": 4,
+      "address": "D17",
+      "case": "Zero before large",
+      "nativeType": "NumberCell",
+      "nativeValue": 67108865.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "67108865"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "67108865"
+      }
+    },
+    {
+      "row": 17,
+      "column": 5,
+      "address": "E17",
+      "case": "Zero before large",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "GCD(B17:D17)",
+      "providerFormula": "GCD(B17:D17)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B17:D17)",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B17:D17)",
+        "value": "1"
+      }
+    },
+    {
+      "row": 17,
+      "column": 6,
+      "address": "F17",
+      "case": "Zero before large",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(B17:D17)",
+      "providerFormula": "LCM(B17:D17)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B17:D17)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B17:D17)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 17,
+      "column": 7,
+      "address": "G17",
+      "case": "Zero before large",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "GCD(0,134217728,67108865)",
+      "providerFormula": "GCD(0,134217728,67108865)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(0,134217728,67108865)",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(0,134217728,67108865)",
+        "value": "1"
+      }
+    },
+    {
+      "row": 17,
+      "column": 8,
+      "address": "H17",
+      "case": "Zero before large",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(0,134217728,67108865)",
+      "providerFormula": "LCM(0,134217728,67108865)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(0,134217728,67108865)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(0,134217728,67108865)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 18,
+      "column": 2,
+      "address": "B18",
+      "case": "Zero after large",
+      "nativeType": "NumberCell",
+      "nativeValue": 134217728.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "134217728"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "134217728"
+      }
+    },
+    {
+      "row": 18,
+      "column": 3,
+      "address": "C18",
+      "case": "Zero after large",
+      "nativeType": "NumberCell",
+      "nativeValue": 67108865.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "67108865"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "67108865"
+      }
+    },
+    {
+      "row": 18,
+      "column": 4,
+      "address": "D18",
+      "case": "Zero after large",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": null,
+      "providerFormula": null,
+      "functions": [],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": null,
+        "value": "0"
+      }
+    },
+    {
+      "row": 18,
+      "column": 5,
+      "address": "E18",
+      "case": "Zero after large",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "GCD(B18:D18)",
+      "providerFormula": "GCD(B18:D18)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(B18:D18)",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(B18:D18)",
+        "value": "1"
+      }
+    },
+    {
+      "row": 18,
+      "column": 6,
+      "address": "F18",
+      "case": "Zero after large",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(B18:D18)",
+      "providerFormula": "LCM(B18:D18)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 1
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(B18:D18)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(B18:D18)",
+        "value": "0"
+      }
+    },
+    {
+      "row": 18,
+      "column": 7,
+      "address": "G18",
+      "case": "Zero after large",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "GCD(134217728,67108865,0)",
+      "providerFormula": "GCD(134217728,67108865,0)",
+      "functions": [
+        {
+          "index": 58,
+          "name": "GCD",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "GCD(134217728,67108865,0)",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "GCD(134217728,67108865,0)",
+        "value": "1"
+      }
+    },
+    {
+      "row": 18,
+      "column": 8,
+      "address": "H18",
+      "case": "Zero after large",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "LCM(134217728,67108865,0)",
+      "providerFormula": "LCM(134217728,67108865,0)",
+      "functions": [
+        {
+          "index": 75,
+          "name": "LCM",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "LCM(134217728,67108865,0)",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "LCM(134217728,67108865,0)",
+        "value": "0"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "path": "numbers-integer-functions-v14.5.numbers",
+      "bytes": 684594,
+      "sha256": "99f2f0445b9985feac658fa876502c854452026e383f078d41d41260a9cfc0b1"
+    },
+    {
+      "path": "numbers-integer-functions-v14.5.xlsx",
+      "bytes": 7798,
+      "sha256": "0a6259a8df8fc6119dc90d8eb814b3e3b4f8f43531a3cc627d15a959a86a904d"
+    },
+    {
+      "path": "numbers-integer-functions-excel-v16.113.3.xlsx",
+      "bytes": 12339,
+      "sha256": "97ff465153b546d902276fe5da50597f3e9a716829adefe696f8b4cfba1c0dc2"
+    }
+  ],
+  "limits": [
+    "Numbers source was created by importing the controlled XLSX and saved natively. B13 and B14 were then replaced natively by =2^53-1 and =2^53.",
+    "Excel results were captured after Calculate Now and saved to a separate local workbook.",
+    "Numbers rounds the B13/B14 power caches to 9007199254740990. G/H large literal operands are separately rounded import values.",
+    "Numeric-text range LCM and large results differ. Native Numbers error cells have no XLSX error code.",
+    "Native PDF and both app screenshots were inspected. This fixture does not qualify other producer versions or general native appearance."
+  ]
+}

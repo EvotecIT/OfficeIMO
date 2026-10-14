@@ -1395,7 +1395,8 @@ public class PowerPointSaveAsPdfTests {
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("30 76 150 70 re", raw, StringComparison.Ordinal);
+        Assert.Contains("30 146 m", raw, StringComparison.Ordinal);
+        Assert.Contains("180 76 l", raw, StringComparison.Ordinal);
         Assert.Contains("120 146 m", raw, StringComparison.Ordinal);
         Assert.Contains("120 76 l", raw, StringComparison.Ordinal);
         Assert.Contains("30 118 m", raw, StringComparison.Ordinal);

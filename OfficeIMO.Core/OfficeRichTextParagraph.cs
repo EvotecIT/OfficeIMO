@@ -84,5 +84,5 @@ public sealed class OfficeRichTextParagraph {
     internal static OfficeRichTextRun CopyRun(OfficeRichTextRun run) => new OfficeRichTextRun(
         run.Text, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily,
         run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle,
-        run.Baseline, run.ParagraphIndent) { LinkUri = run.LinkUri };
+        run.Baseline, run.ParagraphIndent) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
 }

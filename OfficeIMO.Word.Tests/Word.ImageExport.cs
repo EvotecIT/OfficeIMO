@@ -4619,7 +4619,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(8391D / 20D, secondSectionFirstPage.Width, 2);
             Assert.Equal(11906D / 20D, secondSectionFirstPage.Height, 2);
             Assert.Contains(secondSectionFirstPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Odd section second body");
-            Assert.DoesNotContain(secondSectionFirstPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Odd section first default header");
+            Assert.Contains(secondSectionFirstPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Odd section first default header");
+            Assert.Contains(secondSectionFirstPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Odd section first default footer");
             Assert.DoesNotContain(secondSectionFirstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
             Assert.DoesNotContain(secondSectionFirstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
         }

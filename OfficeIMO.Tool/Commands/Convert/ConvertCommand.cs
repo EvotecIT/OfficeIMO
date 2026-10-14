@@ -12,7 +12,7 @@ Usage:
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
                     [--diagram-layers screen|print] [--require-no-loss]
-  officeimo convert <input.pages|input.numbers|input.key> [output.docx|output.xlsx|output.pptx]
+  officeimo convert <input.pages|input.numbers|input.key> [output.docx|output.xlsx|output.pptx|output.pdf]
                     [--iwork-mode auto|editable|visual] [--allow-partial]
                     [--allow-incomplete-preview] [--normalize-worksheet-names]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>] [--force]
@@ -20,7 +20,8 @@ Usage:
                     [--assets <directory>] [--max-input-bytes <bytes>] [--force]
 
 PDF output uses the first-party format adapters and literal text converter.
-Apple OOXML output uses the shared iWork workflow adapter and writes structured JSON evidence.
+Apple Office and PDF output use the shared iWork workflow adapter and write structured JSON evidence.
+Apple PDF requires complete editable reconstruction; previews and partial policies are rejected.
 Defaults reject partial editable reconstruction and previews without known complete coverage.
 Apple workflow conversion accepts ZIP files and directory bundles.
 Markdown and JSON output use the OfficeIMO Reader pipeline.
@@ -191,11 +192,12 @@ internal sealed class ConvertRoute {
         outputPath ??= optionOutputPath;
         ConvertOutputFormat format = outputPath is null && Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant() is ".pages" or ".numbers" or ".key"
             ? ConvertOutputFormat.IWork : ParseOutputFormat(outputPath);
-        if (format == ConvertOutputFormat.IWork) {
-            if (assetsPath is not null || hasPdfOnlyOption) throw new ConvertUsageException("Apple OOXML conversion does not accept assets or XML-part limits.");
-            return new ConvertRoute { Format = format };
+        bool appleInput = Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant() is ".pages" or ".numbers" or ".key";
+        if (format == ConvertOutputFormat.IWork || appleInput && format == ConvertOutputFormat.Pdf) {
+            if (assetsPath is not null || hasPdfOnlyOption) throw new ConvertUsageException("Apple workflow conversion does not accept assets or XML-part limits.");
+            return new ConvertRoute { Format = ConvertOutputFormat.IWork };
         }
-        if (hasAppleOnlyOption) throw new ConvertUsageException("iWork acceptance options require an Apple-to-OOXML conversion.");
+        if (hasAppleOnlyOption) throw new ConvertUsageException("iWork acceptance options require an Apple-to-Office or Apple-to-PDF conversion.");
         if (format == ConvertOutputFormat.Pdf) {
             if (assetsPath != null) {
                 throw new ConvertUsageException("--assets is only valid for Markdown or JSON output.");

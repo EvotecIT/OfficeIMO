@@ -62,6 +62,15 @@ namespace OfficeIMO.Word.Pdf {
                     style.CellPaddings?.TryGetValue((row, column), out padding);
                     double ownTop = padding?.Top ?? style.CellPaddingTop ?? style.CellPaddingY;
                     double ownBottom = padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY;
+                    if (ownTop < top && style.BorderFrame?.Border != null &&
+                        style.CellBorders?.TryGetValue((row, column), out PdfCore.PdfCellBorder? border) == true &&
+                        border.PaintInsideFrame) {
+                        // Text aligns on the shared row margin, but each separate
+                        // cell retains its authored top margin inside that frame.
+                        PdfCore.PdfCellBorder prepared = border.Clone();
+                        prepared.PaintTopInset = top - ownTop;
+                        style.CellBorders[(row, column)] = prepared;
+                    }
                     if (ownTop < top || ownBottom < bottom) {
                         // Replace the effective PDF value without modifying source cells or caller-owned padding objects.
                         style.CellPaddings ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();

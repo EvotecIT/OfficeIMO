@@ -270,6 +270,27 @@ public sealed class HtmlSiteBundleTests {
         await Assert.ThrowsAsync<InvalidDataException>(() => HtmlSiteBundle.LoadAsync(malformed));
     }
 
+    [Fact]
+    public async Task ConflictingClassicAndZip64DirectoriesCannotBypassTheEntryLimit() {
+        using var source = CreateBundle(("index.html", Utf8("<p>Hello</p>")), ("unused.css", Utf8("p{color:red}")));
+        byte[] classic = source.ToArray();
+        int end = classic.Length - 22, central = (int)BitConverter.ToUInt32(classic, end + 16);
+        int firstLength = 46 + BitConverter.ToUInt16(classic, central + 28) + BitConverter.ToUInt16(classic, central + 30) + BitConverter.ToUInt16(classic, central + 32);
+        using var bytes = new MemoryStream();
+        using var writer = new BinaryWriter(bytes, Encoding.ASCII, leaveOpen: true);
+        writer.Write(classic, 0, end); writer.Write(0U);
+        ulong alternate = (ulong)bytes.Position;
+        writer.Write(classic, central, firstLength);
+        ulong record = (ulong)bytes.Position;
+        writer.Write(0x06064b50U); writer.Write(44UL); writer.Write((ushort)45); writer.Write((ushort)45); writer.Write(0U); writer.Write(0U);
+        writer.Write(1UL); writer.Write(1UL); writer.Write((ulong)firstLength); writer.Write(alternate);
+        writer.Write(0x07064b50U); writer.Write(0U); writer.Write(record); writer.Write(1U); writer.Write(classic, end, 22);
+        using var malformed = new MemoryStream(bytes.ToArray());
+        var options = new HtmlSiteBundleOptions { MaximumEntryCount = 1 };
+        Assert.Throws<InvalidDataException>(() => HtmlSiteBundle.Load(malformed, options));
+        await Assert.ThrowsAsync<InvalidDataException>(() => HtmlSiteBundle.LoadAsync(malformed, options));
+    }
+
     private static MemoryStream CreateBundle(params (string Name, byte[] Bytes)[] entries) {
         var stream = new MemoryStream();
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {

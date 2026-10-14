@@ -60,7 +60,7 @@ public sealed partial class EpubPublication {
 
     private static void RequireOverlaySemantic(XElement element) {
         string? value = (string?)element.Attribute(Ops + "type");
-        if (value != null && !Enum.GetValues(typeof(EpubMediaOverlaySemantic)).Cast<EpubMediaOverlaySemantic>().Any(item => OverlaySemantic(item) == value))
+        if (value != null && !global::OfficeIMO.Internal.EnumCompat.GetValues<EpubMediaOverlaySemantic>().Any(item => OverlaySemantic(item) == value))
             throw new NotSupportedException("Replacement cannot preserve an unsupported narration semantic.");
     }
 

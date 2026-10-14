@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-09T23:35:47.685699+00:00",
+  "sourceRevision": "7d9d8e670f6a7ff8394b079489d60f202ce8975d",
+  "sourceOnly": true,
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64",
+    "sdk": "10.0.112"
+  },
+  "project": "OfficeIMO.IWork.AotSmoke",
+  "executions": [
+    {
+      "targetFramework": "net8.0",
+      "runtimeVersion": "8.0.31",
+      "runtimeIdentifier": "osx-arm64",
+      "executableSha256": "fe6ebae92721fd7af71d9bb90ace9a48a4fe7c6817caf15579473ce37f521b3a",
+      "executableBytes": 87754824,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "output": [
+        "PASS | simple.pages | 5AEE6D03277D2DB2104F593E64AFE081DEC539F0117B97124B6F99158124C93E | complete editable conversion, save/reopen, source preservation",
+        "PASS | simple.numbers | D0B00D9CAE5985CCCAA3B2FB251FAE92EB0E38360FB4B5DF8B4350EB658F752B | complete editable conversion, save/reopen, source preservation",
+        "PASS | simple.key | BA95755DF82CEB0CA834E1E03E2777C34FAD906320D8336B4F3FEFC6B48607EB | complete editable conversion, save/reopen, source preservation",
+        "PASS | formulas.numbers | DD85BAD68898CE5B065F277C0B9BE1F3C32D696E3BAA6B09D3614BBD35A5249F | complete editable conversion, save/reopen, source preservation",
+        "PASS | bounded iWork NativeAOT destination conversions | .NET 8.0.31",
+        "PASS | native Keynote creation | 8E25C78B8FFF278DFF256515D6D1A7B171F7C313F82EBCD841457C527F87D6A1 | 7423 bytes | deterministic Unicode model, byte/stream/path saves, readback and active cancellation",
+        "PASS | native Keynote rich runs | AA1A3834B31716024420F37B808AE0E8A164BD5BFDCC59719C0B17F5CC1F6654 | 8281 bytes | UTF-16 ranges, decoration resets, deterministic creation, saved/reopened PPTX and run limits",
+        "PASS | native Keynote images | 5523DBE029B9A508D2BF3E3AD1A54C6266AC6C3BDDF8F23D6051FCC5F1E2F765 | 13399 bytes | PNG alpha/JPEG, reserved metadata identities, stacking, deterministic creation, saved/reopened PPTX and image limits",
+        "PASS | native Keynote tables | 51D624971820BD161909E957DCB11ECE88B59F39F95268DB75DC166068FBCE88 | 25227 bytes | Decimal128 numbers, text/booleans, empty grid, Unicode, stacking, deterministic creation, saved/reopened PPTX and table limits",
+        "PASS | native Keynote table borders | native 15.4 source | inherited strokes, region visibility, ordered shared edits, disabled categories and saved/reopened PPTX",
+        "PASS | native Pages body creation | C6822FD3C93E1D9D87CE11270573AEC07AC5AF5167AEFDA1C5C25A8FA683AD53 | 47534 bytes | deterministic graph, rich Unicode paragraphs, plain resets, page settings, caller stream, strict saved/reopened DOCX and paragraph bounds"
+      ]
+    },
+    {
+      "targetFramework": "net10.0",
+      "runtimeVersion": "10.0.12",
+      "runtimeIdentifier": "osx-arm64",
+      "executableSha256": "f8595eb2650021f821f5c073a8e8ff8e0df14ef6033bfa4d30c6504362576fd9",
+      "executableBytes": 51881592,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "output": [
+        "PASS | simple.pages | 5AEE6D03277D2DB2104F593E64AFE081DEC539F0117B97124B6F99158124C93E | complete editable conversion, save/reopen, source preservation",
+        "PASS | simple.numbers | D0B00D9CAE5985CCCAA3B2FB251FAE92EB0E38360FB4B5DF8B4350EB658F752B | complete editable conversion, save/reopen, source preservation",
+        "PASS | simple.key | BA95755DF82CEB0CA834E1E03E2777C34FAD906320D8336B4F3FEFC6B48607EB | complete editable conversion, save/reopen, source preservation",
+        "PASS | formulas.numbers | DD85BAD68898CE5B065F277C0B9BE1F3C32D696E3BAA6B09D3614BBD35A5249F | complete editable conversion, save/reopen, source preservation",
+        "PASS | bounded iWork NativeAOT destination conversions | .NET 10.0.12",
+        "PASS | native Keynote creation | 8E25C78B8FFF278DFF256515D6D1A7B171F7C313F82EBCD841457C527F87D6A1 | 7423 bytes | deterministic Unicode model, byte/stream/path saves, readback and active cancellation",
+        "PASS | native Keynote rich runs | AA1A3834B31716024420F37B808AE0E8A164BD5BFDCC59719C0B17F5CC1F6654 | 8281 bytes | UTF-16 ranges, decoration resets, deterministic creation, saved/reopened PPTX and run limits",
+        "PASS | native Keynote images | 5523DBE029B9A508D2BF3E3AD1A54C6266AC6C3BDDF8F23D6051FCC5F1E2F765 | 13399 bytes | PNG alpha/JPEG, reserved metadata identities, stacking, deterministic creation, saved/reopened PPTX and image limits",
+        "PASS | native Keynote tables | 51D624971820BD161909E957DCB11ECE88B59F39F95268DB75DC166068FBCE88 | 25227 bytes | Decimal128 numbers, text/booleans, empty grid, Unicode, stacking, deterministic creation, saved/reopened PPTX and table limits",
+        "PASS | native Keynote table borders | native 15.4 source | inherited strokes, region visibility, ordered shared edits, disabled categories and saved/reopened PPTX",
+        "PASS | native Pages body creation | C6822FD3C93E1D9D87CE11270573AEC07AC5AF5167AEFDA1C5C25A8FA683AD53 | 47534 bytes | deterministic graph, rich Unicode paragraphs, plain resets, page settings, caller stream, strict saved/reopened DOCX and paragraph bounds"
+      ]
+    }
+  ],
+  "contract": [
+    "Native Pages creation emits the 47,534-byte independently decoded and Apple-qualified package identically on both runtimes.",
+    "Native readback and strict DOCX save/reopen preserve complete rich Unicode paragraph content and styles, page settings and caller-owned streams.",
+    "The paragraph budget rejects output before changing the destination stream.",
+    "Existing bounded Keynote creation and destination conversion checks remain executable."
+  ],
+  "boundaries": [
+    "Unsigned local source executables; no publication or distribution qualification.",
+    "This extension is qualified only on macOS arm64 with these two runtimes.",
+    "Apple appearance and edit/save/reopen evidence are recorded separately in the Pages corpus manifest."
+  ]
+}

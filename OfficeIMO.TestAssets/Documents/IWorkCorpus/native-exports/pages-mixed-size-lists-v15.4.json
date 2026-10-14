@@ -1,0 +1,2743 @@
+{
+  "schemaVersion": 1,
+  "profile": "Mixed whole-point run sizes and font families in non-tiered decimal items, levels 0..8; first-run marker size at native scale1",
+  "producer": {
+    "application": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "os": "macOS27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "license": "MIT; OfficeIMO-authored input and derived native/managed evidence; embedded installed fonts retain their own licenses",
+  "sourceProvenance": "OfficeIMO template-free authored; Apple independently changed run-size orders, saved and edited. This is not arbitrary independent-producer coverage.",
+  "fonts": {
+    "families": [
+      "Arial",
+      "Times New Roman",
+      "Courier New"
+    ],
+    "runSizePoints": [
+      8,
+      10,
+      12,
+      14,
+      18,
+      24
+    ],
+    "paragraphDefaultSizePoints": 12,
+    "metadata": "pages-mixed-size-local-font-inputs.json",
+    "provenance": "Installed font metadata; no standalone font files copied. Caller-font PDFs embed licensed faces; portable PDFs declare standard-family substitution."
+  },
+  "cases": [
+    {
+      "source": "pages-mixed-size-orders-v15.4.pages",
+      "strictDocx": "pages-mixed-size-orders-v15.4-officeimo.docx",
+      "portablePdf": "pages-mixed-size-orders-v15.4-officeimo.pdf",
+      "callerFontsPdf": "pages-mixed-size-orders-v15.4-caller-fonts.pdf",
+      "nativePdf": "pages-mixed-size-orders-v15.4.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root seven serif mono plain",
+          "marker": "7.",
+          "markerFont": "Arial",
+          "markerSizePoints": 18,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Root seven serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 18
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 8
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Depth 1 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 54,
+          "runs": [
+            {
+              "text": "Depth 2 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 72,
+          "runs": [
+            {
+              "text": "Depth 3 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 90,
+          "runs": [
+            {
+              "text": "Depth 4 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 108,
+          "runs": [
+            {
+              "text": "Depth 5 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 126,
+          "runs": [
+            {
+              "text": "Depth 6 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 144,
+          "runs": [
+            {
+              "text": "Depth 7 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Depth 8 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 162,
+          "runs": [
+            {
+              "text": "Depth 8 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 162,
+          "runs": [
+            {
+              "text": "Deep two serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8.",
+          "markerFont": "Arial",
+          "markerSizePoints": 8,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Root eight serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 8
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 18
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 8,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Child one serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 8
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 10
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)",
+          "markerFont": "Times New Roman",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Serif marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)",
+          "markerFont": "Times New Roman",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Serif child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)",
+          "markerFont": "Courier New",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Mono marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)",
+          "markerFont": "Courier New",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Mono child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Resumed child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 24
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 8
+            }
+          ]
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed family decimal items",
+        "Plain gap retains counters"
+      ]
+    },
+    {
+      "source": "pages-mixed-size-created.pages",
+      "strictDocx": "pages-mixed-size-created-officeimo.docx",
+      "portablePdf": "pages-mixed-size-created-officeimo.pdf",
+      "callerFontsPdf": "pages-mixed-size-created-caller-fonts.pdf",
+      "nativePdf": null,
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root seven serif mono plain",
+          "marker": "7.",
+          "markerFont": "Arial",
+          "markerSizePoints": 18,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Root seven serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 18
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 8
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Depth 1 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 54,
+          "runs": [
+            {
+              "text": "Depth 2 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 72,
+          "runs": [
+            {
+              "text": "Depth 3 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 90,
+          "runs": [
+            {
+              "text": "Depth 4 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 108,
+          "runs": [
+            {
+              "text": "Depth 5 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 126,
+          "runs": [
+            {
+              "text": "Depth 6 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 144,
+          "runs": [
+            {
+              "text": "Depth 7 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Depth 8 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 162,
+          "runs": [
+            {
+              "text": "Depth 8 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 162,
+          "runs": [
+            {
+              "text": "Deep two serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8.",
+          "markerFont": "Arial",
+          "markerSizePoints": 8,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Root eight serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 8
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 18
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 8,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Child one serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 8
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 10
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)",
+          "markerFont": "Times New Roman",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Serif marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)",
+          "markerFont": "Times New Roman",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Serif child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)",
+          "markerFont": "Courier New",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Mono marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)",
+          "markerFont": "Courier New",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Mono child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Resumed child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 24
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 8
+            }
+          ]
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed size decimal items",
+        "Plain gap retains counters"
+      ]
+    },
+    {
+      "source": "pages-mixed-size-saved-v15.4.pages",
+      "strictDocx": "pages-mixed-size-saved-v15.4-officeimo.docx",
+      "portablePdf": "pages-mixed-size-saved-v15.4-officeimo.pdf",
+      "callerFontsPdf": "pages-mixed-size-saved-v15.4-caller-fonts.pdf",
+      "nativePdf": "pages-mixed-size-saved-v15.4.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root seven serif mono plain",
+          "marker": "7.",
+          "markerFont": "Arial",
+          "markerSizePoints": 18,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Root seven serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 18
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 8
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Depth 1 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 54,
+          "runs": [
+            {
+              "text": "Depth 2 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 72,
+          "runs": [
+            {
+              "text": "Depth 3 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 90,
+          "runs": [
+            {
+              "text": "Depth 4 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 108,
+          "runs": [
+            {
+              "text": "Depth 5 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 126,
+          "runs": [
+            {
+              "text": "Depth 6 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 144,
+          "runs": [
+            {
+              "text": "Depth 7 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Depth 8 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 162,
+          "runs": [
+            {
+              "text": "Depth 8 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 162,
+          "runs": [
+            {
+              "text": "Deep two serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8.",
+          "markerFont": "Arial",
+          "markerSizePoints": 8,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Root eight serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 8
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 18
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 8,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Child one serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 8
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 10
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)",
+          "markerFont": "Times New Roman",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Serif marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)",
+          "markerFont": "Times New Roman",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Serif child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)",
+          "markerFont": "Courier New",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Mono marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)",
+          "markerFont": "Courier New",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Mono child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Resumed child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 24
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 8
+            }
+          ]
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed size decimal items",
+        "Plain gap retains counters"
+      ]
+    },
+    {
+      "source": "pages-mixed-size-edited-v15.4.pages",
+      "strictDocx": "pages-mixed-size-edited-v15.4-officeimo.docx",
+      "portablePdf": "pages-mixed-size-edited-v15.4-officeimo.pdf",
+      "callerFontsPdf": "pages-mixed-size-edited-v15.4-caller-fonts.pdf",
+      "nativePdf": "pages-mixed-size-edited-v15.4.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root native serif mono plain",
+          "marker": "7.",
+          "markerFont": "Arial",
+          "markerSizePoints": 18,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Root native serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 18
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 8
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Depth 1 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 54,
+          "runs": [
+            {
+              "text": "Depth 2 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 72,
+          "runs": [
+            {
+              "text": "Depth 3 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 90,
+          "runs": [
+            {
+              "text": "Depth 4 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 108,
+          "runs": [
+            {
+              "text": "Depth 5 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 126,
+          "runs": [
+            {
+              "text": "Depth 6 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 144,
+          "runs": [
+            {
+              "text": "Depth 7 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Deep native serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 162,
+          "runs": [
+            {
+              "text": "Deep native serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 162,
+          "runs": [
+            {
+              "text": "Deep two serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8.",
+          "markerFont": "Arial",
+          "markerSizePoints": 8,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Root eight serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 8
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 18
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "markerSizePoints": 8,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Child one serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 8
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 10
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 14
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)",
+          "markerFont": "Times New Roman",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Serif marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)",
+          "markerFont": "Times New Roman",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Serif child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)",
+          "markerFont": "Courier New",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 18,
+          "runs": [
+            {
+              "text": "Mono marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)",
+          "markerFont": "Courier New",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Mono child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 12
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 12
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "markerSizePoints": 12,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Resumed child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366",
+              "sizePoints": 12
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000",
+              "sizePoints": 24
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 8
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 3,
+          "text": "Native child plain",
+          "marker": "3.",
+          "markerFont": "Arial",
+          "markerSizePoints": 8,
+          "paragraphDefaultSizePoints": 12,
+          "textIndentPoints": 36,
+          "runs": [
+            {
+              "text": "Native child plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000",
+              "sizePoints": 8
+            }
+          ]
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed size decimal items",
+        "Plain gap retains counters"
+      ]
+    }
+  ],
+  "receivingDocxPdf": "pages-mixed-size-officeimo-docx-final-v15.4.pdf",
+  "independentVerification": "pages-mixed-size-independent-verification.json",
+  "visualInspection": {
+    "pages": 12,
+    "contactSheets": [
+      "pages-mixed-size-all-pages-1.png",
+      "pages-mixed-size-all-pages-2.png",
+      "pages-mixed-size-all-pages-3.png",
+      "pages-mixed-size-all-pages-4.png",
+      "pages-mixed-size-all-pages-5.png",
+      "pages-mixed-size-all-pages-6.png"
+    ],
+    "result": "Every current page inspected: complete text and counters, first-run marker sizes, serif/mono/sans size changes, independent plain markers and no clipping. Caller-font output retains emphasis; portable substitution changes appearance.",
+    "recordedUtc": "2026-10-11T09:32:23.024262+00:00"
+  },
+  "nativeInteraction": {
+    "created": "Opened without repair; Save As, PDF/DOCX export and close/reopen completed.",
+    "edited": "Root/deep text edits and Return-inserted Arial8 child counter3 survived save/close/reopen.",
+    "receivingDocx": "Remediated paragraph marks prevent marker rescaling. Reimported DOCX opened without repair and matches all110 native word bounds at0pt.",
+    "ownedProcessAbsentUtc": "2026-10-11T09:31:34.379125+00:00"
+  },
+  "limits": [
+    "One-page body lists with whole-point run sizes at marker scale1, paragraph default12 and three font families.",
+    "Marker size follows the first run; paragraph-default size governs the em indentation.",
+    "Fractional mixed sizes, other marker scales, bullets, tiered numbering and additional containers remain unqualified.",
+    "Native DOCX typography differences, portable PDF substitution and caller-font embedding have separate evidence.",
+    "Loaded rich-run editing, visual-cache regeneration and other runtime architectures retain separate gates."
+  ],
+  "artifacts": {
+    "pages-mixed-size-all-pages-1.png": {
+      "sha256": "b6733f4c03b88b79a1636f244e68d1f228d1ec33d96a5953e8d86121f7933773",
+      "bytes": 145128
+    },
+    "pages-mixed-size-all-pages-2.png": {
+      "sha256": "f1ac6f9953a0ec9a5f41a6e73bfeace0845ef425202ff00e58b492bc9d12dc0b",
+      "bytes": 145415
+    },
+    "pages-mixed-size-all-pages-3.png": {
+      "sha256": "fab8684af55bcb64e18464d00f71b6dd39fe4b73c581538a755910df6686eeed",
+      "bytes": 135042
+    },
+    "pages-mixed-size-all-pages-4.png": {
+      "sha256": "1660898cf9e7a5e5a38668ee85c3a85026d55269ffb0fff76e95b538364d0e78",
+      "bytes": 145070
+    },
+    "pages-mixed-size-all-pages-5.png": {
+      "sha256": "72f2d1f812b948628001b3e13b1a20c00696b328322555ef7b14f2323938a71e",
+      "bytes": 147850
+    },
+    "pages-mixed-size-all-pages-6.png": {
+      "sha256": "feb28c675fa86e7fff5fea45b42ae2d7dc6b8f1729098e207831f5cefa514065",
+      "bytes": 137987
+    },
+    "pages-mixed-size-created-caller-fonts.pdf": {
+      "sha256": "a4979d77652f7e13d777fb9c173b1843c997f5149343012c2860016b42b38a87",
+      "bytes": 182593
+    },
+    "pages-mixed-size-created-decode.json": {
+      "sha256": "b85835c4679cd6d6931fb923056defc68b8db396fcf03952eb03df86f1b22213",
+      "bytes": 112462
+    },
+    "pages-mixed-size-created-officeimo.docx": {
+      "sha256": "63dafa9b12ef75b44dd948cd1c414c603266d5d539d174f9d41b95e249a99948",
+      "bytes": 21317
+    },
+    "pages-mixed-size-created-officeimo.pdf": {
+      "sha256": "2b33b3e746a93f47d7f5ca8bec2ffae660ba2f18a5c23cf364a7dfcb32b90d7e",
+      "bytes": 2243
+    },
+    "pages-mixed-size-created-open.png": {
+      "sha256": "1abb544adcae98de8713633588c7c699a3e7ac5b2418f4c7181998b5d3eb060d",
+      "bytes": 95481
+    },
+    "pages-mixed-size-created.pages": {
+      "sha256": "93d7f058b22ffd8e85f12876b47f0d45815a06c87bf53c5d0393841d95b0bfc4",
+      "bytes": 20751
+    },
+    "pages-mixed-size-edited-reopened.png": {
+      "sha256": "71b54bbeb8a05fe3ca4d4e41bdeab27faa16d461957873a41c16a5b1d12b58e9",
+      "bytes": 95889
+    },
+    "pages-mixed-size-edited-v15.4-caller-fonts.pdf": {
+      "sha256": "bd54ae1e8c4171b688b99c7b18390f84910731310c7b09ffa6b73306d7c98767",
+      "bytes": 183533
+    },
+    "pages-mixed-size-edited-v15.4-decode.json": {
+      "sha256": "7a3ec63686fcbc9116da602a1e9b1f62bc163a61e45046003b8ce5d81d4c3742",
+      "bytes": 85930
+    },
+    "pages-mixed-size-edited-v15.4-officeimo.docx": {
+      "sha256": "3817b179a9bbf17d9b0a1178e9e371354555b3f36fdd461e907a713c16ed6be0",
+      "bytes": 21450
+    },
+    "pages-mixed-size-edited-v15.4-officeimo.pdf": {
+      "sha256": "442bca2c7d45ff3ddb5613a0fc8cc12b83051eab40d6a315e704080a2e68477f",
+      "bytes": 2271
+    },
+    "pages-mixed-size-edited-v15.4.docx": {
+      "sha256": "725aba0bce383d8032301b27fea83abd735137b145eb5cce24f66aac07e7e0a7",
+      "bytes": 10577
+    },
+    "pages-mixed-size-edited-v15.4.pages": {
+      "sha256": "6511df28a9eb82c1a3f437165395f4541d07afecdcf96e1b8256f3793e15f9d8",
+      "bytes": 92443
+    },
+    "pages-mixed-size-edited-v15.4.pdf": {
+      "sha256": "c676ffda6dea1ff36943406804f01bc3958576a8b8cef5eb85918b7d2f4ade13",
+      "bytes": 65224
+    },
+    "pages-mixed-size-independent-verification.json": {
+      "sha256": "fe6d6d370fd74a83f3b39af9503d561da071338cf15e0c67c760d59f1164e557",
+      "bytes": 66108
+    },
+    "pages-mixed-size-local-font-inputs.json": {
+      "sha256": "ceb4ecf945edcdfb02e019de089d8bb07632e1c3dbb9465cdcae2e44afff40a5",
+      "bytes": 4643
+    },
+    "pages-mixed-size-officeimo-docx-final-v15.4.pdf": {
+      "sha256": "7631ff08a49281e9987368de6594dfac59db819447fd352d9373902f49e86623",
+      "bytes": 64101
+    },
+    "pages-mixed-size-officeimo-docx-final.png": {
+      "sha256": "ee25647aec2289d5cdaebeff6bb97432b6bf337bd6489d56a6e9444b8821eb63",
+      "bytes": 93154
+    },
+    "pages-mixed-size-orders-reopened.png": {
+      "sha256": "a8170ca6ad7b6fecca2ca3f86f30dec42831d655df04190929a82023d23207a5",
+      "bytes": 95436
+    },
+    "pages-mixed-size-orders-v15.4-caller-fonts.pdf": {
+      "sha256": "710702b5daca0f178fdd2b5df5c8ebd14eadbc94d8f91b9c654af99146eb86f1",
+      "bytes": 182942
+    },
+    "pages-mixed-size-orders-v15.4-decode.json": {
+      "sha256": "bb87879a06491a0ae245bcfa5b41fc93bcf15d64daf8538fe9c0fbedf9720dcc",
+      "bytes": 90540
+    },
+    "pages-mixed-size-orders-v15.4-officeimo.docx": {
+      "sha256": "8645d420230fe2bc5b140e690ef406ea070bd2c5df831a4735c40207101fde2c",
+      "bytes": 21384
+    },
+    "pages-mixed-size-orders-v15.4-officeimo.pdf": {
+      "sha256": "80245b52c3d0ca0033798a11bd7979931d06713f684b57de19fe438256319532",
+      "bytes": 2244
+    },
+    "pages-mixed-size-orders-v15.4.docx": {
+      "sha256": "31693b96a42aee1cf64924c2fec39e10693a763e1db70a5f61e06c5e0bb6c643",
+      "bytes": 10507
+    },
+    "pages-mixed-size-orders-v15.4.pages": {
+      "sha256": "790e81e27f3d4fb35cd24955d25f4e886b85da8d767b22e0eae4b120530d0635",
+      "bytes": 91508
+    },
+    "pages-mixed-size-orders-v15.4.pdf": {
+      "sha256": "4f32b33e614fc81fa26e98ea68b2667e1c2277d0f649d396cd7b6ff5776d9ff8",
+      "bytes": 64411
+    },
+    "pages-mixed-size-saved-reopened.png": {
+      "sha256": "c75fdd4589b6ef7a4824f36c3b87d7d90408101ada51086f9169a5cc46e8bd3d",
+      "bytes": 90581
+    },
+    "pages-mixed-size-saved-v15.4-caller-fonts.pdf": {
+      "sha256": "a4979d77652f7e13d777fb9c173b1843c997f5149343012c2860016b42b38a87",
+      "bytes": 182593
+    },
+    "pages-mixed-size-saved-v15.4-decode.json": {
+      "sha256": "a593483efa06ebd13a7054283d3274b55b16ffb6e961e545befe8e7b291ff8f5",
+      "bytes": 85217
+    },
+    "pages-mixed-size-saved-v15.4-officeimo.docx": {
+      "sha256": "7520a2c1d2d53bbe1d386f4157201e7bd42453d0717d059026d26493c42627d4",
+      "bytes": 21385
+    },
+    "pages-mixed-size-saved-v15.4-officeimo.pdf": {
+      "sha256": "2b33b3e746a93f47d7f5ca8bec2ffae660ba2f18a5c23cf364a7dfcb32b90d7e",
+      "bytes": 2243
+    },
+    "pages-mixed-size-saved-v15.4.docx": {
+      "sha256": "1280d7a3e4f0f9c714fa11334b6bdc13340dc99529f82421beae30be76993d5f",
+      "bytes": 10517
+    },
+    "pages-mixed-size-saved-v15.4.pages": {
+      "sha256": "ce5a910f44c5fea30980dbe5f3d6eedd71cb2ee3c52f6b76bca41a501a3174ba",
+      "bytes": 90415
+    },
+    "pages-mixed-size-saved-v15.4.pdf": {
+      "sha256": "fb6547dcd57d420f97fa1c20b91bcaf275e5913f47b56e24f0216707d6c1da54",
+      "bytes": 63841
+    }
+  }
+}

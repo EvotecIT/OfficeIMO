@@ -11,6 +11,37 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordPdfKerningTests {
     [Theory]
+    [InlineData(false, 100, 0)]
+    [InlineData(true, 100, 0)]
+    [InlineData(false, 150, 20)]
+    [InlineData(true, 150, 20)]
+    public void DecimalTabsAlignTheSeparatorAfterKerning(bool inTable, int characterScale, int spacingTwips) {
+        using WordDocument document = WordDocument.Create();
+        document.Settings.DecimalSymbol = ".";
+        WordTableCell? cell = inTable ? document.AddTable(1, 1).Rows[0].Cells[0] : null;
+        foreach (string text in new[] { "\t1.", "\t." }) {
+            WordParagraph paragraph = cell == null ? document.AddParagraph(text) : cell.AddParagraph(text);
+            paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+            paragraph.FontSize = 10;
+            paragraph.KerningMinimumFontSizePoints = 1D;
+            paragraph.CharacterScale = characterScale;
+            paragraph._paragraph.Descendants<Run>().Last().RunProperties!.Spacing = new Spacing { Val = spacingTwips };
+            paragraph.AddTabStop(2000, WordTabAlignment.Decimal);
+        }
+
+        byte[] bytes = document.ToPdfBytes(ConversionOptions(
+            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('1', '.', includeSpace: true))));
+        if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
+            Directory.CreateDirectory(output);
+            File.WriteAllBytes(Path.Combine(output, $"decimal-kerning-{inTable}-{characterScale}-{spacingTwips}.pdf"), bytes);
+        }
+        using var pdf = PdfPigDocument.Open(bytes);
+        Letter[] separators = pdf.GetPage(1).Letters.Where(letter => letter.Value == ".").ToArray();
+        Assert.Equal(2, separators.Length);
+        Assert.Equal(separators[0].StartBaseLine.X, separators[1].StartBaseLine.X, 3);
+    }
+
+    [Theory]
     [InlineData("body")]
     [InlineData("cell")]
     [InlineData("header")]
@@ -90,7 +121,9 @@ public sealed class WordPdfKerningTests {
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "AV";
         } else if (route is "header" or "footer") {
-            document.AddParagraph("Body");
+            // The pair-positioning font contains only A/V; keep filler text
+            // in a complete font while the running story exercises kerning.
+            document.AddParagraph("Body").FontFamily = "Arial";
             WordHeaderFooter story = route == "header" ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
             paragraph = story.AddParagraph("AV");
         } else {

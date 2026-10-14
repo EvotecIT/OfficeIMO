@@ -41,9 +41,11 @@ public sealed class PdfSearchableWorkflowRequest {
 public sealed class PdfSearchableWorkflowResult {
     internal PdfSearchableWorkflowResult(OfficeWorkflowStatus status, string? outputPath, string summary,
         int addedWordCount, IReadOnlyList<int> modifiedPages, string? provider,
-        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics, OfficeWorkflowOutputRecovery? recovery = null) {
+        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics, OfficeWorkflowOutputRecovery? recovery = null,
+        long outputBytes = 0) {
         Status = status;
         OutputPath = outputPath;
+        OutputBytes = outputBytes;
         Summary = summary;
         AddedWordCount = addedWordCount;
         ModifiedPages = Array.AsReadOnly(modifiedPages.ToArray());
@@ -55,6 +57,8 @@ public sealed class PdfSearchableWorkflowResult {
     public OfficeWorkflowStatus Status { get; }
     /// <summary>Verified published destination, present only on success.</summary>
     public string? OutputPath { get; }
+    /// <summary>Captured published artifact size, or zero when publication did not complete.</summary>
+    public long OutputBytes { get; }
     /// <summary>User-facing outcome or failure.</summary>
     public string Summary { get; }
     /// <summary>Words added to the generated artifact.</summary>

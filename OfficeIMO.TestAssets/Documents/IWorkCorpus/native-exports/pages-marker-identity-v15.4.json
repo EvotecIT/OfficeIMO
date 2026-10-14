@@ -1,0 +1,1765 @@
+{
+  "schemaVersion": 1,
+  "profile": "Deterministic Pages decimal-marker punctuation identity and metadata-only requalification",
+  "producer": {
+    "application": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "license": "MIT; OfficeIMO-authored inputs and derived native evidence; embedded installed fonts retain their own licenses",
+  "sourceProvenance": "OfficeIMO template-free authored. Every creation payload is compared independently with its preceding qualified fixture; only document identity and matching property-list UUIDs change. Fresh Apple editing/save/export/reopen qualifies those exact new inputs. This is not arbitrary independent-producer coverage.",
+  "publicIdentityCases": [
+    {
+      "source": "pages-identity-plain-period.pages",
+      "mode": "plain",
+      "style": "period",
+      "sha256": "b70d7651d395916396f79d638b1e3d65a7e1e775b105e2e7ab369c2a98a7db77",
+      "identifier": "be6b7c25-351a-5e1a-9a90-ffc2c893b8bd"
+    },
+    {
+      "source": "pages-identity-plain-parentheses.pages",
+      "mode": "plain",
+      "style": "parentheses",
+      "sha256": "254543ac76b918e775c89d5fd0fbc44291fae42c488b19abdacb098bab12a0cb",
+      "identifier": "79afa54d-0f17-5242-a5ff-19a4b20e2260"
+    },
+    {
+      "source": "pages-identity-plain-closing-parenthesis.pages",
+      "mode": "plain",
+      "style": "closing-parenthesis",
+      "sha256": "8959c19600a8ee5cc87c27baa2e9b20f69963f71793307fc001e6d0f1ddfa597",
+      "identifier": "84b20e37-aa7a-5d19-b902-f2d73d44c9ae"
+    },
+    {
+      "source": "pages-identity-mixed-font-period.pages",
+      "mode": "mixed-font",
+      "style": "period",
+      "sha256": "c31f84ad2c73595132ff336d24cc89921e33513dfd5b0689552f6ec6c7cc04b6",
+      "identifier": "a04de9f0-a431-5eb5-87a1-695d0f128730"
+    },
+    {
+      "source": "pages-identity-mixed-font-parentheses.pages",
+      "mode": "mixed-font",
+      "style": "parentheses",
+      "sha256": "4fbf17767576356fce2d71afc202b816a7e9511598246a3e412cd607b3fa8762",
+      "identifier": "6f3849e8-58f0-5d32-b229-3d06c5102923"
+    },
+    {
+      "source": "pages-identity-mixed-font-closing-parenthesis.pages",
+      "mode": "mixed-font",
+      "style": "closing-parenthesis",
+      "sha256": "ed16bbb07c224c5ec90250f5a8c8bf37778936e3ab773601acf80304a87bbaf8",
+      "identifier": "e0af416e-c119-5cff-af46-a2e03a7f2a86"
+    },
+    {
+      "source": "pages-identity-mixed-size-period.pages",
+      "mode": "mixed-size",
+      "style": "period",
+      "sha256": "557d306ca88e514ff5a3f25bd17b666cac01df55382db212fcdabffd98d35c3c",
+      "identifier": "4e4f6096-becd-565c-ad8d-4580d8d1f0ca"
+    },
+    {
+      "source": "pages-identity-mixed-size-parentheses.pages",
+      "mode": "mixed-size",
+      "style": "parentheses",
+      "sha256": "f5e68718399c8b77adfe41b7a3fadf2450b16ddb8b833e841435f380b4ff98e0",
+      "identifier": "d27353c6-fb8d-5651-bdb0-ddaa8f5236bb"
+    },
+    {
+      "source": "pages-identity-mixed-size-closing-parenthesis.pages",
+      "mode": "mixed-size",
+      "style": "closing-parenthesis",
+      "sha256": "c9b4e46ec59b3b105b9a3217c4cfc022b41423e247b6155989f94402854b80f9",
+      "identifier": "d0cfc80d-2e3a-54fa-a102-1ebfe42bff1f"
+    }
+  ],
+  "identityChanges": [
+    {
+      "previousSource": "pages-decimal-parentheses-created.pages",
+      "previousSha256": "4abee640b75f8e9373e22155317d8a66295a291908001eeb862dadd59feb4b8d",
+      "identifier": "1018e582-9a42-5b42-abb5-36aaa6f34d3e",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "unchangedEntries": 3,
+      "allIwaArchivesByteIdentical": true,
+      "propertiesChangeOnlyMatchingUuidSubstitution": true
+    },
+    {
+      "previousSource": "pages-decimal-closing-created.pages",
+      "previousSha256": "cb714d257a54e934ce49be44dc1533a770afdf334e8aa944635bbffde9b1ec8b",
+      "identifier": "c439b04a-6d2a-5c6f-ae1a-612cfab57796",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "unchangedEntries": 3,
+      "allIwaArchivesByteIdentical": true,
+      "propertiesChangeOnlyMatchingUuidSubstitution": true
+    },
+    {
+      "previousSource": "pages-mixed-font-created.pages",
+      "previousSha256": "00269240af28ce46529de9e4c3c8456efe6fc96a367d3ec7d0fa898415996332",
+      "identifier": "a12fdab9-c7f3-504e-be29-a6204ca7c667",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "unchangedEntries": 3,
+      "allIwaArchivesByteIdentical": true,
+      "propertiesChangeOnlyMatchingUuidSubstitution": true
+    },
+    {
+      "previousSource": "pages-mixed-size-created.pages",
+      "previousSha256": "93d7f058b22ffd8e85f12876b47f0d45815a06c87bf53c5d0393841d95b0bfc4",
+      "identifier": "1d414083-2693-5f59-99ae-4ec51ae0b8c1",
+      "changedEntries": [
+        "Metadata/DocumentIdentifier",
+        "Metadata/Properties.plist"
+      ],
+      "unchangedEntries": 3,
+      "allIwaArchivesByteIdentical": true,
+      "propertiesChangeOnlyMatchingUuidSubstitution": true
+    }
+  ],
+  "cases": [
+    {
+      "source": "pages-identity-parentheses-created.pages",
+      "strictDocx": "pages-identity-parentheses-created-officeimo.docx",
+      "nativePdf": null,
+      "nativeDocx": null,
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root seven",
+          "marker": "(7)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Level one",
+          "marker": "(1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Level two",
+          "marker": "(1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Level three",
+          "marker": "(1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Level four",
+          "marker": "(1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Level five",
+          "marker": "(1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Level six",
+          "marker": "(1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Level seven",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Level eight",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep continued two",
+          "marker": "(2)"
+        },
+        {
+          "level": 8,
+          "number": 3,
+          "text": "Deep after gap three",
+          "marker": "(3)"
+        },
+        {
+          "level": 4,
+          "number": 4,
+          "text": "Middle restart four",
+          "marker": "(4)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Reset level 5",
+          "marker": "(1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Reset level 6",
+          "marker": "(1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Reset level 7",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Reset level 8",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 9,
+          "text": "Deep restart nine",
+          "marker": "(9)"
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Other root three",
+          "marker": "3."
+        },
+        {
+          "level": 8,
+          "number": 10,
+          "text": "Resumed deep ten",
+          "marker": "(10)"
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight",
+          "marker": "(8)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Root reset level 1",
+          "marker": "(1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Root reset level 2",
+          "marker": "(1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Root reset level 3",
+          "marker": "(1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Root reset level 4",
+          "marker": "(1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Root reset level 5",
+          "marker": "(1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Root reset level 6",
+          "marker": "(1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Root reset level 7",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Root reset level 8",
+          "marker": "(1)"
+        },
+        {
+          "level": 0,
+          "number": 4,
+          "text": "Root restart four",
+          "marker": "(4)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Restart level 1",
+          "marker": "(1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Restart level 2",
+          "marker": "(1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Restart level 3",
+          "marker": "(1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Restart level 4",
+          "marker": "(1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Restart level 5",
+          "marker": "(1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Restart level 6",
+          "marker": "(1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Restart level 7",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Restart level 8",
+          "marker": "(1)"
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Nine decimal levels",
+        "Plain gap",
+        "End nine-level profile"
+      ]
+    },
+    {
+      "source": "pages-identity-parentheses-edited-v15.4.pages",
+      "strictDocx": "pages-identity-parentheses-edited-v15.4-officeimo.docx",
+      "nativePdf": "pages-identity-parentheses-edited-v15.4.pdf",
+      "nativeDocx": "pages-identity-parentheses-edited-v15.4.docx",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root native",
+          "marker": "(7)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Level one",
+          "marker": "(1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Level two",
+          "marker": "(1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Level three",
+          "marker": "(1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Level four",
+          "marker": "(1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Level five",
+          "marker": "(1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Level six",
+          "marker": "(1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Level seven",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Level eight",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep continued two",
+          "marker": "(2)"
+        },
+        {
+          "level": 8,
+          "number": 3,
+          "text": "Deep after gap three",
+          "marker": "(3)"
+        },
+        {
+          "level": 4,
+          "number": 4,
+          "text": "Middle restart four",
+          "marker": "(4)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Reset level 5",
+          "marker": "(1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Reset level 6",
+          "marker": "(1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Reset level 7",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Reset level 8",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 9,
+          "text": "Deep restart nine",
+          "marker": "(9)"
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Other root three",
+          "marker": "3."
+        },
+        {
+          "level": 8,
+          "number": 10,
+          "text": "Resumed deep ten",
+          "marker": "(10)"
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight",
+          "marker": "(8)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Root reset level 1",
+          "marker": "(1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Root reset level 2",
+          "marker": "(1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Root reset level 3",
+          "marker": "(1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Root reset level 4",
+          "marker": "(1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Root reset level 5",
+          "marker": "(1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Root reset level 6",
+          "marker": "(1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Root reset level 7",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Root reset level 8",
+          "marker": "(1)"
+        },
+        {
+          "level": 0,
+          "number": 4,
+          "text": "Root restart four",
+          "marker": "(4)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Restart level 1",
+          "marker": "(1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Restart level 2",
+          "marker": "(1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Restart level 3",
+          "marker": "(1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Restart level 4",
+          "marker": "(1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Restart level 5",
+          "marker": "(1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Restart level 6",
+          "marker": "(1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Restart level 7",
+          "marker": "(1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Restart level 8",
+          "marker": "(1)"
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Nine decimal levels",
+        "Plain gap",
+        "End nine-level profile"
+      ]
+    },
+    {
+      "source": "pages-identity-closing-created.pages",
+      "strictDocx": "pages-identity-closing-created-officeimo.docx",
+      "nativePdf": null,
+      "nativeDocx": null,
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root seven",
+          "marker": "7)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Level one",
+          "marker": "1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Level two",
+          "marker": "1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Level three",
+          "marker": "1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Level four",
+          "marker": "1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Level five",
+          "marker": "1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Level six",
+          "marker": "1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Level seven",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Level eight",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep continued two",
+          "marker": "2)"
+        },
+        {
+          "level": 8,
+          "number": 3,
+          "text": "Deep after gap three",
+          "marker": "3)"
+        },
+        {
+          "level": 4,
+          "number": 4,
+          "text": "Middle restart four",
+          "marker": "4)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Reset level 5",
+          "marker": "1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Reset level 6",
+          "marker": "1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Reset level 7",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Reset level 8",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 9,
+          "text": "Deep restart nine",
+          "marker": "9)"
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Other root three",
+          "marker": "3."
+        },
+        {
+          "level": 8,
+          "number": 10,
+          "text": "Resumed deep ten",
+          "marker": "10)"
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight",
+          "marker": "8)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Root reset level 1",
+          "marker": "1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Root reset level 2",
+          "marker": "1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Root reset level 3",
+          "marker": "1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Root reset level 4",
+          "marker": "1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Root reset level 5",
+          "marker": "1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Root reset level 6",
+          "marker": "1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Root reset level 7",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Root reset level 8",
+          "marker": "1)"
+        },
+        {
+          "level": 0,
+          "number": 4,
+          "text": "Root restart four",
+          "marker": "4)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Restart level 1",
+          "marker": "1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Restart level 2",
+          "marker": "1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Restart level 3",
+          "marker": "1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Restart level 4",
+          "marker": "1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Restart level 5",
+          "marker": "1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Restart level 6",
+          "marker": "1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Restart level 7",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Restart level 8",
+          "marker": "1)"
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Nine decimal levels",
+        "Plain gap",
+        "End nine-level profile"
+      ]
+    },
+    {
+      "source": "pages-identity-closing-edited-v15.4.pages",
+      "strictDocx": "pages-identity-closing-edited-v15.4-officeimo.docx",
+      "nativePdf": "pages-identity-closing-edited-v15.4.pdf",
+      "nativeDocx": "pages-identity-closing-edited-v15.4.docx",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root native",
+          "marker": "7)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Level one",
+          "marker": "1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Level two",
+          "marker": "1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Level three",
+          "marker": "1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Level four",
+          "marker": "1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Level five",
+          "marker": "1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Level six",
+          "marker": "1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Level seven",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Level eight",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep continued two",
+          "marker": "2)"
+        },
+        {
+          "level": 8,
+          "number": 3,
+          "text": "Deep after gap three",
+          "marker": "3)"
+        },
+        {
+          "level": 4,
+          "number": 4,
+          "text": "Middle restart four",
+          "marker": "4)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Reset level 5",
+          "marker": "1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Reset level 6",
+          "marker": "1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Reset level 7",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Reset level 8",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 9,
+          "text": "Deep restart nine",
+          "marker": "9)"
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Other root three",
+          "marker": "3."
+        },
+        {
+          "level": 8,
+          "number": 10,
+          "text": "Resumed deep ten",
+          "marker": "10)"
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight",
+          "marker": "8)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Root reset level 1",
+          "marker": "1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Root reset level 2",
+          "marker": "1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Root reset level 3",
+          "marker": "1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Root reset level 4",
+          "marker": "1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Root reset level 5",
+          "marker": "1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Root reset level 6",
+          "marker": "1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Root reset level 7",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Root reset level 8",
+          "marker": "1)"
+        },
+        {
+          "level": 0,
+          "number": 4,
+          "text": "Root restart four",
+          "marker": "4)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Restart level 1",
+          "marker": "1)"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Restart level 2",
+          "marker": "1)"
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Restart level 3",
+          "marker": "1)"
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Restart level 4",
+          "marker": "1)"
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Restart level 5",
+          "marker": "1)"
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Restart level 6",
+          "marker": "1)"
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Restart level 7",
+          "marker": "1)"
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Restart level 8",
+          "marker": "1)"
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Nine decimal levels",
+        "Plain gap",
+        "End nine-level profile"
+      ]
+    },
+    {
+      "source": "pages-identity-mixed-font-created.pages",
+      "strictDocx": "pages-identity-mixed-font-created-officeimo.docx",
+      "nativePdf": null,
+      "nativeDocx": null,
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root seven serif mono plain",
+          "marker": "7."
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Depth 8 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2."
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8."
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)"
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)"
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2."
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed family decimal items",
+        "Plain gap retains counters"
+      ]
+    },
+    {
+      "source": "pages-identity-mixed-font-edited-v15.4.pages",
+      "strictDocx": "pages-identity-mixed-font-edited-v15.4-officeimo.docx",
+      "nativePdf": "pages-identity-mixed-font-edited-v15.4.pdf",
+      "nativeDocx": "pages-identity-mixed-font-edited-v15.4.docx",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root native serif mono plain",
+          "marker": "7."
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Depth 8 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2."
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8."
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)"
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)"
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2."
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed family decimal items",
+        "Plain gap retains counters"
+      ]
+    },
+    {
+      "source": "pages-identity-mixed-size-created.pages",
+      "strictDocx": "pages-identity-mixed-size-created-officeimo.docx",
+      "nativePdf": null,
+      "nativeDocx": null,
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root seven serif mono plain",
+          "marker": "7."
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Depth 8 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2."
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8."
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)"
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)"
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2."
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed size decimal items",
+        "Plain gap retains counters"
+      ]
+    },
+    {
+      "source": "pages-identity-mixed-size-edited-v15.4.pages",
+      "strictDocx": "pages-identity-mixed-size-edited-v15.4-officeimo.docx",
+      "nativePdf": "pages-identity-mixed-size-edited-v15.4.pdf",
+      "nativeDocx": "pages-identity-mixed-size-edited-v15.4.docx",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root native serif mono plain",
+          "marker": "7."
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Depth 8 serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2."
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8."
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1."
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)"
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)"
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2."
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed size decimal items",
+        "Plain gap retains counters"
+      ]
+    }
+  ],
+  "independentVerification": "pages-marker-identity-independent-verification.json",
+  "publicDelta": "pages-marker-identity-public-delta.json",
+  "nativeInteraction": {
+    "openedWithoutRepair": 4,
+    "rootTextEdit": "Root seven to Root native",
+    "savedClosedAndReopened": 4,
+    "nativePdfExports": 4,
+    "nativeDocxExports": 4,
+    "nativeScreenshotsInspected": 8,
+    "ownedPagesProcessClosed": true
+  },
+  "visualInspection": {
+    "nativePdfPages": 4,
+    "contactSheets": [
+      "pages-marker-identity-all-pages-1.png",
+      "pages-marker-identity-all-pages-2.png"
+    ],
+    "allPagesInspected": true
+  },
+  "limits": [
+    "Identity requalification retains the existing native content profiles.",
+    "Fresh Pages 15.4 lifecycle edits Root seven to Root native; no insertion is claimed here.",
+    "Native DOCX typography substitutions remain separate from strict OfficeIMO DOCX.",
+    "Broader producers, containers, typography and loaded rich-run editing remain unqualified."
+  ],
+  "artifacts": {
+    "pages-identity-closing-created-decode.json": {
+      "sha256": "f03080febf04bde6325f2ea630cbc3804ed9ab05d803afc82b49073e93cf174d",
+      "bytes": 137325
+    },
+    "pages-identity-closing-created-officeimo.docx": {
+      "sha256": "6e8858cc049a4f75edaf3d873abb9ab1393ce54d5d596ac0e77fceeac7e50334",
+      "bytes": 21622
+    },
+    "pages-identity-closing-created-open.png": {
+      "sha256": "4c0b2ec73d00feef18508d9f3a3f10b1e464e7a852969af0ceb6ba016fa9c987",
+      "bytes": 100552
+    },
+    "pages-identity-closing-created.pages": {
+      "sha256": "e14bf8d07c445eaa2139349abf1fa9f17708ac842fd12aa5f6f0731476fb0aa4",
+      "bytes": 22332
+    },
+    "pages-identity-closing-edited-reopened.png": {
+      "sha256": "c37454c1295d5331830208bdbeb1b910843c489001cf192f9efb5112097e1146",
+      "bytes": 102691
+    },
+    "pages-identity-closing-edited-v15.4-decode.json": {
+      "sha256": "7089f42dd1a2d2a5519b065ed000e80fb3b81d133d3db3ad9977662fa709664c",
+      "bytes": 76433
+    },
+    "pages-identity-closing-edited-v15.4-officeimo.docx": {
+      "sha256": "eb772fd520b78cc466d5916403102a1d6bed7bcc72b0bc34dad49b545dd9eb9a",
+      "bytes": 21681
+    },
+    "pages-identity-closing-edited-v15.4.docx": {
+      "sha256": "8ec29c726cd9c6a609bc4999ef020ced229a1615a4164e6706be54c0aa38b27a",
+      "bytes": 9632
+    },
+    "pages-identity-closing-edited-v15.4.pages": {
+      "sha256": "e148045ca79207cd16bb1e868c8ff557f1853faf5dc26acece8c18cecf3e1333",
+      "bytes": 105824
+    },
+    "pages-identity-closing-edited-v15.4.pdf": {
+      "sha256": "180fe502265030ab53db5f9b65f378b92fd4c568869709522e83ca7823970d1d",
+      "bytes": 40397
+    },
+    "pages-identity-mixed-font-closing-parenthesis.pages": {
+      "sha256": "ed16bbb07c224c5ec90250f5a8c8bf37778936e3ab773601acf80304a87bbaf8",
+      "bytes": 6052
+    },
+    "pages-identity-mixed-font-created-decode.json": {
+      "sha256": "bee0251c11510cbedc036cc633a0c74b93b51beaf241643c827581d8c4d68b6f",
+      "bytes": 112477
+    },
+    "pages-identity-mixed-font-created-officeimo.docx": {
+      "sha256": "6867d2e9d5345e831d36979a0927c43e27256f03ce7123e24c410e59a2d6f459",
+      "bytes": 21200
+    },
+    "pages-identity-mixed-font-created-open.png": {
+      "sha256": "21b46e3738ecf4c692f5845868c95db4ac92f65306646e9f3024aa9625ca571a",
+      "bytes": 77507
+    },
+    "pages-identity-mixed-font-created.pages": {
+      "sha256": "92d388cde48f4b8db891e39f25530e19a79fb63343a081bdd2a336bfe80afb07",
+      "bytes": 20753
+    },
+    "pages-identity-mixed-font-edited-reopened.png": {
+      "sha256": "320df0962241c69ac219c2d69885152dd37b5f98c1806f2cef72a23c9c2bdb11",
+      "bytes": 93233
+    },
+    "pages-identity-mixed-font-edited-v15.4-decode.json": {
+      "sha256": "03703de9e8df8f0d705bcb903afbd83b5ae4a77eb49f0332be85c21910b762e5",
+      "bytes": 85531
+    },
+    "pages-identity-mixed-font-edited-v15.4-officeimo.docx": {
+      "sha256": "58b47e1311494b918b659fef46cee10a77051358bebcd7de47399d13e13e044d",
+      "bytes": 21268
+    },
+    "pages-identity-mixed-font-edited-v15.4.docx": {
+      "sha256": "54ca2af907815f9ce12aac36cace6ebfef99aa9f8bbee3cd38c60ee78994c0a2",
+      "bytes": 10295
+    },
+    "pages-identity-mixed-font-edited-v15.4.pages": {
+      "sha256": "21d1b6c7090d9e53f0f0ac2faeb2d343b78b040337e21904b3ba0c9f7b2dacfc",
+      "bytes": 88878
+    },
+    "pages-identity-mixed-font-edited-v15.4.pdf": {
+      "sha256": "d8063c6c7223cad5f5d4b215e5381605a954662cb94bdd0abe2c880c19fc6015",
+      "bytes": 64202
+    },
+    "pages-identity-mixed-font-parentheses.pages": {
+      "sha256": "4fbf17767576356fce2d71afc202b816a7e9511598246a3e412cd607b3fa8762",
+      "bytes": 6052
+    },
+    "pages-identity-mixed-font-period.pages": {
+      "sha256": "c31f84ad2c73595132ff336d24cc89921e33513dfd5b0689552f6ec6c7cc04b6",
+      "bytes": 6052
+    },
+    "pages-identity-mixed-size-closing-parenthesis.pages": {
+      "sha256": "c9b4e46ec59b3b105b9a3217c4cfc022b41423e247b6155989f94402854b80f9",
+      "bytes": 6052
+    },
+    "pages-identity-mixed-size-created-decode.json": {
+      "sha256": "bd931a78b68311ecf4d7e375bca88ba60839d30bd28880c59f2eb340b630cd54",
+      "bytes": 112471
+    },
+    "pages-identity-mixed-size-created-officeimo.docx": {
+      "sha256": "90e3ca98514b682f59ea555b53ded97ba5ccd1ea6fc22244e9e84b6bd1e01159",
+      "bytes": 21319
+    },
+    "pages-identity-mixed-size-created-open.png": {
+      "sha256": "d5a016ecb4bfa3717dcd0386378495ecca24257ee7416658b8ccc01c46d67ec1",
+      "bytes": 90874
+    },
+    "pages-identity-mixed-size-created.pages": {
+      "sha256": "d423d6688e3b6edbe6a1ad0a0b34babe257232ead2ed3d2a5154ae8679d98dc2",
+      "bytes": 20751
+    },
+    "pages-identity-mixed-size-edited-reopened.png": {
+      "sha256": "ebfec30d8d810c5009c531e28c0e22e7463142e9b367ab96a36c58ea2750b636",
+      "bytes": 78541
+    },
+    "pages-identity-mixed-size-edited-v15.4-decode.json": {
+      "sha256": "2c0daa3d5224564cb0584571aa9c6c0878ff288d3e75812da65b88997c99cc09",
+      "bytes": 85525
+    },
+    "pages-identity-mixed-size-edited-v15.4-officeimo.docx": {
+      "sha256": "c77844f8407c617bcf41d90c4e873852199eb452119223784a1c056a54fc55db",
+      "bytes": 21385
+    },
+    "pages-identity-mixed-size-edited-v15.4.docx": {
+      "sha256": "21edef342e1b93ea5a1158948dc1a5f0f9f28bafa34721057817a7c18ffc37dd",
+      "bytes": 10530
+    },
+    "pages-identity-mixed-size-edited-v15.4.pages": {
+      "sha256": "b03000eebfbe52c1d34e7d034b3b621ef44174e4b7d617585943dd5e68b170d6",
+      "bytes": 90795
+    },
+    "pages-identity-mixed-size-edited-v15.4.pdf": {
+      "sha256": "2d929bf691a35bac45d5a88eaefbfdcfe47ac8e247b2ff6293b1decc5d5b5afd",
+      "bytes": 63858
+    },
+    "pages-identity-mixed-size-parentheses.pages": {
+      "sha256": "f5e68718399c8b77adfe41b7a3fadf2450b16ddb8b833e841435f380b4ff98e0",
+      "bytes": 6052
+    },
+    "pages-identity-mixed-size-period.pages": {
+      "sha256": "557d306ca88e514ff5a3f25bd17b666cac01df55382db212fcdabffd98d35c3c",
+      "bytes": 6052
+    },
+    "pages-identity-parentheses-created-decode.json": {
+      "sha256": "22417da8931eaf1700a6c40a85b4ba686ac24fd567623f65329023a0850caa43",
+      "bytes": 137338
+    },
+    "pages-identity-parentheses-created-officeimo.docx": {
+      "sha256": "a8c888edb079271d515d4ba6f2ce681d40d66e79627907d4b13f9c00e10f53b4",
+      "bytes": 21617
+    },
+    "pages-identity-parentheses-created-open.png": {
+      "sha256": "355e45f5e083deac450db6576b0bab60605a22f1f02d8c4d7a716ff84df4138a",
+      "bytes": 108706
+    },
+    "pages-identity-parentheses-created.pages": {
+      "sha256": "8e77ab2660e2b4a8742a70ab450b7153fd677449efb13e53173a53781355a04c",
+      "bytes": 22332
+    },
+    "pages-identity-parentheses-edited-reopened.png": {
+      "sha256": "a7dff4b73c3b4eeb932c073a18054f3027f4704decfd6604060a4ec080f26c64",
+      "bytes": 108306
+    },
+    "pages-identity-parentheses-edited-v15.4-decode.json": {
+      "sha256": "903c7f0c2a3b8de5400fbbb98c0cccd8cca77c1810096103939794172f0be961",
+      "bytes": 76446
+    },
+    "pages-identity-parentheses-edited-v15.4-officeimo.docx": {
+      "sha256": "ace18546bdba492373f4df5a5e9c5d29c82a1fcd2d8161a7d9e69637a93023d2",
+      "bytes": 21687
+    },
+    "pages-identity-parentheses-edited-v15.4.docx": {
+      "sha256": "ad1f52bf738ffdb5e4e5e265027ad4c35299e0cf08333ce12d2ba529810c1b44",
+      "bytes": 9653
+    },
+    "pages-identity-parentheses-edited-v15.4.pages": {
+      "sha256": "1208453ae59349455c0660e0a7c1268bdafa0f989d20bcfcb23f6dc3374b21c1",
+      "bytes": 109140
+    },
+    "pages-identity-parentheses-edited-v15.4.pdf": {
+      "sha256": "8b7b2393e06c36672a71f1a9948ffa45f8855d4ef9c29f6f6b4a5cfc5bcdec02",
+      "bytes": 40551
+    },
+    "pages-identity-plain-closing-parenthesis.pages": {
+      "sha256": "8959c19600a8ee5cc87c27baa2e9b20f69963f71793307fc001e6d0f1ddfa597",
+      "bytes": 5856
+    },
+    "pages-identity-plain-parentheses.pages": {
+      "sha256": "254543ac76b918e775c89d5fd0fbc44291fae42c488b19abdacb098bab12a0cb",
+      "bytes": 5856
+    },
+    "pages-identity-plain-period.pages": {
+      "sha256": "b70d7651d395916396f79d638b1e3d65a7e1e775b105e2e7ab369c2a98a7db77",
+      "bytes": 5856
+    },
+    "pages-marker-identity-all-pages-1.png": {
+      "sha256": "c386db64660ad00ef501c0d5ec4a45f60e671f0d00b72aa5359f746a2ea850de",
+      "bytes": 219660
+    },
+    "pages-marker-identity-all-pages-2.png": {
+      "sha256": "0e73429e5af0b52b37ed6fca0f770a215bb81ed6e47f1f5040144b6075f375ab",
+      "bytes": 264260
+    },
+    "pages-marker-identity-independent-verification.json": {
+      "sha256": "71e73f3d7b82f3f8d943b6b6cb3f34e6ed02b80f1d984bd41331ab65c67181c2",
+      "bytes": 36825
+    },
+    "pages-marker-identity-public-delta.json": {
+      "sha256": "9e2f0e346ba7183f26c95795b5e22f34621ca512810d3aaf3a1fe728d2fc92a4",
+      "bytes": 4044
+    }
+  }
+}

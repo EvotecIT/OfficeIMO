@@ -112,8 +112,9 @@ namespace OfficeIMO.Word.Pdf {
                 ? paragraph.FontSizePoints.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
             fontSize = ResolveNativeComplexScriptFontSize(fontSize, runProperties, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
-            PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
-            string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
+            // The paragraph wrapper's first run supplies no formatting inheritance to sibling runs.
+            PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
+            string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
 
             PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
                 ? directColor

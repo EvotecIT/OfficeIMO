@@ -26,6 +26,10 @@ namespace OfficeIMO.Word.Pdf {
             public double? MeasureText(PdfCore.PdfTextRun run) => _resolvedOptions == null
                 ? null : PdfCore.PdfWriter.MeasurePositionedText(run, _resolvedOptions);
 
+            public PdfCore.PdfWriter.CanvasTextBoxMeasurement? MeasureCanvasTextBox(
+                IReadOnlyList<PdfCore.PdfTextRun> runs, double width, double height, PdfCore.PdfCanvasTextBoxStyle style) =>
+                _resolvedOptions == null ? null : PdfCore.PdfWriter.MeasureCanvasTextBox(runs, width, height, style, _resolvedOptions);
+
             public void PreferPdfDefaultForDocumentDefaultFont() =>
                 UsePdfDefaultForDocumentDefaultFont = true;
 

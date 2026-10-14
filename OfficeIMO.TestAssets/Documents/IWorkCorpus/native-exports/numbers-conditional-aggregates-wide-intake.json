@@ -1,0 +1,122 @@
+[
+  {
+    "Row": 2,
+    "Column": 7,
+    "Name": "Sum two criteria",
+    "Formula": "SUMIFS(C2:C9,A2:A9,\u0022EU\u0022,C2:C9,\u0022\u003E=0\u0022)"
+  },
+  {
+    "Row": 3,
+    "Column": 7,
+    "Name": "Count two criteria",
+    "Formula": "COUNTIFS(A2:A9,\u0022EU\u0022,B2:B9,\u0022Open\u0022)"
+  },
+  {
+    "Row": 4,
+    "Column": 7,
+    "Name": "Average named region",
+    "Formula": "AVERAGEIF(A2:A9,\u0022EU\u0022,C2:C9)"
+  },
+  {
+    "Row": 5,
+    "Column": 7,
+    "Name": "Average two criteria",
+    "Formula": "AVERAGEIFS(C2:C9,A2:A9,\u0022EU\u0022,B2:B9,\u0022Open\u0022)"
+  },
+  {
+    "Row": 6,
+    "Column": 7,
+    "Name": "Sum numeric criterion",
+    "Formula": "SUMIFS(C2:C9,D2:D9,\u0022\u003E=2\u0022)"
+  },
+  {
+    "Row": 7,
+    "Column": 7,
+    "Name": "Count numeric criteria",
+    "Formula": "COUNTIFS(C2:C9,\u0022\u003E=20\u0022,D2:D9,\u0022\u003E=2\u0022)"
+  },
+  {
+    "Row": 8,
+    "Column": 7,
+    "Name": "Sum wildcard",
+    "Formula": "SUMIFS(C2:C9,A2:A9,\u0022E*\u0022,B2:B9,\u0022Open\u0022)"
+  },
+  {
+    "Row": 9,
+    "Column": 7,
+    "Name": "Sum literal wildcard",
+    "Formula": "SUMIFS(C2:C9,A2:A9,\u0022E~*\u0022)"
+  },
+  {
+    "Row": 10,
+    "Column": 7,
+    "Name": "Count not equal",
+    "Formula": "COUNTIFS(A2:A9,\u0022\u003C\u003EUS\u0022,B2:B9,\u0022Open\u0022)"
+  },
+  {
+    "Row": 11,
+    "Column": 7,
+    "Name": "Average missing guard",
+    "Formula": "IFERROR(AVERAGEIFS(C2:C9,A2:A9,\u0022None\u0022),999)"
+  },
+  {
+    "Row": 12,
+    "Column": 7,
+    "Name": "Average numeric range",
+    "Formula": "AVERAGEIF(C2:C9,\u0022\u003E=0\u0022)"
+  },
+  {
+    "Row": 13,
+    "Column": 7,
+    "Name": "Average closed",
+    "Formula": "AVERAGEIF(B2:B9,\u0022Closed\u0022,C2:C9)"
+  },
+  {
+    "Row": 14,
+    "Column": 7,
+    "Name": "Sum no matches",
+    "Formula": "SUMIFS(C2:C9,A2:A9,\u0022None\u0022)"
+  },
+  {
+    "Row": 15,
+    "Column": 7,
+    "Name": "Count no matches",
+    "Formula": "COUNTIFS(A2:A9,\u0022None\u0022)"
+  },
+  {
+    "Row": 16,
+    "Column": 7,
+    "Name": "Count single cell",
+    "Formula": "COUNTIFS(A2,\u0022EU\u0022)"
+  },
+  {
+    "Row": 17,
+    "Column": 7,
+    "Name": "Sum single cell",
+    "Formula": "SUMIFS(C2,A2,\u0022EU\u0022)"
+  },
+  {
+    "Row": 18,
+    "Column": 7,
+    "Name": "Average single cell",
+    "Formula": "AVERAGEIFS(C2,A2,\u0022EU\u0022)"
+  },
+  {
+    "Row": 19,
+    "Column": 7,
+    "Name": "Average if single cell",
+    "Formula": "AVERAGEIF(A2,\u0022EU\u0022,C2)"
+  },
+  {
+    "Row": 20,
+    "Column": 7,
+    "Name": "Sum criterion cells",
+    "Formula": "SUMIFS(C2:C9,A2:A9,$D$11,C2:C9,$D$12)"
+  },
+  {
+    "Row": 21,
+    "Column": 7,
+    "Name": "Count zero",
+    "Formula": "COUNTIFS(C2:C9,0)"
+  }
+]

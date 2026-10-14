@@ -55,15 +55,17 @@ namespace OfficeIMO.Excel {
         }
 
         private readonly struct FormulaCriteria {
-            internal FormulaCriteria(string op, string text, double? number) {
+            internal FormulaCriteria(string op, string text, double? number, string? errorCode = null) {
                 Operator = op;
                 Text = text;
                 Number = number;
+                ErrorCode = errorCode;
             }
 
             internal string Operator { get; }
             internal string Text { get; }
             internal double? Number { get; }
+            internal string? ErrorCode { get; }
         }
     }
 }

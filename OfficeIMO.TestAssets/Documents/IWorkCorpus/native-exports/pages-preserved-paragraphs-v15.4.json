@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "profile": "Preservation-aware fixed-length plain Pages body paragraph replacement",
+  "recordedUtc": "2026-10-11T00:18:00.480199+00:00",
+  "candidateBase": "1563bdc90c35bff3c79063fb6e4ba2d7e5b67bf3",
+  "license": "Newly authored and derived evidence under the repository MIT license. Native PDFs contain system-font subsets; no standalone fonts are distributed. Composed embedded fallback fonts use the existing SIL OFL 1.1 profile.",
+  "application": {
+    "name": "Pages Creator Studio",
+    "version": "15.4",
+    "build": "7051.0.79"
+  },
+  "host": {
+    "macOS": "27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "artifacts": {
+    "pages-created-layout-edited-v15.4.pages": {
+      "bytes": 82692,
+      "sha256": "b35ae67bf8e043f4019d3fc0d0f7190d2ae5b7818a0cb24b78cd4311e2f33b22"
+    },
+    "pages-preserved-paragraphs-v15.4.pages": {
+      "bytes": 85085,
+      "sha256": "87d6bb6fc288c3fa892553a49049da0911efa7add00fffc88612591dd046b4d0"
+    },
+    "pages-preserved-paragraphs-edited-v15.4.pages": {
+      "bytes": 82463,
+      "sha256": "aacd285f5683da1fb82244701f3957baccaeeb20c746963f1b9a0eef7ea4fc7c"
+    },
+    "pages-preserved-paragraphs-edited-v15.4.docx": {
+      "bytes": 8296,
+      "sha256": "3eb8db899647027e5c6546da0c3749a879073ee75d51c9fc2e50d0317010ff54"
+    },
+    "pages-preserved-paragraphs-edited-v15.4.pdf": {
+      "bytes": 77981,
+      "sha256": "dae1224da7810a2217f275ed8120a858e495b44b9ead98fa92079d35c19e35ad"
+    },
+    "pages-preserved-paragraphs-officeimo-v15.4.docx": {
+      "bytes": 20772,
+      "sha256": "63c1dfb30a2cbd290be835a390590b83f48f9b914dc102b3064ca9230f07e615"
+    },
+    "pages-preserved-paragraphs-v15.4-raw-preservation.json": {
+      "bytes": 1274,
+      "sha256": "9395ce54ac9d5d06930a8a88e18ed895fc6a264648703d3033808637de2ebf53"
+    },
+    "pages-preserved-paragraphs-v15.4-native-layout.json": {
+      "bytes": 3301,
+      "sha256": "ed66168c084dbaea7016b239de1d779dcbf19a2ba308f4f6e5dfeca7c4ed8dfb"
+    },
+    "pages-preserved-paragraphs-v15.4-changes.json": {
+      "bytes": 372,
+      "sha256": "de6f63bf3097d82beaaf3bb905cb04292ce8f51c38664ab57148b8824b38e51b"
+    },
+    "pages-preserved-paragraphs-edited-officeimo-v15.4.docx": {
+      "bytes": 20766,
+      "sha256": "02a679a25fc81b18033a28fb3da2ae4af9d99f5b9188a420c2c0cbd7f0fc8674"
+    },
+    "pages-preserved-paragraphs-v15.4-native-open.png": {
+      "bytes": 91498,
+      "sha256": "70dd4f6971491d1294ffe8004d835719e4aec804c45c0f5302a6b0ce931ede1e"
+    },
+    "pages-preserved-paragraphs-v15.4-native-reopened.png": {
+      "bytes": 123469,
+      "sha256": "91a7c9d1464ed0263700acc50194e06d9a36126d6a4792bbb0325df3f08e8037"
+    },
+    "pages-preserved-paragraphs-v15.4-native-page1.png": {
+      "bytes": 63708,
+      "sha256": "4c95e721acf6e0c03bc5a8bb98789265e3b6bb8294ba298c55580f2cf474a464"
+    },
+    "pages-preserved-paragraphs-v15.4-composed-page1.png": {
+      "bytes": 62144,
+      "sha256": "6a090304349ee583d7baf11cd1734ed6a3ce733fc43a19160943cc46680cf713"
+    },
+    "pages-preserved-paragraphs-v15.4-edited-composed-page1.png": {
+      "bytes": 62036,
+      "sha256": "d413b1b55e614f46683491cb4d9512fd02209486c2bdbc4678ff599b14f40b32"
+    },
+    "pages-preserved-paragraphs-v15.4-composed.pdf": {
+      "bytes": 24052,
+      "sha256": "4e1dbecbcd7761d3efdcc65e9d8e36d36001fd45d321b471956368b3dc85e6e5"
+    },
+    "pages-preserved-paragraphs-v15.4-edited-composed.pdf": {
+      "bytes": 24042,
+      "sha256": "662499f7e87ee7104fbd0744b4736926ac0cef379eb8d07223fc71185531083f"
+    }
+  },
+  "changes": [
+    {
+      "After": "Edited paragraph layout",
+      "Before": "Native paragraph layout",
+      "Paragraph": 1
+    },
+    {
+      "After": "Start\tLeft\tCenter\tRight\t234.56",
+      "Before": "Start\tLeft\tCenter\tRight\t123.45",
+      "Paragraph": 3
+    },
+    {
+      "After": "Updated reset Native layout edit.",
+      "Before": "Default reset Native layout edit.",
+      "Paragraph": 7
+    }
+  ],
+  "independentPreservation": {
+    "source": "pages-created-layout-edited-v15.4.pages",
+    "output": "pages-preserved-paragraphs-v15.4.pages",
+    "sourceSha256": "b35ae67bf8e043f4019d3fc0d0f7190d2ae5b7818a0cb24b78cd4311e2f33b22",
+    "outputSha256": "87d6bb6fc288c3fa892553a49049da0911efa7add00fffc88612591dd046b4d0",
+    "fileEntries": 13,
+    "recordsIncludingAuxiliary": 93,
+    "bodyRecordId": 3,
+    "paragraphs": [
+      {
+        "paragraph": 1,
+        "payloadByteOffset": 9,
+        "bytes": 23,
+        "before": "Native paragraph layout",
+        "after": "Edited paragraph layout"
+      },
+      {
+        "paragraph": 3,
+        "payloadByteOffset": 230,
+        "bytes": 30,
+        "before": "Start\tLeft\tCenter\tRight\t123.45",
+        "after": "Start\tLeft\tCenter\tRight\t234.56"
+      },
+      {
+        "paragraph": 7,
+        "payloadByteOffset": 468,
+        "bytes": 33,
+        "before": "Default reset Native layout edit.",
+        "after": "Updated reset Native layout edit."
+      }
+    ],
+    "changedEntries": [
+      "Index/Document.iwa"
+    ],
+    "onlyDeclaredUtf8RangesDiffer": true,
+    "rawHeadersSiblingsAndOtherBytesIdentical": true,
+    "nativeStoragePropertiesIdenticalExceptText": true,
+    "numbersParser": "4.19.0",
+    "protobuf": "7.36.2",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176"
+  },
+  "nativeLayout": {
+    "reference": "pages-preserved-paragraphs-v15.4-native-layout.json",
+    "styledAuthoredParagraphs": 7,
+    "projectedParagraphsIncludingTerminalBlank": 8,
+    "nativeWordAndOfficeimoWordTextSpacingAndTabsAgree": true
+  },
+  "nativeAcceptance": {
+    "openWithoutRepair": true,
+    "threeReplacementsRetained": true,
+    "untouchedRichParagraphRetained": true,
+    "furtherNativeEdit": "Paragraph 7 changed to Native checked paragraph.",
+    "savedClosedReopened": true,
+    "wordExport": true,
+    "pdfExportPages": 1,
+    "allPdfPagesRenderedAndInspected": true,
+    "ownedAppClosed": true
+  },
+  "rendering": {
+    "nativeFonts": [
+      "Arial",
+      "Apple Color Emoji"
+    ],
+    "composedFontProfileReference": "iwork-composed-pdf-portable.json#/fontProfile",
+    "resourcePolicy": "PdfResourcePolicy.CreatePortableDeterministic()",
+    "route": "pages-pdf",
+    "initialAndNativeEditedPages": 1,
+    "completeOrderedTextAgrees": true,
+    "allPagesInspected": true,
+    "limits": "Portable font substitution, monochrome emoji and metrics differ; native typography and pagination equivalence are unqualified."
+  },
+  "boundaries": [
+    "Complete modern single-section body-only profile; empty header/footer templates permitted, nonempty content/drawables/inline objects rejected.",
+    "Selected paragraph is uniform and has no list marker or hyperlink. Replacement retains both UTF-16 length and UTF-8 byte length, with TAB permitted and line/inline markers rejected.",
+    "Only requested UTF-8 ranges change. Raw headers, sibling records, unknown bytes, native IDs/references and style offsets remain intact.",
+    "Visual caches and previews remain retained without refresh; edited saves require explicit AllowUnassessedVisualCaches and retain Unassessed diagnostics.",
+    "Length/rich-run/list/structural/nested-index edits, other versions/scripts and wider application metadata remain unqualified.",
+    "Apple may change package view state after opening; raw preservation proof applies to the frozen OfficeIMO encoding."
+  ]
+}

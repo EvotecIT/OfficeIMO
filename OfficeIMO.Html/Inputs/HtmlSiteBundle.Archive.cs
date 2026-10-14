@@ -39,7 +39,7 @@ public sealed partial class HtmlSiteBundle {
             }
             if (directory) {
                 if (length != 0 || checksum != 0) throw new InvalidDataException("ZIP directory entries cannot contain payload bytes.");
-                using Stream directoryPayload = OfficeArchiveSafety.OpenEntryPayload(bytes, entry, metadata[entry]);
+                using Stream directoryPayload = OfficeArchiveSafety.OpenEntryPayload(bytes, entry, metadata[entry], cancellationToken);
                 _ = OfficeArchiveSafety.ReadEntryBytes(directoryPayload, 0, 0, cancellationToken);
                 continue;
             }
@@ -59,7 +59,7 @@ public sealed partial class HtmlSiteBundle {
         byte[]? htmlBytes = null;
         foreach (KeyValuePair<string, ZipArchiveEntry> item in entries) {
             cancellationToken.ThrowIfCancellationRequested();
-            using Stream payload = OfficeArchiveSafety.OpenEntryPayload(bytes, item.Value, metadata[item.Value]);
+            using Stream payload = OfficeArchiveSafety.OpenEntryPayload(bytes, item.Value, metadata[item.Value], cancellationToken);
             byte[] data = asynchronous
                 ? await OfficeArchiveSafety.ReadEntryBytesAsync(payload, item.Value.Length, options.MaximumEntryBytes, cancellationToken).ConfigureAwait(false)
                 : OfficeArchiveSafety.ReadEntryBytes(payload, item.Value.Length, options.MaximumEntryBytes, cancellationToken);

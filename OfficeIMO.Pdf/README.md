@@ -136,6 +136,19 @@ including inside columns, table cells and canvas text boxes.
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.
 
+## Decimal tab alignment
+
+An explicit decimal tab can select its decimal separator independently of grouping punctuation:
+
+```csharp
+var style = new PdfParagraphStyle();
+style.AddTabStop(180, PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
+var pdf = PdfDocument.Create(new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve })
+    .Paragraph(p => p.Text("Total\t1,234.56"), style: style);
+```
+
+This aligns the period at 180 points from the paragraph frame. A value without the selected separator is right-aligned at that stop. Leaving `DecimalSeparator` unset retains the first-period-or-comma behavior. The setting survives paragraph-style copies and table layout.
+
 ## Glyph width and character spacing
 
 Run width and tracking adjust horizontal advances without changing font height:
@@ -955,6 +968,47 @@ require a MIME type. Explicit profile checks include structure-file dates and
 the selected output version. This API does not request or prove a
 compliance profile.
 
+### Attachment authoring limits
+
+Catalog authoring accepts up to 128 MiB per file through
+`PdfOptions.MaxEmbeddedFileBytes` and 256 MiB across the catalog through
+`MaxTotalEmbeddedFileBytes` by default. `AddEmbeddedFile` checks these limits
+before copying payload bytes into the collection. A rejected add or limit
+reduction throws `InvalidDataException` and leaves existing files and settings
+unchanged. `ClearEmbeddedFiles()` restores the collection's available capacity.
+
+Structure attachments have the same defaults through
+`PdfCanvasStructureOptions.MaxAssociatedFileBytes` and
+`MaxTotalAssociatedFileBytes`. Each structure collection enforces its own
+admission limits. At save, the document options also apply to every emitted
+attachment and to their combined payload total. Catalog files count once each;
+identical structure associations that share one emitted file specification count
+once across pages. Different files count separately even when their bytes match.
+
+Set explicit larger limits before adding trusted larger inputs. For example,
+these settings accept a file up to 256 MiB and a collection up to 512 MiB:
+
+```csharp
+var attachmentOptions = new PdfOptions {
+    MaxEmbeddedFileBytes = 256L * 1024 * 1024,
+    MaxTotalEmbeddedFileBytes = 512L * 1024 * 1024
+};
+
+var structureOptions = new PdfCanvasStructureOptions {
+    MaxAssociatedFileBytes = 256L * 1024 * 1024,
+    MaxTotalAssociatedFileBytes = 512L * 1024 * 1024
+};
+```
+
+All four limits must be positive. Standalone `PdfEmbeddedFile` descriptions keep
+their existing construction behavior; collection admission applies the selected
+limits. A combined-limit failure occurs before output bytes are written, so it
+preserves an existing destination file or stream. These limits bound admitted
+and emitted payload bytes, not defensive snapshot multiplicity or peak process
+memory. Use `MaxGeneratedOutputBytes` separately to bound the serialized PDF.
+Attachment reading and editing use `PdfLoadOptions.Limits.MaxTotalAttachmentBytes`
+as described below.
+
 ### Sections, generated navigation, and bounded stream output
 
 ```csharp
@@ -1068,6 +1122,15 @@ When the application needs only one embedded file, select its metadata from
 This bounds the selected decoded payload and avoids decoding the other files.
 `pdf.Attachments.Remove(selected)` removes the matching file specification when
 more than one attachment uses the same display name.
+
+Attachment edits apply `PdfLoadOptions.Limits.MaxTotalAttachmentBytes` to the
+aggregate payload of the target collection. `Add` and `Replace` reject an
+oversized target with `PdfReadLimitException` before cloning the new payload or
+rewriting the PDF. A rejected operation leaves the edit session unchanged, so
+the callback can remove another attachment or choose a smaller replacement.
+Load the source with an explicit larger limit when the intended collection
+exceeds the default 256 MiB. This payload limit does not represent peak process
+memory; defensive snapshots and rewrite validation can retain additional copies.
 
 `PdfDocument.Read(...)` is the only semantic reconstruction entry point. Both
 profiles return `PdfDocumentReadResult`; they do not maintain separate logical

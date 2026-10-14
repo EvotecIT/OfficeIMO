@@ -1,0 +1,180 @@
+{
+  "file": "pages-created-layout-edited-v15.4.pages",
+  "route": "pages-pdf",
+  "Succeeded": true,
+  "status": "Completed",
+  "Summary": "Pages to PDF completed with fidelity warnings; review the structured diagnostics.",
+  "pages": 1,
+  "text": "Native paragraph layout\nRelative spacing 1.5: this paragraph has six points before and nine points after. Its text\nwraps across lines so the native line spacing can be inspected alongside the exported\nparagraph settings.\nStart Left Center Right 123.45\nDouble spacing: this paragraph has twelve points before and eighteen points after.\nWrapped lines make the relative spacing visible without changing the font or body width.\nRich layout plain Za\u017C\u00F3\u0142\u0107 \uD83D\uDE00\nDefault reset Native layout edit.",
+  "ConversionEvidence": {
+    "FidelityDiagnostics": [
+      {
+        "Code": "IWORK_SOURCE_READ",
+        "Message": "Read 93 IWA payload records from 13 package entries.",
+        "LossKind": 0,
+        "Source": "OfficeIMO.IWork",
+        "Location": null
+      },
+      {
+        "Code": "IWORK_RECORD_FIDELITY_UNASSESSED",
+        "Message": "93 source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content.",
+        "LossKind": 4,
+        "Source": "OfficeIMO.IWork",
+        "Location": null
+      },
+      {
+        "Code": "NativeFontFamilySubstituted",
+        "Message": "The source font family \u0027Arial\u0027 was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families \u0027Noto Emoji\u0027, \u0027Noto JP Common\u0027, \u0027Carlito\u0027.",
+        "LossKind": 1,
+        "Source": "OfficeIMO.Word.Pdf",
+        "Location": "word:font[Arial]"
+      }
+    ],
+    "Facts": {
+      "packageContentSha256": "5dfd0370ea8002de7a1c338cd989b182bc9f5ea59499d3c7ef64760f9efa0f40",
+      "sourceKind": "Pages",
+      "projectionKind": "EditableReconstruction",
+      "producerBuildVersions": "OfficeIMO.IWork, M15.4-7051.0.79-2",
+      "totalRecordCount": "93",
+      "unassessedRecordCount": "93",
+      "reconstructedItemCount": "20",
+      "sourceUnitCount": "8",
+      "reconstructedSourceUnitCount": "8",
+      "omittedSourceUnitCount": "0",
+      "unassessedSourceUnitCount": "0",
+      "sourceReferenceIssueCount": "0",
+      "sourceDeclarationIssueCount": "0",
+      "sourceCellIssueCount": "0",
+      "sourceMissingReferenceTargetCount": "0",
+      "sourceMalformedReferenceCount": "0",
+      "sourceRejectedReferenceSetCount": "0",
+      "sourceUnexpectedReferenceTargetTypeCount": "0",
+      "sourceFormulaCellCount": "0",
+      "sourceCompleteFormulaExpressionCount": "0",
+      "sourceIncompleteFormulaExpressionCount": "0",
+      "sourceUnassessedFormulaExpressionCount": "0",
+      "sourceCompleteFormulaCacheCount": "0",
+      "sourcePartialFormulaCacheCount": "0",
+      "sourceApproximateFormulaCacheCount": "0",
+      "sourceMissingFormulaCacheCount": "0",
+      "sourceUnassessedFormulaCacheCount": "0",
+      "partialEditableReconstruction": "False",
+      "visualCoverage": "NotApplicable",
+      "conversionStages": "iwork-editable,pdf",
+      "pdfOutputBytes": "24049"
+    },
+    "HasLoss": true
+  },
+  "Diagnostics": [
+    {
+      "Code": "SourceSnapshot",
+      "Message": "Conversion used one bounded source snapshot. Source identity checks are required before publication.",
+      "Severity": 0,
+      "Stage": "validate",
+      "Details": {
+        "sourceName": "pages-created-layout-edited-v15.4.pages",
+        "snapshotKind": "FileBytes",
+        "sha256": "B35AE67BF8E043F4019D3FC0D0F7190D2AE5B7818A0CB24B78CD4311E2F33B22",
+        "bytes": "82692"
+      }
+    },
+    {
+      "Code": "IWORK_SOURCE_READ",
+      "Message": "Read 93 IWA payload records from 13 package entries.",
+      "Severity": 0,
+      "Stage": "convert",
+      "Details": {
+        "lossKind": "None",
+        "source": "OfficeIMO.IWork"
+      }
+    },
+    {
+      "Code": "IWORK_RECORD_FIDELITY_UNASSESSED",
+      "Message": "93 source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content.",
+      "Severity": 1,
+      "Stage": "convert",
+      "Details": {
+        "lossKind": "Unassessed",
+        "source": "OfficeIMO.IWork"
+      }
+    },
+    {
+      "Code": "NativeFontFamilySubstituted",
+      "Message": "The source font family \u0027Arial\u0027 was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families \u0027Noto Emoji\u0027, \u0027Noto JP Common\u0027, \u0027Carlito\u0027.",
+      "Severity": 1,
+      "Stage": "convert",
+      "Details": {
+        "lossKind": "Approximation",
+        "source": "OfficeIMO.Word.Pdf",
+        "location": "word:font[Arial]"
+      }
+    },
+    {
+      "Code": "ConversionEvidence",
+      "Message": "Source and projection evidence from the registered format owner.",
+      "Severity": 0,
+      "Stage": "convert",
+      "Details": {
+        "packageContentSha256": "5dfd0370ea8002de7a1c338cd989b182bc9f5ea59499d3c7ef64760f9efa0f40",
+        "sourceKind": "Pages",
+        "projectionKind": "EditableReconstruction",
+        "producerBuildVersions": "OfficeIMO.IWork, M15.4-7051.0.79-2",
+        "totalRecordCount": "93",
+        "unassessedRecordCount": "93",
+        "reconstructedItemCount": "20",
+        "sourceUnitCount": "8",
+        "reconstructedSourceUnitCount": "8",
+        "omittedSourceUnitCount": "0",
+        "unassessedSourceUnitCount": "0",
+        "sourceReferenceIssueCount": "0",
+        "sourceDeclarationIssueCount": "0",
+        "sourceCellIssueCount": "0",
+        "sourceMissingReferenceTargetCount": "0",
+        "sourceMalformedReferenceCount": "0",
+        "sourceRejectedReferenceSetCount": "0",
+        "sourceUnexpectedReferenceTargetTypeCount": "0",
+        "sourceFormulaCellCount": "0",
+        "sourceCompleteFormulaExpressionCount": "0",
+        "sourceIncompleteFormulaExpressionCount": "0",
+        "sourceUnassessedFormulaExpressionCount": "0",
+        "sourceCompleteFormulaCacheCount": "0",
+        "sourcePartialFormulaCacheCount": "0",
+        "sourceApproximateFormulaCacheCount": "0",
+        "sourceMissingFormulaCacheCount": "0",
+        "sourceUnassessedFormulaCacheCount": "0",
+        "partialEditableReconstruction": "False",
+        "visualCoverage": "NotApplicable",
+        "conversionStages": "iwork-editable,pdf",
+        "pdfOutputBytes": "24049"
+      }
+    },
+    {
+      "Code": "RouteContract",
+      "Message": "Create a PDF when all supported source content can be reconstructed. Review reported font, layout, and rendering approximations.",
+      "Severity": 0,
+      "Stage": "convert",
+      "Details": {
+        "route": "pages-pdf",
+        "engine": "OfficeIMO.Workflows.IWork",
+        "knownLimitations": "Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific."
+      }
+    },
+    {
+      "Code": "OutputReopened",
+      "Message": "The staged file was reopened successfully through its first-party OfficeIMO document API.",
+      "Severity": 0,
+      "Stage": "validate-output",
+      "Details": {
+        "stagedBytes": "24049",
+        "format": ".pdf"
+      }
+    },
+    {
+      "Code": "AtomicPublication",
+      "Message": "The artifact was staged in the destination directory and published with one filesystem move.",
+      "Severity": 0,
+      "Stage": "publish",
+      "Details": {}
+    }
+  ]
+}

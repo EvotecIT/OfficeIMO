@@ -464,6 +464,7 @@ namespace OfficeIMO.PowerPoint {
         private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false) {
             OfficeColor color = ResolveTableCellTextRunColor(run, cell, colorScheme);
             OfficeColor? backgroundColor = ResolveTableCellTextRunBackgroundColor(run, colorScheme);
+            Uri? hyperlink = markerRun ? null : run?.Hyperlink;
             return new OfficeRichTextRun(
                 ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
                 mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? cell.FontSize ?? 10 : run?.FontSize ?? cell.FontSize ?? 10),
@@ -476,7 +477,11 @@ namespace OfficeIMO.PowerPoint {
                 backgroundColor,
                 MapUnderlineStyle(run?.UnderlineStyle),
                 MapStrikeStyle(run?.StrikeStyle),
-                MapBaseline(ResolvePowerPointBaselinePercent(run, paragraph)));
+                MapBaseline(ResolvePowerPointBaselinePercent(run, paragraph))) {
+                LinkUri = hyperlink is { IsAbsoluteUri: true } ? hyperlink.AbsoluteUri : null,
+                LinkDestinationName = PowerPointHyperlinkResolver.TryParseSlideFragment(hyperlink, out int targetSlide)
+                    ? PowerPointHyperlinkResolver.GetSlideDestinationName(targetSlide) : null
+            };
         }
 
         private static string ResolvePowerPointDisplayText(PowerPointTableCell cell) {

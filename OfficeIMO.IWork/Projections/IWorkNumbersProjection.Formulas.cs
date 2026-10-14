@@ -22,7 +22,7 @@ internal static partial class IWorkNumbersReader {
                 source.CancellationToken.ThrowIfCancellationRequested();
                 if (cell.FormulaDefinition == null) cells.Add(cell);
                 else {
-                    IWorkFormulaResult result = cell.FormulaDefinition.Render(qualifiers, budget, own);
+                    IWorkFormulaResult result = cell.FormulaDefinition.Render(qualifiers, budget, own, source.CancellationToken);
                     budget.AddTextCharacters(result.Text.Length);
                     cells.Add(cell.WithFormula(result));
                 }

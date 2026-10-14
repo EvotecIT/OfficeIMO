@@ -49,6 +49,12 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     int columnSpan = GetNativeCellColumnSpan(cell);
+                    // Vertical continuations still contribute margins to the physical row box,
+                    // even though their text/content is rendered by the spanning anchor.
+                    PdfCore.PdfCellPadding? padding = CreateNativeTableCellPadding(cell);
+                    if (padding != null) {
+                        cellPaddings[(rowIndex, logicalColumnIndex)] = padding;
+                    }
                     if (IsNativeVerticalMergeContinuation(cell)) {
                         logicalColumnIndex += columnSpan;
                         continue;
@@ -104,11 +110,6 @@ namespace OfficeIMO.Word.Pdf {
 
                     if (HasNativeDirectCellBorder(cell.Borders)) {
                         directCellBorders[(rowIndex, logicalColumnIndex)] = cell.Borders;
-                    }
-
-                    PdfCore.PdfCellPadding? padding = CreateNativeTableCellPadding(cell);
-                    if (padding != null) {
-                        cellPaddings[(rowIndex, logicalColumnIndex)] = padding;
                     }
 
                     PdfCore.PdfColumnAlign cellAlignment = GetNativeCellHorizontalAlignment(cell);
@@ -601,9 +602,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.Enabled.HasValue &&
-                !conditionalStyle.TextSpacing.WidthPercentage.HasValue &&
-                !conditionalStyle.TextSpacing.CharacterSpacing.HasValue &&
-                !conditionalStyle.TextSpacing.KerningMinimumFontSize.HasValue &&
+                conditionalStyle.TextSpacing == default &&
                 string.IsNullOrWhiteSpace(conditionalStyle.FontFamily) &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&

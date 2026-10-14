@@ -1,0 +1,1654 @@
+{
+  "schemaVersion": 1,
+  "producer": "ReportLab",
+  "reportlab": "4.4.9",
+  "sourceCoordinateSystem": "PDF default user space; points; origin lower-left",
+  "expectationScope": "Admission as a complete continuous visible ruling grid; aligned-text fallback remains separate",
+  "license": "MIT; repository LICENSE covers authored fixtures and labels",
+  "producerLicense": "ReportLab BSD license; generation tooling only",
+  "fontProvenance": "Unembedded PDF standard 14 Helvetica; no font binary bundled",
+  "cases": [
+    {
+      "id": "ruled-control-no-rules",
+      "expectedAdmission": false,
+      "expectationReason": "Aligned text alone does not establish a closed ruling grid.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Omit every ruling; preserve the ledger text and placement."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ]
+      },
+      "files": {
+        "native.pdf": "7126d004b103d25cd2fbd98dd5fa712ca04fcca5bdb6bcc9ff7dd6f5d321c698"
+      }
+    },
+    {
+      "id": "ruled-control-open-right",
+      "expectedAdmission": false,
+      "expectationReason": "The missing right outer edge leaves the grid open.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Omit the complete vertical ruling at x=570 points."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ]
+      },
+      "files": {
+        "native.pdf": "dac1843e8614820f051a90176ca90c4ac8154d359c7fe671c41d8d20353badbb"
+      }
+    },
+    {
+      "id": "ruled-control-missing-row-edge",
+      "expectedAdmission": false,
+      "expectationReason": "An interior row edge has an unresolved gap within a cell.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "At y=630 points, omit the horizontal segment from x=354 to x=450."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ]
+      },
+      "files": {
+        "native.pdf": "8916d4da43039de520f07b886afb098898881024ee2f80c79914db810eadbd91"
+      }
+    },
+    {
+      "id": "ruled-control-ambiguous-column",
+      "expectedAdmission": false,
+      "expectationReason": "An extra full-height boundary creates an unpopulated ambiguous column.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Add a vertical ruling at x=250 from y=560 to y=700 in the first cell's empty margin."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ]
+      },
+      "files": {
+        "native.pdf": "7c069b95a770aa70814d4d844488e7c4685febf734eb1dda516c16048b91b44e"
+      }
+    },
+    {
+      "id": "ruled-control-decorative-lines",
+      "expectedAdmission": true,
+      "expectationReason": "Disconnected decoration outside the complete grid does not change its cells.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Add a horizontal line from (42,500) to (570,500).",
+          "Add a vertical line from (20,530) to (20,740).",
+          "Add a diagonal line from (42,480) to (570,450)."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ]
+      },
+      "files": {
+        "native.pdf": "7659454f82b0555f88d6bfef1acdc1fa52ba2c337aa44a39ad3ca234a34cc650"
+      },
+      "geometry": {
+        "coordinateSystem": "Ledger-local coordinates before contentMatrix",
+        "columnBoundariesPoints": [
+          42,
+          282,
+          354,
+          450,
+          570
+        ],
+        "columnWidthsPoints": [
+          240,
+          72,
+          96,
+          120
+        ],
+        "normalizedColumnWidths": [
+          0.45454545454545453,
+          0.13636363636363635,
+          0.18181818181818182,
+          0.22727272727272727
+        ],
+        "rowBoundariesPoints": [
+          700,
+          665,
+          630,
+          595,
+          560
+        ],
+        "boundaryReference": "Ruling stroke centre",
+        "columnStripsVisualPoints": [
+          [
+            42,
+            92,
+            282,
+            232
+          ],
+          [
+            282,
+            92,
+            354,
+            232
+          ],
+          [
+            354,
+            92,
+            450,
+            232
+          ],
+          [
+            450,
+            92,
+            570,
+            232
+          ]
+        ],
+        "visualCoordinateSystem": "Page top-left; [left,top,right,bottom] in points"
+      }
+    },
+    {
+      "id": "ruled-control-clipped-grid",
+      "expectedAdmission": false,
+      "expectationReason": "Every ruling is clipped away; invisible operations cannot establish a visible grid.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Clip all grid strokes to rectangle [0,0,10,10]; restore state before drawing text."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "clipRectanglePoints": [
+          0,
+          0,
+          10,
+          10
+        ]
+      },
+      "files": {
+        "native.pdf": "b3cbe1071764af53598be33675fc6fae7ccdeff9aab95425b053b9a56fb13333"
+      }
+    },
+    {
+      "id": "ruled-control-dashed-grid",
+      "expectedAdmission": false,
+      "expectationReason": "Dashed rulings are outside the continuous closed-grid admission profile.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Use a 4-point dash and 3-point gap on every ruling; restore state before text."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ]
+      },
+      "files": {
+        "native.pdf": "93734a7be5c0a70e4b4bb203ef5f40e8168a7e6fa1ce04231720eaf2933e536e"
+      }
+    },
+    {
+      "id": "ruled-control-content-quarter-turn",
+      "expectedAdmission": true,
+      "expectationReason": "A complete closed grid remains admissible after an explicit content-matrix quarter-turn.",
+      "pageSizePoints": [
+        792,
+        612
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          0,
+          -1,
+          1,
+          0,
+          0,
+          612
+        ],
+        "changes": [
+          "Use landscape MediaBox [0,0,792,612] with /Rotate=0.",
+          "Apply content matrix [0,-1,1,0,0,612] to grid and text together."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ]
+      },
+      "files": {
+        "native.pdf": "18529f61e3f63b8d5a174f8651569df3800db7a0a02c495c49faea5cb3589505"
+      },
+      "geometry": {
+        "coordinateSystem": "Ledger-local coordinates before contentMatrix",
+        "columnBoundariesPoints": [
+          42,
+          282,
+          354,
+          450,
+          570
+        ],
+        "columnWidthsPoints": [
+          240,
+          72,
+          96,
+          120
+        ],
+        "normalizedColumnWidths": [
+          0.45454545454545453,
+          0.13636363636363635,
+          0.18181818181818182,
+          0.22727272727272727
+        ],
+        "rowBoundariesPoints": [
+          700,
+          665,
+          630,
+          595,
+          560
+        ],
+        "boundaryReference": "Ruling stroke centre",
+        "columnStripsVisualPoints": [
+          [
+            560,
+            42,
+            700,
+            282
+          ],
+          [
+            560,
+            282,
+            700,
+            354
+          ],
+          [
+            560,
+            354,
+            700,
+            450
+          ],
+          [
+            560,
+            450,
+            700,
+            570
+          ]
+        ],
+        "visualCoordinateSystem": "Page top-left; [left,top,right,bottom] in points"
+      }
+    },
+    {
+      "id": "ruled-control-zero-stroke-opacity",
+      "expectedAdmission": false,
+      "expectationReason": "Fully transparent strokes do not establish a visible ruling grid.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Set stroke opacity to zero for grid operations; restore state before text."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "strokeOpacity": 0
+      },
+      "files": {
+        "native.pdf": "ecb28d53763f5aa82720f849a18308f9016d58b0d9b0ddf033f62f280e9eb7ec"
+      }
+    },
+    {
+      "id": "ruled-control-partial-clip",
+      "expectedAdmission": false,
+      "expectationReason": "A rectangular clip removes the right outer ruling and truncates its incident edges.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Clip grid strokes to rectangle [40,558,568,702]; restore state before text."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "clipRectanglePoints": [
+          40,
+          558,
+          568,
+          702
+        ]
+      },
+      "files": {
+        "native.pdf": "8f430b28879e50f8424729a087a0fe6726123d7776acc4f7f01f729b695a1787"
+      }
+    },
+    {
+      "id": "ruled-control-containing-clip",
+      "expectedAdmission": true,
+      "expectationReason": "An exact rectangular clip that contains every stroke preserves the complete grid.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Clip grid strokes to rectangle [40,558,572,702]; restore state before text."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "clipRectanglePoints": [
+          40,
+          558,
+          572,
+          702
+        ]
+      },
+      "files": {
+        "native.pdf": "a832dd86a940c61da4dde908dcc77e9d1f4e7bcec7a281bdf0ba1410e38d465c"
+      },
+      "geometry": {
+        "coordinateSystem": "Ledger-local coordinates before contentMatrix",
+        "columnBoundariesPoints": [
+          42,
+          282,
+          354,
+          450,
+          570
+        ],
+        "columnWidthsPoints": [
+          240,
+          72,
+          96,
+          120
+        ],
+        "normalizedColumnWidths": [
+          0.45454545454545453,
+          0.13636363636363635,
+          0.18181818181818182,
+          0.22727272727272727
+        ],
+        "rowBoundariesPoints": [
+          700,
+          665,
+          630,
+          595,
+          560
+        ],
+        "boundaryReference": "Ruling stroke centre",
+        "columnStripsVisualPoints": [
+          [
+            42,
+            92,
+            282,
+            232
+          ],
+          [
+            282,
+            92,
+            354,
+            232
+          ],
+          [
+            354,
+            92,
+            450,
+            232
+          ],
+          [
+            450,
+            92,
+            570,
+            232
+          ]
+        ],
+        "visualCoordinateSystem": "Page top-left; [left,top,right,bottom] in points"
+      }
+    },
+    {
+      "id": "ruled-control-opaque-cover",
+      "expectedAdmission": false,
+      "expectationReason": "Later opaque paint removes part of a ruling from the visible grid.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "After the grid and before text, cover rectangle [150,628,180,632] with opaque white fill."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "opaqueCover": {
+          "boundsPoints": [
+            150,
+            628,
+            180,
+            632
+          ],
+          "fillRgb": [
+            1,
+            1,
+            1
+          ],
+          "afterGrid": true,
+          "beforeText": true
+        }
+      },
+      "files": {
+        "native.pdf": "d2772726fee71f09eb04491adfb9f880cf00b80f1b469c223488f45c006f5e5a"
+      }
+    },
+    {
+      "id": "ruled-control-multiply-blend",
+      "expectedAdmission": false,
+      "expectationReason": "Nonnormal graphics effects are outside the ordinary-stroke admission profile.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Set blend mode Multiply for grid operations; restore state before text."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "blendMode": "Multiply"
+      },
+      "files": {
+        "native.pdf": "1e87ede82edf5c8b722963ac915a16a4f585a3fd06677d50e6877fdd4ad8a6fc"
+      }
+    },
+    {
+      "id": "ruled-control-assignment-conflict",
+      "expectedAdmission": false,
+      "expectationReason": "A complete grid cannot refine the ledger when a moved separator crosses Units source text.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Replace the vertical boundary at x=282 with x=342; preserve text anchors and horizontal edges."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "replacedVerticalBoundaryPoints": [
+          282,
+          342
+        ]
+      },
+      "files": {
+        "native.pdf": "7d64676cfbf628bd7181cd1b93187e6d01318c7edae272362282168476da1fb3"
+      }
+    },
+    {
+      "id": "ruled-control-opaque-white-stroke",
+      "expectedAdmission": false,
+      "expectationReason": "A later opaque white stroke removes a short segment of an interior ruling.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "After the grid and before text, stroke [150,630]-[180,630] in opaque white at width 4."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "whiteStroke": {
+          "operators": "q 1 1 1 RG 4 w 150 630 m 180 630 l S Q",
+          "fromPoints": [
+            150,
+            630
+          ],
+          "toPoints": [
+            180,
+            630
+          ],
+          "dashPatternPoints": [],
+          "widthPoints": 4,
+          "strokeRgb": [
+            1,
+            1,
+            1
+          ],
+          "strokeOpacity": 1,
+          "dashPhasePoints": 0,
+          "afterGrid": true,
+          "beforeText": true
+        }
+      },
+      "files": {
+        "native.pdf": "635a8c262d556b09a1649ebf11e516ab658373a3c3c582670eda39966acb3084"
+      }
+    },
+    {
+      "id": "ruled-control-full-span-white-stroke",
+      "expectedAdmission": false,
+      "expectationReason": "A later opaque white stroke removes an entire interior row ruling.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "After the grid and before text, stroke [42,630]-[570,630] in opaque white at width 4."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "whiteStroke": {
+          "operators": "q 1 1 1 RG 4 w 42 630 m 570 630 l S Q",
+          "fromPoints": [
+            42,
+            630
+          ],
+          "toPoints": [
+            570,
+            630
+          ],
+          "dashPatternPoints": [],
+          "widthPoints": 4,
+          "strokeRgb": [
+            1,
+            1,
+            1
+          ],
+          "strokeOpacity": 1,
+          "dashPhasePoints": 0,
+          "afterGrid": true,
+          "beforeText": true
+        }
+      },
+      "files": {
+        "native.pdf": "6ae4fc2f6233c411acf80698978804102d1246255a439bca60454a7b36269757"
+      }
+    },
+    {
+      "id": "ruled-control-dashed-white-stroke",
+      "expectedAdmission": false,
+      "expectationReason": "Later opaque white dashes remove intersected portions of an interior ruling.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "After the grid and before text, stroke [150,630]-[180,630] in white at width 4 with dash [4,2], phase 0."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "whiteStroke": {
+          "operators": "q 1 1 1 RG 4 w [4 2] 0 d 150 630 m 180 630 l S Q",
+          "fromPoints": [
+            150,
+            630
+          ],
+          "toPoints": [
+            180,
+            630
+          ],
+          "dashPatternPoints": [
+            4,
+            2
+          ],
+          "widthPoints": 4,
+          "strokeRgb": [
+            1,
+            1,
+            1
+          ],
+          "strokeOpacity": 1,
+          "dashPhasePoints": 0,
+          "afterGrid": true,
+          "beforeText": true
+        }
+      },
+      "files": {
+        "native.pdf": "491d715fe70f4e5f6f9e1dbf78e58ac6ada81ec6af60103fcef00ad4ef39bc8b"
+      }
+    },
+    {
+      "id": "ruled-control-diagonal-white-stroke",
+      "expectedAdmission": false,
+      "expectationReason": "A later diagonal opaque white stroke intersects and removes part of an interior ruling.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "After the grid and before text, stroke [150,628]-[180,632] in opaque white at width 4."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "whiteStroke": {
+          "operators": "q 1 1 1 RG 4 w 150 628 m 180 632 l S Q",
+          "fromPoints": [
+            150,
+            628
+          ],
+          "toPoints": [
+            180,
+            632
+          ],
+          "dashPatternPoints": [],
+          "widthPoints": 4,
+          "strokeRgb": [
+            1,
+            1,
+            1
+          ],
+          "strokeOpacity": 1,
+          "dashPhasePoints": 0,
+          "afterGrid": true,
+          "beforeText": true
+        }
+      },
+      "files": {
+        "native.pdf": "6988c6be714cc98174d7f5ddc210f82d0ded9019d187148eff10dbc4d3f8548d"
+      }
+    },
+    {
+      "id": "ruled-control-white-grid",
+      "expectedAdmission": false,
+      "expectationReason": "Opaque white rulings on the default white page do not establish a visible grid.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Draw every ordinary 0.5-point grid stroke in opaque white with normal blend mode; preserve black text."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "strokeRgb": [
+          1,
+          1,
+          1
+        ],
+        "strokeOpacity": 1,
+        "blendMode": "Normal",
+        "pageBackground": "Default white page; no background paint operation"
+      },
+      "files": {
+        "native.pdf": "b79497cf1c650b246fcbb56e8a3734b932e8f0c0a1a01f903a249dc1f6b2c91d"
+      }
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "decoder": "Pillow",
+  "version": "12.3.0",
+  "images": [
+    {
+      "path": "Data/image-34.png",
+      "format": "PNG",
+      "size": [
+        96,
+        64
+      ],
+      "rgbaSha256": "186bf5df7596f086be9920cbcf632cc6b1dc1f9be42a988446894c400ba7280f",
+      "alphaExtrema": [
+        255,
+        255
+      ],
+      "encodedSha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05"
+    },
+    {
+      "path": "Data/image-41.png",
+      "format": "PNG",
+      "size": [
+        96,
+        64
+      ],
+      "rgbaSha256": "0b7e68a13e4e6e583d61ef21ec5eb090f536862df012b335a2d0e8b11dcf7202",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "encodedSha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5"
+    },
+    {
+      "path": "Data/image-75.jpeg",
+      "format": "JPEG",
+      "size": [
+        96,
+        64
+      ],
+      "rgbaSha256": "646a9fed80f0c222fa28e742a82fa82003bebb0b5a0afabfa54f56910133738f",
+      "alphaExtrema": [
+        255,
+        255
+      ],
+      "encodedSha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c"
+    }
+  ]
+}

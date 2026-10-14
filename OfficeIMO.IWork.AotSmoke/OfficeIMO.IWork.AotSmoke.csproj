@@ -8,12 +8,82 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-future-functions-qualified-input.xlsx" Link="future-functions-input.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-future-functions-qualified-native-v16.113.3.xlsx" Link="future-functions-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-future-functions-qualified-edited-native-v16.113.3.xlsx" Link="future-functions-edited.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-conditional-aggregates-cases-v14.5.numbers" Link="conditional-aggregates.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-conditional-aggregates-excel-v16.113.3.xlsx" Link="conditional-aggregates-excel-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-conditional-aggregates-excel-edited-v16.113.3.xlsx" Link="conditional-aggregates-excel-edited.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-conditional-average-errors-input.xlsx" Link="conditional-average-errors-input.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-conditional-average-errors-v16.113.3.xlsx" Link="conditional-average-errors-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-conditional-typed-errors-input.xlsx" Link="conditional-typed-errors-input.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-conditional-typed-errors-qualified-v16.113.3.xlsx" Link="conditional-typed-errors-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-identity-parentheses-edited-v15.4.pages" Link="pages-identity-parentheses.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-identity-closing-edited-v15.4.pages" Link="pages-identity-closing.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-identity-mixed-font-edited-v15.4.pages" Link="pages-identity-mixed-font.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-identity-mixed-size-edited-v15.4.pages" Link="pages-identity-mixed-size.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-mixed-size-orders-v15.4.pages" Link="pages-mixed-size-oracle.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-mixed-size-saved-v15.4.pages" Link="pages-mixed-size-original.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-mixed-size-edited-v15.4.pages" Link="pages-mixed-size-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-mixed-font-saved-v15.4.pages" Link="pages-mixed-font-original.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-mixed-font-edited-v15.4.pages" Link="pages-mixed-font-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-decimal-parentheses-saved-v15.4.pages" Link="pages-decimal-parentheses-original.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-decimal-parentheses-edited-v15.4.pages" Link="pages-decimal-parentheses-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-decimal-closing-saved-v15.4.pages" Link="pages-decimal-closing-original.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-decimal-closing-edited-v15.4.pages" Link="pages-decimal-closing-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-nine-level-saved-v15.4.pages" Link="pages-nine-level-original.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-nine-level-edited-v15.4.pages" Link="pages-nine-level-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-third-level-saved-v15.4.pages" Link="pages-decimal-original.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-preserved-decimal-edited-v15.4.pages" Link="pages-decimal-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-third-level-edited-v15.4.pages" Link="pages-third-level-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-headers-edited-v15.4.pages" Link="pages-created-headers-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-preserved-paragraphs-edited-v15.4.key" Link="keynote-paragraph-edited.key" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-edited-v15.4.pages" Link="pages-paragraph-original.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-preserved-paragraphs-edited-v15.4.pages" Link="pages-paragraph-edited.pages" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../OfficeIMO.Word.IWork/OfficeIMO.Word.IWork.csproj" />
     <ProjectReference Include="../OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj" />
     <ProjectReference Include="../OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.pages" Link="simple.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-list-continuation-v15.4.pages" Link="pages-list-continuation.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-list-marker-size-roundtrip-v15.4.pages" Link="pages-list-marker-size-roundtrip.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4.pages" Link="native-pages-borders.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4.docx" Link="native-pages-borders.docx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4-decode.json" Link="native-pages-borders-decode.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.numbers" Link="simple.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.numbers" Link="duration-seconds.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.xlsx" Link="duration-seconds-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5.numbers" Link="duration-milliseconds.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5.xlsx" Link="duration-milliseconds-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.numbers" Link="integer-functions.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-references-v14.5.numbers" Link="integer-references.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-cross-table-v14.5.numbers" Link="integer-cross-table.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-cross-table-changed-v14.5.numbers" Link="integer-cross-table-changed.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-text-reference-v14.5.numbers" Link="integer-text-reference.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-text-reference-changed-v14.5.numbers" Link="integer-text-reference-changed.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-blank-reference-v14.5.numbers" Link="blank-reference.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-blank-reference-filled-v14.5.numbers" Link="blank-reference-filled.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.xlsx" Link="integer-functions-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-table-borders-v14.5.numbers" Link="native-numbers-borders.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-table-borders-v14.5.xlsx" Link="native-numbers-borders.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-table-borders-v14.5-decode.json" Link="native-numbers-borders-decode.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.key" Link="simple.key" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/test-10-formulas.numbers" Link="formulas.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-opaque.png" Link="created-opaque.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-alpha.png" Link="created-alpha.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-jpeg.jpg" Link="created-jpeg.jpg" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-table-borders-v15.4.key" Link="native-table-borders.key" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-edited-v15.4.pages" Link="preservation.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-tables-edited-v15.4.pages" Link="pages-created-tables-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-images-edited-v15.4.pages" Link="pages-created-images-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-numbering-edited-v15.4.pages" Link="pages-created-numbering-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-rich-numbering-edited-v15.4.pages" Link="pages-created-rich-numbering-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-edited-v14.5.numbers" Link="preservation.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-preserved-scalars-edited-v14.5.numbers" Link="numbers-preserved-scalars-edited.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-created-numeric-formats.json" Link="iwork-created-numeric-formats.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-formats-edited-v14.5.numbers" Link="numbers-created-formats-edited-v14.5.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-formats-edited-v15.4.pages" Link="pages-created-formats-edited-v15.4.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-formats-edited-v15.4.key" Link="keynote-created-formats-edited-v15.4.key" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-edited-v15.4.key" Link="preservation.key" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-preserved-resized-edited-v15.4.key" Link="preservation-resized-edited.key" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

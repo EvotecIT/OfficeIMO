@@ -159,7 +159,8 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream CreateNumbersWithPartialRichCell(bool hasFormula,
         bool includeFormulaRecord = true, bool includeUnusedRichEntry = false,
-        bool invalidUnusedWrapper = false) {
+        bool invalidUnusedWrapper = false, string richText = "Before\uFFFCafter",
+        byte[]? richAttributes = null, byte[]? additionalRecords = null, byte[]? richStorage = null) {
         byte[] cell = new byte[hasFormula ? 20 : 16];
         cell[0] = 5;
         cell[1] = 9;
@@ -186,7 +187,7 @@ public sealed partial class IWorkBoundaryTests {
                     Message(VarintField(1, 2), ReferenceField(9, 17))) : Array.Empty<byte>()),
                 includeUnusedRichEntry ? new ulong[] { 14, 17 } : new ulong[] { 14 }),
             ArchiveRecord(14, 6218, Message(ReferenceField(1, 15)), new ulong[] { 15 }),
-            ArchiveRecord(15, 2001, Message(StringField(3, "Before\uFFFCafter"))),
+            ArchiveRecord(15, 2001, richStorage ?? Message(StringField(3, richText), richAttributes ?? Message())),
             hasFormula && includeFormulaRecord ? ArchiveRecord(16, 6201, Message(VarintField(1, 3), BytesField(3,
                 Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))
                 : Array.Empty<byte>(),
@@ -195,7 +196,8 @@ public sealed partial class IWorkBoundaryTests {
                 : ArchiveRecord(17, 6218, Message(ReferenceField(1, 18)), new ulong[] { 18 })
                 : Array.Empty<byte>(),
             includeUnusedRichEntry && !invalidUnusedWrapper ? ArchiveRecord(18, 2001,
-                Message(StringField(3, "Unused\uFFFCtext"))) : Array.Empty<byte>());
+                Message(StringField(3, "Unused\uFFFCtext"))) : Array.Empty<byte>(),
+            additionalRecords ?? Message());
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
     }

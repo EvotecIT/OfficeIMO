@@ -110,6 +110,7 @@ public sealed partial class OfficeWorkflowRunner {
             if (reopened.Inspect(outputLoadOptions, cancellationToken).PageCount != source.Inspect(loadOptions, cancellationToken).PageCount)
                 throw new InvalidDataException("The searchable PDF did not preserve the source page count.");
             diagnostics.Add(new OfficeWorkflowDiagnostic("SearchablePdfReopened", "The staged searchable PDF was reopened and its page count verified.", stage: "validate-output"));
+            long outputBytes = new FileInfo(stagingPath).Length;
             inputs.Dispose();
             if (outputStream is not null) {
                 var outcome = await PublishProviderArtifactAsync(stagingPath, output, outputStream, limits.MaximumOutputBytes, guard, () => {
@@ -119,11 +120,13 @@ public sealed partial class OfficeWorkflowRunner {
                     providerDirectory = null;
                 }, diagnostics, cancellationToken).ConfigureAwait(false);
                 return new PdfSearchableWorkflowResult(outcome.Status, outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
-                    outcome.Status == OfficeWorkflowStatus.Completed ? PdfOcrPublicationSummary(words, diagnostics) : outcome.Summary, words, pages, providerName, diagnostics, outcome.Recovery);
+                    outcome.Status == OfficeWorkflowStatus.Completed ? PdfOcrPublicationSummary(words, diagnostics) : outcome.Summary, words, pages, providerName, diagnostics, outcome.Recovery,
+                    outcome.Status == OfficeWorkflowStatus.Completed ? outcome.OutputBytes : 0);
             }
             string published = await PublishAsync(stagingPath, output, policy, guard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
-            return new PdfSearchableWorkflowResult(OfficeWorkflowStatus.Completed, published, PdfOcrPublicationSummary(words, diagnostics), words, pages, providerName, diagnostics);
+            return new PdfSearchableWorkflowResult(OfficeWorkflowStatus.Completed, published, PdfOcrPublicationSummary(words, diagnostics), words, pages, providerName, diagnostics,
+                outputBytes: outputBytes);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);

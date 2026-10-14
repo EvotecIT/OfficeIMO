@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.IWork;
 
@@ -10,7 +11,7 @@ public sealed partial class IWorkTableCell {
         bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false,
         bool hasDecodeError = false, IWorkNumberFormat? numberFormat = null,
         string? sourceNumberText = null, bool numericValueIsApproximate = false, Internal.IWorkFormulaDefinition? formulaDefinition = null, IWorkCellFill? fill = null,
-        IWorkCellPadding? padding = null, IWorkCellVerticalAlignment? verticalAlignment = null, IWorkParagraphStyle? paragraphStyle = null, bool hasSelectedTextStyle = false, bool hasUnresolvedFill = false, IWorkCellUnsupportedFeatures unsupportedFeatures = IWorkCellUnsupportedFeatures.None, IWorkCellComment? comment = null) {
+        IWorkCellPadding? padding = null, IWorkCellVerticalAlignment? verticalAlignment = null, IWorkParagraphStyle? paragraphStyle = null, bool hasSelectedTextStyle = false, bool hasUnresolvedFill = false, IWorkCellUnsupportedFeatures unsupportedFeatures = IWorkCellUnsupportedFeatures.None, IWorkCellComment? comment = null, Internal.IWorkCellBorderStyle? borderStyle = null, bool hasUnresolvedPadding = false, bool hasUnresolvedVerticalAlignment = false) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -35,6 +36,9 @@ public sealed partial class IWorkTableCell {
         HasUnresolvedFill = hasUnresolvedFill;
         UnsupportedFeatures = unsupportedFeatures;
         Comment = comment;
+        BorderStyle = borderStyle;
+        HasUnresolvedPadding = hasUnresolvedPadding;
+        HasUnresolvedVerticalAlignment = hasUnresolvedVerticalAlignment;
     }
 
     /// <summary>Gets the one-based row position.</summary>
@@ -80,53 +84,61 @@ public sealed partial class IWorkTableCell {
     /// <summary>Gets selected native vertical alignment. Null means absent or unresolved.</summary>
     public IWorkCellVerticalAlignment? VerticalAlignment { get; }
 
+    /// <summary>Gets supported selected cell-style borders in points. Null means no selected declaration;
+    /// an absent side may also be unresolved. Table defaults and sparse edge edits are resolved by <see cref="IWorkTable.GetBorders"/>.</summary>
+    public OfficeBorderBox? Borders => BorderStyle?.HasDeclarations == true ? BorderStyle.Borders : null;
+    internal Internal.IWorkCellBorderStyle? BorderStyle { get; }
+
     /// <summary>Gets the supported explicitly selected paragraph style, or null when absent or unresolved. Table defaults are available through <see cref="IWorkTable.GetParagraphStyle"/>.</summary>
     public IWorkParagraphStyle? ParagraphStyle { get; }
     /// <summary>Gets readable selected conditional-style, applied-rule, comment and scalar-format fields whose contents remain unassessed. None does not establish complete fidelity; undecoded cells are covered by their decode issues.</summary>
     public IWorkCellUnsupportedFeatures UnsupportedFeatures { get; }
     internal bool HasSelectedTextStyle { get; }
+    internal bool HasUnresolvedPadding { get; }
+    internal bool HasUnresolvedVerticalAlignment { get; }
     internal bool HasUnresolvedFill { get; }
     /// <summary>Gets a qualified root cell comment. Replies and unresolved selectors remain in source diagnostics.</summary>
     public IWorkCellComment? Comment { get; }
 
-    internal bool HasCellFormatting => NumberFormat != null || HasUnresolvedFill || Fill != null || Padding != null || VerticalAlignment != null || HasSelectedTextStyle;
+    internal bool HasCellFormatting => NumberFormat != null || HasUnresolvedFill || HasUnresolvedPadding || HasUnresolvedVerticalAlignment
+        || Fill != null || Padding != null || VerticalAlignment != null || HasSelectedTextStyle || BorderStyle?.HasDeclarations == true;
 
     internal Internal.IWorkFormulaDefinition? FormulaDefinition { get; }
 
     internal IWorkTableCell WithFormula(Internal.IWorkFormulaResult result) =>
         new(Row, Column, Kind, Value, result.Text.Length == 0 ? "=?" : result.Text, Error, ValueKind, result.IsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures, Comment);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures, Comment, BorderStyle, HasUnresolvedPadding, HasUnresolvedVerticalAlignment);
 
     internal IWorkTableCell WithNumberFormat(IWorkNumberFormat format) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, format,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures, Comment);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures, Comment, BorderStyle, HasUnresolvedPadding, HasUnresolvedVerticalAlignment);
 
     internal IWorkTableCell WithSourceNumber(string text, bool approximate) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            text, approximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures, Comment);
+            text, approximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures, Comment, BorderStyle, HasUnresolvedPadding, HasUnresolvedVerticalAlignment);
     internal IWorkTableCell WithStyle(Internal.IWorkTableCellStyle style) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, style.Fill, style.Padding, style.VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, !style.FillIsComplete, UnsupportedFeatures, Comment);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, style.Fill, style.Padding, style.VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, !style.FillIsComplete, UnsupportedFeatures, Comment, style.Borders, !style.PaddingIsComplete, !style.VerticalAlignmentIsComplete);
 
     internal IWorkTableCell WithParagraphStyle(IWorkParagraphStyle? style) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, style, true, HasUnresolvedFill, UnsupportedFeatures, Comment);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, style, true, HasUnresolvedFill, UnsupportedFeatures, Comment, BorderStyle, HasUnresolvedPadding, HasUnresolvedVerticalAlignment);
 
     internal IWorkTableCell WithUnsupportedFeatures(IWorkCellUnsupportedFeatures features) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, features, Comment);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, features, Comment, BorderStyle, HasUnresolvedPadding, HasUnresolvedVerticalAlignment);
 
     internal IWorkTableCell WithComment(IWorkCellComment comment) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
             SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment,
-            ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures, comment);
+            ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures, comment, BorderStyle, HasUnresolvedPadding, HasUnresolvedVerticalAlignment);
 
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {
@@ -171,8 +183,9 @@ public sealed class IWorkTableMergeRange {
 }
 
 /// <summary>A sparse table shared by Pages, Numbers, and Keynote projections.</summary>
-public sealed class IWorkTable {
+public sealed partial class IWorkTable {
     private readonly Dictionary<long, IWorkTableCell> _cells;
+    private readonly Internal.IWorkTableBorderResolver? _borderResolver;
 
     internal IWorkTable(string name, int rowCount, int columnCount,
         IReadOnlyList<IWorkTableCell> cells, int headerRowCount = 0, int headerColumnCount = 0,
@@ -183,11 +196,13 @@ public sealed class IWorkTable {
         IReadOnlyDictionary<int, double>? rowHeights = null,
         IReadOnlyDictionary<int, double>? columnWidths = null,
         Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null, bool bodyMetadataIsComplete = true, bool? autoResizeRows = null, IWorkTableTextStyles? textStyles = null, IWorkTableFillStyles? fillStyles = null,
-        IReadOnlyList<int>? hiddenRows = null, IReadOnlyList<int>? hiddenColumns = null) {
+        IReadOnlyList<int>? hiddenRows = null, IReadOnlyList<int>? hiddenColumns = null, Internal.IWorkTableBorderResolver? borderResolver = null, IReadOnlyList<Internal.IWorkCellLayout?>? cellLayouts = null,
+        bool cellStorageIsComplete = true) {
         Name = name;
         FormulaIdentifier = formulaIdentifier;
         ModelRecord = modelRecord;
         BodyMetadataIsComplete = bodyMetadataIsComplete;
+        CellStorageIsComplete = cellStorageIsComplete;
         RowCount = rowCount;
         ColumnCount = columnCount;
         HeaderRowCount = headerRowCount;
@@ -208,17 +223,34 @@ public sealed class IWorkTable {
         SourceIdentity = sourceIdentity;
         OmittedTextUnits = Array.AsReadOnly((omittedTextUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
         _cells = new Dictionary<long, IWorkTableCell>();
+        _borderResolver = borderResolver;
+        CellLayoutDefaults = Array.AsReadOnly((cellLayouts ?? new Internal.IWorkCellLayout?[4]).ToArray());
         foreach (IWorkTableCell cell in cells) _cells[Key(cell.Row, cell.Column)] = cell;
         Cells = Array.AsReadOnly(_cells.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray());
     }
 
     internal bool BodyMetadataIsComplete { get; }
+    // Absence denotes a blank only when selected sparse storage was fully read.
+    // Table dimensions alone cannot establish that an unreadable tile is empty.
+    internal bool CellStorageIsComplete { get; }
     internal Guid? FormulaIdentifier { get; }
     internal IWorkArchiveRecord? ModelRecord { get; }
     internal IWorkTable WithCells(IReadOnlyList<IWorkTableCell> cells) =>
         new(Name, RowCount, ColumnCount, cells, HeaderRowCount, HeaderColumnCount, FooterRowCount,
             DefaultRowHeight, DefaultColumnWidth, MergedRanges, Geometry, AccessibilityDescription,
-            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows, TextStyles, FillStyles, HiddenRows, HiddenColumns);
+            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows, TextStyles, FillStyles, HiddenRows, HiddenColumns, _borderResolver, CellLayoutDefaults, CellStorageIsComplete);
+
+    /// <summary>Gets whether native table defaults or selected edges declare border formatting, including invisible or unresolved borders.</summary>
+    public bool HasBorderDeclarations => _borderResolver?.HasDeclarations == true || Cells.Any(cell => cell.BorderStyle?.HasDeclarations == true);
+
+    /// <summary>Gets effective borders in points at a one-based cell without materializing an empty grid.
+    /// Zero-width sides explicitly clear borders. Null sides are absent or unsupported, with source diagnostics distinguishing rejected declarations.
+    /// Native sparse edits resolve both neighboring cells to the same physical edge using their edit order.</summary>
+    public OfficeBorderBox GetBorders(int row, int column) {
+        if (row < 1 || row > RowCount) throw new ArgumentOutOfRangeException(nameof(row));
+        if (column < 1 || column > ColumnCount) throw new ArgumentOutOfRangeException(nameof(column));
+        return _borderResolver?.GetBorders(row, column, this) ?? default;
+    }
 
     /// <summary>Gets supported table-region and alternating body-row fill defaults without materializing empty source cells.</summary>
     public IWorkTableFillStyles FillStyles { get; }

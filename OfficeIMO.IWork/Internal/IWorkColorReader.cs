@@ -38,4 +38,19 @@ internal static class IWorkColorReader {
 
     private static byte Component(float value) =>
         (byte)Math.Round(value * 255, MidpointRounding.AwayFromZero);
+
+    /// <summary>Qualifies the opaque RGB/gray archive shape shared by fills and table strokes.</summary>
+    internal static bool IsSupportedColor(IWorkWireMessage color) {
+        int[] fields = { 1, 3, 4, 5, 6, 11, 12, 13 };
+        if (color.TotalFieldCount != fields.Sum(color.FieldCount)) return false;
+        foreach (int field in new[] { 1, 12 })
+            if (color.FieldCount(field) > 1 || color.HasUnexpectedWireKind(field, IWorkWireKind.Varint)) return false;
+        if (color.HasField(12) && color.GetUnsigned(12) != 1) return false;
+        // Keynote 15.4's additional opaque-sRGB scalar is qualified only at 1.
+        if (color.HasField(13) && (color.FieldCount(13) != 1
+            || color.HasUnexpectedWireKind(13, IWorkWireKind.Fixed32)
+            || color.GetFloat(13) != 1f || color.GetUnsigned(1) != 1
+            || color.GetUnsigned(12) != 1 || color.HasField(11))) return false;
+        return !color.HasField(1) || color.GetUnsigned(1) == (color.HasField(11) ? 3UL : 1UL);
+    }
 }

@@ -14,6 +14,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            // Reference failures are resolved before invoking user code; the
+            // callback must not receive an incomplete argument vector.
+            if (_formulaReferenceError.IsError) { result = _formulaReferenceError; return true; }
+
             var customArguments = new ExcelFormulaValue[arguments.Count];
             for (int index = 0; index < arguments.Count; index++) {
                 if (!TryConvertFormulaArgumentToCustomValue(arguments[index], out customArguments[index])) {

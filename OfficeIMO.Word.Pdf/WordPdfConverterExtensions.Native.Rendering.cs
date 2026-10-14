@@ -108,8 +108,10 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.Bookmark(paragraph.Bookmark!.Name!);
             }
 
-            List<WordTextBox> textBoxes = runs.SelectMany(run => run.GetTextBoxes()).ToList();
+            List<WordTextBox> textBoxes = GetNativeVisibleTextBoxes(paragraph, runs);
             if (textBoxes.Count > 0) {
+                if (TryRenderNativeAnchoredRunningTextBoxParagraph(pdf, paragraph, runs, marker,
+                        footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) return;
                 RenderNativeMixedTextBoxes(pdf, paragraph, runs, marker, getMarker,
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap, 0, nextParagraph);
                 return;
@@ -289,15 +291,6 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.Spacer(height);
                 pdf.ParagraphSpacingAfter(style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter);
             }
-        }
-
-        private static bool ShouldRenderNativeEmptyParagraphLineBox(WordParagraph paragraph) {
-            // Empty text still has a paragraph mark. Its visibility, rather than
-            // the presence of direct spacing or run formatting, determines the line.
-            bool hiddenMark = ReadNativeOnOff(paragraph._paragraph?.ParagraphProperties?
-                .ParagraphMarkRunProperties?.GetFirstChild<W.Vanish>()) ??
-                GetNativeParagraphStyleDefaults(paragraph).Hidden ?? false;
-            return !hiddenMark;
         }
 
         private static double MeasureNativeEmptyParagraphLineHeight(
@@ -815,7 +808,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static WordTextBox? FindNativeParagraphTextBox(WordParagraph paragraph) {
-            return GetNativeRuns(paragraph).Select(run => run.TextBox).FirstOrDefault(textBox => textBox != null);
+            return GetNativeVisibleTextBoxes(paragraph, GetNativeRuns(paragraph)).FirstOrDefault();
         }
 
         private static string? GetNativeParagraphTextBoxPlainText(WordParagraph paragraph) {
@@ -853,7 +846,7 @@ namespace OfficeIMO.Word.Pdf {
                 for (int index = 0; index < paragraphs.Count; index++) {
                     WordParagraph paragraph = paragraphs[index];
                     List<WordParagraph> runs = GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
-                    if (runs.Any(run => run.GetTextBoxes().Any())) {
+                    if (GetNativeVisibleTextBoxes(paragraph, runs).Count > 0) {
                         RenderNativeMixedTextBoxes(new NativePdfColumnFlow(contentBuilder, pdf.PageSize),
                             paragraph, runs, getMarker(paragraph), getMarker, footnoteNumbersById,
                             options, nativeDefaults, nativeFontMap, depth);
@@ -1160,17 +1153,6 @@ namespace OfficeIMO.Word.Pdf {
                     : string.Empty;
         }
 
-        private static bool IsNativeHiddenTextRun(WordParagraph paragraph, WordParagraph? fallback = null) {
-            WordParagraph styleSource = fallback ?? paragraph;
-            W.RunProperties? runProperties = GetNativeRunProperties(paragraph);
-            NativeCharacterStyleDefaults characterStyleDefaults = GetNativeCharacterStyleDefaults(paragraph._document, runProperties);
-            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(styleSource);
-            return ReadNativeOnOff(runProperties?.GetFirstChild<W.Vanish>()) ??
-                   characterStyleDefaults.Hidden ??
-                   styleDefaults.Hidden ??
-                   false;
-        }
-
         private static OfficeTextDecorationStyle? MapNativeUnderlineStyle(W.Underline? underline) {
             if (underline == null) return null;
             W.UnderlineValues value = underline.Val?.Value ?? W.UnderlineValues.Single;
@@ -1219,9 +1201,8 @@ namespace OfficeIMO.Word.Pdf {
                    ParseNativeColor(GetNativeParagraphStyleDefaults(paragraph).ColorHex);
         }
 
-        private static PdfCore.PdfStandardFont? ResolveNativeTextRunFont(WordParagraph paragraph, WordParagraph? fallback, NativeCharacterStyleDefaults characterStyleDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
+        private static PdfCore.PdfStandardFont? ResolveNativeTextRunFont(WordParagraph paragraph, NativeCharacterStyleDefaults characterStyleDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
             foreach (string family in EnumerateNativeParagraphOwnFontFamilies(paragraph)
-                .Concat(fallback == null ? Array.Empty<string>() : EnumerateNativeParagraphOwnFontFamilies(fallback))
                 .Concat(EnumerateNativeStyleFontFamilies(characterStyleDefaults, styleDefaults, tableRunStyleDefaults,
                     nativeDefaults, nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true))) {
                 if (TryResolveNativeMappedFont(family, nativeFontMap, out PdfCore.PdfStandardFont font)) return font;
@@ -1236,7 +1217,6 @@ namespace OfficeIMO.Word.Pdf {
 
         private static string? ResolveNativeTextRunFontFamily(
             WordParagraph paragraph,
-            WordParagraph? fallback,
             NativeCharacterStyleDefaults characterStyleDefaults,
             NativeParagraphStyleDefaults styleDefaults,
             NativeTableRunStyleDefaults tableRunStyleDefaults,
@@ -1247,7 +1227,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (string? familyName in EnumerateNativeParagraphOwnFontFamilies(paragraph)
-                .Concat(fallback == null ? Enumerable.Empty<string>() : EnumerateNativeParagraphOwnFontFamilies(fallback))
                 .Concat(EnumerateNativeStyleFontFamilies(characterStyleDefaults, styleDefaults, tableRunStyleDefaults,
                     nativeDefaults, !nativeFontMap.UsePdfDefaultForDocumentDefaultFont))) {
                 if (string.IsNullOrWhiteSpace(familyName)) {

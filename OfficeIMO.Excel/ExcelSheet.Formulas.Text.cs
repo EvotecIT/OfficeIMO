@@ -15,9 +15,8 @@ namespace OfficeIMO.Excel {
             result = default;
             var tokens = SplitFormulaArguments(args);
             if (function == "FORMULATEXT") {
-                if (tokens.Count != 1 || !TryGetFormulaTextArgument(tokens[0], out string formulaText)) {
-                    return false;
-                }
+                if (tokens.Count != 1) return false;
+                if (!TryGetFormulaTextArgument(tokens[0], out string formulaText)) return _formulaReferenceError.IsError;
 
                 result = new FormulaArgumentValue(null, formulaText.StartsWith("=", StringComparison.Ordinal) ? formulaText : "=" + formulaText);
                 return true;
@@ -410,25 +409,21 @@ namespace OfficeIMO.Excel {
             var tokens = SplitFormulaArguments(args);
             if (tokens.Count < 2
                 || tokens.Count > 3
-                || !TryResolveFormulaRangeReference(tokens[0], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2)
                 || !TryGetWholeNumberArgument(tokens[1], out int rowIndex)) {
                 return false;
             }
 
+            int columnIndex = 1;
+            if (tokens.Count == 3 && !TryGetWholeNumberArgument(tokens[2], out columnIndex)) return false;
+            if (!TryResolveFormulaRangeReference(tokens[0], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2))
+                return _formulaReferenceError.IsError;
+
             int rowCount = r2 - r1 + 1;
             int columnCount = c2 - c1 + 1;
-            int columnIndex;
-            if (tokens.Count == 3) {
-                if (!TryGetWholeNumberArgument(tokens[2], out columnIndex)) {
-                    return false;
-                }
-            } else if (columnCount == 1) {
-                columnIndex = 1;
-            } else if (rowCount == 1) {
-                columnIndex = rowIndex;
-                rowIndex = 1;
-            } else {
-                return false;
+            if (tokens.Count != 3) {
+                if (columnCount == 1) columnIndex = 1;
+                else if (rowCount == 1) { columnIndex = rowIndex; rowIndex = 1; }
+                else return false;
             }
 
             if (rowIndex < 1 || rowIndex > rowCount || columnIndex < 1 || columnIndex > columnCount) {
@@ -446,13 +441,7 @@ namespace OfficeIMO.Excel {
             if (tokens.Count < 2
                 || tokens.Count > maxTokens
                 || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue lookupValue)
-                || !TryResolveFormulaRangeReference(tokens[1], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2)) {
-                return false;
-            }
-
-            bool vertical = c1 == c2;
-            bool horizontal = r1 == r2;
-            if (!vertical && !horizontal) {
+                || lookupValue.IsUnresolvedFormula) {
                 return false;
             }
 
@@ -475,6 +464,10 @@ namespace OfficeIMO.Excel {
                 && (!TryGetWholeNumberArgument(tokens[3], out searchMode) || (searchMode != 1 && searchMode != -1))) {
                 return false;
             }
+
+            if (!TryResolveFormulaRangeReference(tokens[1], out _, out int r1, out int c1, out int r2, out int c2))
+                return _formulaReferenceError.IsError;
+            if (c1 != c2 && r1 != r2) return false;
 
             int lookupMode = function == "MATCH" ? -matchMode : matchMode;
             if (!TryResolveFormulaRange(tokens[1], out var lookupValues) || lookupValue.IsUnresolvedFormula) return false;

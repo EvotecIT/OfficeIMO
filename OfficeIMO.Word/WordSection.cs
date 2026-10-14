@@ -910,24 +910,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal WordHeader? ResolveEvenHeader() {
-            for (int index = GetSectionOrdinal(); index >= 0; index--) {
-                WordSection section = _document.Sections[index];
-                if (WordHeadersAndFooters.GetHeaderReference(_document, section, HeaderFooterValues.Even) &&
-                    section.Header?.Even is WordHeader header) return header;
-            }
-            return null;
-        }
-
-        internal WordFooter? ResolveEvenFooter() {
-            for (int index = GetSectionOrdinal(); index >= 0; index--) {
-                WordSection section = _document.Sections[index];
-                if (WordHeadersAndFooters.GetFooterReference(_document, section, HeaderFooterValues.Even) &&
-                    section.Footer?.Even is WordFooter footer) return footer;
-            }
-            return null;
-        }
-
         /// <summary>
         /// Gets or sets a value indicating whether the gutter should be on the right for RTL pages.
         /// </summary>

@@ -391,8 +391,13 @@ internal static partial class PdfWriter {
 
                 double segmentStartX = xCursor;
                 PdfTextShowCommand textCommand = s.KerningCommand ?? EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale);
-                if (HasRichTextSpacing(s.HorizontalTextScaling, s.CharacterSpacing)) {
+                // Imported layout uses design-unit advances while PDF widths are
+                // rounded. Anchor each run before those differences accumulate
+                // across paint boundaries or reach later inline decorations.
+                if (opts.UseFontUnitTextLayout || HasRichTextSpacing(s.HorizontalTextScaling, s.CharacterSpacing)) {
                     content.TextMatrix(lineXOrigin + xCursor, lineY);
+                }
+                if (HasRichTextSpacing(s.HorizontalTextScaling, s.CharacterSpacing)) {
                     ApplyRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, wordSpacing);
                 }
                 if (linkMarkedContentId.HasValue) {

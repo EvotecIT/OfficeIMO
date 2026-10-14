@@ -1,6 +1,6 @@
 # OfficeIMO.Workflows.IWork
 
-Opt-in Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint conversion through the shared OfficeIMO workflow runner.
+Opt-in Pages-to-Word, Numbers-to-Excel, Keynote-to-PowerPoint, and complete editable iWork-to-PDF conversion through the shared OfficeIMO workflow runner.
 
 ```csharp
 using OfficeIMO.Workflows;
@@ -15,7 +15,7 @@ OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
 });
 ```
 
-The runner captures the source, bounds input and output, reopens the staged destination through its format owner, verifies the source before publication, and applies the requested conflict policy. The `SourceSnapshot` diagnostic identifies captured bytes by SHA-256, length, selected filename, and `snapshotKind`. For a directory package, the checksum describes a deterministic private ZIP transport snapshot of the captured file membership and contents; it is not a checksum of an original ZIP file. Package-root replacement and changes to membership or content prevent publication. `ConversionEvidence` retains typed fidelity categories and compact producer, projection, and coverage facts. Successful publication does not establish complete source fidelity or visual equivalence.
+The runner captures the source, bounds input and output, reopens the staged destination through its format owner, verifies the source before publication, and applies the requested conflict policy. The `SourceSnapshot` diagnostic identifies captured bytes by SHA-256, length, selected filename, and `snapshotKind`. For a directory package, the checksum describes a deterministic private ZIP transport snapshot of the captured file membership and contents; it is not a checksum of an original ZIP file. `ConversionEvidence.Facts["packageContentSha256"]` separately identifies the normalized entries read by the iWork owner, including expanded nested indexes. It matches `IWorkSourceDocument.ComputePackageContentHash()` for equivalent captured package content. Package-root replacement and changes to membership or content prevent publication. `ConversionEvidence` retains typed fidelity categories and compact producer, projection, and coverage facts after completed conversion, including when output validation or publication later fails or is cancelled. Successful publication does not establish complete source fidelity or visual equivalence. `OutputBytes` and `OutputSha256` describe the captured published artifact; result construction does not reopen the final path.
 
 The default acceptance policy rejects explicitly partial editable reconstruction and previews without known full-document coverage. Pass `IWorkConversionOptions` to `CreateRunner` to choose editable or visual output, permit partial reconstruction, or normalize Numbers worksheet names. These options are copied when routes are registered. Each request can instead supply its own `IWorkWorkflowSettings`; the runner snapshots them before opening the source, so later caller edits cannot change a pending conversion. Destination renames, approximations, omissions, and unassessed source records remain reported.
 
@@ -34,6 +34,55 @@ var request = new OfficeWorkflowRequest {
 OfficeWorkflowResult preview = await runner.RunAsync(request);
 ```
 
+The `pages-pdf`, `numbers-pdf`, and `keynote-pdf` routes compose the same editable adapters with the existing Word, Excel, and PowerPoint PDF owners. They reject visual previews, explicitly partial reconstruction, content-excluding options, and reported PDF-stage omissions, clipping or failures before publication. Numbers includes every worksheet, row, and column without print-area clipping; Keynote includes hidden slides; presenter notes are reported as omissions and prevent publication in the slide-page route. Complete editable content does not establish exact pagination or typography. Font and rendering approximations remain in the result.
+
+The [controlled Pages inline-table reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-inline-table-flow-word-v16.113.3.json) qualifies complete `pages-docx` and `pages-pdf` output for its fixed, unmerged grid. All values, borders and bold-cell selections survive; native Word and OfficeIMO PDF retain the source frame within the recorded raster tolerance. Pages DOCX reimport uses taller rows, and the portable PDF profile substitutes fonts. Floating tables, automatic sizing and other placement modes retain their existing acceptance limits.
+
+```csharp
+var pdfSettings = new IWorkWorkflowSettings();
+OfficeWorkflowResult pdf = await runner.RunAsync(new OfficeWorkflowRequest {
+    InputPath = "presentation.key",
+    OutputPath = "presentation.pdf",
+    Operation = OfficeWorkflowOperation.Convert,
+    ConversionRouteId = "keynote-pdf",
+    RegisteredConversionSettings = pdfSettings
+});
+```
+
+Use `PagesPdfOptions`, `NumbersPdfOptions`, and `KeynotePdfOptions` for destination layout, font, and resource policy; request snapshots copy these options. Registered PDF options reject encryption before opening the source; apply the PDF protection workflow to a completed conversion. `ConversionEvidence` retains both the iWork and PDF reports, including serialization/font preflight evidence, with `conversionStages = iwork-editable,pdf`. `OfficeWorkflowRequest.ConversionOptions.CompressPdfOutput` applies the shared verified lossless PDF optimizer. Failed PDF saves and postprocessing retain available stage evidence and preserve an existing destination. Cancellation after staged-output reopening also removes staging without replacing the destination.
+
+Supply a shared `OfficeRenderingProfile` when the source needs glyphs outside the PDF base fonts. This profile uses caller-owned font files and disables installed-font discovery:
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+
+var fonts = new OfficeFontFaceCollection();
+foreach (var (name, style) in new[] {
+    ("Regular", OfficeFontStyle.Regular), ("Bold", OfficeFontStyle.Bold),
+    ("Italic", OfficeFontStyle.Italic), ("BoldItalic", OfficeFontStyle.Bold | OfficeFontStyle.Italic)
+}) fonts.Add("Carlito", File.ReadAllBytes($"fonts/Carlito-{name}.ttf"), style);
+fonts.Add("Noto Emoji", File.ReadAllBytes("fonts/NotoEmoji-VariableFont_wght.ttf"))
+    .AddFallbackFamily("Noto Emoji");
+fonts.Add("Noto JP Common", File.ReadAllBytes("fonts/NotoSansJP-OfficeIMO-Common.ttf"))
+    .AddFallbackFamily("Noto JP Common");
+fonts.AddFallbackFamily("Carlito");
+var profile = new OfficeRenderingProfile("portable-iwork", fonts);
+var portablePdfSettings = new IWorkWorkflowSettings();
+portablePdfSettings.PagesPdfOptions.UseRenderingProfile(profile);
+portablePdfSettings.NumbersPdfOptions.UseRenderingProfile(profile);
+portablePdfSettings.KeynotePdfOptions.UseRenderingProfile(profile);
+portablePdfSettings.PagesPdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
+portablePdfSettings.NumbersPdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
+portablePdfSettings.KeynotePdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
+```
+
+Pass `portablePdfSettings` as `RegisteredConversionSettings`. Choose licensed faces covering the characters and styles in the source; the profile does not bundle fonts in OfficeIMO. The [native-content PDF reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-pdf-portable.json) pins these font inputs and licenses, text/value checks and every rendered page at its recorded source revision. Pages produces two pages and Keynote three. Current native Numbers region padding produces an XLSX-stage omission and prevents complete PDF publication; the recorded four-page Numbers output does not qualify padding retention. Font substitutions, monochrome emoji, text metrics and numeric display remain approximations. Numbers follows the XLSX adapter's table-per-worksheet layout and can split column ranges across PDF pages; this differs from Apple's positioned sheet export.
+
+The [mixed-font decimal-list reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-mixed-font-lists-v15.4.json) additionally qualifies complete one-page Pages conversion with three run families at a shared size, independent marker fonts, all nine decimal levels and native-edited insertion. Portable output declares standard-family substitutions; caller-supplied Arial, Times New Roman and Courier New faces retain the selected run styles. The fixture records all nine native/composed/receiving PDF pages and the font environment; broader typography and pagination remain separate qualification work.
+
+The [composed PDF NativeAOT reference](../Docs/Compatibility/iwork-composed-pdf-native-aot-macos-arm64-2026-10-11.json) qualifies the bounded Pages body/list and Keynote image profiles on macOS arm64 under .NET 10, with six caller-supplied portable fonts. It also checks a synthetic unpadded Numbers control, native Numbers padding rejection, other complete-content rejection policies, output limits and atomic cancellation. Run the existing `Build/Test-AotScenarios.ps1` gate with `-Scenario iwork-pdf-net8,iwork-pdf`. This qualification does not cover the complete workflow API, other architectures, sandbox hosts or Apple appearance equivalence. The .NET 8 host is configured, but its recorded Apple linker failure leaves native execution unqualified.
+
 Routes accept local ZIP files, local directory packages, provider ZIP streams, and provider directory packages. Directory capture uses the bounded iWork container owner, including nested `Index.zip` packages. Output cannot be placed inside a source package or alias one of its members. For provider directories, set `InputDirectoryPackage` to an `OfficeWorkflowDirectoryPackageInput` containing the selected filename, a reopenable `OfficeWorkflowDirectoryInput`, and a permission-aware root identity/output-separation guard. Set an explicit `OutputPath` and omit `InputStream`. The shared runner captures at most `MaximumEntries` members (10,000 by default) within `Limits.MaximumInputBytes`, then invokes the format owner on private staging. Before publication it re-enumerates the original provider and verifies member identities and bytes. The provider guard must reject root replacement and destinations inside or containing the source package. Native sandbox/bookmark qualification remains separate from this provider contract. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md) for format limits and the [workflow guide](../OfficeIMO.Workflows/README.md) for publication and provider contracts.
 
 Retained evidence includes identified source-unit totals and reconstructed, omitted, and unassessed counts. These totals describe units selected by the semantic projection, including explicitly omitted unsupported drawables and Numbers sheet references. Inactive templates, auxiliary table models/tiles, unresolved references, and unassessed content paths remain excluded. A visual preview does not establish individual object coverage. Full per-kind counts and native object identities are available on the owning adapter's `IWorkConversionReport`.
@@ -45,3 +94,21 @@ Declaration evidence retains `sourceDeclarationIssueCount` after destination dis
 Cell evidence retains `sourceCellIssueCount` after destination disposal. It counts materialized selected cells with decoding failures; native error markers and unmaterialized storage are excluded. Table identities, coordinates and messages are available in `IWorkConversionReport.SourceCellIssues`.
 
 Reference evidence retains `sourceReferenceIssueCount`, `sourceMissingReferenceTargetCount`, `sourceMalformedReferenceCount`, `sourceRejectedReferenceSetCount` and `sourceUnexpectedReferenceTargetTypeCount` after destination disposal. These count failed declared occurrences in the core's assessed content paths, separately from identified objects. Repeated occurrences within a source field remain separate; reuse of a shared text or template archive does not multiply its evidence. Full owner identities, field paths and target identifiers remain in `IWorkConversionReport.SourceReferenceIssues`. Missing, unreadable or unsupported target-type references have unassessed fidelity; the counts do not establish omitted-object totals or preview coverage.
+
+The [Pages inline-table reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-tables-v15.4.json) adds complete one-page PDFs for a created document and its Apple-saved numeric edit. Both retain all ten selected source units, two separate grids and Unicode/scalar text. The [inline-image reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-images-v15.4.json) adds created and Apple-resized PNG/JPEG bodies with all 12 selected units, point-sized frames and exact decoded colors/alpha. The pinned font profiles, independently decoded output and inspected rasters record the remaining locale, emoji, spacing and typography differences.
+
+The [decimal-list reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-numbering-v15.4.json) adds a mixed body and its Apple-saved inserted parent. Complete one-page PDFs retain all ten selected source units, 14 original or 15 edited decimal markers, restarts, two levels, a table and an image. Native PDF exports supply independent expected counters. Font substitution, emoji appearance and exact native spacing remain recorded limits.
+
+The [decimal marker-form reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-decimal-marker-forms-v15.4.json) qualifies `(1)` and `1)` markers at levels 0–8 with uniform Arial 12 text. Each form retains all 37 original and 38 native-edited counters, starts/restarts and resumed scopes. Nine fixed-length text edits per form change only their declared UTF-8 ranges; further native text edits and a deepest-level insertion survive Pages 15.4 save/close/reopen. Native exports and strict saved OfficeIMO DOCX retain the marker forms and indents. Each preserved DOCX renders with all 154 native word bounds unchanged in Pages. All sixteen native/composed/receiving PDF pages are inspected; composed typography retains explicit font substitution. This is an OfficeIMO-authored, Apple-saved body profile, with no broader producer, font, container or pagination claim.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 0 | 3 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Workflows.IWork` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

@@ -159,9 +159,9 @@ namespace OfficeIMO.Excel {
             result = default;
             var tokens = SplitFormulaArguments(args);
             if (function == "ISFORMULA") {
-                if (tokens.Count != 1 || !TryResolveFormulaReferenceArgument(tokens[0], out ExcelSheet referenceSheet, out int referenceRow, out int referenceColumn)) {
-                    return false;
-                }
+                if (tokens.Count != 1) return false;
+                if (!TryResolveFormulaReferenceArgument(tokens[0], out ExcelSheet referenceSheet, out int referenceRow, out int referenceColumn))
+                    return _formulaReferenceError.IsError;
 
                 bool isFormula = referenceSheet.TryGetExistingCell(referenceRow, referenceColumn)?.CellFormula != null;
                 result = FormulaArgumentValue.Boolean(isFormula);
@@ -220,7 +220,7 @@ namespace OfficeIMO.Excel {
 
             if (function == "ROW" || function == "COLUMN") {
                 if (!TryResolveFormulaReferenceArgument(tokens[0], out _, out int row, out int column)) {
-                    return false;
+                    return _formulaReferenceError.IsError;
                 }
 
                 result = function == "ROW" ? row : column;
@@ -243,6 +243,7 @@ namespace OfficeIMO.Excel {
                     out r2,
                     out c2,
                     out _)) {
+                if (_formulaReferenceError.IsError) return true;
                 // Scalar literals have one row and one column. Do not turn an
                 // unresolved reference or unsupported array into a scalar value.
                 string literal = tokens[0].Trim();
@@ -334,7 +335,8 @@ namespace OfficeIMO.Excel {
         private bool TryEvaluateCountBlank(string args, out double result) {
             result = 0;
             var tokens = SplitFormulaArguments(args);
-            if (tokens.Count != 1 || !TryResolveFormulaRange(tokens[0], out var values)) {
+            if (tokens.Count != 1 || !TryResolveFormulaRange(tokens[0], out var values)
+                || values.Any(value => value.IsUnresolvedFormula)) {
                 return false;
             }
 
@@ -363,6 +365,8 @@ namespace OfficeIMO.Excel {
 
                 values.AddRange(rangeValues);
             }
+            if (values.Any(value => value.IsUnresolvedFormula)) return false;
+            if (_formulaReferenceError.IsError) return true;
 
             if (values.Count == 0) {
                 return false;
@@ -399,8 +403,9 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TryEvaluateConditionalAggregate(string function, string args, out double result) {
+        private bool TryEvaluateConditionalAggregate(string function, string args, out double result, out FormulaArgumentValue error) {
             result = 0;
+            error = default;
             var tokens = SplitFormulaArguments(args);
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             if (tokens.Count < 2 || tokens.Count > 3
@@ -411,12 +416,15 @@ namespace OfficeIMO.Excel {
 
             var aggregateValues = criteriaValues;
             if (tokens.Count == 3) {
-                if (!TryResolveFormulaRange(tokens[2], out aggregateValues, ref remainingCellBudget) || aggregateValues.Count != criteriaValues.Count) {
+                if (!TryResolveFormulaRange(tokens[2], out aggregateValues, ref remainingCellBudget)) {
                     return false;
                 }
             } else if (function == "AVERAGEIF") {
                 aggregateValues = criteriaValues;
             }
+            if (criteriaValues.Concat(aggregateValues).Any(value => value.IsUnresolvedFormula)) return false;
+            if (_formulaReferenceError.IsError) return true;
+            if (aggregateValues.Count != criteriaValues.Count) return false;
 
             var matched = new List<FormulaArgumentValue>();
             for (int index = 0; index < criteriaValues.Count; index++) {
@@ -430,6 +438,10 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            // Selected errors survive aggregation; unmatched errors remain irrelevant.
+            error = matched.FirstOrDefault(value => value.IsError);
+            if (error.IsError) return false;
+
             var numbers = matched.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "SUMIF") {
                 result = numbers.Sum();
@@ -437,6 +449,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numbers.Count == 0) {
+                error = FormulaArgumentValue.Error("#DIV/0!");
                 return false;
             }
 

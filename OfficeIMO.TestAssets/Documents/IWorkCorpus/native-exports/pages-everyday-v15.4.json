@@ -1,0 +1,34 @@
+{
+  "source": "picodocs/sample-v14.4.pages",
+  "sourceSha256": "4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce",
+  "producer": "Apple Pages",
+  "producerVersion": "15.4",
+  "producerBuild": "7051.0.79",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "capturedUtc": "2026-10-09T08:20:36.559494+00:00",
+  "artifacts": [
+    {
+      "path": "native-exports/pages-everyday-v15.4.docx",
+      "sha256": "66dd8498db93a32506b9ab667832c10e989a892383504113de490352f6d25bc4",
+      "bytes": 32508
+    },
+    {
+      "path": "native-exports/pages-everyday-v15.4.pdf",
+      "sha256": "9700a5b232330d5d6abcbff8543a239d1b3b6dcd2baf9e9519a0905b8a194710",
+      "bytes": 170900
+    }
+  ],
+  "sourceModified": false,
+  "sourceModificationScope": "Only the scratch copy was opened; original licensed corpus bytes remain unchanged.",
+  "exportOptions": {
+    "office": "DOCX, no password.",
+    "pdf": "Best image quality, optional comments/password disabled."
+  },
+  "license": "Existing upstream MIT fixture notice recorded in IWorkCorpus/README.md; exported derivatives retain that provenance.",
+  "fontProvenance": "Installed macOS fonts and native embedded PDF subsets only; no standalone font files are distributed.",
+  "qualification": [
+    "Three native pages; body text, three tables, two section headers and footers, lists, hyperlink, image, and end marker inspected.",
+    "DOCX semantic comparison qualifies nonempty body order, all headers and footers, and the first two tables. Third-table date/currency display strings differ with locale.",
+    "The source still requires explicit partial editable acceptance because of selected unqualified typography. Native pagination and overall appearance equivalence are not claimed."
+  ]
+}

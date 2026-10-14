@@ -1,0 +1,490 @@
+{
+  "schemaVersion": 1,
+  "license": "MIT",
+  "contentOrigin": "New OfficeIMO-authored scalar tables; no seed document or redistributed standalone font.",
+  "nativeLocale": "Polish decimal comma and grouped spaces",
+  "families": [
+    {
+      "kind": "Numbers",
+      "applicationVersion": "14.5",
+      "applicationBuild": "7045.0.17",
+      "created": "numbers-created-formats-v14.5.numbers",
+      "edited": "numbers-created-formats-edited-v14.5.numbers",
+      "nativeEditable": "numbers-created-formats-edited-v14.5.xlsx",
+      "nativePdf": "numbers-created-formats-edited-v14.5.pdf",
+      "createdGraph": "numbers-created-formats-v14.5-graph.json",
+      "editedDecode": "numbers-created-formats-edited-v14.5-decode.json",
+      "nativeRaster": "numbers-created-formats-edited-v14.5.png",
+      "nativeScreenshot": "numbers-created-formats-edited-v14.5-screen.png",
+      "officeimoEditable": "numbers-created-formats-officeimo-v14.5.xlsx"
+    },
+    {
+      "kind": "Pages",
+      "applicationVersion": "15.4",
+      "applicationBuild": "7051.0.79",
+      "created": "pages-created-formats-v15.4.pages",
+      "edited": "pages-created-formats-edited-v15.4.pages",
+      "nativeEditable": "pages-created-formats-edited-v15.4.docx",
+      "nativePdf": "pages-created-formats-edited-v15.4.pdf",
+      "createdGraph": "pages-created-formats-v15.4-graph.json",
+      "editedDecode": "pages-created-formats-edited-v15.4-decode.json",
+      "nativeRaster": "pages-created-formats-edited-v15.4.png",
+      "nativeScreenshot": "pages-created-formats-edited-v15.4-screen.png",
+      "officeimoEditable": "pages-created-formats-officeimo-v15.4.docx"
+    },
+    {
+      "kind": "Keynote",
+      "applicationVersion": "15.4",
+      "applicationBuild": "7051.0.79",
+      "created": "keynote-created-formats-v15.4.key",
+      "edited": "keynote-created-formats-edited-v15.4.key",
+      "nativeEditable": "keynote-created-formats-edited-v15.4.pptx",
+      "nativePdf": "keynote-created-formats-edited-v15.4.pdf",
+      "createdGraph": "keynote-created-formats-v15.4-graph.json",
+      "editedDecode": "keynote-created-formats-edited-v15.4-decode.json",
+      "nativeRaster": "keynote-created-formats-edited-v15.4.png",
+      "nativeScreenshot": "keynote-created-formats-edited-v15.4-screen.png",
+      "officeimoEditable": "keynote-created-formats-officeimo-v15.4.pptx"
+    }
+  ],
+  "artifacts": {
+    "numbers-created-formats-v14.5.numbers": {
+      "bytes": 30500,
+      "sha256": "639566a8dab685ffe30c39450fcb1c555404e5d994fbad3bc0a28d2f408ec9b5"
+    },
+    "numbers-created-formats-edited-v14.5.numbers": {
+      "bytes": 121516,
+      "sha256": "be96883a00b05d3c940012c17b3973374447b18136e3350735bb085f4ed4b74e"
+    },
+    "numbers-created-formats-edited-v14.5.xlsx": {
+      "bytes": 6084,
+      "sha256": "064d8d2322e1433869e12d16b37b1b9f80e4f11bb0d694eaef3cc96feba60d49"
+    },
+    "numbers-created-formats-edited-v14.5.pdf": {
+      "bytes": 37012,
+      "sha256": "96ee95ee0d6f27fca7f559fb7e387f6d950e62de3153a18ce439d219b2b53880"
+    },
+    "numbers-created-formats-v14.5-graph.json": {
+      "bytes": 16192,
+      "sha256": "3eed7cd0fed233c3efcf2cea30b05911edf5c0f6263dd1cd05eaf70201ccdbc0"
+    },
+    "numbers-created-formats-edited-v14.5-decode.json": {
+      "bytes": 7318,
+      "sha256": "824b9907ca7cb84af7503ef74f1f6934002e8e9af44c621ae1c54fee17ec51fd"
+    },
+    "numbers-created-formats-edited-v14.5.png": {
+      "bytes": 89315,
+      "sha256": "2e83d39acd1ad730fd279ad79109836b48c8f4098ccb0c20968d4eea7ee0da7d"
+    },
+    "numbers-created-formats-edited-v14.5-screen.png": {
+      "bytes": 190593,
+      "sha256": "17f7597ed498479b8ec35fc50a3d49de583169a657b1fed98d0a1a6a04dadf76"
+    },
+    "numbers-created-formats-officeimo-v14.5.xlsx": {
+      "bytes": 4815,
+      "sha256": "d5717bf48c317109a1347a45054b54334ee95df765c1e67b87eedcf10d8092d6"
+    },
+    "pages-created-formats-v15.4.pages": {
+      "bytes": 31098,
+      "sha256": "806206cb68ae6f6d1cfee254460db0fca96b63d0e4e8d1cb06306069920b5eb4"
+    },
+    "pages-created-formats-edited-v15.4.pages": {
+      "bytes": 129628,
+      "sha256": "ca22e2a0213b0399681c1bbc6aee131493952232cd2f56c42345a6e446168658"
+    },
+    "pages-created-formats-edited-v15.4.docx": {
+      "bytes": 8540,
+      "sha256": "37958cd8eb85732cddf6d46917c5d9708957abf4acf3cff7f0d6c3e57f3c4459"
+    },
+    "pages-created-formats-edited-v15.4.pdf": {
+      "bytes": 37120,
+      "sha256": "e687fa8092000670fb80b536277b79d3f9462d596aef02b5bd1d2b128dbc1269"
+    },
+    "pages-created-formats-v15.4-graph.json": {
+      "bytes": 14830,
+      "sha256": "8bae5318299db86cabb8db41ca8dc3924b315150a71e577e1669e1d976a5b180"
+    },
+    "pages-created-formats-edited-v15.4-decode.json": {
+      "bytes": 7314,
+      "sha256": "59f03f0c0eb091a70b22266ec607ca7984f433dcf63bfd4f0e88be6f8df32ff2"
+    },
+    "pages-created-formats-edited-v15.4.png": {
+      "bytes": 73388,
+      "sha256": "d70fde483d8db330e4a9b439a4752f90b411cbf42c163ba2b44210a6ca861a42"
+    },
+    "pages-created-formats-edited-v15.4-screen.png": {
+      "bytes": 123766,
+      "sha256": "0363ef1ab02ddce33bb6e508cc26d4e2a8da37c045dfc555b7537c3fa69251e9"
+    },
+    "pages-created-formats-officeimo-v15.4.docx": {
+      "bytes": 20205,
+      "sha256": "b104befae718912895f8171de50bb25a39143a84cbd7965abafa6b0ab9c27575"
+    },
+    "keynote-created-formats-v15.4.key": {
+      "bytes": 29995,
+      "sha256": "8a29273c540b24cc1993e8954db8489dd63e879938d016431737bfbd77f61022"
+    },
+    "keynote-created-formats-edited-v15.4.key": {
+      "bytes": 164586,
+      "sha256": "cab7921901cd03748ac99e0429c244660f6eb61eaebb3266dbe478871f9c63eb"
+    },
+    "keynote-created-formats-edited-v15.4.pptx": {
+      "bytes": 13333,
+      "sha256": "7e5c67fc6fd85846d2907690e1573dc9c2e0e3469def5db7043ddd6523259f1b"
+    },
+    "keynote-created-formats-edited-v15.4.pdf": {
+      "bytes": 36981,
+      "sha256": "c0da78ba859d2595536e105d6d29921efce79232a78503c715b634a7727dcd37"
+    },
+    "keynote-created-formats-v15.4-graph.json": {
+      "bytes": 15096,
+      "sha256": "a14ab7c963d4a1f4c93b0326edacc427410c0a0ceee2bd16a37e144555351dac"
+    },
+    "keynote-created-formats-edited-v15.4-decode.json": {
+      "bytes": 7314,
+      "sha256": "bf693bd5b6e006fead01b07b15a2439d2c06e94877ca465bd0a195cf60f6a82c"
+    },
+    "keynote-created-formats-edited-v15.4.png": {
+      "bytes": 90436,
+      "sha256": "fc86961cc0fecd63d0aa256f9f4a1477f86bd9d02ea476bf9963f15f230c8c96"
+    },
+    "keynote-created-formats-edited-v15.4-screen.png": {
+      "bytes": 106041,
+      "sha256": "a5f81d8a86b70847144bf6ef487629504a0a2bce0e48c0d80da7a1484c8526e6"
+    },
+    "keynote-created-formats-officeimo-v15.4.pptx": {
+      "bytes": 25511,
+      "sha256": "bc7f3ddff0989cadf621867c608f86d837a349e5392a677add1aa1147ecc37a9"
+    }
+  },
+  "expectedRows": [
+    {
+      "row": 2,
+      "label": "Number zero",
+      "value": 12.5,
+      "editedValue": 12.5,
+      "format": {
+        "kind": "Number",
+        "decimalPlaces": 0,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "13",
+      "invariantDisplay": "13",
+      "invariantEditedDisplay": "13",
+      "excelFormatCode": "0"
+    },
+    {
+      "row": 3,
+      "label": "Number two",
+      "value": 12.5,
+      "editedValue": 12.5,
+      "format": {
+        "kind": "Number",
+        "decimalPlaces": 2,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "12,50",
+      "invariantDisplay": "12.50",
+      "invariantEditedDisplay": "12.50",
+      "excelFormatCode": "0.00"
+    },
+    {
+      "row": 4,
+      "label": "Grouping",
+      "value": 1234.5,
+      "editedValue": -9876,
+      "format": {
+        "kind": "Number",
+        "decimalPlaces": 2,
+        "negativeStyle": 0,
+        "thousandsSeparator": true
+      },
+      "nativeEditedDisplay": "-9 876,00",
+      "invariantDisplay": "1,234.50",
+      "invariantEditedDisplay": "-9,876.00",
+      "excelFormatCode": "#,##0.00"
+    },
+    {
+      "row": 5,
+      "label": "Minus",
+      "value": -1234.5,
+      "editedValue": -1234.5,
+      "format": {
+        "kind": "Number",
+        "decimalPlaces": 2,
+        "negativeStyle": 0,
+        "thousandsSeparator": true
+      },
+      "nativeEditedDisplay": "-1 234,50",
+      "invariantDisplay": "-1,234.50",
+      "invariantEditedDisplay": "-1,234.50",
+      "excelFormatCode": "#,##0.00"
+    },
+    {
+      "row": 6,
+      "label": "Parentheses",
+      "value": -1234.5,
+      "editedValue": -1234.5,
+      "format": {
+        "kind": "Number",
+        "decimalPlaces": 2,
+        "negativeStyle": 2,
+        "thousandsSeparator": true
+      },
+      "nativeEditedDisplay": "(1 234,50)",
+      "invariantDisplay": "(1,234.50)",
+      "invariantEditedDisplay": "(1,234.50)",
+      "excelFormatCode": "#,##0.00;(#,##0.00)"
+    },
+    {
+      "row": 7,
+      "label": "Red",
+      "value": -1234.5,
+      "editedValue": -1234.5,
+      "format": {
+        "kind": "Number",
+        "decimalPlaces": 2,
+        "negativeStyle": 1,
+        "thousandsSeparator": true
+      },
+      "nativeEditedDisplay": "1 234,50",
+      "invariantDisplay": "1,234.50",
+      "invariantEditedDisplay": "1,234.50",
+      "excelFormatCode": "#,##0.00;[Red]#,##0.00"
+    },
+    {
+      "row": 8,
+      "label": "Red parentheses",
+      "value": -1234.5,
+      "editedValue": -1234.5,
+      "format": {
+        "kind": "Number",
+        "decimalPlaces": 2,
+        "negativeStyle": 3,
+        "thousandsSeparator": true
+      },
+      "nativeEditedDisplay": "(1 234,50)",
+      "invariantDisplay": "(1,234.50)",
+      "invariantEditedDisplay": "(1,234.50)",
+      "excelFormatCode": "#,##0.00;[Red](#,##0.00)"
+    },
+    {
+      "row": 9,
+      "label": "Number fifteen",
+      "value": 0.5,
+      "editedValue": 0.5,
+      "format": {
+        "kind": "Number",
+        "decimalPlaces": 15,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "0,500000000000000",
+      "invariantDisplay": "0.500000000000000",
+      "invariantEditedDisplay": "0.500000000000000",
+      "excelFormatCode": "0.000000000000000"
+    },
+    {
+      "row": 10,
+      "label": "Number thirty",
+      "value": 0.5,
+      "editedValue": 0.5,
+      "format": {
+        "kind": "Number",
+        "decimalPlaces": 30,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "0,500000000000000000000000000000",
+      "invariantDisplay": "0.500000000000000000000000000000",
+      "invariantEditedDisplay": "0.500000000000000000000000000000",
+      "excelFormatCode": "0.000000000000000000000000000000"
+    },
+    {
+      "row": 11,
+      "label": "Percent zero",
+      "value": 0.125,
+      "editedValue": 0.125,
+      "format": {
+        "kind": "Percentage",
+        "decimalPlaces": 0,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "13%",
+      "invariantDisplay": "13%",
+      "invariantEditedDisplay": "13%",
+      "excelFormatCode": "0%"
+    },
+    {
+      "row": 12,
+      "label": "Percent two",
+      "value": 0.125,
+      "editedValue": -0.25,
+      "format": {
+        "kind": "Percentage",
+        "decimalPlaces": 2,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "-25,00%",
+      "invariantDisplay": "12.50%",
+      "invariantEditedDisplay": "-25.00%",
+      "excelFormatCode": "0.00%"
+    },
+    {
+      "row": 13,
+      "label": "Percent grouping",
+      "value": 12.345,
+      "editedValue": 12.345,
+      "format": {
+        "kind": "Percentage",
+        "decimalPlaces": 2,
+        "negativeStyle": 0,
+        "thousandsSeparator": true
+      },
+      "nativeEditedDisplay": "1 234,50%",
+      "invariantDisplay": "1,234.50%",
+      "invariantEditedDisplay": "1,234.50%",
+      "excelFormatCode": "#,##0.00%"
+    },
+    {
+      "row": 14,
+      "label": "Percent parentheses",
+      "value": -0.125,
+      "editedValue": -0.125,
+      "format": {
+        "kind": "Percentage",
+        "decimalPlaces": 2,
+        "negativeStyle": 2,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "(12,50%)",
+      "invariantDisplay": "(12.50%)",
+      "invariantEditedDisplay": "(12.50%)",
+      "excelFormatCode": "0.00%;(0.00%)"
+    },
+    {
+      "row": 15,
+      "label": "Percent red",
+      "value": -0.125,
+      "editedValue": -0.125,
+      "format": {
+        "kind": "Percentage",
+        "decimalPlaces": 2,
+        "negativeStyle": 1,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "12,50%",
+      "invariantDisplay": "12.50%",
+      "invariantEditedDisplay": "12.50%",
+      "excelFormatCode": "0.00%;[Red]0.00%"
+    },
+    {
+      "row": 16,
+      "label": "Percent red parentheses",
+      "value": -0.125,
+      "editedValue": -0.125,
+      "format": {
+        "kind": "Percentage",
+        "decimalPlaces": 2,
+        "negativeStyle": 3,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "(12,50%)",
+      "invariantDisplay": "(12.50%)",
+      "invariantEditedDisplay": "(12.50%)",
+      "excelFormatCode": "0.00%;[Red](0.00%)"
+    },
+    {
+      "row": 17,
+      "label": "Percent thirty",
+      "value": 0.5,
+      "editedValue": 0.5,
+      "format": {
+        "kind": "Percentage",
+        "decimalPlaces": 30,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "50,000000000000000000000000000000%",
+      "invariantDisplay": "50.000000000000000000000000000000%",
+      "invariantEditedDisplay": "50.000000000000000000000000000000%",
+      "excelFormatCode": "0.000000000000000000000000000000%"
+    },
+    {
+      "row": 18,
+      "label": "Scientific zero",
+      "value": 12345.0,
+      "editedValue": 12345.0,
+      "format": {
+        "kind": "Scientific",
+        "decimalPlaces": 0,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "1E+04",
+      "invariantDisplay": "1E+04",
+      "invariantEditedDisplay": "1E+04",
+      "excelFormatCode": "0E+00"
+    },
+    {
+      "row": 19,
+      "label": "Scientific four",
+      "value": 12345.0,
+      "editedValue": -54321,
+      "format": {
+        "kind": "Scientific",
+        "decimalPlaces": 4,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "-5,4321E+04",
+      "invariantDisplay": "1.2345E+04",
+      "invariantEditedDisplay": "-5.4321E+04",
+      "excelFormatCode": "0.0000E+00"
+    },
+    {
+      "row": 20,
+      "label": "Scientific thirty",
+      "value": 0.5,
+      "editedValue": 0.5,
+      "format": {
+        "kind": "Scientific",
+        "decimalPlaces": 30,
+        "negativeStyle": 0,
+        "thousandsSeparator": false
+      },
+      "nativeEditedDisplay": "5,000000000000000000000000000000E-01",
+      "invariantDisplay": "5.000000000000000000000000000000E-01",
+      "invariantEditedDisplay": "5.000000000000000000000000000000E-01",
+      "excelFormatCode": "0.000000000000000000000000000000E+00"
+    }
+  ],
+  "acceptance": {
+    "nativeOpenWithoutRepair": true,
+    "nativeFormatInspectorFamilies": [
+      "Number",
+      "Percentage",
+      "Scientific"
+    ],
+    "nativeEdit": "Paste numeric values into B4 (-9876), B12 (-25%) and B19 (-54321), save, close, reopen, then export the reopened document.",
+    "nativeNumericCellsAfterEdits": 57,
+    "allNativePdfPagesInspected": true,
+    "activeNumericFormatHeader": 1,
+    "suggestedNumericType": 1,
+    "independentProvider": "numbers-parser 4.19.0 with pinned family-specific descriptors",
+    "nativeNumbersExcelPosition": "Table A1:B20 exports at B2:C21; native numeric values start at C3.",
+    "pdfReaderWarnings": "Apple PDF xref entries 11 and 12 point at zero and are repaired by pypdf; text and full rendered pages are independently inspected."
+  },
+  "limits": [
+    "Only explicit decimal, percentage and scientific scalar formats are authored. Precision is 0-30, with grouping and four negative styles for decimal/percentage; scientific uses minus negatives without grouping.",
+    "Automatic, currency, fraction, temporal, custom and locale-specific format creation remain unsupported.",
+    "Display does not increase the precision of the finite double scalar. Tables have fixed dimensions and caller-selected fonts; receiving applications own fitting, localization and pagination.",
+    "OfficeIMO DOCX and PPTX display uses invariant separators and reports approximation for locale and appearance. Native and destination layout/font equivalence is not qualified.",
+    "Numbers XLSX cannot represent inherited native four-point cell padding and requires explicit partial acceptance; complete PDF workflows continue to reject that omission.",
+    "Other application versions, platforms, runtime architectures, fonts, native sandbox and physical devices require separate qualification."
+  ]
+}

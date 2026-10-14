@@ -222,9 +222,17 @@ namespace OfficeIMO.PowerPoint {
                     notesPart.AddAudioReferenceRelationship(mediaPart,
                         relationshipId);
                     break;
+                case SlideLayoutPart layoutPart:
+                    layoutPart.AddAudioReferenceRelationship(mediaPart,
+                        relationshipId);
+                    break;
+                case SlideMasterPart masterPart:
+                    masterPart.AddAudioReferenceRelationship(mediaPart,
+                        relationshipId);
+                    break;
                 default:
                     throw new InvalidOperationException(
-                        "Embedded action sounds require a slide or notes-slide owner.");
+                        "Embedded action sounds require a slide, notes-slide, layout, or master owner.");
             }
         }
     }

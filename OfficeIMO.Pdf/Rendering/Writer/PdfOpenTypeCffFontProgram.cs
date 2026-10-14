@@ -16,7 +16,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
     private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
-    private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements = new();
+    private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
 
     private PdfOpenTypeCffFontProgram(
         byte[] data,
@@ -37,6 +37,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         Dictionary<string, TableRecord> tables,
         int cffTableLength) {
         _data = data.ToArray();
+        _shortMeasurements = new();
         _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
@@ -71,6 +72,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         _advanceWidths1000 = source._advanceWidths1000;
         _cmap = source._cmap;
         CffTableLength = source.CffTableLength;
+        _shortMeasurements = source._shortMeasurements;
     }
 
     internal PdfOpenTypeCffFontProgram ForkForDocument() => new(this);

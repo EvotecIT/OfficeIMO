@@ -65,8 +65,11 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum combined string and formula catalog entries decoded across one iWork source.</summary>
     public int MaximumTableCatalogEntries { get; set; } = 100_000;
 
-    /// <summary>Gets or sets the maximum combined table dimension headers, bucket references, bounded modern row offset slots, hidden-state declarations, selected UUID position maps and filter references inspected across one iWork source.</summary>
+    /// <summary>Gets or sets the maximum combined table dimension headers, bucket references, bounded modern row offset slots, hidden-state declarations, selected UUID position maps, grouping metadata and filter references inspected across one iWork source.</summary>
     public int MaximumTableDimensionEntries { get; set; } = 1_100_000;
+
+    /// <summary>Gets or sets the maximum combined table stroke layer and run declarations inspected across one semantic projection.</summary>
+    public int MaximumTableBorderEntries { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum number of projected sheets across one Numbers source.</summary>
     public int MaximumProjectedSheets { get; set; } = 4096;
@@ -93,12 +96,14 @@ public sealed class IWorkReadOptions {
     public int MaximumTableMergedRanges { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum number of syntax nodes decoded from one iWork formula.</summary>
+    /// <remarks>Also bounds the cumulative referenced cell positions inspected while qualifying GCD/LCM operands in that formula. Repeated references count again; larger references retain their caches with incomplete expressions.</remarks>
     public int MaximumFormulaNodes { get; set; } = 4096;
 
     /// <summary>Gets or sets the maximum reconstructed formula length in characters.</summary>
     public int MaximumFormulaCharacters { get; set; } = 8192;
 
     /// <summary>Gets or sets the maximum combined formula-rendering work across one semantic projection, counting repeated formula uses.</summary>
+    /// <remarks>Includes numeric cell inspections for bounded GCD/LCM reference qualification.</remarks>
     public long MaximumFormulaRenderingOperations { get; set; } = 64L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum number of projected text items across one semantic projection.</summary>
@@ -135,6 +140,7 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumMaterializedCells, nameof(MaximumMaterializedCells));
         ValidatePositive(MaximumTableCatalogEntries, nameof(MaximumTableCatalogEntries));
         ValidatePositive(MaximumTableDimensionEntries, nameof(MaximumTableDimensionEntries));
+        ValidatePositive(MaximumTableBorderEntries, nameof(MaximumTableBorderEntries));
         ValidatePositive(MaximumProjectedSheets, nameof(MaximumProjectedSheets));
         ValidatePositive(MaximumProjectedSlides, nameof(MaximumProjectedSlides));
         ValidatePositive(MaximumProjectedTables, nameof(MaximumProjectedTables));

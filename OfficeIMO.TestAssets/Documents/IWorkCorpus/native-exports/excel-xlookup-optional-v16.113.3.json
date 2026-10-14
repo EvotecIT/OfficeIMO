@@ -1,0 +1,70 @@
+{
+  "producer": "Microsoft Excel 16.113.3 macOS arm64",
+  "freshInputCachesAbsent": true,
+  "nativeAction": "Open task-owned workbook, F9 Calculate Now, Cmd-S; inspect all seven results",
+  "cases": [
+    {
+      "label": "Omitted fallback",
+      "formula": "=_xlfn.XLOOKUP(2,A1:A1,B1:B1)",
+      "value": "#N/A",
+      "type": "e"
+    },
+    {
+      "label": "Empty fallback",
+      "formula": "=_xlfn.XLOOKUP(2,A1:A1,B1:B1,,0,-1)",
+      "value": "#N/A",
+      "type": "e"
+    },
+    {
+      "label": "Explicit fallback",
+      "formula": "=_xlfn.XLOOKUP(2,A1:A1,B1:B1,99,0,-1)",
+      "value": 99,
+      "type": "n"
+    },
+    {
+      "label": "Reverse success",
+      "formula": "=_xlfn.XLOOKUP(1,A1:A2,B1:B2,,0,-1)",
+      "value": 20,
+      "type": "n"
+    },
+    {
+      "label": "Empty with default search",
+      "formula": "=_xlfn.XLOOKUP(2,A1:A1,B1:B1,,0)",
+      "value": "#N/A",
+      "type": "e"
+    },
+    {
+      "label": "Empty match mode",
+      "formula": "=_xlfn.XLOOKUP(2,A1:A1,B1:B1,99,,-1)",
+      "value": 99,
+      "type": "n"
+    },
+    {
+      "label": "Empty search mode",
+      "formula": "=_xlfn.XLOOKUP(2,A1:A1,B1:B1,99,0,)",
+      "value": 99,
+      "type": "n"
+    }
+  ],
+  "artifacts": [
+    {
+      "bytes": 5109,
+      "sha256": "de8ef65df1fe64a98b681f3ee8f3c59f62820d7728c21f4058f11af6057c2c79",
+      "path": "excel-xlookup-optional-intake.xlsx"
+    },
+    {
+      "bytes": 8988,
+      "sha256": "d81e7b92c94b1bb0ded4114542916db003c1bfcaee88eee24751c8869cb64746",
+      "path": "excel-xlookup-optional-v16.113.3.xlsx"
+    },
+    {
+      "bytes": 346999,
+      "sha256": "cfb579b32c3d1be74d805a7a95dcd8fdc56d282ed6f460f5b2964c658c627ee1",
+      "path": "excel-xlookup-optional-v16.113.3-native.png"
+    }
+  ],
+  "schemaVersion": 1,
+  "license": "MIT, OfficeIMO contributors",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "ownedAppClosed": true
+}

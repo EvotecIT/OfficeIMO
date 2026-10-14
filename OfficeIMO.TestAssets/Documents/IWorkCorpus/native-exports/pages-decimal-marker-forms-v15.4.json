@@ -1,0 +1,649 @@
+{
+  "schemaVersion": 1,
+  "profile": "Uniform non-tiered parenthesized and closing-parenthesis decimal lists at levels0..8",
+  "producer": {
+    "application": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "os": "macOS27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "license": "MIT; OfficeIMO-authored input and derived native/managed evidence",
+  "sourceProvenance": "OfficeIMO template-free authored; Apple saved/edited, not arbitrary independent-producer coverage.",
+  "font": {
+    "family": "Arial",
+    "sizePoints": 12,
+    "provenance": "Installed native Arial; no font binaries redistributed. Composed PDFs explicitly substitute Helvetica."
+  },
+  "artifacts": {
+    "pages-decimal-closing-created-officeimo.docx": {
+      "bytes": 21621,
+      "sha256": "c4a019497815b118479656f32bbef5e5bbf404ad616473cab017d7ab07b64720"
+    },
+    "pages-decimal-closing-created-officeimo.pdf": {
+      "bytes": 1601,
+      "sha256": "834cc82ab17937c0476e11bc56b8ede6a1c0190dfd0f92cc3ffffc83aa24b7d7"
+    },
+    "pages-decimal-closing-created-open.png": {
+      "bytes": 105451,
+      "sha256": "f71d7afddd20d115ed151d22b0f867814834ef1f0de1bf413d25a52877c76cbf"
+    },
+    "pages-decimal-closing-created.pages": {
+      "bytes": 22332,
+      "sha256": "cb714d257a54e934ce49be44dc1533a770afdf334e8aa944635bbffde9b1ec8b"
+    },
+    "pages-decimal-closing-edited-v15.4-officeimo.docx": {
+      "bytes": 21730,
+      "sha256": "c139f2d027e4ed5a3ecf7a2d46925b18ac3964ae117c94ab214aab84a03e53ff"
+    },
+    "pages-decimal-closing-edited-v15.4-officeimo.pdf": {
+      "bytes": 1652,
+      "sha256": "b8af830fdbea147234efd8a69fbc7f6233421508f671f834a68e02d616d995cf"
+    },
+    "pages-decimal-closing-edited-v15.4.docx": {
+      "bytes": 9753,
+      "sha256": "72e583e379c35971685760f54b8c3d2f632497d596e340a97d237c354329a92d"
+    },
+    "pages-decimal-closing-edited-v15.4.pages": {
+      "bytes": 109960,
+      "sha256": "8915d9303b604b196072c0be41dacc840ae363d4cd03fd16faf3f1f7b3da0765"
+    },
+    "pages-decimal-closing-edited-v15.4.pdf": {
+      "bytes": 43209,
+      "sha256": "dba3097befd4ba3762eeb4484a205e755b622fd28c904107465637c6483e2aa1"
+    },
+    "pages-decimal-closing-officeimo-docx-open.ax.txt": {
+      "bytes": 7157,
+      "sha256": "d1fcef4f055bfe6a9b9322cdaa257fb0ac9a7d5b2b55a1293854a80f747ed339"
+    },
+    "pages-decimal-closing-officeimo-docx-open.png": {
+      "bytes": 109605,
+      "sha256": "3ccb5f93559050424d53a0c537ab5152b4ddbf340980481e4038b33670f87f3f"
+    },
+    "pages-decimal-closing-officeimo-docx-v15.4.pdf": {
+      "bytes": 42978,
+      "sha256": "b6054cd658909a24e5454055bf81c2db3505f85521c2a4babf2a8e8177309376"
+    },
+    "pages-decimal-closing-preserved-officeimo.docx": {
+      "bytes": 21715,
+      "sha256": "b4f8c0c6dd8f1a30346ea084b5e8a9b8c98eaddee1baf5a304b35ed82af23c2a"
+    },
+    "pages-decimal-closing-preserved-officeimo.pdf": {
+      "bytes": 1630,
+      "sha256": "22bb401171a1e53b9e86e4fb8b1532be6de4808e5048da31acf30c987c91e154"
+    },
+    "pages-decimal-closing-preserved-open.ax.txt": {
+      "bytes": 7298,
+      "sha256": "4a18a9aa514c2a98e3d5203a90d56b56f044286c59596cc443c48d748e9ec494"
+    },
+    "pages-decimal-closing-preserved-open.png": {
+      "bytes": 105992,
+      "sha256": "ac85416e609db2844b45998ec82918b5ddf442ef092bab4e8f17d8d0f5f52061"
+    },
+    "pages-decimal-closing-preserved.docx": {
+      "bytes": 9729,
+      "sha256": "b4526bfe8b2ab41e52b354f83dc72d90a9cbe35e1874b8594d0b29cbf2917b86"
+    },
+    "pages-decimal-closing-preserved.pages": {
+      "bytes": 108810,
+      "sha256": "213672cfd210690ea9749c5135a2d64017e2cff901c1e7d6baa689bccefb5f99"
+    },
+    "pages-decimal-closing-preserved.pdf": {
+      "bytes": 42863,
+      "sha256": "c4cef297c5fb7c4aba312fdcc0b9018d27a0cae4e94316798a0d83cc6388de48"
+    },
+    "pages-decimal-closing-reopened.ax.txt": {
+      "bytes": 7319,
+      "sha256": "6b2f46eeadeb3fb437ccaabdc631be12c566d017f288f672c4cbe45631051e97"
+    },
+    "pages-decimal-closing-reopened.png": {
+      "bytes": 109612,
+      "sha256": "2882bf5c1615c42d1ae1a27adadfc9a048273f10c19beba613fb554298de6953"
+    },
+    "pages-decimal-closing-saved-v15.4-officeimo.docx": {
+      "bytes": 21689,
+      "sha256": "1536e806316e44c1bc81c30a39e8a9b6720bdfaf6180320b64d78d438049f910"
+    },
+    "pages-decimal-closing-saved-v15.4-officeimo.pdf": {
+      "bytes": 1601,
+      "sha256": "834cc82ab17937c0476e11bc56b8ede6a1c0190dfd0f92cc3ffffc83aa24b7d7"
+    },
+    "pages-decimal-closing-saved-v15.4.docx": {
+      "bytes": 9624,
+      "sha256": "9514764d26ac204de9a23ed6345f551401f370e79c4f4549ef387f7bd7e461f1"
+    },
+    "pages-decimal-closing-saved-v15.4.pages": {
+      "bytes": 105629,
+      "sha256": "39620f2cb28b0a3c0a9cceaa22605f5f2cd293cd9b1c2d604e010a3ef1cb1b59"
+    },
+    "pages-decimal-closing-saved-v15.4.pdf": {
+      "bytes": 40407,
+      "sha256": "4fc18592079a8033d7991ff1bff8120e089404b4bb21549d5e6b2efc3c926f45"
+    },
+    "pages-decimal-parentheses-created-officeimo.docx": {
+      "bytes": 21615,
+      "sha256": "ef550739e7e886eb8fbd49301d6f8691fd44fc539ab3532d0cede7d805790e6c"
+    },
+    "pages-decimal-parentheses-created-officeimo.pdf": {
+      "bytes": 1634,
+      "sha256": "e55348d7eb8713545ee402b01a0753e75fe1c6aeeffa440defdb56e3d42fa748"
+    },
+    "pages-decimal-parentheses-created-open.png": {
+      "bytes": 108524,
+      "sha256": "349843cdfba5a1d4b3512c5612487bae58cabb356b8a64d53af4bd175797664c"
+    },
+    "pages-decimal-parentheses-created.pages": {
+      "bytes": 22332,
+      "sha256": "4abee640b75f8e9373e22155317d8a66295a291908001eeb862dadd59feb4b8d"
+    },
+    "pages-decimal-parentheses-edited-v15.4-officeimo.docx": {
+      "bytes": 21747,
+      "sha256": "3b7ac52bb26367b9ac52f67c5d306f0f0f2d6e139be610d695d1f8a7c1004b05"
+    },
+    "pages-decimal-parentheses-edited-v15.4-officeimo.pdf": {
+      "bytes": 1687,
+      "sha256": "057da3e212331040bf32e1bdc1f7c6e9842e397ee7e9bed7d45d5192444da0c5"
+    },
+    "pages-decimal-parentheses-edited-v15.4.docx": {
+      "bytes": 9774,
+      "sha256": "1fbf58ef8d09e356e9d52138088d394145ffd5991f67ce0d79e8664fa37673b2"
+    },
+    "pages-decimal-parentheses-edited-v15.4.pages": {
+      "bytes": 113348,
+      "sha256": "ce4b42947d6e111cc54d55a65fab7b658a96ca32c2d62cfa828731580d0263e4"
+    },
+    "pages-decimal-parentheses-edited-v15.4.pdf": {
+      "bytes": 43349,
+      "sha256": "6c2d1dbdf6293bdeb5acd3583dced9936f1e2d3caed993c1744b255c3cb45927"
+    },
+    "pages-decimal-parentheses-officeimo-docx-open.ax.txt": {
+      "bytes": 7106,
+      "sha256": "1138d3d408fd47c5d0abc7cc0fd558c366da95b8a97a7214e8147d944984935b"
+    },
+    "pages-decimal-parentheses-officeimo-docx-open.png": {
+      "bytes": 112180,
+      "sha256": "f6418401477caf7937e9c82051b3540817fe8feca64568b6f86bc6e7c4aaa7a1"
+    },
+    "pages-decimal-parentheses-officeimo-docx-v15.4.pdf": {
+      "bytes": 43067,
+      "sha256": "03205b35d593ecb55f666df8f6d87703b25651a10b77cbbcea9104156e3570c3"
+    },
+    "pages-decimal-parentheses-preserved-officeimo.docx": {
+      "bytes": 21716,
+      "sha256": "e9fa137c991e73c507736369615f342779eb7f0ea82e1f63626eaeacf0a3ffe0"
+    },
+    "pages-decimal-parentheses-preserved-officeimo.pdf": {
+      "bytes": 1663,
+      "sha256": "318c44b5b63fd30e7189e8de5ec0c91eb7f2e35c105ac720b47ac3dd11699f44"
+    },
+    "pages-decimal-parentheses-preserved-open.ax.txt": {
+      "bytes": 7251,
+      "sha256": "1a0e16699c6cb8a5c54b45fb9969b0bf3dba29075a6cfb8ff7d7ad1f9c673652"
+    },
+    "pages-decimal-parentheses-preserved-open.png": {
+      "bytes": 111998,
+      "sha256": "8a29a42db558d62bd329463fc8fab31fa5a9e31806037426a1eaf68d5750fccb"
+    },
+    "pages-decimal-parentheses-preserved.docx": {
+      "bytes": 9750,
+      "sha256": "4246f734d12ddc2aab04dd5e8d23ea55fc87b080dd019b5abc384c1f3ed5641b"
+    },
+    "pages-decimal-parentheses-preserved.pages": {
+      "bytes": 112125,
+      "sha256": "49aff287cdf8f4b6673554683f767996c85fd8478e07b299521d08ee199e8919"
+    },
+    "pages-decimal-parentheses-preserved.pdf": {
+      "bytes": 42976,
+      "sha256": "d9ab1b6879cda637f4d9d35c12a10669564c628b8f9daef0c54bfc1ba0201636"
+    },
+    "pages-decimal-parentheses-reopened.ax.txt": {
+      "bytes": 7270,
+      "sha256": "667e1567836eb3e584b04141f8c0fef3d7f88cc0488c7079c9e0d8cfd2f53356"
+    },
+    "pages-decimal-parentheses-reopened.png": {
+      "bytes": 112666,
+      "sha256": "d28ea9820af82d8262c727d60e8042b6ce6b760607b5a51995fbb2ab0befae70"
+    },
+    "pages-decimal-parentheses-saved-v15.4-officeimo.docx": {
+      "bytes": 21687,
+      "sha256": "c4bd21d4f021a9cf8bd638db1b19da5add8691cc2fe4f16e72255d557438569b"
+    },
+    "pages-decimal-parentheses-saved-v15.4-officeimo.pdf": {
+      "bytes": 1634,
+      "sha256": "e55348d7eb8713545ee402b01a0753e75fe1c6aeeffa440defdb56e3d42fa748"
+    },
+    "pages-decimal-parentheses-saved-v15.4.docx": {
+      "bytes": 9645,
+      "sha256": "6a1a5f557c02473ef84b2adb300ddf5bf6f7f7ff953fa336774b6adba4eee6dd"
+    },
+    "pages-decimal-parentheses-saved-v15.4.pages": {
+      "bytes": 108946,
+      "sha256": "ec15d837258f8f5d30bc278a8bee0e58a700dbb582c8586eb93ae4d0407457b9"
+    },
+    "pages-decimal-parentheses-saved-v15.4.pdf": {
+      "bytes": 40549,
+      "sha256": "13eac7c6b2d1f45dc97e605bbf0e8d6d615fbdd3d038239bac46d384a3abb9fb"
+    },
+    "pages-decimal-closing-created-decode.json": {
+      "bytes": 137324,
+      "sha256": "027cb5212d9741fc997a3d0192140b372b61aacbad75a57536ad939ee2158cec"
+    },
+    "pages-decimal-closing-edited-v15.4-decode.json": {
+      "bytes": 76838,
+      "sha256": "e540cec723251c6e88d955257a071b1a9300cfa4c576c12005c4a6556e4d5a7c"
+    },
+    "pages-decimal-closing-preserved-decode.json": {
+      "bytes": 76131,
+      "sha256": "70e590eeefd51758d8559c8c04c942205faf2bb78dc50b9ba1a72369235ad815"
+    },
+    "pages-decimal-closing-saved-v15.4-decode.json": {
+      "bytes": 76133,
+      "sha256": "e85be1f3fcebac65bf5e664caa0c6db0b23745126b7dd36487e0c7b594708fc8"
+    },
+    "pages-decimal-parentheses-created-decode.json": {
+      "bytes": 137337,
+      "sha256": "0635dc6a731fe24bed5005a8ecf3a9ee1cb169d8e20e69e6e4718b276a38b3ef"
+    },
+    "pages-decimal-parentheses-edited-v15.4-decode.json": {
+      "bytes": 76851,
+      "sha256": "aa892e318cccd9c99b5f6f0707762e4bb9e292bdf22ef49dabccbd5b42ed5e75"
+    },
+    "pages-decimal-parentheses-preserved-decode.json": {
+      "bytes": 76144,
+      "sha256": "5d0127ab98103981abd113d0b2c1c4ad070b0f3e3d33a67e7263201532125623"
+    },
+    "pages-decimal-parentheses-saved-v15.4-decode.json": {
+      "bytes": 76146,
+      "sha256": "a841fab651602f187906237db391e144c0b1cb4a63ff0205189b94af4c3d3300"
+    },
+    "pages-decimal-marker-forms-independent-verification.json": {
+      "bytes": 9920,
+      "sha256": "e1fa11a116707b84ec9a34fef91008bb7c3b783d2bd1ebeec891fc3557381c5e"
+    }
+  },
+  "cases": [
+    {
+      "source": "pages-decimal-parentheses-created.pages",
+      "sha256": "4abee640b75f8e9373e22155317d8a66295a291908001eeb862dadd59feb4b8d",
+      "form": "parentheses",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": false,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-parentheses-saved-v15.4.pages",
+      "sha256": "ec15d837258f8f5d30bc278a8bee0e58a700dbb582c8586eb93ae4d0407457b9",
+      "form": "parentheses",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-parentheses-preserved.pages",
+      "sha256": "49aff287cdf8f4b6673554683f767996c85fd8478e07b299521d08ee199e8919",
+      "form": "parentheses",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-parentheses-edited-v15.4.pages",
+      "sha256": "ce4b42947d6e111cc54d55a65fab7b658a96ca32c2d62cfa828731580d0263e4",
+      "form": "parentheses",
+      "numberedItems": 38,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-closing-created.pages",
+      "sha256": "cb714d257a54e934ce49be44dc1533a770afdf334e8aa944635bbffde9b1ec8b",
+      "form": "closing",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": false,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-closing-saved-v15.4.pages",
+      "sha256": "39620f2cb28b0a3c0a9cceaa22605f5f2cd293cd9b1c2d604e010a3ef1cb1b59",
+      "form": "closing",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-closing-preserved.pages",
+      "sha256": "213672cfd210690ea9749c5135a2d64017e2cff901c1e7d6baa689bccefb5f99",
+      "form": "closing",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-closing-edited-v15.4.pages",
+      "sha256": "8915d9303b604b196072c0be41dacc840ae363d4cd03fd16faf3f1f7b3da0765",
+      "form": "closing",
+      "numberedItems": 38,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    }
+  ],
+  "preservation": [
+    {
+      "source": "pages-decimal-parentheses-saved-v15.4.pages",
+      "output": "pages-decimal-parentheses-preserved.pages",
+      "sourceSha256": "ec15d837258f8f5d30bc278a8bee0e58a700dbb582c8586eb93ae4d0407457b9",
+      "outputSha256": "49aff287cdf8f4b6673554683f767996c85fd8478e07b299521d08ee199e8919",
+      "fileEntries": 13,
+      "recordsIncludingAuxiliary": 121,
+      "bodyRecordId": 3,
+      "paragraphs": [
+        {
+          "paragraph": 2,
+          "payloadByteOffset": 29,
+          "bytes": 10,
+          "before": "Root seven",
+          "after": "ROOT SEVEN",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 3,
+          "payloadByteOffset": 40,
+          "bytes": 9,
+          "before": "Level one",
+          "after": "LEVEL ONE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 4,
+          "payloadByteOffset": 50,
+          "bytes": 9,
+          "before": "Level two",
+          "after": "LEVEL TWO",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 5,
+          "payloadByteOffset": 60,
+          "bytes": 11,
+          "before": "Level three",
+          "after": "LEVEL THREE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 6,
+          "payloadByteOffset": 72,
+          "bytes": 10,
+          "before": "Level four",
+          "after": "LEVEL FOUR",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 7,
+          "payloadByteOffset": 83,
+          "bytes": 10,
+          "before": "Level five",
+          "after": "LEVEL FIVE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 8,
+          "payloadByteOffset": 94,
+          "bytes": 9,
+          "before": "Level six",
+          "after": "LEVEL SIX",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 9,
+          "payloadByteOffset": 104,
+          "bytes": 11,
+          "before": "Level seven",
+          "after": "LEVEL SEVEN",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 10,
+          "payloadByteOffset": 116,
+          "bytes": 11,
+          "before": "Level eight",
+          "after": "LEVEL EIGHT",
+          "storageRecordId": 3
+        }
+      ],
+      "changedEntries": [
+        "Index/Document.iwa"
+      ],
+      "onlyDeclaredUtf8RangesDiffer": true,
+      "rawHeadersSiblingsAndOtherBytesIdentical": true,
+      "nativeStoragePropertiesIdenticalExceptText": true,
+      "numbersParser": "4.19.0",
+      "protobuf": "7.36.2",
+      "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176"
+    },
+    {
+      "source": "pages-decimal-closing-saved-v15.4.pages",
+      "output": "pages-decimal-closing-preserved.pages",
+      "sourceSha256": "39620f2cb28b0a3c0a9cceaa22605f5f2cd293cd9b1c2d604e010a3ef1cb1b59",
+      "outputSha256": "213672cfd210690ea9749c5135a2d64017e2cff901c1e7d6baa689bccefb5f99",
+      "fileEntries": 13,
+      "recordsIncludingAuxiliary": 121,
+      "bodyRecordId": 3,
+      "paragraphs": [
+        {
+          "paragraph": 2,
+          "payloadByteOffset": 29,
+          "bytes": 10,
+          "before": "Root seven",
+          "after": "ROOT SEVEN",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 3,
+          "payloadByteOffset": 40,
+          "bytes": 9,
+          "before": "Level one",
+          "after": "LEVEL ONE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 4,
+          "payloadByteOffset": 50,
+          "bytes": 9,
+          "before": "Level two",
+          "after": "LEVEL TWO",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 5,
+          "payloadByteOffset": 60,
+          "bytes": 11,
+          "before": "Level three",
+          "after": "LEVEL THREE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 6,
+          "payloadByteOffset": 72,
+          "bytes": 10,
+          "before": "Level four",
+          "after": "LEVEL FOUR",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 7,
+          "payloadByteOffset": 83,
+          "bytes": 10,
+          "before": "Level five",
+          "after": "LEVEL FIVE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 8,
+          "payloadByteOffset": 94,
+          "bytes": 9,
+          "before": "Level six",
+          "after": "LEVEL SIX",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 9,
+          "payloadByteOffset": 104,
+          "bytes": 11,
+          "before": "Level seven",
+          "after": "LEVEL SEVEN",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 10,
+          "payloadByteOffset": 116,
+          "bytes": 11,
+          "before": "Level eight",
+          "after": "LEVEL EIGHT",
+          "storageRecordId": 3
+        }
+      ],
+      "changedEntries": [
+        "Index/Document.iwa"
+      ],
+      "onlyDeclaredUtf8RangesDiffer": true,
+      "rawHeadersSiblingsAndOtherBytesIdentical": true,
+      "nativeStoragePropertiesIdenticalExceptText": true,
+      "numbersParser": "4.19.0",
+      "protobuf": "7.36.2",
+      "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176"
+    }
+  ],
+  "receivingApplicationGeometry": [
+    {
+      "form": "parentheses",
+      "wordBounds": 154,
+      "maximumDeltaPoints": 0.0,
+      "nativePdf": "pages-decimal-parentheses-preserved.pdf",
+      "receivingPdf": "pages-decimal-parentheses-officeimo-docx-v15.4.pdf"
+    },
+    {
+      "form": "closing",
+      "wordBounds": 154,
+      "maximumDeltaPoints": 0.0,
+      "nativePdf": "pages-decimal-closing-preserved.pdf",
+      "receivingPdf": "pages-decimal-closing-officeimo-docx-v15.4.pdf"
+    }
+  ],
+  "nativeAcceptance": [
+    "Both created and preserved marker forms open without repair.",
+    "Nine preserved text replacements per form remain visible.",
+    "Root/deep native text edits and a new level-eight item survive save, close and reopen.",
+    "Six native DOCX exports and eight strict OfficeIMO DOCX reconstructions retain selected marker schemes and indents.",
+    "All sixteen native/composed/receiving PDF pages inspected; complete counter/text checks pass."
+  ],
+  "visualEvidence": {
+    "pageCount": 16,
+    "nativePages": 6,
+    "composedPages": 8,
+    "receivingApplicationPages": 2,
+    "allPagesInspected": true,
+    "geometryCompared": "Preserved native PDF versus Pages-rendered OfficeIMO DOCX for each form",
+    "portableComposedTypography": "Explicit font substitution; no pixel or native typography equivalence claim."
+  },
+  "independentVerification": {
+    "command": "python Build/IWork/verify-pages-decimal-marker-forms.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports --descriptor <pages-descriptor.pb> --out <independent-receipt.json>",
+    "provider": "numbers-parser4.19.0; pinned Apple schemas; Poppler",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+    "receipt": "pages-decimal-marker-forms-independent-verification.json"
+  },
+  "limits": [
+    "OfficeIMO-authored and Apple-saved sources; no arbitrary independent-producer coverage.",
+    "Pages15.4 Arial12 single-page body profile; wider fonts, containers and pagination remain open.",
+    "Uniform non-tiered decimal marker form per list; tiered and mixed ancestor forms remain partial.",
+    "Portable composed PDFs substitute fonts explicitly; no native typography equivalence claim.",
+    "Exact byte preservation applies before Apple resave, which updates application metadata."
+  ]
+}

@@ -9,6 +9,7 @@
     <PackageReference Include="itext" Version="9.7.0" />
     <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
     <PackageReference Include="PdfPig" Version="0.1.15" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.2" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseBaseline)' != 'true'">
     <Reference Include="OfficeIMO.Pdf"><HintPath>$(NativePdfCurrentDirectory)/OfficeIMO.Pdf.dll</HintPath></Reference>

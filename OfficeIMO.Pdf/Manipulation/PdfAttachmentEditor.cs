@@ -28,13 +28,15 @@ internal static class PdfAttachmentEditor {
                 projectedBytes += attachment.ByteLength;
             }
         }
+        long maximumTargetBytes = Math.Min(PdfLoadOptions.Resolve(readOptions).Limits.MaxTotalAttachmentBytes,
+            maxDecodedAttachmentBytes ?? long.MaxValue);
         var session = new PdfAttachmentEditSession(existing.Select(static attachment =>
             new PdfAttachmentEditSource(
                 new PdfEmbeddedFile(attachment.FileName, attachment.Bytes, attachment.MimeType,
                     attachment.Relationship, attachment.Description, attachment.CreationDate,
                     attachment.ModificationDate),
                 attachment.FileSpecObjectNumber,
-                attachment.EmbeddedFileObjectNumber)));
+                attachment.EmbeddedFileObjectNumber)), maximumTargetBytes);
         edit(session);
         IReadOnlyList<PdfAttachmentEditEntry> targetEntries = session.SnapshotEntries();
         PdfEmbeddedFile[] target = targetEntries

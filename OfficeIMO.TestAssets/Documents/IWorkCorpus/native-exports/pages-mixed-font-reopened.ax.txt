@@ -1,0 +1,195 @@
+Window: "pages-mixed-font-edited-v15.4", App: Pages.
+0 okno standardowe pages-mixed-font-edited-v15.4, Secondary Actions: Raise, URL: file:///Volumes/Samsung/Development/Scratch/officeimo-iwork-implementation/pages-mixed-font-lists/native/pages-mixed-font-edited-v15.4.pages
+	1 grupa podziału
+		2 element podziału (disabled, settable, float) -1
+		3 obszar przewijania Secondary Actions: Scroll Left, Scroll Right, Scroll Up, Scroll Down
+			4 obszar układu Description: Dokument, Help: Formatuj, przenoś i zmieniaj wielkość rzeczy, które zawiera Dokument
+				5 strona (selectable) Secondary Actions: Dodaj komentarz, Przejdź do formatu strony, Description: strona 1, podsumowanie: Mixed family decimal items
+Root native serif mono plain
+Depth 1 serif mono plain
+Depth 2 serif mono plain
+Depth 3 serif mono plain
+Depth 4 serif mono plain
+Depth 5 serif mono plain
+Depth 6 serif mono plain
+Depth 7 serif mono plain
+Deep native serif mono plain
+Deep two serif mono plain
+Plain gap retains counters
+Root eight serif mono plain
+Child one serif mono plain
+Serif marker serif mono plain
+Serif child serif mono plain
+Mono marker serif mono plain
+Mono child serif mono plain
+Resu
+					6 container Description: Nagłówek, Help: Aby ukryć lub pokazać nagłówki i stopki, przejdź do części głównej dokumentu i użyj polecenia czynności własnej.
+					7 obszar wprowadzania tekstu (selectable, settable) Description: Treść, Help: Formatuj szybko tekst, przechodząc do narzędzia za pomocą VoiceOver, Secondary Actions: Dodaj komentarz, Ukryj nagłówki i stopki, Przejdź do formatu strony, Zakładka, Value: Mixed family decimal items
+1. **Root native serif*** mono* plain
+    2. **Depth 1 serif*** mono* plain
+        3. **Depth 2 serif*** mono* plain
+            4. **Depth 3 serif*** mono* plain
+                5. **Depth 4 serif*** mono* plain
+                    6. **Depth 5 serif*** mono* plain
+                        7. **Depth 6 serif*** mono* plain
+                            8. **Depth 7 serif*** mono* plain
+                                9. **Deep native serif*** mono* plain
+                                10. **Deep two serif*** mono* plain
+Plain gap retains counters
+12. **Root eight serif*** mono* plain
+    13. **Child one serif*** mono* plain
+* **Serif marker serif*** mono* plain
+    * **Serif child serif*** mono* plain
+16. **Mono marker serif*** mono* plain
+    17. **Mono child serif*** mono* plain
+    18. **Resumed child serif*** mono* plain
+    19. Native child plain
+
+					8 container Description: Stopka, Help: Aby ukryć lub pokazać nagłówki i stopki, przejdź do części głównej dokumentu i użyj polecenia czynności własnej.
+			9 pasek przewijania (disabled, settable, float) 0
+			10 pasek przewijania (settable, float) 0
+				11 wskaźnik wartości (settable, float) 0
+				12 przycisk strzałki zwiększającej
+				13 przycisk strzałki zmniejszającej
+				14 przycisk strony następnej
+				15 przycisk strony poprzedniej
+		16 element podziału (disabled, settable, float) 780
+		17 container Narzędzie formatowania
+			18 przycisk wyboru Description: Tekst, Value: 1
+			19 przycisk OfficeIMO Body*, Description: Wybrane: OfficeIMO Body*, Style akapitu, Help: Wybierz styl akapitu
+			20 przycisk Uaktualnij, Help: Uaktualnij wszystkie akapity, w których używany jest ten styl
+			21 przycisk wyboru Description: Styl, Value: 1
+			22 przycisk wyboru Description: Makieta, Value: 0
+			23 przycisk wyboru Description: Więcej, Value: 0
+			24 obszar przewijania formatowanie: Tekst, Secondary Actions: Scroll Up, Scroll Down
+				25 text Czcionka Style znaków
+				26 przycisk Description: Rodzina czcionek, Help: Wybierz rodzinę czcionek, Value: Arial
+				27 przycisk Description: Krój czcionki, Help: Wybierz krój czcionki, Value: Normalny
+				28 pole tekstowe (settable) Description: Wielkość czcionki, Help: Określ rozmiar czcionki, Value: 12 pkt
+				29 stepper Description: Wielkość czcionki, Help: Określ rozmiar czcionki, Value: 12, Secondary Actions: Increment, Decrement
+					30 przycisk strzałki zwiększającej
+					31 przycisk strzałki zmniejszającej
+				32 container Styl czcionki
+					33 pole wyboru Description: pogrubienie, Help: Sformatuj tekst jako pogrubiony, Value: 0
+					34 pole wyboru Description: kursywa, Help: Sformatuj tekst jako kursywę, Value: 0
+					35 pole wyboru Description: podkreślenie, Help: Sformatuj tekst jako podkreślony, Value: 0
+					36 pole wyboru Description: przekreślenie, Help: Przekreśl tekst, Value: 0
+				37 przycisk Pokaż więcej opcji tekstu
+				38 przycisk OfficeIMO Text, Description: Wybrane: OfficeIMO Text, Style akapitu, Help: Wybierz styl do zastosowania do zaznaczonego tekstu
+				39 przycisk Help: Wybierz wypełnienie tekstu kolorem, gradientem lub obrazkiem, Value: Kolor tekstu
+				40 przycisk Description: Okno kolorów, Help: Otwiera panel wyboru kolorów, w którym można wybrać nowy kolor wypełnienia., Value: Czarny 0
+				41 przycisk Description: Wybór gotowych wzorów wypełnienia, Help: Otwiera inspektora ustawień wstępnych wypełnienia, w którym można wybrać nowy kolor wypełnienia., Value: Czarny 0
+				42 container Description: Wyrównanie poziome, Help: ustawianie wyrównania akapitu
+					43 pole wyboru Description: do lewej, Help: Wyrównaj tekst do lewej, Value: 1
+					44 pole wyboru Description: na środku, Help: Wyrównaj tekst do środka (w poziomie), Value: 0
+					45 pole wyboru Description: do prawej, Help: Wyrównaj tekst do prawej, Value: 0
+					46 pole wyboru Description: wyjustowane, Help: Wyjustuj tekst (wyrównaj do lewej i do prawej), Value: 0
+				47 container Description: Poziom wcięcia, Help: ustawianie poziomu akapitu
+					48 pole wyboru Description: zmniejszenie wcięcia, Help: Zmniejsz poziom wcięcia zaznaczonego tekstu, Value: 0
+					49 pole wyboru Description: zwiększenie wcięcia, Help: Zwiększ poziom wcięcia zaznaczonego tekstu, Value: 0
+				50 trójkącik zamykania 1
+				51 text Odstępy Nad akapitem Pod akapitem
+				52 stepper Help: Określ odstęp nad akapitem, Value: 0, Secondary Actions: Increment, Decrement
+					53 przycisk strzałki zwiększającej
+					54 przycisk strzałki zmniejszającej
+				55 pole tekstowe (settable) Help: Określ odstęp nad akapitem, Value: 0 pkt
+				56 stepper Help: Określ odstęp pod akapitem, Value: 0, Secondary Actions: Increment, Decrement
+					57 przycisk strzałki zwiększającej
+					58 przycisk strzałki zmniejszającej
+				59 pole tekstowe (settable) Help: Określ odstęp pod akapitem, Value: 0 pkt
+				60 stepper Description: Odstępy między wierszami, Help: Określ odstęp między wierszami tekstu, Value: 1, Secondary Actions: Increment, Decrement
+					61 przycisk strzałki zwiększającej
+					62 przycisk strzałki zmniejszającej
+				63 pole tekstowe (settable) Description: Odstępy między wierszami, Help: Określ odstęp między wierszami tekstu, Value: 1
+				64 przycisk Description: Odstępy między wierszami, Help: Wybierz odstęp między wierszami, Value: Wiersze
+				65 trójkącik zamykania 1
+				66 tekst Punktory i listy
+				67 przycisk OfficeIMO Decimal List, Description: Wybrane: OfficeIMO Decimal List, Style akapitu, Help: Wybierz styl listy
+				68 przycisk Help: Wybierz punktor lub styl numerowania dla zaznaczonego tekstu, Value: Numery
+				69 container
+					70 tekst Wcięcie:
+					71 pole tekstowe (settable) Description: Wcięcie:, Help: Określ odstęp między numerem i lewym marginesem, Value: 0,63 cm
+					72 stepper Description: Wcięcie:, Help: Określ odstęp między numerem i lewym marginesem, Value: 18, Secondary Actions: Increment, Decrement
+						73 przycisk strzałki zwiększającej
+						74 przycisk strzałki zmniejszającej
+					75 pole tekstowe (settable) Description: Wcięcie:, Help: Określ odstęp między numerem i tekstem, Value: 0,63 cm
+					76 stepper Description: Wcięcie:, Help: Określ odstęp między numerem i tekstem, Value: 18, Secondary Actions: Increment, Decrement
+						77 przycisk strzałki zwiększającej
+						78 przycisk strzałki zmniejszającej
+					79 tekst Numer:
+					80 pole tekstowe (settable) Description: Numer:, Help: Określ rozmiar numeru jako procent rozmiaru tekstu, Value: 100%
+					81 stepper Description: Numer:, Help: Określ rozmiar numeru jako procent rozmiaru tekstu, Value: 1, Secondary Actions: Increment, Decrement
+						82 przycisk strzałki zwiększającej
+						83 przycisk strzałki zmniejszającej
+					84 przycisk Description: Okno kolorów, Help: Otwiera panel wyboru kolorów, w którym można wybrać nowy kolor wypełnienia., Value: Czarny 0
+					85 przycisk Description: Wybór gotowych wzorów wypełnienia, Help: Otwiera inspektora ustawień wstępnych wypełnienia, w którym można wybrać nowy kolor wypełnienia., Value: Czarny 0
+					86 przycisk Description: Typ punktora, Help: Wybierz format numeracji dla listy, Value: Znak numeryczny z częścią dziesiętną
+					87 pole wyboru Numery poziomowane, Description: Włącz numery poziomowane, Help: Zaznacz, aby używać numerów poziomowanych (na przykład 1.1, 1.2), Value: 0
+					88 przycisk wyboru Kontynuuj z poprzednich, Help: Kontynuuj numerowanie poprzedniej listy, Value: 1
+					89 przycisk wyboru Zacznij od:, Help: Zacznij nową numerowanie dla tej listy, Value: 0
+					90 stepper (disabled) Description: Nr początkowy, Help: Określ najniższy numer, jaki ma pojawić się na liście, Value: 1, Secondary Actions: Increment, Decrement
+						91 przycisk strzałki zwiększającej
+						92 przycisk strzałki zmniejszającej
+					93 pole tekstowe (disabled) Description: Nr początkowy, Help: Określ najniższy numer, jaki ma pojawić się na liście
+				94 pole wyboru Help: Zaznacz, aby pierwszy znak akapitu obejmował wiele wierszy, Value: 0
+				95 tekst Help: Zaznacz, aby pierwszy znak akapitu obejmował wiele wierszy, Value: Inicjał
+				96 przycisk Description: Gotowy inicjał, Help: Kliknij, aby wybrać gotowy styl inicjału
+				97 pasek przewijania (settable, float) 0
+					98 wskaźnik wartości (settable, float) 0
+					99 przycisk strzałki zwiększającej
+					100 przycisk strzałki zmniejszającej
+					101 przycisk strony następnej
+					102 przycisk strony poprzedniej
+	103 pasek narzędzi
+		104 przycisk menu Description: Widok, Help: Wybierz elementy wyświetlane i ukrywane podczas tworzenia dokumentu, Secondary Actions: Przejdź do następnej rzeczy
+		105 przycisk Dodaj stronę, Help: Dodaj do dokumentu stronę, ID: ToolbarItemAddPage, Secondary Actions: Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		106 przycisk menu Description: Wstaw, Help: Dodaj podziały, numery stron, łącza lub inne elementy, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		107 przycisk Wygeneruj obrazek, Help: Twórz obrazki na podstawie opisu, innego obrazka lub sugerowanych poleceń, ID: ToolbarItemCreateImage, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		108 przycisk (disabled) Super rozdzielczość, Help: Zwiększ rozdzielczość obrazka, ID: ToolbarItemSuperResolution, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		109 przycisk Centrum zawartości, Help: Przeglądaj bibliotekę wyselekcjonowanych materiałów, ID: ToolbarItemMediaLibrary, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		110 przycisk Tabela, Help: Wybierz tabelę, która ma zostać dodana do dokumentu, ID: ToolbarItemTable, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		111 przycisk Wykres, Help: Wybierz wykres, który ma zostać dodany do dokumentu, ID: ToolbarItemChart, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		112 przycisk Tekst, Help: Dodaj do dokumentu pole tekstowe, ID: ToolbarItemText, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		113 przycisk Kształt, Help: Wybierz kształt lub linię, którą chcesz dodać do dokumentu, lub użyj narzędzia Pisak, ID: ToolbarItemShape, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		114 przycisk menu Description: Multimedia, Help: Wybierz obrazek, film lub plik audio, który ma zostać dodany do dokumentu, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		115 przycisk Komentarz, Help: Dodaj komentarz do zaznaczonego tekstu, obiektu lub komórki tabeli, ID: ToolbarItemComment, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		116 przycisk menu Zoom, Help: Kliknij, aby powiększyć lub zmniejszyć widok dokumentu, Value: 125%, ID: ToolbarItemZoom, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		117 przycisk Description: Udostępnij, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		118 container Secondary Actions: Przejdź do poprzedniej rzeczy, Usuń z paska narzędzi
+			119 przycisk wyboru Description: Format, Help: Wyświetl lub ukryj opcje formatowania i stylów, Value: 1, Secondary Actions: Przejdź do poprzedniej rzeczy, Usuń z paska narzędzi
+			120 przycisk wyboru Description: Dokument, Help: Wyświetl lub ukryj opcje dokumentu i sekcji, Value: 0, Secondary Actions: Przejdź do poprzedniej rzeczy, Usuń z paska narzędzi
+	121 przycisk zamykania
+	122 przycisk trybu pełnoekranowego Help: ten przycisk pozwala też powiększyć lub pomniejszyć okno, Secondary Actions: powiększ/pomniejsz okno
+	123 przycisk minimalizacji okna
+	124 tekst pages-mixed-font-edited-v15.4
+125 menu bar
+	126 Pages
+	127 Plik
+	128 Edycja
+	129 Wstaw
+	130 Format
+	131 Uporządkuj
+	132 Widok
+	133 Okno
+	134 Pomoc
+
+The focused UI element is 7 obszar wprowadzania tekstu (selectable, settable) Description: Treść, Help: Formatuj szybko tekst, przechodząc do narzędzia za pomocą VoiceOver, Secondary Actions: Dodaj komentarz, Ukryj nagłówki i stopki, Przejdź do formatu strony, Zakładka, Value: Mixed family decimal items
+1. **Root native serif*** mono* plain
+    2. **Depth 1 serif*** mono* plain
+        3. **Depth 2 serif*** mono* plain
+            4. **Depth 3 serif*** mono* plain
+                5. **Depth 4 serif*** mono* plain
+                    6. **Depth 5 serif*** mono* plain
+                        7. **Depth 6 serif*** mono* plain
+                            8. **Depth 7 serif*** mono* plain
+                                9. **Deep native serif*** mono* plain
+                                10. **Deep two serif*** mono* plain
+Plain gap retains counters
+12. **Root eight serif*** mono* plain
+    13. **Child one serif*** mono* plain
+* **Serif marker serif*** mono* plain
+    * **Serif child serif*** mono* plain
+16. **Mono marker serif*** mono* plain
+    17. **Mono child serif*** mono* plain
+    18. **Resumed child serif*** mono* plain
+    19. Native child plain

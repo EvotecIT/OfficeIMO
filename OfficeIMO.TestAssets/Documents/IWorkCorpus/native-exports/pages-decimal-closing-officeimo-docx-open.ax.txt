@@ -1,0 +1,95 @@
+Window: "pages-decimal-closing-preserved-officeimo", App: Pages.
+0 okno standardowe pages-decimal-closing-preserved-officeimo, Secondary Actions: Raise
+	1 grupa podziału
+		2 element podziału (disabled, settable, float) -1
+		3 obszar przewijania Secondary Actions: Scroll Left, Scroll Right, Scroll Up, Scroll Down
+			4 obszar układu Description: Dokument, Help: Formatuj, przenoś i zmieniaj wielkość rzeczy, które zawiera Dokument
+				5 strona (selectable) Secondary Actions: Przejdź do formatu strony, Description: strona 1, podsumowanie: ROOT SEVEN, LEVEL ONE, LEVEL TWO, LEVEL THREE, LEVEL FOUR, LEVEL FIVE, LEVEL SIX, LEVEL SEVEN, LEVEL EIGHT
+					6 container Description: Nagłówek, Help: Aby ukryć lub pokazać nagłówki i stopki, przejdź do części głównej dokumentu i użyj polecenia czynności własnej.
+					7 obszar wprowadzania tekstu (selectable, settable) Description: Treść, Help: Formatuj szybko tekst, przechodząc do narzędzia za pomocą VoiceOver, Secondary Actions: Ukryj nagłówki i stopki, Przejdź do formatu strony, Zakładka, Value: Nine decimal levels
+1. ROOT SEVEN
+    2. LEVEL ONE
+        3. LEVEL TWO
+            4. LEVEL THREE
+                5. LEVEL FOUR
+                    6. LEVEL FIVE
+                        7. LEVEL SIX
+                            8. LEVEL SEVEN
+                                9. LEVEL EIGHT
+                                10. Deep continued two
+Plain gap
+                                12. Deep after gap three
+                13. Middle restart four
+                    14. Reset level 5
+                        15. Reset level 6
+                            16. Reset level 7
+                                17. Reset level 8
+                                18. Deep restart nine
+19. Other root three
+                                20. Resumed deep ten
+21. Root eight
+    22. Root reset level 1
+        23. Root reset level 2
+            24. Root reset level 3
+                25. Root reset level 4
+                    26. Root reset level 5
+                        27. Root reset level 6
+                            28. Root reset level 7
+                                29. Root reset level 8
+30. Root restart four
+    31. Restart level 1
+        32. Restart level 2
+            33. Restart level 3
+                34. Restart level 4
+                    35. Restart level 5
+                        36. Restart level 6
+                            37. Restart level 7
+                                38. Restart level 8
+End nine-level profile
+
+					8 container Description: Stopka, Help: Aby ukryć lub pokazać nagłówki i stopki, przejdź do części głównej dokumentu i użyj polecenia czynności własnej.
+			9 pasek przewijania (disabled, settable, float) 0
+			10 pasek przewijania (settable, float) 0
+				11 wskaźnik wartości (settable, float) 0
+				12 przycisk strzałki zwiększającej
+				13 przycisk strzałki zmniejszającej
+				14 przycisk strony następnej
+				15 przycisk strony poprzedniej
+		16 element podziału (disabled, settable, float) 780
+		17 container Narzędzie formatowania
+			18 unknown formatuj
+			19 text Nic nie jest zaznaczone. Zaznacz obiekt lub tekst, który chcesz sformatować.
+	20 pasek narzędzi
+		21 przycisk menu Description: Widok, Help: Wybierz elementy wyświetlane i ukrywane podczas tworzenia dokumentu, Secondary Actions: Przejdź do następnej rzeczy
+		22 przycisk Dodaj stronę, Help: Dodaj do dokumentu stronę, ID: ToolbarItemAddPage, Secondary Actions: Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		23 przycisk menu Description: Wstaw, Help: Dodaj podziały, numery stron, łącza lub inne elementy, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		24 przycisk Wygeneruj obrazek, Help: Twórz obrazki na podstawie opisu, innego obrazka lub sugerowanych poleceń, ID: ToolbarItemCreateImage, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		25 przycisk (disabled) Super rozdzielczość, Help: Zwiększ rozdzielczość obrazka, ID: ToolbarItemSuperResolution, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		26 przycisk Centrum zawartości, Help: Przeglądaj bibliotekę wyselekcjonowanych materiałów, ID: ToolbarItemMediaLibrary, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		27 przycisk Tabela, Help: Wybierz tabelę, która ma zostać dodana do dokumentu, ID: ToolbarItemTable, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		28 przycisk Wykres, Help: Wybierz wykres, który ma zostać dodany do dokumentu, ID: ToolbarItemChart, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		29 przycisk Tekst, Help: Dodaj do dokumentu pole tekstowe, ID: ToolbarItemText, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		30 przycisk Kształt, Help: Wybierz kształt lub linię, którą chcesz dodać do dokumentu, lub użyj narzędzia Pisak, ID: ToolbarItemShape, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		31 przycisk menu Description: Multimedia, Help: Wybierz obrazek, film lub plik audio, który ma zostać dodany do dokumentu, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		32 przycisk (disabled) Komentarz, Help: Dodaj komentarz do zaznaczonego tekstu, obiektu lub komórki tabeli, ID: ToolbarItemComment, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		33 przycisk menu Zoom, Help: Kliknij, aby powiększyć lub zmniejszyć widok dokumentu, Value: 125%, ID: ToolbarItemZoom, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		34 przycisk Description: Udostępnij, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		35 container Secondary Actions: Przejdź do poprzedniej rzeczy, Usuń z paska narzędzi
+			36 przycisk wyboru Description: Format, Help: Wyświetl lub ukryj opcje formatowania i stylów, Value: 1, Secondary Actions: Przejdź do poprzedniej rzeczy, Usuń z paska narzędzi
+			37 przycisk wyboru Description: Dokument, Help: Wyświetl lub ukryj opcje dokumentu i sekcji, Value: 0, Secondary Actions: Przejdź do poprzedniej rzeczy, Usuń z paska narzędzi
+	38 przycisk zamykania
+	39 przycisk trybu pełnoekranowego Help: ten przycisk pozwala też powiększyć lub pomniejszyć okno, Secondary Actions: powiększ/pomniejsz okno
+	40 przycisk minimalizacji okna
+	41 tekst pages-decimal-closing-preserved-officeimo
+42 menu bar
+	43 Pages
+	44 Plik
+	45 Edycja
+	46 Wstaw
+	47 Format
+	48 Uporządkuj
+	49 Widok
+	50 Okno
+	51 Pomoc
+
+The focused UI element is 4 obszar układu Description: Dokument, Help: Formatuj, przenoś i zmieniaj wielkość rzeczy, które zawiera Dokument
