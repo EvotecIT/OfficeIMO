@@ -477,12 +477,24 @@ public partial class PdfDocumentVisualQualityTests {
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
-        var times = Assert.Single(words, word => word.Text == "Times");
-        var courier = Assert.Single(words, word => word.Text == "Courier");
-        // These first rows use the default bold header style. Verify the faces
-        // actually used by the marker glyphs, rather than unused font objects.
-        Assert.All(times.Letters, letter => Assert.Equal("Times-Bold", letter.FontName));
-        Assert.All(courier.Letters, letter => Assert.Equal("Courier-Bold", letter.FontName));
+        var expectedWords = new[] {
+            (Text: "Direct", Font: "Times-Roman"),
+            (Text: "table", Font: "Times-Roman"),
+            (Text: "Times", Font: "Times-Roman"),
+            (Text: "Column", Font: "Courier"),
+            (Text: "table", Font: "Courier"),
+            (Text: "Courier", Font: "Courier")
+        };
+        // Explicit run fonts retain their selected faces in a bold header.
+        // Verify both complete painted runs, not just their font-name markers.
+        Assert.Equal(expectedWords.Length, words.Length);
+        for (int index = 0; index < expectedWords.Length; index++) {
+            Assert.Equal(expectedWords[index].Text, words[index].Text);
+            Assert.All(words[index].Letters, letter => {
+                Assert.Equal(expectedWords[index].Font, letter.FontName);
+                Assert.Equal(11D, letter.PointSize, precision: 6);
+            });
+        }
     }
 
     [Fact]
