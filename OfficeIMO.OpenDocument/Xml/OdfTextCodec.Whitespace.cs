@@ -138,14 +138,14 @@ internal static partial class OdfTextCodec {
             foreach (XNode node in VisibleNodes(nodes, atomic: element => IsScalarField(element) && _sourceCharacters.ContainsKey(element))) {
                 if (!_sourceCharacters.TryGetValue(node, out int count)) continue;
                 if (count > remainingCharacters - consumed)
-                    throw new InvalidDataException($"Decoded OpenDocument text exceeds the {remainingCharacters}-character safety limit.");
+                    throw Limit(nameof(MaximumDecodedCharacters), _admissionMaximum);
                 consumed += count;
                 if (_text.TryGetValue(node, out string? value)) builder.Append(value);
             }
             remainingCharacters -= consumed; return builder.ToString();
         }
         internal string Read(XElement element, ref int remainingCharacters) => IsNonVisibleTextElement(element)
-            ? OdfTextCodec.Read(element, ref remainingCharacters) : ReadNodes(new[] { element }, ref remainingCharacters);
+            ? ReadWithinBudget(element, ref remainingCharacters, _admissionMaximum) : ReadNodes(new[] { element }, ref remainingCharacters);
         internal string ReadNode(XNode node) {
             int remaining = _maximumCharacters;
             return ReadNodes(new[] { node }, ref remaining);

@@ -15,6 +15,44 @@ namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderOdfAdmissionClassificationTests {
     [Theory]
+    [InlineData(false, "direct")]
+    [InlineData(true, "direct")]
+    [InlineData(false, "batch")]
+    [InlineData(true, "batch")]
+    [InlineData(false, "folder")]
+    [InlineData(true, "folder")]
+    public async Task InlineAnnotationAdmissionRemainsTerminalAcrossFullReaderRoutes(bool annotationFirst, string route) {
+        const int maximum = 16 * 1024 * 1024;
+        OdpPresentation document = OdpPresentation.Create();
+        document.AddSlide("Slide").AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3)).AddParagraph("a");
+        XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XElement paragraph = document.GetXml("content.xml").Descendants(text + "p").Single();
+        var annotation = new XElement(office + "annotation", new XElement(text + "p",
+            new XElement(text + "s", new XAttribute(text + "c", maximum))));
+        if (annotationFirst) paragraph.AddFirst(annotation); else paragraph.Add(annotation);
+        byte[] bytes = document.ToBytes();
+        // A supported larger extraction budget must still preserve the native inline ceiling.
+        var reader = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler(new ReaderOpenDocumentOptions {
+            MaxExtractedCharacters = 2L * maximum
+        }).Build();
+        var options = new ReaderOptions { Projection = ReaderProjection.Full, MaxChars = 1_000_000 };
+        string directory = Path.Combine(Path.GetTempPath(), "odf-inline-admission-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string path = Path.Combine(directory, "source.odp"); File.WriteAllBytes(path, bytes);
+            async Task Read() {
+                if (route == "direct") reader.ReadDocument(bytes, "source.odp", options);
+                else if (route == "batch") await reader.ReadDocumentsDetailedAsync(new[] { path }, options);
+                else reader.ReadFolder(directory, options: options).ToArray();
+            }
+            ReaderResourceLimitException error = await Assert.ThrowsAsync<ReaderResourceLimitException>(Read);
+            Assert.Equal("opendocument.MaximumDecodedCharacters", error.LimitName); Assert.Equal(maximum, error.Maximum);
+            Assert.Equal(maximum, Assert.IsType<OfficeInspectionResourceLimitException>(error.InnerException).Maximum);
+        } finally { Directory.Delete(directory, true); }
+    }
+
+    [Theory]
     [InlineData(0, ReaderProjection.Full)]
     [InlineData(1, ReaderProjection.Full)]
     [InlineData(0, ReaderProjection.TextAndMetadata)]

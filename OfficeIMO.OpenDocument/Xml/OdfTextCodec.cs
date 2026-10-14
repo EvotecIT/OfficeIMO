@@ -30,6 +30,13 @@ internal static partial class OdfTextCodec {
         return ReadNodes(element.Nodes(), ref remainingCharacters);
     }
 
+    // Aggregate views retain their original ceiling when decoding a fallback fragment.
+    private static string ReadWithinBudget(XElement element, ref int remainingCharacters, int admissionMaximum) {
+        TextSnapshot snapshot = DecodeNodes(element.Nodes(), remainingCharacters, admissionMaximum: admissionMaximum);
+        remainingCharacters -= snapshot.SourceCharacters;
+        return snapshot.Text;
+    }
+
     internal static string ReadNodes(IEnumerable<XNode> nodes, ref int remainingCharacters) {
         TextSnapshot snapshot = DecodeNodes(nodes, remainingCharacters);
         remainingCharacters -= snapshot.SourceCharacters;
@@ -67,9 +74,7 @@ internal static partial class OdfTextCodec {
                 remaining--;
             }
             first = false;
-            TextSnapshot snapshot = DecodeNodes(element.Nodes(), remaining, admissionMaximum: MaximumDecodedCharacters);
-            remaining -= snapshot.SourceCharacters;
-            builder.Append(snapshot.Text);
+            builder.Append(ReadWithinBudget(element, ref remaining, MaximumDecodedCharacters));
         }
         return builder.ToString();
     }

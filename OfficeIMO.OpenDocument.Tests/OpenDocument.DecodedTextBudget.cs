@@ -23,23 +23,32 @@ public sealed class OpenDocumentDecodedTextBudgetTests {
         }));
     }
 
-    [Fact]
-    public void OdtAndOdpInlineSnapshotsCountNonvisibleOtherNodes() {
-        OdtDocument text = OdtDocument.Create();
-        OdtParagraph odtParagraph = text.AddParagraph("visible");
-        AddLargeAnnotations(odtParagraph.Element);
-        Assert.Equal("visible", odtParagraph.Text);
-        Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = odtParagraph.InlineNodes);
-
-        OdpPresentation presentation = OdpPresentation.Create();
-        OdpParagraph odpParagraph = presentation.AddSlide("Slide")
-            .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Body")
-            .AddParagraph("visible");
-        XElement odpElement = presentation.Package.GetXml("content.xml")
-            .Descendants(OdfNamespaces.Text + "p").Single(element => element.Value == "visible");
-        AddLargeAnnotations(odpElement);
-        Assert.Equal("visible", odpParagraph.Text);
-        Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = odpParagraph.InlineNodes);
+    [Theory]
+    [InlineData("odt", false)]
+    [InlineData("odt", true)]
+    [InlineData("odp", false)]
+    [InlineData("odp", true)]
+    public void InlineSnapshotsKeepTheEnclosingCeilingAcrossAnnotationOrder(string family, bool annotationFirst) {
+        OdfDocument document;
+        Action read;
+        Func<string> readText;
+        if (family == "odt") {
+            var text = OdtDocument.Create(); OdtParagraph paragraph = text.AddParagraph("visible");
+            document = text; read = () => _ = paragraph.InlineNodes; readText = () => paragraph.Text;
+        } else {
+            var presentation = OdpPresentation.Create();
+            OdpParagraph paragraph = presentation.AddSlide("Slide").AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Body").AddParagraph("visible");
+            document = presentation; read = () => _ = paragraph.InlineNodes; readText = () => paragraph.Text;
+        }
+        XElement element = document.GetXml("content.xml").Descendants(OdfNamespaces.Text + "p").Single();
+        AddLargeAnnotations(element);
+        if (annotationFirst) {
+            XText visible = element.Nodes().OfType<XText>().Single(); visible.Remove(); element.Add(visible);
+        }
+        Assert.Equal("visible", readText());
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(read);
+        Assert.Equal("opendocument", error.Owner); Assert.Equal("MaximumDecodedCharacters", error.LimitName);
+        Assert.Equal(2 * HalfLimit, error.Maximum);
     }
 
     [Fact]
