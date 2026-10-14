@@ -1,0 +1,782 @@
+{
+  "schema": 1,
+  "qualifiedUtc": "2026-10-14T19:21:55.325471+00:00",
+  "scope": "Selected-font shared strut for normal-height replaced-inline/atomic lines; independent native qualification covers the named image and footer controls.",
+  "integratedSourceCommit": "a3c8fcc84d726e3b89328a942a9bd2cd5ad68ce6",
+  "compiledSourceBase": "f7d8356985a58bae620603b42a0a2d6aeff96a1b",
+  "sourceFiles": [
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderBoxStyle.cs",
+      "sha256": "944ca6db7a7e2c14ae832275411a0b4383c5ad5926a495dfc96546a3abdf6113",
+      "bytes": 12220
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderCssValues.cs",
+      "sha256": "643fa96449987cf7ad403107de23fc55de18c95d4a3eadada9e8e73451af932f",
+      "bytes": 19335
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.cs",
+      "sha256": "5b8206ef531b6b282949e48c7b7edb5d70a7662fc4d0e54e9a34654bda2426e9",
+      "bytes": 54801
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Flex.Items.cs",
+      "sha256": "86a44d38e9202d2e7aed1d16980ff962f04d7dc4bffc04853f4142b29f8e6d8e",
+      "bytes": 13219
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Floats.cs",
+      "sha256": "76796383532acbf7b27d246dcf57c24c1cb97250fd7023c7f67ee38f66992cb7",
+      "bytes": 31443
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Ruby.cs",
+      "sha256": "b54794b4506db052ef75f02246728a124c70070d3f2c1154c23b9dcf4a5ffe7f",
+      "bytes": 5065
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.VerticalMetrics.cs",
+      "sha256": "27edf090f0d0c1ca44d1dc060619932bf0101dc2d8065e5ff46db3012d449040",
+      "bytes": 6367
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.InheritedLengths.cs",
+      "sha256": "48140334247839faf8bad72caa3c4045ae56d1cc35207ecc398b218862555f15",
+      "bytes": 2670
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
+      "sha256": "3a8e9a984d20012a4765e748d616f7371e7490f2b0c29911005a0e3b861fffba",
+      "bytes": 86196
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.ImageLineMetrics.cs",
+      "sha256": "4fd8b3d62b06bfa189d97f96c11b8b57d13d9041ef52a5c0f0ae42df490f59bb",
+      "bytes": 5724
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.ImageLineMetrics.cs",
+      "sha256": "feea12df76cc9d786705baadb881ece92ce653c4dd6328c02716399f3c470350",
+      "bytes": 2787
+    }
+  ],
+  "sourceCommitBoundary": "Tests and consumers compiled the recorded eleven source hashes over the compiledSourceBase. The integrated commit contains byte-identical sources; assembly informational versions are not relabelled as builds of the later commit.",
+  "sdk": "10.0.303",
+  "host": "macOS Apple Silicon",
+  "publicApiChanged": false,
+  "productionDependenciesChanged": false,
+  "behavior": {
+    "alignment": "Pair used line height with pixel-rounded selected-face ascent/descent and signed leading split. Preserve authored ordinary text paint and raw font programs.",
+    "lineHeight": "Retain unitless multiplier versus fixed computed-length provenance through inheritance and anonymous style cloning.",
+    "normalHeightGate": "Containing style line height is at least font size; a short-line run or inline strut retains the established whole-line route.",
+    "reachableFamilies": [
+      "images and generated image/list markers",
+      "ruby",
+      "math",
+      "inline form controls"
+    ],
+    "qualificationBoundary": "Named image controls have independent browser observations. Existing atomic-family regression coverage runs in the broader ordinary suite; this is not independent native acceptance of every reachable family."
+  },
+  "inputBindings": [
+    {
+      "path": "normal-image-strut/inputs/baseline-sans-controls.html",
+      "bytes": 145078,
+      "sha256": "6b8a5013f03dc834912ae3eca41223cef0ba27dab9b732d43183b21bc268bcd1"
+    },
+    {
+      "path": "normal-image-strut/inputs/h10-authored.html",
+      "bytes": 211922,
+      "sha256": "c52249a5ba6423995628192151f894e10d7c46108edf53c1145dfa3244ea7584"
+    },
+    {
+      "path": "normal-image-strut/inputs/public-sans-controls.html",
+      "bytes": 47753,
+      "sha256": "e1af6cb0c09fbc0396ee6cb3a37971b162546d129837651aaa7af5b30f780367"
+    }
+  ],
+  "tests": [
+    {
+      "lane": "focused",
+      "framework": "net8.0",
+      "passed": 221,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "normal-image-strut/test-results/focused-net8.0.trx",
+      "sha256": "f45c4f09eceeb94940ceebd8ac999ad40d6a5c0be6d9ecb9b09b6dd30061cf2c"
+    },
+    {
+      "lane": "focused",
+      "framework": "net10.0",
+      "passed": 221,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "normal-image-strut/test-results/focused-net10.0.trx",
+      "sha256": "d9245fcec98811a558263f2a4ca632d4e9ef5aeef41941f5a0721733af17d08b"
+    },
+    {
+      "lane": "broad",
+      "framework": "net8.0",
+      "passed": 6196,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "normal-image-strut/test-results/broad-net8.0.trx",
+      "sha256": "08bffc8b7751bc29dce3f1004ef75079e4e8e2c25492f7e0652b1d603e9b9dcf"
+    },
+    {
+      "lane": "broad",
+      "framework": "net10.0",
+      "passed": 6196,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "normal-image-strut/test-results/broad-net10.0.trx",
+      "sha256": "46683b2cd931d3c03ba3cb1084c202656adee270ecb31d947cea58d38cc3be49"
+    }
+  ],
+  "ordinarySuiteFilter": "Category!=Performance",
+  "ordinarySuiteScope": "OfficeIMO.Html.Tests including its static HTML/PDF correctness paths; general PDF, browser provider, runtime and workbench suites are outside this packet.",
+  "reproduceOrdinarySuite": [
+    "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net8.0 --filter Category!=Performance",
+    "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net10.0 --filter Category!=Performance"
+  ],
+  "nativeReference": {
+    "browser": "Chromium153.0.8010.12",
+    "browserOwner": "HtmlTinkerX",
+    "browserOwnerSource": "5d2c8943cb095b288b995622d9c8c0ab28277abf",
+    "media": [
+      "print",
+      "screen"
+    ],
+    "viewportCssPx": [
+      816,
+      900
+    ],
+    "pageMarginsCssPx": 0,
+    "sessionsAndLocalServerClosed": true,
+    "currentHtmlTinkerXCandidateNotMixedIntoBrowserProbe": true
+  },
+  "footerGeometryCssPx": {
+    "oldHeadingY": 148.74,
+    "browserHeadingY": 148.125,
+    "finalHeadingY": 148.1275,
+    "oldParagraphY": 211.74,
+    "browserParagraphY": 211.125,
+    "finalParagraphY": 211.1275
+  },
+  "independentImageControls": [
+    {
+      "font": "public-sans-controls",
+      "media": "print",
+      "case": "unitless",
+      "engineFollowingLocalY": 74.1275,
+      "browserLineHeight": 74.125,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "print",
+      "case": "literal",
+      "engineFollowingLocalY": 74.143125,
+      "browserLineHeight": 74.140625,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "print",
+      "case": "leading20",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "print",
+      "case": "leading21",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "print",
+      "case": "negative",
+      "engineFollowingLocalY": 73.94,
+      "browserLineHeight": 73.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "print",
+      "case": "font20",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "print",
+      "case": "text",
+      "engineFollowingLocalY": 74.12749999999994,
+      "browserLineHeight": 74.125,
+      "delta": 0.002499999999940883
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "print",
+      "case": "root-size",
+      "engineFollowingLocalY": 74.94000000000005,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0025000000000545697
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "screen",
+      "case": "unitless",
+      "engineFollowingLocalY": 74.1275,
+      "browserLineHeight": 74.125,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "screen",
+      "case": "literal",
+      "engineFollowingLocalY": 74.143125,
+      "browserLineHeight": 74.140625,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "screen",
+      "case": "leading20",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "screen",
+      "case": "leading21",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "screen",
+      "case": "negative",
+      "engineFollowingLocalY": 73.94,
+      "browserLineHeight": 73.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "screen",
+      "case": "font20",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "screen",
+      "case": "text",
+      "engineFollowingLocalY": 74.12749999999994,
+      "browserLineHeight": 74.125,
+      "delta": 0.002499999999940883
+    },
+    {
+      "font": "public-sans-controls",
+      "media": "screen",
+      "case": "root-size",
+      "engineFollowingLocalY": 74.94000000000005,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0025000000000545697
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "print",
+      "case": "unitless",
+      "engineFollowingLocalY": 74.1275,
+      "browserLineHeight": 74.125,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "print",
+      "case": "literal",
+      "engineFollowingLocalY": 74.143125,
+      "browserLineHeight": 74.140625,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "print",
+      "case": "leading20",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "print",
+      "case": "leading21",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "print",
+      "case": "negative",
+      "engineFollowingLocalY": 73.94,
+      "browserLineHeight": 73.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "print",
+      "case": "font10",
+      "engineFollowingLocalY": 72.94,
+      "browserLineHeight": 72.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "print",
+      "case": "text",
+      "engineFollowingLocalY": 74.12749999999994,
+      "browserLineHeight": 74.125,
+      "delta": 0.002499999999940883
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "print",
+      "case": "root-size",
+      "engineFollowingLocalY": 74.94000000000005,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0025000000000545697
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "screen",
+      "case": "unitless",
+      "engineFollowingLocalY": 74.1275,
+      "browserLineHeight": 74.125,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "screen",
+      "case": "literal",
+      "engineFollowingLocalY": 74.143125,
+      "browserLineHeight": 74.140625,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "screen",
+      "case": "leading20",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "screen",
+      "case": "leading21",
+      "engineFollowingLocalY": 74.94,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "screen",
+      "case": "negative",
+      "engineFollowingLocalY": 73.94,
+      "browserLineHeight": 73.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "screen",
+      "case": "font10",
+      "engineFollowingLocalY": 72.94,
+      "browserLineHeight": 72.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "screen",
+      "case": "text",
+      "engineFollowingLocalY": 74.12749999999994,
+      "browserLineHeight": 74.125,
+      "delta": 0.002499999999940883
+    },
+    {
+      "font": "baseline-sans-controls",
+      "media": "screen",
+      "case": "root-size",
+      "engineFollowingLocalY": 74.94000000000005,
+      "browserLineHeight": 74.9375,
+      "delta": 0.0025000000000545697
+    }
+  ],
+  "inheritedAndWrappedFlowControls": [
+    {
+      "media": "print",
+      "case": "inherit-number",
+      "engineFollowingLocalY": 72.94,
+      "browserFollowingLocalY": 72.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "media": "print",
+      "case": "inherit-length",
+      "engineFollowingLocalY": 76.143125,
+      "browserFollowingLocalY": 76.140625,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "media": "print",
+      "case": "text-flow",
+      "engineFollowingLocalY": 93.32749999999999,
+      "browserFollowingLocalY": 93.3125,
+      "delta": 0.014999999999986358
+    },
+    {
+      "media": "print",
+      "case": "float-flow",
+      "engineFollowingLocalY": 93.32749999999999,
+      "browserFollowingLocalY": 93.3125,
+      "delta": 0.014999999999986358
+    },
+    {
+      "media": "screen",
+      "case": "inherit-number",
+      "engineFollowingLocalY": 72.94,
+      "browserFollowingLocalY": 72.9375,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "media": "screen",
+      "case": "inherit-length",
+      "engineFollowingLocalY": 76.143125,
+      "browserFollowingLocalY": 76.140625,
+      "delta": 0.0024999999999977263
+    },
+    {
+      "media": "screen",
+      "case": "text-flow",
+      "engineFollowingLocalY": 93.32749999999999,
+      "browserFollowingLocalY": 93.3125,
+      "delta": 0.014999999999986358
+    },
+    {
+      "media": "screen",
+      "case": "float-flow",
+      "engineFollowingLocalY": 93.32749999999999,
+      "browserFollowingLocalY": 93.3125,
+      "delta": 0.014999999999986358
+    }
+  ],
+  "savedBaselineControls": [
+    {
+      "media": "print",
+      "imageSource": "img#image-text-flow",
+      "expectedImageMarginBottomBaseline": 223.023125,
+      "savedSvgBaseline": 223.023,
+      "differenceFromSvgSerialization": -0.00012499999999704414
+    },
+    {
+      "media": "print",
+      "imageSource": "img#image-float-flow",
+      "expectedImageMarginBottomBaseline": 383.023125,
+      "savedSvgBaseline": 383.023,
+      "differenceFromSvgSerialization": -0.00012499999996862243
+    },
+    {
+      "media": "screen",
+      "imageSource": "img#image-text-flow",
+      "expectedImageMarginBottomBaseline": 223.023125,
+      "savedSvgBaseline": 223.023,
+      "differenceFromSvgSerialization": -0.00012499999999704414
+    },
+    {
+      "media": "screen",
+      "imageSource": "img#image-float-flow",
+      "expectedImageMarginBottomBaseline": 383.023125,
+      "savedSvgBaseline": 383.023,
+      "differenceFromSvgSerialization": -0.00012499999996862243
+    }
+  ],
+  "ordinaryParagraphControls": [
+    {
+      "media": "print",
+      "textRecordCount": 6,
+      "allPaintMetricsAndFontsIdenticalExceptFlowY": true,
+      "flowYShifts": [
+        0.6125000000000114,
+        0.6125000000000114,
+        0.6125000000000114,
+        0.612499999999983,
+        0.6125000000000114,
+        0.6125000000000114
+      ]
+    },
+    {
+      "media": "screen",
+      "textRecordCount": 6,
+      "allPaintMetricsAndFontsIdenticalExceptFlowY": true,
+      "flowYShifts": [
+        0.6125000000000114,
+        0.6125000000000114,
+        0.6125000000000114,
+        0.612499999999983,
+        0.6125000000000114,
+        0.6125000000000114
+      ]
+    }
+  ],
+  "shortLineControls": [
+    {
+      "media": "print",
+      "pdfBytesExactlyEqualToFrozenF7": true,
+      "sha256": "31f548507c5fb471dbdddddd331f003911cc20316dd13c1966ca67c35db61baa",
+      "sceneTextExactlyEqual": true
+    },
+    {
+      "media": "screen",
+      "pdfBytesExactlyEqualToFrozenF7": true,
+      "sha256": "31f548507c5fb471dbdddddd331f003911cc20316dd13c1966ca67c35db61baa",
+      "sceneTextExactlyEqual": true
+    }
+  ],
+  "rawFontControls": [
+    {
+      "fixture": "public-sans-controls",
+      "rawFontMetricRecordsIdentical": true,
+      "records": [
+        {
+          "sha256": "bea988eeadc7c0ddf9644c2dce7efb35f1767eac0187c0967f8a2567473cbbfe",
+          "name": "Public Sans Regular",
+          "fingerprint": "sha256:9de7031e4810abecdf9c2bc867fd0614020fcac76ae97a63a128f1df4da8cef0:face=auto",
+          "decodedSha256": "9de7031e4810abecdf9c2bc867fd0614020fcac76ae97a63a128f1df4da8cef0",
+          "decodedBytes": 79592,
+          "containerFormat": "Woff2",
+          "height": 18.8,
+          "offset": 15.200000000000001,
+          "centeredBaseline": 15.4,
+          "centeredDescent": 3.799999999999999,
+          "interpretation": "Direct decoded default font program; not proof of the renderer's selected CSS instance."
+        }
+      ]
+    },
+    {
+      "fixture": "baseline-sans-controls",
+      "rawFontMetricRecordsIdentical": true,
+      "records": [
+        {
+          "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+          "name": "OfficeIMO Baseline Sans Regular",
+          "fingerprint": "sha256:00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3:face=auto",
+          "decodedSha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+          "decodedBytes": 105592,
+          "containerFormat": "OpenType",
+          "height": 19.53125,
+          "offset": 15.234375,
+          "centeredBaseline": 15.06875,
+          "centeredDescent": 4.131250000000001,
+          "interpretation": "Direct decoded default font program; not proof of the renderer's selected CSS instance."
+        }
+      ]
+    },
+    {
+      "fixture": "h10-authored",
+      "rawFontMetricRecordsIdentical": true,
+      "records": [
+        {
+          "sha256": "0364d368abf457d4e70dbc7a7a360f3486eaea2837b194915b23d4398bee91ac",
+          "name": "Inter Regular",
+          "fingerprint": "sha256:828cf7daf4aa5c1c30562460a4c1e5518c2d355c550ac574f4dc693b695a12c3:face=auto",
+          "decodedSha256": "828cf7daf4aa5c1c30562460a4c1e5518c2d355c550ac574f4dc693b695a12c3",
+          "decodedBytes": 46620,
+          "containerFormat": "Woff2",
+          "height": 19.363636363636363,
+          "offset": 15.5,
+          "centeredBaseline": 15.418181818181818,
+          "centeredDescent": 3.7818181818181813,
+          "interpretation": "Direct decoded default font program; not proof of the renderer's selected CSS instance."
+        },
+        {
+          "sha256": "450f3ba4e47ee174bd9692b396f264b907d37d2528f53911760f3d0edb785f7e",
+          "name": "Inter Regular",
+          "fingerprint": "sha256:af78f01381d0a51973755ce2500231b7bfaf9f32bf41d6ee6a246079bfd977c1:face=auto",
+          "decodedSha256": "af78f01381d0a51973755ce2500231b7bfaf9f32bf41d6ee6a246079bfd977c1",
+          "decodedBytes": 93180,
+          "containerFormat": "Woff2",
+          "height": 19.363636363636363,
+          "offset": 15.5,
+          "centeredBaseline": 15.418181818181818,
+          "centeredDescent": 3.7818181818181813,
+          "interpretation": "Direct decoded default font program; not proof of the renderer's selected CSS instance."
+        },
+        {
+          "sha256": "450f3ba4e47ee174bd9692b396f264b907d37d2528f53911760f3d0edb785f7e",
+          "name": "Inter Regular",
+          "fingerprint": "sha256:af78f01381d0a51973755ce2500231b7bfaf9f32bf41d6ee6a246079bfd977c1:face=auto",
+          "decodedSha256": "af78f01381d0a51973755ce2500231b7bfaf9f32bf41d6ee6a246079bfd977c1",
+          "decodedBytes": 93180,
+          "containerFormat": "Woff2",
+          "height": 19.363636363636363,
+          "offset": 15.5,
+          "centeredBaseline": 15.418181818181818,
+          "centeredDescent": 3.7818181818181813,
+          "interpretation": "Direct decoded default font program; not proof of the renderer's selected CSS instance."
+        },
+        {
+          "sha256": "bea988eeadc7c0ddf9644c2dce7efb35f1767eac0187c0967f8a2567473cbbfe",
+          "name": "Public Sans Regular",
+          "fingerprint": "sha256:9de7031e4810abecdf9c2bc867fd0614020fcac76ae97a63a128f1df4da8cef0:face=auto",
+          "decodedSha256": "9de7031e4810abecdf9c2bc867fd0614020fcac76ae97a63a128f1df4da8cef0",
+          "decodedBytes": 79592,
+          "containerFormat": "Woff2",
+          "height": 18.8,
+          "offset": 15.200000000000001,
+          "centeredBaseline": 15.4,
+          "centeredDescent": 3.799999999999999,
+          "interpretation": "Direct decoded default font program; not proof of the renderer's selected CSS instance."
+        },
+        {
+          "sha256": "970fbaaebe5403cae84370f17f4303f91b317c0e7d44607fb2c7fed7571c013f",
+          "name": "Public Sans Bold",
+          "fingerprint": "sha256:784de38ada9826f2aa92d2d232cf553a5675ae086812cb9a1a335fd3a225d1ac:face=auto",
+          "decodedSha256": "784de38ada9826f2aa92d2d232cf553a5675ae086812cb9a1a335fd3a225d1ac",
+          "decodedBytes": 79144,
+          "containerFormat": "Woff2",
+          "height": 18.8,
+          "offset": 15.200000000000001,
+          "centeredBaseline": 15.4,
+          "centeredDescent": 3.799999999999999,
+          "interpretation": "Direct decoded default font program; not proof of the renderer's selected CSS instance."
+        }
+      ]
+    }
+  ],
+  "residualClassification": {
+    "footerAndSingleLine": 0.0025,
+    "reason": "Authored renderer image height53.94 differs from native CSS grid height53.9375; the selected strut contribution matches. No tolerance was weakened.",
+    "followingOrdinaryWrappedLine": 0.015,
+    "wrappedReason": "The next ordinary line retains its existing unquantized paint/line-height contract.",
+    "wholeFooterAppearance": "Visual inspection confirms remaining captured-font weight and ink differences; these already occur in the pre-fix output and remain open."
+  },
+  "primarySources": [
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/platform/fonts/font_metrics.cc",
+      "lines": "45-139",
+      "meaning": "Ordinary non-tiny Skia ascent/descent are rounded with SkScalarRoundToScalar. Linux-specific adjustment is not the Mac path; family hacks name Times/Helvetica/Courier, not Public Sans."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/platform/fonts/font_metrics.h",
+      "lines": "49-65;97-150",
+      "meaning": "Integer font metrics are stored; GetFontHeight uses integer ascent/descent, whereas SVG/float routes differ."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/core/layout/inline/inline_box_state.cc",
+      "lines": "104-156;320-350",
+      "meaning": "Ordinary horizontal text metrics use primary-font integer FontHeight; the containing line is initialized with its zero-width strut even with no text glyphs."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/core/layout/inline/line_utils.cc",
+      "lines": "31-39",
+      "meaning": "Leading is split by integer fixed-unit division by2 followed by Floor() to whole CSS pixels for the ascent share; the remainder goes to descent. This is an explicit legacy compatibility behavior."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/core/css/resolver/style_builder_converter.cc",
+      "lines": "2051-2084",
+      "meaning": "Unitless line-height is represented as a percentage multiplier internally. Authored percentages resolve to fixed lengths; authored CSS lengths use normal CSS-to-length conversion."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/core/style/computed_style.cc",
+      "lines": "2297-2315",
+      "meaning": "Unitless-percent multiplier uses MinimumValueForLength. Fixed CSS line-height lengths use FromFloatRound. Normal uses FixedLineSpacing."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/core/style/computed_style.h",
+      "lines": "785-797",
+      "meaning": "Computed font size is already CSS pixels; ComputedFontSizeAsFixed uses FromFloatRound before multiplier evaluation."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/platform/geometry/length_functions.cc",
+      "lines": "52-63",
+      "meaning": "Internal percentage multiplication returns LayoutUnit(float), which truncates its result to1/64 toward zero."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/platform/geometry/layout_unit.h",
+      "lines": "56-70;115-138;270-280;567-572",
+      "meaning": "LayoutUnit is1/64 CSSpx. Its float constructor truncates toward zero; FromFloatRound rounds to nearest grid unit with C++ roundf ties away from zero; Floor uses an arithmetic shift toward negative infinity; integral division truncates signed raw values toward zero."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/platform/fonts/simple_font_data.cc",
+      "lines": "108-165",
+      "meaning": "Skia metrics pass through AscentDescentWithHacks before storage. Normal line spacing is the sum of separately rounded ascent/descent/linegap."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/DEPS",
+      "lines": "310",
+      "meaning": "This browser tag pins Skia9d07e5bad9e3e21da2426946e589daa647218271."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/google/skia/9d07e5bad9e3e21da2426946e589daa647218271/include/core/SkScalar.h",
+      "lines": "27-34",
+      "meaning": "SkScalarRoundToScalar delegates to sk_float_round."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/google/skia/9d07e5bad9e3e21da2426946e589daa647218271/include/private/SkFloatingPoint.h",
+      "lines": "32-35;113",
+      "meaning": "sk_float_round promotes to double and uses floor(x+0.5), so exact half ties go toward positive infinity. This differs from C++ roundf on negative ties; ordinary positive ascent/descent ties round upward."
+    },
+    {
+      "url": "https://www.w3.org/TR/CSS2/visudet.html#leading",
+      "meaning": "Font-wide ascent/descent plus half-leading define the strut. Empty inline boxes use the first available font; replaced elements contribute their margin boxes. The spec recommends OS/2 typo metrics, then hhea, and separates font metrics from individual glyph ink. It does not mandate Chromium's whole-pixel ascent-leading floor."
+    }
+  ],
+  "localReview": {
+    "kind": "One fresh independent read-only pass",
+    "sourceHashesMatchedBeforeAfter": 11,
+    "actionableFindings": 0,
+    "productDisposition": "accept as shaped",
+    "visualArtifactsInspected": 4,
+    "targetedConfirmationRequired": false
+  },
+  "localArtifactStorage": {
+    "rootSetting": "EVOTEC_SCRATCH_ROOT",
+    "relativeRoot": "html-static-text-table-receiving/feature-integration-storage/inline-logo-baseline",
+    "archive": {
+      "path": "normal-image-strut/normal-image-strut-qualification.zip",
+      "bytes": 32565246,
+      "sha256": "889fb88a68166e40b57af89f0f2173495d12fb60c66a57b3155fa46bf0311b42",
+      "mappedFiles": 589,
+      "uniqueBlobs": 389,
+      "allGraphFileMappings": 2948,
+      "sourceMappings": 903,
+      "allZipEntriesReadBack": true,
+      "noDeletion": true,
+      "runtimeConsumersNeeded": false,
+      "runtimeConsumerDisposition": "Current/public proof complete; frozenF7/H5d2 runtimes no longer needed by this agent after compact seal. Root owns guarded retirement."
+    },
+    "archiveRemoteBackupEstablished": false,
+    "decisiveVisuals": [
+      "normal-image-strut/visual-qa/h10-authored-print.png",
+      "normal-image-strut/visual-qa/closure-controls-print.png",
+      "split-current-authored/browser-print.png",
+      "normal-image-strut/closure-oracle-closure-controls/browser-print.png"
+    ]
+  },
+  "unqualified": [
+    "Windows/Linux execution and platform budgets",
+    "original browser font identity/admission",
+    "whole-page H10 appearance",
+    "manual accessibility",
+    "all-browser rendering parity"
+  ]
+}
