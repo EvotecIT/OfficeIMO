@@ -2,8 +2,11 @@
 
 | Container | Supported read profile | Boundaries |
 | --- | --- | --- |
+| ZIP | Single-disk archives with stored or Deflate members | Prepended self-extracting stubs, encryption, patched data sets, enhanced Deflate and reserved flag profiles, compression-level flags on stored members, other compression methods, multi-disk archives, ambiguous directory layouts (including distant ZIP64 locators with saturated classic counts), unflagged non-ASCII and invalid UTF-8 names are rejected; central-directory member count, ZIP64 coordinates, matching local names/flags/methods, exact Deflate framing, actual decoded EOF, declared lengths, CRC-32 and expansion bounds are enforced; directory members must have verified empty payloads |
 | CAB | Single cabinets with Store, MSZIP and the shared LZX decoder | Cabinet sets, continuation/spanning and unsupported compression are rejected; finite entry/folder/output bounds and available checksums are enforced |
 | MSI | Ordinary installer database CFB; schema-driven strings and Directory, Component, File and Media tables; embedded complete cabinets | External cabinets and loose files, transforms, patches and action-dependent installation layouts are unsupported; no Installer actions, conditions or properties are executed |
+
+ZIP central-directory digital-signature records are accepted as opaque metadata, including in empty archives. Extraction does not authenticate those signatures. Stored members must declare equal compressed and uncompressed sizes, including excluded members. A self-consistent end record nested in another end record's comment is an ambiguous layout and is rejected.
 
 CAB member names support ASCII or explicitly flagged UTF-8, with at most 256 encoded bytes in the container. Extracted path segments are separately limited to 255 UTF-8 bytes and 255 characters for portable filesystem output, before selection or staging writes. Unflagged names containing non-ASCII bytes fail explicitly because the container does not identify the producer's locale. Unsupported CAB compression, continuation and filename-encoding profiles raise `NotSupportedException`; corrupt or unsafe content raises `InvalidDataException`.
 

@@ -1,9 +1,10 @@
 using System;
+using System.IO;
 using System.Threading;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Validates RFC 1951 block structure and requires one exact Deflate payload.</summary>
-    internal static class OfficeDeflateStreamValidator {
+    internal static partial class OfficeDeflateStreamValidator {
         private static readonly int[] LengthBases = {
             3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
             35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258
@@ -51,6 +52,12 @@ namespace OfficeIMO.Core.Internal {
             if (bytes == null || offset < 0 || count < 0 || maximumOutputBytes < 0 ||
                 offset > bytes.Length - count) return false;
             var reader = new DeflateBitReader(bytes, offset, count);
+            return TryValidateExact(reader, count, maximumOutputBytes, out outputLimitExceeded, cancellationToken);
+        }
+
+        private static bool TryValidateExact(DeflateBitReader reader, long count, long maximumOutputBytes,
+            out bool outputLimitExceeded, CancellationToken cancellationToken) {
+            outputLimitExceeded = false;
             long outputCount = 0;
             bool final;
             do {
@@ -85,6 +92,7 @@ namespace OfficeIMO.Core.Internal {
                 }
             } while (!final);
 
+            cancellationToken.ThrowIfCancellationRequested();
             return reader.ConsumedBytes == count;
         }
 
@@ -347,11 +355,15 @@ namespace OfficeIMO.Core.Internal {
 
         private sealed class DeflateBitReader {
             private readonly byte[] _bytes;
-            private readonly int _start;
-            private readonly int _end;
-            private int _byteOffset;
+            private readonly long _start;
+            private readonly long _end;
+            private long _byteOffset;
             private int _bitOffset;
-            private int _readOffset;
+            private long _readOffset;
+            private readonly Stream? _stream;
+            private readonly long _streamStart;
+            private long _streamBufferStart = -1;
+            private int _streamBufferCount;
 #if NET8_0_OR_GREATER
             private ulong _buffer;
 #else
@@ -367,7 +379,14 @@ namespace OfficeIMO.Core.Internal {
                 _readOffset = offset;
             }
 
-            internal int ConsumedBytes => _byteOffset - _start + (_bitOffset == 0 ? 0 : 1);
+            internal DeflateBitReader(Stream source, long count) {
+                _stream = source;
+                _streamStart = source.Position;
+                _bytes = new byte[81920];
+                _end = count;
+            }
+
+            internal long ConsumedBytes => _byteOffset - _start + (_bitOffset == 0 ? 0 : 1);
 
             internal bool TryReadBits(int count, out int value) {
                 if (!TryPeekBits(count, out value)) return false;
@@ -382,26 +401,40 @@ namespace OfficeIMO.Core.Internal {
 #if NET8_0_OR_GREATER
                     // At most 15 buffered bits plus a 32-bit refill fit the
                     // ulong reservoir. Lookahead does not advance consumption.
-                    if (_end - _readOffset >= 4) {
+                    if (_stream == null && _end - _readOffset >= 4) {
                         _buffer |= (ulong)System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
-                            _bytes.AsSpan(_readOffset, 4)) << _bufferedBits;
+                            _bytes.AsSpan((int)_readOffset, 4)) << _bufferedBits;
                         _readOffset += 4;
                         _bufferedBits += 32;
                         continue;
                     }
-                    if (_end - _readOffset >= 2) {
+                    if (_stream == null && _end - _readOffset >= 2) {
                         _buffer |= (ulong)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
-                            _bytes.AsSpan(_readOffset, 2)) << _bufferedBits;
+                            _bytes.AsSpan((int)_readOffset, 2)) << _bufferedBits;
                         _readOffset += 2;
                         _bufferedBits += 16;
                         continue;
                     }
 #endif
-                    if (_readOffset >= _end) return false;
-                    _buffer |= (uint)_bytes[_readOffset++] << _bufferedBits;
+                    if (!TryReadNextByte(out byte next)) return false;
+                    _buffer |= (uint)next << _bufferedBits;
                     _bufferedBits += 8;
                 }
                 value = (int)(_buffer & ((1U << count) - 1));
+                return true;
+            }
+
+            private bool TryReadNextByte(out byte value) {
+                value = 0;
+                if (_readOffset >= _end) return false;
+                if (_stream == null) { value = _bytes[(int)_readOffset++]; return true; }
+                if (_streamBufferStart < 0 || _readOffset < _streamBufferStart || _readOffset >= _streamBufferStart + _streamBufferCount) {
+                    _stream.Position = _streamStart + _readOffset;
+                    _streamBufferStart = _readOffset;
+                    _streamBufferCount = _stream.Read(_bytes, 0, (int)Math.Min(_bytes.Length, _end - _readOffset));
+                    if (_streamBufferCount <= 0) return false;
+                }
+                value = _bytes[(int)(_readOffset++ - _streamBufferStart)];
                 return true;
             }
 
