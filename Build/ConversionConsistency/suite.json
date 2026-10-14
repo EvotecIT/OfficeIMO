@@ -56,13 +56,13 @@
             {
               "text": "Water",
               "x": 16,
-              "baseline": 93.656,
+              "baseline": 92,
               "tolerance": 0.3
             },
             {
               "text": "SVG LABEL",
               "x": 16,
-              "baseline": 205
+              "baseline": 201
             }
           ],
           "regions": [
@@ -81,7 +81,7 @@
             {
               "id": "green-marker",
               "x": 16,
-              "y": 262,
+              "y": 258,
               "width": 32,
               "height": 24,
               "color": "#087f5b",
