@@ -167,9 +167,10 @@ public partial class Excel {
     public void OpenDataReader_WindowRequiresCapacityForOneProjectedRow() {
         string path = CreateWindowedIndexWorkbook(WindowedIndexWorksheet(WindowedIndexHeader, "A1:D1"));
         try {
-            var error = Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(path,
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReader(path,
                 new ExcelReadOptions { MaxDataReaderBufferedCells = 3 }));
-            Assert.Contains(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), error.Message);
+            Assert.Equal("excel", error.Owner); Assert.Equal(3, error.Maximum);
+            Assert.Equal(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), error.LimitName);
         } finally {
             File.Delete(path);
         }

@@ -299,6 +299,25 @@ XLS. It returns readable worksheets in workbook order and applies
 `MaxInputBytes`, `MaxWorksheets`, `MaxMetadataPartBytes`, and the configured
 cancellation token before worksheet data is opened.
 
+Modern XML read APIs report configured input, metadata, shared-string, dense-range,
+and data-reader buffering ceilings as `OfficeInspectionResourceLimitException`.
+Its `Owner` is `excel`; `LimitName` and `Maximum` identify the effective native
+ceiling. Malformed package content retains its existing error contract. The
+bounded decrypted-package check uses the canonical `encryption` owner.
+
+URI reads and loads apply native input and package-security ceilings alongside
+`ExcelHttpLoadOptions.MaxBytes`. HTTP and read-input byte failures identify the
+binding `MaxBytes` or `MaxInputBytes` property and effective maximum under the
+`excel` owner. A binding `PackageSecurity.MaxPackageBytes` policy retains the
+Core `OfficePackageSecurityException` and `PackageSize` rule, including ties with
+the input ceiling. Transport failures retain their existing exception identity.
+
+Input and metadata admission applies while opening package input. Readers over an
+already-loaded mutable model do not reapply those checks to its earlier load.
+`MaxRangeCells` bounds dense range APIs; it does not cap the total cells delivered
+by row streaming. `MaxXmlDataReaderBufferedCharacters` applies to the XML data-reader
+buffer, rather than every workbook extraction path or total process memory.
+
 ```csharp
 using OfficeIMO.Excel;
 

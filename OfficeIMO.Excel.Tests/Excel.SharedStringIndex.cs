@@ -121,7 +121,10 @@ public sealed partial class SharedStringIndexTests {
             MaxSharedStringCharacters = limit == "AggregateCharacters" ? 5 : 20
         };
         using SharedStringCache cache = SharedStringCache.Build(() => stream, options);
-        Assert.Throws<InvalidDataException>(() => cache.EnsureLoaded());
+        var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => cache.EnsureLoaded());
+        string limitName = limit == "Items" ? nameof(ExcelReadOptions.MaxSharedStringItems) : limit == "ItemCharacters" ? nameof(ExcelReadOptions.MaxSharedStringItemCharacters) : nameof(ExcelReadOptions.MaxSharedStringCharacters);
+        long maximum = limit == "Items" ? options.MaxSharedStringItems : limit == "ItemCharacters" ? options.MaxSharedStringItemCharacters : options.MaxSharedStringCharacters;
+        Assert.Equal("excel", error.Owner); Assert.Equal(limitName, error.LimitName); Assert.Equal(maximum, error.Maximum);
         Assert.False(stream.CanRead);
     }
 

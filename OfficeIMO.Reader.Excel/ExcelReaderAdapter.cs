@@ -21,7 +21,7 @@ internal static partial class ExcelReaderAdapter {
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
         using ExcelDocument document = Load(path, readerOptions);
-        using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
+        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
         ReaderChunk[] chunks = Extract(reader, path, readerOptions, options, warnings, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectExcel(
@@ -44,7 +44,7 @@ internal static partial class ExcelReaderAdapter {
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
         using ExcelDocument document = Load(stream, sourceName, readerOptions);
-        using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
+        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "workbook.xlsx" : sourceName!;
         IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
         ReaderChunk[] chunks = Extract(reader, logicalName, readerOptions, options, warnings, cancellationToken).ToArray();
@@ -69,7 +69,7 @@ internal static partial class ExcelReaderAdapter {
         CancellationToken cancellationToken,
         IReadOnlyList<string>? sourceWarnings = null,
         string capabilityId = OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId) {
-        using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
+        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, sourceName, readerOptions, options,
             warnings, cancellationToken).ToArray();
@@ -155,7 +155,7 @@ internal static partial class ExcelReaderAdapter {
         }
     }
 
-    private static IEnumerable<ReaderChunk> Extract(
+    private static IEnumerable<ReaderChunk> ExtractNative(
         ExcelDocumentReader reader,
         string sourceName,
         ReaderOptions readerOptions,

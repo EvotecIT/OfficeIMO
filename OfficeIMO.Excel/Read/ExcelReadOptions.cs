@@ -69,6 +69,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Maximum workbook bytes buffered by the Excel reader APIs. Default: 512 MiB.</summary>
+        /// <remarks>HTTP reader APIs apply the smaller of this value and ExcelHttpLoadOptions.MaxBytes while downloading.
+        /// Configured byte admission failures report the binding native limit through OfficeInspectionResourceLimitException.</remarks>
         public long MaxInputBytes {
             get => _maxInputBytes;
             set {

@@ -82,6 +82,14 @@ Stream input and document processors retain the materialized contract.
 Registration snapshots `ReaderExcelOptions.ReadOptions`, its culture and execution thresholds.
 Caller-supplied delegates remain caller-owned and must be safe for concurrent use.
 
+Applicable native Excel read ceilings, including shared-string limits during
+loaded-model projection, become terminal `ReaderResourceLimitException` values
+with the native owner, limit, effective maximum and inner exception preserved.
+Lazy enumeration, batch, folder and nested ZIP reads retain that classification.
+Input and metadata read limits do not retroactively admit an already-loaded
+model. Dense-range and XML data-reader buffering options retain their native API
+scope; they are not whole-operation allocation guarantees for streamed extraction.
+
 ## Inspect stored formulas, comments and hidden state
 
 ```csharp

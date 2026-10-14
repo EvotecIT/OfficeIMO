@@ -15,6 +15,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets or sets the maximum number of response bytes that may be downloaded.
         /// </summary>
+        /// <remarks>URI load/read APIs apply this ceiling alongside their native input and package-security limits.
+        /// HTTP or read-input byte failures report OfficeInspectionResourceLimitException with owner excel and
+        /// the binding property name (MaxBytes or MaxInputBytes). A binding PackageSecurity.MaxPackageBytes policy
+        /// retains OfficePackageSecurityException with its PackageSize rule. Ordinary transport failures retain their original errors.</remarks>
         public long MaxBytes { get; set; } = 100L * 1024L * 1024L;
 
         /// <summary>

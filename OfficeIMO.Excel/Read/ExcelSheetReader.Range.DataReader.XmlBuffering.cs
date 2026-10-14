@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel {
                 try {
                     return _owner.ReadXmlCellValue(_reader, ReadXmlCellTypeAttribute(_reader),
                         preserveDateSerial: true, textBudget: _xmlTextBudget!);
-                } catch (InvalidDataException) when (_xmlTextBudget!.WasExceeded) {
+                } catch (OfficeInspectionResourceLimitException) when (_xmlTextBudget!.WasExceeded) {
                     _xmlTextBufferingFailed = true;
                     ReleaseCurrentValueReferences();
                     ReleaseBufferedValueReferences();
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel {
 
             private void ThrowIfXmlTextBufferingFailed() {
                 if (_xmlTextBufferingFailed) {
-                    throw ExcelReadLimitFailure.Create(
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxXmlDataReaderBufferedCharacters), _xmlTextBudget!.MaximumCharacters,
                         $"The XML range data reader exceeded {nameof(ExcelReadOptions.MaxXmlDataReaderBufferedCharacters)}. Close the reader.");
                 }
             }

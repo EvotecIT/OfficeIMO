@@ -670,7 +670,7 @@ namespace OfficeIMO.Excel {
 
                 if (!_bufferedRows!.TryGetValue(rowIndex, out object?[]? values)) {
                     if ((long)_bufferedRows.Count + 1L > _maximumBufferedCells / _fieldCount) {
-                        throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                        throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _maximumBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
                     }
                     values = new object?[_fieldCount];
                     _bufferedRows.Add(rowIndex, values);

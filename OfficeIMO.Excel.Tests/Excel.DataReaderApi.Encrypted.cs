@@ -19,8 +19,9 @@ public partial class Excel {
         // These plaintext bytes come from an independent decryptor. This proves
         // decryption compatibility without our encryptor generating the input.
         Assert.Equal(plain, OfficeEncryption.DecryptPackage(encrypted, "hunter2"));
-        Assert.Throws<InvalidDataException>(() => OfficeEncryption.DecryptPackage(
+        var limit = Assert.Throws<OfficeInspectionResourceLimitException>(() => OfficeEncryption.DecryptPackage(
             encrypted, "hunter2", CancellationToken.None, plain.Length - 1));
+        Assert.Equal("encryption", limit.Owner); Assert.Equal("MaximumDecryptedPackageBytes", limit.LimitName); Assert.Equal(plain.Length - 1, limit.Maximum);
         using ExcelWorkbookDataReader expected = ExcelDocument.OpenDataReader(plain,
             new ExcelReadOptions { HasHeaderRow = false });
         using ExcelWorkbookDataReader actual = ExcelDocument.OpenEncryptedDataReader(encrypted, "hunter2",
@@ -102,14 +103,14 @@ public partial class Excel {
     public async Task EncryptedReader_BoundsInputAndRestoresStreamsOnLimitFailure() {
         byte[] encrypted = EncryptedReaderFixture("xlsx");
         var options = new ExcelReadOptions { MaxInputBytes = encrypted.Length - 1 };
-        Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenEncryptedDataReader(encrypted, "hunter2", options));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReader(encrypted, "hunter2", options));
         using var source = new MemoryStream(encrypted, writable: false);
-        Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenEncryptedDataReader(source, "hunter2", options));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReader(source, "hunter2", options));
         Assert.Equal(0, source.Position);
-        await Assert.ThrowsAsync<InvalidDataException>(() => ExcelDocument.OpenEncryptedDataReaderAsync(source, "hunter2", options));
+        await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReaderAsync(source, "hunter2", options));
         Assert.Equal(0, source.Position);
         using var forward = new NonSeekableReadStream(encrypted);
-        Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenEncryptedDataReader(forward, "hunter2", options));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReader(forward, "hunter2", options));
         Assert.True(forward.CanRead);
     }
 
