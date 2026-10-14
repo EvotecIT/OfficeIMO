@@ -175,8 +175,9 @@ namespace OfficeIMO.Tests {
         }
 
         private static Func<int> TrackPartSaves(ExcelDocument document, OpenXmlPart part) {
+            Assert.NotNull(part);
             SpreadsheetDocument package = document.OpenXmlDocument;
-            package.AddPartRootEventsFeature();
+            if (package.Features.Get<IPartRootEventsFeature>() == null) package.AddPartRootEventsFeature();
             int saves = 0;
             package.Features.Get<IPartRootEventsFeature>()!.Change += args => {
                 if (args.Type == EventType.Saved && ReferenceEquals(args.Argument, part)) saves++;

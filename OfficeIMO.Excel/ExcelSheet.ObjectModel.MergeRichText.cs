@@ -31,7 +31,6 @@ namespace OfficeIMO.Excel {
 
                 merges.Append(new MergeCell { Reference = a1Range });
                 merges.Count = mergeCount + 1U;
-                ws.Save();
             });
         }
 
@@ -75,7 +74,6 @@ namespace OfficeIMO.Excel {
 
             if (changed) {
                 merges.Count = remainingCount;
-                WorksheetRoot.Save();
             }
         }
 

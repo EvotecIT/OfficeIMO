@@ -2,9 +2,11 @@
 
 ## Excel worksheet persistence and wrapping
 
-Worksheet layout, comments, table settings, formulas, headers/footers and conditional-formatting edits are committed by `ExcelDocument.Save(...)` or configured save-on-dispose. Call `Save` before reading the underlying package streams through the low-level Open XML API. Setters with an explicit `save` argument still honor it; pass `save: false` when applying row or column outlines repeatedly.
+Worksheet layout, merges, filters, comments, table settings, formulas, headers/footers and conditional-formatting edits are committed by `ExcelDocument.Save(...)` or configured save-on-dispose. Call `Save` before reading the underlying package streams through the low-level Open XML API. Setters with an explicit `save` argument still honor it; pass `save: false` when applying row or column outlines repeatedly.
 
 `WrapCells`, automatic wrapping for multiline values and `CellWrapText` preserve the cell's existing alignment and other formatting. Workbooks that previously relied on wrapping to reset alignment should set the desired alignment explicitly.
+
+Styled hyperlinks retain alignment, protection and font details while applying blue text and an underline. Set the desired font or alignment explicitly if a workbook relied on hyperlink styling to reset those properties.
 
 `ValidateOpenXml = true` permits eligible fast package writers. Their ZIP compression favors write throughput and can produce larger files than the standard save path. Set `DisableFastPackageWriter = true` together with validation to retain standard package finalization.
 

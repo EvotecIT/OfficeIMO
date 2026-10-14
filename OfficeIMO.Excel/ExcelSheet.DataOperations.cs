@@ -22,7 +22,6 @@ namespace OfficeIMO.Excel {
                 existing?.Remove();
 
                 ws.InsertAfter(new AutoFilter { Reference = a1Range }, ws.GetFirstChild<SheetData>());
-                ws.Save();
             });
         }
 
@@ -34,7 +33,6 @@ namespace OfficeIMO.Excel {
                 var ws = WorksheetRoot;
                 var existing = ws.Elements<AutoFilter>().FirstOrDefault();
                 existing?.Remove();
-                ws.Save();
             });
         }
 
@@ -77,7 +75,6 @@ namespace OfficeIMO.Excel {
                 }
                 fcNew.Append(filters);
                 af.Append(fcNew);
-                ws.Save();
             });
         }
 
@@ -113,7 +110,6 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                bool changed = false;
                 foreach (var (colIndex, values) in toApply) {
                     if (colIndex < c1 || colIndex > c2) continue;
                     uint columnId = (uint)(colIndex - c1);
@@ -135,10 +131,6 @@ namespace OfficeIMO.Excel {
                     fcNew.Append(filtersNode);
                     af.Append(fcNew);
                     existingColumns[columnId] = fcNew;
-                    changed = true;
-                }
-                if (changed) {
-                    ws.Save();
                 }
             });
         }
@@ -540,7 +532,6 @@ namespace OfficeIMO.Excel {
                 });
                 filterColumn.Append(customFilters);
                 af.Append(filterColumn);
-                ws.Save();
             });
         }
 
@@ -585,7 +576,6 @@ namespace OfficeIMO.Excel {
 
                 filterColumn.Append(customFilters);
                 af.Append(filterColumn);
-                ws.Save();
             });
         }
 
@@ -619,7 +609,7 @@ namespace OfficeIMO.Excel {
                 if (customFilters.Elements<CustomFilter>().Any()) {
                     filterColumn.Append(customFilters);
                     autoFilter.Append(filterColumn);
-                    SaveAutoFilterOwner(worksheet, tableOwner);
+                    DeferAutoFilterOwner(tableOwner);
                 }
             });
         }
@@ -638,7 +628,7 @@ namespace OfficeIMO.Excel {
                 var filterColumn = new FilterColumn { ColumnId = columnId };
                 filterColumn.Append(new Filters { Blank = true });
                 autoFilter.Append(filterColumn);
-                SaveAutoFilterOwner(worksheet, tableOwner);
+                DeferAutoFilterOwner(tableOwner);
             });
         }
 
@@ -671,7 +661,7 @@ namespace OfficeIMO.Excel {
                     Val = (double)value,
                 });
                 autoFilter.Append(filterColumn);
-                SaveAutoFilterOwner(worksheet, tableOwner);
+                DeferAutoFilterOwner(tableOwner);
             });
         }
 
@@ -710,9 +700,11 @@ namespace OfficeIMO.Excel {
             return GetOrReplaceWorksheetAutoFilter(worksheet, range);
         }
 
-        private static void SaveAutoFilterOwner(Worksheet worksheet, Table? tableOwner) {
-            if (tableOwner != null) tableOwner.Save();
-            else worksheet.Save();
+        private void DeferAutoFilterOwner(Table? tableOwner) {
+            if (tableOwner != null) {
+                DeferPartSave(tableOwner.TableDefinitionPart
+                    ?? throw new InvalidOperationException("The AutoFilter table is not attached to a package part."));
+            }
         }
 
         private static AutoFilter GetOrReplaceWorksheetAutoFilter(Worksheet worksheet, string range) {

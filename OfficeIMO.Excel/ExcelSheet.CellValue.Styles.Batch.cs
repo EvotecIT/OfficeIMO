@@ -70,7 +70,8 @@ namespace OfficeIMO.Excel {
         private static StyleBatch? BatchFor(Stylesheet stylesheet) =>
             CurrentStyleBatch.Value is { } batch && batch.Matches(stylesheet) ? batch : null;
 
-        private static void SaveStylesheet(WorkbookStylesPart stylesPart) {
+        /// <summary>Persists style changes immediately or joins the active matching workbook's style batch.</summary>
+        internal static void SaveStylesheet(WorkbookStylesPart stylesPart) {
             if (stylesPart.Stylesheet is { } stylesheet && BatchFor(stylesheet) is { } batch) {
                 batch.MarkModified();
                 return;
