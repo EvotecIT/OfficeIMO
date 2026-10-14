@@ -292,5 +292,35 @@
     "Named H10 whole-page appearance, captured-font admission and resolved print-scale geometry.",
     "Broader table sizing/fragmentation, script/formula reading order and clipped-row acceptance.",
     "Current packed consumer, trimming, NativeAOT and WASM qualification."
-  ]
+  ],
+  "capturedInterControl": {
+    "capturedUtc": "2026-10-14T12:20:43.165715+00:00",
+    "actualCompiledSource": "db9a2f4466bc71ae3f781d5ca7ab56af6591c769",
+    "sdk": "10.0.303",
+    "framework": ".NET 10.0.13",
+    "qualification": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/captured-inter-control/result.json",
+      "bytes": 10241,
+      "sha256": "ab88c1e2444156bd67f7a6c8c543ed63adfc873b51f4cd7da8c7bc9444e3a030"
+    },
+    "protectedCompilerRuntimeProof": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/captured-inter-control/protected-proof/manifest.json",
+      "bytes": 142474,
+      "sha256": "3362bdf2fb11dd49c252a7c53b7be9e08b27378e7ea7f5c957ff2fe0e939b57c"
+    },
+    "cleanup": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/captured-inter-control/root-cleanup-result.json",
+      "bytes": 1969,
+      "sha256": "d1679a79e22b8e52aaafb0fd1561c024cfd3884d7233981a33b5a9fb9727331a"
+    },
+    "established": "Original frozen browser reader preserves31 glyph/text mappings. Six models coverfive roles/31 occurrences/18unique CharProcs; declared700 and explicit700 render byte-identical PNG/PDF and exact matching selected-font measurements. Explicit400/600 controls differ. Original allowlisted HTTPS resources resolve exact archived font bytes without network access.",
+    "rawResidualBoundary": "All18 original CharProc comparisons retained. The nearestF2DOT14 control reduces residuals; independently derivedgvar change bound is not a browser admission tolerance and the remaining residual is unexplained. Actual browser axis and whole-font identity are not established.",
+    "resourceFixtureBoundary": "Quoted/unquoted data-font controls inherited the PdfOptions hyperlink policy and were rejected before decoding. This was operator/fixture policy setup; no documented supported data-font implementation bug established.",
+    "rootVisualInspection": [
+      "original-url-control-output/declared700/paint.png",
+      "original-url-control-output/explicit600/paint.png",
+      "original-url-control-output/explicit400/paint.png"
+    ],
+    "acceptance": "Strict evidence-runner generated-name admission remains rejected. No guard/tolerance change, product defect fix, whole-page original-font appearance, manual accessibility, performance, Windows profiling or platform acceptance claimed."
+  }
 }
