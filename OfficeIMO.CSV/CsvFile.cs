@@ -28,11 +28,31 @@ internal static partial class CsvFile
         return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks, bufferSize: bufferSize);
     }
 
-    internal static TextReader OpenTextReaderForAsyncRead(string path, CsvLoadOptions options, int bufferSize = 256 * 1024)
+    internal static TextReader OpenTextReaderForAsyncRead(string path, CsvLoadOptions options,
+        int bufferSize = 256 * 1024, int? largeFileBufferSize = null)
     {
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        var stream = OpenReadStream(path, options, bufferSize, useAsync: true);
+        int fileBufferSize = largeFileBufferSize is { } largeBufferSize
+            ? GetOwnedFileBufferSize(path, bufferSize, largeBufferSize)
+            : bufferSize;
+        var stream = OpenReadStream(path, options, fileBufferSize, useAsync: true);
         return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks, bufferSize: bufferSize);
+    }
+
+    private static int GetOwnedFileBufferSize(string path, int bufferSize, int largeBufferSize)
+    {
+        // Raw file length is only a buffering hint, including for compressed files.
+        // A changed or unavailable length must not replace the normal file-open error.
+        const long largeFileThreshold = 32L * 1024 * 1024;
+        try
+        {
+            return new FileInfo(path).Length >= largeFileThreshold ? largeBufferSize : bufferSize;
+        }
+        catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException ||
+            exception is ArgumentException || exception is NotSupportedException || exception is System.Security.SecurityException)
+        {
+            return bufferSize;
+        }
     }
 
     internal static TextReader OpenTextReader(Stream source, CsvLoadOptions options, bool leaveOpen, int bufferSize = 256 * 1024)

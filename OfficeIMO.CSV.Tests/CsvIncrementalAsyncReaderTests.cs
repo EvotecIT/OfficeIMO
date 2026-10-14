@@ -4,6 +4,7 @@ using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -453,6 +454,71 @@ public class CsvIncrementalAsyncReaderTests
             await CsvDocument.Parse("Name\nAlpha\n").SaveAsync(path, new CsvSaveOptions { CompressionType = CsvCompressionType.GZip });
             await Assert.ThrowsAsync<InvalidDataException>(() => CsvDocument.OpenDataReaderAsync(path, new CsvLoadOptions { MaxInputBytes = 2 }));
             using var exclusive = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Theory]
+    [InlineData(CsvCompressionType.None)]
+    [InlineData(CsvCompressionType.GZip)]
+    public async Task Owned_Path_Preserves_Bom_Unicode_Quoted_Rows_And_Closes_On_Early_Disposal(CsvCompressionType compression)
+    {
+        const int rowCount = 4096;
+        string extension = compression == CsvCompressionType.GZip ? ".csv.gz" : ".csv";
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-csv-incremental-" + Guid.NewGuid().ToString("N") + extension);
+        var expectedNotes = new string[rowCount];
+        var random = new Random(7101);
+        var textBytes = new byte[64];
+        try
+        {
+            using (Stream destination = compression == CsvCompressionType.GZip
+                ? new GZipStream(File.Create(path), CompressionLevel.Fastest)
+                : File.Create(path))
+            using (var writer = new StreamWriter(destination, new UnicodeEncoding(false, true)))
+            {
+                writer.NewLine = "\r\n";
+                writer.WriteLine("Id,Name,Notes");
+                for (int index = 0; index < rowCount; index++)
+                {
+                    random.NextBytes(textBytes);
+                    string note = $"row \"{index}\"\r\nMünchen,{Convert.ToHexString(textBytes)}";
+                    expectedNotes[index] = note;
+                    writer.Write(index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    writer.Write(",Żółć 😀 東京,\"");
+                    writer.Write(note.Replace("\"", "\"\""));
+                    writer.WriteLine('"');
+                }
+            }
+
+            var options = new CsvLoadOptions
+            {
+                MaxInputBytes = new FileInfo(path).Length,
+                QuoteParsingMode = CsvQuoteParsingMode.Strict
+            };
+            using (var reader = await CsvDocument.OpenDataReaderAsync(path, options))
+            {
+                Assert.Equal(3, reader.FieldCount);
+                Assert.Equal("Id", reader.GetName(0));
+                Assert.Equal("Name", reader.GetName(1));
+                Assert.Equal("Notes", reader.GetName(2));
+                for (int index = 0; index < rowCount; index++)
+                {
+                    Assert.True(await reader.ReadAsync());
+                    Assert.Equal(index, reader.GetInt32(0));
+                    Assert.Equal("Żółć 😀 東京", reader.GetString(1));
+                    Assert.Equal(expectedNotes[index], reader.GetString(2));
+                }
+                Assert.False(await reader.ReadAsync());
+            }
+            using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+
+            using (var reader = await CsvDocument.OpenDataReaderAsync(path, options))
+            {
+                Assert.True(await reader.ReadAsync());
+                Assert.Equal(0, reader.GetInt32(0));
+                Assert.Equal(expectedNotes[0], reader.GetString(2));
+            }
+            using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
         }
         finally { File.Delete(path); }
     }

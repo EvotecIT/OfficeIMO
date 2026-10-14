@@ -19,7 +19,8 @@ public sealed partial class CsvDocument
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         return CreateIncrementalReaderAsync(
-            options => CsvFile.OpenTextReaderForAsyncRead(path, options, CsvLineReader.DefaultBufferSize),
+            options => CsvFile.OpenTextReaderForAsyncRead(path, options,
+                CsvLineReader.DefaultBufferSize, largeFileBufferSize: 128 * 1024),
             loadOptions, readerOptions, cancellationToken);
     }
 
