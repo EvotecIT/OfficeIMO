@@ -110,6 +110,9 @@ internal static class OdfZipWriter {
     }
 
     internal static byte[] Deflate(byte[] data) {
+        // Some runtimes emit no bytes for an empty write. A Deflate member
+        // still requires a final block, including inside encrypted entries.
+        if (data.Length == 0) return new byte[] { 0x03, 0x00 };
         using var output = new MemoryStream();
         using (var compressor = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
             compressor.Write(data, 0, data.Length);
