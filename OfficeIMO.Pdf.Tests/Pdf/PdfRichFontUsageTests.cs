@@ -56,6 +56,36 @@ public class PdfRichFontUsageTests {
             "The painted header font must combine row bold with run italic; actual font: " + letter.FontName));
     }
 
+    [Theory]
+    [InlineData(TableSurface.Flow, PdfStandardFont.Helvetica, "Helvetica")]
+    [InlineData(TableSurface.RowColumn, PdfStandardFont.Helvetica, "Helvetica")]
+    [InlineData(TableSurface.Canvas, PdfStandardFont.Helvetica, "Helvetica")]
+    [InlineData(TableSurface.Flow, PdfStandardFont.TimesItalic, "Times-Italic")]
+    [InlineData(TableSurface.RowColumn, PdfStandardFont.TimesItalic, "Times-Italic")]
+    [InlineData(TableSurface.Canvas, PdfStandardFont.TimesItalic, "Times-Italic")]
+    public void TableHeaderRetainsExplicitRunFontFace(TableSurface surface, PdfStandardFont font, string expectedFont) {
+        var options = new PdfOptions { PageWidth = 300D, PageHeight = 200D };
+        var style = new PdfTableStyle {
+            HeaderRowCount = 1, HeaderBold = true,
+            ColumnWidthPoints = new List<double?> { 180D }
+        };
+        IReadOnlyList<PdfTableCell[]> rows = new[] {
+            new[] { PdfTableCell.RichTextCell(new[] { new PdfTextRun("ExplicitFace", font: font) }) }
+        };
+        PdfDocument document = surface switch {
+            TableSurface.Flow => PdfDocument.Create(options).Table(rows, style: style),
+            TableSurface.RowColumn => PdfDocument.Create(options)
+                .Row(row => row.PercentColumn(100D, column => column.Table(rows, style: style))),
+            TableSurface.Canvas => PdfDocument.Create(options)
+                .Canvas(canvas => canvas.Table(rows, 40D, 40D, 180D, 60D, style)),
+            _ => throw new ArgumentOutOfRangeException(nameof(surface))
+        };
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(document.ToBytes());
+        var letters = independent.GetPage(1).Letters;
+        Assert.Equal("ExplicitFace", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.All(letters, letter => Assert.Equal(expectedFont, letter.FontName));
+    }
+
     public enum TableSurface {
         Flow,
         RowColumn,
