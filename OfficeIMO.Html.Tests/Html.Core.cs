@@ -651,15 +651,35 @@ public sealed class HtmlCoreTests {
     [InlineData("image.png 100w 2x")]
     [InlineData("image.png 100h")]
     [InlineData("image.png 0w")]
-    [InlineData("image.png 0x")]
     [InlineData("image.png nope")]
     public void HtmlSrcSetParser_DiscardsCandidatesWithInvalidDescriptorCombinations(string sourceSet) {
         Assert.Empty(HtmlSrcSetParser.Parse(sourceSet));
     }
 
     [Theory]
+    [InlineData("+1x")]
+    [InlineData("1.x")]
+    [InlineData("1.e2x")]
+    [InlineData("1e+x")]
+    [InlineData("NaNx")]
+    [InlineData("Infinityx")]
+    [InlineData("1e309x")]
+    [InlineData("1e-400x")]
+    [InlineData("0x")]
+    [InlineData("-0x")]
+    [InlineData("-1x")]
+    public void HtmlSrcSetParser_DiscardsInvalidDensityDescriptors(string descriptor) {
+        Assert.Empty(HtmlSrcSetParser.Parse("image.png " + descriptor));
+    }
+
+    [Theory]
     [InlineData("image.png", "")]
+    [InlineData("image.png 1x", "1x")]
     [InlineData("image.png 1.5x", "1.5x")]
+    [InlineData("image.png .5x", ".5x")]
+    [InlineData("image.png 1e2x", "1e2x")]
+    [InlineData("image.png 1E-2x", "1E-2x")]
+    [InlineData("image.png 1e+2x", "1e+2x")]
     [InlineData("image.png 100w", "100w")]
     [InlineData("image.png 100w 50h", "100w 50h")]
     public void HtmlSrcSetParser_PreservesValidDescriptors(string sourceSet, string descriptor) {

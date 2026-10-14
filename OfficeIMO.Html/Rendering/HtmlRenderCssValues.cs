@@ -20,7 +20,7 @@ internal static class HtmlRenderCssValues {
             "x-large" => mediumFontSize * 1.5D,
             "xx-large" => mediumFontSize * 2D,
             "xxx-large" => mediumFontSize * 3D,
-            "smaller" => inheritedFontSize * 0.8D,
+            "smaller" => inheritedFontSize / 1.2D,
             "larger" => inheritedFontSize * 1.2D,
             _ => 0D
         };
@@ -101,6 +101,25 @@ internal static class HtmlRenderCssValues {
     }
 
     private static double? FiniteOrNull(double value) => IsFinite(value) ? value : null;
+
+    internal static bool IsTableInternalAutoMath(string value, double fontSize, double rootFontSize,
+        double viewportWidth, double viewportHeight, double? containerWidth, double? containerHeight,
+        double characterAdvance, bool uprightVerticalText) {
+        try {
+            HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value);
+            if (!parsed.IsParsed) return false;
+            return HtmlCssMathResolver.MixesPercentageAndNonZeroLength(parsed.Expression!, new HtmlCssLengthResolutionContext {
+                FontSize = fontSize, RootFontSize = rootFontSize, ViewportWidth = viewportWidth, ViewportHeight = viewportHeight,
+                ContainerWidth = containerWidth, ContainerHeight = containerHeight,
+                ContainerInlineSize = containerWidth, ContainerBlockSize = containerHeight,
+                CharacterAdvance = characterAdvance, UprightVerticalText = uprightVerticalText
+            });
+        } catch (HtmlCssMathLimitException) {
+            return false;
+        } catch (HtmlCssTokenizationLimitException) {
+            return false;
+        }
+    }
 
     internal static bool HasExplicitLengthSyntax(string? value, bool allowPercentage, bool allowUnitlessZero) {
         if (string.IsNullOrWhiteSpace(value)) return false;

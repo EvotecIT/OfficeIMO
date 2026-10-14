@@ -21,6 +21,7 @@ internal static partial class HtmlPdfRenderedConverter {
         cancellationToken.ThrowIfCancellationRequested();
         byte[] png = OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
             Background = OfficeColor.Transparent,
+            MaximumRasterPixels = imageResources.MaximumPixels,
             CancellationToken = cancellationToken
         });
         PdfCore.PdfCanvasImageResource? image = imageResources.GetOrCreate(png, "image/png");

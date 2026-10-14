@@ -43,7 +43,17 @@ internal sealed record HtmlStaticBudgetIteration(
     long OutputBytes,
     int CaseCount,
     int OutputCount,
-    string FingerprintSha256);
+    string FingerprintSha256,
+    IReadOnlyList<HtmlStaticBudgetOutput> Outputs);
+
+internal sealed record HtmlStaticBudgetOutput(
+    string CaseId,
+    string Profile,
+    string Encoder,
+    int? PageNumber,
+    int PageCount,
+    long Bytes,
+    string Sha256);
 
 internal sealed record HtmlStaticBudgetCancellation(
     string Status,

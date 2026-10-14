@@ -194,9 +194,13 @@ public sealed class HtmlCssSelectorList {
         if (element == null) throw new ArgumentNullException(nameof(element));
         var adapted = new OwnedSelectorElement(element);
         var context = new HtmlCssSelectorMatchContext(null, cancellationToken);
+        return Matches(adapted, context);
+    }
+
+    internal bool Matches(IHtmlCssSelectorElement element, HtmlCssSelectorMatchContext context) {
         foreach (HtmlCssSelector selector in _selectors) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (selector.Matches(adapted, context)) return true;
+            context.ThrowIfCancellationRequested();
+            if (selector.Matches(element, context)) return true;
         }
         return false;
     }
@@ -462,6 +466,7 @@ internal interface IHtmlCssSelectorElement {
     string LocalName { get; }
     string NamespaceUri { get; }
     string Id { get; }
+    bool IsQuirksMode { get; }
     IHtmlCssSelectorElement? ParentElement { get; }
     object? SiblingParentIdentity { get; }
     IReadOnlyList<IHtmlCssSelectorElement> GetSiblingElements(Action? recordEvaluation, CancellationToken cancellationToken);
@@ -488,6 +493,7 @@ internal sealed class OwnedSelectorElement : IHtmlCssSelectorElement {
     public string LocalName => _element.LocalName;
     public string NamespaceUri => _element.NamespaceUri;
     public string Id => _element.Id;
+    public bool IsQuirksMode => _element.Document.Mode == HtmlDocumentMode.Quirks;
     public IHtmlCssSelectorElement? ParentElement => _element.ParentElement == null ? null : new OwnedSelectorElement(_element.ParentElement);
     public object? SiblingParentIdentity => _element.Parent;
     public IReadOnlyList<IHtmlCssSelectorElement> GetSiblingElements(Action? recordEvaluation, CancellationToken cancellationToken) {
@@ -514,7 +520,8 @@ internal sealed class OwnedSelectorElement : IHtmlCssSelectorElement {
         .Select(attribute => new HtmlCssSelectorAttributeValue(attribute.LocalName, attribute.NamespaceUri, attribute.Value)).ToArray();
     public bool HasClass(string name) {
         foreach (string item in _element.ClassList)
-            if (string.Equals(item, name, StringComparison.Ordinal)) return true;
+            if (IsQuirksMode ? HtmlCssAscii.EqualsIgnoreCase(item, name)
+                : string.Equals(item, name, StringComparison.Ordinal)) return true;
         return false;
     }
 }
@@ -538,7 +545,9 @@ internal sealed class HtmlCssSelectorCompound {
                 ? !HtmlCssAscii.EqualsIgnoreCase(element.LocalName, TypeName)
                 : !string.Equals(element.LocalName, TypeName, StringComparison.Ordinal)) return false;
         }
-        foreach (string id in Ids) if (!string.Equals(element.Id, id, StringComparison.Ordinal)) return false;
+        foreach (string id in Ids)
+            if (element.IsQuirksMode ? !HtmlCssAscii.EqualsIgnoreCase(element.Id, id)
+                : !string.Equals(element.Id, id, StringComparison.Ordinal)) return false;
         foreach (string className in Classes) if (!element.HasClass(className)) return false;
         foreach (HtmlCssAttributeSelector attribute in Attributes)
             if (!attribute.Matches(element, context.RecordEvaluation, context.CancellationToken)) return false;

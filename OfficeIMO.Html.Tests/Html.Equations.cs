@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WordToHtml_PreservesPictureControlSharingInlineContainerWithEquation() {
-            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string imagePath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph("before ");
             WordPictureControl picture = paragraph.AddPictureControl(imagePath, alias: "Equation picture", tag: "EquationPicture");

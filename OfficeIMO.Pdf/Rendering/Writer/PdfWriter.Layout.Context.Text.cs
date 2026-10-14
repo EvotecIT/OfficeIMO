@@ -123,7 +123,8 @@ internal static partial class PdfWriter {
             topY - GetAscenderForOptions(font, fontSize, currentOpts);
 
         private void MarkRichFonts(System.Collections.Generic.IEnumerable<PdfTextRun> runs, bool forceBold = false) {
-            System.Collections.Generic.IReadOnlyList<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs, ChooseNormal(currentOpts.DefaultFont), currentOpts);
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs,
+                GetTableRowFont(currentOpts, forceBold), currentOpts);
             bool hasBold = false;
             bool hasItalic = false;
             bool hasBoldItalic = false;

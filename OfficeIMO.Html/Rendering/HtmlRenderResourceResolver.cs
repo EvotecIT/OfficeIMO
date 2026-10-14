@@ -6,6 +6,7 @@ namespace OfficeIMO.Html;
 /// <param name="request">Resolved resource request.</param>
 /// <param name="cancellationToken">Cancellation token covering caller cancellation and the configured resource timeout.</param>
 /// <returns>Resolved bytes and media type, or null when the caller cannot provide the resource.</returns>
+/// <remarks>The resolver must observe cancellation and enforce policy on any redirects it follows. The renderer waits for the callback to return; cancellation does not terminate application code.</remarks>
 public delegate Task<HtmlResolvedResource?> HtmlRenderResourceResolver(HtmlRenderResourceRequest request, CancellationToken cancellationToken);
 
 internal delegate bool HtmlRenderSynchronousResourceResolver(

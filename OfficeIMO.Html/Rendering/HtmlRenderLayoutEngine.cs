@@ -75,6 +75,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionStaticAnchorFallbacks = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedFloatValueFallbacks = new HashSet<IElement>();
+    private readonly HashSet<string> _reportedParallelTableRepeats = new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<HtmlRenderFlowBlock, IReadOnlyList<SuppressedTableRepeat>> _suppressedParallelTableRepeats = new Dictionary<HtmlRenderFlowBlock, IReadOnlyList<SuppressedTableRepeat>>();
     private readonly HashSet<IElement> _reportedOverflowValueFallbacks = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedOverflowClipMarginFallbacks = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedOverflowScrollSnapshots = new HashSet<IElement>();
@@ -133,7 +135,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _options = options;
         _diagnostics = diagnostics;
-        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics, MeasureCharacterAdvance);
+        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics, MeasureCharacterAdvance,
+            cancellationToken, _operationBudget);
         _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
         _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles, _disclosures);
         foreach (string id in _generatedContent.TargetPageIds) _namedDestinationIds.Add(id);
@@ -472,6 +475,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _nextSemanticNodeId = _initialSemanticNodeId;
         // Convergence and print fitting remain part of this render operation.
         _fixedPositionedElements.Clear();
+        ResetFixedClipPaintBoundaries();
         _rootPositionedElements.Clear();
         _localPositionedElements.Clear();
         _normalFlowPlacements.Clear();
@@ -502,6 +506,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _registeredFixedElements.Clear();
         _registeredAbsoluteElements.Clear();
         _reportedPositionStaticAnchorFallbacks.Clear();
+        _reportedParallelTableRepeats.Clear();
+        _suppressedParallelTableRepeats.Clear();
         _activeSubgridOwner = null;
         _activeSubgridColumnSizes = null;
         _activeSubgridColumnLineNames = null;
@@ -573,6 +579,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddTranslatedVisuals(visuals, placement.Block.Visuals, placement.X, placement.Y, placement.Block);
         }
         AppendGlobalPositionedRequests(visuals, includeRoot: true, viewportWidth, viewportHeight, rootContainingWidth, rootContainingHeight, PositionedPaintBand.NonNegative);
+        ApplyFixedAncestorLegacyClips(visuals);
         ApplyViewportOverflow(visuals, width, height);
         var page = new HtmlRenderPage(1, width, height, OrderPageFloatPaint(visuals), fonts: _fonts);
         return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
@@ -855,6 +862,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _currentRunningStringPage.Assign(assignment, _runningStringValues);
             }
         }
+        ApplyFixedAncestorLegacyClips(visuals);
         ApplyViewportOverflow(visuals, width, height);
         AddPrintProductionMarks(visuals, geometry);
         pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, OrderPageFloatPaint(visuals), pageName, _fonts, _currentRunningStringPage, geometry.Margins, geometry.PrintProduction));

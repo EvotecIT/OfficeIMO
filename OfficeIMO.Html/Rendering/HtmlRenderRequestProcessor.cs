@@ -135,7 +135,7 @@ internal static class HtmlRenderRequestProcessor {
         ValidateSurface(width, Math.Max(1D, height), options);
         var visuals = new List<HtmlRenderVisual>(rendered.Pages.Count);
         var placements = new List<HtmlRenderSourcePlacement>();
-        var projector = new HtmlRenderVisualProjector(options.MaxProjectedVisuals, cancellationToken);
+        var projector = new HtmlRenderVisualProjector(options.MaxProjectedVisuals, cancellationToken, navigationAlreadyPageOwned: true);
         double y = 0D;
         for (int index = 0; index < rendered.Pages.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();

@@ -1916,20 +1916,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("")]
-    [InlineData("max-width:180px")]
-    public void HtmlFlexRow_PaddedTablePaintsItsAllocatedWidth(string widthConstraint) {
+    [InlineData("", "", 200D)]
+    [InlineData("", "max-width:180px", 180D)]
+    [InlineData("content-box", "", 200D)]
+    [InlineData("content-box", "max-width:180px", 200D)]
+    [InlineData("border-box", "", 200D)]
+    [InlineData("border-box", "max-width:180px", 180D)]
+    public void HtmlFlexRow_PaddedTablePaintsItsAllocatedWidth(string sizing, string widthConstraint, double width) {
         string html = """
             <div style="display:flex;width:300px">
-              <table id="table" style="flex:1;min-width:0;padding:0 10px;background:#eeeeee;WIDTH_CONSTRAINT"><tr><td>Data</td></tr></table>
+              <table id="table" style="flex:1;min-width:0;padding:0 10px;background:#eeeeee;BOX_SIZING;WIDTH_CONSTRAINT"><tr><td>Data</td></tr></table>
               <div id="next" style="flex:0 0 100px;width:100px;height:20px;background:#0000ff"></div>
             </div>
-            """.Replace("WIDTH_CONSTRAINT", widthConstraint);
+            """.Replace("WIDTH_CONSTRAINT", widthConstraint)
+            .Replace("BOX_SIZING", sizing.Length == 0 ? string.Empty : "box-sizing:" + sizing);
         HtmlRenderDocument rendered = RenderFlex(html, 300D);
 
         HtmlRenderShape table = FindFlexShape(rendered, "table#table");
         HtmlRenderShape next = FindFlexShape(rendered, "div#next");
-        Assert.Equal(200D, table.Width, 1);
+        Assert.Equal(width, table.Width, 1);
         Assert.Equal(table.X + table.Width, next.X, 1);
     }
 

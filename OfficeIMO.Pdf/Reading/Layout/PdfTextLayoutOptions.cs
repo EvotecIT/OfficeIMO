@@ -22,9 +22,9 @@ public sealed class PdfTextLayoutOptions {
     public double BinWidth { get; set; } = 5;
     /// <summary>Minimum detected gutter width (points) to consider a two-column layout. Default: 24.</summary>
     public double MinGutterWidth { get; set; } = 24;
-    /// <summary>Maximum Y delta, expressed in font-size em units, to merge spans into the same text line. Default: 0.6.</summary>
+    /// <summary>Maximum baseline-normal delta in font-size em units for ordinary line clustering. Default: 0.6. A stricter value disables conservative inline-script attachment.</summary>
     public double LineMergeToleranceEm { get; set; } = 0.6;
-    /// <summary>Maximum absolute Y delta (points) to merge spans into the same line. Default: 2.5.</summary>
+    /// <summary>Maximum absolute baseline-normal delta for ordinary line clustering. Default: 2.5 points. With both merge limits at least their defaults, adjacent smaller-font scripts may attach to a unique base line; a stricter value retains baseline-only grouping.</summary>
     public double LineMergeMaxPoints { get; set; } = 2.5;
     /// <summary>When true, forces single-column reading order and disables gutter detection. Default: false.</summary>
     public bool ForceSingleColumn { get; set; }
