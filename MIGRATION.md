@@ -2,7 +2,7 @@
 
 ## ZIP APIs move to OfficeIMO.Archives
 
-`OfficeIMO.Zip` is removed. Replace its package reference and namespace with `OfficeIMO.Archives`, then update these public APIs:
+OfficeIMO 3.5.0 removes `OfficeIMO.Zip`. Replace its package reference and namespace with `OfficeIMO.Archives`, then update these public APIs:
 
 | Previous API | Replacement |
 | --- | --- |
