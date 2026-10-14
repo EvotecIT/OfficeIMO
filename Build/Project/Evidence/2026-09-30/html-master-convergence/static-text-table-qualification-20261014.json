@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "capturedUtc": "2026-10-13T23:57:04.451882+00:00",
-  "state": "bounded-static-rendering-checkpoint-qualified; broader acceptance remains open",
+  "state": "bounded-static-rendering-pr-candidate-qualified; broader acceptance remains open",
   "compiledCodeCommit": "3b366d381df10cc8c7c948096b63eb10ec6a8352",
   "integrationSourceCommit": "4b31796a7f5935b853eb61dfaa448da76fcfb9aa",
   "receivingMasterParent": "d1ed891bde1f0489d09f2190a6912d9688a90de1",
@@ -573,7 +573,7 @@
         "bytes": 2239,
         "sha256": "ebcf3df8aa3c5dcca156639018556e4c4281b9df7bb2995c41001a6d049d4661"
       },
-      "disposition": "Focused additional Core fix proposed after checkpoint; user decision pending"
+      "disposition": "Original failure retained; same focused Core fix adopted from current master, followed by successful analyzed native publish and runtime proof recorded in coreAotFollowUp"
     }
   },
   "review": {
@@ -600,7 +600,7 @@
   "limits": [
     "Windows profiling explicitly deferred",
     "No new Linux or Windows runtime/platform qualification",
-    "Whole-library AOT analyzer run fails four unchanged Core dynamic-code calls; bounded native HTML smoke passes",
+    "Four original Core dynamic-code calls corrected through the canonical master owner; analyzed HTML reference graph and native smoke pass on osx-arm64. Whole-library/platform AOT and WASM coverage remain unqualified",
     "Original-font fidelity, remaining NIST chapter/table cell association and clipped-copy reading order remain open",
     "Broader bidi/vertical/mixed-font geometry, asynchronous callback termination, PDF/UA manual accessibility and cross-platform resource/timing acceptance remain open",
     "No PR, merge, package publication or release is asserted by this local qualification"
@@ -622,5 +622,354 @@
     "sharedCacheRootsRelocatedOrDeleted": false,
     "historyDeletedOrPrimaryCheckoutModified": false,
     "ordinaryRestoresUsedSharedCaches": true
+  },
+  "coreAotFollowUp": {
+    "state": "Focused Core AOT contracts validated; all-library/platform AOT is not asserted",
+    "compiledCandidate": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+    "canonicalMaster": "f75b96dc1b709e4e988c7e3904132b66eb61c534",
+    "coreImplementation": "Adopted same typed array/EnumCompat implementation now in current master; independent byte fixtures and HTML native runtime reachability retained",
+    "originalFailure": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/final-html-nativeaot-publish/command.json",
+      "bytes": 2239,
+      "sha256": "ebcf3df8aa3c5dcca156639018556e4c4281b9df7bb2995c41001a6d049d4661"
+    },
+    "currentPackage": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-post-master-core-feed/OfficeIMO.Core.3.4.16.416.nupkg",
+      "bytes": 8304080,
+      "sha256": "3b1f8f58010ad79c85ea76edcac000ae7c4cb2cd91d5a4ca2b46797661e4d217"
+    },
+    "frameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "checks": [
+      {
+        "label": "aot-fix-drawing-net10",
+        "sourceHead": "57d2736eb8abd62753839f4281d73bc79776a625",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-fix-drawing-net10/command.json",
+          "bytes": 2450,
+          "sha256": "07034afebc814846217b46b44cfdf9177aa9bf234c0f1e300708851ba9fc92ce"
+        },
+        "exitCode": 0,
+        "testCounts": {
+          "total": "41",
+          "executed": "41",
+          "passed": "41",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-fix-drawing-net10/results/tests.trx",
+          "bytes": 64857,
+          "sha256": "e7c83d5a6bbf43e5076d1506c69eda6b82b9000bd950e2176a523b3e093923f3"
+        }
+      },
+      {
+        "label": "aot-fix-drawing-net8",
+        "sourceHead": "57d2736eb8abd62753839f4281d73bc79776a625",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-fix-drawing-net8/command.json",
+          "bytes": 2446,
+          "sha256": "529479842f39f86d5ccb8c2bfab1c3380fabbc3c9e9f25f95f452efdcf7264d8"
+        },
+        "exitCode": 0,
+        "testCounts": {
+          "total": "41",
+          "executed": "41",
+          "passed": "41",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-fix-drawing-net8/results/tests.trx",
+          "bytes": 64774,
+          "sha256": "617c4a2e823bd699e26fbcbdb3b2a1074e99feb75a06968af95ae1b0f9e6fe86"
+        }
+      },
+      {
+        "label": "aot-fix-analyzed-native-publish",
+        "sourceHead": "57d2736eb8abd62753839f4281d73bc79776a625",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-fix-analyzed-native-publish/command.json",
+          "bytes": 2260,
+          "sha256": "248bbe6fa68c024dda384d6391842829173e0084352601898e1965357141868f"
+        },
+        "exitCode": 0
+      },
+      {
+        "label": "aot-fix-native-run",
+        "sourceHead": "57d2736eb8abd62753839f4281d73bc79776a625",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-fix-native-run/command.json",
+          "bytes": 1866,
+          "sha256": "8cf8e261ee8b655944e68288cacad0852ee9cffa48a5564bd973b3eed5701515"
+        },
+        "exitCode": 0
+      },
+      {
+        "label": "post-master-drawing-net10.0",
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-drawing-net10.0/command.json",
+          "bytes": 2516,
+          "sha256": "a6c434ec6541caffa42fd9fcc9c0198cf69530bc6152e635c6df5ffeceb909a9"
+        },
+        "exitCode": 0,
+        "testCounts": {
+          "total": "43",
+          "executed": "43",
+          "passed": "43",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-drawing-net10.0/results/tests.trx",
+          "bytes": 68043,
+          "sha256": "d0b17d517e842d6939196836bde701318538f419580184a2b69a5494ee1040db"
+        }
+      },
+      {
+        "label": "post-master-drawing-net8.0",
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-drawing-net8.0/command.json",
+          "bytes": 2512,
+          "sha256": "4d5e985b4ace52d33711ff3459762318b1c531b9488b20fdf5007c55367a4928"
+        },
+        "exitCode": 0,
+        "testCounts": {
+          "total": "43",
+          "executed": "43",
+          "passed": "43",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trx": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-drawing-net8.0/results/tests.trx",
+          "bytes": 67956,
+          "sha256": "d5bddc8d23aeb2d43f80c2b395d45aa0f9ae3c8539f78d81f39cec454b556fb8"
+        }
+      },
+      {
+        "label": "aot-post-master-analyzed-publish",
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-post-master-analyzed-publish/command.json",
+          "bytes": 2270,
+          "sha256": "5a84f2fc4e61a6e3f2ce58294d9300a686b9158319e02884e6f9e98f8f9cf1f0"
+        },
+        "exitCode": 0
+      },
+      {
+        "label": "aot-post-master-native-run",
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-post-master-native-run/command.json",
+          "bytes": 1890,
+          "sha256": "b76554bd2c8334038f9bf63b5c62996cc880f39a83ee919ce2bf375ea3854ad1"
+        },
+        "exitCode": 0
+      },
+      {
+        "label": "aot-post-master-core-package",
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-post-master-core-package/command.json",
+          "bytes": 2259,
+          "sha256": "0b45e347eec010abe3ce6b816583741c194b805545ae9facf7c92a37d0ff48b2"
+        },
+        "exitCode": 0
+      }
+    ],
+    "review": {
+      "base": "75d43a8ea1a669fbcd37f90cb0b4e79bcd12b2c8",
+      "reviewedHead": "57d2736eb8abd62753839f4281d73bc79776a625",
+      "agent": "/root/core_aot_readonly_review",
+      "mode": "fresh-context strictly read-only; no builds/mutations",
+      "findings": [],
+      "fit": "Accept as shaped; no API/dependency expansion",
+      "laterIntegration": "Equivalent canonical master implementations adopted; reviewed behavior retained"
+    },
+    "boundaries": [
+      "Native runtime proof is osx-arm64 only",
+      "net472 is compile/package validation here; Windows profiling deferred",
+      "Prior nineteen-package consumer proof remains bound to3b; current Core package revalidated separately",
+      "Full HTML/PDF/Word/CLI checks and H4/public/frozen render preservation requalification passed after current master integration"
+    ]
+  },
+  "postMasterRequalification": {
+    "compiledCodeCommit": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+    "masterParent": "f75b96dc1b709e4e988c7e3904132b66eb61c534",
+    "frameworkChecks": [
+      {
+        "label": "post-master-drawing-net10.0",
+        "passed": 43,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-drawing-net10.0/command.json"
+      },
+      {
+        "label": "post-master-drawing-net8.0",
+        "passed": 43,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-drawing-net8.0/command.json"
+      },
+      {
+        "label": "post-master-html-net10.0",
+        "passed": 6142,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-html-net10.0/command.json"
+      },
+      {
+        "label": "post-master-html-net8.0",
+        "passed": 6142,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-html-net8.0/command.json"
+      },
+      {
+        "label": "post-master-pdf-net10.0",
+        "passed": 367,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-pdf-net10.0/command.json"
+      },
+      {
+        "label": "post-master-pdf-net8.0",
+        "passed": 367,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-pdf-net8.0/command.json"
+      },
+      {
+        "label": "post-master-tool-net10.0",
+        "passed": 26,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-tool-net10.0/command.json"
+      },
+      {
+        "label": "post-master-tool-net8.0",
+        "passed": 26,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-tool-net8.0/command.json"
+      },
+      {
+        "label": "post-master-word-net10.0",
+        "passed": 33,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-word-net10.0/command.json"
+      },
+      {
+        "label": "post-master-word-net8.0",
+        "passed": 33,
+        "failed": 0,
+        "sourceHead": "35419c8104ce53b92d16ffc27c80e396d2c14845",
+        "receipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/post-master-word-net8.0/command.json"
+      }
+    ],
+    "h4Preservation": {
+      "expectedOutputCount": 76,
+      "actualOutputCount": 76,
+      "completePdfArtifacts": 16,
+      "outputBytes": 2599978,
+      "fingerprintSha256": "1843b460fb2c388e20d9fd351745d589e862cd9a7f15f2057b82740aa4f2ae16",
+      "reference": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/static-cost-pr-source-only/execution-effect-35419c8104ce/current-reference.json",
+      "runtimeBinding": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/static-cost-pr-source-only/execution-effect-35419c8104ce/normal-graph/bin/PhaseObserver/release/runtime-binding.json",
+      "canonicalFingerprint": "1843b460fb2c388e20d9fd351745d589e862cd9a7f15f2057b82740aa4f2ae16",
+      "exactPerOutputMatches": true,
+      "mismatches": [],
+      "expectedSplitPngs": 30,
+      "actualSplitPngs": 30,
+      "splitExact": true
+    },
+    "h4Replay": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/static-cost-pr-source-only/execution-effect-35419c8104ce/replay/replay.json",
+      "bytes": 182749,
+      "sha256": "f0e092ef0b756366107d314392ef2b602a534de986c3bb0bec67aeb487e63ab6"
+    },
+    "publicRenderedComparison": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/pr-render-byte-comparison.json",
+      "bytes": 124393,
+      "sha256": "6ed881ed3165a1d12e36dfcf0044ae54bc1ff370e05b28610c0ae8c905657e14"
+    },
+    "focusedCaptureCount": 35,
+    "nativePageCount": 28,
+    "pdfCount": 3,
+    "allPublicArtifactBytesIdenticalToPreviousQualifiedSource": true,
+    "rootVisualAdjudication": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/pr-root-visual-adjudication.json",
+      "bytes": 1036,
+      "sha256": "daf8e9ed3b49b61406606e7f74ac2f9f3a9d9e46bb62f9de49e352ad2ac6b627"
+    },
+    "packageBoundary": "Earlier complete nineteen-package consumer evidence remains bound to3b; changed shared Core rebuilt/packed with package/API validation on all four frameworks against35419. Current normal12-DLL graph, framework tests and native consumer requalified without overlays/suppressions.",
+    "candidateTextOnlyCommitBoundary": "This evidence record follows the actual compiled/rendered code; no product source/build declaration changes are included in the evidence update.",
+    "storage": {
+      "logicalBytesRemoved": 6656758526,
+      "receipt": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/pr-cleanup-result.json",
+        "bytes": 10563,
+        "sha256": "dcec319b85e0436f754acc48cd456bcd040661715f8f29d928ccf38daf811473"
+      },
+      "protectedTestCompilerProof": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/protected-proof/post-master-tests-and-compiler.json",
+      "protectedPublicCompilerProof": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/public-replays-pr-source-only/protected-compiler-runtime-proof/manifest.json",
+      "finalNativeOutput": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/aot-post-master-publish"
+    },
+    "preservedPreparationFailure": {
+      "packet": "intrinsic3",
+      "failure": "Pinned reproduction input-binding changed after path retargeting; guard stopped before rendering",
+      "disposition": "Preserved failed source/output/log/consumer proof; fresh intrinsic3-input-preserved-source-only retains original input hash and passed every existing predicate"
+    }
   }
 }
