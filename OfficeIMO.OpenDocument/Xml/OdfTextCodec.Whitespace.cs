@@ -63,7 +63,7 @@ internal static partial class OdfTextCodec {
     }
 
     private static TextSnapshot DecodeNodes(IEnumerable<XNode> nodes, int maximumCharacters, Action? onVisit = null,
-        Func<XElement, string, string?>? projectField = null) {
+        Func<XElement, string, string?>? projectField = null, int? admissionMaximum = null) {
         if (nodes == null) throw new ArgumentNullException(nameof(nodes));
         var selected = new List<XNode>();
         foreach (XNode node in nodes) {
@@ -71,7 +71,7 @@ internal static partial class OdfTextCodec {
                 throw Limit(nameof(OdfTextTraversal.MaximumVisitedElements), OdfTextTraversal.MaximumVisitedElements);
             selected.Add(node);
         }
-        var snapshot = new TextSnapshot(maximumCharacters);
+        var snapshot = new TextSnapshot(maximumCharacters, admissionMaximum);
         if (selected.Count == 0) return snapshot;
         XElement? paragraph = ParagraphOf(selected[0]);
         if (paragraph != ParagraphOf(selected[selected.Count - 1])) paragraph = null;
@@ -116,15 +116,19 @@ internal static partial class OdfTextCodec {
     /// <summary>A bounded, immutable text contribution map shared by native views and styled projection.</summary>
     internal sealed class TextSnapshot {
         private readonly int _maximumCharacters;
+        private readonly int _admissionMaximum;
         private readonly Dictionary<XNode, string> _text = new();
         private readonly Dictionary<XNode, int> _sourceCharacters = new();
         private readonly List<XNode> _order = new();
-        internal TextSnapshot(int maximumCharacters) { _maximumCharacters = maximumCharacters; }
+        internal TextSnapshot(int maximumCharacters, int? admissionMaximum = null) {
+            _maximumCharacters = maximumCharacters;
+            _admissionMaximum = admissionMaximum ?? maximumCharacters;
+        }
         internal int SourceCharacters { get; private set; }
         internal string Text => JoinBounded(_order.Select(node => _text.TryGetValue(node, out string? value) ? value : string.Empty), string.Empty);
         internal void Register(XNode node, int characters) {
             if (characters > _maximumCharacters - SourceCharacters)
-                throw Limit(nameof(MaximumDecodedCharacters), _maximumCharacters);
+                throw Limit(nameof(MaximumDecodedCharacters), _admissionMaximum);
             SourceCharacters += characters; _sourceCharacters.Add(node, characters); _order.Add(node);
         }
         internal void Set(XNode node, string value) { _text[node] = value; }

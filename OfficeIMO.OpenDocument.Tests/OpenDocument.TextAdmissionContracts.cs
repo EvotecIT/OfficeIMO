@@ -10,6 +10,18 @@ public sealed class OpenDocumentTextAdmissionContractTests {
     private const int DecodedCharacters = 16 * 1024 * 1024;
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void JoinedCollapsedTextReportsTheConfiguredCeilingWhenTheBudgetIsExhausted(int remaining) {
+        OdsDocument document = (OdsDocument)LoadTextDocument("ods");
+        XElement cell = document.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-cell").Single();
+        cell.ReplaceNodes(new XElement(OdfNamespaces.Text + "p", new string(' ', DecodedCharacters - remaining)),
+            new XElement(OdfNamespaces.Text + "p", "b"));
+
+        AssertLimit(() => document.Sheets[0].GetValue(0, 0), "MaximumDecodedCharacters", DecodedCharacters);
+    }
+
+    [Theory]
     [InlineData("odt")]
     [InlineData("ods")]
     [InlineData("odp")]
@@ -23,14 +35,14 @@ public sealed class OpenDocumentTextAdmissionContractTests {
     }
 
     [Fact]
-    public void JoinedCellTextReportsTheEffectiveRemainingCharacterBudget() {
+    public void JoinedCellTextReportsTheConfiguredAggregateCharacterCeiling() {
         OdsDocument document = (OdsDocument)LoadTextDocument("ods");
         XElement cell = document.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-cell").Single();
         cell.ReplaceNodes(new XElement(OdfNamespaces.Text + "p", "a"),
             new XElement(OdfNamespaces.Text + "p", Spaces(DecodedCharacters - 1)));
 
-        // The first character and paragraph separator have already consumed two characters.
-        AssertLimit(() => document.Sheets[0].GetValue(0, 0), "MaximumDecodedCharacters", DecodedCharacters - 2);
+        // Earlier content reduces the remaining allowance, not the configured aggregate ceiling.
+        AssertLimit(() => document.Sheets[0].GetValue(0, 0), "MaximumDecodedCharacters", DecodedCharacters);
     }
 
     [Fact]

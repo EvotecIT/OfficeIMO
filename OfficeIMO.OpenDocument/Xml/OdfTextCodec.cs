@@ -62,12 +62,14 @@ internal static partial class OdfTextCodec {
             if (element == null) throw new ArgumentException("Text elements cannot contain null entries.", nameof(elements));
             if (!first) {
                 EnsureCapacity(builder, 1, MaximumDecodedCharacters);
-                if (remaining == 0) throw Limit(nameof(MaximumDecodedCharacters), remaining);
+                if (remaining == 0) throw Limit(nameof(MaximumDecodedCharacters), MaximumDecodedCharacters);
                 builder.Append('\n');
                 remaining--;
             }
             first = false;
-            builder.Append(Read(element, ref remaining));
+            TextSnapshot snapshot = DecodeNodes(element.Nodes(), remaining, admissionMaximum: MaximumDecodedCharacters);
+            remaining -= snapshot.SourceCharacters;
+            builder.Append(snapshot.Text);
         }
         return builder.ToString();
     }

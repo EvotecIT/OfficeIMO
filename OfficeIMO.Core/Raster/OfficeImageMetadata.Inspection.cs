@@ -12,11 +12,12 @@ public sealed partial class OfficeImageMetadata {
     /// <remarks>Classic Exif inspection covers the primary image, camera, GPS and interoperability directories.
     /// Additional TIFF pages, private pointer trees and MakerNote semantics are explicitly outside this profile.
     /// Malformed profiles produce diagnostics; unreadable image containers and exceeded input limits throw.</remarks>
+    /// <exception cref="OfficeInspectionResourceLimitException">The configured metadata input-byte ceiling was exceeded.</exception>
     public static OfficeImageMetadataInspection Inspect(byte[] encodedBytes, OfficeImageMetadataInspectionOptions? options = null, CancellationToken cancellationToken = default) {
         if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
         OfficeImageMetadataInspectionOptions policy = (options ?? new OfficeImageMetadataInspectionOptions()).Snapshot();
         cancellationToken.ThrowIfCancellationRequested();
-        if (encodedBytes.Length > policy.MaximumInputBytes) throw new InvalidDataException("image:metadata-input-byte-limit");
+        if (encodedBytes.Length > policy.MaximumInputBytes) throw new OfficeInspectionResourceLimitException("image-metadata", nameof(policy.MaximumInputBytes), policy.MaximumInputBytes);
         if (!OfficeImageReader.TryIdentifyByContent(encodedBytes, null, cancellationToken, out OfficeImageInfo info)) throw new FormatException("The image metadata container is malformed or unsupported.");
         var fields = new List<OfficeExifFieldEvidence>(); var xmp = new List<OfficeXmpProperty>(); var issues = new List<string>();
         OfficeIccProfileInspection? icc = null;
@@ -94,10 +95,11 @@ public sealed partial class OfficeImageMetadata {
     }
 
     /// <summary>Inspects a standalone classic TIFF Exif profile, optionally including JPEG Exif framing.</summary>
+    /// <exception cref="OfficeInspectionResourceLimitException">The configured metadata input-byte ceiling was exceeded.</exception>
     public static OfficeImageMetadataInspection InspectExifProfile(byte[] profile, OfficeImageMetadataInspectionOptions? options = null, CancellationToken cancellationToken = default) {
         if (profile == null) throw new ArgumentNullException(nameof(profile));
         OfficeImageMetadataInspectionOptions policy = (options ?? new OfficeImageMetadataInspectionOptions()).Snapshot();
-        if (profile.Length > policy.MaximumInputBytes) throw new InvalidDataException("image:metadata-input-byte-limit");
+        if (profile.Length > policy.MaximumInputBytes) throw new OfficeInspectionResourceLimitException("image-metadata", nameof(policy.MaximumInputBytes), policy.MaximumInputBytes);
         var fields = new List<OfficeExifFieldEvidence>(); var issues = new List<string>();
         InspectExif(profile, false, "Exif/profile", policy, fields, issues, cancellationToken);
         return CompleteInspection(OfficeImageFormat.Unknown, null, fields, new List<OfficeXmpProperty>(), null, issues, cancellationToken);

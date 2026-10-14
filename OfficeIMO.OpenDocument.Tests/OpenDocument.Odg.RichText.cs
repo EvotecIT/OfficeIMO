@@ -115,7 +115,7 @@ public class OpenDocumentOdgRichTextTests {
         var document = OdgDocument.Create(); var shape = document.AddPage().Shapes.AddRectangle(OdfRect.FromCentimeters(1, 1, 8, 4));
         for (int i = 0; i < 2; i++) shape.AddParagraph().Element.Add(new XElement(OdfNamespaces.Text + "s", new XAttribute(OdfNamespaces.Text + "c", OdfTextCodec.MaximumDecodedCharacters / 2)));
         OfficeInspectionResourceLimitException joined = Assert.Throws<OfficeInspectionResourceLimitException>(() => shape.Text);
-        Assert.Equal("opendocument", joined.Owner); Assert.Equal("MaximumDecodedCharacters", joined.LimitName); Assert.Equal(OdfTextCodec.MaximumDecodedCharacters / 2 - 1, joined.Maximum);
+        Assert.Equal("opendocument", joined.Owner); Assert.Equal("MaximumDecodedCharacters", joined.LimitName); Assert.Equal(OdfTextCodec.MaximumDecodedCharacters, joined.Maximum);
         var paragraph = shape.Paragraphs[0]; paragraph.AddRun().Element.Add(new XElement(OdfNamespaces.Text + "s", new XAttribute(OdfNamespaces.Text + "c", OdfTextCodec.MaximumDecodedCharacters / 2 + 1)));
         OfficeInspectionResourceLimitException inlines = Assert.Throws<OfficeInspectionResourceLimitException>(() => paragraph.InlineNodes);
         Assert.Equal("opendocument", inlines.Owner); Assert.Equal("MaximumDecodedCharacters", inlines.LimitName); Assert.Equal(OdfTextCodec.MaximumDecodedCharacters, inlines.Maximum);

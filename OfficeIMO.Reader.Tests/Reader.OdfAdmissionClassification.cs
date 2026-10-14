@@ -15,6 +15,24 @@ namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderOdfAdmissionClassificationTests {
     [Theory]
+    [InlineData(0, ReaderProjection.Full)]
+    [InlineData(1, ReaderProjection.Full)]
+    [InlineData(0, ReaderProjection.TextAndMetadata)]
+    [InlineData(1, ReaderProjection.TextAndMetadata)]
+    public void JoinedNativeTextKeepsItsConfiguredCeilingThroughLoadedReader(int remaining, ReaderProjection projection) {
+        const int maximum = 16 * 1024 * 1024;
+        OdsDocument document = OdsDocument.Create(); document.AddSheet("Data").Cell(0, 0).SetString("seed");
+        XElement cell = document.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-cell").Single();
+        cell.ReplaceNodes(new XElement(OdfNamespaces.Text + "p", new string(' ', maximum - remaining)),
+            new XElement(OdfNamespaces.Text + "p", "b"));
+
+        ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() =>
+            document.ReadDocument("source.ods", new ReaderOptions { Projection = projection }));
+        Assert.Equal("opendocument.MaximumDecodedCharacters", error.LimitName); Assert.Equal(maximum, error.Maximum);
+        Assert.Equal(maximum, Assert.IsType<OfficeInspectionResourceLimitException>(error.InnerException).Maximum);
+    }
+
+    [Theory]
     [InlineData("integer", "direct")]
     [InlineData("integer", "lazy")]
     [InlineData("integer", "batch")]

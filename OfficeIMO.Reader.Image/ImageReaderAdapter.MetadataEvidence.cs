@@ -9,6 +9,9 @@ internal static partial class ImageReaderAdapter {
         var builder = new ReaderInspectionMetadataBuilder(readerOptions, "image", token);
         OfficeImageMetadataInspection evidence;
         try { evidence = OfficeImageMetadata.Inspect(bytes, imageOptions.MetadataInspection, token); }
+        catch (OfficeInspectionResourceLimitException exception) {
+            throw new ReaderResourceLimitException(exception.Owner + "." + exception.LimitName, exception.Maximum, exception);
+        }
         catch (Exception exception) when (exception is FormatException || exception is InvalidDataException) {
             builder.Coverage("ImageMetadata", "unavailable", "The encoded image or owner metadata budget does not permit this inspection profile.", location);
             builder.Diagnostic("IMAGE_METADATA_INSPECTION_UNAVAILABLE", "Detailed image metadata could not be inspected within the supported container and byte limits.", location);
