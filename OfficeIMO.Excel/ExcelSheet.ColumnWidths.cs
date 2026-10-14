@@ -23,7 +23,6 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 SetColumnWidthsCore(selected.Select(pair => pair.Key).ToArray(),
                     selected.Select(pair => pair.Value).ToArray(), bestFit: false);
-                WorksheetRoot.Save();
             });
         }
     }

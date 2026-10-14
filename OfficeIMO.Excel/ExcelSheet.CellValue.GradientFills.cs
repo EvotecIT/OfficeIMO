@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
                 format.ApplyFill = true;
             });
 
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void FillRangeGradientCore(int firstRow, int firstColumn, int lastRow, int lastColumn, string fromHexColor, string toHexColor, double degree) {
@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private static Fill CreateGradientFill(string fromHexColor, string toHexColor, double degree) {

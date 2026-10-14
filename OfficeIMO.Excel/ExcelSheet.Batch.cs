@@ -16,7 +16,9 @@ namespace OfficeIMO.Excel {
         internal NoLockContext BeginNoLock() => new NoLockContext();
 
         /// <summary>
-        /// Executes multiple worksheet mutations under a single workbook write lock.
+        /// Executes multiple worksheet mutations under a single workbook write lock. Cell styling inside the batch
+        /// (bold, fills, fonts, wrapping, number formats and similar) looks formats up through an index and saves the
+        /// stylesheet once when the batch ends, so styling cells row by row stays proportional to the cells styled.
         /// </summary>
         /// <param name="action">The worksheet updates to execute.</param>
         public void Batch(Action<ExcelSheet> action) {
@@ -24,7 +26,13 @@ namespace OfficeIMO.Excel {
 
             if (Locking.IsNoLock) {
                 MaterializeDeferredDataSetImportIfNeeded();
-                action(this);
+                try {
+                    using (TryBeginStyleBatch()) {
+                        action(this);
+                    }
+                } finally {
+                    CommitCommentVmlChanges();
+                }
                 return;
             }
 
@@ -35,20 +43,27 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            lck.EnterWriteLock();
-            bool wasBatchOperation = _isBatchOperation;
-            bool hadBatchCellMutations = _batchHasCellMutations;
-            try {
-                MaterializeDeferredDataSetImportIfNeeded();
-                _isBatchOperation = true;
-                _batchHasCellMutations = false;
-                action(this);
-                if (_batchHasCellMutations) _excelDocument.MarkPackageDirty();
-            } finally {
-                _isBatchOperation = wasBatchOperation;
-                _batchHasCellMutations = hadBatchCellMutations;
-                lck.ExitWriteLock();
-            }
+            Locking.ExecuteWrite(lck, () => {
+                bool wasBatchOperation = _isBatchOperation;
+                bool hadBatchCellMutations = _batchHasCellMutations;
+                try {
+                    MaterializeDeferredDataSetImportIfNeeded();
+                    _isBatchOperation = true;
+                    _batchHasCellMutations = false;
+                    using (TryBeginStyleBatch()) {
+                        action(this);
+                    }
+                } finally {
+                    // Batch is not a transaction: edits made before a callback throws still need to reach Save.
+                    try {
+                        CommitCommentVmlChanges();
+                        if (_batchHasCellMutations) _excelDocument.MarkPackageDirty();
+                    } finally {
+                        _isBatchOperation = wasBatchOperation;
+                        _batchHasCellMutations = hadBatchCellMutations;
+                    }
+                }
+            });
         }
 
         internal sealed class NoLockContext : IDisposable {
@@ -78,6 +93,10 @@ namespace OfficeIMO.Excel {
                 if (action()) MarkRequiresWorksheetPreparation();
             });
         }
+
+        /// <summary>Joins a workbook write lock held by any sheet and honors an explicit no-lock scope.</summary>
+        private bool HasCellValueWriteAccess => _isBatchOperation || Locking.IsNoLock
+            || _excelDocument.EnsureLock().IsWriteLockHeld;
 
         private void WriteLockConditional(Action action) {
             if (_isBatchOperation || Locking.IsNoLock) {

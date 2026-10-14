@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void Test_SetColumnWidths_SavesOnceAndPreservesColumnMetadata(bool withRange) {
+        public void Test_SetColumnWidths_WritesThePartAtTheDocumentSaveAndPreservesColumnMetadata(bool withRange) {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.Batch." + withRange + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorksheet("Data");
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
                 var widths = Enumerable.Range(1, 64).ToDictionary(column => column, column => 12D + column / 10D);
                 if (withRange) widths.Add(66, 25D);
                 sheet.SetColumnWidths(widths);
-                Assert.Equal(1, saves);
+                Assert.Equal(0, saves);
                 if (withRange) {
                     ExcelColumnSnapshot selected = sheet.GetColumnDefinitions().Single(column => column.StartIndex == 66);
                     Assert.Equal(25D, selected.Width);

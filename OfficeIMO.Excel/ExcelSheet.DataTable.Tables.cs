@@ -313,8 +313,7 @@ namespace OfficeIMO.Excel {
                     autoFilter.Reference = updatedRange;
                 }
 
-                table.Save();
-                WorksheetRoot.Save();
+                DeferPartSave(table.OpenXmlPart!);
             });
 
             return updatedRange;
