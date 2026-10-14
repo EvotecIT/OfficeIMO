@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using OfficeIMO.Core.Internal.Cabinet;
 
@@ -6,6 +7,12 @@ namespace OfficeIMO.Archives;
 
 internal sealed class ArchiveLimits {
     internal ArchiveLimits(ArchiveExtractionOptions options) {
+        if (options.AllowedFormats != null) {
+            AllowedFormats = new HashSet<ArchiveFormat>(options.AllowedFormats);
+            foreach (ArchiveFormat format in AllowedFormats)
+                if (format != ArchiveFormat.Cab && format != ArchiveFormat.Msi && format != ArchiveFormat.Zip)
+                    throw new ArgumentOutOfRangeException(nameof(options.AllowedFormats));
+        }
         Input = Positive(options.MaxInputBytes, nameof(options.MaxInputBytes));
         Entries = checked((int)Positive(options.MaxEntryCount, nameof(options.MaxEntryCount)));
         Cabinets = checked((int)Positive(options.MaxCabinetCount, nameof(options.MaxCabinetCount)));
@@ -20,6 +27,7 @@ internal sealed class ArchiveLimits {
         Include = options.IncludeFile;
     }
     internal long Input { get; }
+    internal HashSet<ArchiveFormat>? AllowedFormats { get; }
     internal int Entries { get; }
     internal int Cabinets { get; }
     internal long Entry { get; }
