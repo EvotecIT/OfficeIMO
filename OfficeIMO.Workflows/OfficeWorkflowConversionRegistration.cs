@@ -50,8 +50,8 @@ public sealed class OfficeWorkflowConversionRegistration {
         OfficeWorkflowRoute route = OfficeWorkflowCatalog.Find(routeId)
             ?? throw new ArgumentException("Choose an existing canonical conversion route.", nameof(routeId));
         if (route.CanExecute) throw new ArgumentException("Built-in conversion routes cannot be replaced.", nameof(routeId));
-        if (route.TargetExtension.TrimStart('.').ToLowerInvariant() is not ("docx" or "xlsx" or "pptx"))
-            throw new NotSupportedException("Opt-in workflow conversion currently supports DOCX, XLSX, and PPTX destinations.");
+        if (route.TargetExtension.TrimStart('.').ToLowerInvariant() is not ("docx" or "xlsx" or "pptx" or "pdf"))
+            throw new NotSupportedException("Opt-in workflow conversion supports DOCX, XLSX, PPTX, and PDF destinations.");
         RouteId = route.Id;
         Converter = converter;
         _acceptsSettings = acceptsSettings;
@@ -108,7 +108,10 @@ public sealed class OfficeWorkflowConversionEvidence : IOfficeConversionReport {
         Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts ?? new Dictionary<string, string>(), StringComparer.Ordinal));
     }
 
-    internal OfficeWorkflowConversionEvidence(IReadOnlyList<IOfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
+    /// <summary>Copies evidence from ordered conversion stages after their output operations have completed.</summary>
+    public OfficeWorkflowConversionEvidence(IReadOnlyList<IOfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
+        ArgumentNullException.ThrowIfNull(reports);
+        ArgumentNullException.ThrowIfNull(facts);
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten(reports);
         Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts, StringComparer.Ordinal));
     }

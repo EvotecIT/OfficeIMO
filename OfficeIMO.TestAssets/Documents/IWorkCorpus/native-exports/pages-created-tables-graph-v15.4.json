@@ -1,0 +1,823 @@
+{
+  "source": "/Volumes/Samsung/Development/Scratch/officeimo-iwork-implementation/native-pages-tables/evidence/pages-created-tables.pages",
+  "sha256": "0869946a8507ccf60c528507e270b481b293a6184a4a357ea30d080303c355b3",
+  "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+  "recordCount": 80,
+  "page": {
+    "width": 612.0,
+    "height": 792.0,
+    "margins": [
+      72.0,
+      72.0,
+      72.0,
+      72.0
+    ]
+  },
+  "paragraphCount": 4,
+  "text": "Before \ud83d\ude00\n\ufffc\n\ufffc\nAfter\n",
+  "runs": [
+    {
+      "start": 0,
+      "end": 10,
+      "text": "Before \ud83d\ude00\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 10,
+      "end": 12,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 12,
+      "end": 14,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 14,
+      "end": 20,
+      "text": "After\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    }
+  ],
+  "paragraphLayouts": [
+    {
+      "start": 0,
+      "styleId": 32,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 10,
+      "styleId": 59,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 12,
+      "styleId": 88,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 14,
+      "styleId": 90,
+      "lineSpacingMultiplier": 1.5,
+      "spaceBeforePoints": 6.0,
+      "spaceAfterPoints": 9.0,
+      "decimalTab": ".",
+      "tabStops": []
+    }
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "type": 10000,
+      "references": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "type": 2001,
+      "references": [
+        5,
+        7,
+        9,
+        10,
+        32,
+        33,
+        58,
+        59,
+        60,
+        87,
+        88,
+        89,
+        90,
+        91
+      ]
+    },
+    {
+      "id": 4,
+      "type": 10001,
+      "references": [
+        5,
+        10,
+        11,
+        12,
+        13,
+        22,
+        33,
+        46,
+        75
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "references": [
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        22,
+        32,
+        33,
+        36,
+        37,
+        38,
+        39,
+        40,
+        59,
+        60,
+        63,
+        64,
+        65,
+        66,
+        67,
+        88,
+        89,
+        90,
+        91
+      ]
+    },
+    {
+      "id": 6,
+      "type": 10012,
+      "references": []
+    },
+    {
+      "id": 7,
+      "type": 10011,
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 10143,
+      "references": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "id": 9,
+      "type": 2024,
+      "references": []
+    },
+    {
+      "id": 10,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 11,
+      "type": 2050,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2025,
+      "references": [
+        22
+      ]
+    },
+    {
+      "id": 13,
+      "type": 3016,
+      "references": []
+    },
+    {
+      "id": 14,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 16,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 17,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 18,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 19,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 20,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 21,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 22,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 32,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 33,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 34,
+      "type": 6000,
+      "references": [
+        3,
+        35
+      ]
+    },
+    {
+      "id": 35,
+      "type": 6001,
+      "references": [
+        36,
+        37,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57
+      ]
+    },
+    {
+      "id": 36,
+      "type": 6003,
+      "references": []
+    },
+    {
+      "id": 37,
+      "type": 6004,
+      "references": []
+    },
+    {
+      "id": 38,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 39,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 40,
+      "type": 2025,
+      "references": [
+        39
+      ]
+    },
+    {
+      "id": 41,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 42,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 43,
+      "type": 6002,
+      "references": []
+    },
+    {
+      "id": 44,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 45,
+      "type": 6247,
+      "references": [
+        36,
+        37,
+        39,
+        40
+      ]
+    },
+    {
+      "id": 46,
+      "type": 6008,
+      "references": [
+        45
+      ]
+    },
+    {
+      "id": 47,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 48,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 49,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 50,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 51,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 52,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 53,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 54,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 55,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 56,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 57,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 58,
+      "type": 2003,
+      "references": [
+        34
+      ]
+    },
+    {
+      "id": 59,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 60,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 61,
+      "type": 6000,
+      "references": [
+        3,
+        62
+      ]
+    },
+    {
+      "id": 62,
+      "type": 6001,
+      "references": [
+        63,
+        64,
+        66,
+        67,
+        68,
+        69,
+        70,
+        73,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86
+      ]
+    },
+    {
+      "id": 63,
+      "type": 6003,
+      "references": []
+    },
+    {
+      "id": 64,
+      "type": 6004,
+      "references": []
+    },
+    {
+      "id": 65,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 66,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 67,
+      "type": 2025,
+      "references": [
+        66
+      ]
+    },
+    {
+      "id": 68,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 69,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 70,
+      "type": 6002,
+      "references": []
+    },
+    {
+      "id": 73,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 74,
+      "type": 6247,
+      "references": [
+        63,
+        64,
+        66,
+        67
+      ]
+    },
+    {
+      "id": 75,
+      "type": 6008,
+      "references": [
+        74
+      ]
+    },
+    {
+      "id": 76,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 77,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 78,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 79,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 80,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 81,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 82,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 83,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 84,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 85,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 86,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 87,
+      "type": 2003,
+      "references": [
+        61
+      ]
+    },
+    {
+      "id": 88,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 89,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 90,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 91,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "references": []
+    }
+  ],
+  "nativeTables": [
+    {
+      "id": 35,
+      "name": "Values",
+      "rows": 3,
+      "columns": 3,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "kind": "Text",
+          "value": "A\ud83d\ude00B\nZa\u017c\u00f3\u0142\u0107"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "kind": "Text",
+          "value": "=SUM(A1:A2)"
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "kind": "Text",
+          "value": ""
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "kind": "Number",
+          "value": -1234.5
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "kind": "Boolean",
+          "value": true
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "kind": "Boolean",
+          "value": false
+        },
+        {
+          "row": 3,
+          "column": 1,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "kind": "Empty",
+          "value": null
+        }
+      ],
+      "row_offsets_and_counts_complete": true,
+      "style_preset_network_complete": true,
+      "bodyCellPaddingPoints": 4,
+      "bodyCellVerticalAlignment": "Top"
+    },
+    {
+      "id": 62,
+      "name": "Empty",
+      "rows": 2,
+      "columns": 2,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "kind": "Empty",
+          "value": null
+        }
+      ],
+      "row_offsets_and_counts_complete": true,
+      "style_preset_network_complete": true,
+      "bodyCellPaddingPoints": 4,
+      "bodyCellVerticalAlignment": "Top"
+    }
+  ],
+  "inlineTables": [
+    {
+      "start": 10,
+      "attachmentId": 58,
+      "drawableId": 34,
+      "tableId": 35,
+      "widthPoints": 324.0,
+      "heightPoints": 144.0
+    },
+    {
+      "start": 12,
+      "attachmentId": 87,
+      "drawableId": 61,
+      "tableId": 62,
+      "widthPoints": 200.0,
+      "heightPoints": 56.0
+    }
+  ],
+  "scope": "Owned body paragraphs, scalar inline tables and graph declarations; native application acceptance is separate."
+}

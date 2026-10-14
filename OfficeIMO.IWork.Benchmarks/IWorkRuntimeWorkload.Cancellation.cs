@@ -14,6 +14,7 @@ public sealed partial class IWorkRuntimeWorkload {
     /// <summary>Prepares operation-specific input and releases previous results outside measurement.</summary>
     public void Prepare(string operation) {
         ReleaseResults();
+        if (IsPhaseCancellation(operation)) PreparePhaseCancellation(operation);
         if (operation == "CancelDuringNativeCopy" && _kind == IWorkDocumentKind.Keynote && _nativeCopyDocument is null) {
             _nativeCopyDocument = IWorkKeynoteDocument.Create();
             _nativeCopyDocument.AddSlide().AddText(new string('a', 150_000), 0, 0, 960, 540);
@@ -22,7 +23,7 @@ public sealed partial class IWorkRuntimeWorkload {
             NativeCopyInputSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
         }
     }
-    /// <summary>Gets whether cancellation was observed after the operation performed I/O.</summary>
+    /// <summary>Gets whether the selected operation observed its cancellation request.</summary>
     public bool CancellationObserved { get; private set; }
     /// <summary>Gets bytes read or written before requesting cancellation.</summary>
     public long CancellationProcessedBytes { get; private set; }

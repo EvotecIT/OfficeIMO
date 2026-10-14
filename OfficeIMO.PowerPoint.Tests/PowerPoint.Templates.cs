@@ -297,8 +297,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ExistingPptxFixture_PreservesMastersLayoutsAndSlidesThroughTemplateCopy() {
-            string fixturePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
-                "..", "..", "..", "..", "Assets", "PowerPointTemplates", "PowerPointWithTitle.pptx"));
+            string fixturePath = Path.Combine(RepositoryTestPaths.Find(),
+                "Assets", "PowerPointTemplates", "PowerPointWithTitle.pptx");
             Assert.True(File.Exists(fixturePath), "Expected PowerPoint template fixture at " + fixturePath);
             string outputPath = TempPath(".pptx");
             try {

@@ -47,6 +47,7 @@ internal static partial class IWorkFormulaReader {
         [52] = new("FALSE", 0, 0),
         [53] = new("FIND", 2, 3),
         [55] = new("FLOOR", 2, 2),
+        [58] = new("GCD", 1, 255),
         [60] = new("HOUR", 1, 1),
         [61] = new("HYPERLINK", 1, 2),
         [62] = new("IF", 2, 3),
@@ -54,6 +55,7 @@ internal static partial class IWorkFormulaReader {
         [65] = new("INT", 1, 1),
         [69] = new("ISBLANK", 1, 1),
         [70] = new("ISERROR", 1, 1),
+        [75] = new("LCM", 1, 255),
         [76] = new("LEFT", 1, 2),
         [77] = new("LEN", 1, 1),
         [78] = new("LN", 1, 1),
@@ -95,6 +97,12 @@ internal static partial class IWorkFormulaReader {
         [157] = new("TRUNC", 1, 2),
         [158] = new("UPPER", 1, 1),
         [SumFunctionIndex] = new("SUM", 1, 255),
+        // Apple-produced conditional-aggregate references also qualify these IDs.
+        // Criteria ranges and conditions must remain complete pairs in XLSX.
+        [231] = new("SUMIFS", 3, 255, 2),
+        [232] = new("AVERAGEIFS", 3, 255, 2),
+        [233] = new("COUNTIFS", 2, 254, 2),
+        [234] = new("AVERAGEIF", 2, 3),
         [235] = new("IFERROR", 2, 2),
         [304] = new("ISNUMBER", 1, 1),
         [305] = new("ISTEXT", 1, 1),
@@ -102,12 +110,14 @@ internal static partial class IWorkFormulaReader {
     };
 
     internal static IWorkFormulaResult Render(IWorkWireMessage formula, int zeroBasedRow, int zeroBasedColumn,
-        int maximumNodes, int maximumCharacters, IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers = null, IWorkFormulaTableBinding? owningTable = null) {
+        int maximumNodes, int maximumCharacters, IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers = null, IWorkFormulaTableBinding? owningTable = null,
+        IWorkProjectionBudget? budget = null, System.Threading.CancellationToken cancellationToken = default) {
         if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes))
             return new IWorkFormulaResult(string.Empty, false);
 
         var stack = new List<Operand>();
         bool complete = true, boundedBodyRanges = false, needsLocalBodyBinding = false;
+        int remainingIntegerReferenceCells = maximumNodes;
         foreach (IWorkWireMessage node in nodes) {
             if (node.FieldCount(1) != 1
                 || node.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) complete = false;
@@ -148,7 +158,13 @@ internal static partial class IWorkFormulaReader {
                     if (Functions.TryGetValue(functionIndex, out FunctionDefinition function)) {
                         name = function.Name;
                         if (argumentCount < function.MinimumArguments
-                            || argumentCount > function.MaximumArguments) complete = false;
+                            || argumentCount > function.MaximumArguments
+                            || (argumentCount - function.MinimumArguments) % function.ArgumentStep != 0) complete = false;
+                        if (name is "GCD" or "LCM") {
+                            if (arguments.Any(argument => argument.IntegerReference != null)) needsLocalBodyBinding = true;
+                            if (!HasQualifiedIntegerOperands(name, arguments, budget, cancellationToken,
+                                ref remainingIntegerReferenceCells)) complete = false;
+                        }
                     } else {
                         name = functionIndex == 212
                             ? "DURATION"
@@ -203,14 +219,15 @@ internal static partial class IWorkFormulaReader {
                 case 64:
                 case 65: {
                     string reference = RenderReference(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers,
-                        owningTable, type == 36, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding);
+                        owningTable, type == 36, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding,
+                        out IntegerReference? integerReference);
                     Guid? identifier = type == 36 && node.HasField(26) && node.HasField(27)
                         ? ReadReferencedTableIdentifier(node) : null;
                     string? qualifier = identifier.HasValue && tableQualifiers != null
                         && tableQualifiers.TryGetValue(identifier.Value, out IWorkFormulaTableBinding? target)
                         && reference.StartsWith(target.Qualifier, StringComparison.Ordinal) ? target.Qualifier : null;
                     stack.Add(new Operand(reference, PrimaryPrecedence, identifier, qualifier,
-                        qualifier == null ? null : reference.Substring(qualifier.Length)));
+                        qualifier == null ? null : reference.Substring(qualifier.Length), integerReference));
                     break;
                 }
                 case 29:
@@ -227,7 +244,8 @@ internal static partial class IWorkFormulaReader {
                         else complete = false;
                     }
                     stack.Add(new Operand(Bound(range[0].Text + ":" + last,
-                        maximumCharacters, ref complete), PrimaryPrecedence));
+                        maximumCharacters, ref complete), PrimaryPrecedence,
+                        integerReference: CombineIntegerReferences(range[0], range[1])));
                     break;
                 }
                 case 30:
@@ -268,16 +286,19 @@ internal static partial class IWorkFormulaReader {
                     stack.Add(new Operand(Bound(type == 32 ? operand.Text + whitespace : whitespace + operand.Text,
                         maximumCharacters, ref complete), operand.Precedence,
                         referenceAddress == null ? null : operand.ReferenceIdentifier,
-                        referenceAddress == null ? null : operand.ReferenceQualifier, referenceAddress));
+                        referenceAddress == null ? null : operand.ReferenceQualifier, referenceAddress, operand.IntegerReference));
                     break;
                 }
                 case 34:
                 case 35:
                     break;
-                case 67:
-                    stack.Add(new Operand(RenderColonTract(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers, owningTable, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding),
-                        PrimaryPrecedence));
+                case 67: {
+                    string reference = RenderColonTract(node, zeroBasedRow, zeroBasedColumn, maximumCharacters,
+                        tableQualifiers, owningTable, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding,
+                        out IntegerReference? integerReference);
+                    stack.Add(new Operand(reference, PrimaryPrecedence, integerReference: integerReference));
                     break;
+                }
                 case 69: {
                     Operand[] operands = Pop(stack, 2, ref complete);
                     stack.Add(new Operand(Bound(operands[0].Text + " " + operands[1].Text,
@@ -316,15 +337,17 @@ internal static partial class IWorkFormulaReader {
     }
 
     private readonly struct FunctionDefinition {
-        internal FunctionDefinition(string name, int minimumArguments, int maximumArguments) {
+        internal FunctionDefinition(string name, int minimumArguments, int maximumArguments, int argumentStep = 1) {
             Name = name;
             MinimumArguments = minimumArguments;
             MaximumArguments = maximumArguments;
+            ArgumentStep = argumentStep;
         }
 
         internal string Name { get; }
         internal int MinimumArguments { get; }
         internal int MaximumArguments { get; }
+        internal int ArgumentStep { get; }
     }
 
     internal static bool TryReadAbsoluteRange(IWorkWireMessage formula, int maximumNodes,
@@ -403,7 +426,9 @@ internal static partial class IWorkFormulaReader {
 
     private static string RenderReference(IWorkWireMessage node, int row, int column, int maximumCharacters,
         IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers, IWorkFormulaTableBinding? owningTable, bool supportsCoordinateBinding,
-        ref bool complete, ref bool boundedBodyRanges, ref bool needsLocalBodyBinding) {
+        ref bool complete, ref bool boundedBodyRanges, ref bool needsLocalBodyBinding,
+        out IntegerReference? integerReference) {
+        integerReference = null;
         IWorkWireMessage? columnMessage = IWorkObjectIndex.TryGetMessage(node, 26, out bool malformedColumn);
         IWorkWireMessage? rowMessage = IWorkObjectIndex.TryGetMessage(node, 27, out bool malformedRow);
         if (malformedColumn || malformedRow
@@ -437,7 +462,7 @@ internal static partial class IWorkFormulaReader {
         if (resolvedColumn == null || resolvedRow == null) needsLocalBodyBinding = true;
         return BindTableReference(node, resolvedColumn, resolvedColumn, resolvedRow, resolvedRow,
             absoluteColumn, absoluteColumn, absoluteRow, absoluteRow, maximumCharacters,
-            tableQualifiers, owningTable, ref complete, ref boundedBodyRanges);
+            tableQualifiers, owningTable, ref complete, ref boundedBodyRanges, out integerReference);
     }
 
     // Dropping a declared table identity would turn an external reference into a
@@ -615,12 +640,13 @@ internal static partial class IWorkFormulaReader {
 
     private readonly struct Operand {
         internal Operand(string text, int precedence, Guid? referenceIdentifier = null, string? referenceQualifier = null,
-            string? referenceAddress = null) {
+            string? referenceAddress = null, IntegerReference? integerReference = null) {
             Text = text;
             Precedence = precedence;
             ReferenceIdentifier = referenceIdentifier;
             ReferenceQualifier = referenceQualifier;
             ReferenceAddress = referenceAddress;
+            IntegerReference = integerReference;
         }
 
         internal string Text { get; }
@@ -628,5 +654,6 @@ internal static partial class IWorkFormulaReader {
         internal Guid? ReferenceIdentifier { get; }
         internal string? ReferenceQualifier { get; }
         internal string? ReferenceAddress { get; }
+        internal IntegerReference? IntegerReference { get; }
     }
 }

@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "host": {
+    "os": "macOS27.0.1 (26A434)",
+    "architecture": "arm64",
+    "model": "Mac16,10 AppleM4",
+    "dotnetSdk": "10.0.112"
+  },
+  "project": "OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj",
+  "recordedUtc": "2026-10-11T03:31:23.420964+00:00",
+  "sourceRevision": "8d07178df0abe6f15d24167a78d8f85cd2bf9274",
+  "buildCheckoutBase": "f30f565a43587fe97c9f81898afbf193d21f0a88",
+  "buildCheckoutNote": "Local source-only integer-text reference candidate, including the reproduced incomplete-rich-text remediation. Exact native binaries compile the committed candidate; managed source was unchanged across the local commit, while per-graph assembly build metadata can differ.",
+  "sourceOnly": true,
+  "executions": [
+    {
+      "targetFramework": "net8.0",
+      "runtimeVersion": "8.0.31",
+      "runtimeIdentifier": "osx-arm64",
+      "fileKind": "Mach-O 64-bit executable arm64",
+      "executableSha256": "a17f7646b56ccd5af4fa9147e993379172ddf7d73f70729571d4caf77a09644a",
+      "executableBytes": 97732920,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 40,
+      "profiles": [
+        "simple.pages",
+        "simple.numbers",
+        "simple.key",
+        "formulas.numbers",
+        "bounded iWork NativeAOT destination conversions",
+        "native Keynote creation",
+        "native Keynote rich runs",
+        "native Keynote images",
+        "native Keynote tables",
+        "native Keynote table borders",
+        "native Pages body creation",
+        "native Pages header/footer creation",
+        "native Pages paragraph layout",
+        "native Pages inline scalar-table creation",
+        "native Pages saved inline table edit",
+        "native Pages inline PNG/JPEG creation",
+        "native Pages resized inline images",
+        "native Pages decimal-list creation",
+        "native Pages edited decimal lists",
+        "native Pages rich decimal-list creation",
+        "native Pages decimal levels and continuation",
+        "native Pages table borders",
+        "native Numbers fixed second ranges",
+        "native Numbers fixed millisecond ranges",
+        "native Numbers integer functions",
+        "native Numbers integer references",
+        "native Numbers cross-table integer calls",
+        "native Numbers integer-text references",
+        "native Numbers table borders",
+        "native Numbers scalar creation",
+        "native explicit numeric format creation",
+        "native unchanged Pages save",
+        "native unchanged Numbers save",
+        "native unchanged Keynote save",
+        "native Keynote image translation",
+        "native preservation tight source bounds",
+        "native Keynote image resizing",
+        "native Numbers scalar editing",
+        "native Pages paragraph editing",
+        "native Keynote paragraph editing"
+      ],
+      "publishLogSha256": "d7ddf19e4b5a091b0bc97184c1c99b86fd646fcd8a4682027ad5a5eb98203430",
+      "nativeRunLogSha256": "34d82ec4690c684362a6ed1fcfe6d8e5734b0483e0eb298e1a27be51d1410d68",
+      "linkerWarnings": [
+        "ld: warning: -ld_classic is no longer supported and will be ignored"
+      ]
+    },
+    {
+      "targetFramework": "net10.0",
+      "runtimeVersion": "10.0.12",
+      "runtimeIdentifier": "osx-arm64",
+      "fileKind": "Mach-O 64-bit executable arm64",
+      "executableSha256": "785ba23e601174ae128b8dcadf367e95d034b7e3f7470f7e595c7404c60a7c05",
+      "executableBytes": 53637704,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 40,
+      "profiles": [
+        "simple.pages",
+        "simple.numbers",
+        "simple.key",
+        "formulas.numbers",
+        "bounded iWork NativeAOT destination conversions",
+        "native Keynote creation",
+        "native Keynote rich runs",
+        "native Keynote images",
+        "native Keynote tables",
+        "native Keynote table borders",
+        "native Pages body creation",
+        "native Pages header/footer creation",
+        "native Pages paragraph layout",
+        "native Pages inline scalar-table creation",
+        "native Pages saved inline table edit",
+        "native Pages inline PNG/JPEG creation",
+        "native Pages resized inline images",
+        "native Pages decimal-list creation",
+        "native Pages edited decimal lists",
+        "native Pages rich decimal-list creation",
+        "native Pages decimal levels and continuation",
+        "native Pages table borders",
+        "native Numbers fixed second ranges",
+        "native Numbers fixed millisecond ranges",
+        "native Numbers integer functions",
+        "native Numbers integer references",
+        "native Numbers cross-table integer calls",
+        "native Numbers integer-text references",
+        "native Numbers table borders",
+        "native Numbers scalar creation",
+        "native explicit numeric format creation",
+        "native unchanged Pages save",
+        "native unchanged Numbers save",
+        "native unchanged Keynote save",
+        "native Keynote image translation",
+        "native preservation tight source bounds",
+        "native Keynote image resizing",
+        "native Numbers scalar editing",
+        "native Pages paragraph editing",
+        "native Keynote paragraph editing"
+      ],
+      "publishLogSha256": "b2240564e7e0c24a8f2e15f71a86cdec5fc6e4c75730f9e2ae22e719d93cba14",
+      "nativeRunLogSha256": "8734c543d624d62e39363db57706e926366a268918a0ed31df5de82356e1125e",
+      "linkerWarnings": []
+    }
+  ],
+  "managedValidation": {
+    "OfficeIMO.IWork.Tests/net8.0": {
+      "total": 2925,
+      "passed": 2925,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "1d4ce3b13f48de0c565a8c8d9a56131301594873f802be83222c5a8c69a6a50a",
+      "loadedOwnerSha256": "678c2e9f7998a5fb56a6964856ad10ff734bf4a24443aa5762501d196e98344d"
+    },
+    "OfficeIMO.Workflows.IWork.Tests/net8.0": {
+      "total": 116,
+      "passed": 116,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "4354bc0c02e62d053b511bfa4113e31b4921f94b73c2d51b3b566a303c72120f",
+      "loadedOwnerSha256": "b9265d73e8b8f835fa09f724f0951ecf910129fb7c434d0034484aa1430436ee"
+    },
+    "OfficeIMO.Workflows.Tests/net8.0": {
+      "total": 1797,
+      "passed": 1794,
+      "failed": 0,
+      "skipped": 3,
+      "trxSha256": "2a01a8ff015e2b3f0c64361f36b54cf3a47861d2fccfb00b5d3eba0b0dc1df3d"
+    },
+    "OfficeIMO.IWork.Tests/net10.0": {
+      "total": 2925,
+      "passed": 2925,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "701a0248cb4e386bfa2a0586c42dd99d12e9242c96fef6601aa6b1606b90bb4b",
+      "loadedOwnerSha256": "adffa5020997f586a802b0d06c1a471d5c0c5897612217b5450859a4e75f85cd"
+    },
+    "OfficeIMO.Workflows.IWork.Tests/net10.0": {
+      "total": 116,
+      "passed": 116,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "c359464f014e852f0aa09de69f8737e56f79aab043d711abd52fc7a8947e2c4f",
+      "loadedOwnerSha256": "e9577b4c265c3e1acb3746159632ffcd4f421f5c4d895e3d4f3c2d4b22aef1b2"
+    },
+    "OfficeIMO.Workflows.Tests/net10.0": {
+      "total": 1797,
+      "passed": 1794,
+      "failed": 0,
+      "skipped": 3,
+      "trxSha256": "24c673c4f14647618ef860f1ca2fd202808fa666843985fe1f18d8e9921b3ce8"
+    }
+  },
+  "managedCorrectness": {
+    "targets": [
+      "net8.0",
+      "net10.0"
+    ],
+    "iworkTestsPerRuntime": 2925,
+    "dedicatedIworkWorkflowTestsPerRuntime": 116,
+    "generalWorkflowPassedPerRuntime": 1794,
+    "generalWorkflowSkippedPerRuntime": 3,
+    "workflowSkipReason": "Three opt-in invoice standards workflows; outside iWork contract. General workflow tests cover their own routes/catalog; the dedicated iWork suite supplies adapter integration coverage.",
+    "focusedIntegerAndRichTextNet10": 39,
+    "netstandard2BuildExitCode": 0,
+    "netstandard2Warnings": 0
+  },
+  "nativeReference": {
+    "producer": "Numbers14.5 (7045.0.17), macOS27 arm64",
+    "manifest": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-text-reference-v14.5.json",
+    "manifestSha256": "2fa6b126e439cc7fbfe0e0ef550867e9d1f8481375dc9e50d9e64bdabb3101ca",
+    "decode": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-text-reference-v14.5-decode.json",
+    "decodeSha256": "5bc6000ce27c7b7ce2a933823acec2904f497423186641c869458e86f0d2e6ad",
+    "independentDecoder": "numbers-parser4.19.0; no OfficeIMO assembly",
+    "selectedCalls": 4,
+    "nativeFormulaCells": 14,
+    "sourceOperandType": "Text before and after native edit",
+    "sourceText": "12",
+    "changedText": "18",
+    "beforeCaches": [
+      6,
+      12,
+      12,
+      12
+    ],
+    "afterCaches": [
+      6,
+      18,
+      18,
+      18
+    ],
+    "acceptance": "Native open/edit/save/close/reopen and XLSX exports; two native screenshots inspected. Entered one-cell ranges normalize to AST type36."
+  },
+  "review": {
+    "candidate": "8e010954cdb3b6f8515bb4c393ed50a3cb7409bc",
+    "mode": "One fresh read-only contract pass and one targeted confirmation",
+    "finding": "P2: unresolved rich-text inline markers can recover digits while scalar completeness remained true",
+    "regressionRed": {
+      "total": 3,
+      "failed": 2,
+      "passed": 1,
+      "trxSha256": "e638d3c885a115b6bc0aa7e6b3676be9c57deb4923f2174de949301342910621"
+    },
+    "remediation": "Canonical nonformula rich-text decoder propagates IsTextComplete into scalar completeness, matching formula caches; copied cells retain the flag.",
+    "confirmedRevision": "8d07178df0abe6f15d24167a78d8f85cd2bf9274",
+    "confirmation": "Finding addressed; no actionable remediation regressions"
+  },
+  "limits": [
+    "Canonical ASCII nonnegative integer text in native direct single-cell GCD/LCM references within 999999999999999 and the established conservative LCM product bound.",
+    "Incomplete rich-text content, text rectangles/colon ranges, blanks, Booleans, localized/noncanonical text, formula dependencies, merges and larger integers remain partial.",
+    "Native sources retain padding and unsupported formula controls; no complete reconstruction or complete-PDF/appearance equivalence claim.",
+    "Actual NativeAOT execution qualifies macOS arm64 only; other architectures, application versions, sandbox and physical-device acceptance remain separate.",
+    "No public-feed/package publication, push, PR or deployment."
+  ],
+  "commands": [
+    "dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj -c Release -f <net8.0|net10.0> --artifacts-path <warm-artifacts> --no-restore -p:BuildProjectReferences=false",
+    "dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj -c Release -f <net8.0|net10.0> --artifacts-path <warm-artifacts> --no-restore -p:BuildProjectReferences=false --filter Category!=Performance",
+    "dotnet test OfficeIMO.Workflows.Tests/OfficeIMO.Workflows.Tests.csproj -c Release -f <net8.0|net10.0> --artifacts-path <warm-artifacts> --no-restore -p:BuildProjectReferences=false --filter Category!=Performance",
+    "dotnet build OfficeIMO.IWork/OfficeIMO.IWork.csproj -c Release -f netstandard2.0 --artifacts-path <warm-artifacts> --no-restore",
+    "dotnet publish OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj -c Release -f <net8.0|net10.0> -r osx-arm64 --artifacts-path <warm-aot-artifacts> --no-restore -o <publish-directory>",
+    "<publish-directory>/OfficeIMO.IWork.AotSmoke",
+    "python Build/IWork/verify-numbers-integer-text.py <source.numbers> <native.xlsx> <changed.numbers> <changed.xlsx> <decode.json>"
+  ]
+}

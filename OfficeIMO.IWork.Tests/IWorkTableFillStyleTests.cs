@@ -40,6 +40,8 @@ public sealed partial class IWorkBoundaryTests {
             }
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(3, 2, out var value));
             Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
+            Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(2, 2, out _)); // Selected no-fill blank.
+            Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(2, 3, out _)); // Inherited-fill blank.
         } else {
             using var result = source.ToPowerPointPresentationResult(policy);
             Assert.False(result.IsVisualFallback); table = Assert.Single(Assert.Single(result.Projection.Slides).Tables);

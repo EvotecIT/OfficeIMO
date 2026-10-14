@@ -1,0 +1,367 @@
+{
+  "provider": "numbers-parser4.19.0; pinned Apple schemas; Poppler",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "cases": [
+    {
+      "source": "pages-decimal-parentheses-created.pages",
+      "sha256": "4abee640b75f8e9373e22155317d8a66295a291908001eeb862dadd59feb4b8d",
+      "form": "parentheses",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": false,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-parentheses-saved-v15.4.pages",
+      "sha256": "ec15d837258f8f5d30bc278a8bee0e58a700dbb582c8586eb93ae4d0407457b9",
+      "form": "parentheses",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-parentheses-preserved.pages",
+      "sha256": "49aff287cdf8f4b6673554683f767996c85fd8478e07b299521d08ee199e8919",
+      "form": "parentheses",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-parentheses-edited-v15.4.pages",
+      "sha256": "ce4b42947d6e111cc54d55a65fab7b658a96ca32c2d62cfa828731580d0263e4",
+      "form": "parentheses",
+      "numberedItems": 38,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-closing-created.pages",
+      "sha256": "cb714d257a54e934ce49be44dc1533a770afdf334e8aa944635bbffde9b1ec8b",
+      "form": "closing",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": false,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-closing-saved-v15.4.pages",
+      "sha256": "39620f2cb28b0a3c0a9cceaa22605f5f2cd293cd9b1c2d604e010a3ef1cb1b59",
+      "form": "closing",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-closing-preserved.pages",
+      "sha256": "213672cfd210690ea9749c5135a2d64017e2cff901c1e7d6baa689bccefb5f99",
+      "form": "closing",
+      "numberedItems": 37,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    },
+    {
+      "source": "pages-decimal-closing-edited-v15.4.pages",
+      "sha256": "8915d9303b604b196072c0be41dacc840ae363d4cd03fd16faf3f1f7b3da0765",
+      "form": "closing",
+      "numberedItems": 38,
+      "levels": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nativeExportsVerified": true,
+      "savedOfficeimoDocxAndComposedPdfVerified": true
+    }
+  ],
+  "exactTextPatches": [
+    {
+      "source": "pages-decimal-parentheses-saved-v15.4.pages",
+      "output": "pages-decimal-parentheses-preserved.pages",
+      "sourceSha256": "ec15d837258f8f5d30bc278a8bee0e58a700dbb582c8586eb93ae4d0407457b9",
+      "outputSha256": "49aff287cdf8f4b6673554683f767996c85fd8478e07b299521d08ee199e8919",
+      "fileEntries": 13,
+      "recordsIncludingAuxiliary": 121,
+      "bodyRecordId": 3,
+      "paragraphs": [
+        {
+          "paragraph": 2,
+          "payloadByteOffset": 29,
+          "bytes": 10,
+          "before": "Root seven",
+          "after": "ROOT SEVEN",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 3,
+          "payloadByteOffset": 40,
+          "bytes": 9,
+          "before": "Level one",
+          "after": "LEVEL ONE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 4,
+          "payloadByteOffset": 50,
+          "bytes": 9,
+          "before": "Level two",
+          "after": "LEVEL TWO",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 5,
+          "payloadByteOffset": 60,
+          "bytes": 11,
+          "before": "Level three",
+          "after": "LEVEL THREE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 6,
+          "payloadByteOffset": 72,
+          "bytes": 10,
+          "before": "Level four",
+          "after": "LEVEL FOUR",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 7,
+          "payloadByteOffset": 83,
+          "bytes": 10,
+          "before": "Level five",
+          "after": "LEVEL FIVE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 8,
+          "payloadByteOffset": 94,
+          "bytes": 9,
+          "before": "Level six",
+          "after": "LEVEL SIX",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 9,
+          "payloadByteOffset": 104,
+          "bytes": 11,
+          "before": "Level seven",
+          "after": "LEVEL SEVEN",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 10,
+          "payloadByteOffset": 116,
+          "bytes": 11,
+          "before": "Level eight",
+          "after": "LEVEL EIGHT",
+          "storageRecordId": 3
+        }
+      ],
+      "changedEntries": [
+        "Index/Document.iwa"
+      ],
+      "onlyDeclaredUtf8RangesDiffer": true,
+      "rawHeadersSiblingsAndOtherBytesIdentical": true,
+      "nativeStoragePropertiesIdenticalExceptText": true,
+      "numbersParser": "4.19.0",
+      "protobuf": "7.36.2",
+      "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176"
+    },
+    {
+      "source": "pages-decimal-closing-saved-v15.4.pages",
+      "output": "pages-decimal-closing-preserved.pages",
+      "sourceSha256": "39620f2cb28b0a3c0a9cceaa22605f5f2cd293cd9b1c2d604e010a3ef1cb1b59",
+      "outputSha256": "213672cfd210690ea9749c5135a2d64017e2cff901c1e7d6baa689bccefb5f99",
+      "fileEntries": 13,
+      "recordsIncludingAuxiliary": 121,
+      "bodyRecordId": 3,
+      "paragraphs": [
+        {
+          "paragraph": 2,
+          "payloadByteOffset": 29,
+          "bytes": 10,
+          "before": "Root seven",
+          "after": "ROOT SEVEN",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 3,
+          "payloadByteOffset": 40,
+          "bytes": 9,
+          "before": "Level one",
+          "after": "LEVEL ONE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 4,
+          "payloadByteOffset": 50,
+          "bytes": 9,
+          "before": "Level two",
+          "after": "LEVEL TWO",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 5,
+          "payloadByteOffset": 60,
+          "bytes": 11,
+          "before": "Level three",
+          "after": "LEVEL THREE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 6,
+          "payloadByteOffset": 72,
+          "bytes": 10,
+          "before": "Level four",
+          "after": "LEVEL FOUR",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 7,
+          "payloadByteOffset": 83,
+          "bytes": 10,
+          "before": "Level five",
+          "after": "LEVEL FIVE",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 8,
+          "payloadByteOffset": 94,
+          "bytes": 9,
+          "before": "Level six",
+          "after": "LEVEL SIX",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 9,
+          "payloadByteOffset": 104,
+          "bytes": 11,
+          "before": "Level seven",
+          "after": "LEVEL SEVEN",
+          "storageRecordId": 3
+        },
+        {
+          "paragraph": 10,
+          "payloadByteOffset": 116,
+          "bytes": 11,
+          "before": "Level eight",
+          "after": "LEVEL EIGHT",
+          "storageRecordId": 3
+        }
+      ],
+      "changedEntries": [
+        "Index/Document.iwa"
+      ],
+      "onlyDeclaredUtf8RangesDiffer": true,
+      "rawHeadersSiblingsAndOtherBytesIdentical": true,
+      "nativeStoragePropertiesIdenticalExceptText": true,
+      "numbersParser": "4.19.0",
+      "protobuf": "7.36.2",
+      "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176"
+    }
+  ],
+  "receivingApplicationGeometry": [
+    {
+      "form": "parentheses",
+      "wordBounds": 154,
+      "maximumDeltaPoints": 0.0,
+      "nativePdf": "pages-decimal-parentheses-preserved.pdf",
+      "receivingPdf": "pages-decimal-parentheses-officeimo-docx-v15.4.pdf"
+    },
+    {
+      "form": "closing",
+      "wordBounds": 154,
+      "maximumDeltaPoints": 0.0,
+      "nativePdf": "pages-decimal-closing-preserved.pdf",
+      "receivingPdf": "pages-decimal-closing-officeimo-docx-v15.4.pdf"
+    }
+  ],
+  "limits": [
+    "OfficeIMO-authored and Apple-saved sources; no arbitrary independent-producer coverage.",
+    "Pages15.4 Arial12 single-page body profile; wider fonts, containers and pagination remain open.",
+    "Uniform non-tiered decimal marker form per list; tiered and mixed ancestor forms remain partial.",
+    "Portable composed PDFs substitute fonts explicitly; no native typography equivalence claim.",
+    "Exact byte preservation applies before Apple resave, which updates application metadata."
+  ]
+}

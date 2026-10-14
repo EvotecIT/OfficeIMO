@@ -150,31 +150,27 @@ namespace OfficeIMO.Word {
         }
 
         private static WordHeaderFooter? SelectPageHeader(WordSection section, int sectionPageIndex, int pageNumberValue) {
-            if (sectionPageIndex == 0 && section.DifferentFirstPage && section.Header.First != null) {
-                return section.Header.First;
+            if (sectionPageIndex == 0 && section.DifferentFirstPage) {
+                return section.ResolveFirstHeader();
             }
 
-            if (IsEvenPageNumber(pageNumberValue) &&
-                section.DifferentOddAndEvenPages &&
-                section.ResolveEvenHeader() is WordHeader evenHeader) {
-                return evenHeader;
+            if (IsEvenPageNumber(pageNumberValue) && section.DocumentOddEvenSettingEnabled) {
+                return section.ResolveEvenHeader();
             }
 
-            return section.Header.Default;
+            return section.ResolveDefaultHeader();
         }
 
         private static WordHeaderFooter? SelectPageFooter(WordSection section, int sectionPageIndex, int pageNumberValue) {
-            if (sectionPageIndex == 0 && section.DifferentFirstPage && section.Footer.First != null) {
-                return section.Footer.First;
+            if (sectionPageIndex == 0 && section.DifferentFirstPage) {
+                return section.ResolveFirstFooter();
             }
 
-            if (IsEvenPageNumber(pageNumberValue) &&
-                section.DifferentOddAndEvenPages &&
-                section.ResolveEvenFooter() is WordFooter evenFooter) {
-                return evenFooter;
+            if (IsEvenPageNumber(pageNumberValue) && section.DocumentOddEvenSettingEnabled) {
+                return section.ResolveEvenFooter();
             }
 
-            return section.Footer.Default;
+            return section.ResolveDefaultFooter();
         }
 
         private static bool IsEvenPageNumber(int pageNumber) =>

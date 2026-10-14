@@ -39,11 +39,11 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         // Defensive formula cleanup: strip leading '=' if provided, remove illegal control chars
-        public static string SanitizeFormula(string? formula) {
+        public static string SanitizeFormula(string? formula, bool qualifyArrayFunctions = false) {
             if (string.IsNullOrWhiteSpace(formula)) return string.Empty;
             string f = formula!.Trim();
             if (f.StartsWith("=", StringComparison.Ordinal)) f = f.Substring(1);
-            string stored = ExcelFormulaStorage.PrepareForXlsx(SanitizeString(f, maxLength: 8192));
+            string stored = ExcelFormulaStorage.PrepareForXlsx(SanitizeString(f, maxLength: 8192), qualifyArrayFunctions);
             if (stored.Length > 8192)
                 throw new ArgumentException("The formula exceeds the XLSX storage limit after function-prefix expansion.", nameof(formula));
             return stored;

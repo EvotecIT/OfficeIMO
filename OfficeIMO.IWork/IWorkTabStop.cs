@@ -18,6 +18,14 @@ public sealed class IWorkTabStop {
         PositionPoints = positionPoints;
         Alignment = alignment;
     }
+
+    /// <summary>Creates a finite nonnegative native tab stop without a leader, using native float precision.</summary>
+    public static IWorkTabStop Create(float positionPoints, IWorkTabAlignment alignment = IWorkTabAlignment.Left) {
+        IWorkCreationValidation.ValidateFinite(positionPoints, nameof(positionPoints));
+        if (positionPoints < 0) throw new ArgumentOutOfRangeException(nameof(positionPoints));
+        if ((uint)alignment > (uint)IWorkTabAlignment.Decimal) throw new ArgumentOutOfRangeException(nameof(alignment));
+        return new IWorkTabStop(positionPoints == 0 ? 0 : positionPoints, alignment);
+    }
     /// <summary>Gets the source position in points.</summary>
     public double PositionPoints { get; }
     /// <summary>Gets the text alignment.</summary>

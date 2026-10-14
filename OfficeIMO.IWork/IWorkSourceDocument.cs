@@ -18,6 +18,8 @@ public sealed partial class IWorkSourceDocument {
         ContainerKind = package.ContainerKind;
         ContainerLengthBytes = package.ContainerLengthBytes;
         Entries = Array.AsReadOnly(package.Entries.ToArray());
+        ContainerEntries = Array.AsReadOnly(package.ContainerEntries.ToArray());
+        SourceDirectoryPath = package.SourceDirectoryPath;
         Records = Array.AsReadOnly(records.ToArray());
         _options = options;
         _cancellationToken = cancellationToken;
@@ -36,6 +38,8 @@ public sealed partial class IWorkSourceDocument {
         ContainerKind = source.ContainerKind;
         ContainerLengthBytes = source.ContainerLengthBytes;
         Entries = source.Entries;
+        ContainerEntries = source.ContainerEntries;
+        SourceDirectoryPath = source.SourceDirectoryPath;
         Records = source.Records;
         BuildVersions = source.BuildVersions;
         Previews = source.Previews;
@@ -62,6 +66,8 @@ public sealed partial class IWorkSourceDocument {
     public long ContainerLengthBytes { get; }
     /// <summary>Gets preserved package entries, including resources and metadata.</summary>
     public IReadOnlyList<IWorkPackageEntry> Entries { get; }
+    internal IReadOnlyList<IWorkPackageEntry> ContainerEntries { get; }
+    internal string? SourceDirectoryPath { get; }
     /// <summary>Gets every preserved IWA payload record, including auxiliary payloads.</summary>
     public IReadOnlyList<IWorkArchiveRecord> Records { get; }
     /// <summary>Gets build-history strings recorded by the producer.</summary>

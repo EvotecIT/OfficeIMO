@@ -7,6 +7,7 @@ public partial class ExcelSheet {
         if (argumentCount < 1 || argumentCount > 255
             || !TryResolveFormulaArguments(args, out var values)
             || values.Any(value => value.IsUnresolvedFormula)) return false;
+        if (_formulaReferenceError.IsError) { result = _formulaReferenceError; return true; }
         foreach (FormulaArgumentValue value in values) {
             if (value.IsError) { result = value; return true; }
         }

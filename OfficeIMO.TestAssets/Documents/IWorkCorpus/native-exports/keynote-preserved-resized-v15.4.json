@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "profile": "preservation-aware direct Keynote image moves and resizes",
+  "license": "MIT; newly authored OfficeIMO fixtures and derived evidence",
+  "application": {
+    "name": "Keynote",
+    "version": "15.4",
+    "build": "7051.0.79"
+  },
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "candidateBase": "0f52ac791fd31a81d3ee6420ef8491f25e98a637",
+  "artifacts": {
+    "resized": {
+      "path": "keynote-preserved-resized-v15.4.key",
+      "bytes": 99316,
+      "sha256": "49d1293b65a1aa6eab6fd9a15ff0a1d482ef76760344f61a5d48f0d5e1f5a851"
+    },
+    "nativeEdited": {
+      "path": "keynote-preserved-resized-edited-v15.4.key",
+      "bytes": 94530,
+      "sha256": "b079128ad659c0130e28bea97d62824ff504b3a0bc34e77c6b380421210fe099"
+    },
+    "nativePptx": {
+      "path": "keynote-preserved-resized-edited-v15.4.pptx",
+      "bytes": 17523,
+      "sha256": "2f0858e9640e1bbe8ceff8f490c8484ad152e8d7609971b83c82739ff148e0e4"
+    },
+    "nativePdf": {
+      "path": "keynote-preserved-resized-edited-v15.4.pdf",
+      "bytes": 51570,
+      "sha256": "cedc0b4e114b9e477c736b15f1396a024fd4b02e5e6bdb7377c98da744f0a225"
+    },
+    "officeimoPptx": {
+      "path": "keynote-preserved-resized-officeimo-v15.4.pptx",
+      "bytes": 29111,
+      "sha256": "eaad7edd6b41cc861d90cdcbb71397c196fa14429977cf3398eff45b9d6b2125"
+    },
+    "officeimoPdf": {
+      "path": "keynote-preserved-resized-officeimo-v15.4.pdf",
+      "bytes": 4933,
+      "sha256": "922968316724b2954760b3fec1d39ffb08791e88b7985bb6fba8f29dad66e80e"
+    },
+    "officeimoEditedPptx": {
+      "path": "keynote-preserved-resized-edited-officeimo-v15.4.pptx",
+      "bytes": 29122,
+      "sha256": "321af48c4eb5aea8f79f62800933b1917de2e9d0af8c6ceb25a18e3213aecac1"
+    },
+    "officeimoEditedPdf": {
+      "path": "keynote-preserved-resized-edited-officeimo-v15.4.pdf",
+      "bytes": 4932,
+      "sha256": "281840c6b3c873918fc18f02e9f8059acb8462c2570e03cd4baef5e48bd6321f"
+    },
+    "slide1-open": {
+      "path": "keynote-preserved-resized-v15.4-slide1-open.png",
+      "bytes": 66648,
+      "sha256": "451428547db80f027e3b77378637514027266a2ba1ffeed5d434374301a6c9b4"
+    },
+    "slide2-open": {
+      "path": "keynote-preserved-resized-v15.4-slide2-open.png",
+      "bytes": 63580,
+      "sha256": "9aae08a4bdb623b1c2a72f9e19985436301bd0c3f1924e340597cef36cc00fc8"
+    },
+    "slide3-open": {
+      "path": "keynote-preserved-resized-v15.4-slide3-open.png",
+      "bytes": 62259,
+      "sha256": "16b77a766375bf607f2274e1864774955bc6cc087fd6315a8185004a78d72436"
+    },
+    "native-edit": {
+      "path": "keynote-preserved-resized-v15.4-native-edit.png",
+      "bytes": 70521,
+      "sha256": "daf8158d24cb95a96b4eeba07b871af58c142a01f97d49e997f53f431aee42cb"
+    },
+    "native-reopen": {
+      "path": "keynote-preserved-resized-v15.4-native-reopen.png",
+      "bytes": 54467,
+      "sha256": "ef593c0a186ec450c6e63160f97f0ef350503e5d92615567f13933c1e903a8a0"
+    },
+    "nativeRender1": {
+      "path": "keynote-preserved-resized-v15.4-native-page-1.png",
+      "bytes": 17675,
+      "sha256": "919aeac07fc6497d927efeed8f48335422f34b7aa1947da12d797204acd944f4"
+    },
+    "nativeRender2": {
+      "path": "keynote-preserved-resized-v15.4-native-page-2.png",
+      "bytes": 17261,
+      "sha256": "2f4772b74fa00a9023fa42333a825b3a60c479d02787c86e81dbb395f9ff169c"
+    },
+    "nativeRender3": {
+      "path": "keynote-preserved-resized-v15.4-native-page-3.png",
+      "bytes": 15575,
+      "sha256": "43d09a0c4fdecde78a64bdfc71597b91edb53d0440c80838ee4b12dbdcf3b653"
+    },
+    "officeimoRender1": {
+      "path": "keynote-preserved-resized-v15.4-officeimo-page-1.png",
+      "bytes": 17670,
+      "sha256": "77f3087564d29df61526e906c69ac15370ffdeb6610e78f68f951e5be428830c"
+    },
+    "officeimoRender2": {
+      "path": "keynote-preserved-resized-v15.4-officeimo-page-2.png",
+      "bytes": 17457,
+      "sha256": "5b934e831566f0b083dd9b103ebb9e186fd79cdb6722602dcaba29e1fe51b064"
+    },
+    "officeimoRender3": {
+      "path": "keynote-preserved-resized-v15.4-officeimo-page-3.png",
+      "bytes": 15476,
+      "sha256": "052256d253260c6e36204592c5076ad154b296a733029db4ead466ba5f7f820c"
+    },
+    "officeimo-editedRender1": {
+      "path": "keynote-preserved-resized-v15.4-officeimo-edited-page-1.png",
+      "bytes": 17670,
+      "sha256": "77f3087564d29df61526e906c69ac15370ffdeb6610e78f68f951e5be428830c"
+    },
+    "officeimo-editedRender2": {
+      "path": "keynote-preserved-resized-v15.4-officeimo-edited-page-2.png",
+      "bytes": 17457,
+      "sha256": "5b934e831566f0b083dd9b103ebb9e186fd79cdb6722602dcaba29e1fe51b064"
+    },
+    "officeimo-editedRender3": {
+      "path": "keynote-preserved-resized-v15.4-officeimo-edited-page-3.png",
+      "bytes": 15476,
+      "sha256": "e3575d4529cd66df3b8e23dd8cb8827ff626e23eee87944689d9dd20523601af"
+    },
+    "rawPreservation": {
+      "path": "keynote-preserved-resized-v15.4-rawPreservation.json",
+      "bytes": 1257,
+      "sha256": "5628e012fd685fcba4cda2e6381bfd1b9b9e3306b073c2785703f4c5fed336e0"
+    },
+    "nativeGraph": {
+      "path": "keynote-preserved-resized-v15.4-nativeGraph.json",
+      "bytes": 3203,
+      "sha256": "85a82b963bd40021c2fcd8128ad2d827f82e78c05fbcce58aa8a29987298b044"
+    },
+    "pptxDecode": {
+      "path": "keynote-preserved-resized-v15.4-pptxDecode.json",
+      "bytes": 5834,
+      "sha256": "3ef3f2336d037820c6cc7253a23be166881992ce4b2c8b3dd65702ffa752bd9c"
+    },
+    "pdfDecode": {
+      "path": "keynote-preserved-resized-v15.4-pdfDecode.json",
+      "bytes": 4205,
+      "sha256": "ee6b5cf9bdaf9df2bf710fbba223462b571d30406ee9f24c6d7f18b98c3d8768"
+    },
+    "source": {
+      "path": "keynote-created-images-edited-v15.4.key",
+      "bytes": 95250,
+      "sha256": "c0bc70026c2c977fde0879f37849c14cd819dc055a3cd7f95e97cac789828a17"
+    }
+  },
+  "geometryPoints": {
+    "canvas": [
+      960,
+      540
+    ],
+    "resized": [
+      [
+        80,
+        125,
+        420,
+        168
+      ],
+      [
+        80,
+        135,
+        360,
+        180
+      ],
+      [
+        100,
+        135,
+        420,
+        168
+      ]
+    ],
+    "nativeEdited": [
+      [
+        80,
+        125,
+        420,
+        168
+      ],
+      [
+        80,
+        135,
+        360,
+        180
+      ],
+      [
+        100,
+        135,
+        421,
+        168
+      ]
+    ]
+  },
+  "sourceImageRecordIds": [
+    125,
+    139,
+    154
+  ],
+  "sourceUnits": 14,
+  "nativeAcceptance": {
+    "openedWithoutRepair": true,
+    "allThreeSlidesInspected": true,
+    "edit": "Change JPEG width from 420 to 421 points; save, close and reopen.",
+    "reopenedGeometryConfirmed": true,
+    "exports": [
+      "PowerPoint",
+      "PDF best image quality, all slides"
+    ],
+    "applicationClosedAfterValidation": true
+  },
+  "independentDecoding": {
+    "numbersParser": "4.19.0",
+    "protobuf": "7.36.2",
+    "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917",
+    "rawIwa": "Only requested fixed32 position/size spans differ; all file-entry payloads, raw headers and sibling records compare.",
+    "nativeGraph": "Pinned TSD.ImageArchive and TSP.PackageMetadata decode frames, descriptions, natural size and image resource hashes.",
+    "pptx": "Independent ZIP/XML decoding checks slide canvas, shape order, all picture transforms, descriptions and resource hashes.",
+    "pdf": "pypdf and pdfplumber check three pages, expected text, image dimensions and painted bounds."
+  },
+  "renderInspection": {
+    "rasterizer": "Poppler pdftoppm, 96 dpi",
+    "pagesInspected": 9,
+    "alphaStripeSamplesRgb": {
+      "native": [
+        [
+          0,
+          51,
+          102
+        ],
+        [
+          80,
+          40,
+          156
+        ],
+        [
+          160,
+          30,
+          210
+        ]
+      ],
+      "officeimo": [
+        [
+          0,
+          51,
+          102
+        ],
+        [
+          80,
+          40,
+          156
+        ],
+        [
+          160,
+          30,
+          210
+        ]
+      ],
+      "officeimo-edited": [
+        [
+          0,
+          51,
+          102
+        ],
+        [
+          80,
+          40,
+          156
+        ],
+        [
+          160,
+          30,
+          210
+        ]
+      ]
+    },
+    "samplePoints": [
+      [
+        140,
+        200
+      ],
+      [
+        260,
+        200
+      ],
+      [
+        380,
+        200
+      ]
+    ],
+    "observations": [
+      "Opaque PNG and JPEG frames agree with requested bounds.",
+      "Transparent, half-alpha and opaque PNG bands match native samples.",
+      "The opaque image covers the source label and remains behind foreground text.",
+      "Native and composed text retain content and order; font metrics differ."
+    ]
+  },
+  "limits": [
+    "Only direct unlocked unrotated unmasked images with complete positive finite geometry and a known canvas.",
+    "Move and resize use absolute frames and compose; image pixels and natural size are unchanged.",
+    "Native previews and visual caches are retained without regeneration and require explicit acceptance.",
+    "Native opening can update Apple view state; byte preservation applies to OfficeIMO output before opening.",
+    "Other producer versions, crops, masks, rotations, nested-index edits and semantic or structural editing remain unqualified.",
+    "Composed PDF uses the caller font profile and existing substitutions; pixel-identical typography is not claimed."
+  ]
+}

@@ -1,0 +1,481 @@
+{
+  "source": "/Volumes/Samsung/Development/Scratch/officeimo-iwork-implementation/native-pages-tables/evidence/table-only-final/pages-created-table-only.pages",
+  "sha256": "ef6dcbfa2ae664060670b779cb2b34e7a580b0d1197ad70685d0d9fd8f98d7fe",
+  "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+  "recordCount": 48,
+  "page": {
+    "width": 612.0,
+    "height": 792.0,
+    "margins": [
+      72.0,
+      72.0,
+      72.0,
+      72.0
+    ]
+  },
+  "paragraphCount": 1,
+  "text": "\ufffc\n",
+  "runs": [
+    {
+      "start": 0,
+      "end": 2,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    }
+  ],
+  "paragraphLayouts": [
+    {
+      "start": 0,
+      "styleId": 57,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": "",
+      "tabStops": []
+    }
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "type": 10000,
+      "references": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "type": 2001,
+      "references": [
+        5,
+        7,
+        9,
+        10,
+        56,
+        57,
+        58
+      ]
+    },
+    {
+      "id": 4,
+      "type": 10001,
+      "references": [
+        5,
+        10,
+        11,
+        12,
+        13,
+        44,
+        57,
+        58
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "references": [
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        34,
+        35,
+        36,
+        37,
+        38,
+        57,
+        58
+      ]
+    },
+    {
+      "id": 6,
+      "type": 10012,
+      "references": []
+    },
+    {
+      "id": 7,
+      "type": 10011,
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 10143,
+      "references": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "id": 9,
+      "type": 2024,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 10,
+      "type": 2023,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 11,
+      "type": 2050,
+      "references": [
+        10,
+        57
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2025,
+      "references": [
+        5,
+        57
+      ]
+    },
+    {
+      "id": 13,
+      "type": 3016,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 14,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 16,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 17,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 18,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 19,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 20,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 21,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 32,
+      "type": 6000,
+      "references": [
+        3,
+        33
+      ]
+    },
+    {
+      "id": 33,
+      "type": 6001,
+      "references": [
+        34,
+        35,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55
+      ]
+    },
+    {
+      "id": 34,
+      "type": 6003,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 35,
+      "type": 6004,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 36,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 37,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 38,
+      "type": 2025,
+      "references": [
+        5,
+        37
+      ]
+    },
+    {
+      "id": 39,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 40,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 41,
+      "type": 6002,
+      "references": []
+    },
+    {
+      "id": 42,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 43,
+      "type": 6247,
+      "references": [
+        34,
+        35,
+        37,
+        38
+      ]
+    },
+    {
+      "id": 44,
+      "type": 6008,
+      "references": [
+        43
+      ]
+    },
+    {
+      "id": 45,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 46,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 47,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 48,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 49,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 50,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 51,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 52,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 53,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 54,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 55,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 56,
+      "type": 2003,
+      "references": [
+        32
+      ]
+    },
+    {
+      "id": 57,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 58,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "references": []
+    }
+  ],
+  "nativeTables": [
+    {
+      "id": 33,
+      "name": "Table 1",
+      "rows": 2,
+      "columns": 2,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "kind": "Text",
+          "value": "Table only"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "kind": "Empty",
+          "value": null
+        }
+      ],
+      "row_offsets_and_counts_complete": true,
+      "style_preset_network_complete": true,
+      "bodyCellPaddingPoints": 4,
+      "bodyCellVerticalAlignment": "Top"
+    }
+  ],
+  "inlineTables": [
+    {
+      "start": 0,
+      "attachmentId": 56,
+      "drawableId": 32,
+      "tableId": 33,
+      "widthPoints": 200.0,
+      "heightPoints": 48.0
+    }
+  ],
+  "scope": "Owned body paragraphs, scalar inline tables and graph declarations; native application acceptance is separate."
+}

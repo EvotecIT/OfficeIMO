@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "profile": "native Pages inline PNG/JPEG body creation",
+  "application": {
+    "name": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79"
+  },
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "candidateBase": "d426b35814f19712987bda621337ee1ed721f2ad",
+  "artifacts": {
+    "created": {
+      "path": "pages-created-images-v15.4.pages",
+      "bytes": 15102,
+      "sha256": "aa0a26debf56c6cdbaabdd9c36a97a3d32331abeb058bac0e76d37e43d9e019c"
+    },
+    "imageOnly": {
+      "path": "pages-created-image-only-v15.4.pages",
+      "bytes": 5835,
+      "sha256": "95671db9bf34a93b716ac58fe0f94e7ec9adf03996e35c422b1f3a38413f4cba"
+    },
+    "nativeEdited": {
+      "path": "pages-created-images-edited-v15.4.pages",
+      "bytes": 56971,
+      "sha256": "bbeb2b19594862c41cbf4d81b5933f8aef59fd159d52a52434140cab88886793"
+    },
+    "nativeDocx": {
+      "path": "pages-created-images-v15.4.docx",
+      "bytes": 9908,
+      "sha256": "914e18dfb16b8eec6bebcb8c520dc7be24fad810e4b92ff8d2eefab1e1756d0a"
+    },
+    "nativeEditedDocx": {
+      "path": "pages-created-images-edited-v15.4.docx",
+      "bytes": 9909,
+      "sha256": "1d166fc20140ce02f774496629cdd198ad3418d14ed67429a69b0205cce28753"
+    },
+    "nativePdf": {
+      "path": "pages-created-images-v15.4.pdf",
+      "bytes": 57164,
+      "sha256": "3ccbd29b0a36ef9108a47b59174ac5a311042cee12514f88b000b267ffbb8146"
+    },
+    "nativeOpen": {
+      "path": "pages-created-images-v15.4-open.png",
+      "bytes": 58849,
+      "sha256": "35e17e517bb0be5638d859a23c04c48a9359f0756c7ecfc8f2282a2c1ef8ba2d"
+    },
+    "nativeReopened": {
+      "path": "pages-created-images-v15.4-reopened.png",
+      "bytes": 70995,
+      "sha256": "472a1d5ceb25bde767498c26c3eb12b285e9fbbe1082290a92ad6f0c42e42f0b"
+    },
+    "nativeImageOnlyOpen": {
+      "path": "pages-created-image-only-v15.4-open.png",
+      "bytes": 47116,
+      "sha256": "0d45a1ced0ce884dadcd840b396dd168ad9a53665379ff0b85b06e9910e1d242"
+    },
+    "nativeRaster": {
+      "path": "pages-created-images-v15.4-native.png",
+      "bytes": 8337,
+      "sha256": "a4f70adac2c178e50bcdbf4743c270f64002e44d5419523ad89523c80a1a296a"
+    },
+    "officeimoPdf": {
+      "path": "pages-created-images-officeimo-v15.4.pdf",
+      "bytes": 11306,
+      "sha256": "1ee32d127c1ec7d71507f00cfe9c5866d2ef0f2008ea404582bb1446d340a320"
+    },
+    "officeimoRaster": {
+      "path": "pages-created-images-officeimo-v15.4.png",
+      "bytes": 8012,
+      "sha256": "924ecd8327d3f5e21184800b1f461ce8ddc400412d1de9e054a86a149fca542d"
+    },
+    "officeimoEditedPdf": {
+      "path": "pages-created-images-edited-officeimo-v15.4.pdf",
+      "bytes": 11307,
+      "sha256": "8106b917fcf5b501d0f8c06e05cebafc9d35d349c2abb7031bd2cd8ff0d86be2"
+    },
+    "officeimoEditedRaster": {
+      "path": "pages-created-images-edited-officeimo-v15.4.png",
+      "bytes": 8007,
+      "sha256": "862b2da351fe9bb4ce6924a8901b7d1ceba12b995e013186be2537221dc8f1cf"
+    },
+    "independentCreated": {
+      "path": "pages-created-images-v15.4-decode.json",
+      "bytes": 13460,
+      "sha256": "367c7a52a1b6a65f4f1614cd68afc904f246451017ff86f863caf3cfdfd3776f"
+    },
+    "independentImageOnly": {
+      "path": "pages-created-image-only-v15.4-decode.json",
+      "bytes": 4643,
+      "sha256": "e5e18b89b6e1943018248791c8087be2ef50c55166e3c9bec6d1c0bdd209b963"
+    },
+    "independentNativeEdited": {
+      "path": "pages-created-images-edited-v15.4-decode.json",
+      "bytes": 2160,
+      "sha256": "377201627d538ee83e5e5772ad1f46e34bdade1ce580faf36c81bbe19717ef5f"
+    },
+    "independentPdf": {
+      "path": "pages-created-images-v15.4-pdf-decode.json",
+      "bytes": 4997,
+      "sha256": "4c53e8aa816da82ffded9375e3336a7cc089bb4c73c41de2f5a699ef44e6c963"
+    },
+    "independentPixels": {
+      "path": "pages-created-images-v15.4-pixels.json",
+      "bytes": 1132,
+      "sha256": "1c5bbf8c7e7ccc4389bc43e16b3bd0966d1732b5dbed707cd52da18985406432"
+    },
+    "opaquePayload": {
+      "path": "keynote-created-images-opaque.png",
+      "bytes": 225,
+      "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05"
+    },
+    "alphaPayload": {
+      "path": "keynote-created-images-alpha.png",
+      "bytes": 220,
+      "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5"
+    },
+    "jpegPayload": {
+      "path": "keynote-created-images-jpeg.jpg",
+      "bytes": 862,
+      "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c"
+    }
+  },
+  "acceptance": {
+    "createdBytes": 15102,
+    "createdRecords": 66,
+    "bodyParagraphs": 7,
+    "images": 3,
+    "imageOnlyRecords": 25,
+    "nativeOpensWithoutRepair": true,
+    "nativeDescriptionsRetained": true,
+    "nativeImageFramesPoints": [
+      [
+        180,
+        120
+      ],
+      [
+        120,
+        80
+      ],
+      [
+        160,
+        80
+      ]
+    ],
+    "nativeEdit": "Opaque PNG resized from 180 to 144 points, keeping height 120; save, close and reopen",
+    "nativeEditedFramesPoints": [
+      [
+        144,
+        120
+      ],
+      [
+        120,
+        80
+      ],
+      [
+        160,
+        80
+      ]
+    ],
+    "nativeEditedCachedTopPoints": 20.392578125,
+    "nativeEditedBodyAttachmentOffsets": [
+      0,
+      0
+    ],
+    "nativeDocxFramesAndDescriptionsAgree": true,
+    "nativeEditedDocxFramesAndDescriptionsAgree": true,
+    "originalPayloadDigestsRetainedAfterNativeSave": true,
+    "strictSavedOfficeimoDocx": true,
+    "bodyImageTableOrderRetained": true,
+    "imageOnlyOpensNatively": true,
+    "allNativeAndComposedPagesInspected": true
+  },
+  "independentDecoder": {
+    "provider": "numbers-parser",
+    "providerVersion": "4.19.0",
+    "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+    "createdCommand": "python Build/IWork/verify-pages-creation.py <created.pages> --descriptor <descriptor.pb> --out <graph.json>",
+    "nativeEditedCommand": "python Build/IWork/extract-pages-created-images.py <edited.pages> <descriptor.pb> <graph.json>",
+    "imageDecoder": "Pillow 12.3.0",
+    "decodedPixelSize": [
+      96,
+      64
+    ],
+    "decodedRgbaPayloadsAndPdfImagesMatch": true
+  },
+  "composedPdf": {
+    "created": {
+      "pages": 1,
+      "sourceUnits": 12,
+      "reconstructedSourceUnits": 12,
+      "omittedSourceUnits": 0,
+      "unassessedSourceUnits": 0
+    },
+    "nativeEdited": {
+      "pages": 1,
+      "sourceUnits": 12,
+      "reconstructedSourceUnits": 12,
+      "omittedSourceUnits": 0,
+      "unassessedSourceUnits": 0
+    },
+    "imageFramesPointsRetained": true,
+    "decodedColorsAndAlphaMatchSource": true,
+    "resourcePolicy": "PortableDeterministic",
+    "fontInputs": [
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf",
+        "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-BoldItalic.ttf",
+        "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Italic.ttf",
+        "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+        "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/TestAssets/NotoEmoji-VariableFont_wght.ttf",
+        "sha256": "dbd8394b0ee513b356b5a101fb0f64628ce9508294523e051a0efb1679bb34e3"
+      }
+    ],
+    "fontDiagnostic": "NativeFontFamilySubstituted: Arial to Helvetica; caller Carlito and Noto Emoji fallbacks",
+    "recordFidelity": "Native records remain captured but unassessed; this is distinct from zero omitted or unassessed selected content units."
+  },
+  "limits": [
+    "Inline PNG/JPEG body blocks only; no crop, mask, rotation, floating placement, image links or effects.",
+    "Native PDF and edited DOCX plus OfficeIMO PDFs are recorded. An edited native PDF and receiving-application OfficeIMO DOCX appearance are not qualified.",
+    "Image frames and decoded source colors/alpha agree; native fonts, emoji appearance, vertical gaps and pagination equivalence remain unqualified.",
+    "Apple PDF emits table text after body text in pypdf extraction and has repaired zero-offset xref entries for objects 8, 21 and 22; visual body order is separately inspected.",
+    "NativeAOT executions are recorded separately; additional Apple versions, architectures, sandbox and device acceptance remain separate gates."
+  ]
+}

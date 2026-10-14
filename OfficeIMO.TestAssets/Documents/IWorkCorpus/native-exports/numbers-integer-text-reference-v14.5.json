@@ -1,0 +1,120 @@
+{
+  "title": "Controlled native Numbers integer-text single-cell references",
+  "recordedUtc": "2026-10-11T03:07:08.439079+00:00",
+  "license": "Newly authored OfficeIMO fixtures and evidence use the repository MIT license. No seed document or standalone font files are distributed.",
+  "producer": {
+    "application": "Numbers",
+    "version": "14.5",
+    "build": "7045.0.17",
+    "platform": "macOS 27.0.1 (26A434), Apple M4 arm64",
+    "locale": "Polish UI; English function names and semicolon argument separators; exports use invariant Excel syntax"
+  },
+  "creation": {
+    "owner": "OfficeIMO.IWork IWorkNumbersDocument and IWorkTableData at f30f565a43587fe97c9f81898afbf193d21f0a88",
+    "initialPackageBytes": 28168,
+    "tables": [
+      {
+        "sheet": "Inputs",
+        "table": "Operands",
+        "rows": 7,
+        "columns": 3,
+        "frame": [
+          30,
+          40,
+          420,
+          210
+        ]
+      },
+      {
+        "sheet": "Checks",
+        "table": "Results",
+        "rows": 8,
+        "columns": 3,
+        "frame": [
+          30,
+          40,
+          540,
+          240
+        ]
+      }
+    ],
+    "operands": [
+      "Number 30",
+      "Empty",
+      "Text 12",
+      "Text note",
+      "Boolean true",
+      "Number zero"
+    ],
+    "font": "Arial 12-point declarations; installed native fonts supply screenshots. No typography equivalence or font-file redistribution."
+  },
+  "nativeAcceptance": {
+    "actions": [
+      "Open template-free generated input without repair",
+      "Enter fourteen controlled GCD/LCM formulas through native formula editors",
+      "Enter a one-cell range and observe normalization to native single-cell AST nodes",
+      "Save, close and reopen native reference",
+      "Preserve the text operand type while changing text 12 to text 18",
+      "Inspect recalculated results, save, close and reopen changed native source",
+      "Export baseline and changed XLSX with one worksheet per table and no overview worksheet"
+    ],
+    "qualifiedCalls": 4,
+    "nativeFormulaCells": 14,
+    "controls": [
+      "LCM(blank-cell,6) caches 6; LCM(numeric-and-blank-range) caches 0",
+      "Boolean references cache 1 for GCD and 6 for LCM; they remain partial",
+      "Arbitrary text produces native error cells; it remains partial"
+    ],
+    "selectedBefore": [
+      6,
+      12,
+      12,
+      12
+    ],
+    "selectedAfter": [
+      6,
+      18,
+      18,
+      18
+    ],
+    "sourceOperandType": "TextCell independently confirmed before and after native edits",
+    "nativeXlsxPlacement": "Both tables offset one row and column; native source B4 maps to Excel C5. OfficeIMO uses table-relative grids.",
+    "independentDecoder": "numbers-parser 4.19.0; verify-numbers-integer-text.py uses no OfficeIMO assembly"
+  },
+  "limits": [
+    "Canonical ASCII nonnegative integer text in direct scalar cell references, within 999999999999999 and the existing conservative LCM product bound.",
+    "Wider text ranges, blank references, Booleans, noncanonical/localized text, formula dependencies, merges and larger integer domains remain partial.",
+    "The native source includes padding and unsupported formula controls; no complete reconstruction or composed-PDF claim.",
+    "No Apple/destination typography, layout equivalence, additional application-version, architecture or physical-device qualification."
+  ],
+  "files": {
+    "numbers-integer-text-reference-v14.5.numbers": {
+      "bytes": 81403,
+      "sha256": "c7af6b7727f6dae5d4de8048f3ecfd71bab549bcec773459fcdd2dd23d868347"
+    },
+    "numbers-integer-text-reference-v14.5.xlsx": {
+      "bytes": 7317,
+      "sha256": "f68a2e4ef66baf008861da2581b29bdcaccc1654707ef5aabf5f93e0e1ab6947"
+    },
+    "numbers-integer-text-reference-changed-v14.5.numbers": {
+      "bytes": 81355,
+      "sha256": "5f335e1dfea1dd1fdba85bf8984f8a1526c71f64d0293da62764a68834f3e6ee"
+    },
+    "numbers-integer-text-reference-changed-v14.5.xlsx": {
+      "bytes": 7315,
+      "sha256": "0a608b9d34e302f6f922759526033992d3d9538b0bcb77ee90d522708b63b9c4"
+    },
+    "numbers-integer-text-reference-v14.5-decode.json": {
+      "bytes": 4042,
+      "sha256": "5bc6000ce27c7b7ce2a933823acec2904f497423186641c869458e86f0d2e6ad"
+    },
+    "numbers-integer-text-reference-v14.5.png": {
+      "bytes": 134565,
+      "sha256": "81f063ac8b81623a6c25791d302d77940611027832d626a05a22b5223038625b"
+    },
+    "numbers-integer-text-reference-changed-v14.5.png": {
+      "bytes": 87083,
+      "sha256": "274e256563c01a893b7899570a53b28ee661d1be08d36d46090c0dd068af58ff"
+    }
+  }
+}

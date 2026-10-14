@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint {
             textBody.RemoveAllChildren<A.Paragraph>();
             IReadOnlyList<PowerPointParagraph> paragraphs = AppendMarkdown(
                 markdown, templateParagraph);
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart ?? _slidePart,
                 discardedSoundIds);
             return paragraphs;
         }

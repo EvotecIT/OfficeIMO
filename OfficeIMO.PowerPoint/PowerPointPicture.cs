@@ -39,16 +39,8 @@ namespace OfficeIMO.PowerPoint {
         public string? MimeType => ContentType;
 
         internal Uri? ClickHyperlink {
-            get {
-                string? relId = Picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Id;
-                if (string.IsNullOrWhiteSpace(relId)) {
-                    return null;
-                }
-
-                HyperlinkRelationship? rel = _ownerPart.HyperlinkRelationships
-                    .FirstOrDefault(r => string.Equals(r.Id, relId, StringComparison.Ordinal));
-                return rel?.Uri;
-            }
+            get => PowerPointHyperlinkResolver.Resolve(_ownerPart, _slidePart ?? OwnerSlide?.SlidePart,
+                Picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.GetFirstChild<A.HyperlinkOnClick>());
         }
 
         private ImagePart? GetImagePart() {

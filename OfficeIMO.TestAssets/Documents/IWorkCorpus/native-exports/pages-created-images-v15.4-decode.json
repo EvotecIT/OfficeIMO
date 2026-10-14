@@ -1,0 +1,851 @@
+{
+  "source": "/Volumes/Samsung/Development/Scratch/officeimo-iwork-implementation/native-pages-images/evidence/created-first/pages-created-images.pages",
+  "sha256": "aa0a26debf56c6cdbaabdd9c36a97a3d32331abeb058bac0e76d37e43d9e019c",
+  "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+  "recordCount": 66,
+  "page": {
+    "width": 612.0,
+    "height": 792.0,
+    "margins": [
+      72.0,
+      72.0,
+      72.0,
+      72.0
+    ]
+  },
+  "paragraphCount": 7,
+  "text": "Before \ud83d\ude00\n\ufffc\nBetween\n\ufffc\n\ufffc\n\ufffc\nAfter\n",
+  "runs": [
+    {
+      "start": 0,
+      "end": 10,
+      "text": "Before \ud83d\ude00\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 10,
+      "end": 12,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 12,
+      "end": 20,
+      "text": "Between\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 20,
+      "end": 22,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 22,
+      "end": 24,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 24,
+      "end": 26,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 26,
+      "end": 32,
+      "text": "After\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    }
+  ],
+  "paragraphLayouts": [
+    {
+      "start": 0,
+      "styleId": 32,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": "",
+      "tabStops": []
+    },
+    {
+      "start": 10,
+      "styleId": 37,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": "",
+      "tabStops": []
+    },
+    {
+      "start": 12,
+      "styleId": 39,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": "",
+      "tabStops": []
+    },
+    {
+      "start": 20,
+      "styleId": 44,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": "",
+      "tabStops": []
+    },
+    {
+      "start": 22,
+      "styleId": 73,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": "",
+      "tabStops": []
+    },
+    {
+      "start": 24,
+      "styleId": 78,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": "",
+      "tabStops": []
+    },
+    {
+      "start": 26,
+      "styleId": 80,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": "",
+      "tabStops": []
+    }
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "type": 10000,
+      "references": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "type": 2001,
+      "references": [
+        5,
+        7,
+        9,
+        10,
+        32,
+        33,
+        36,
+        37,
+        38,
+        39,
+        40,
+        43,
+        44,
+        45,
+        70,
+        73,
+        74,
+        77,
+        78,
+        79,
+        80,
+        81
+      ]
+    },
+    {
+      "id": 4,
+      "type": 10001,
+      "references": [
+        5,
+        10,
+        11,
+        12,
+        13,
+        32,
+        33,
+        58
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "references": [
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        32,
+        33,
+        37,
+        38,
+        39,
+        40,
+        44,
+        45,
+        48,
+        49,
+        50,
+        51,
+        52,
+        73,
+        74,
+        78,
+        79,
+        80,
+        81
+      ]
+    },
+    {
+      "id": 6,
+      "type": 10012,
+      "references": []
+    },
+    {
+      "id": 7,
+      "type": 10011,
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 10143,
+      "references": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "id": 9,
+      "type": 2024,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 10,
+      "type": 2023,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 11,
+      "type": 2050,
+      "references": [
+        10,
+        32
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2025,
+      "references": [
+        5,
+        32
+      ]
+    },
+    {
+      "id": 13,
+      "type": 3016,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 14,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 16,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 17,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 18,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 19,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 20,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 21,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 32,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 33,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 35,
+      "type": 3005,
+      "references": [
+        3,
+        13
+      ]
+    },
+    {
+      "id": 36,
+      "type": 2003,
+      "references": [
+        35
+      ]
+    },
+    {
+      "id": 37,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 38,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 39,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 40,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 42,
+      "type": 3005,
+      "references": [
+        3,
+        13
+      ]
+    },
+    {
+      "id": 43,
+      "type": 2003,
+      "references": [
+        42
+      ]
+    },
+    {
+      "id": 44,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 45,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 46,
+      "type": 6000,
+      "references": [
+        3,
+        47
+      ]
+    },
+    {
+      "id": 47,
+      "type": 6001,
+      "references": [
+        48,
+        49,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69
+      ]
+    },
+    {
+      "id": 48,
+      "type": 6003,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 49,
+      "type": 6004,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 50,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 51,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 52,
+      "type": 2025,
+      "references": [
+        5,
+        51
+      ]
+    },
+    {
+      "id": 53,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 54,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 55,
+      "type": 6002,
+      "references": []
+    },
+    {
+      "id": 56,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 57,
+      "type": 6247,
+      "references": [
+        48,
+        49,
+        51,
+        52
+      ]
+    },
+    {
+      "id": 58,
+      "type": 6008,
+      "references": [
+        57
+      ]
+    },
+    {
+      "id": 59,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 60,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 61,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 62,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 63,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 64,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 65,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 66,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 67,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 68,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 69,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 70,
+      "type": 2003,
+      "references": [
+        46
+      ]
+    },
+    {
+      "id": 73,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 74,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 76,
+      "type": 3005,
+      "references": [
+        3,
+        13
+      ]
+    },
+    {
+      "id": 77,
+      "type": 2003,
+      "references": [
+        76
+      ]
+    },
+    {
+      "id": 78,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 79,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 80,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 81,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "references": []
+    }
+  ],
+  "nativeTables": [
+    {
+      "id": 47,
+      "name": "Values",
+      "rows": 2,
+      "columns": 2,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "kind": "Text",
+          "value": "Grid"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "kind": "Number",
+          "value": 42.0
+        }
+      ],
+      "row_offsets_and_counts_complete": true,
+      "style_preset_network_complete": true,
+      "bodyCellPaddingPoints": 4,
+      "bodyCellVerticalAlignment": "Top"
+    }
+  ],
+  "inlineTables": [
+    {
+      "start": 22,
+      "attachmentId": 70,
+      "drawableId": 46,
+      "widthPoints": 200.0,
+      "heightPoints": 56.0,
+      "tableId": 47
+    }
+  ],
+  "imageResources": [
+    {
+      "id": 35,
+      "data_id": 34,
+      "path": "Data/image-34.png",
+      "bytes": 225,
+      "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+      "position": [
+        0.0,
+        0.0
+      ],
+      "frame": [
+        180.0,
+        120.0
+      ],
+      "pixel_size": [
+        96.0,
+        64.0
+      ],
+      "image_attributes_extension": 100,
+      "description": "Opaque four-color PNG \ud83d\ude00"
+    },
+    {
+      "id": 42,
+      "data_id": 41,
+      "path": "Data/image-41.png",
+      "bytes": 220,
+      "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+      "position": [
+        0.0,
+        0.0
+      ],
+      "frame": [
+        120.0,
+        80.0
+      ],
+      "pixel_size": [
+        96.0,
+        64.0
+      ],
+      "image_attributes_extension": 100,
+      "description": "Transparent, half-alpha, opaque purple"
+    },
+    {
+      "id": 76,
+      "data_id": 75,
+      "path": "Data/image-75.jpeg",
+      "bytes": 862,
+      "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+      "position": [
+        0.0,
+        0.0
+      ],
+      "frame": [
+        160.0,
+        80.0
+      ],
+      "pixel_size": [
+        96.0,
+        64.0
+      ],
+      "image_attributes_extension": 100,
+      "description": "Four-color JPEG, stretched frame"
+    }
+  ],
+  "inlineImages": [
+    {
+      "start": 10,
+      "attachmentId": 36,
+      "drawableId": 35,
+      "widthPoints": 180.0,
+      "heightPoints": 120.0
+    },
+    {
+      "start": 20,
+      "attachmentId": 43,
+      "drawableId": 42,
+      "widthPoints": 120.0,
+      "heightPoints": 80.0
+    },
+    {
+      "start": 24,
+      "attachmentId": 77,
+      "drawableId": 76,
+      "widthPoints": 160.0,
+      "heightPoints": 80.0
+    }
+  ],
+  "scope": "Owned body paragraphs, inline PNG/JPEG images, scalar tables and graph declarations; native application acceptance is separate."
+}

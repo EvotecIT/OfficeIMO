@@ -83,6 +83,31 @@ public sealed class IWorkKeynoteWritingTests {
     }
 
     [Fact]
+    public void Larger_native_graphs_preserve_content_without_using_Apple_metadata_identities() {
+        var document = IWorkKeynoteDocument.Create();
+        var slide = document.AddSlide();
+        for (int index = 0; index < 10; index++)
+            slide.AddText("BOX " + index, 0, index * 40, 600, 40);
+        byte[] package = document.SaveBytes();
+        IWorkSourceDocument source = IWorkSourceDocument.Open(new MemoryStream(package));
+        var identifiers = source.Records.Select(record => record.Identifier).ToHashSet();
+        Assert.DoesNotContain(71UL, identifiers);
+        Assert.DoesNotContain(72UL, identifiers);
+        Assert.Contains(identifiers, identifier => identifier > 72);
+        Assert.All(source.Records, record => Assert.All(record.ObjectReferences,
+            identifier => Assert.Contains(identifier, identifiers)));
+        Assert.Equal(10, Assert.Single(source.ReadKeynote().Slides).TextBoxes.Count);
+        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(package),
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        converted.Report.RequireCompleteEditableReconstruction();
+        using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        Assert.Empty(reopened.ValidateDocument());
+        Assert.Equal(Enumerable.Range(0, 10).Select(index => "BOX " + index),
+            reopened.Slides[0].TextBoxes.Select(box => box.Text.TrimEnd('\n')));
+    }
+
+    [Fact]
     public void Native_slide_and_paragraph_profile_protects_Apple_editing_and_export_regressions() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(new MemoryStream(Example().SaveBytes()));
         var ids = source.Records.Select(record => record.Identifier).ToHashSet();

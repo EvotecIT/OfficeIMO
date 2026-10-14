@@ -43,6 +43,13 @@ internal static partial class IWorkTableReader {
                 diagnostics, ref supportsEditableReconstruction);
             return null;
         }
+        if (message.HasField(4) && message.GetUnsigned(4) != (ulong)declaredRows) {
+            references.Declarations.Record(tile, "4", message.FieldCount(4),
+                IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
+            MarkTileUnsupported(tile, "IWORK_TABLE_TILE_ROW_COUNT_UNSUPPORTED",
+                "An iWork table tile row count does not match its physical row messages; readable rows are retained, but editable reconstruction is incomplete.",
+                diagnostics, ref supportsEditableReconstruction);
+        }
         return message;
     }
 

@@ -1,0 +1,1068 @@
+{
+  "storageIdentifier": 1732641,
+  "text": "Native decimal list continuation\nInitial seven\nInitial eight\nNon-list interruption\nContinued nine\nNested first\nNested second\nParent ten\nNested after parent\nNested restart five\nNested restart six\nNested non-list interruption\nNested continued seven\nOriginal parent eleven\nParent restart three\nParent restart four",
+  "paragraphData": {
+    "entries": [
+      {
+        "characterIndex": 0,
+        "first": 0,
+        "second": 0
+      },
+      {
+        "characterIndex": 33,
+        "first": 0,
+        "second": 1
+      },
+      {
+        "characterIndex": 47,
+        "first": 0,
+        "second": 0
+      },
+      {
+        "characterIndex": 98,
+        "first": 1,
+        "second": 0
+      },
+      {
+        "characterIndex": 125,
+        "first": 0,
+        "second": 0
+      },
+      {
+        "characterIndex": 136,
+        "first": 1,
+        "second": 0
+      },
+      {
+        "characterIndex": 156,
+        "first": 1,
+        "second": 1
+      },
+      {
+        "characterIndex": 176,
+        "first": 1,
+        "second": 0
+      },
+      {
+        "characterIndex": 195,
+        "first": 0,
+        "second": 0
+      },
+      {
+        "characterIndex": 224,
+        "first": 1,
+        "second": 0
+      },
+      {
+        "characterIndex": 247,
+        "first": 0,
+        "second": 1
+      },
+      {
+        "characterIndex": 291,
+        "first": 0,
+        "second": 0
+      }
+    ]
+  },
+  "paragraphStarts": {
+    "entries": [
+      {
+        "characterIndex": 0,
+        "first": 0,
+        "second": 0
+      },
+      {
+        "characterIndex": 33,
+        "first": 7,
+        "second": 0
+      },
+      {
+        "characterIndex": 47,
+        "first": 0,
+        "second": 0
+      },
+      {
+        "characterIndex": 156,
+        "first": 5,
+        "second": 0
+      },
+      {
+        "characterIndex": 176,
+        "first": 0,
+        "second": 0
+      },
+      {
+        "characterIndex": 247,
+        "first": 11,
+        "second": 0
+      },
+      {
+        "characterIndex": 270,
+        "first": 3,
+        "second": 0
+      },
+      {
+        "characterIndex": 291,
+        "first": 0,
+        "second": 0
+      }
+    ]
+  },
+  "listStyles": {
+    "entries": [
+      {
+        "characterIndex": 0,
+        "object": {
+          "identifier": "1731481"
+        }
+      },
+      {
+        "characterIndex": 33,
+        "object": {
+          "identifier": "1732808"
+        }
+      },
+      {
+        "characterIndex": 61,
+        "object": {
+          "identifier": "1731481"
+        }
+      },
+      {
+        "characterIndex": 83,
+        "object": {
+          "identifier": "1732808"
+        }
+      },
+      {
+        "characterIndex": 156,
+        "object": {
+          "identifier": "1732811"
+        }
+      },
+      {
+        "characterIndex": 195,
+        "object": {
+          "identifier": "1731481"
+        }
+      },
+      {
+        "characterIndex": 224,
+        "object": {
+          "identifier": "1732811"
+        }
+      },
+      {
+        "characterIndex": 247,
+        "object": {
+          "identifier": "1732808"
+        }
+      },
+      {
+        "characterIndex": 270,
+        "object": {
+          "identifier": "1732814"
+        }
+      }
+    ]
+  },
+  "paragraphStyles": {
+    "entries": [
+      {
+        "characterIndex": 0,
+        "object": {
+          "identifier": "1731511"
+        }
+      },
+      {
+        "characterIndex": 33,
+        "object": {
+          "identifier": "1732809"
+        }
+      },
+      {
+        "characterIndex": 47
+      },
+      {
+        "characterIndex": 61,
+        "object": {
+          "identifier": "1731511"
+        }
+      },
+      {
+        "characterIndex": 83,
+        "object": {
+          "identifier": "1732809"
+        }
+      },
+      {
+        "characterIndex": 98
+      },
+      {
+        "characterIndex": 111
+      },
+      {
+        "characterIndex": 125
+      },
+      {
+        "characterIndex": 136
+      },
+      {
+        "characterIndex": 156,
+        "object": {
+          "identifier": "1732812"
+        }
+      },
+      {
+        "characterIndex": 176
+      },
+      {
+        "characterIndex": 195,
+        "object": {
+          "identifier": "1731511"
+        }
+      },
+      {
+        "characterIndex": 224,
+        "object": {
+          "identifier": "1732812"
+        }
+      },
+      {
+        "characterIndex": 247,
+        "object": {
+          "identifier": "1732809"
+        }
+      },
+      {
+        "characterIndex": 270,
+        "object": {
+          "identifier": "1732815"
+        }
+      },
+      {
+        "characterIndex": 291
+      }
+    ]
+  },
+  "styles": {
+    "1731481": {
+      "super": {
+        "name": "Brak",
+        "styleIdentifier": "text-0-liststyle-None",
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 4,
+      "labelTypes": [
+        "kNone",
+        "kNone",
+        "kNone",
+        "kNone",
+        "kNone",
+        "kNone",
+        "kNone",
+        "kNone",
+        "kNone"
+      ],
+      "textIndents": [
+        -0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "indents": [
+        0.0,
+        36.0,
+        72.0,
+        108.0,
+        144.0,
+        180.0,
+        216.0,
+        252.0,
+        288.0
+      ],
+      "geometries": [
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        }
+      ]
+    },
+    "1732807": {
+      "super": {
+        "name": "Zaimportowany styl 1",
+        "styleIdentifier": "imported-list-style-17",
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 9,
+      "labelTypes": [
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber"
+      ],
+      "textIndents": [
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636
+      ],
+      "indents": [
+        0.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0
+      ],
+      "geometries": [
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        }
+      ],
+      "numberTypes": [
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal"
+      ],
+      "shadowNull": true,
+      "fontColorNull": true,
+      "fontNameNull": true,
+      "tieredNumbers": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "1732808": {
+      "super": {
+        "parent": {
+          "identifier": "1732807"
+        },
+        "isVariation": true,
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 2,
+      "textIndents": [
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5
+      ],
+      "geometries": [
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        }
+      ]
+    },
+    "1732810": {
+      "super": {
+        "name": "Zaimportowany styl 2",
+        "styleIdentifier": "imported-list-style-18",
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 9,
+      "labelTypes": [
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber"
+      ],
+      "textIndents": [
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636
+      ],
+      "indents": [
+        0.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0
+      ],
+      "geometries": [
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        }
+      ],
+      "numberTypes": [
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal"
+      ],
+      "shadowNull": true,
+      "fontColorNull": true,
+      "fontNameNull": true,
+      "tieredNumbers": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "1732811": {
+      "super": {
+        "parent": {
+          "identifier": "1732810"
+        },
+        "isVariation": true,
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 2,
+      "textIndents": [
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5
+      ],
+      "geometries": [
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        }
+      ]
+    },
+    "1732813": {
+      "super": {
+        "name": "Zaimportowany styl 3",
+        "styleIdentifier": "imported-list-style-19",
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 9,
+      "labelTypes": [
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber",
+        "kNumber"
+      ],
+      "textIndents": [
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636,
+        1.6363636
+      ],
+      "indents": [
+        0.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0,
+        18.0
+      ],
+      "geometries": [
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.0,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        }
+      ],
+      "numberTypes": [
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal",
+        "kNumericDecimal"
+      ],
+      "shadowNull": true,
+      "fontColorNull": true,
+      "fontNameNull": true,
+      "tieredNumbers": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "1732814": {
+      "super": {
+        "parent": {
+          "identifier": "1732813"
+        },
+        "isVariation": true,
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 2,
+      "textIndents": [
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5
+      ],
+      "geometries": [
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 0.9166667,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        }
+      ]
+    }
+  },
+  "selectedParagraphStyles": {
+    "1731511": {
+      "super": {
+        "name": "Tre\u015b\u0107",
+        "styleIdentifier": "text-20-paragraphstyle-Body 1",
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 57,
+      "charProperties": {
+        "bold": false,
+        "italic": false,
+        "fontSize": 11.0,
+        "fontName": "Calibri",
+        "fontColor": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.0,
+          "b": 0.0,
+          "a": 1.0,
+          "rgbspace": "srgb"
+        },
+        "languageNull": true,
+        "superscript": "kNoScript",
+        "underline": "kNoUnderline",
+        "strikethru": "kNoStrikethru",
+        "capitalization": "kNoCaps",
+        "baselineShift": 0.0,
+        "kerning": 0.0,
+        "ligatures": "kStandardLigatures",
+        "shadowNull": true,
+        "strikethruColor": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.0,
+          "b": 0.0,
+          "a": 1.0,
+          "rgbspace": "srgb"
+        },
+        "strikethruWidth": 1.0,
+        "backgroundColorNull": true,
+        "tracking": 0.0,
+        "underlineColor": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.0,
+          "b": 0.0,
+          "a": 1.0,
+          "rgbspace": "srgb"
+        },
+        "underlineWidth": 1.0,
+        "wordStrikethru": false,
+        "wordUnderline": false,
+        "fontFeaturesNull": true,
+        "writingDirection": "kWritingDirectionLeftToRight",
+        "emphasisMarksNull": true,
+        "compatibilityFontNameNull": true,
+        "isNamedPointSize": false,
+        "capitalizationUsesLinguistics": false,
+        "tsdStrokeNull": true,
+        "tsdFill": {
+          "color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          }
+        },
+        "tsdFillShouldFillTextContainer": false
+      },
+      "paraProperties": {
+        "alignment": "TATvalue0",
+        "decimalTab": ",",
+        "defaultTabStops": 36.0,
+        "fillNull": true,
+        "firstLineIndent": 0.0,
+        "hyphenate": true,
+        "keepLinesTogether": false,
+        "keepWithNext": false,
+        "leftIndent": 0.0,
+        "lineSpacing": {
+          "amount": 1.0791667
+        },
+        "pageBreakBefore": false,
+        "deprecatedBorders": "PBTvalue0",
+        "historicalRuleOffset": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "ruleWidth": 1.0,
+        "rightIndent": 0.0,
+        "spaceAfter": 8.0,
+        "spaceBefore": 0.0,
+        "tabs": {},
+        "widowControl": true,
+        "outlineLevel": 4294967295,
+        "outlineStyle": "OSTvalue0",
+        "strokeNull": true,
+        "listStyle": {
+          "identifier": "1731481"
+        },
+        "followingStyleNull": true,
+        "showInBookmarksList": false,
+        "showInTocNavigator": false,
+        "borderPositions": 0,
+        "roundedCorners": false
+      }
+    },
+    "1732809": {
+      "super": {
+        "parent": {
+          "identifier": "1732806"
+        },
+        "isVariation": true,
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 3,
+      "charProperties": {},
+      "paraProperties": {
+        "firstLineIndent": 0.0,
+        "leftIndent": 0.0,
+        "listStyle": {
+          "identifier": "1732808"
+        }
+      }
+    },
+    "1732812": {
+      "super": {
+        "parent": {
+          "identifier": "1732806"
+        },
+        "isVariation": true,
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 3,
+      "charProperties": {},
+      "paraProperties": {
+        "firstLineIndent": 0.0,
+        "leftIndent": 0.0,
+        "listStyle": {
+          "identifier": "1732811"
+        }
+      }
+    },
+    "1732815": {
+      "super": {
+        "parent": {
+          "identifier": "1732806"
+        },
+        "isVariation": true,
+        "stylesheet": {
+          "identifier": "1732613"
+        }
+      },
+      "overrideCount": 3,
+      "charProperties": {},
+      "paraProperties": {
+        "firstLineIndent": 0.0,
+        "leftIndent": 0.0,
+        "listStyle": {
+          "identifier": "1732814"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5597 @@
+{
+  "source": "numbers-conditional-aggregates-cases-v14.5.numbers",
+  "nativeXlsx": "numbers-conditional-aggregates-cases-v14.5.xlsx",
+  "excelXlsx": "numbers-conditional-aggregates-excel-v16.113.3.xlsx",
+  "excelEditedXlsx": "numbers-conditional-aggregates-excel-edited-v16.113.3.xlsx",
+  "producer": "Numbers 14.5 (7045.0.17)",
+  "excelProducer": "Microsoft Excel 16.113.3 (16.113.26092714)",
+  "decoder": "numbers-parser 4.19.0",
+  "rows": 21,
+  "columns": 7,
+  "formulaCells": 20,
+  "edit": {
+    "address": "C2",
+    "row": 2,
+    "column": 3,
+    "original": 10,
+    "value": 40
+  },
+  "cells": [
+    {
+      "row": 2,
+      "column": 7,
+      "address": "G2",
+      "case": "Sum two criteria",
+      "nativeType": "NumberCell",
+      "nativeValue": 70.0,
+      "formula": "SUMIFS(C2:C9,A2:A9,\"EU\",C2:C9,\">=0\")",
+      "functions": [
+        {
+          "index": 231,
+          "name": "SUMIFS",
+          "arguments": 5
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.SUMIFS(C2:C9,A2:A9,\"EU\",C2:C9,\">=0\")",
+        "formulaType": "array",
+        "formulaRange": "G2",
+        "value": "70"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,\"EU\",C2:C9,\">=0\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "70"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,\"EU\",C2:C9,\">=0\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "100"
+      }
+    },
+    {
+      "row": 3,
+      "column": 7,
+      "address": "G3",
+      "case": "Count two criteria",
+      "nativeType": "NumberCell",
+      "nativeValue": 3.0,
+      "formula": "COUNTIFS(A2:A9,\"EU\",B2:B9,\"Open\")",
+      "functions": [
+        {
+          "index": 233,
+          "name": "COUNTIFS",
+          "arguments": 4
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.COUNTIFS(A2:A9,\"EU\",B2:B9,\"Open\")",
+        "formulaType": "array",
+        "formulaRange": "G3",
+        "value": "3"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(A2:A9,\"EU\",B2:B9,\"Open\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "3"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(A2:A9,\"EU\",B2:B9,\"Open\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "3"
+      }
+    },
+    {
+      "row": 4,
+      "column": 7,
+      "address": "G4",
+      "case": "Average named region",
+      "nativeType": "NumberCell",
+      "nativeValue": 16.25,
+      "formula": "AVERAGEIF(A2:A9,\"EU\",C2:C9)",
+      "functions": [
+        {
+          "index": 234,
+          "name": "AVERAGEIF",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.AVERAGEIF(A2:A9,\"EU\",C2:C9)",
+        "formulaType": "array",
+        "formulaRange": "G4",
+        "value": "16.25"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIF(A2:A9,\"EU\",C2:C9)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "16.25"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIF(A2:A9,\"EU\",C2:C9)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "23.75"
+      }
+    },
+    {
+      "row": 5,
+      "column": 7,
+      "address": "G5",
+      "case": "Average two criteria",
+      "nativeType": "NumberCell",
+      "nativeValue": 15.0,
+      "formula": "AVERAGEIFS(C2:C9,A2:A9,\"EU\",B2:B9,\"Open\")",
+      "functions": [
+        {
+          "index": 232,
+          "name": "AVERAGEIFS",
+          "arguments": 5
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.AVERAGEIFS(C2:C9,A2:A9,\"EU\",B2:B9,\"Open\")",
+        "formulaType": "array",
+        "formulaRange": "G5",
+        "value": "15"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIFS(C2:C9,A2:A9,\"EU\",B2:B9,\"Open\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "15"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIFS(C2:C9,A2:A9,\"EU\",B2:B9,\"Open\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "25"
+      }
+    },
+    {
+      "row": 6,
+      "column": 7,
+      "address": "G6",
+      "case": "Sum numeric criterion",
+      "nativeType": "NumberCell",
+      "nativeValue": 135.0,
+      "formula": "SUMIFS(C2:C9,D2:D9,\">=2\")",
+      "functions": [
+        {
+          "index": 231,
+          "name": "SUMIFS",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.SUMIFS(C2:C9,D2:D9,\">=2\")",
+        "formulaType": "array",
+        "formulaRange": "G6",
+        "value": "135"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,D2:D9,\">=2\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "135"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,D2:D9,\">=2\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "135"
+      }
+    },
+    {
+      "row": 7,
+      "column": 7,
+      "address": "G7",
+      "case": "Count numeric criteria",
+      "nativeType": "NumberCell",
+      "nativeValue": 4.0,
+      "formula": "COUNTIFS(C2:C9,\">=20\",D2:D9,\">=2\")",
+      "functions": [
+        {
+          "index": 233,
+          "name": "COUNTIFS",
+          "arguments": 4
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.COUNTIFS(C2:C9,\">=20\",D2:D9,\">=2\")",
+        "formulaType": "array",
+        "formulaRange": "G7",
+        "value": "4"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(C2:C9,\">=20\",D2:D9,\">=2\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "4"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(C2:C9,\">=20\",D2:D9,\">=2\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "4"
+      }
+    },
+    {
+      "row": 8,
+      "column": 7,
+      "address": "G8",
+      "case": "Sum wildcard",
+      "nativeType": "NumberCell",
+      "nativeValue": 95.0,
+      "formula": "SUMIFS(C2:C9,A2:A9,\"E*\",B2:B9,\"Open\")",
+      "functions": [
+        {
+          "index": 231,
+          "name": "SUMIFS",
+          "arguments": 5
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.SUMIFS(C2:C9,A2:A9,\"E*\",B2:B9,\"Open\")",
+        "formulaType": "array",
+        "formulaRange": "G8",
+        "value": "95"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,\"E*\",B2:B9,\"Open\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "95"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,\"E*\",B2:B9,\"Open\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "125"
+      }
+    },
+    {
+      "row": 9,
+      "column": 7,
+      "address": "G9",
+      "case": "Sum literal wildcard",
+      "nativeType": "NumberCell",
+      "nativeValue": 50.0,
+      "formula": "SUMIFS(C2:C9,A2:A9,\"E~*\")",
+      "functions": [
+        {
+          "index": 231,
+          "name": "SUMIFS",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.SUMIFS(C2:C9,A2:A9,\"E~*\")",
+        "formulaType": "array",
+        "formulaRange": "G9",
+        "value": "50"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,\"E~*\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "50"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,\"E~*\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "50"
+      }
+    },
+    {
+      "row": 10,
+      "column": 7,
+      "address": "G10",
+      "case": "Count not equal",
+      "nativeType": "NumberCell",
+      "nativeValue": 5.0,
+      "formula": "COUNTIFS(A2:A9,\"<>US\",B2:B9,\"Open\")",
+      "functions": [
+        {
+          "index": 233,
+          "name": "COUNTIFS",
+          "arguments": 4
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.COUNTIFS(A2:A9,\"<>US\",B2:B9,\"Open\")",
+        "formulaType": "array",
+        "formulaRange": "G10",
+        "value": "5"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(A2:A9,\"<>US\",B2:B9,\"Open\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "5"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(A2:A9,\"<>US\",B2:B9,\"Open\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "5"
+      }
+    },
+    {
+      "row": 11,
+      "column": 7,
+      "address": "G11",
+      "case": "Average missing guard",
+      "nativeType": "NumberCell",
+      "nativeValue": 999.0,
+      "formula": "IFERROR(AVERAGEIFS(C2:C9,A2:A9,\"None\"),999)",
+      "functions": [
+        {
+          "index": 232,
+          "name": "AVERAGEIFS",
+          "arguments": 3
+        },
+        {
+          "index": 235,
+          "name": "IFERROR",
+          "arguments": 2
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.IFERROR(_xlfn.AVERAGEIFS(C2:C9,A2:A9,\"None\"),999)",
+        "formulaType": "array",
+        "formulaRange": "G11",
+        "value": "999"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "IFERROR(AVERAGEIFS(C2:C9,A2:A9,\"None\"),999)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "999"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "IFERROR(AVERAGEIFS(C2:C9,A2:A9,\"None\"),999)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "999"
+      }
+    },
+    {
+      "row": 12,
+      "column": 7,
+      "address": "G12",
+      "case": "Average numeric range",
+      "nativeType": "NumberCell",
+      "nativeValue": 30.0,
+      "formula": "AVERAGEIF(C2:C9,\">=0\")",
+      "functions": [
+        {
+          "index": 234,
+          "name": "AVERAGEIF",
+          "arguments": 2
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.AVERAGEIF(C2:C9,\">=0\")",
+        "formulaType": "array",
+        "formulaRange": "G12",
+        "value": "30"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIF(C2:C9,\">=0\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "30"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIF(C2:C9,\">=0\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "34.285714285714285"
+      }
+    },
+    {
+      "row": 13,
+      "column": 7,
+      "address": "G13",
+      "case": "Average closed",
+      "nativeType": "NumberCell",
+      "nativeValue": 10.0,
+      "formula": "AVERAGEIF(B2:B9,\"Closed\",C2:C9)",
+      "functions": [
+        {
+          "index": 234,
+          "name": "AVERAGEIF",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.AVERAGEIF(B2:B9,\"Closed\",C2:C9)",
+        "formulaType": "array",
+        "formulaRange": "G13",
+        "value": "10"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIF(B2:B9,\"Closed\",C2:C9)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "10"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIF(B2:B9,\"Closed\",C2:C9)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "10"
+      }
+    },
+    {
+      "row": 14,
+      "column": 7,
+      "address": "G14",
+      "case": "Sum no matches",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "SUMIFS(C2:C9,A2:A9,\"None\")",
+      "functions": [
+        {
+          "index": 231,
+          "name": "SUMIFS",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.SUMIFS(C2:C9,A2:A9,\"None\")",
+        "formulaType": "array",
+        "formulaRange": "G14",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,\"None\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "0"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,\"None\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "0"
+      }
+    },
+    {
+      "row": 15,
+      "column": 7,
+      "address": "G15",
+      "case": "Count no matches",
+      "nativeType": "NumberCell",
+      "nativeValue": 0.0,
+      "formula": "COUNTIFS(A2:A9,\"None\")",
+      "functions": [
+        {
+          "index": 233,
+          "name": "COUNTIFS",
+          "arguments": 2
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.COUNTIFS(A2:A9,\"None\")",
+        "formulaType": "array",
+        "formulaRange": "G15",
+        "value": "0"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(A2:A9,\"None\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "0"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(A2:A9,\"None\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "0"
+      }
+    },
+    {
+      "row": 16,
+      "column": 7,
+      "address": "G16",
+      "case": "Count single cell",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "COUNTIFS(A2,\"EU\")",
+      "functions": [
+        {
+          "index": 233,
+          "name": "COUNTIFS",
+          "arguments": 2
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.COUNTIFS(A2,\"EU\")",
+        "formulaType": "array",
+        "formulaRange": "G16",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(A2,\"EU\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "1"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(A2,\"EU\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "1"
+      }
+    },
+    {
+      "row": 17,
+      "column": 7,
+      "address": "G17",
+      "case": "Sum single cell",
+      "nativeType": "NumberCell",
+      "nativeValue": 10.0,
+      "formula": "SUMIFS(C2,A2,\"EU\")",
+      "functions": [
+        {
+          "index": 231,
+          "name": "SUMIFS",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.SUMIFS(C2,A2,\"EU\")",
+        "formulaType": "array",
+        "formulaRange": "G17",
+        "value": "10"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2,A2,\"EU\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "10"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2,A2,\"EU\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "40"
+      }
+    },
+    {
+      "row": 18,
+      "column": 7,
+      "address": "G18",
+      "case": "Average single cell",
+      "nativeType": "NumberCell",
+      "nativeValue": 10.0,
+      "formula": "AVERAGEIFS(C2,A2,\"EU\")",
+      "functions": [
+        {
+          "index": 232,
+          "name": "AVERAGEIFS",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.AVERAGEIFS(C2,A2,\"EU\")",
+        "formulaType": "array",
+        "formulaRange": "G18",
+        "value": "10"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIFS(C2,A2,\"EU\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "10"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIFS(C2,A2,\"EU\")",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "40"
+      }
+    },
+    {
+      "row": 19,
+      "column": 7,
+      "address": "G19",
+      "case": "Average if single cell",
+      "nativeType": "NumberCell",
+      "nativeValue": 10.0,
+      "formula": "AVERAGEIF(A2,\"EU\",C2)",
+      "functions": [
+        {
+          "index": 234,
+          "name": "AVERAGEIF",
+          "arguments": 3
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.AVERAGEIF(A2,\"EU\",C2)",
+        "formulaType": "array",
+        "formulaRange": "G19",
+        "value": "10"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIF(A2,\"EU\",C2)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "10"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "AVERAGEIF(A2,\"EU\",C2)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "40"
+      }
+    },
+    {
+      "row": 20,
+      "column": 7,
+      "address": "G20",
+      "case": "Sum criterion cells",
+      "nativeType": "NumberCell",
+      "nativeValue": 60.0,
+      "formula": "SUMIFS(C2:C9,A2:A9,$D$11,C2:C9,$D$12)",
+      "functions": [
+        {
+          "index": 231,
+          "name": "SUMIFS",
+          "arguments": 5
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.SUMIFS(C2:C9,A2:A9,$D$11,C2:C9,$D$12)",
+        "formulaType": "array",
+        "formulaRange": "G20",
+        "value": "60"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,$D$11,C2:C9,$D$12)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "60"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "SUMIFS(C2:C9,A2:A9,$D$11,C2:C9,$D$12)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "100"
+      }
+    },
+    {
+      "row": 21,
+      "column": 7,
+      "address": "G21",
+      "case": "Count zero",
+      "nativeType": "NumberCell",
+      "nativeValue": 1.0,
+      "formula": "COUNTIFS(C2:C9,0)",
+      "functions": [
+        {
+          "index": 233,
+          "name": "COUNTIFS",
+          "arguments": 2
+        }
+      ],
+      "numbersXlsx": {
+        "kind": "n",
+        "formula": "_xlfn.COUNTIFS(C2:C9,0)",
+        "formulaType": "array",
+        "formulaRange": "G21",
+        "value": "1"
+      },
+      "excelRecalculatedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(C2:C9,0)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "1"
+      },
+      "excelEditedXlsx": {
+        "kind": "n",
+        "formula": "COUNTIFS(C2:C9,0)",
+        "formulaType": "normal",
+        "formulaRange": null,
+        "value": "1"
+      }
+    }
+  ],
+  "emptyAverageInput": "excel-conditional-average-errors-input.xlsx",
+  "emptyAverageXlsx": "excel-conditional-average-errors-v16.113.3.xlsx",
+  "emptyAverageCells": [
+    {
+      "address": "E2",
+      "row": 2,
+      "column": 5,
+      "kind": "e",
+      "formula": "AVERAGEIF(A2:A3,\"None\",B2:B3)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "F2",
+      "row": 2,
+      "column": 6,
+      "kind": "n",
+      "formula": "IFERROR(E2,99)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "99"
+    },
+    {
+      "address": "G2",
+      "row": 2,
+      "column": 7,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(E2,99)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H2",
+      "row": 2,
+      "column": 8,
+      "kind": "b",
+      "formula": "ISERROR(E2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "E3",
+      "row": 3,
+      "column": 5,
+      "kind": "e",
+      "formula": "AVERAGEIFS(B2:B3,A2:A3,\"None\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "F3",
+      "row": 3,
+      "column": 6,
+      "kind": "n",
+      "formula": "IFERROR(E3,99)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "99"
+    },
+    {
+      "address": "G3",
+      "row": 3,
+      "column": 7,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(E3,99)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H3",
+      "row": 3,
+      "column": 8,
+      "kind": "b",
+      "formula": "ISERROR(E3)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "E4",
+      "row": 4,
+      "column": 5,
+      "kind": "e",
+      "formula": "AVERAGEIF(A4:A5,\"EU\",B4:B5)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "F4",
+      "row": 4,
+      "column": 6,
+      "kind": "n",
+      "formula": "IFERROR(E4,99)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "99"
+    },
+    {
+      "address": "G4",
+      "row": 4,
+      "column": 7,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(E4,99)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H4",
+      "row": 4,
+      "column": 8,
+      "kind": "b",
+      "formula": "ISERROR(E4)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "E5",
+      "row": 5,
+      "column": 5,
+      "kind": "e",
+      "formula": "AVERAGEIFS(B4:B5,A4:A5,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "F5",
+      "row": 5,
+      "column": 6,
+      "kind": "n",
+      "formula": "IFERROR(E5,99)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "99"
+    },
+    {
+      "address": "G5",
+      "row": 5,
+      "column": 7,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(E5,99)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H5",
+      "row": 5,
+      "column": 8,
+      "kind": "b",
+      "formula": "ISERROR(E5)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    }
+  ],
+  "typedErrorInput": "excel-conditional-typed-errors-input.xlsx",
+  "typedErrorXlsx": "excel-conditional-typed-errors-qualified-v16.113.3.xlsx",
+  "typedErrorCases": 98,
+  "typedErrorFormulaCells": 397,
+  "typedErrorCells": [
+    {
+      "address": "B2",
+      "row": 2,
+      "column": 2,
+      "kind": "e",
+      "formula": "NA()",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "D2",
+      "row": 2,
+      "column": 4,
+      "kind": "e",
+      "formula": "NA()",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "G2",
+      "row": 2,
+      "column": 7,
+      "kind": "e",
+      "formula": "SUMIF(A2,\"EU\",B2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H2",
+      "row": 2,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G2,99)",
+      "formulaType": "shared",
+      "formulaRange": "H2:H33",
+      "value": "99",
+      "rawFormula": "IFERROR(G2,99)",
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I2",
+      "row": 2,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G2,99)",
+      "formulaType": "shared",
+      "formulaRange": "I2:I33",
+      "value": "99",
+      "rawFormula": "_xlfn.IFNA(G2,99)",
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J2",
+      "row": 2,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G2)",
+      "formulaType": "shared",
+      "formulaRange": "J2:J33",
+      "value": "1",
+      "rawFormula": "ISERROR(G2)",
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G3",
+      "row": 3,
+      "column": 7,
+      "kind": "e",
+      "formula": "SUMIFS(B2,A2,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H3",
+      "row": 3,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G3,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I3",
+      "row": 3,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G3,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J3",
+      "row": 3,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G3)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G4",
+      "row": 4,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIF(A2,\"EU\",B2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H4",
+      "row": 4,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G4,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I4",
+      "row": 4,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G4,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J4",
+      "row": 4,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G4)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "A5",
+      "row": 5,
+      "column": 1,
+      "kind": "e",
+      "formula": "NA()",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "G5",
+      "row": 5,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIFS(B2,A2,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H5",
+      "row": 5,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G5,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I5",
+      "row": 5,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G5,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J5",
+      "row": 5,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G5)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G6",
+      "row": 6,
+      "column": 7,
+      "kind": "e",
+      "formula": "_xlfn.MINIFS(B2,A2,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H6",
+      "row": 6,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G6,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I6",
+      "row": 6,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G6,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J6",
+      "row": 6,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G6)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G7",
+      "row": 7,
+      "column": 7,
+      "kind": "e",
+      "formula": "_xlfn.MAXIFS(B2,A2,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H7",
+      "row": 7,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G7,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I7",
+      "row": 7,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G7,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J7",
+      "row": 7,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G7)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G8",
+      "row": 8,
+      "column": 7,
+      "kind": "e",
+      "formula": "SUMIF(A2:A4,\"EU\",B2:B4)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H8",
+      "row": 8,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G8,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I8",
+      "row": 8,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G8,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J8",
+      "row": 8,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G8)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G9",
+      "row": 9,
+      "column": 7,
+      "kind": "e",
+      "formula": "SUMIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H9",
+      "row": 9,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G9,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I9",
+      "row": 9,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G9,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J9",
+      "row": 9,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G9)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "A10",
+      "row": 10,
+      "column": 1,
+      "kind": "e",
+      "formula": "NA()",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "G10",
+      "row": 10,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIF(A2:A4,\"EU\",B2:B4)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H10",
+      "row": 10,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G10,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I10",
+      "row": 10,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G10,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J10",
+      "row": 10,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G10)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "A11",
+      "row": 11,
+      "column": 1,
+      "kind": "e",
+      "formula": "1/0",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "G11",
+      "row": 11,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H11",
+      "row": 11,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G11,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I11",
+      "row": 11,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G11,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J11",
+      "row": 11,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G11)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G12",
+      "row": 12,
+      "column": 7,
+      "kind": "e",
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H12",
+      "row": 12,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G12,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I12",
+      "row": 12,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G12,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J12",
+      "row": 12,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G12)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G13",
+      "row": 13,
+      "column": 7,
+      "kind": "e",
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#N/A"
+    },
+    {
+      "address": "H13",
+      "row": 13,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G13,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I13",
+      "row": 13,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G13,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J13",
+      "row": 13,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G13)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G14",
+      "row": 14,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A2:A4,\"US\",B2:B4)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H14",
+      "row": 14,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G14,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I14",
+      "row": 14,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G14,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J14",
+      "row": 14,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G14)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G15",
+      "row": 15,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B2:B4,A2:A4,\"US\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H15",
+      "row": 15,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G15,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I15",
+      "row": 15,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G15,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J15",
+      "row": 15,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G15)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G16",
+      "row": 16,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIF(A2:A4,\"US\",B2:B4)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H16",
+      "row": 16,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G16,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I16",
+      "row": 16,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G16,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J16",
+      "row": 16,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G16)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G17",
+      "row": 17,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIFS(B2:B4,A2:A4,\"US\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H17",
+      "row": 17,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G17,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I17",
+      "row": 17,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G17,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J17",
+      "row": 17,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G17)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G18",
+      "row": 18,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,\"US\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H18",
+      "row": 18,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G18,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I18",
+      "row": 18,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G18,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J18",
+      "row": 18,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G18)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G19",
+      "row": 19,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,\"US\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H19",
+      "row": 19,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G19,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I19",
+      "row": 19,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G19,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J19",
+      "row": 19,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G19)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G20",
+      "row": 20,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A2:A4,NA(),B2:B4)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H20",
+      "row": 20,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G20,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I20",
+      "row": 20,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G20,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J20",
+      "row": 20,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G20)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G21",
+      "row": 21,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B2:B4,A2:A4,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H21",
+      "row": 21,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G21,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I21",
+      "row": 21,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G21,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J21",
+      "row": 21,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G21)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G22",
+      "row": 22,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIF(A2:A4,NA(),B2:B4)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H22",
+      "row": 22,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G22,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I22",
+      "row": 22,
+      "column": 9,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(G22,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "#DIV/0!",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J22",
+      "row": 22,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G22)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G23",
+      "row": 23,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIFS(B2:B4,A2:A4,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H23",
+      "row": 23,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G23,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I23",
+      "row": 23,
+      "column": 9,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(G23,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "#DIV/0!",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J23",
+      "row": 23,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G23)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G24",
+      "row": 24,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H24",
+      "row": 24,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G24,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I24",
+      "row": 24,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G24,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J24",
+      "row": 24,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G24)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G25",
+      "row": 25,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H25",
+      "row": 25,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G25,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I25",
+      "row": 25,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G25,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J25",
+      "row": 25,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G25)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G26",
+      "row": 26,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A2:A4,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H26",
+      "row": 26,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G26,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I26",
+      "row": 26,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G26,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J26",
+      "row": 26,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G26)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G27",
+      "row": 27,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIFS(A2:A4,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H27",
+      "row": 27,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G27,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I27",
+      "row": 27,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G27,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J27",
+      "row": 27,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G27)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G28",
+      "row": 28,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A5:A6,NA(),B5:B6)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H28",
+      "row": 28,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G28,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I28",
+      "row": 28,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G28,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J28",
+      "row": 28,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G28)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G29",
+      "row": 29,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B5:B6,A5:A6,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H29",
+      "row": 29,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G29,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I29",
+      "row": 29,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G29,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J29",
+      "row": 29,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G29)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G30",
+      "row": 30,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIF(A5:A6,NA(),B5:B6)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H30",
+      "row": 30,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G30,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I30",
+      "row": 30,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G30,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J30",
+      "row": 30,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G30)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G31",
+      "row": 31,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIFS(B5:B6,A5:A6,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H31",
+      "row": 31,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G31,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I31",
+      "row": 31,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G31,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J31",
+      "row": 31,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G31)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G32",
+      "row": 32,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B5:B6,A5:A6,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H32",
+      "row": 32,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G32,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I32",
+      "row": 32,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G32,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J32",
+      "row": 32,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G32)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G33",
+      "row": 33,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B5:B6,A5:A6,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H33",
+      "row": 33,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G33,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "0"
+    },
+    {
+      "address": "I33",
+      "row": 33,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G33,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "1"
+    },
+    {
+      "address": "J33",
+      "row": 33,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G33)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "2"
+    },
+    {
+      "address": "G34",
+      "row": 34,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A5:A6,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H34",
+      "row": 34,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G34,99)",
+      "formulaType": "shared",
+      "formulaRange": "H34:H65",
+      "value": "1",
+      "rawFormula": "IFERROR(G34,99)",
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I34",
+      "row": 34,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G34,99)",
+      "formulaType": "shared",
+      "formulaRange": "I34:I65",
+      "value": "1",
+      "rawFormula": "_xlfn.IFNA(G34,99)",
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J34",
+      "row": 34,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G34)",
+      "formulaType": "shared",
+      "formulaRange": "J34:J65",
+      "value": "0",
+      "rawFormula": "ISERROR(G34)",
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G35",
+      "row": 35,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIFS(A5:A6,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H35",
+      "row": 35,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G35,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I35",
+      "row": 35,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G35,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J35",
+      "row": 35,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G35)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G36",
+      "row": 36,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A2:A4,$D$2,B2:B4)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H36",
+      "row": 36,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G36,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I36",
+      "row": 36,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G36,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J36",
+      "row": 36,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G36)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G37",
+      "row": 37,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B2:B4,A2:A4,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H37",
+      "row": 37,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G37,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I37",
+      "row": 37,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G37,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J37",
+      "row": 37,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G37)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G38",
+      "row": 38,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIF(A2:A4,$D$2,B2:B4)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H38",
+      "row": 38,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G38,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I38",
+      "row": 38,
+      "column": 9,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(G38,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "#DIV/0!",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J38",
+      "row": 38,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G38)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G39",
+      "row": 39,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIFS(B2:B4,A2:A4,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H39",
+      "row": 39,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G39,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I39",
+      "row": 39,
+      "column": 9,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(G39,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "#DIV/0!",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J39",
+      "row": 39,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G39)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G40",
+      "row": 40,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B2:B4,A2:A4,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H40",
+      "row": 40,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G40,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I40",
+      "row": 40,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G40,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J40",
+      "row": 40,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G40)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G41",
+      "row": 41,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B2:B4,A2:A4,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H41",
+      "row": 41,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G41,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I41",
+      "row": 41,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G41,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J41",
+      "row": 41,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G41)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G42",
+      "row": 42,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A2:A4,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H42",
+      "row": 42,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G42,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I42",
+      "row": 42,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G42,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J42",
+      "row": 42,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G42)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G43",
+      "row": 43,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIFS(A2:A4,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H43",
+      "row": 43,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G43,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I43",
+      "row": 43,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G43,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J43",
+      "row": 43,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G43)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G44",
+      "row": 44,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A8:A9,$D$2,B8:B9)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H44",
+      "row": 44,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G44,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I44",
+      "row": 44,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G44,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J44",
+      "row": 44,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G44)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G45",
+      "row": 45,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B8:B9,A8:A9,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H45",
+      "row": 45,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G45,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I45",
+      "row": 45,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G45,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J45",
+      "row": 45,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G45)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G46",
+      "row": 46,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIF(A8:A9,$D$2,B8:B9)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H46",
+      "row": 46,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G46,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I46",
+      "row": 46,
+      "column": 9,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(G46,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "#DIV/0!",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J46",
+      "row": 46,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G46)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G47",
+      "row": 47,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIFS(B8:B9,A8:A9,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H47",
+      "row": 47,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G47,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I47",
+      "row": 47,
+      "column": 9,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(G47,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "#DIV/0!",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J47",
+      "row": 47,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G47)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G48",
+      "row": 48,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B8:B9,A8:A9,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H48",
+      "row": 48,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G48,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I48",
+      "row": 48,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G48,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J48",
+      "row": 48,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G48)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G49",
+      "row": 49,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B8:B9,A8:A9,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H49",
+      "row": 49,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G49,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I49",
+      "row": 49,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G49,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J49",
+      "row": 49,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G49)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G50",
+      "row": 50,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A8:A9,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H50",
+      "row": 50,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G50,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I50",
+      "row": 50,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G50,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J50",
+      "row": 50,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G50)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G51",
+      "row": 51,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIFS(A8:A9,$D$2)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H51",
+      "row": 51,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G51,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I51",
+      "row": 51,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G51,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J51",
+      "row": 51,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G51)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G52",
+      "row": 52,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A8:A9,\"#N/A\",B8:B9)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "10"
+    },
+    {
+      "address": "H52",
+      "row": 52,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G52,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I52",
+      "row": 52,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G52,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J52",
+      "row": 52,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G52)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G53",
+      "row": 53,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B8:B9,A8:A9,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "10"
+    },
+    {
+      "address": "H53",
+      "row": 53,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G53,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I53",
+      "row": 53,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G53,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J53",
+      "row": 53,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G53)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G54",
+      "row": 54,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIF(A8:A9,\"#N/A\",B8:B9)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "10"
+    },
+    {
+      "address": "H54",
+      "row": 54,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G54,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I54",
+      "row": 54,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G54,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J54",
+      "row": 54,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G54)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G55",
+      "row": 55,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIFS(B8:B9,A8:A9,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "10"
+    },
+    {
+      "address": "H55",
+      "row": 55,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G55,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I55",
+      "row": 55,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G55,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J55",
+      "row": 55,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G55)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G56",
+      "row": 56,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B8:B9,A8:A9,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "10"
+    },
+    {
+      "address": "H56",
+      "row": 56,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G56,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I56",
+      "row": 56,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G56,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J56",
+      "row": 56,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G56)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G57",
+      "row": 57,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B8:B9,A8:A9,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "10"
+    },
+    {
+      "address": "H57",
+      "row": 57,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G57,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I57",
+      "row": 57,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G57,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "10",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J57",
+      "row": 57,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G57)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G58",
+      "row": 58,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A8:A9,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H58",
+      "row": 58,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G58,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I58",
+      "row": 58,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G58,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J58",
+      "row": 58,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G58)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G59",
+      "row": 59,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIFS(A8:A9,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H59",
+      "row": 59,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G59,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I59",
+      "row": 59,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G59,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J59",
+      "row": 59,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G59)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G60",
+      "row": 60,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A5:A6,\"EU\",B5:B6)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H60",
+      "row": 60,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G60,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I60",
+      "row": 60,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G60,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J60",
+      "row": 60,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G60)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G61",
+      "row": 61,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B5:B6,A5:A6,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H61",
+      "row": 61,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G61,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I61",
+      "row": 61,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G61,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J61",
+      "row": 61,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G61)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G62",
+      "row": 62,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIF(A5:A6,\"EU\",B5:B6)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H62",
+      "row": 62,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G62,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I62",
+      "row": 62,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G62,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J62",
+      "row": 62,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G62)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G63",
+      "row": 63,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIFS(B5:B6,A5:A6,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H63",
+      "row": 63,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G63,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I63",
+      "row": 63,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G63,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J63",
+      "row": 63,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G63)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G64",
+      "row": 64,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B5:B6,A5:A6,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H64",
+      "row": 64,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G64,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I64",
+      "row": 64,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G64,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J64",
+      "row": 64,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G64)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G65",
+      "row": 65,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B5:B6,A5:A6,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "20"
+    },
+    {
+      "address": "H65",
+      "row": 65,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G65,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "3"
+    },
+    {
+      "address": "I65",
+      "row": 65,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G65,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "20",
+      "rawFormula": null,
+      "sharedFormulaIndex": "4"
+    },
+    {
+      "address": "J65",
+      "row": 65,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G65)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "5"
+    },
+    {
+      "address": "G66",
+      "row": 66,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A5:A6,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H66",
+      "row": 66,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G66,99)",
+      "formulaType": "shared",
+      "formulaRange": "H66:H97",
+      "value": "1",
+      "rawFormula": "IFERROR(G66,99)",
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I66",
+      "row": 66,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G66,99)",
+      "formulaType": "shared",
+      "formulaRange": "I66:I99",
+      "value": "1",
+      "rawFormula": "_xlfn.IFNA(G66,99)",
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J66",
+      "row": 66,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G66)",
+      "formulaType": "shared",
+      "formulaRange": "J66:J99",
+      "value": "0",
+      "rawFormula": "ISERROR(G66)",
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G67",
+      "row": 67,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIFS(A5:A6,\"EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H67",
+      "row": 67,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G67,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I67",
+      "row": 67,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G67,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J67",
+      "row": 67,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G67)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G68",
+      "row": 68,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A5:A6,\"#N/A\",B5:B6)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H68",
+      "row": 68,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G68,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I68",
+      "row": 68,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G68,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J68",
+      "row": 68,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G68)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G69",
+      "row": 69,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B5:B6,A5:A6,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H69",
+      "row": 69,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G69,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I69",
+      "row": 69,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G69,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J69",
+      "row": 69,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G69)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G70",
+      "row": 70,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIF(A5:A6,\"#N/A\",B5:B6)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H70",
+      "row": 70,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G70,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I70",
+      "row": 70,
+      "column": 9,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(G70,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "#DIV/0!",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J70",
+      "row": 70,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G70)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G71",
+      "row": 71,
+      "column": 7,
+      "kind": "e",
+      "formula": "AVERAGEIFS(B5:B6,A5:A6,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "#DIV/0!"
+    },
+    {
+      "address": "H71",
+      "row": 71,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G71,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "99",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I71",
+      "row": 71,
+      "column": 9,
+      "kind": "e",
+      "formula": "_xlfn.IFNA(G71,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "#DIV/0!",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J71",
+      "row": 71,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G71)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G72",
+      "row": 72,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B5:B6,A5:A6,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H72",
+      "row": 72,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G72,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I72",
+      "row": 72,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G72,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J72",
+      "row": 72,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G72)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G73",
+      "row": 73,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B5:B6,A5:A6,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H73",
+      "row": 73,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G73,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I73",
+      "row": 73,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G73,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J73",
+      "row": 73,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G73)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G74",
+      "row": 74,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A5:A6,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H74",
+      "row": 74,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G74,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I74",
+      "row": 74,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G74,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J74",
+      "row": 74,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G74)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G75",
+      "row": 75,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIFS(A5:A6,\"#N/A\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H75",
+      "row": 75,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G75,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I75",
+      "row": 75,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G75,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J75",
+      "row": 75,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G75)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G76",
+      "row": 76,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A10:A11,NA(),B10:B11)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H76",
+      "row": 76,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G76,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I76",
+      "row": 76,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G76,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J76",
+      "row": 76,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G76)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G77",
+      "row": 77,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B10:B11,A10:A11,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H77",
+      "row": 77,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G77,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I77",
+      "row": 77,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G77,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J77",
+      "row": 77,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G77)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G78",
+      "row": 78,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIF(A10:A11,NA(),B10:B11)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H78",
+      "row": 78,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G78,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I78",
+      "row": 78,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G78,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J78",
+      "row": 78,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G78)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G79",
+      "row": 79,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIFS(B10:B11,A10:A11,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H79",
+      "row": 79,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G79,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I79",
+      "row": 79,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G79,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J79",
+      "row": 79,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G79)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G80",
+      "row": 80,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B10:B11,A10:A11,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H80",
+      "row": 80,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G80,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I80",
+      "row": 80,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G80,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J80",
+      "row": 80,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G80)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G81",
+      "row": 81,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B10:B11,A10:A11,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H81",
+      "row": 81,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G81,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I81",
+      "row": 81,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G81,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J81",
+      "row": 81,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G81)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G82",
+      "row": 82,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A10:A11,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H82",
+      "row": 82,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G82,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I82",
+      "row": 82,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G82,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J82",
+      "row": 82,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G82)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G83",
+      "row": 83,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIFS(A10:A11,NA())",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H83",
+      "row": 83,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G83,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I83",
+      "row": 83,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G83,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J83",
+      "row": 83,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G83)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G84",
+      "row": 84,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A10:A11,1/0,B10:B11)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "50"
+    },
+    {
+      "address": "H84",
+      "row": 84,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G84,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I84",
+      "row": 84,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G84,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J84",
+      "row": 84,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G84)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G85",
+      "row": 85,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIFS(B10:B11,A10:A11,1/0)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "50"
+    },
+    {
+      "address": "H85",
+      "row": 85,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G85,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I85",
+      "row": 85,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G85,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J85",
+      "row": 85,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G85)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G86",
+      "row": 86,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIF(A10:A11,1/0,B10:B11)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "50"
+    },
+    {
+      "address": "H86",
+      "row": 86,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G86,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I86",
+      "row": 86,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G86,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J86",
+      "row": 86,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G86)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G87",
+      "row": 87,
+      "column": 7,
+      "kind": "n",
+      "formula": "AVERAGEIFS(B10:B11,A10:A11,1/0)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "50"
+    },
+    {
+      "address": "H87",
+      "row": 87,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G87,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I87",
+      "row": 87,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G87,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J87",
+      "row": 87,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G87)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G88",
+      "row": 88,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MINIFS(B10:B11,A10:A11,1/0)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "50"
+    },
+    {
+      "address": "H88",
+      "row": 88,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G88,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I88",
+      "row": 88,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G88,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J88",
+      "row": 88,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G88)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G89",
+      "row": 89,
+      "column": 7,
+      "kind": "n",
+      "formula": "_xlfn.MAXIFS(B10:B11,A10:A11,1/0)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "50"
+    },
+    {
+      "address": "H89",
+      "row": 89,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G89,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I89",
+      "row": 89,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G89,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "50",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J89",
+      "row": 89,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G89)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G90",
+      "row": 90,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A10:A11,1/0)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H90",
+      "row": 90,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G90,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I90",
+      "row": 90,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G90,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J90",
+      "row": 90,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G90)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G91",
+      "row": 91,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIFS(A10:A11,1/0)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H91",
+      "row": 91,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G91,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I91",
+      "row": 91,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G91,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J91",
+      "row": 91,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G91)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G92",
+      "row": 92,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A5,\"<>EU\",B5)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H92",
+      "row": 92,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G92,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I92",
+      "row": 92,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G92,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J92",
+      "row": 92,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G92)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G93",
+      "row": 93,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A5,\"<>EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H93",
+      "row": 93,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G93,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I93",
+      "row": 93,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G93,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J93",
+      "row": 93,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G93)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G94",
+      "row": 94,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A5,\"<>\",B5)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "30"
+    },
+    {
+      "address": "H94",
+      "row": 94,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G94,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I94",
+      "row": 94,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G94,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "30",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J94",
+      "row": 94,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G94)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G95",
+      "row": 95,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A5,\"<>\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "1"
+    },
+    {
+      "address": "H95",
+      "row": 95,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G95,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I95",
+      "row": 95,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G95,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "1",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J95",
+      "row": 95,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G95)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G96",
+      "row": 96,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A5,\"*\",B5)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H96",
+      "row": 96,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G96,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I96",
+      "row": 96,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G96,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J96",
+      "row": 96,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G96)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G97",
+      "row": 97,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A5,\"*\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H97",
+      "row": 97,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G97,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "6"
+    },
+    {
+      "address": "I97",
+      "row": 97,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G97,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J97",
+      "row": 97,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G97)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G98",
+      "row": 98,
+      "column": 7,
+      "kind": "n",
+      "formula": "SUMIF(A5,\">=EU\",B5)",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H98",
+      "row": 98,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G98,99)",
+      "formulaType": "shared",
+      "formulaRange": "H98:H129",
+      "value": "0",
+      "rawFormula": "IFERROR(G98,99)",
+      "sharedFormulaIndex": "9"
+    },
+    {
+      "address": "I98",
+      "row": 98,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G98,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J98",
+      "row": 98,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G98)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    },
+    {
+      "address": "G99",
+      "row": 99,
+      "column": 7,
+      "kind": "n",
+      "formula": "COUNTIF(A5,\">=EU\")",
+      "formulaType": "normal",
+      "formulaRange": null,
+      "value": "0"
+    },
+    {
+      "address": "H99",
+      "row": 99,
+      "column": 8,
+      "kind": "n",
+      "formula": "IFERROR(G99,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "9"
+    },
+    {
+      "address": "I99",
+      "row": 99,
+      "column": 9,
+      "kind": "n",
+      "formula": "_xlfn.IFNA(G99,99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "7"
+    },
+    {
+      "address": "J99",
+      "row": 99,
+      "column": 10,
+      "kind": "b",
+      "formula": "ISERROR(G99)",
+      "formulaType": "shared",
+      "formulaRange": null,
+      "value": "0",
+      "rawFormula": null,
+      "sharedFormulaIndex": "8"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "numbers-conditional-aggregates-cases-v14.5.numbers",
+      "bytes": 714627,
+      "sha256": "a3ea9206083d1062d1d8e190d87350e7a60291aa2600254341bb433de9007bb1"
+    },
+    {
+      "path": "numbers-conditional-aggregates-cases-v14.5.xlsx",
+      "bytes": 7354,
+      "sha256": "fe38948170187e8637829ff2ae65abf942197b5b3616d1e5d80913ef071500a5"
+    },
+    {
+      "path": "numbers-conditional-aggregates-excel-v16.113.3.xlsx",
+      "bytes": 10463,
+      "sha256": "0d079e885e578cae87260aeea05b063c7646a30f349e40ce3d1b8f369a5deb90"
+    },
+    {
+      "path": "numbers-conditional-aggregates-excel-edited-v16.113.3.xlsx",
+      "bytes": 10506,
+      "sha256": "9f706aafd6278037b87ccc340da3cce88da67c72d7098b0f8bbb0dd12a3ad79b"
+    },
+    {
+      "path": "excel-conditional-average-errors-input.xlsx",
+      "bytes": 4037,
+      "sha256": "886d1fb2b36abe335dccf0f6c01415867d51d70a27b6609b4d9b9c10737c8843"
+    },
+    {
+      "path": "excel-conditional-average-errors-v16.113.3.xlsx",
+      "bytes": 9541,
+      "sha256": "f6698d35704ea12dc7360003a354a072d18dbea828dc8453195fc558275a4bc7"
+    },
+    {
+      "path": "excel-conditional-typed-errors-input.xlsx",
+      "bytes": 9207,
+      "sha256": "264f8b97c690e4d9541a88e808fd7345222286fadf65fdbb642313b633c264f0"
+    },
+    {
+      "path": "excel-conditional-typed-errors-qualified-v16.113.3.xlsx",
+      "bytes": 14540,
+      "sha256": "e42f84e9a886209523604e12bd2ef82bd08704b0d66320e97bccae2e05336d80"
+    },
+    {
+      "path": "numbers-conditional-aggregates-cases-v14.5.pdf",
+      "bytes": 59890,
+      "sha256": "41d9be4859a7cfead2a4efa4994363101caaa9d4b7941bf6f9dcc98a2a0c0dfa"
+    },
+    {
+      "path": "numbers-conditional-aggregates-wide-intake.xlsx",
+      "bytes": 4700,
+      "sha256": "b7308eafe459a9b50b83bc46c30429199b9bd1eb29fb80a9b7eb33d8bac770cc"
+    },
+    {
+      "path": "numbers-conditional-aggregates-wide-intake.json",
+      "bytes": 2690,
+      "sha256": "303dea1ea5cbe2357ab93e4daeb89a46d46d35a0c826ee0bf2491498343c3fbf"
+    },
+    {
+      "path": "numbers-wide-import.png",
+      "bytes": 123369,
+      "sha256": "3edfaca4a5e64b4f5b118afdee0f1aa0be7ea365ab0adafa2395ce1267382a67"
+    },
+    {
+      "path": "excel-original-recalculated.png",
+      "bytes": 407659,
+      "sha256": "516b6d2c82af43bd7d198b7359e2a27849a44abc7b7346cf104abc7efaa27442"
+    },
+    {
+      "path": "excel-edited-recalculated.png",
+      "bytes": 409528,
+      "sha256": "d32174a57e30ed1d698b415120b0fe93b3b97dccfa58aa1ac1387752aedd4167"
+    },
+    {
+      "path": "excel-empty-averages-qualified.png",
+      "bytes": 344717,
+      "sha256": "5e27067b61182ac46ed63ac377d45152d4ddcc3b7ec8f4650c1d07f9a6118069"
+    },
+    {
+      "path": "excel-typed-errors-top.png",
+      "bytes": 439406,
+      "sha256": "cc11939225d4b698900fc8a259d1faa98c9c13055297925457071f908ffae610"
+    },
+    {
+      "path": "excel-typed-errors-middle.png",
+      "bytes": 438947,
+      "sha256": "f51c3a8dc9d4a8c3aff82cf5136cd36836a043e489fd5f05365c1e2b88df2b3c"
+    },
+    {
+      "path": "excel-typed-errors-bottom.png",
+      "bytes": 435713,
+      "sha256": "b892d22fd12314f999c46bc348902c74d475d42e3fd5c24cbd8b8f92f2220dbb"
+    }
+  ],
+  "limits": [
+    "OfficeIMO-owned synthetic XLSX intake was imported, recalculated and saved natively in Numbers. The Numbers source and direct native XLSX export are independent producer references.",
+    "Both fresh Excel workbooks came from saved OfficeIMO conversion, with Calculate Now followed by local Save As. The edited case changed C2 from 10 to 40 before native Excel calculation.",
+    "The profile covers numeric aggregates, finite rectangular and single-cell references, literal and cell criteria, case-insensitive text, wildcards and escaped wildcards, zero and no matches, and IFERROR around an empty average.",
+    "Native source PDF and receiving Excel screenshots are inspected for content and values. This does not qualify exact destination typography or print layout.",
+    "Apple XLSX uses _xlfn aliases and single-cell array metadata. Comparisons normalize only the five qualified function-token aliases and retain raw native formula spelling separately.",
+    "Native cell-padding omission still requires the explicit partial editable policy. Formula qualification does not establish complete document fidelity.",
+    "The separate Excel intake has no cached formula results. Fresh native calculation qualifies typed #DIV/0! for empty AVERAGEIF/AVERAGEIFS, IFERROR fallback, IFNA propagation and ISERROR; IFNA uses the required _xlfn storage prefix.",
+    "The typed-error intake has 98 conditional cases and 397 uncached formulas including five error operands. Native Excel qualifies selected and unmatched errors, mixed numeric/error operands, typed error criteria versus ordinary error text, not-equal and wildcard/ordering criteria, no-match MINIFS/MAXIFS, and dependent IFERROR/IFNA/ISERROR results. MINIFS/MAXIFS use explicit _xlfn storage spelling.",
+    "Wider mixed-type coercion, Numbers native error mappings, unequal range shapes, whole axes, dynamic/named targets, localized criteria and other producer versions remain unqualified."
+  ]
+}

@@ -9,6 +9,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Examples](../OfficeIMO.Examples/README.md) — runnable examples across the package family.
 - [Agent plugin](../.agents/plugins/officeimo-document-tools/README.md) — local MCP and portable skills, Codex and Claude installation, authorized file access, and supported operations.
 - [Roadmap](ROADMAP.md) — the single backlog for open cross-package and product work.
+- [Apple iWork delivery plan](ROADMAP.md#apple-iwork) — package consumers, document fidelity, shared workflows, runtime acceptance and native creation/lifecycle milestones.
 - [Microsoft Project milestones](ROADMAP.md#microsoft-project-document-library) — planned XML/MPP/MPX lifecycle, scheduling, conversions, and acceptance evidence.
 - [Microsoft Access milestones](ROADMAP.md#microsoft-access-document-library) — native MDB/ACCDB lifecycle, application objects, VBA, integrations, and independent acceptance evidence.
 - [Access native API](../OfficeIMO.Access/README.md) and [support contract](../OfficeIMO.Access/SUPPORT.md) — MDB/ACCDB catalogs and typed rows, application/VBA inspection, unchanged preservation and seed-free creation.

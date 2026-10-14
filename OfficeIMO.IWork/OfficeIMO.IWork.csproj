@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Bounded Apple iWork package inspection, Pages/Numbers/Keynote source projections, and template-free native Keynote creation.</Description>
+    <Description>Bounded Apple iWork package inspection, source projections, template-free native Pages, Numbers and Keynote creation, and preservation-aware native saving.</Description>
     <AssemblyName>OfficeIMO.IWork</AssemblyName>
     <AssemblyTitle>OfficeIMO.IWork</AssemblyTitle>
     <VersionPrefix>3.4.5</VersionPrefix>
@@ -33,6 +33,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Excel.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />
+    <InternalsVisibleTo Include="OfficeIMO.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.Word.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" />

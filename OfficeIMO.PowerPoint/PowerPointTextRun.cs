@@ -63,7 +63,7 @@ namespace OfficeIMO.PowerPoint {
             get => RunProperties?.Bold?.Value == true;
             set {
                 A.RunProperties props = EnsureRunProperties();
-                props.Bold = value ? true : null;
+                props.Bold = value;
             }
         }
 
@@ -74,7 +74,7 @@ namespace OfficeIMO.PowerPoint {
             get => RunProperties?.Italic?.Value == true;
             set {
                 A.RunProperties props = EnsureRunProperties();
-                props.Italic = value ? true : null;
+                props.Italic = value;
             }
         }
 
@@ -343,8 +343,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string relationshipId;
-            if (ownerPart is NotesSlidePart
-                && !ReferenceEquals(_slidePart, targetSlidePart)) {
+            if (ownerPart is SlideLayoutPart or SlideMasterPart
+                || ownerPart is NotesSlidePart && !ReferenceEquals(_slidePart, targetSlidePart)) {
                 Uri targetUri = PowerPointHyperlinkResolver.CreatePartRelativeUri(
                     ownerPart, targetSlidePart);
                 HyperlinkRelationship relationship = ownerPart.HyperlinkRelationships

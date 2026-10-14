@@ -1,0 +1,430 @@
+{
+  "schemaVersion": 1,
+  "profile": "Non-tiered decimal body-list levels 0, 1 and 2",
+  "license": "MIT; newly authored OfficeIMO fixtures and derived evidence",
+  "application": {
+    "name": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79"
+  },
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "candidateBase": "c5d59490d9e90b5278f85ffd979736ceb10ff190",
+  "artifacts": {
+    "pages-third-level-created.docx": {
+      "path": "pages-third-level-created.docx",
+      "bytes": 21053,
+      "sha256": "7c1b87e44fce0ed24d09590ef4b7401062589430cfee42fd344a4a6cd281c960"
+    },
+    "pages-third-level-officeimo-docx-v15.4.pdf": {
+      "path": "pages-third-level-officeimo-docx-v15.4.pdf",
+      "bytes": 29095,
+      "sha256": "fa78c31dc76086c36c07a2efc8cd25fb27bb164c8bdbba9a0badbf5ecd40481c"
+    },
+    "pages-third-level-saved-v15.4.pages": {
+      "path": "pages-third-level-saved-v15.4.pages",
+      "bytes": 75513,
+      "sha256": "7e4c273343e1c34a5752f07bb4369c9ec9a052a240cb62fadade43315f5900e2"
+    },
+    "pages-third-level-saved-v15.4.docx": {
+      "path": "pages-third-level-saved-v15.4.docx",
+      "bytes": 9119,
+      "sha256": "7364a719db5d35e0a2b05c158d35b1f344c40070dd5dacc6c91cb2b06e53eba5"
+    },
+    "pages-third-level-edited-v15.4.pages": {
+      "path": "pages-third-level-edited-v15.4.pages",
+      "bytes": 78368,
+      "sha256": "b37a9b20f9bfed513498b70110d20ed8784b4b6513f17709dddb557b7fb0c1c0"
+    },
+    "pages-third-level-edited-v15.4.pdf": {
+      "path": "pages-third-level-edited-v15.4.pdf",
+      "bytes": 29626,
+      "sha256": "c6fc80ac24ebfe586cc600d5f34af9cde2f486c159173b6c6158f13dd5fefe5e"
+    },
+    "pages-third-level-edited-v15.4.docx": {
+      "path": "pages-third-level-edited-v15.4.docx",
+      "bytes": 9134,
+      "sha256": "9dc0a2f055af4498d48f3324e0d85fb30a73c30a6d862c7f6ecf6b27f0b7d2b8"
+    },
+    "pages-third-level-created.pages": {
+      "path": "pages-third-level-created.pages",
+      "bytes": 13763,
+      "sha256": "50a5285d449da02eef7682a6a18b1f7103f6192304cc1f3173c52cac5576f775"
+    },
+    "pages-third-level-saved-v15.4.pdf": {
+      "path": "pages-third-level-saved-v15.4.pdf",
+      "bytes": 28989,
+      "sha256": "2596b0448f340039329aba1fb13a400130581754ab6e0965333f01952bc6d546"
+    },
+    "pages-third-level-created-officeimo.pdf": {
+      "path": "pages-third-level-created-officeimo.pdf",
+      "bytes": 1337,
+      "sha256": "8a5689e9aae55dd8b38d0cb85c4f481dab16b7d3d477be1b3c6af3e326d97904"
+    },
+    "pages-third-level-edited-v15.4-officeimo.pdf": {
+      "path": "pages-third-level-edited-v15.4-officeimo.pdf",
+      "bytes": 1357,
+      "sha256": "9e3323c2bba300179fd5d8f91f890cf9862813a6bd5f4edac14363033cbda42f"
+    },
+    "pages-third-level-saved-v15.4-officeimo.pdf": {
+      "path": "pages-third-level-saved-v15.4-officeimo.pdf",
+      "bytes": 1337,
+      "sha256": "8a5689e9aae55dd8b38d0cb85c4f481dab16b7d3d477be1b3c6af3e326d97904"
+    },
+    "pages-third-level-independent-verification.json": {
+      "path": "pages-third-level-independent-verification.json",
+      "bytes": 4971,
+      "sha256": "6fd3ccba4ced0f2598acec1ad5ac3372d23d9181c69551ba17ef70fd26fd1aed"
+    },
+    "pages-third-level-receiving-app-comparison.json": {
+      "path": "pages-third-level-receiving-app-comparison.json",
+      "bytes": 181,
+      "sha256": "ef067d5bdadb9c4a9fdd9182921e7718b1dff5671086de73a2656f002dca0f05"
+    },
+    "pages-third-level-created-decode.json": {
+      "path": "pages-third-level-created-decode.json",
+      "bytes": 18841,
+      "sha256": "cff971f954da9e344c751a554e7e7ebfecc750781d91eb4aa5e7be8409ccc0a6"
+    },
+    "pages-third-level-open-v15.4.png": {
+      "path": "pages-third-level-open-v15.4.png",
+      "bytes": 84922,
+      "sha256": "35730cb437df92f1231117e4a174b23efd968605b785d2738e3be17b781be1c6"
+    },
+    "pages-third-level-officeimo-docx-v15.4.png": {
+      "path": "pages-third-level-officeimo-docx-v15.4.png",
+      "bytes": 84619,
+      "sha256": "5efb52a5d0db35bac5e8f38302c28d3a2e8261e29f3a05342b9a5121984bd445"
+    },
+    "pages-third-level-reopened-v15.4.png": {
+      "path": "pages-third-level-reopened-v15.4.png",
+      "bytes": 84599,
+      "sha256": "4de85142466953175aa34d130ebb499400fda7f5926922e81c915cfd16b243c8"
+    },
+    "pages-third-level-edited-v15.4.png": {
+      "path": "pages-third-level-edited-v15.4.png",
+      "bytes": 127582,
+      "sha256": "5669c89a65d3d218d1d0c5dfbe508a4a19448af47a86d05404c06fba3a8c4339"
+    },
+    "pages-third-level-edited-reopened-v15.4.png": {
+      "path": "pages-third-level-edited-reopened-v15.4.png",
+      "bytes": 86267,
+      "sha256": "19aecc4e3ede182911a83f5da5b3dd4dabd1d4316cc5f63011f33d1b94e5fd7b"
+    },
+    "pages-third-level-edited-v15.4-decode.json": {
+      "path": "pages-third-level-edited-v15.4-decode.json",
+      "bytes": 42688,
+      "sha256": "63e4936557ef1ccdaf44b70f49881e75b810905b89a58badc76a81c5282186de"
+    },
+    "pages-third-level-saved-v15.4-decode.json": {
+      "path": "pages-third-level-saved-v15.4-decode.json",
+      "bytes": 42298,
+      "sha256": "314304d2334be48d74b77fcf0232377498a06e305621699847ba4cd4761dc387"
+    }
+  },
+  "cases": [
+    {
+      "source": "pages-third-level-created.pages",
+      "nativePdf": null,
+      "officeimoPdf": "pages-third-level-created-officeimo.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Parent seven"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild one"
+        },
+        {
+          "level": 2,
+          "number": 2,
+          "text": "Grandchild two"
+        },
+        {
+          "level": 2,
+          "number": 3,
+          "text": "Grandchild continued three"
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Child two resets grandchild"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset one"
+        },
+        {
+          "level": 2,
+          "number": 5,
+          "text": "Grandchild restart five"
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Separate root three"
+        },
+        {
+          "level": 2,
+          "number": 6,
+          "text": "Resumed grandchild six"
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Parent eight resets descendants"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child reset one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset after root one"
+        },
+        {
+          "level": 0,
+          "number": 4,
+          "text": "Parent restart four"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child after restart one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild after restart one"
+        }
+      ]
+    },
+    {
+      "source": "pages-third-level-saved-v15.4.pages",
+      "nativePdf": "pages-third-level-saved-v15.4.pdf",
+      "officeimoPdf": "pages-third-level-saved-v15.4-officeimo.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Parent seven"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild one"
+        },
+        {
+          "level": 2,
+          "number": 2,
+          "text": "Grandchild two"
+        },
+        {
+          "level": 2,
+          "number": 3,
+          "text": "Grandchild continued three"
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Child two resets grandchild"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset one"
+        },
+        {
+          "level": 2,
+          "number": 5,
+          "text": "Grandchild restart five"
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Separate root three"
+        },
+        {
+          "level": 2,
+          "number": 6,
+          "text": "Resumed grandchild six"
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Parent eight resets descendants"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child reset one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset after root one"
+        },
+        {
+          "level": 0,
+          "number": 4,
+          "text": "Parent restart four"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child after restart one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild after restart one"
+        }
+      ]
+    },
+    {
+      "source": "pages-third-level-edited-v15.4.pages",
+      "nativePdf": "pages-third-level-edited-v15.4.pdf",
+      "officeimoPdf": "pages-third-level-edited-v15.4-officeimo.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Parent seven"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild one"
+        },
+        {
+          "level": 2,
+          "number": 2,
+          "text": "Grandchild two"
+        },
+        {
+          "level": 2,
+          "number": 3,
+          "text": "Grandchild continued three"
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Child two resets grandchild"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset one"
+        },
+        {
+          "level": 2,
+          "number": 5,
+          "text": "Grandchild restart five"
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Separate root three"
+        },
+        {
+          "level": 2,
+          "number": 6,
+          "text": "Resumed grandchild six"
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Parent eight resets descendants"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child reset one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset after root one"
+        },
+        {
+          "level": 0,
+          "number": 4,
+          "text": "Parent restart four"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child after restart one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild after restart one"
+        },
+        {
+          "level": 2,
+          "number": 2,
+          "text": "Native grandchild two"
+        }
+      ]
+    }
+  ],
+  "independent": {
+    "tool": "numbers-parser",
+    "version": "4.19.0",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+    "commands": [
+      "verify-pages-creation.py",
+      "extract-pages-list-profile.py",
+      "verify-pages-third-level.py"
+    ]
+  },
+  "nativeAcceptance": [
+    "Generated input opens without repair",
+    "Save, close and reopen preserve original counters",
+    "Insert Native grandchild two after the last level-2 item; counter 2 survives save, close and reopen",
+    "Native DOCX and best-quality PDF exports retain every expected item",
+    "Saved OfficeIMO DOCX opens without repair and renders the same complete page"
+  ],
+  "rendering": {
+    "allAffectedPagesInspected": true,
+    "nativeFont": "Arial 12 pt; marker and body",
+    "composedFont": "Arial maps to Helvetica under the portable PDF resource policy; explicit substitution diagnostic",
+    "nativeToOfficeimoDocx": {
+      "wordCount": 74,
+      "allTextAndOrderEqual": true,
+      "maximumWordBoundsDifferencePoints": 0.0,
+      "scope": "Pages 15.4 native versus OfficeIMO DOCX reimport, one page, Arial 12"
+    }
+  },
+  "limits": [
+    "The Pages accessibility text reports ordinal markers rather than the rendered list counters; native PDFs and screenshots are the counter oracle",
+    "One plain black, whole-point font profile and one Pages version",
+    "Higher levels, tiered numbering, other scripts, interacting indents and wider pagination remain unqualified",
+    "Source record-level fidelity remains unassessed; complete editable content does not assert full appearance equivalence",
+    "Prior 11-point marker reimport difference remains outside this Arial 12 profile"
+  ]
+}

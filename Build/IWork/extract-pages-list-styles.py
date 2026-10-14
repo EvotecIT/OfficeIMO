@@ -17,10 +17,14 @@ parser.add_argument('output', type=Path)
 args = parser.parse_args()
 assert version('numbers-parser') == '4.19.0'
 fixtures = {
-    'picodocs/sample-v14.4.pages': '4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce',
+    'picodocs/sample-v14.4.pages': ('4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce',
+                                 'First ordered item', 3),
+    'native-exports/pages-list-continuation-v15.4.pages': (
+        '4696ff27d21db00e93d7a7985aba09c22f5f483bf714ce97c680e1a5528a4d53',
+        'Native decimal list continuation', 7),
 }
 sources = []
-for name, expected_hash in fixtures.items():
+for name, (expected_hash, selected_text, expected_style_count) in fixtures.items():
     source = args.corpus / name
     source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
     assert source_hash == expected_hash
@@ -46,7 +50,7 @@ for name, expected_hash in fixtures.items():
         if kind != 2001:
             continue
         storage = StorageArchive.FromString(content)
-        if 'First ordered item' not in ''.join(storage.text):
+        if selected_text not in ''.join(storage.text):
             continue
         selections = []
         for entry in storage.table_list_style.entries:
@@ -78,11 +82,14 @@ for name, expected_hash in fixtures.items():
         storages.append({'identifier': storage_id, 'listSelections': selections,
                          'paragraphData': [{'characterOffset': e.character_index,
                                             'first': e.first, 'second': e.second}
-                                           for e in storage.table_para_data.entries]})
+                                           for e in storage.table_para_data.entries],
+                         'paragraphStarts': [{'characterOffset': e.character_index,
+                                              'first': e.first, 'second': e.second}
+                                             for e in storage.table_para_starts.entries]})
+    assert len(storages) == 1
+    assert len(selected_styles) == expected_style_count
     sources.append({'path': name, 'sha256': source_hash, 'storages': storages,
                     'selectedStyles': sorted(selected_styles.values(), key=lambda s: s['identifier'])})
-assert len(sources[0]['storages']) == 1
-assert len(sources[0]['selectedStyles']) == 3
 manifest = {'provider': 'numbers-parser', 'providerVersion': '4.19.0',
             'offsetUnit': 'UTF-16 code units before marker removal',
             'labelTypeNames': {str(v.number): v.name for v in
@@ -94,5 +101,5 @@ manifest = {'provider': 'numbers-parser', 'providerVersion': '4.19.0',
                                   'revision': '6d19ce365f64a6217791a9438c85f4b1851ca7e0',
                                   'source': 'src/lib/IWAParser.cpp',
                                   'contract': 'Storage field 6 entries select list levels from entry field 2 at field 1 character offsets.'},
-            'limits': 'Selected native declarations only. Paragraph-data first is the explicit list level; second semantics, restarts, continuation, tiered numbering and destination rendering are not qualified by this extraction.'}
+            'limits': 'Selected native declarations only. Paragraph-data first selects the explicit list level; starts and the observed restart flag require the paired Apple PDF/fixture qualification. This extraction alone does not qualify counter evaluation, tiered numbering or destination rendering.'}
 args.output.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')

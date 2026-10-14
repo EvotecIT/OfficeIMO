@@ -30,6 +30,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(comment.Text, destination.Text); Assert.Equal(comment.Author, destination.Author);
             Assert.Equal("A1", destination.CellReference);
             Assert.Equal(comment.CreationDateUtc, destination.Date);
+            Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out _));
         } else if (kind == IWorkDocumentKind.Pages) {
             using var source = CommentPackage(kind, empty: true);
             using var result = IWorkSourceDocument.Open(source, kind).ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });

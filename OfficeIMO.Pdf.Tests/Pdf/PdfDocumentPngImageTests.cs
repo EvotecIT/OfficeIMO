@@ -12,6 +12,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
+[Collection(PdfImagePreparationCacheCollection.Name)]
 public class PdfDocumentPngImageTests {
     [Fact]
     public void InlineImage_WithRgbaPng_ReusesPreparedStreamDuringSerialization() {

@@ -192,7 +192,8 @@ internal static partial class PdfWriter {
                 if (value.Length == 0) return;
                 var run = new PdfTextRun(value, segment.Bold, segment.Underline, ToPdfColor(segment.Color),
                     segment.Italic, segment.Strikethrough, size, ResolveDrawingTextFont(segment.FontFamily),
-                    linkUri: segment.LinkUri, backgroundColor: ToPdfColor(segment.BackgroundColor),
+                    linkUri: segment.LinkUri, linkDestinationName: segment.LinkDestinationName,
+                    backgroundColor: ToPdfColor(segment.BackgroundColor),
                     fontFamily: segment.FontFamily, underlineStyle: segment.UnderlineStyle,
                     strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor));
                 WriteDrawingPositionedRun(run, x, contentTopY - renderedBaseline, advance,
