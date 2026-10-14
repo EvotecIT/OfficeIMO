@@ -1,5 +1,6 @@
 using System.Globalization;
 using OfficeIMO.Internal;
+using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Invoicing;
 using OfficeIMO.Invoicing.Pdf;
 using OfficeIMO.Invoicing.Validation;
@@ -32,8 +33,7 @@ public sealed partial class InvoiceWorkbenchViewModel {
             string folder = !string.IsNullOrWhiteSpace(OutputFolder) ? OutputFolder
                 : CanWriteBesideInput ? Path.GetDirectoryName(OfficeStorageIdentity.GetLocalPath(InputPath))!
                 : throw new ArgumentException(T("OutputRequired", "Choose an output folder."));
-            output = _storage?.UsesProviderPublication(folder) == true ? folder
-                : Path.Combine(OfficeStorageIdentity.GetLocalPath(folder) ?? throw new ArgumentException(T("OutputRequired", "Choose an output folder.")), GetOutputName());
+            output = Path.Combine(StudioStorageAccess.RequireLocalOutputFolder(folder, _localizer), GetOutputName());
         }
         return new() {
             InputPath = InputPath, InputStream = _storage?.CreateWorkflowInput(InputPath), Operation = operation,

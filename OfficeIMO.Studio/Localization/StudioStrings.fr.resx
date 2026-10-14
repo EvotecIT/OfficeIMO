@@ -7176,4 +7176,5 @@ Option 2</value>
   <data name="Assembly.Status.Failed" xml:space="preserve">
     <value>Échec de l'assemblage</value>
   </data>
+  <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Choisissez un dossier de sortie local. Utilisez Enregistrer sous pour enregistrer des documents individuels dans le cloud.</value></data>
 </root>

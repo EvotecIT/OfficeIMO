@@ -51,7 +51,8 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_form_fields_json) X(officeimo_document_fill_form_json) X(officeimo_document_search_stream_json) \
     X(officeimo_document_save_copy) X(officeimo_document_save_protected_copy_json) X(officeimo_document_save_signed_copy_json) \
     X(officeimo_document_structure_json) X(officeimo_document_edit_json) X(officeimo_document_write_json) \
-    X(officeimo_document_check_json) X(officeimo_document_redact_json)
+    X(officeimo_document_check_json) X(officeimo_document_redact_json) \
+    X(officeimo_document_prepare_save) X(officeimo_document_acknowledge_save)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(&name) engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -246,6 +247,17 @@ int main(int argc, char **argv) {
     CHECK("undo repeated rotation", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "rotation", "90"), "repeated rotation undo not applied", json);
+    engine_officeimo_free(json);
+
+    uint8_t *prepared = NULL;
+    size_t prepared_length = 0;
+    CHECK("prepare host save", engine_officeimo_document_prepare_save(document, 0, &prepared, &prepared_length, &error), OFFICEIMO_OK);
+    expect(prepared && prepared_length > 5 && memcmp(prepared, "%PDF-", 5) == 0, "prepared save is not a PDF", NULL);
+    engine_officeimo_free(prepared);
+    CHECK("ignore unknown publication", engine_officeimo_document_acknowledge_save(document,
+          "0000000000000000000000000000000000000000000000000000000000000000", source, 0, &error), OFFICEIMO_OK);
+    json = facts(document);
+    expect(has(json, "isDirty", "true") && has(json, "canUndo", "true"), "preparation acknowledged an unpublished save", json);
     engine_officeimo_free(json);
 
     CHECK("undo", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);

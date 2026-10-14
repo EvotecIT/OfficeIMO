@@ -7176,4 +7176,5 @@ Opção 2</value>
   <data name="Assembly.Status.Failed" xml:space="preserve">
     <value>Falha na montagem</value>
   </data>
+  <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Escolha uma pasta de saída local. Use Salvar como para salvar documentos individuais na nuvem.</value></data>
 </root>

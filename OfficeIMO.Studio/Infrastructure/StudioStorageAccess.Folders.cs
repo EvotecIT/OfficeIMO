@@ -9,19 +9,11 @@ internal sealed partial class StudioStorageAccess {
     private readonly Dictionary<string, IStorageFolder> _folders = new(StringComparer.Ordinal);
     private readonly HashSet<IStorageFolder> _retiredFolders = new(ReferenceEqualityComparer.Instance);
 
-    private static async Task<IStorageFile?> FindFolderFileAsync(IStorageFolder folder, string name, CancellationToken token) {
-        token.ThrowIfCancellationRequested();
-        if (!OperatingSystem.IsIOS()) return await folder.GetFileAsync(name).ConfigureAwait(false);
-        // Avalonia's iOS enumeration carries the selected folder's security-scoped URL into
-        // each child. GetFileAsync currently drops that ancestor, so its streams lose access.
-        int count = 0;
-        await foreach (IStorageItem item in folder.GetItemsAsync().WithCancellation(token).ConfigureAwait(false)) {
-            if (++count > 10_000) { item.Dispose(); throw new IOException("The selected folder exceeds the supported entry limit."); }
-            if (item is IStorageFile file && string.Equals(item.Name, name, StringComparison.Ordinal)) return file;
-            item.Dispose();
-        }
-        return null;
+    internal bool OwnsProviderItem(IStorageItem item) {
+        lock (_sync) return _files.Values.Any(file => ReferenceEquals(file, item)) || _retiredFiles.Any(file => ReferenceEquals(file, item)) ||
+            _folders.Values.Any(folder => ReferenceEquals(folder, item)) || _retiredFolders.Any(folder => ReferenceEquals(folder, item));
     }
+
 
     internal bool IsKnownLocation(string location) {
         lock (_sync) return _references.ContainsKey(OfficeStorageIdentity.Normalize(location));

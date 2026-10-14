@@ -193,15 +193,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 runner: _services.ConversionRunner,
                 localizer: _localizer,
                 publicationGuard: publicationGuard,
-                jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
+                jobHistory: _services.Jobs, storage: _services.Storage,
                 openOutput: openWorkflowOutput,
                 pickPackage: token => FileDialogs.PickFolderAsync(_localizer.GetOrDefault("Conversion.Package.Picker", "Choose an Apple document package"), token));
             InvoiceWorkbench = new InvoiceWorkbenchViewModel(
                 token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseInput", "Choose invoice XML"),
                     new StudioFileType("Invoice XML", ["xml"], "application/xml"), token),
                 _pickOutputFolder, runner: null, localizer: _localizer, storage: _services.Storage, guard: publicationGuard,
-                jobs: _services.Jobs, recovery: _services.WorkflowRecovery,
-                confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput,
+                jobs: _services.Jobs, openOutput: openWorkflowOutput,
                 pickFont: token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseFontTitle", "Choose a font to embed"),
                     new StudioFileType(_localizer.GetOrDefault("Invoice.FontFiles", "Fonts"), ["ttf", "otf"], "font/ttf"), token));
             OutputWorkbench = new OutputIntakeWorkbenchViewModel(
@@ -218,7 +217,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             ProvenanceWorkbench = new ProvenanceWorkbenchViewModel(pickProvenanceFile ?? _pickPdf, _pickOutputFolder, runner: null,
                 publicationGuard: publicationGuard, jobHistory: _services.Jobs);
             DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
-                publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
+                publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage);
             OcrWorkbench = new SearchablePdfOcrViewModel(
                 _pickPdf,
                 _pickOutputFolder,
@@ -231,8 +230,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory,
                 token => FileDialogs.PickOpenFileAsync(_localizer.Get("OcrSetup.ChooseExecutable"), StudioFileType.Any("Tesseract"), token), _services.Ocr);
             OcrSession = new OcrSessionViewModel(pickOcrFiles ?? pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>([])),
-                _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, _services.WorkflowRecovery,
-                publicationGuard, confirmWorkflowProviderWrite ?? _confirmProviderWrite,
+                _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, publicationGuard,
                 createEngine: StudioDistributionPolicy.ExternalToolsAllowed ? _services.Ocr.CreateEngineAsync : null, openOutput: openWorkflowOutput);
             OcrReadiness = new OcrReadinessViewModel(_services.Preferences, _localizer);
             OcrSession.Readiness = OcrReadiness;

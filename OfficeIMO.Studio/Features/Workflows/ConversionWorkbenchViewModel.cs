@@ -17,8 +17,6 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
     private readonly StudioStorageAccess? _storage;
-    private readonly OfficeWorkflowOutputRecoveryStore? _recoveryStore;
-    private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private readonly Func<string, CancellationToken, Task>? _openOutput;
     private CancellationTokenSource? _cancellation;
 
@@ -35,7 +33,6 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
         StudioStorageAccess? storage = null,
-        OfficeWorkflowOutputRecoveryStore? recoveryStore = null, Func<string, Task<bool>>? confirmProviderWrite = null,
         Func<string, CancellationToken, Task>? openOutput = null,
         Func<CancellationToken, Task<string?>>? pickPackage = null) {
         _pickFiles = pickFiles;
@@ -54,8 +51,6 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         };
         _jobHistory = jobHistory;
         _storage = storage;
-        _recoveryStore = recoveryStore;
-        _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
         _openOutput = openOutput;
         Routes = _runner.ConversionRoutes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
         Profiles = [
@@ -130,9 +125,8 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     public bool CanRun => CanEditQueue && Jobs.Any(job => job.State == ConversionJobState.Queued);
     public bool CanRetryFailed => CanEditQueue && Jobs.Any(job => job.CanRetry);
     public bool CanCancel => IsBusy;
-    public bool CanChooseConflictPolicy => string.IsNullOrWhiteSpace(OutputFolder) || _storage?.UsesProviderPublication(OutputFolder) != true;
+    public bool CanChooseConflictPolicy => string.IsNullOrWhiteSpace(OutputFolder) || OfficeStorageIdentity.GetLocalPath(OutputFolder) is not null;
     partial void OnOutputFolderChanged(string value) {
-        if (!CanChooseConflictPolicy) SelectedConflict = ConflictPolicies.Single(choice => choice.Value == OfficeWorkflowConflictPolicy.Replace);
         OnPropertyChanged(nameof(CanChooseConflictPolicy));
     }
     public bool CanEditQueue => !IsBusy && !BatchExport.IsBusy;
@@ -322,23 +316,14 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         ForgetLoss(candidates);
         var history = new Dictionary<string, StudioJobRecord>(StringComparer.Ordinal);
         bool ownerStarted = false;
-        StudioStorageAccess.DirectoryOutputSession? directoryOutput = null;
         StudioStorageAccess.DirectoryInputSession? directoryInputs = null;
 
         try {
             directoryInputs = _storage?.CreateDirectoryInputs(candidates.Select(job => job.InputPath));
             string folder = OutputFolder;
-            if (!string.IsNullOrWhiteSpace(folder) && _storage?.UsesProviderPublication(folder) == true) {
-                if (!await _confirmProviderWrite(folder).ConfigureAwait(true)) {
-                    Status = T("Queue.Cancelled", "Conversion cancelled before publishing.");
-                    return;
-                }
-                operationCancellation.Token.ThrowIfCancellationRequested();
-                directoryOutput = _storage.CreateDirectoryOutput(folder, _recoveryStore
-                    ?? throw new IOException("Workflow recovery storage is unavailable."));
-            }
+            if (!string.IsNullOrWhiteSpace(folder)) folder = StudioStorageAccess.RequireLocalOutputFolder(folder, _localizer);
             var requests = new List<OfficeWorkflowRequest>(candidates.Length);
-            foreach (var candidate in candidates) requests.Add(await CreateRequestAsync(candidate, conversionOptions[candidate.Id], registeredSettings[candidate.Id], conflictPolicy, folder, directoryOutput, directoryInputs, operationCancellation.Token).ConfigureAwait(true));
+            foreach (var candidate in candidates) requests.Add(CreateRequest(candidate, conversionOptions[candidate.Id], registeredSettings[candidate.Id], conflictPolicy, folder, directoryInputs, operationCancellation.Token));
             if (_jobHistory is not null) {
                 foreach (OfficeWorkflowRequest request in requests) {
                     history.Add(request.Id, _jobHistory.Start(T("Job.Title", "Conversion"), request.InputPath,
@@ -402,8 +387,6 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         } finally {
             try { directoryInputs?.Dispose(); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status += " " + error.Message; }
-            try { directoryOutput?.Dispose(); }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status += " " + error.Message; }
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operationCancellation)) _cancellation = null;
             operationCancellation.Dispose();
@@ -420,18 +403,17 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         ClearOutputPreview();
     }
 
-    private async Task<OfficeWorkflowRequest> CreateRequestAsync(ConversionJobViewModel job, OfficeWorkflowConversionOptions options, IOfficeWorkflowConversionSettings? registeredSettings, OfficeWorkflowConflictPolicy conflictPolicy, string folder, StudioStorageAccess.DirectoryOutputSession? directoryOutput, StudioStorageAccess.DirectoryInputSession? directoryInputs, CancellationToken token) {
+    private OfficeWorkflowRequest CreateRequest(ConversionJobViewModel job, OfficeWorkflowConversionOptions options, IOfficeWorkflowConversionSettings? registeredSettings, OfficeWorkflowConflictPolicy conflictPolicy, string folder, StudioStorageAccess.DirectoryInputSession? directoryInputs, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(folder) && _storage?.UsesProviderPublication(job.InputPath) == true) {
             throw new InvalidOperationException(T("Output.ProviderFolderRequired", "Choose an output folder before converting provider documents."));
         }
         string directory = string.IsNullOrWhiteSpace(folder)
             ? Path.GetDirectoryName(job.InputPath)!
-            : directoryOutput is null ? Path.GetFullPath(folder) : folder;
-        string outputPath = directoryOutput is not null ? folder : Path.Combine(
+            : StudioStorageAccess.RequireLocalOutputFolder(folder, _localizer);
+        string outputPath = Path.Combine(
             directory,
             Path.GetFileNameWithoutExtension(job.FileName) + NormalizeExtension(job.Route.Route.TargetExtension));
-        OfficeWorkflowDirectoryOutputFile? providerFile = directoryOutput is null ? null
-            : await directoryOutput.ResolveAsync(Path.GetFileNameWithoutExtension(job.FileName) + NormalizeExtension(job.Route.Route.TargetExtension), token).ConfigureAwait(true);
         OfficeWorkflowDirectoryPackageInput? package = directoryInputs?.CreatePackageInput(job.InputPath);
         return new OfficeWorkflowRequest {
             Id = job.Id,
@@ -439,14 +421,13 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             InputPath = job.InputPath,
             InputStream = package is null ? _storage?.CreateWorkflowInput(job.InputPath) : null,
             InputDirectoryPackage = package,
-            OutputPath = providerFile?.Location ?? outputPath,
-            OutputStream = providerFile?.Output,
+            OutputPath = outputPath,
             ConversionRouteId = job.Route.Route.Id,
             OutputProfile = job.OutputProfile,
             ConversionOptions = options,
             RegisteredConversionSettings = registeredSettings,
             PublicationGuard = _publicationGuard,
-            ConflictPolicy = providerFile is null ? conflictPolicy : OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = conflictPolicy
         };
     }
 

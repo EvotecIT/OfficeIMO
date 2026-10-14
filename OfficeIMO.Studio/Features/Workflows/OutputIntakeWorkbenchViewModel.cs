@@ -37,7 +37,7 @@ public sealed partial class OutputIntakeWorkbenchViewModel : ObservableObject, I
         Func<CancellationToken, Task<string?>>? pickPrintOutput = null) {
         localizer ??= StudioLocalization.Current;
         PrintPreview = new PrintPreviewViewModel(pickPdf, localizer, storage, readPrintSnapshot, pickPrintFile: pickPrintOutput, jobHistory: jobHistory);
-        PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage, recoveryStore: recoveryStore, confirmProviderWrite: confirmProviderWrite);
+        PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage);
         Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage,
             recoveryStore: recoveryStore, confirmProviderWrite: confirmProviderWrite);
         PrintPreview.PropertyChanged += OnChildPropertyChanged;

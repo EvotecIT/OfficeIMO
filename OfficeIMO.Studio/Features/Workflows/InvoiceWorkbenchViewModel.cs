@@ -19,8 +19,6 @@ public sealed partial class InvoiceWorkbenchViewModel : ObservableObject, IDispo
     private readonly StudioStorageAccess? _storage;
     private readonly IOfficeWorkflowPublicationGuard? _guard;
     private readonly StudioJobHistory? _jobs;
-    private readonly OfficeWorkflowOutputRecoveryStore? _recovery;
-    private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private readonly Func<string, CancellationToken, Task>? _openOutput;
     private CancellationTokenSource? _cancellation;
     private bool _disposed;
@@ -33,12 +31,11 @@ public sealed partial class InvoiceWorkbenchViewModel : ObservableObject, IDispo
     internal InvoiceWorkbenchViewModel(Func<CancellationToken, Task<string?>> pickInvoice,
         Func<CancellationToken, Task<string?>> pickFolder, IOfficeInvoiceWorkflowRunner? runner,
         IStudioLocalizer? localizer, StudioStorageAccess? storage = null, IOfficeWorkflowPublicationGuard? guard = null,
-        StudioJobHistory? jobs = null, OfficeWorkflowOutputRecoveryStore? recovery = null,
-        Func<string, Task<bool>>? confirmProviderWrite = null, Func<string, CancellationToken, Task>? openOutput = null,
+        StudioJobHistory? jobs = null, Func<string, CancellationToken, Task>? openOutput = null,
         Func<CancellationToken, Task<string?>>? pickFont = null) {
         _pickInvoice = pickInvoice; _pickFolder = pickFolder; _runner = runner ?? new OfficeWorkflowRunner();
-        _localizer = localizer ?? StudioLocalization.Current; _storage = storage; _guard = guard; _jobs = jobs; _recovery = recovery;
-        _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false)); _openOutput = openOutput; _pickFont = pickFont;
+        _localizer = localizer ?? StudioLocalization.Current; _storage = storage; _guard = guard; _jobs = jobs;
+        _openOutput = openOutput; _pickFont = pickFont;
         Operations = [
             new(OfficeInvoiceWorkflowOperation.Inspect, T("Inspect", "Inspect")),
             new(OfficeInvoiceWorkflowOperation.Validate, T("Validate", "Validate")),

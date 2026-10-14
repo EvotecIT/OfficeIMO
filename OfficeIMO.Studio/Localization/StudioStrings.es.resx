@@ -7176,4 +7176,5 @@ Opción 2</value>
   <data name="Assembly.Status.Failed" xml:space="preserve">
     <value>Falló el ensamblado</value>
   </data>
+  <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Elige una carpeta local de salida. Usa Guardar como para guardar documentos individuales en la nube.</value></data>
 </root>

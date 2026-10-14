@@ -106,40 +106,27 @@ public sealed class InvoiceWorkbenchTests {
         Assert.True(runner.Token.IsCancellationRequested); Assert.False(model.IsBusy); Assert.False(model.HasOutput);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ProviderPublicationUsesConfirmedCapturedEditsAndRecoveryBeforeCreatingAFile(bool consent) {
+    [Fact]
+    public async Task ProviderFolderOutputIsRejectedBeforePublishingInvoice() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "source.xml");
             byte[] original = InvoiceSample.Create(); File.WriteAllBytes(source, original);
-            var folder = new StudioProviderOutputFolderTests.OutputFolder {
-                BeforeCreate = () => Assert.NotEmpty(Directory.GetFiles(services.WorkflowRecovery.DirectoryPath, "record.json", SearchOption.AllDirectories))
-            };
+            var folder = new StudioProviderOutputFolderTests.OutputFolder();
             string location = (await services.Storage.RegisterFolderAsync([folder.Item], default))!;
-            InvoiceWorkbenchViewModel? model = null;
-            using var shell = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
-                confirmProviderWrite: _ => {
-                    // A confirmation callback can yield while other host code changes observable properties.
-                    model!.EditNumber = "CHANGED-DURING-CONSENT"; model.InputPath = "changed.xml";
-                    model.OutputFolder = "changed-folder"; model.SelectedOperation = model.Operations[0];
-                    return Task.FromResult(consent);
-                });
-            model = shell.InvoiceWorkbench; model.InputPath = source; model.OutputFolder = location;
-            model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.EditSource);
-            model.EditNumber = "CAPTURED";
+            using var shell = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            var model = shell.InvoiceWorkbench;
+            model.InputPath = source; model.OutputFolder = location;
+            model.SelectedOperation = model.Operations.Single(item => item.Value == OfficeInvoiceWorkflowOperation.EditSource);
+            model.EditNumber = "INV-EDITED";
             await model.RunCommand.ExecuteAsync(null);
-            Assert.Equal(consent ? 1 : 0, folder.Creations); Assert.Equal(consent, model.HasOutput);
-            if (consent) {
-                var file = Assert.Single(folder.Files).Value;
-                Assert.Equal("CAPTURED", InvoiceSourceDocument.Load(file.Bytes).Number);
-                Assert.Equal("source.edited.xml", file.Name); Assert.Equal(file.Location.AbsoluteUri, model.OutputPath);
-                Assert.Equal(OfficeWorkflowStatus.Completed, Assert.Single(services.Jobs.Entries).Outcome);
-            } else Assert.Empty(services.Jobs.Entries);
-            Assert.Equal(original, File.ReadAllBytes(source)); Assert.Empty(services.WorkflowRecovery.GetRecoveries());
+            Assert.Equal(services.Localizer.Get("Output.LocalFolderRequired"), model.Status);
+            Assert.Equal(0, folder.Creations);
+            Assert.Empty(folder.Files);
+            Assert.Empty(services.Jobs.Entries);
+            Assert.Equal(original, File.ReadAllBytes(source));
             return true;
         }, CancellationToken.None);
     }

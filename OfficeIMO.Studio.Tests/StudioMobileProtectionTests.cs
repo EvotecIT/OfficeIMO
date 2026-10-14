@@ -25,12 +25,10 @@ public sealed class StudioMobileProtectionTests {
                 var paths = new StudioDataPaths(Path.Combine(root, "data"));
                 var documents = new StudioLocalDocumentRoot(Path.Combine(root, "documents"));
                 var services = StudioApplicationServices.Create(paths, documents);
-                var output = new TestStorageFile("content://mobile/saved.pdf", [], "saved.pdf");
-                var folder = new StudioProviderOutputFolderTests.OutputFolder(hierarchical: true);
-                if (existing) folder.Files[output.Name] = output;
+                var output = new TestStorageFile("content://mobile/saved.pdf", existing ? StudioProviderDocumentTests.CreatePdf(2) : [], "saved.pdf");
                 var provider = DispatchProxy.Create<IStorageProvider, TestStorageFile.StorageProxy>();
                 ((TestStorageFile.StorageProxy)(object)provider).Call = (method, _) => method switch {
-                    "OpenFolderPickerAsync" => Task.FromResult<IReadOnlyList<IStorageFolder>>([folder.Item]),
+                    "SaveFilePickerAsync" => Task.FromResult<IStorageFile?>(output.Item),
                     _ => throw new NotSupportedException(method)
                 };
                 var view = new MobileWorkspaceView();
@@ -44,12 +42,9 @@ public sealed class StudioMobileProtectionTests {
                     string originalPath = controller.Document.DocumentPath!;
                     byte[] original = File.ReadAllBytes(originalPath);
                     Task saving = controller.Document.SaveAsCommand.ExecuteAsync(null);
-                    await ChooseName(window, view, saving, output.Name);
                     var confirmation = await WaitForDialog<ProviderSaveDialogContent>(view, saving, () => controller.Document.ErrorMessage);
                     Click(window, confirmation, services.Localizer.Get("Common.Save"));
                     await saving;
-                    output = folder.Files["saved.pdf"];
-                    Assert.Equal(existing ? 0 : 1, folder.Creations);
                     Assert.False(controller.Document.HasError, controller.Document.ErrorMessage);
                     Assert.Equal(output.Location.AbsoluteUri, controller.Document.DocumentPath);
                     Assert.Equal(original, File.ReadAllBytes(originalPath));
@@ -88,12 +83,10 @@ public sealed class StudioMobileProtectionTests {
             await session.Dispatch(async () => {
                 var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "data")),
                     new StudioLocalDocumentRoot(Path.Combine(root, "documents")));
-                var output = new TestStorageFile("content://mobile/protected.pdf", [], "protected.pdf");
-                var folder = new StudioProviderOutputFolderTests.OutputFolder(hierarchical: true);
-                if (existing) folder.Files[output.Name] = output;
+                var output = new TestStorageFile("content://mobile/protected.pdf", existing ? StudioProviderDocumentTests.CreatePdf(2) : [], "protected.pdf");
                 var provider = DispatchProxy.Create<IStorageProvider, TestStorageFile.StorageProxy>();
                 ((TestStorageFile.StorageProxy)(object)provider).Call = (method, _) => method switch {
-                    "OpenFolderPickerAsync" => Task.FromResult<IReadOnlyList<IStorageFolder>>([folder.Item]),
+                    "SaveFilePickerAsync" => Task.FromResult<IStorageFile?>(output.Item),
                     _ => throw new NotSupportedException(method)
                 };
                 var view = new MobileWorkspaceView();
@@ -111,7 +104,6 @@ public sealed class StudioMobileProtectionTests {
                     document.ProtectUserPassword = document.ProtectConfirmPassword = "reader";
                     document.ProtectOwnerPassword = "owner";
                     Task save = document.SaveProtectedCopyCommand.ExecuteAsync(null);
-                    await ChooseName(window, view, save, output.Name);
                     var confirm = await WaitForDialog<ProviderSaveDialogContent>(view, save, () => document.ErrorMessage);
                     Click(window, confirm, services.Localizer.Get("Common.Save"));
                     var review = await WaitForDialog<PdfProtectionDialogContent>(view, save, () => document.ErrorMessage);
@@ -122,8 +114,6 @@ public sealed class StudioMobileProtectionTests {
                     await WaitUntil(() => view.FindControl<ContentControl>("DialogContent")!.Content is PdfProtectionDialogContent {
                         DataContext: PdfProtectionPreviewViewModel { HasResult: true }
                     }, save, () => document.ErrorMessage);
-                    output = folder.Files["protected.pdf"];
-                    Assert.Equal(existing ? 0 : 1, folder.Creations);
                     Assert.Equal(3, PdfDocument.Load(output.Bytes, new PdfLoadOptions { Password = "reader" }).Inspect().Pages.Count);
                     Assert.Equal(original, File.ReadAllBytes(document.DocumentPath!));
                     Click(window, (Control)view.FindControl<ContentControl>("DialogContent")!.Content!, services.Localizer.Get("Common.Close"));
@@ -162,11 +152,39 @@ public sealed class StudioMobileProtectionTests {
         } finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 
-    private static async Task ChooseName(Window window, MobileWorkspaceView view, Task operation, string name) {
-        var dialog = await WaitForDialog<MobileFileNameDialogContent>(view, operation, () => null);
-        window.UpdateLayout();
-        Assert.Single(dialog.GetVisualDescendants().OfType<TextBox>()).Text = name;
-        Click(window, dialog, "Choose folder");
+    [Fact]
+    public async Task DecliningProviderPublicationDoesNotOpenTheExportBasedSavePicker() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            string root = ((App)Application.Current!).Services.Paths.Root;
+            var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "mobile-consent")),
+                new StudioLocalDocumentRoot(Path.Combine(root, "mobile-documents")));
+            var output = new TestStorageFile("content://mobile/existing.pdf", StudioProviderDocumentTests.CreatePdf(2), "existing.pdf");
+            byte[] previous = output.Bytes.ToArray();
+            int selections = 0;
+            var provider = DispatchProxy.Create<IStorageProvider, TestStorageFile.StorageProxy>();
+            ((TestStorageFile.StorageProxy)(object)provider).Call = (method, _) => {
+                Assert.Equal("SaveFilePickerAsync", method);
+                selections++;
+                return Task.FromResult<IStorageFile?>(output.Item);
+            };
+            var view = new MobileWorkspaceView();
+            using var controller = new MobileDocumentController(services, _ => Task.FromResult<IStorageFile?>(null),
+                _ => Task.CompletedTask, new MobileDocumentHost(services, view, _ => Task.CompletedTask, () => provider));
+            view.Connect(controller);
+            var window = new Window { Content = view, Width = 1024, Height = 768 };
+            try {
+                window.Show();
+                await controller.OpenSampleAsync();
+                Task saving = controller.Document.SaveAsCommand.ExecuteAsync(null);
+                var confirmation = await WaitForDialog<ProviderSaveDialogContent>(view, saving, () => controller.Document.ErrorMessage);
+                Click(window, confirmation, services.Localizer.Get("Common.Cancel"));
+                await saving;
+                Assert.Equal(0, selections);
+                Assert.Equal(previous, output.Bytes);
+            } finally { window.Close(); services.Storage.Dispose(); }
+            return true;
+        }, CancellationToken.None);
     }
 
     private static async Task<T> WaitForDialog<T>(MobileWorkspaceView view, Task operation, Func<string?> error) where T : Control {

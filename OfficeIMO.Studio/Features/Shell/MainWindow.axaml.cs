@@ -623,15 +623,16 @@ public sealed partial class MainWindow : Window {
     private Task<bool> ConfirmProviderWriteAsync(string location) =>
         !_services.Storage.UsesProviderPublication(location) ? Task.FromResult(true)
             : new ProviderSaveDialog(_services.Storage.Describe(location).Name, _services.Localizer).ShowDialog<bool>(this);
-    private async Task<string?> PickOutputFolderAsync(CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
+    private Task<string?> PickOutputFolderAsync(CancellationToken cancellationToken) => PickFileSafelyAsync(async token => {
+        token.ThrowIfCancellationRequested();
         if (!PickerAvailable(StorageProvider.CanPickFolder)) return null;
         IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions {
             Title = _services.Localizer.Get("Picker.ChooseOutputFolder"),
             AllowMultiple = false
         });
-        return await _services.Storage.RegisterFolderAsync(folders, cancellationToken).ConfigureAwait(true);
-    }
+        string? location = await _services.Storage.RegisterFolderAsync(folders, token).ConfigureAwait(true);
+        return location is null ? null : StudioStorageAccess.RequireLocalOutputFolder(location, _services.Localizer);
+    }, cancellationToken);
 
     private async Task<byte[]?> PickImageAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();

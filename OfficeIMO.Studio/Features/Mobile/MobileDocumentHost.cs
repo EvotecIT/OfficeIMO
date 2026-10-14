@@ -25,14 +25,16 @@ internal sealed partial class MobileDocumentHost(
 
     public async Task<string?> PickSaveFileAsync(string title, string suggestedName, StudioFileType type, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        // UIKit's export-based save picker publishes a placeholder immediately. Select a folder
-        // and defer file creation to the shared verified publication path instead.
-        string? name = await ShowAsync<string>(new MobileFileNameDialogContent(title, suggestedName, type, services.Localizer));
-        if (name is null) return null;
-        string? folder = await PickFolderAsync(title, cancellationToken);
-        if (folder is null) return null;
-        string location = await services.Storage.SelectFileDestinationAsync(folder, name, cancellationToken);
-        return await ConfirmWriteAsync(location) ? location : null;
+        // UIKit's export picker may publish a placeholder while selecting the destination. Obtain consent first.
+        if (!await ShowAsync<bool>(new ProviderSaveDialogContent(suggestedName, services.Localizer))) return null;
+        cancellationToken.ThrowIfCancellationRequested();
+        IStorageFile? file = await Provider.SaveFilePickerAsync(new FilePickerSaveOptions {
+            Title = title, SuggestedFileName = suggestedName,
+            DefaultExtension = type.Extensions.FirstOrDefault(value => value != "*"),
+            FileTypeChoices = [ToFilter(type)]
+        });
+        string? location = await services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken);
+        return location;
     }
 
     public async Task<string?> PickFolderAsync(string title, CancellationToken cancellationToken) {

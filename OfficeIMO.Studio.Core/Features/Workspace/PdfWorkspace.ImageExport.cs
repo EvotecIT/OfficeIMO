@@ -6,21 +6,13 @@ namespace OfficeIMO.Studio.Features.Workspace;
 internal sealed partial class PdfWorkspace {
     private async Task<int> ExportImagesAsync(PdfDocument snapshot, string destination, CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress) {
-        // A provider folder (Files on iPad, a sandboxed Mac folder) grants no file-system access of its own: images are
-        // staged in the app's temporary storage and each one is published as a new child of the selected folder.
-        bool provider = _storage.UsesProviderPublication(destination);
-        string? localFolder = null;
-        if (!provider) {
-            localFolder = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(destination)
-                ?? throw new IOException("Choose a folder on this computer to save the images.");
-            Directory.CreateDirectory(localFolder);
-        }
-        string folderName = localFolder ?? _storage.Describe(destination).Name;
+        string localFolder = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(destination)
+            ?? throw new IOException("Choose a local output folder to save multiple images.");
+        Directory.CreateDirectory(localFolder);
+        string folderName = localFolder;
         string stagingDirectory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create(
             ".officeimo-image-export-", localFolder);
-        async Task<bool> IsTakenAsync(string name) => provider
-            ? await _storage.FolderContainsAsync(destination, name, cancellationToken).ConfigureAwait(false)
-            : File.Exists(System.IO.Path.Combine(localFolder!, name)) || Directory.Exists(System.IO.Path.Combine(localFolder!, name));
+        bool IsTaken(string name) => File.Exists(System.IO.Path.Combine(localFolder, name)) || Directory.Exists(System.IO.Path.Combine(localFolder, name));
         var staged = new List<(string Path, int PageNumber, string Extension)>();
         try {
             // The snapshot owns one immutable PDF buffer. Visit writes each extracted image to
@@ -55,7 +47,7 @@ internal sealed partial class PdfWorkspace {
                 }
                 bool free = true;
                 foreach (string name in names) {
-                    if (!await IsTakenAsync(name).ConfigureAwait(false)) continue;
+                    if (!IsTaken(name)) continue;
                     free = false;
                     break;
                 }
@@ -66,9 +58,7 @@ internal sealed partial class PdfWorkspace {
                 for (int index = 0; index < staged.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     string stagedPath = staged[index].Path;
-                    string target = provider
-                        ? await _storage.SelectNewFileAsync(destination, names[index], cancellationToken).ConfigureAwait(false)
-                        : System.IO.Path.Combine(localFolder!, names[index]);
+                    string target = System.IO.Path.Combine(localFolder, names[index]);
                     await WriteWorkspaceOutputAsync(target,
                         async (stream, token) => {
                             using var source = new FileStream(stagedPath, FileMode.Open, FileAccess.Read, FileShare.Read);

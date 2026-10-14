@@ -7176,4 +7176,5 @@ Opcja 2</value>
   <data name="Assembly.Status.Failed" xml:space="preserve">
     <value>Łączenie nie powiodło się</value>
   </data>
+  <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Wybierz lokalny folder wyjściowy. Aby zapisywać pojedyncze dokumenty w chmurze, użyj opcji Zapisz jako.</value></data>
 </root>

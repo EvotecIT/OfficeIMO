@@ -39,7 +39,8 @@ internal sealed partial class StudioStorageAccess {
         token.ThrowIfCancellationRequested();
         OfficeMacFilePermission? permission = OpenNativePermission(location);
         try {
-            IStorageFile file = await ResolveForWriteAsync(location, token).ConfigureAwait(false);
+            IStorageFile file = await ResolveAsync(location, token).ConfigureAwait(false)
+                ?? throw new IOException("The storage provider is unavailable. Select the destination again.");
             token.ThrowIfCancellationRequested();
             Stream stream = await file.OpenWriteAsync().ConfigureAwait(false);
             try { token.ThrowIfCancellationRequested(); }

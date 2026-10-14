@@ -37,16 +37,6 @@ internal class StudioDocumentStorage : IDisposable {
     internal virtual Task<Stream> OpenWriteAsync(string location, CancellationToken token) =>
         throw new IOException("The storage provider is unavailable. Select the destination again.");
 
-    /// <summary>Whether a selected provider folder already has a child with this name.</summary>
-    internal virtual Task<bool> FolderContainsAsync(string folderLocation, string name, CancellationToken token) =>
-        throw new IOException("The storage provider is unavailable. Select the folder again.");
-
-    /// <summary>
-    /// Names a new file in a selected provider folder. The provider creates it only when it is published, and publication
-    /// fails rather than replacing a file that appears in the meantime.
-    /// </summary>
-    internal virtual Task<string> SelectNewFileAsync(string folderLocation, string name, CancellationToken token) =>
-        throw new IOException("The storage provider is unavailable. Select the folder again.");
     internal virtual string OpenedIdentity(string location, Stream stream) {
         string? path = OfficeStorageIdentity.GetLocalPath(location);
         if (path is null) return OfficeStorageIdentity.Normalize(location);

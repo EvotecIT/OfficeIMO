@@ -7176,4 +7176,5 @@ Option 2</value>
   <data name="Assembly.Status.Failed" xml:space="preserve">
     <value>Zusammenstellung fehlgeschlagen</value>
   </data>
+  <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Wähle einen lokalen Ausgabeordner. Um einzelne Dokumente in der Cloud zu speichern, verwende Speichern unter.</value></data>
 </root>

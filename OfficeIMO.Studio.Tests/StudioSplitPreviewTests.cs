@@ -67,43 +67,29 @@ public sealed class StudioSplitPreviewTests {
         }, CancellationToken.None);
     }
 
-    [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task ProviderSplitRequiresConsentAndRetainsVerifiedFilesAndRecovery(bool consent, bool failSecond) {
+    [Fact]
+    public async Task SplitRejectsProviderFoldersBeforePreviewOrPublication() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "source.pdf");
             CreatePdf().Save(source);
-            var folder = new StudioProviderOutputFolderTests.OutputFolder { FailSecondCreation = failSecond };
-            string? selected = await services.Storage.RegisterFolderAsync([folder.Item], default);
-            PageSplitPreviewViewModel? completed = null;
-            string? opened = null;
+            byte[] original = File.ReadAllBytes(source);
+            var folder = new StudioProviderOutputFolderTests.OutputFolder();
+            string selected = (await services.Storage.RegisterFolderAsync([folder.Item], default))!;
+            bool previewed = false;
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
-                pickOutputFolder: _ => Task.FromResult(selected), reviewPageSplit: preview => { preview.PagesPerPart = "2"; return Task.FromResult(true); },
-                confirmProviderWrite: _ => Task.FromResult(consent),
-                showPageSplitResult: result => { completed = result; return Task.CompletedTask; },
-                openDocumentInTab: (path, _) => { opened = path; return Task.CompletedTask; });
+                pickOutputFolder: _ => Task.FromResult<string?>(selected),
+                reviewPageSplit: _ => { previewed = true; return Task.FromResult(true); });
             await model.OpenDocumentAsync(source);
             await model.SplitCommand.ExecuteAsync(null);
-            if (!consent) {
-                Assert.Equal(0, folder.Creations); Assert.Empty(services.Jobs.Entries); Assert.Null(completed);
-            } else {
-                Assert.NotNull(completed);
-                Assert.Equal(failSecond ? 1 : 2, completed.Files.Count);
-                var job = Assert.Single(services.Jobs.Entries);
-                Assert.False(job.IsActive); Assert.True(job.HasOutput); Assert.Equal(failSecond, job.HasRecovery);
-                foreach (var file in completed.Files) {
-                    var stored = folder.Files.Values.Single(item => item.Location.AbsoluteUri == file.Path);
-                    Assert.Equal(file.PageCount, PdfDocument.Load(stored.Bytes).Inspect().PageCount);
-                }
-                if (failSecond) await services.WorkflowRecovery.VerifyAsync(Assert.Single(job.Recoveries));
-                await model.Jobs.OpenOutputCommand.ExecuteAsync(job);
-                Assert.Equal(completed.Files[0].Path, opened);
-            }
+            Assert.Equal(services.Localizer.Get("Output.LocalFolderRequired"), model.ErrorMessage);
+            Assert.False(previewed);
+            Assert.Equal(0, folder.Creations);
+            Assert.Empty(folder.Files);
+            Assert.Empty(services.Jobs.Entries);
+            Assert.Equal(original, File.ReadAllBytes(source));
             return true;
         }, CancellationToken.None);
     }

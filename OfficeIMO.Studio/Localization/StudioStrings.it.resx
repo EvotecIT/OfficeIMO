@@ -7176,4 +7176,5 @@ Opzione 2</value>
   <data name="Assembly.Status.Failed" xml:space="preserve">
     <value>Assemblaggio non riuscito</value>
   </data>
+  <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Scegli una cartella di destinazione locale. Usa Salva con nome per salvare singoli documenti nel cloud.</value></data>
 </root>
