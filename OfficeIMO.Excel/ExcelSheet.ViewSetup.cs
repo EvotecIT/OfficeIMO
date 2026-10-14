@@ -114,7 +114,6 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 SheetView view = GetOrCreateSheetView();
                 view.ShowGridLines = visible;
-                WorksheetRoot.Save();
             });
         }
 
@@ -133,7 +132,6 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 SheetView view = GetOrCreateSheetView();
                 view.ShowRowColHeaders = visible;
-                WorksheetRoot.Save();
             });
         }
 
@@ -152,7 +150,6 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 SheetView view = GetOrCreateSheetView();
                 view.ShowZeros = visible;
-                WorksheetRoot.Save();
             });
         }
 
@@ -172,7 +169,6 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 SheetView view = GetOrCreateSheetView();
                 view.RightToLeft = rightToLeft;
-                WorksheetRoot.Save();
             });
         }
 
@@ -307,7 +303,6 @@ namespace OfficeIMO.Excel {
                     pageSetupProperties.FitToPage = true;
                 }
 
-                ws.Save();
             });
         }
 
@@ -369,7 +364,6 @@ namespace OfficeIMO.Excel {
                     pageSetupProperties.RemoveAttribute("fitToPage", string.Empty);
                 }
 
-                ws.Save();
             });
         }
     }

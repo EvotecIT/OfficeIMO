@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
         /// Ensures all worksheet elements are in the correct order according to OpenXML schema.
         /// This must be called before saving to prevent validation errors.
         /// </summary>
-        internal void EnsureWorksheetElementOrder() {
+        internal void EnsureWorksheetElementOrder(bool save = true) {
             var worksheet = WorksheetRoot;
             const string SpreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
@@ -131,7 +131,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Persist any structural changes
-            worksheet.Save();
+            if (save) worksheet.Save();
         }
 
         private static bool IsPivotTableParts(OpenXmlElement element, string mainNamespace) {

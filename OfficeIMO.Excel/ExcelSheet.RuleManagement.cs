@@ -777,7 +777,7 @@ namespace OfficeIMO.Excel {
 
             differentialFormats.Append(candidate);
             differentialFormats.Count = (uint)differentialFormats.Count();
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
             return differentialFormats.Count!.Value - 1U;
         }
 
@@ -939,7 +939,7 @@ namespace OfficeIMO.Excel {
             uint id = (uint)stylesheet.DifferentialFormats.Elements<DifferentialFormat>().Count();
             stylesheet.DifferentialFormats.Append(differentialFormat);
             stylesheet.DifferentialFormats.Count = (uint)stylesheet.DifferentialFormats.Elements<DifferentialFormat>().Count();
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
             return id;
         }
 
@@ -1027,7 +1027,6 @@ namespace OfficeIMO.Excel {
 
             if (changed) {
                 _nextConditionalFormattingPriority = 0;
-                WorksheetRoot.Save();
             }
         }
 

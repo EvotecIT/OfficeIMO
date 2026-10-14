@@ -7,20 +7,20 @@ using OpenXmlCellValues = DocumentFormat.OpenXml.Spreadsheet.CellValues;
 namespace OfficeIMO.Excel {
     // Header-based helpers for addressing cells and columns by header name.
     public partial class ExcelSheet {
-        private Dictionary<string, int>? _headerMapCache;
-        private string? _headerMapSourceA1;
-        private int _headerMapHeaderRowIndex;
-        private int _headerMapHeaderCellCount;
-        private int _headerMapFirstColumnIndex;
-        private int _headerMapLastColumnIndex;
-        private bool _headerMapNormalize;
-        private bool _headerMapCachePopulated;
-        private readonly object _headerMapLock = new object();
+        private ref Dictionary<string, int>? _headerMapCache => ref Persistence.ReadCaches.HeaderMap;
+        private ref string? _headerMapSourceA1 => ref Persistence.ReadCaches.HeaderMapSourceA1;
+        private ref int _headerMapHeaderRowIndex => ref Persistence.ReadCaches.HeaderRowIndex;
+        private ref int _headerMapHeaderCellCount => ref Persistence.ReadCaches.HeaderCellCount;
+        private ref int _headerMapFirstColumnIndex => ref Persistence.ReadCaches.FirstColumnIndex;
+        private ref int _headerMapLastColumnIndex => ref Persistence.ReadCaches.LastColumnIndex;
+        private ref bool _headerMapNormalize => ref Persistence.ReadCaches.NormalizeHeaders;
+        private ref bool _headerMapCachePopulated => ref Persistence.ReadCaches.HeaderMapPopulated;
+        private object _headerMapLock => Persistence.ReadCaches.HeaderMapLock;
         private static readonly ExcelReadOptions DefaultHeaderReadOptions = new ExcelReadOptions();
 
         /// <summary>
         /// Builds or returns a cached case-insensitive map of header name to 1-based column index using the first row of UsedRange.
-        /// Cache is keyed by UsedRange A1 and NormalizeHeaders option.
+        /// Cache reuse respects the used range, header conversion options and named-style replacements.
         /// </summary>
         public Dictionary<string, int> GetHeaderMap(ExcelReadOptions? options = null) {
             var opt = options ?? DefaultHeaderReadOptions;
@@ -28,9 +28,10 @@ namespace OfficeIMO.Excel {
         }
 
         private Dictionary<string, int> GetHeaderMapCached(ExcelReadOptions opt) {
+            opt.CancellationToken.ThrowIfCancellationRequested();
             if (Volatile.Read(ref _headerMapCachePopulated)) {
                 lock (_headerMapLock) {
-                    if (_headerMapCache != null && _headerMapNormalize == opt.NormalizeHeaders) {
+                    if (_headerMapCache != null && HeaderMapOptionsMatch(opt)) {
                         if (HeaderMapCacheCanReturnWithoutRebuild()) {
                             return _headerMapCache;
                         }
@@ -47,7 +48,7 @@ namespace OfficeIMO.Excel {
             if (!_hasWorksheetMutations
                 && TryBuildHeaderMapFromReader(opt, out var readerMap, out var readerUsedRange, out int readerHeaderRow, out int readerFirstColumn, out int readerLastColumn, out int readerHeaderCellCount)) {
                 lock (_headerMapLock) {
-                    if (_headerMapCache != null && string.Equals(_headerMapSourceA1, readerUsedRange, StringComparison.Ordinal) && _headerMapNormalize == opt.NormalizeHeaders) {
+                    if (_headerMapCache != null && string.Equals(_headerMapSourceA1, readerUsedRange, StringComparison.Ordinal) && HeaderMapOptionsMatch(opt)) {
                         return _headerMapCache;
                     }
 
@@ -57,7 +58,7 @@ namespace OfficeIMO.Excel {
                     _headerMapHeaderCellCount = readerHeaderCellCount;
                     _headerMapFirstColumnIndex = readerFirstColumn;
                     _headerMapLastColumnIndex = readerLastColumn;
-                    _headerMapNormalize = opt.NormalizeHeaders;
+                    CaptureHeaderMapOptions(opt);
                     Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
                 }
@@ -66,7 +67,7 @@ namespace OfficeIMO.Excel {
             string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
             var a1Used = reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
             lock (_headerMapLock) {
-                if (_headerMapCache != null && string.Equals(_headerMapSourceA1, a1Used, StringComparison.Ordinal) && _headerMapNormalize == opt.NormalizeHeaders) {
+                if (_headerMapCache != null && string.Equals(_headerMapSourceA1, a1Used, StringComparison.Ordinal) && HeaderMapOptionsMatch(opt)) {
                     return _headerMapCache;
                 }
                 var (r1, c1, _, c2) = A1.ParseRange(a1Used);
@@ -77,7 +78,7 @@ namespace OfficeIMO.Excel {
                     _headerMapHeaderCellCount = CountHeaderRowCells(r1);
                     _headerMapFirstColumnIndex = c1;
                     _headerMapLastColumnIndex = c2;
-                    _headerMapNormalize = opt.NormalizeHeaders;
+                    CaptureHeaderMapOptions(opt);
                     Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
                 }
@@ -95,7 +96,7 @@ namespace OfficeIMO.Excel {
                     _headerMapHeaderCellCount = CountHeaderRowCells(r1);
                     _headerMapFirstColumnIndex = c1;
                     _headerMapLastColumnIndex = c2;
-                    _headerMapNormalize = opt.NormalizeHeaders;
+                    CaptureHeaderMapOptions(opt);
                     Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
                 }
@@ -117,7 +118,7 @@ namespace OfficeIMO.Excel {
                     _headerMapHeaderCellCount = CountHeaderRowCells(r1);
                     _headerMapFirstColumnIndex = c1;
                     _headerMapLastColumnIndex = c2;
-                    _headerMapNormalize = opt.NormalizeHeaders;
+                    CaptureHeaderMapOptions(opt);
                     Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
                 }
@@ -133,7 +134,7 @@ namespace OfficeIMO.Excel {
                 _headerMapHeaderCellCount = CountHeaderRowCells(r1);
                 _headerMapFirstColumnIndex = c1;
                 _headerMapLastColumnIndex = c2;
-                _headerMapNormalize = opt.NormalizeHeaders;
+                CaptureHeaderMapOptions(opt);
                 Volatile.Write(ref _headerMapCachePopulated, true);
                 return _headerMapCache;
             }
@@ -217,7 +218,28 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static bool HeaderMapOptionsReusable(ExcelReadOptions options) =>
+            options.CellValueConverter == null && ReferenceEquals(options.Culture, CultureInfo.InvariantCulture)
+            && !options.NumericAsDecimal && options.UseCachedFormulaResult;
+
+        private bool HeaderMapOptionsMatch(ExcelReadOptions options) =>
+            Persistence.ReadCaches.HeaderOptionsReusable && HeaderMapOptionsReusable(options)
+            && _headerMapNormalize == options.NormalizeHeaders
+            && Persistence.ReadCaches.TreatHeaderDates == options.TreatDatesUsingNumberFormat;
+
+        private void CaptureHeaderMapOptions(ExcelReadOptions options) {
+            _headerMapNormalize = options.NormalizeHeaders;
+            Persistence.ReadCaches.TreatHeaderDates = options.TreatDatesUsingNumberFormat;
+            Persistence.ReadCaches.HeaderOptionsReusable = HeaderMapOptionsReusable(options);
+            CellFormatCacheRevision? revision = GetCurrentCellFormatCacheRevision();
+            Persistence.ReadCaches.HeaderStyleRevision = revision;
+            Persistence.ReadCaches.HeaderStyleRevisionNumber = revision?.Number ?? 0;
+        }
+
         private bool HeaderMapCacheCanReturnWithoutRebuild() {
+            CellFormatCacheRevision? revision = GetCurrentCellFormatCacheRevision();
+            if (!ReferenceEquals(revision, Persistence.ReadCaches.HeaderStyleRevision)
+                || (revision?.Number ?? 0) != Persistence.ReadCaches.HeaderStyleRevisionNumber) return false;
             int headerRowIndex = Volatile.Read(ref _headerMapHeaderRowIndex);
             if (headerRowIndex <= 0) {
                 return false;
