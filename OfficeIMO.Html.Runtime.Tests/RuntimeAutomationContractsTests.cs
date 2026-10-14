@@ -108,17 +108,18 @@ public sealed class RuntimeAutomationContractsTests {
     }
 
     [Theory]
-    [InlineData("document.querySelector('select').removeAttribute('multiple')")]
-    [InlineData("document.querySelector('option').value='changed'")]
-    [InlineData("document.querySelector('select').setAttribute('hidden','')")]
-    public async Task FocusMutationCannotApplyAStaleSelection(string mutation) {
+    [InlineData("document.querySelector('select').removeAttribute('multiple')", "a")]
+    [InlineData("document.querySelector('option').value='changed'", null)]
+    [InlineData("document.querySelector('select').setAttribute('hidden','')", null)]
+    public async Task FocusMutationCannotApplyAStaleSelection(string mutation, string? expectedValue) {
         await using var session = await Runtime().OpenTrustedAsync(new() {
             Html = "<select multiple><option value='a'>A</option><option value='b'>B</option></select>",
             Scripts = new[] { "document.querySelector('select').addEventListener('focus',()=>{" + mutation + "})" }
         });
         var failure = await Assert.ThrowsAsync<HtmlAutomationException>(() => session.Locator("select").SelectOptionsAsync(new[] { "a", "b" }));
         Assert.Equal(HtmlAutomationStatus.Rejected, failure.Result.Status);
-        Assert.Empty((await session.Locator("select").InspectAsync()).SelectedValues);
+        Assert.Equal(expectedValue == null ? Array.Empty<string>() : new[] { expectedValue },
+            (await session.Locator("select").InspectAsync()).SelectedValues);
     }
 
     [Fact]

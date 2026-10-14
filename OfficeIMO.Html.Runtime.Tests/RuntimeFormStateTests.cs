@@ -29,7 +29,7 @@ public sealed class RuntimeFormStateTests {
                 document.querySelector('#check').indeterminate=true;
                 document.querySelector('#choice').options[0].selected=false;
                 document.querySelector('#choice').options[1].selected=true;
-                document.querySelector('#empty').options[0].selected=false;
+                document.querySelector('#empty').selectedIndex=-1;
                 """ }
         });
         HtmlDocument source = captured.Document;

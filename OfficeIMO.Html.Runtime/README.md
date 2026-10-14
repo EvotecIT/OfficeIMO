@@ -43,6 +43,13 @@ including `null` and `undefined`. Invalid names throw catchable `SyntaxError` or
 `InvalidCharacterError` DOM exceptions. Captures retain the resulting attributes
 and DOM changes.
 
+Select controls share their current selection across `value`, `selectedIndex`,
+`options.selectedIndex`, DOM edits and captures. Default selection attributes remain
+separate from changes made through these properties. Use `selectedIndex = -1` or
+a value with no matching option to clear a dropdown explicitly; setting its only
+option's `selected` property to `false` restores the automatic first selection.
+Form reset restores the authored defaults.
+
 Keep a session open when a workflow needs several operations. Globals, listeners
 and the live DOM survive between commands; each capture is an independent snapshot:
 
