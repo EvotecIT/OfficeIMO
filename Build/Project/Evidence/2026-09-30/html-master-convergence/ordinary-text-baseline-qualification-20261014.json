@@ -1,0 +1,790 @@
+{
+  "schema": 1,
+  "qualifiedUtc": "2026-10-14T21:50:27.696183+00:00",
+  "scope": "Ordinary horizontal selected-face baselines, forced-break struts and inline-edge lifetime; native evidence is bounded to the named controls.",
+  "integratedSourceCommit": "078af76408071ecdecfcac126d9397c28c0ee7cc",
+  "compiledSourceBase": "ae0dde4d50823b3bd9f566d140f35ec5153e00f3",
+  "sourceCommitBoundary": "The executed builds used the base plus the sealed source files below. The integrated commit contains those exact source, test and adopted raster bytes.",
+  "sourceFiles": [
+    {
+      "path": "OfficeIMO.Html.Pdf/HtmlPdfRenderedConverter.Text.cs",
+      "sha256": "74225a07068668bcb1af09cd3e6f27d3a925d9d54869c1481aa754489db72510",
+      "bytes": 10017
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.EpubRegionInkInspection.cs",
+      "sha256": "884ef77fc2b9a8cd350de93522b3e1fbc41249698cad0253f30eb1d943e13645",
+      "bytes": 5315
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.ImageLineMetrics.cs",
+      "sha256": "70470db8bd1cb3415a18ef304f41b72157b4b45723526d376c7b4c834323200c",
+      "bytes": 5889
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.InlineBaselines.cs",
+      "sha256": "942601994fa8a376ea3f39471f493a24074b67be7747bcf92eaa434b9ddbdde3",
+      "bytes": 3808
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.InlineDecorationGeometry.cs",
+      "sha256": "1c21717f8a8cab560ea2cd974c7953f27f00ea2dfdbce3386c803102daabd110",
+      "bytes": 24053
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.OpenType.cs",
+      "sha256": "fabffb942326f9d9f23549327a241494fe08a5a310d3c21251da776f7915d1dc",
+      "bytes": 10001
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.SvgLinkArea.cs",
+      "sha256": "cf50313e9c29e17732ba81b909553deed294f9af956ff7a7d6964ec7494a17ce",
+      "bytes": 11515
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.TextLineExtents.cs",
+      "sha256": "bdd42f778ebf502137e4e65423b32581d449789ed128e9173db128711893cd86",
+      "bytes": 3629
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/VisualBaselines/ImageExportProviders/email-premium-message.png",
+      "sha256": "5c2dc6afdecc8e61f0000003df9c847266026fc67dad3a5560f62dd66ce329c1",
+      "bytes": 8051
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/VisualBaselines/ImageExportProviders/epub-premium-chapter.png",
+      "sha256": "486ecae2eeb372a2eea733050a09f24072a6facd36882c27c64afe32c6e76afa",
+      "bytes": 3951
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/VisualBaselines/ImageExportProviders/html-premium-card.png",
+      "sha256": "4046463c1e7ac850e93506b8c1dd3e8984d14cee291d2384f471533087b4a7a0",
+      "bytes": 5038
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Floats.cs",
+      "sha256": "034c3ffd0846425838faff989c6f6bd2bcf5a339ffe2c19d36ef39168b4a1533",
+      "bytes": 31693
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Grid.cs",
+      "sha256": "ce9100aae40f60a5c1a178a322e1c9928bfc01790ef58b4cb116d7a823c7711a",
+      "bytes": 30890
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineDecorationGeometry.cs",
+      "sha256": "a6a0b21f88bfe401a09672d3997215a8b6023ba0e56bd599aa2c9ecba7f92e40",
+      "bytes": 5950
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineLines.Paint.cs",
+      "sha256": "e77843873bf3d310a729c3f30ba6b25c5fe40cc37c30ec732cefe06b5b9cf82b",
+      "bytes": 27792
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.ImageLineMetrics.cs",
+      "sha256": "a0a01011eed4fd49a4d2c081d2a6c9a028d95af8f02ab78f5ad06ba80f46a154",
+      "bytes": 1558
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.LineExtents.cs",
+      "sha256": "a19fa1df82cd9d1829b226a61695f195ae1bcc5ca00dc30984ce1c9725751eb5",
+      "bytes": 4262
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.VerticalMetrics.cs",
+      "sha256": "fc878814350614105e00f548f7a3f03974e6cd4dcad9d4dc06087b99cb163750",
+      "bytes": 8665
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.cs",
+      "sha256": "66806d662a5c68f5cf058d218bde7df9d64cf2fe3a308867a5984d0add862deb",
+      "bytes": 90230
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderPage.CanvasInspection.cs",
+      "sha256": "741a061afaca1d38f16e1f6f05ccb57b8b72f2714bcbcc703c1ee95ed0b3349d",
+      "bytes": 5577
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderText.cs",
+      "sha256": "7cbfab3683b72a6cabffbf9fa7436e434675c91d12ea09deae9dfbce3c46c587",
+      "bytes": 14353
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.OrdinaryTextBaselines.cs",
+      "sha256": "d5e96c89c3fab69c6549dddcd25cf4fa62e8c3eebc8d1e1d9afbd7a84c4a4097",
+      "bytes": 5896
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.ForcedBreakStruts.cs",
+      "sha256": "80ad06d14094feef606cef63ff82cc25d3fbe8de105d7a104f500044dc74f334",
+      "bytes": 5892
+    }
+  ],
+  "sdk": "10.0.303",
+  "host": {
+    "system": "Darwin",
+    "architecture": "arm64",
+    "proof": "Local macOS execution; no Windows profiling or cross-platform budget claim."
+  },
+  "publicApiChanged": false,
+  "productionDependenciesChanged": false,
+  "behavior": [
+    "Ordinary lines use the selected face rounded ascent/descent and used leading; raw font metrics and glyph outlines remain unchanged.",
+    "Mixed-size grid alignment derives the unshifted paint baseline; relative paint offsets retain their separate effect.",
+    "Inline link-box placement follows the selected baseline; raw face-box height is retained.",
+    "Forced breaks contribute their own and enclosing inline struts on the committed line in ordinary and float layout, including empty forced lines.",
+    "Break-only inline fragments retain authored slice/clone edge lifetime and paint their first padding fragment; flow-only control markers remain excluded.",
+    "HTML semantic canvas inspection and PDF logical carriers preserve their distinct layout/paint contracts; specialized short, image, script and leader routes retain their qualified policies."
+  ],
+  "tests": {
+    "forced-break-focused-complete-net10": {
+      "passed": 408,
+      "failed": 0,
+      "trxSha256": "e63279afaac5ad56e1aadf1ce3967c4da2271abd689838d2c1f54ab81de488c1",
+      "archiveEntry": "blobs/e63279afaac5ad56e1aadf1ce3967c4da2271abd689838d2c1f54ab81de488c1"
+    },
+    "forced-break-broad-final-net10.0": {
+      "passed": 6222,
+      "failed": 0,
+      "trxSha256": "8e942c49f6a8c3eaffd376be3bc1aaacabd0aebd6349a3067966e65f20d83c15",
+      "archiveEntry": "blobs/8e942c49f6a8c3eaffd376be3bc1aaacabd0aebd6349a3067966e65f20d83c15"
+    },
+    "forced-break-broad-final-net8.0": {
+      "passed": 6222,
+      "failed": 0,
+      "trxSha256": "19cff526882352b5cd289aad9cd50e049af56c42cc07ecf4c4ec88e47c12fac6",
+      "archiveEntry": "blobs/19cff526882352b5cd289aad9cd50e049af56c42cc07ecf4c4ec88e47c12fac6"
+    }
+  },
+  "ordinarySuiteFilter": "Category!=Performance",
+  "ordinarySuiteScope": "OfficeIMO.Html.Tests and its referenced owners; host-dependent measurements excluded.",
+  "reproduceOrdinarySuite": [
+    "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net8.0 --filter \"Category!=Performance\"",
+    "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net10.0 --filter \"Category!=Performance\""
+  ],
+  "actualAssemblies": [
+    {
+      "framework": "net10.0",
+      "owner": "OfficeIMO.Html",
+      "path": "$EVIDENCE/graph/bin/OfficeIMO.Html/release_net10.0/OfficeIMO.Html.dll",
+      "sha256": "ae0d0275894db8044fe4ac288b43edb7d36065f1025a1fc71a34717437d35e25"
+    },
+    {
+      "framework": "net10.0",
+      "owner": "OfficeIMO.Html.Pdf",
+      "path": "$EVIDENCE/graph/bin/OfficeIMO.Html.Pdf/release_net10.0/OfficeIMO.Html.Pdf.dll",
+      "sha256": "6c3683acd47bf05c38c9d1a093dceb5e650a5becf4584f3ff8e4d0d0fe62a848"
+    },
+    {
+      "framework": "net10.0",
+      "owner": "OfficeIMO.Html.Tests",
+      "path": "$EVIDENCE/graph/bin/OfficeIMO.Html.Tests/release_net10.0/OfficeIMO.Html.Tests.dll",
+      "sha256": "06a88ba8e55ffebf00ab481e5499169a09c18bdb30817210470f073d9aeeba9b"
+    },
+    {
+      "framework": "net8.0",
+      "owner": "OfficeIMO.Html",
+      "path": "$EVIDENCE/graph/bin/OfficeIMO.Html/release_net8.0/OfficeIMO.Html.dll",
+      "sha256": "2c199d7b0771f8bc7580fe57c50600f10c536998d36c0644408e5b76ef7becc7"
+    },
+    {
+      "framework": "net8.0",
+      "owner": "OfficeIMO.Html.Pdf",
+      "path": "$EVIDENCE/graph/bin/OfficeIMO.Html.Pdf/release_net8.0/OfficeIMO.Html.Pdf.dll",
+      "sha256": "f22cb60899ab5a2c82f6e80af14367395881ccc4fd5dd929afb200271aaf113e"
+    },
+    {
+      "framework": "net8.0",
+      "owner": "OfficeIMO.Html.Tests",
+      "path": "$EVIDENCE/graph/bin/OfficeIMO.Html.Tests/release_net8.0/OfficeIMO.Html.Tests.dll",
+      "sha256": "ef7fb48f4b714461bb60bed7543df2941ed64f2ffab9cffcefd00ba2dfdc2d48"
+    }
+  ],
+  "nativeReference": {
+    "browserOwner": "HtmlTinkerX",
+    "browserOwnerSource": "5d2c8943cb095b288b995622d9c8c0ab28277abf",
+    "playwrightSdk": "1.63.0",
+    "boundary": "Frozen browser consumer and exact restored SDK assets; this does not claim a rebuild of the latest HtmlTinkerX source.",
+    "pairedOriginalDomAndRangesEqual": true,
+    "pairedScreenshotsByteIdentical": true,
+    "profiles": [
+      "print",
+      "screen"
+    ],
+    "restoredAssetHashesVerified": 151
+  },
+  "footerBaselineCssPx": {
+    "isolatedMission": {
+      "before": 316.80625,
+      "after": 316.40625,
+      "nativeLayout": 316.40625
+    },
+    "originalFooterMission": {
+      "before": 316.8275,
+      "after": 316.4275,
+      "nativeLayout": 316.40625,
+      "remainingEarlierFlowResidual": 0.02125
+    },
+    "nativeOwnPdfMissionBaseline": 316,
+    "nativePdfBoundary": "Browser print-PDF snapping is separate from the native layout baseline."
+  },
+  "mixedSizeGrid": {
+    "nativeMarkers": {
+      "marker-large-0": 47,
+      "marker-small-0": 47,
+      "marker-large-1": 127,
+      "marker-small-1": 134
+    },
+    "savedSceneSvgPdfBaselines": [
+      47,
+      47,
+      127,
+      134
+    ],
+    "relativePaintShift": 7,
+    "alignmentBeforeRelativePaintEqual": true
+  },
+  "nativeForcedBreakCases": [
+    {
+      "media": "print",
+      "case": "br-after",
+      "blockY": 8,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        51,
+        111
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "print",
+      "case": "float-after",
+      "blockY": 132,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        175,
+        235
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "print",
+      "case": "prewrap-after",
+      "blockY": 256,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        299,
+        359
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "print",
+      "case": "pre-after",
+      "blockY": 380,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        423,
+        483
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "print",
+      "case": "empty-br",
+      "blockY": 504,
+      "blockHeight": 60,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        547
+      ],
+      "oldSourceLocalBaselines": [
+        43
+      ],
+      "text": [
+        "BEFORE"
+      ]
+    },
+    {
+      "media": "print",
+      "case": "double-br",
+      "blockY": 568,
+      "blockHeight": 180,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        611,
+        731
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "print",
+      "case": "content-before-br",
+      "blockY": 752,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        795,
+        795,
+        855
+      ],
+      "oldSourceLocalBaselines": [
+        43,
+        43,
+        103
+      ],
+      "text": [
+        "BEFORE",
+        "INNER",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "screen",
+      "case": "br-after",
+      "blockY": 8,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        51,
+        111
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "screen",
+      "case": "float-after",
+      "blockY": 132,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        175,
+        235
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "screen",
+      "case": "prewrap-after",
+      "blockY": 256,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        299,
+        359
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "screen",
+      "case": "pre-after",
+      "blockY": 380,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        423,
+        483
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "screen",
+      "case": "empty-br",
+      "blockY": 504,
+      "blockHeight": 60,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        547
+      ],
+      "oldSourceLocalBaselines": [
+        43
+      ],
+      "text": [
+        "BEFORE"
+      ]
+    },
+    {
+      "media": "screen",
+      "case": "double-br",
+      "blockY": 568,
+      "blockHeight": 180,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        611,
+        731
+      ],
+      "oldSourceLocalBaselines": [
+        17,
+        67
+      ],
+      "text": [
+        "BEFORE",
+        "AFTER"
+      ]
+    },
+    {
+      "media": "screen",
+      "case": "content-before-br",
+      "blockY": 752,
+      "blockHeight": 120,
+      "sourceSceneSvgPdfAndNativeLayoutBaselines": [
+        795,
+        795,
+        855
+      ],
+      "oldSourceLocalBaselines": [
+        43,
+        43,
+        103
+      ],
+      "text": [
+        "BEFORE",
+        "INNER",
+        "AFTER"
+      ]
+    }
+  ],
+  "nativeInlineEdgeCases": [
+    {
+      "media": "print",
+      "case": "slice",
+      "afterX": 8,
+      "afterBaseline": 111,
+      "nativeLayoutAgreement": true,
+      "fragments": [
+        {
+          "Source": "span#big-slice",
+          "X": 58.8203125,
+          "Y": 8,
+          "Width": 11.01,
+          "Height": 60
+        },
+        {
+          "Source": "span#big-slice",
+          "X": 8,
+          "Y": 71,
+          "Width": 109.265625,
+          "Height": 57
+        }
+      ],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    },
+    {
+      "media": "print",
+      "case": "clone",
+      "afterX": 19,
+      "afterBaseline": 235,
+      "nativeLayoutAgreement": true,
+      "fragments": [
+        {
+          "Source": "span#big-clone",
+          "X": 58.8203125,
+          "Y": 132,
+          "Width": 18.009999999999998,
+          "Height": 60
+        },
+        {
+          "Source": "span#big-clone",
+          "X": 8,
+          "Y": 195,
+          "Width": 120.265625,
+          "Height": 57
+        }
+      ],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    },
+    {
+      "media": "print",
+      "case": "slice-float",
+      "afterX": 28,
+      "afterBaseline": 359,
+      "nativeLayoutAgreement": true,
+      "fragments": [
+        {
+          "Source": "span#big-slice-float",
+          "X": 78.8203125,
+          "Y": 256,
+          "Width": 11.01,
+          "Height": 60
+        },
+        {
+          "Source": "span#big-slice-float",
+          "X": 28,
+          "Y": 319,
+          "Width": 109.265625,
+          "Height": 57
+        }
+      ],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    },
+    {
+      "media": "print",
+      "case": "clone-float",
+      "afterX": 39,
+      "afterBaseline": 483,
+      "nativeLayoutAgreement": true,
+      "fragments": [
+        {
+          "Source": "span#big-clone-float",
+          "X": 78.8203125,
+          "Y": 380,
+          "Width": 18.009999999999998,
+          "Height": 60
+        },
+        {
+          "Source": "span#big-clone-float",
+          "X": 28,
+          "Y": 443,
+          "Width": 120.265625,
+          "Height": 57
+        }
+      ],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    },
+    {
+      "media": "print",
+      "case": "double-float",
+      "afterX": 8,
+      "afterBaseline": 667,
+      "nativeLayoutAgreement": true,
+      "fragments": [],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    },
+    {
+      "media": "screen",
+      "case": "slice",
+      "afterX": 8,
+      "afterBaseline": 111,
+      "nativeLayoutAgreement": true,
+      "fragments": [
+        {
+          "Source": "span#big-slice",
+          "X": 58.8203125,
+          "Y": 8,
+          "Width": 11.01,
+          "Height": 60
+        },
+        {
+          "Source": "span#big-slice",
+          "X": 8,
+          "Y": 71,
+          "Width": 109.265625,
+          "Height": 57
+        }
+      ],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    },
+    {
+      "media": "screen",
+      "case": "clone",
+      "afterX": 19,
+      "afterBaseline": 235,
+      "nativeLayoutAgreement": true,
+      "fragments": [
+        {
+          "Source": "span#big-clone",
+          "X": 58.8203125,
+          "Y": 132,
+          "Width": 18.009999999999998,
+          "Height": 60
+        },
+        {
+          "Source": "span#big-clone",
+          "X": 8,
+          "Y": 195,
+          "Width": 120.265625,
+          "Height": 57
+        }
+      ],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    },
+    {
+      "media": "screen",
+      "case": "slice-float",
+      "afterX": 28,
+      "afterBaseline": 359,
+      "nativeLayoutAgreement": true,
+      "fragments": [
+        {
+          "Source": "span#big-slice-float",
+          "X": 78.8203125,
+          "Y": 256,
+          "Width": 11.01,
+          "Height": 60
+        },
+        {
+          "Source": "span#big-slice-float",
+          "X": 28,
+          "Y": 319,
+          "Width": 109.265625,
+          "Height": 57
+        }
+      ],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    },
+    {
+      "media": "screen",
+      "case": "clone-float",
+      "afterX": 39,
+      "afterBaseline": 483,
+      "nativeLayoutAgreement": true,
+      "fragments": [
+        {
+          "Source": "span#big-clone-float",
+          "X": 78.8203125,
+          "Y": 380,
+          "Width": 18.009999999999998,
+          "Height": 60
+        },
+        {
+          "Source": "span#big-clone-float",
+          "X": 28,
+          "Y": 443,
+          "Width": 120.265625,
+          "Height": 57
+        }
+      ],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    },
+    {
+      "media": "screen",
+      "case": "double-float",
+      "afterX": 8,
+      "afterBaseline": 667,
+      "nativeLayoutAgreement": true,
+      "fragments": [],
+      "emptyPaintRegistrationPreservesPdfGlyphRows": true
+    }
+  ],
+  "forcedBreakRegressionContracts": {
+    "newCases": "8 baseline/line-height/flow/PDF glyph cases (BR/pre/pre-wrap/consecutive, plain+float), 2 retained trailing/content-before controls, 4 padded fragment/advance/SVG/PDF/raster cases",
+    "redBaseline": {
+      "path": "$EVIDENCE/review-forced-break/red-test-proof.json",
+      "sha256": "f6de1b4e293f7031bc50f70c572407075f39dea38c037e1e44df3030cf6ea354"
+    },
+    "redPaint": {
+      "path": "$EVIDENCE/review-forced-break/empty-paint-red-test-proof.json",
+      "sha256": "93a73ba49d948a4c09f4aff3d161b3f1e1a3254e54eaf1acc9384fc8d1a2400e"
+    },
+    "intermediateAssertionCorrections": [
+      "Consecutive last line is below the100px float; native original confirms its return to container X. Initial new assertion assumed the float still obstructed it.",
+      "Paint-group traversal order is not document reading order; edge test identifies the AFTER run while retaining content/coordinate/export assertions."
+    ],
+    "noExpectedGeometryRelaxation": true,
+    "softWrapPreserved": "Existing HtmlStyledWord separator controls pass; retained unmarked script-wrap SVG/PDF are byte-identical."
+  },
+  "priorRenderPreservation": {
+    "witnesses": 17,
+    "pdfAndSvgOutputsAcrossBothMediaByteIdentical": 68,
+    "controls": [
+      "Mission and authored footer",
+      "short and image lines",
+      "ordinary/image PDF carrier boundary",
+      "script and relative paint",
+      "leaders",
+      "grid and inline links",
+      "three adopted premium raster producers"
+    ]
+  },
+  "adoptedRasterBaselines": [
+    "html-premium-card.png",
+    "epub-premium-chapter.png",
+    "email-premium-message.png"
+  ],
+  "rasterAdoptionBoundary": "Three reviewed producers use explicit native used-height controls. Other checked premium producer pixels remain unchanged; CSS normal used-height differences stay open.",
+  "localReview": {
+    "fullReadOnlyPass": {
+      "finding": "One validated forced-break strut omission; historical origin not established.",
+      "reportSha256": "662831c2dbaf7db937f3471446c7eb8a9a052bea316b5867a4e2fa07ec8460f6"
+    },
+    "singleTargetedConfirmation": {
+      "result": "No remaining actionable findings within the forced-break remediation and regression boundary.",
+      "reportSha256": "360563189caa8aacf59d8c77844451bcba3df780e883202f9eeb7346e22bed68"
+    },
+    "actualVisualEvidenceInspected": true
+  },
+  "artifactProofs": {
+    "ordinarySelectedFaceProofSha256": "ffc1826edbcbf235bf5378db6730d4cc1b819460995165cf3ee257efd6c5c388",
+    "finalForcedBreakProofSha256": "8b4801d55fe63613128ebc77ef13a3f8fa13d158e76b01b39fba5f5aedae2b2c",
+    "currentValidationAndRuntimeSha256": "a2adacc3867bd0efa97f858a0ab57099686c9fdfaecf970a3cfe2f255ae1ab17",
+    "finalReviewPacketSha256": "e40042565082e1a151565e13257e2da2634b296d6f409b4fe3bf88fc84569926"
+  },
+  "localArtifactStorage": {
+    "archiveFilename": "ordinary-text-baseline-qualification.zip",
+    "machineLocalPath": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/inline-logo-baseline/ordinary-text-baseline/ordinary-text-baseline-qualification.zip",
+    "bytes": 76469650,
+    "sha256": "429d304c13a22669bc488cdd24bb1b410e2b5aec7ed1aa0021e8903cabcbae41",
+    "fullReadbackVerified": true,
+    "mappedFiles": 2890,
+    "sourceMappings": 948,
+    "cleanupLogicalBytesRemoved": 1599223141,
+    "regenerableGraphAndNativeRuntimeRemoved": true,
+    "reviewAfterUtc": "2026-10-21T00:00:00Z"
+  },
+  "unqualified": [
+    "The original footer Mission retains a 0.02125px earlier flow residual. Its separate 0.4px ordinary baseline offset is removed.",
+    "CSS normal used-height remains open; the named Carlito 32px control retains 38.4px versus native 39px.",
+    "Mixed-font decoration uses the existing fallback: 60px for the break-only fragment and 57px for the text fragment, versus a native 49px font box. This qualification covers fragment presence and edge lifetime.",
+    "The minimum 0.01px empty-fragment carrier remains; named slice/clone rectangles retain 11.01px/18.01px widths.",
+    "Raw inline link height remains font-derived: the named BaselineSans control is 19.53125px versus native 19px.",
+    "Direct br own-CSS resolution still uses the inherited style; this batch does not expand that policy.",
+    "Captured variable Inter and historical original-font identity, whole-page appearance, manual accessibility, public-package release and broader trimming/AOT/WASM proof remain open.",
+    "Windows profiling remains deferred; local macOS controls do not establish cross-platform budgets."
+  ]
+}
