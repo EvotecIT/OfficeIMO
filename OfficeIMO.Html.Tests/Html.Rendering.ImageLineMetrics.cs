@@ -9,28 +9,28 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
-    [InlineData("16px", "1.2", 74.1275D)]
-    [InlineData("16px", "19.2px", 74.143125D)]
-    [InlineData("16px", "20px", 74.94D)]
-    [InlineData("16px", "21px", 74.94D)]
-    [InlineData("16px", "18px", 73.94D)]
-    [InlineData("20px", "1.2", 74.94D)]
+    [InlineData("16px", "1.2", 74.125D)]
+    [InlineData("16px", "19.2px", 74.140625D)]
+    [InlineData("16px", "20px", 74.9375D)]
+    [InlineData("16px", "21px", 74.9375D)]
+    [InlineData("16px", "18px", 73.9375D)]
+    [InlineData("20px", "1.2", 74.9375D)]
     public void HtmlImageLine_SelectedFaceAndAuthoredLeadingPlaceFollowingBlock(
         string fontSize, string lineHeight, double followingTop) {
         // Native Chromium witnesses use the same licensed Baseline Sans face.
-        // These positions retain the renderer's authored 53.94px image height;
-        // the browser's image is 53.9375px on its CSS coordinate grid.
+        // The used image height is 53.9375px; following flow consumes that same
+        // value rather than retaining the authored 53.94px as a second minimum.
         string html = ImageLineSource("<div style='font-size:" + fontSize + ";line-height:" + lineHeight + "'>"
             + NormalLineImage + "</div>" + NormalLineFollowing);
         HtmlRenderDocument rendered = RenderImageLine(html, ImageLineOptions());
 
-        Assert.Equal(53.94D, NormalLineImageVisual(rendered).Height, 6);
+        Assert.Equal(53.9375D, NormalLineImageVisual(rendered).Height, 6);
         Assert.Equal(followingTop, NormalLineFollowingVisual(rendered).Y, 6);
     }
 
     [Theory]
-    [InlineData("1.2", 72.94D)]
-    [InlineData("19.2px", 76.143125D)]
+    [InlineData("1.2", 72.9375D)]
+    [InlineData("19.2px", 76.140625D)]
     public void HtmlImageLine_InheritedMultiplierAndLengthKeepTheirOwnSizeBasis(
         string lineHeight, double followingTop) {
         string html = ImageLineSource("<div style='font-size:16px;line-height:" + lineHeight + "'>"
@@ -58,19 +58,23 @@ public sealed partial class HtmlRenderingTests {
 
         // The following ordinary line now has its selected-font paint anchor;
         // its flow origin and the image line's saved baseline remain separate.
-        Assert.Equal(74.1275D, tail.LayoutY, 6);
-        Assert.Equal(93.3275D, NormalLineFollowingVisual(rendered).Y, 6);
+        Assert.Equal(74.125D, tail.LayoutY, 6);
+        Assert.Equal(93.3125D, NormalLineFollowingVisual(rendered).Y, 6);
 
         XElement savedText = Assert.Single(XDocument.Parse(document.ToSvg(options)).Descendants()
             .Where(node => node.Name.LocalName == "text"), node => node.Value == "Hgyp");
         double savedBaseline = double.Parse(savedText.Attribute("y")!.Value, CultureInfo.InvariantCulture);
-        Assert.Equal(image.Y + image.Height + 16D, savedBaseline, 3);
+        double sceneBaseline = image.Y + image.Height + 16D;
+        Assert.Equal(sceneBaseline, savedBaseline, 3);
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
         var page = pdf.GetPage(1);
         var first = page.Letters.First(letter => letter.Value == "H");
         double pdfBaselineCss = (page.Height - first.StartBaseLine.Y) / 0.75D;
-        Assert.Equal(savedBaseline, pdfBaselineCss, 3);
+        // The PDF writer serializes point coordinates to three decimal places.
+        // Bound that half-unit error against the unrounded scene baseline;
+        // SVG has its own independently rounded CSS coordinate serialization.
+        Assert.InRange(Math.Abs(pdfBaselineCss - sceneBaseline), 0D, 0.0005D / 0.75D);
     }
 
     private static readonly string NormalLineImage = "<img id='picture' style='width:64px;height:53.94px;margin-bottom:16px' "

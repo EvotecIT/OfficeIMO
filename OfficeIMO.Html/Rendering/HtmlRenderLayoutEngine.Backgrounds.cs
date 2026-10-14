@@ -59,7 +59,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
-        if (!style.PaintVisible) return;
+        if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription, visualSourceDescription);
@@ -214,17 +214,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double intrinsicHeight = imageInfo != null && imageInfo.Height > 0
             ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
             : areaHeight;
-        OfficeDrawing? svgDrawing = null;
-        if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)
-            && !TryReadSvgDrawing(
-                bytes,
-                intrinsicWidth,
-                intrinsicHeight,
-                diagnosticSourceDescription + ":background-image",
-                out svgDrawing)) {
-            return;
-        }
-
         BackgroundImageSize imageSize = ResolveBackgroundImageSize(layer.Size, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style.Font.Size, out bool usedSizeFallback, style.CharacterAdvance);
         if (usedSizeFallback) {
             AddUnsupported(
@@ -249,6 +238,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         imageSize = ApplyRoundBackgroundSize(imageSize, layer.Size, areaWidth, areaHeight, repeatX, repeatY);
+
+        // A viewBox fits to the concrete tile, including repeat:round sizing.
+        // Without one, retain the intrinsic scene and existing tile projection.
+        OfficeDrawing? svgDrawing = null;
+        if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)
+            && !TryReadSvgDrawing(
+                bytes,
+                intrinsicWidth,
+                intrinsicHeight,
+                diagnosticSourceDescription + ":background-image",
+                out svgDrawing,
+                viewportWidth: imageInfo?.HasSvgViewBox == true ? imageSize.Width : null,
+                viewportHeight: imageInfo?.HasSvgViewBox == true ? imageSize.Height : null)) {
+            return;
+        }
 
         (double offsetX, double offsetY) = ResolveBackgroundPosition(
             layer.Position,

@@ -472,7 +472,9 @@ public static partial class OfficeImageReader {
                 }
             }
 
-            info = new OfficeImageInfo(OfficeImageFormat.Svg, pixelWidth, pixelHeight, 96D, 96D, aspectRatio);
+            info = new OfficeImageInfo(OfficeImageFormat.Svg, pixelWidth, pixelHeight, 96D, 96D, aspectRatio) {
+                HasSvgViewBox = hasViewBox
+            };
             return true;
         } catch (XmlException) {
             info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);

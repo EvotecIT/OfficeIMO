@@ -340,7 +340,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         bool zeroHeightCollapsible = CanUseZeroHeightForMarginCollapse(style, parentStyle, contentHeight);
-        double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, boxWidth, style);
+        double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, boxWidth, style,
+            allowZeroHeight: style.Display == "block" && contentHeight <= 0D);
         if (_inlineFloatOverhangs.TryGetValue(element, out double inlineOverhang)) {
             double normalFlowBoxHeight = ResolveBoxHeight(Math.Max(0D, contentHeight - inlineOverhang), boxWidth, style);
             double floatBottom = style.BorderTopWidth + style.PaddingTop + contentHeight;
@@ -353,7 +354,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         double unclampedOuterHeight = style.MarginTop + boxHeight + style.MarginBottom;
         double outerHeight = unclampedOuterHeight;
-        if (outerHeight <= 0D) outerHeight = 0.01D;
+        // Truly empty boxes need no flow epsilon. Keep the specialized carrier
+        // for existing line/float/positioned content and its pagination policy.
+        bool hasContentCarrier = contentVisuals.Count > 0 || inlineLayout?.HasInFlowLineBoxes == true
+            || inlineLayout?.FloatExclusions.Count > 0 || hasLocallyPositionedPseudo
+            || _localPositionedElements.ContainsKey(element);
+        if (outerHeight < 0D || outerHeight == 0D && (boxHeight > 0D || hasContentCarrier)) outerHeight = 0.01D;
         var visuals = new List<HtmlRenderVisual>();
         var overflowContent = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -710,7 +716,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(style.HorizontalInsets, Math.Max(1D, width));
     }
 
-    private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style) {
+    private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style, bool allowZeroHeight = false) {
         double height;
         bool usesAspectRatio = !style.ExplicitHeight.HasValue && style.AspectRatio.HasValue;
         if (style.ExplicitHeight.HasValue) {
@@ -726,7 +732,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!style.BorderBox || !style.ExplicitHeight.HasValue && !usesAspectRatio) height += style.VerticalInsets;
         if (style.MaxHeight.HasValue) height = Math.Min(height, style.MaxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
-        return Math.Max(style.VerticalInsets, Math.Max(0.01D, height));
+        return Math.Max(style.VerticalInsets, Math.Max(allowZeroHeight ? 0D : 0.01D, height));
     }
 
     private void ReportUnsupportedLayout(IElement element, HtmlRenderBoxStyle style) {
