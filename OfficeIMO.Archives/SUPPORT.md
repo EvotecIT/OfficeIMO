@@ -2,7 +2,7 @@
 
 | Operation | Containers | Verification and ownership |
 | --- | --- | --- |
-| `ArchiveReader.TraverseZip` | ZIP | Bounded metadata traversal with ingestion warnings; file content is not decoded or checksum-verified. The `OfficeIMO.Zip` facade uses this same engine. |
+| `ArchiveReader.TraverseZip` | ZIP | Bounded metadata traversal with ingestion warnings; file content is not decoded or checksum-verified. |
 | `ArchiveReader.ReadZip` | ZIP | Strict metadata/path preflight and complete selected-content length, framing and CRC verification; selected arrays belong to the caller. Input streams stay open. No partial result or filesystem output. |
 | `ArchiveExtractor.Extract` | ZIP, CAB, MSI | Strict verified extraction through a sibling staging directory and completed-directory publication. |
 

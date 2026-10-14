@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
-namespace OfficeIMO.Zip.Benchmarks;
+namespace OfficeIMO.Archives.Benchmarks;
 
 internal static class ZipEvidenceRunner {
     private static readonly string[] Engines = { "OfficeIMO", "System.IO.Compression" };
@@ -94,7 +94,7 @@ internal static class ZipEvidenceRunner {
         long peakManagedHeap = sampler.Stop();
         long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
 
-        ZipComparisonObservation observation = result is ZipTraversalResult office
+        ZipComparisonObservation observation = result is ArchiveTraversalResult office
             ? ZipComparisonWorkflows.Observe(office.Entries)
             : ZipComparisonWorkflows.Observe((IReadOnlyList<ZipProjectionDescriptor>)result);
         ZipComparisonReport expected = ZipComparisonValidation.Validate(scale, input);
@@ -208,7 +208,7 @@ internal sealed class ZipManagedHeapSampler : IDisposable {
 
     internal ZipManagedHeapSampler() {
         _peakBytes = GC.GetTotalMemory(forceFullCollection: false);
-        _thread = new Thread(SampleUntilStopped) { IsBackground = true, Name = "OfficeIMO.Zip managed heap sampler" };
+        _thread = new Thread(SampleUntilStopped) { IsBackground = true, Name = "OfficeIMO.Archives managed heap sampler" };
         _thread.Start();
     }
 

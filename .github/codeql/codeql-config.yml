@@ -47,7 +47,6 @@ paths:
   - OfficeIMO.Word.Html
   - OfficeIMO.Word.Markdown
   - OfficeIMO.Word.Pdf
-  - OfficeIMO.Zip
 
 paths-ignore:
   - Assets/PowerPointTemplates

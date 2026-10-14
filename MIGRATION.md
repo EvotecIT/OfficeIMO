@@ -1,8 +1,22 @@
 # Upgrading OfficeIMO
 
-## Shared archive reading
+## ZIP APIs move to OfficeIMO.Archives
 
-`OfficeIMO.Zip` retains its public traversal signatures and result types and delegates to `OfficeIMO.Archives`. When copying assemblies manually, include the matching `OfficeIMO.Archives` assembly; normal NuGet restore resolves it automatically. New code can reference Archives directly and use `ArchiveReader.TraverseZip` with `ArchiveTraversalOptions` or `ArchiveReader.ReadZip` with `ArchiveReadOptions`. Traversal reports ingestion warnings; verified content reads and filesystem extraction reject unsafe or corrupt selected payloads.
+`OfficeIMO.Zip` is removed. Replace its package reference and namespace with `OfficeIMO.Archives`, then update these public APIs:
+
+| Previous API | Replacement |
+| --- | --- |
+| `ZipTraversal.Traverse` | `ArchiveReader.TraverseZip` |
+| `ZipTraversal.Enumerate` | `ArchiveReader.EnumerateZip` |
+| `ZipTraversal.ValidateSource` | `ArchiveReader.ValidateZipSource` |
+| `ZipTraversalOptions` | `ArchiveTraversalOptions` |
+| `ZipTraversalResult` | `ArchiveTraversalResult` |
+| `ZipEntryDescriptor` | `ArchiveEntryDescriptor` |
+| `ZipTraversalWarning` | `ArchiveTraversalWarning` |
+
+`OfficeIMO.Reader.Zip` remains the ZIP document ingestion adapter. Its `AddZipHandler` options and `ReaderAllOptions.ZipTraversal` now use `ArchiveTraversalOptions`. Recompile callers against the matching Reader and Archives packages; this is a source and binary API break, with no compatibility facade.
+
+Traversal retains its limits, descriptors and ingestion warnings. Use `ArchiveReader.ReadZip` with `ArchiveReadOptions` for verified member content in memory, or `ArchiveExtractor` for transactional filesystem extraction. Those content operations reject unsafe or corrupt selected payloads.
 
 ## Excel future-function spelling
 
@@ -451,7 +465,7 @@ Reader OCR blocks carry `Recognition` provenance through JSON and nested project
 
 ## ZIP, drawing links, and MCP filesystem access
 
-`OfficeIMO.Zip` now rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ZipTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
+`ArchiveReader.TraverseZip` rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ArchiveTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ArchiveReader.ValidateZipSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
 
 `OfficeDrawing.AddLink` rejects script, data, file, unknown-scheme, and ambiguous targets. SVG import keeps the visible content inside a rejected link but does not export its interactive target. Replace such targets with HTTP(S), mail, telephone, or local relative/fragment links where appropriate.
 

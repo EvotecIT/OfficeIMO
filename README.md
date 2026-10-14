@@ -101,6 +101,8 @@ _Dependency footprint:_ zero third-party runtime dependencies.
 
 #### [OfficeIMO.Archives](OfficeIMO.Archives/README.md)
 
+- [x] Bounded ZIP metadata traversal with ingestion warnings and verified member reads in memory
+- [x] Managed ZIP extraction with path, declared-size, decoded-length and CRC validation
 - [x] Managed single-cabinet extraction with Store, MSZIP, and LZX compression
 - [x] Passive MSI extraction maps embedded CAB members through authored Directory, Component, File, and Media tables
 - [x] Selective output, path and collision validation, finite resource limits, cancellation, and atomic destination publication
@@ -618,15 +620,6 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no third-party EPUB engine.
 - [x] PNG, JPEG, TIFF, lossless WebP, and SVG through the same result, diagnostics, save, and progress contracts as other document families
 
 _Dependency footprint:_ only first-party OfficeIMO EPUB, HTML, and Drawing packages; no browser or second EPUB engine.
-
-#### [OfficeIMO.Zip](OfficeIMO.Zip/README.md)
-
-- [x] Deterministic ZIP entry traversal for ingestion pipelines
-- [x] Guards against relative traversal, absolute paths, and drive paths
-- [x] Depth, entry-count, per-entry size, total uncompressed size, and compression-ratio limits
-- [x] Structured warnings for rejected and limited entries
-
-_Dependency footprint:_ only `OfficeIMO.Core`; archive traversal uses platform compression APIs.
 
 #### [OfficeIMO.GoogleWorkspace](OfficeIMO.GoogleWorkspace/README.md)
 

@@ -44,7 +44,6 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Word.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Word.Markdown")]
 [assembly: InternalsVisibleTo("OfficeIMO.Word.Html")]
-[assembly: InternalsVisibleTo("OfficeIMO.Zip")]
 [assembly: InternalsVisibleTo("OfficeIMO.Opml")]
 [assembly: InternalsVisibleTo("OfficeIMO.DocBook")]
 [assembly: InternalsVisibleTo("OfficeIMO.Xps")]

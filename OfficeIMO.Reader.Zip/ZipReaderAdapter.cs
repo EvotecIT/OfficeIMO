@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Globalization;
-using OfficeIMO.Zip;
+using OfficeIMO.Archives;
 
 namespace OfficeIMO.Reader.Zip;
 
@@ -15,7 +15,7 @@ internal static class ZipReaderAdapter {
     /// <summary>
     /// Reads supported files from a ZIP archive and emits normalized chunks.
     /// </summary>
-    public static IEnumerable<ReaderChunk> Read(string zipPath, ReaderOptions? readerOptions = null, ZipTraversalOptions? zipOptions = null, CancellationToken cancellationToken = default) {
+    public static IEnumerable<ReaderChunk> Read(string zipPath, ReaderOptions? readerOptions = null, ArchiveTraversalOptions? zipOptions = null, CancellationToken cancellationToken = default) {
         return Read(zipPath, readerOptions, zipOptions, readerZipOptions: null, cancellationToken);
     }
 
@@ -26,7 +26,7 @@ internal static class ZipReaderAdapter {
     public static IEnumerable<ReaderChunk> Read(
         string zipPath,
         ReaderOptions? readerOptions,
-        ZipTraversalOptions? zipOptions,
+        ArchiveTraversalOptions? zipOptions,
         ReaderZipOptions? readerZipOptions,
         CancellationToken cancellationToken = default) {
         if (zipPath == null) throw new ArgumentNullException(nameof(zipPath));
@@ -34,7 +34,7 @@ internal static class ZipReaderAdapter {
         if (!File.Exists(zipPath)) throw new FileNotFoundException($"ZIP file '{zipPath}' doesn't exist.", zipPath);
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
-        var effectiveZipOptions = zipOptions ?? new ZipTraversalOptions();
+        var effectiveZipOptions = zipOptions ?? new ArchiveTraversalOptions();
         var effectiveReaderZipOptions = Normalize(readerZipOptions);
         var warningCounter = new WarningCounter();
         ReaderInputLimits.EnforceFileSize(zipPath, effectiveReaderOptions.MaxInputBytes);
@@ -46,7 +46,7 @@ internal static class ZipReaderAdapter {
         Stream archiveStream = ReaderInputLimits.EnsureSeekableReadStream(fs, inputLimit,
             cancellationToken, out bool ownsArchiveStream);
         try {
-            ZipTraversal.ValidateSource(archiveStream, effectiveZipOptions, cancellationToken);
+            ArchiveReader.ValidateZipSource(archiveStream, effectiveZipOptions, cancellationToken);
             var archiveSource = BuildArchiveSourceMetadataFromPath(zipPath, archiveStream,
                 effectiveReaderOptions.ComputeHashes);
             using var archive = new ZipArchive(archiveStream, ZipArchiveMode.Read, leaveOpen: true);
@@ -74,7 +74,7 @@ internal static class ZipReaderAdapter {
         Stream zipStream,
         string? sourceName = null,
         ReaderOptions? readerOptions = null,
-        ZipTraversalOptions? zipOptions = null,
+        ArchiveTraversalOptions? zipOptions = null,
         CancellationToken cancellationToken = default) {
         return Read(zipStream, sourceName, readerOptions, zipOptions, readerZipOptions: null, cancellationToken);
     }
@@ -87,14 +87,14 @@ internal static class ZipReaderAdapter {
         Stream zipStream,
         string? sourceName,
         ReaderOptions? readerOptions,
-        ZipTraversalOptions? zipOptions,
+        ArchiveTraversalOptions? zipOptions,
         ReaderZipOptions? readerZipOptions,
         CancellationToken cancellationToken = default) {
         if (zipStream == null) throw new ArgumentNullException(nameof(zipStream));
         if (!zipStream.CanRead) throw new ArgumentException("ZIP stream must be readable.", nameof(zipStream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
-        var effectiveZipOptions = zipOptions ?? new ZipTraversalOptions();
+        var effectiveZipOptions = zipOptions ?? new ArchiveTraversalOptions();
         var effectiveReaderZipOptions = Normalize(readerZipOptions);
         var warningCounter = new WarningCounter();
         var logicalSourceName = "archive.zip";
@@ -111,7 +111,7 @@ internal static class ZipReaderAdapter {
             : maximumArchiveBytes;
         var archiveStream = ReaderInputLimits.EnsureSeekableReadStream(zipStream, inputLimit, cancellationToken, out var ownsArchiveStream);
         try {
-            ZipTraversal.ValidateSource(archiveStream, effectiveZipOptions, cancellationToken);
+            ArchiveReader.ValidateZipSource(archiveStream, effectiveZipOptions, cancellationToken);
             var archiveSource = BuildArchiveSourceMetadataFromStream(archiveStream, logicalSourceName, effectiveReaderOptions.ComputeHashes);
             using var archive = new ZipArchive(archiveStream, ZipArchiveMode.Read, leaveOpen: true);
             foreach (var chunk in ReadZipArchive(
@@ -137,7 +137,7 @@ internal static class ZipReaderAdapter {
         ArchiveSourceMetadata archiveSource,
         string archivePath,
         ReaderOptions readerOptions,
-        ZipTraversalOptions zipOptions,
+        ArchiveTraversalOptions zipOptions,
         ReaderZipOptions readerZipOptions,
         WarningCounter warningCounter,
         CancellationToken cancellationToken) {
@@ -161,13 +161,13 @@ internal static class ZipReaderAdapter {
         string archivePath,
         int nestedDepth,
         ReaderOptions readerOptions,
-        ZipTraversalOptions zipOptions,
+        ArchiveTraversalOptions zipOptions,
         ReaderZipOptions readerZipOptions,
         WarningCounter warningCounter,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var traversal = ZipTraversal.Traverse(archive, zipOptions, cancellationToken);
+        var traversal = ArchiveReader.TraverseZip(archive, zipOptions, cancellationToken);
         foreach (var traversalWarning in traversal.Warnings) {
             cancellationToken.ThrowIfCancellationRequested();
             yield return BuildWarningChunk(
@@ -308,7 +308,7 @@ internal static class ZipReaderAdapter {
         string entryName,
         int nestedDepth,
         ReaderOptions readerOptions,
-        ZipTraversalOptions zipOptions,
+        ArchiveTraversalOptions zipOptions,
         ReaderZipOptions readerZipOptions,
         WarningCounter warningCounter,
         CancellationToken cancellationToken) {
@@ -399,7 +399,7 @@ internal static class ZipReaderAdapter {
         string? parseError = null;
         try {
             using var nestedStream = new MemoryStream(nestedBytes!, writable: false);
-            ZipTraversal.ValidateSource(nestedStream, zipOptions, cancellationToken);
+            ArchiveReader.ValidateZipSource(nestedStream, zipOptions, cancellationToken);
             using var nestedArchive = new ZipArchive(nestedStream, ZipArchiveMode.Read, leaveOpen: false);
             var nestedArchivePath = BuildVirtualPath(archivePath, entryName);
 

@@ -83,7 +83,7 @@
     <ProjectReference Include="..\OfficeIMO.Word.OpenDocument\OfficeIMO.Word.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Rtf\OfficeIMO.Word.Rtf.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Zip\OfficeIMO.Zip.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Archives\OfficeIMO.Archives.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
   </ItemGroup>
 

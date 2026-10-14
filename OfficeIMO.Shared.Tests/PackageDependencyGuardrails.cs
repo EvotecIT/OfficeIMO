@@ -529,7 +529,6 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj")]
     [InlineData("OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj")]
     [InlineData("OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj")]
-    [InlineData("OfficeIMO.Zip/OfficeIMO.Zip.csproj")]
     public void SharedFoundationConsumers_ReferenceOfficeImoCore(string relativeProjectPath) {
         var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
