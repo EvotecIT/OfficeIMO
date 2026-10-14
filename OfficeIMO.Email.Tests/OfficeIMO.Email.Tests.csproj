@@ -39,9 +39,9 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.IO.Compression" />
-    <!-- Patch MsgReader's test-only CMS dependency; modern targets inherit this version from Security. -->
+    <!-- Service MsgReader's .NET Framework oracle dependency without changing production package references. -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" PrivateAssets="all" />
+    <Reference Include="System.IO.Compression" />
   </ItemGroup>
 
   <ItemGroup>

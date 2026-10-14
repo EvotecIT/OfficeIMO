@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
         public void Html_FigureWithCaption_Converts() {
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             byte[] imageBytes = File.ReadAllBytes(assetPath);
             string base64 = Convert.ToBase64String(imageBytes);
             string html = $"<figure><img src=\"data:image/png;base64,{base64}\" alt=\"Logo\"/><figcaption>Logo caption</figcaption></figure>";
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Html_FigureWithLeadingCaption_RoundTripsAsFigure() {
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             byte[] imageBytes = File.ReadAllBytes(assetPath);
             string base64 = Convert.ToBase64String(imageBytes);
             string html = $"<figure><figcaption>Logo caption</figcaption><img src=\"data:image/png;base64,{base64}\" alt=\"Logo\"/></figure>";
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WordToHtml_FigureWithCaption_RendersFigure() {
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             using var doc = WordDocument.Create();
             doc.AddParagraph().AddImage(assetPath);
             doc.AddParagraph("Logo caption").SetStyleId("Caption");

@@ -101,6 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 RecordRunningStringAssignments(block, 0D, block.Height, y);
                 y += block.Height;
             } else {
+                block = QualifySharedTableRepetition(block);
                 double blockOffset = 0D;
                 while (blockOffset < block.Height - 0.0001D) {
                     CheckCancellation();
@@ -110,7 +111,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         && block.Height > blockOffset + flexAvailable + 0.0001D
                         && TryRelayoutBlockForFlexPagination(block, blockOffset, flexAvailable, contentHeight,
                             pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock alignedFlexBlock)) {
-                        block = alignedFlexBlock.ForPagination();
+                        block = QualifySharedTableRepetition(alignedFlexBlock.ForPagination());
                         _pagedFlexAlignedBlocks.Add(block);
                     }
                     HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
@@ -203,6 +204,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         }
                     }
 
+                    ReportSharedTableRepetitionLoss(block, fragmentEnd);
                     if (repeatContinuation) {
                         AddTranslatedVisuals(visuals, continuationGroup!.Visuals, pageGeometry.Margins.Left, y, block);
                         y += continuationHeight;
@@ -214,13 +216,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
                     y += fragmentEnd - blockOffset;
                     blockOffset = fragmentEnd;
+                    bool finishedTableFooter = false;
                     if (repeatTrailing) {
                         AddTranslatedVisuals(visuals, trailingGroup!.Visuals, pageGeometry.Margins.Left, y, block);
                         y += trailingHeight;
-                        if (blockOffset >= trailingGroup.ContentEndsAt - 0.0001D) blockOffset = trailingGroup.SourceEndsAt;
+                        if (blockOffset >= trailingGroup.ContentEndsAt - 0.0001D) {
+                            blockOffset = trailingGroup.SourceEndsAt;
+                            finishedTableFooter = true;
+                        }
                     }
 
                     if (blockOffset < block.Height - 0.0001D) {
+                        // A wrapper can contain content after the completed table.
+                        // Let that content use the space after its final footer.
+                        if (finishedTableFooter
+                            && ResolveForcedBreakAt(block.ForcedBreaks, blockOffset) == HtmlPageBreakTarget.None
+                            && string.Equals(ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName), currentPageName, StringComparison.Ordinal)
+                            && y < ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - 0.0001D) continue;
                         HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
                         string? nextPageName = ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName);
                         ExtendPagedBodyBackgroundThroughFragmentSlack(block, pageGeometry, visuals, y);
@@ -240,7 +252,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         if (RequiresPageRelayout(block, pageGeometry)) {
                             if (continuationProgress.HasValue
                                 && TryRelayoutInlineContinuation(block, pageGeometry, continuationProgress.Value, out HtmlRenderFlowBlock reflowed)) {
-                                block = reflowed.ForPagination();
+                                block = QualifySharedTableRepetition(reflowed.ForPagination());
                                 blockOffset = 0D;
                             } else {
                                 ReportPageContinuationReflowPending(block, pageGeometry);

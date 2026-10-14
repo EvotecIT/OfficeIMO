@@ -13,12 +13,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false, "float-clearance");
 
     private HtmlRenderBoxStyle PlaceIndependentBlockBesideFloats(HtmlRenderBoxStyle style, double width,
-        InlineFloatContext context, ref double y) {
+        InlineFloatContext context, ref double y, double? minimumOuterWidth = null) {
         if (!context.HasFloats || !EstablishesIndependentFloatContext(style)) return style;
         double height = Math.Max(style.LineHeight, style.ExplicitHeight ?? 0D);
         InlineFloatBand band = context.ResolveUsableBand(ref y, height);
-        while (ResolveBoxWidth(Math.Max(1D, band.Width - style.MarginLeft - style.MarginRight), style)
-            + style.MarginLeft + style.MarginRight > band.Width + 0.0001D) {
+        while (Math.Max(minimumOuterWidth ?? 0D,
+            ResolveBoxWidth(Math.Max(1D, band.Width - style.MarginLeft - style.MarginRight), style)
+                + style.MarginLeft + style.MarginRight) > band.Width + 0.0001D) {
             double next = context.NextBottomAfter(y);
             if (next <= y + 0.0001D) break;
             y = next;
@@ -64,6 +65,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal bool HasFloats => _placements.Count > 0 || _inheritedFloats.Count > 0 || _originatingPageExclusions.Count > 0;
+        internal IReadOnlyList<InlineFloatPlacement> GetFragmentPlacements(double contentY) => _placements
+            .Select(item => new InlineFloatPlacement(item.Run, item.X - _originX,
+                item.Y - _originY + contentY, item.Width, item.Height)).ToArray();
         internal InlineFloatContext At(double width, double x, double y) =>
             new InlineFloatContext(width, _placements, _originX + x, _originY + y, _inheritedFloats, _originatingPageExclusions);
 

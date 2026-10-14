@@ -167,11 +167,20 @@ while the provider evaluates that pseudo-class against the current element. `:is
 use forgiving lists, while `:not()` stays strict. `:empty` follows deployed browser behavior:
 whitespace text makes an element non-empty and comments do not.
 
+ID and class selectors use ASCII-insensitive matching in quirks documents and
+case-sensitive matching in standards and limited-quirks documents. Attribute
+selectors keep their own case rules. `:lang()` uses element and ancestor language
+declarations, gives `xml:lang` precedence over `lang`, and stops inheritance at an
+explicit empty language. A range matches the same language or a hyphenated subtag.
+
 AngleSharp.Css remains in the default package for wider property grammars, dynamic and
 relational pseudo-classes, filtered `:nth-child(... of S)`, conditional-group evaluation,
 pseudo-elements, unknown at-rules, and other fallback cases. Retained declarations can still use an owned
 selector match, including namespace-qualified selectors. OfficeIMO keeps rule order, cascade
 layers, computed-style projection, and fallback selection stable while the owned subset grows.
+Declaration preservation uses parsed name spans, so declaration-like text inside
+URLs or custom-property components stays intact. Provider fallback retains custom
+property values, case-sensitive names and importance from the original rule.
 
 Cascade explanations are opt-in so normal rendering does not retain candidate graphs for
 every element:
@@ -265,6 +274,11 @@ density, reports whether a default `src` supplied the selected candidate, and fa
 to `100vw` when no supported size matches. Resource policy is applied before candidate
 selection. Static rendering derives device density from
 `HtmlRenderMediaFeatures.ResolutionDpi`.
+
+Density descriptors must be positive finite numbers, such as `1.5x`, `.5x` or
+`1e2x`. A leading `+`, a trailing decimal point, zero, negative values and nonfinite
+values are invalid. Candidates with invalid descriptors are discarded before
+responsive selection.
 
 ## Direct HTML rendering
 
@@ -411,7 +425,24 @@ var strict = new HtmlRenderOptions {
 OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, strict);
 ```
 
-The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
+The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, positioned `clip` rectangles, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
+
+Legacy `clip: rect(top, right, bottom, left)` clips the whole border box of an
+absolute or fixed element, including its background, border and link area. Each
+edge accepts a finite length or `auto`; comma-separated and historical
+whitespace-separated rectangles are supported. Ancestor rectangles also clip fixed
+descendants. Empty rectangles suppress paint and PDF link annotations while
+preserving the source DOM, named destinations and heading navigation, including
+when screen output is split into pages or stitched into one surface.
+`clip: auto` leaves overflow visible; `rect(auto, auto, auto, auto)` clips at the
+border box. Clipped form controls use the diagnosed static fallback because PDF
+widgets cannot preserve that authored clipping; strict loss policy rejects it.
+An unsupported applicable rectangle reports `HtmlRenderClipValueUnsupported`.
+
+A supported box with a non-none CSS transform establishes a local padding-box
+containing block for absolute and fixed descendants. These fixed descendants
+follow that box through pagination; viewport-fixed boxes repeat on print pages.
+Heading destinations retain the coordinates produced by enclosing transforms.
 
 Shrink-to-fit sizing for inline blocks, floats and absolute-positioned boxes measures
 styled child text, generated content and replaced images or SVG. Atomic child widths
@@ -443,7 +474,39 @@ apply cumulatively to the root and all rendered frame viewports. Static renderin
 the runtime application workflow supplies captured same-origin frame bodies through
 an isolated render clone.
 
-Paged tables use the same layout and retained scene for PDF, SVG, and raster output. Auto layout considers cell text, replaced images, column spans, and fixed-width visible descendants without feeding percentage widths back into intrinsic track sizing. Rowspans suppress unsafe page boundaries. `break-inside: avoid` on rows and row groups, `break-before` and `break-after` on rows, and aligned line breaks inside oversized multi-cell rows participate in pagination. `thead`/`tfoot` use their CSS table-group defaults; any row group can opt into or out of repetition with `display: table-header-group`, `table-footer-group`, or `table-row-group`. Repeated fragments retain the original table, row, and cell structure identity for tagged PDF. When an avoided or otherwise atomic row is taller than an empty page, the paginator makes bounded progress and reports `HtmlRenderForcedFragment` against the table source.
+CSS `display: table`, `inline-table`, `table-row`, `table-cell`, and table row groups use the same grid as native HTML tables. Adjacent cells in ordinary block flow receive anonymous table and row boxes; ordinary content inside rows receives anonymous cells. These boxes preserve the original DOM's selectors, inherited text styles and links, and fit beside neighboring floats. An `inline-table` remains an atomic box between surrounding text. CSS presentation alone does not give these boxes accessibility table roles; native elements and explicit ARIA roles retain their semantics.
+
+Paged tables use the same layout and retained scene for PDF, SVG, and raster output. Fitting tables are kept together by default, including with `break-inside:auto`. Normal-flow scroll containers with `overflow:auto` or `scroll` use the same keep policy; oversized boxes can split at legal boundaries.
+
+With `table-layout:fixed` and a definite table width, absolute column and first-row cell widths remain minimums. With zero borders and spacing, two 80px columns expand a 100px table to 160px. Declared column widths take precedence over cell widths; percentage requests share the space remaining after absolute minimums. Inline placement, centering, clipping and page continuations use the resulting table width. Intrinsic measurement uses the same row order and border insets as painting, keeping following inline content outside the table's used box.
+
+Auto layout considers styled cell text and generated content, block line boundaries, atomic inline boxes, replaced images, column spans, and fixed-width visible descendants without feeding percentage widths back into intrinsic track sizing. A repeated `col` declaration supplies its width to each column; a spanning cell includes the spacing between its columns. Continuations retain the original table's column contributions when page height changes. Rowspans suppress unsafe page boundaries. `break-inside: avoid` on rows and row groups, `break-before` and `break-after` on rows, and aligned line breaks inside oversized multi-cell rows participate in pagination. `thead`/`tfoot` use their CSS table-group defaults; any row group can opt into or out of repetition with `display: table-header-group`, `table-footer-group`, or `table-row-group`. Only the first source group of each header/footer kind receives that placement and repetition behavior; subsequent groups retain ordinary row-group order. Repeated fragments retain the original table, row, and cell structure identity for tagged PDF. When an avoided or otherwise atomic row is taller than an empty page, the paginator makes bounded progress and reports `HtmlRenderForcedFragment` against the table source.
+
+Generated content on table, row and row-group boxes is omitted with `HtmlRenderTableValueUnsupported`; cells and captions retain generated content. CSS-only column boxes, `display: contents` within a table boundary and orphan internal table boxes inside inline flow receive an approximation diagnostic. Additional captions receive an omission diagnostic. `RequireNoLoss` rejects these losses.
+
+Floated tables retain row breaks and repetition metadata through anonymous, inline and list wrappers. Parallel tables share one pagination cursor; independent repetition offsets remain unqualified. When header groups conflict or a repeated footer would skip neighboring content, the engine retains the original header or footer. An actual page boundary through that source span reports `HtmlRenderTableHeaderRepeatSuppressed` or `HtmlRenderTableFooterRepeatSuppressed` as an approximation, and `RequireNoLoss` rejects it. Put parallel tables in separate block flow when repeated groups are required.
+
+Authored table widths honor `box-sizing` and horizontal auto margins. Native HTML tables default to border-box sizing in both style modes; flex and grid allocations apply padding, borders and maximum widths once. Absolute table, row, and cell heights are minimums. Extra table height is distributed evenly among rows and retained when pagination reflows a continuation. Cell `vertical-align: top`, `middle`, and `bottom` uses the final row or rowspan height. Browser style mode supplies middle alignment inherited through row groups and rows; authored values and CSS-wide resets override those defaults. RTL tables place the first logical column on the right while preserving source text and tagged-PDF order. Authored zero padding overrides the cell defaults.
+
+With a definite table height, percentage row and single-row cell heights allocate shares of the height available to rows after table padding, borders and spacing. The larger row or cell request applies, while content and absolute height minimums remain intact. Cell padding and borders fit inside the percentage share. Auto rows receive the remaining height; when every row has a specified share, the shares scale to fill the grid. For example, a 200px table with 25% and 75% rows allocates 50px and 150px. If the first row needs 80px for its content, the rows receive 80px and 120px. A table whose height resolves to auto keeps auto sizing. Width and height calculations mixing percentages with nonzero lengths on internal table boxes behave as auto; pure calculated percentages and calculations whose length terms cancel to zero retain their percentage shares. Percentage rowspans and percentage row shares whose sum exceeds the available grid use an approximation reported as `HtmlRenderTableValueUnsupported`; `RequireNoLoss` rejects that fallback.
+
+Ordinary horizontal block and inline-block descendants in non-anonymous single-row cells resolve percentage `height`, `min-height` and `max-height` against the final cell content height when the table or cell has a definite height. Nested percentage-height chains, inline and `display:contents` wrappers, ordinary generated text boxes, CSS variables, calculated lengths and logical block-size aliases use the same basis. Non-replaced inline and `display:contents` wrappers preserve the containing-height basis during initial cell layout too, including image sizing against an absolute cell height. Their authored heights do not make an auto-height cell definite; an actual inline-block retains its independent height basis. Content and absolute minima are measured before this final sizing pass; padding and borders are deducted once. A `height:100%` status block therefore fills its final cell without expanding the row for the percentage alone. Consequential percentage content in rowspans, anonymous cells or specialized formatting contexts uses a source/property approximation reported as `HtmlRenderTableValueUnsupported`. Effective nonzero percentage row-group heights in a definite table receive the same diagnostic because group height allocation is not implemented. Auto or invalid values, internal-table calculations that compute to auto, and genuinely indefinite percentages retain auto sizing. `RequireNoLoss` rejects the diagnosed approximations. General browser-relative row compression and mixed-font baselines remain outside this qualified subset.
+
+Horizontal, normal-flow block and inline-block boxes support `min-content`, `max-content`, `fit-content` and `fit-content(<length>)` for `width`, `min-width` and `max-width`, including logical inline-size aliases. Measurements preserve styled text, atomic inline content and nested ordinary-box constraints. A cyclic descendant percentage is indefinite during intrinsic measurement; definite minimum and maximum constraints still apply. Cyclic margin and padding percentages resolve against zero while retaining absolute terms, including negative margins. Keyword widths measure content-box edges regardless of `box-sizing`; the argument of `fit-content()` follows the authored box sizing. Minimum widths take precedence over conflicting maximum widths, and auto margins use the resolved width.
+
+In ordinary horizontal flow, non-replaced inline and `display:contents` wrappers preserve the enclosing block's content-height basis. Their authored heights do not establish a new containing block. Percentage-height images use that basis during intrinsic measurement and final layout, so a shrink-to-fit wrapper and its following content agree with the image's used width. An actual block or inline-block, including a blockified flex/grid item, retains its own height basis; an indefinite height stays indefinite.
+
+Ordinary horizontal LTR inline margins, padding and borders participate in intrinsic contributions and line placement. Signed margins affect the advance without producing negative paint widths. Token fitting includes opening and closing edges; wrapping, emergency breaks, tabs and ellipsis use the same advances. With `box-decoration-break:slice`, only the first and last fragments consume the outer edges. With `clone`, each fragment consumes its own padding and borders. Empty decorated spans retain their box advances.
+
+Ordinary words retain their text adjacency across inline style changes, including superscripts. A joined word moves together after preceding text, or overflows an empty line when normal wrapping supplies no break. Fitting includes empty inline box edges and available manual or automatic hyphenation prefixes, including the inserted hyphen glyph and applicable character and consecutive-line limits. Authored spaces, explicit breaks, preferred text breaks and emergency wrapping retain their respective policies. Float exclusion bands and `::first-line` styling use the same word boundaries; their combined style placement remains outside the qualified profile. Repeated `overflow-wrap` and `word-break` declarations retain source order, importance and valid-value filtering.
+
+Legacy HTML `<nobr>` keeps its inline content together, including superscripts and text with different fonts, and contributes the whole range to minimum-content width. A nested `<wbr>` supplies a break opportunity. Author `white-space` declarations can override these defaults; explicit inheritance and resets retain their CSS meaning. For new content, use CSS `white-space: nowrap`.
+
+Horizontal lines containing ordinary same-face empty inline-blocks retain the surrounding font strut and the inline-block's bottom-edge baseline. Empty inline wrappers and `nowrap` scopes contribute their struts without creating content or a line on their own. The shared metrics apply before fitting around floats and placing following lines. Mixed-face, replaced-element, content-derived and vertical baselines retain separate qualification limits.
+
+Backgrounds and borders on ordinary same-face horizontal LTR inline text and empty boxes follow the selected font box and its text or strut baseline, including lines shorter than the font size. A tall empty inline-block inside a span retains its own height without stretching the span's decoration to that height. Visible ancestor decoration remains when descendants hide their text or atomic content, and when a leader has no drawable width; each owner follows its own visibility. Generated leaders, mixed faces, bidi, vertical writing, displaced text and replaced elements retain their specialized paint routes and qualification limits. Font metrics and rasterizer edge coverage can differ from browser output.
+
+Intrinsic heights, percentage `fit-content()` arguments, and widths on replaced, table, flex/grid, positioned, floated, pseudo, root, vertical, column or containment boxes remain outside this subset. Ordinary boxes with replaced elements, specialized formatting descendants, percentage inline insets or decorated RTL descendants retain the fallback. Applicable dimensions report `HtmlRenderIntrinsicSizeUnsupported` when they fall back to auto sizing or omit a minimum or maximum constraint. `RequireNoLoss` rejects that approximation. These declarations do not size ordinary non-replaced inline or `display:contents` boxes and do not report this loss. Intrinsic grid-track sizing has a separate supported contract. Broader inline font-box and atomic-baseline appearance requires separate qualification.
 
 Explicit body margins, padding, and borders participate in layout and painting. A body background propagated to the canvas is painted once; when the HTML element supplies the canvas background, the body retains its own background box. Overflow propagated from the body clips at the viewport; body-local clipping remains active when the HTML element owns viewport overflow.
 
@@ -451,14 +514,28 @@ Block elements inside inline wrappers, including maps and links, retain their bl
 
 Visibility follows the active CSS media and computed `display`. The `hidden` attribute supplies a `display:none` default that author CSS can override, including print rules that reveal report sections. Hidden inline breaks and table cells do not participate in layout. CSS `initial`, `unset`, `inherit`, and cascade reversion retain their distinct display behavior.
 
-Text-decoration shorthands retain underline and strike-through style and color when
-they also specify thickness, for example `text-decoration: underline 0.05em dashed gray`.
+Text-decoration shorthands retain underline, overline and strike-through style and
+color with explicit thickness, for example `text-decoration: underline 0.05em dashed gray`.
 Thickness participates in shorthand resets, declaration order, explicit inheritance
-and custom-property substitution. Painted lines use automatic thickness; an explicit
-thickness on a painted decoration reports `HtmlRenderTextDecorationThicknessApproximated`
-as a loss-bearing approximation. Overline is omitted and reports
-`HtmlRenderTextDecorationLineUnsupported`. `text-underline-offset` does not control
-line placement.
+and custom-property substitution. Ordinary horizontal text paints explicit thickness
+and `text-underline-offset` with shared vector geometry; overline is also painted.
+Same-size in-flow inline descendants and anonymous flex text retain the ancestor's
+band and color. `display:contents` forwards ancestor bands without originating its
+own, and ancestor decoration stops at absolute, fixed and floated descendants.
+From-font metrics, specialized bidi/vertical/baseline contexts, underline/overline
+ink skipping, special positioning, shadows, mixed-size or independently decorated
+descendants, non-solid pattern geometry, and continuity across descendant inline
+margins, borders and padding report `HtmlRenderTextDecorationThicknessApproximated`.
+Specialized text retains automatic underline/strike paint and reports
+`HtmlRenderTextDecorationLineUnsupported` when overline is omitted. Descendant
+`text-decoration:none` preserves an ancestor band without adding an approximation.
+
+In ordinary horizontal flow, `::first-letter` selects its original in-flow letter
+before suppressing text at `font-size:0`, including generated `::before` text.
+A font size that resolves above zero restores only the selected fragment; the
+remaining zero-size text stays suppressed. Font and color properties not overridden
+by the pseudo-element retain the selected descendant's values. Intrinsic min/max
+sizing measures the same restored content used by the shared scene and PDF output.
 
 Supported inline SVG font and paint presentation attributes participate in the CSS cascade before layout. A label's `font-family`, `font-size` and `font-weight` attributes can override inherited HTML fonts, while author CSS and inline declarations retain their cascade priority. Relative font weights resolve once before inheritance, and nested text adds a baseline shift only when that element declares one.
 
@@ -468,10 +545,30 @@ CSS corner radii scale proportionally to fit the used box before creating rounde
 
 HTML `<button>` descendants retain their own fonts, visibility and block, flex or grid layout in static image and PDF output. Buttons with normal-flow child content center that content vertically when their height leaves spare space; authored flex and grid alignment controls those layouts. Automatic inline-block widths measure styled descendants, including their padding and borders, so larger child text reserves its own space. Hidden buttons follow the same display rules as other elements.
 
-The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,
-including nested scripts. Logical replacement text owns its painted content once, so independent
-PDF text extraction does not repeat the visible glyphs alongside their replacement. Page image
-exports retain the same scene geometry and page count; font rasterization can differ between viewers.
+Superscript and subscript resolve their font size once in the shared layout scene,
+including nested scripts. Authored font sizes remain effective. Font-relative
+`vertical-align` lengths use the element's resolved font size; percentages use its
+computed line height. Generated footnote calls default to 70% of the surrounding
+font size before resolving these dependent values. Keyword baseline shifts use
+bounded offsets; mixed-font line boxes and browser-relative baseline fidelity remain
+limited.
+
+Horizontal text-only lines combine each run's selected-face ascent and descent,
+half-leading and resolved vertical offset when advancing following content,
+including beside floats. Mixed sizes retain the paragraph paint anchor and lift it
+by any extra top extent. Font-metric rounding, keyword shifts, mixed faces and
+atomic baselines retain their browser-relative qualification limits.
+
+The PDF adapter paints the scene's resolved size and vertical offset. Logical
+replacement text owns its painted content once, so independent PDF text extraction
+does not repeat the visible glyphs alongside their replacement. Page image exports
+retain the same scene geometry and page count; font rasterization can differ between
+viewers.
+`OfficeImageExportOptions.MaximumRasterPixels` limits HTML raster export,
+including intermediate effect surfaces. `HtmlToPdfOptions.MaximumRasterPixels`
+also applies to managed raster fallback during PDF conversion. Encoded-byte
+limits remain separate.
+
 Raster decoding preserves encoded color channels and does not automatically apply embedded ICC or
 PNG gamma conversion. Normalize source colors explicitly when color-managed output is required.
 
@@ -526,7 +623,11 @@ The managed renderer also honors author soft hyphens and the bounded CSS control
 CSS length math. It affects the first formatted line, including wrapping beside
 floats and right-to-left alignment. Inherited lengths retain the declaring
 element's font context; percentages use the receiving block's inline size. Page
-continuations do not restart the indent. The `hanging` and `each-line` keywords
+continuations do not restart the indent. Intrinsic widths include the first-line
+indent once per paragraph, including table cells and captions. Percentage terms
+contribute zero during intrinsic measurement; absolute terms in length math
+remain. Nested blocks and atomic inline boxes measure their own paragraphs.
+The `hanging` and `each-line` keywords
 are not implemented and produce `TextIndentValueUnsupported` diagnostics.
 
 Character-relative `ch` lengths use the rendered zero glyph's advance, including
@@ -750,6 +851,17 @@ foreach (HtmlResourceSessionEntry resource in session.Resources) {
 ```
 
 The session owns one immutable policy and limit snapshot for the operation. It deduplicates canonical requests, validates MIME types, enforces request/count/per-resource/total-byte/import-depth budgets, and records accepted resource digests. Synchronous rendering uses the configured synchronous package resolver; application/network resolution remains an explicit asynchronous boundary.
+
+The session checks its resource URL policy before invoking a resolver, even when a
+manifest was planned under a more permissive policy. It also checks reported final
+URIs before accepting content. URL transforms preserve the manifest's rewrite;
+when the operation policy includes the planning transform, it resolves the original
+input instead of transforming the planned URI again. Reusing the same transform
+in intersected policies avoids duplicate URL rewrites. Resolvers must enforce that policy while following
+redirects. `ResourceTimeout` cancels the resolver's token; cancellation is
+cooperative, so a callback that ignores the token delays completion until it returns.
+Content returned after the deadline is rejected. Use an isolated worker when a hard
+termination boundary is required.
 
 When an implicit section takes its title from a heading, `section.TitleHeading`
 retains that heading's level, rich runs, style and source location. It remains

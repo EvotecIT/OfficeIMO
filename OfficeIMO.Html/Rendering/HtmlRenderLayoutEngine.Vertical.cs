@@ -20,7 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // A table cell's authored height is a row minimum. It must not
             // truncate an auto-height orthogonal child while measuring the row;
             // keep the cell's height available for percentage-sized descendants.
-            double? containingHeight = parentStyle.SemanticRole is "table-cell" or "table-header"
+            double? containingHeight = parentStyle.Display == "table-cell"
                 ? null
                 : ResolveContainingBlockHeight(parentStyle);
             double surfaceHeight = containingHeight ?? (_options.Mode == HtmlRenderMode.Paged

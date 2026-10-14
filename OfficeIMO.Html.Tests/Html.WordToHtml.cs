@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_EnforcesImageBudgetBeforeMaterializingImage() {
             using var doc = WordDocument.Create();
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             doc.AddParagraph().AddImage(assetPath, 20, 20);
             var options = new WordToHtmlOptions { MaxEmbeddedImageBytes = 1 };
 
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_RejectsBase64ImageBeforeBuildingAnOversizedDataUri() {
             using var doc = WordDocument.Create();
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             doc.AddParagraph().AddImage(assetPath, 20, 20);
             var options = new WordToHtmlOptions { MaxOutputCharacters = 4096 };
 
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_Base64ImageBudgetIncludesExistingMarkup() {
             using var doc = WordDocument.Create();
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             doc.AddParagraph(new string('x', 2048));
             doc.AddParagraph().AddImage(assetPath, 20, 20);
             long imageBytes = new FileInfo(assetPath).Length;
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_Base64ImageBudgetAccumulatesWithoutReserializingTheDocument() {
             using var doc = WordDocument.Create();
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             doc.AddParagraph().AddImage(assetPath, 20, 20);
             doc.AddParagraph().AddImage(assetPath, 20, 20);
             long imageBytes = new FileInfo(assetPath).Length;
@@ -701,7 +701,7 @@ namespace OfficeIMO.Tests {
             doc.BuiltinDocumentProperties.Title = "With Image";
             doc.BuiltinDocumentProperties.Creator = "Tester";
 
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             var paragraph = doc.AddParagraph();
             paragraph.AddImage(assetPath, 40, 40, description: "Company logo");
 
@@ -721,7 +721,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_ImageFilePathOption() {
             using var doc = WordDocument.Create();
 
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             var paragraph = doc.AddParagraph();
             paragraph.AddImage(assetPath, 20, 20);
 

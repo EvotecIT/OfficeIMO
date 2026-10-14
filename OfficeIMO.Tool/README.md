@@ -338,6 +338,20 @@ Conversion defaults to a 64 MiB input limit, 10,000,000 characters per XML part,
 
 ODG and FODG conversion keeps source page dimensions, including blank pages, and selects print-visible layers by default. Use `--diagram-layers screen|print` to choose visibility. Located fidelity diagnostics go to standard error; `--require-no-loss` rejects source or PDF-stage losses before publication. Batch conversion accepts the same diagram choices and `--maximum-xml-characters-in-part`; mixed batches apply diagram settings only to diagram routes. Checkpoint reuse retains source and page locations in recorded loss diagnostics.
 
+## Static HTML conversion
+
+```powershell
+officeimo html convert report.html --output report.pdf --profile print-paged
+officeimo html render report.html --encoder png --output report-pages.zip --max-input-bytes 8388608
+```
+
+The HTML commands accept HTML, MHTML and ZIP site bundles. Local and remote
+resource reads are disabled by default; bounded data URIs and archive resources
+remain available. `--max-input-bytes` changes the input-size ceiling while
+preserving the untrusted DOM, CSS, selector and responsive-image limits. ZIP entry
+and decoded-byte budgets remain separate from the encoded input limit. Use
+`officeimo html help` for the profile, page-selection and archive-limit options.
+
 ## Compact agent workflow
 
 The agent commands are designed for bounded model context. They do not replace the complete Reader result used by applications and archival pipelines.

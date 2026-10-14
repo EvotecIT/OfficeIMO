@@ -456,11 +456,19 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_TranslucentGradientsUseFaithfulManagedRasterFallback(string gradient) {
         string html = "<div style='width:40px;height:20px;background:" + gradient + "'></div>";
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        var options = new HtmlToPdfOptions { MaximumRasterPixels = 800L };
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "HtmlPdfTranslucentGradientRasterized");
         Assert.Contains("/SMask", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+
+        options.MaximumRasterPixels = 799L;
+        OfficeImageExportLimitException failure = Assert.Throws<OfficeImageExportLimitException>(() =>
+            document.ToPdfDocumentResult(options));
+        Assert.Equal(800L, failure.RequestedPixels);
+        Assert.Equal(799L, failure.MaximumPixels);
     }
 
     [Fact]

@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private sealed class InlineLine {
+    private sealed partial class InlineLine {
         private int _flowContentCount;
         private double _availableWidth;
         private double _indent;
@@ -12,10 +12,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal List<InlineSegment> Segments { get; } = new List<InlineSegment>();
         internal double Width { get; private set; }
         internal bool HasFlowContent => _flowContentCount > 0;
+        internal bool HasForcedBreak { get; set; }
         internal bool HasExplicitPlacement { get; private set; }
         internal double X { get; private set; }
         internal double Y { get; private set; }
         internal double AvailableWidth => Math.Max(0.01D, _availableWidth - _indent);
+        internal HtmlRenderBoxStyle? ParagraphStyle { get; set; }
         internal bool EndsWithHyphenation { get; set; }
 
         internal void Place(double x, double y, double availableWidth) {
@@ -44,19 +46,40 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal void Add(InlineSegment segment) {
+            segment.LeadingAdvance = 0D;
+            segment.TrailingAdvance = 0D;
             Segments.Add(segment);
             Width += segment.Width;
+            AddInlineEdges(segment);
             if (segment.Run.RunningStringElement == null
                 && segment.Run.RunningElementAssignment == null
                 && !segment.Run.IsFlowMarker) _flowContentCount++;
         }
 
         internal void RemoveAt(int index) {
+            InlineSegment removed = Segments[index];
             if (Segments[index].Run.RunningStringElement == null
                 && Segments[index].Run.RunningElementAssignment == null
                 && !Segments[index].Run.IsFlowMarker) _flowContentCount--;
             Width -= Segments[index].Width;
             Segments.RemoveAt(index);
+            if (_inlineEdges.Count > 0) RebuildInlineEdges(removed);
+        }
+
+        /// <summary>
+        /// Removes fragments being moved to another line while preserving their
+        /// scope content anchors, rebuilding the remaining line's edges once.
+        /// </summary>
+        internal void RemoveRange(int index, int count) {
+            for (int offset = 0; offset < count; offset++) {
+                InlineSegment removed = Segments[index + offset];
+                if (removed.Run.RunningStringElement == null
+                    && removed.Run.RunningElementAssignment == null
+                    && !removed.Run.IsFlowMarker) _flowContentCount--;
+                Width -= removed.Width;
+            }
+            Segments.RemoveRange(index, count);
+            if (_inlineEdges.Count > 0) RebuildInlineEdges();
         }
 
         internal void SetSegmentWidth(int index, double width) {
@@ -72,7 +95,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
             }
             if (!HasReplacedImage) {
-                if (Segments.Count > 0 && HasMixedTextSizes(Segments[0].Run.Style)) {
+                // Content-derived atomic baselines retain their separate route.
+                // Text-only face metrics are resolved by the layout engine below.
+                if (Segments.Any(segment => segment.Run.AtomicBlock != null && !segment.Run.IsFlowMarker)
+                    && HasMixedTextSizes(Segments[0].Run.Style)) {
                     double textBaseline = 0D;
                     double textDescent = 0D;
                     foreach (InlineSegment segment in Segments) {

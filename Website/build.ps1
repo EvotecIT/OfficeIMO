@@ -92,10 +92,15 @@ function Resolve-PowerForgeRoot {
         $cursor = $parent
     }
 
-    # Maintainer defaults + WSL-style mounts.
+    if ($env:EVOTEC_GITHUB_ROOT) {
+        $candidates += (Join-Path $env:EVOTEC_GITHUB_ROOT 'PSPublishModule')
+    }
+
+    # Platform defaults + WSL-style mounts.
     if ($IsWindows) {
         $candidates += 'C:\Support\GitHub\PSPublishModule'
     }
+    if (-not $IsWindows) { $candidates += (Join-Path $HOME 'Documents/GitHub/PSPublishModule') }
     $candidates += '/mnt/c/Support/GitHub/PSPublishModule'
 
     foreach ($candidate in ($candidates | Select-Object -Unique)) {
@@ -121,41 +126,38 @@ $PowerForgeArgs = @()
 $PowerForgeRoot = Resolve-PowerForgeRoot -RequestedRoot $PowerForgeRoot
 if (-not [string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
     $PowerForgeCliProject = Join-Path $PowerForgeRoot 'PowerForge.Web.Cli\PowerForge.Web.Cli.csproj'
-
-    $tfms = @('net10.0', 'net8.0')
-    foreach ($tfm in $tfms) {
-        if (-not $PowerForgeReleaseExe) { $PowerForgeReleaseExe = Join-Path $PowerForgeRoot "PowerForge.Web.Cli\\bin\\Release\\$tfm\\PowerForge.Web.Cli.exe" }
-        if (-not $PowerForgeReleaseAppHost) { $PowerForgeReleaseAppHost = Join-Path $PowerForgeRoot "PowerForge.Web.Cli\\bin\\Release\\$tfm\\PowerForge.Web.Cli" }
-        if (-not $PowerForgeReleaseDll) { $PowerForgeReleaseDll = Join-Path $PowerForgeRoot "PowerForge.Web.Cli\\bin\\Release\\$tfm\\PowerForge.Web.Cli.dll" }
-
-        if (-not $PowerForgeDebugExe) { $PowerForgeDebugExe = Join-Path $PowerForgeRoot "PowerForge.Web.Cli\\bin\\Debug\\$tfm\\PowerForge.Web.Cli.exe" }
-        if (-not $PowerForgeDebugAppHost) { $PowerForgeDebugAppHost = Join-Path $PowerForgeRoot "PowerForge.Web.Cli\\bin\\Debug\\$tfm\\PowerForge.Web.Cli" }
-        if (-not $PowerForgeDebugDll) { $PowerForgeDebugDll = Join-Path $PowerForgeRoot "PowerForge.Web.Cli\\bin\\Debug\\$tfm\\PowerForge.Web.Cli.dll" }
-    }
 }
 
 if (-not $SkipBuildTool -and $PowerForgeCliProject -and (Test-Path $PowerForgeCliProject)) {
     Write-Host "Building PowerForge.Web.Cli..." -ForegroundColor Cyan
-    dotnet build $PowerForgeCliProject -c Release | Out-Host
-    if ($LASTEXITCODE -ne 0) { throw "PowerForge.Web.Cli build failed (exit code $LASTEXITCODE)" }
+    Push-Location $PowerForgeRoot
+    try {
+        dotnet build $PowerForgeCliProject -c Release | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw "PowerForge.Web.Cli build failed (exit code $LASTEXITCODE)" }
+    } finally { Pop-Location }
 }
 
-if ($PowerForgeReleaseExe -and (Test-Path $PowerForgeReleaseExe)) {
-    $PowerForge = $PowerForgeReleaseExe
-} elseif ($PowerForgeReleaseAppHost -and (Test-Path $PowerForgeReleaseAppHost)) {
-    $PowerForge = $PowerForgeReleaseAppHost
-} elseif ($PowerForgeReleaseDll -and (Test-Path $PowerForgeReleaseDll)) {
-    $PowerForge = 'dotnet'
-    $PowerForgeArgs = @($PowerForgeReleaseDll)
-} elseif ($PowerForgeDebugExe -and (Test-Path $PowerForgeDebugExe)) {
-    $PowerForge = $PowerForgeDebugExe
-} elseif ($PowerForgeDebugAppHost -and (Test-Path $PowerForgeDebugAppHost)) {
-    $PowerForge = $PowerForgeDebugAppHost
-} elseif ($PowerForgeDebugDll -and (Test-Path $PowerForgeDebugDll)) {
-    $PowerForge = 'dotnet'
-    $PowerForgeArgs = @($PowerForgeDebugDll)
-} else {
+# Probe after building so a fresh net10.0 binary is selected on the first run.
+:FindTool foreach ($configuration in @('Release', 'Debug')) {
+    foreach ($tfm in @('net10.0', 'net8.0')) {
+        foreach ($name in @('PowerForge.Web.Cli.exe', 'PowerForge.Web.Cli', 'PowerForge.Web.Cli.dll')) {
+            if (-not $PowerForgeRoot) { break FindTool }
+            $candidate = Join-Path $PowerForgeRoot "PowerForge.Web.Cli/bin/$configuration/$tfm/$name"
+            if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
+            if ($name.EndsWith('.dll')) {
+                $PowerForge = 'dotnet'
+                $PowerForgeArgs = @($candidate)
+            } else { $PowerForge = $candidate }
+            break FindTool
+        }
+    }
+}
+if (-not $PowerForge) {
     $PowerForge = Get-Command powerforge-web -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+}
+if ($PowerForgeRoot) {
+    $revision = & git -C $PowerForgeRoot rev-parse HEAD 2>$null
+    if ($LASTEXITCODE -eq 0) { Write-Host "PowerForge source revision: $revision" -ForegroundColor DarkGray }
 }
 
 if (-not $PowerForge) {

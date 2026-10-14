@@ -1,0 +1,11 @@
+[
+  {
+    "title": "Create and edit Visio diagrams",
+    "url": "/docs/visio/",
+    "kind": "guide",
+    "targets": [
+      "OfficeIMO.Visio.VisioDocument",
+      "OfficeIMO.Visio.VisioPage"
+    ]
+  }
+]

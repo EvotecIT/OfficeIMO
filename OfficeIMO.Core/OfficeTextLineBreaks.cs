@@ -12,13 +12,13 @@ namespace OfficeIMO.Drawing;
 /// </remarks>
 public static class OfficeTextLineBreaks {
     /// <summary>
-    /// Returns safe UTF-16 indexes where an unspaced token can wrap without inserting text.
+    /// Returns safe UTF-16 indexes where text can wrap without inserting characters.
     /// </summary>
     public static IReadOnlyList<int> GetBreakPositions(string? text) =>
         GetBreakPositions(text, allowCjkBreaks: true);
 
     /// <summary>
-    /// Returns safe UTF-16 indexes where an unspaced token can wrap without inserting text,
+    /// Returns safe UTF-16 indexes where text can wrap without inserting characters,
     /// optionally excluding boundaries introduced only by CJK characters.
     /// </summary>
     public static IReadOnlyList<int> GetBreakPositions(string? text, bool allowCjkBreaks) {
@@ -55,13 +55,36 @@ public static class OfficeTextLineBreaks {
     }
 
     private static bool CanBreakBetween(int left, int right, bool allowCjkBreaks) {
-        if (IsNonStarter(right) || IsOpeningPunctuation(left) || IsClosingPunctuation(right)) {
+        // A zero-width space explicitly permits the following boundary (LB8),
+        // including one before a no-break or ordinary Unicode separator.
+        if (left == 0x200B) return true;
+        bool explicitBreak = IsBreakAfterScalar(left);
+        bool breakAfterSpace = IsUnicodeBreakSpace(left);
+        if (IsNoBreakSpace(left)
+            || IsNoBreakSpace(right) && !IsBreakBeforeNoBreakSpaceScalar(left) && !breakAfterSpace
+            || IsUnicodeBreakSpace(right)
+            || IsNonStarter(right) || IsOpeningPunctuation(left) || IsClosingPunctuation(right)) {
             return false;
         }
 
         return (allowCjkBreaks && (IsCjkScalar(left) || IsCjkScalar(right))) ||
-            IsBreakAfterScalar(left);
+            breakAfterSpace || explicitBreak;
     }
+
+    // Unicode BA space separators keep their advance and permit a break only
+    // after the separator. GL spaces block CJK breaks while preserving the
+    // supported BA/HY/HH exceptions before GL in Unicode 17.
+    private static bool IsUnicodeBreakSpace(int scalar) => scalar == 0x1680
+        || scalar >= 0x2000 && scalar <= 0x2006
+        || scalar >= 0x2008 && scalar <= 0x200A
+        || scalar is 0x205F or 0x3000;
+
+    private static bool IsNoBreakSpace(int scalar) => scalar is 0x00A0 or 0x2007 or 0x202F;
+
+    // Only the supported BA/HY/HH token breaks bypass GL (LB12a). Other
+    // explicit breaks, such as solidus (SY), retain their ordinary behavior.
+    private static bool IsBreakBeforeNoBreakSpaceScalar(int scalar) => scalar is
+        0x002D or 0x058A or 0x05BE or 0x1400 or 0x2010 or 0x2012 or 0x2013 or 0x2027;
 
     private static bool IsBreakAfterScalar(int scalar) => scalar is
         0x002D or // hyphen-minus

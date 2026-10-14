@@ -60,7 +60,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             width,
             inheritedPaintOffsetX + offsetX,
             inheritedPaintOffsetY + offsetY,
-            runs);
+            runs,
+            retainCasingContext: true);
     }
 
     private void AddGeneratedContentBlock(
@@ -205,13 +206,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double paintOffsetX,
         double paintOffsetY,
         ICollection<HtmlInlineRun> runs,
-        bool insideGeneratedBox = false) {
+        bool insideGeneratedBox = false,
+        bool retainCasingContext = false) {
         // The outer box owns the originating element's inline paint and hit area.
         // Its anonymous contents must not capture those ancestors a second time.
         IElement? runOwner = insideGeneratedBox ? null : element;
         for (int index = 0; index < content.Fragments.Count; index++) {
             HtmlGeneratedContentFragment fragment = content.Fragments[index];
-            if (style.Font.Size <= 0D && fragment.Kind != HtmlGeneratedContentFragmentKind.Image) continue;
+            bool contextOnly = style.Font.Size <= 0D;
+            if (contextOnly && fragment.Kind != HtmlGeneratedContentFragmentKind.Image
+                && (fragment.Kind != HtmlGeneratedContentFragmentKind.Text || !retainCasingContext)) continue;
             string fragmentSource = fragment.Kind == HtmlGeneratedContentFragmentKind.Text
                 ? source
                 : source + ":content-" + fragment.Kind.ToString().ToLowerInvariant()
@@ -219,7 +223,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (fragment.Kind == HtmlGeneratedContentFragmentKind.Text) {
                 string text = ApplyTextTransform(fragment.Value, style);
                 if (text.Length > 0) {
-                    runs.Add(new HtmlInlineRun(text, style, link, fragmentSource, paintOffsetX, paintOffsetY, runOwner));
+                    runs.Add(new HtmlInlineRun(text, style, link, fragmentSource, paintOffsetX, paintOffsetY, runOwner) {
+                        IsTextTransformContextOnly = contextOnly
+                    });
                 }
                 continue;
             }

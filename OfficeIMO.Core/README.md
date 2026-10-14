@@ -552,6 +552,14 @@ glyph ink within its text box. Otherwise it retains searchable stacked text, rep
 approximation, and strict conversion profiles reject that approximation. The dependency-free
 managed provider likewise reports when it cannot supply true vertical shaping.
 
+EM QUAD (`U+2001`) and EM SPACE (`U+2003`) retain their font's mapped
+advances. When these scalars are missing, `OfficeFontFaceCollection` tries eligible
+registered fallback faces before synthesizing a blank advance of one em for
+supported TrueType or CFF fonts. Automatic fallback selection respects declared
+font ranges and complete-grapheme coverage.
+Measurement and outline cursor placement use the same advance. This missing-space
+fallback is limited to these two scalars.
+
 Use `TryValidateContent(...)` at ingestion and export boundaries that must reject incomplete or
 corrupt image bodies. It applies the shared encoded-payload limit, validates the complete known
 container, decodes supported raster bodies, and validates every ICO entry. Both byte-array and
@@ -1358,6 +1366,11 @@ embedded.Add("Report Variable", File.ReadAllBytes("ReportVariable.ttf"));
 ```
 
 `OfficeFontFaceCollection` accepts TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is available on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. The engine is part of `OfficeIMO.Core`; it does not require another font-program package or a license key.
+
+For supported TrueType runs, the managed shaper uses the selected variation
+coordinates when resolving glyphs and advances. Distinct instances of the same
+source font keep distinct measurements. Extract a single face from a variable
+TrueType font collection before selecting variation axes.
 
 ## What it provides
 

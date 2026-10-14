@@ -14,7 +14,7 @@ namespace OfficeIMO.Drawing;
 /// keeps <see cref="IOfficeTextShapingProvider"/> as the single shaping contract used by Drawing and PDF.
 /// </remarks>
 public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], LatinFont> LatinFonts = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, LatinFont> LatinFonts = new();
     /// <summary>Shared stateless provider instance.</summary>
     public static OfficeManagedTextShapingProvider Instance { get; } = new OfficeManagedTextShapingProvider();
 
@@ -139,9 +139,9 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
     }
 
     private sealed class LatinFont {
-        internal LatinFont(byte[] data, bool isCff) {
-            Substitution = OfficeOpenTypeSubstitution.TryCreate(data);
-            Font = isCff ? OfficeOpenTypeCffFont.TryLoad(data, null, out _) : OfficeTrueTypeFont.TryLoad(data);
+        internal LatinFont(OfficeTextShapingRequest request) {
+            Substitution = OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
+            Font = LoadShapingFont(request);
         }
         internal IOfficeFontProgram? Font { get; }
         internal OfficeOpenTypeSubstitution? Substitution { get; }

@@ -441,8 +441,8 @@ public sealed partial class OfficeFontFaceCollection {
         string? currentFamily = null;
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             string family;
-            if (IsWhitespace(element) && currentFamily != null) {
-                family = currentFamily;
+            if (CanInheritWhitespace(element, currentFamily, candidates, explicitlySelectedFaces)) {
+                family = currentFamily!;
             } else {
                 if (!resolvedFamilies.TryGetValue(element, out string? resolvedFamily)) {
                     OfficeFontFace? face = null;
@@ -453,8 +453,16 @@ public sealed partial class OfficeFontFaceCollection {
                         face = candidate;
                         break;
                     }
-                    resolvedFamily = face?.ResourceFamilyName ?? requestedFamilies;
-                    resolvedFamilies.Add(element, resolvedFamily);
+                    resolvedFamily = face?.ResourceFamilyName ??
+                        (OfficeMissingSpaceMetrics.ContainsEmSpace(element)
+                            ? ResolveSynthesizedSpaceFace(element, currentFamily, candidates, explicitlySelectedFaces)?.ResourceFamilyName
+                                ?? requestedFamilies
+                            : requestedFamilies);
+                    // Synthesis follows every mapped-glyph candidate and requires
+                    // an eligible face for the complete element. Its preference
+                    // for the preceding face depends on position, so do not cache it.
+                    if (face != null || !OfficeMissingSpaceMetrics.ContainsEmSpace(element))
+                        resolvedFamilies.Add(element, resolvedFamily);
                 }
                 family = resolvedFamily;
             }
@@ -530,6 +538,14 @@ public sealed partial class OfficeFontFaceCollection {
                 return true;
             }
         }
+        if (OfficeMissingSpaceMetrics.ContainsEmSpace(text!)) {
+            foreach (OfficeFontFace candidate in candidates) {
+                bool explicitlySelected = explicitlySelectedFaces.Contains(candidate.ResourceFamilyName);
+                if (!CoversPlannedText(candidate, text!, requireUnicodeRange: !explicitlySelected, allowSpaceSynthesis: true)) continue;
+                face = candidate;
+                return true;
+            }
+        }
         return false;
     }
 
@@ -581,27 +597,15 @@ public sealed partial class OfficeFontFaceCollection {
                 if (CoversPlannedText(face, text, requireUnicodeRange: !explicitResource)) return face;
             }
         }
+        if (OfficeMissingSpaceMetrics.ContainsEmSpace(text)) {
+            foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
+                foreach ((OfficeFontFace face, _) in ResolveFamilyCandidates(family, requested)) {
+                    bool explicitResource = string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
+                    if (CoversPlannedText(face, text, requireUnicodeRange: !explicitResource, allowSpaceSynthesis: true)) return face;
+                }
+            }
+        }
         return null;
-    }
-
-    private static bool IsWhitespace(string value) {
-        for (int index = 0; index < value.Length; index++) {
-            if (!char.IsWhiteSpace(value[index])) return false;
-        }
-        return value.Length > 0;
-    }
-
-    private static bool CoversPlannedText(
-        OfficeFontFace face,
-        string text,
-        bool requireUnicodeRange) {
-        bool hasNonWhitespace = false;
-        foreach (string element in OfficeTextElements.Enumerate(text)) {
-            if (IsWhitespace(element)) continue;
-            hasNonWhitespace = true;
-            if (!(requireUnicodeRange ? face.Covers(element) : face.HasGlyphs(element))) return false;
-        }
-        return hasNonWhitespace || text.Length > 0;
     }
 
     private static bool MatchesFamily(OfficeFontFace face, string family) =>

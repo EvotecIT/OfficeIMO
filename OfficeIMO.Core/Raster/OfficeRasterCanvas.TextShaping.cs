@@ -59,7 +59,8 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
             logicalText,
             font.DisplayName ?? string.Empty,
-            font.GetFontDataForShaping(),
+            // Public request access returns a copy; only the owned TrueType snapshot is reused.
+            font is OfficeTrueTypeFont trueType ? trueType.FontDataForShaping : font.GetFontDataForShaping(),
             font.IsOpenTypeCff,
             font.UnitsPerEm,
             direction,

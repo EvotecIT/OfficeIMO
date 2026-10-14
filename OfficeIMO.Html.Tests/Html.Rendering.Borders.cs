@@ -194,6 +194,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderShape border = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#styled-strokes" && shape.Shape.StrokeWidth > 0D);
+        HtmlRenderShape background = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#styled-strokes" && shape.Shape.FillColor == OfficeColor.White);
         HtmlRenderShape outline = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#styled-strokes:outline");
         HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text == "StrokePdf");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
@@ -213,8 +214,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeStrokeDashStyle.Dot, outline.Shape.StrokeDashStyle);
         Assert.Equal(OfficeColor.Blue, outline.Shape.StrokeColor);
         Assert.False(outline.Shape.Transform.HasValue);
-        Assert.Equal(border.X - 4D, outline.X, 3);
-        Assert.Equal(border.Width + 8D, outline.Width, 3);
+        Assert.Equal(background.X, border.X, 3);
+        Assert.Equal(background.Width, border.Shape.ClipPath!.Width, 3);
+        Assert.Equal(background.X - 4D, outline.X, 3);
+        Assert.Equal(background.Width + 8D, outline.Width, 3);
         Assert.True(outline.PaintOrder > text.PaintOrder);
         Assert.Contains(
             Enumerable.Range(0, raster.Width).SelectMany(x => Enumerable.Range(0, raster.Height).Select(y => raster.GetPixel(x, y))),
@@ -247,8 +250,10 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(OfficeStrokeDashStyle.Solid, border.Shape.StrokeDashStyle);
         });
         HtmlRenderShape inner = Assert.Single(borders, border => border.Source == "div#double-border:border-inner");
+        HtmlRenderShape outer = Assert.Single(borders, border => border.Source == "div#double-border:border-outer");
         Assert.False(inner.Shape.Transform.HasValue);
-        Assert.Equal(4D, inner.X, 3);
+        Assert.Equal(1D, outer.Shape.PathCommands[0].Point.Y, 3);
+        Assert.Equal(5D, inner.Shape.PathCommands[0].Point.Y, 3);
     }
 
     [Fact]
@@ -435,10 +440,13 @@ public sealed partial class HtmlRenderingTests {
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(2, shapes.Count);
-        Assert.All(shapes, shape => {
-            Assert.Equal(OfficeShapeKind.RoundedRectangle, shape.Shape.Kind);
-            Assert.Equal(6D, shape.Shape.CornerRadius, 3);
-        });
+        HtmlRenderShape background = Assert.Single(shapes, shape => shape.Shape.FillColor.HasValue);
+        HtmlRenderShape border = Assert.Single(shapes, shape => shape.Shape.StrokeWidth > 0D);
+        Assert.Equal(OfficeShapeKind.RoundedRectangle, background.Shape.Kind);
+        Assert.Equal(6D, background.Shape.CornerRadius, 3);
+        Assert.Equal(OfficeShapeKind.Path, border.Shape.Kind);
+        Assert.Equal(OfficeClipPathKind.RoundedRectangle, border.Shape.ClipPath!.Kind);
+        Assert.Equal(6D, border.Shape.ClipPath.CornerRadius, 3);
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(0, 0));
         Assert.Equal((byte)255, raster.GetPixel(20, 15).R);
         Assert.Contains("rx=\"6\" ry=\"6\"", svg, StringComparison.Ordinal);

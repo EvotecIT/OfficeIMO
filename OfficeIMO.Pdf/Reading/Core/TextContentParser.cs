@@ -792,21 +792,26 @@ internal static partial class TextContentParser {
                 case "Do":
                     // Share replacement ownership with visible Form paint, retaining its
                     // real glyph geometry when no page-level text anchor emits it first.
-                    if (useLogicalTextFilters && args.Count >= 1 && GetActiveActualTextState() is { } formActualText)
+                    if (useLogicalTextFilters && args.Count >= 1 && GetActiveActualTextState() is { } formActualText) {
+                        formActualText.RejectLogicalPaintExtent();
                         onActualTextForm?.Invoke(operation.OperatorOffset, formActualText);
+                    }
                     args.Clear();
                     break;
-                case "BDC":
-                    markedContentStack.Push(new MarkedContentState(
+                case "BDC": {
+                    var markedState = new MarkedContentState(
                         GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
                         IsArtifactTag(args.Count > 1 ? args[args.Count - 2] : null),
                         operation.HasInvalidOperands ||
                         IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null),
                         GetMcid(args.Count > 0 ? args[args.Count - 1] : null),
                         IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null),
-                        HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null)));
+                        HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null));
+                    if (markedState.HasActualText) GetActiveActualTextState()?.RejectLogicalPaintExtent();
+                    markedContentStack.Push(markedState);
                     args.Clear();
                     break;
+                }
                 case "BMC":
                     markedContentStack.Push(new MarkedContentState(
                         null,
@@ -816,7 +821,7 @@ internal static partial class TextContentParser {
                     break;
                 case "EMC":
                     if (markedContentStack.Count > 0) {
-                        markedContentStack.Pop();
+                        markedContentStack.Pop().CompleteLogicalPaintExtent(spans);
                     }
 
                     args.Clear();
@@ -1065,6 +1070,7 @@ internal static partial class TextContentParser {
             bool isVisibleText = usesVisibleFill || usesVisibleStroke;
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
             string textOut = sbOut.ToString();
+            string paintedRun = textOut;
             var textOrigin = textMatrix.Transform(0, textRise);
             var (dx, dy) = ctm.Transform(textOrigin.X, textOrigin.Y);
             var textEnd = textMatrix.Transform(advTotal, textRise);
@@ -1132,6 +1138,13 @@ internal static partial class TextContentParser {
                 AddTextSpan(textOut);
             }
 
+            bool logicalAnchor = textRenderingMode == 3 && string.IsNullOrWhiteSpace(paintedRun);
+            actualTextState?.ObserveLogicalPaint(spans, currentContentStreamObjectNumber, font, size,
+                dx, dy, endX, endY, Matrix2D.Multiply(ctm, textMatrix), spanClipPath, pageHeight, paintedRun,
+                isHidden || isArtifact || hasUndecodableGlyph || characterAdvanceDirection < 0D ||
+                (!logicalAnchor && (!isVisibleText || textRenderingMode != 0 || visibleColor.A <= 3)),
+                logicalAnchor, pendingLineBreaks);
+
             if (!isHidden) {
                 ApplyTextClippingPath(advTotal);
             }
@@ -1146,7 +1159,7 @@ internal static partial class TextContentParser {
                     return;
                 }
                 if (!replaceInvisibleAnchor) onTextSpan?.Invoke(normalizedText.Length);
-                string paintedText = sbOut.ToString();
+                string paintedText = paintedRun;
                 bool visibleGlyphsMatchLogicalText = string.Equals(
                     NormalizeShatteredSpan(paintedText),
                     normalizedText,
@@ -1305,6 +1318,7 @@ internal static partial class TextContentParser {
                 } else {
                     spans.Add(span);
                     sbOutGlobal.Append(normalizedText);
+                    actualTextState?.RememberLogicalLayoutSpan(spans, spans.Count - 1);
                     if (actualTextState is not null && textRenderingMode == 3 && string.IsNullOrWhiteSpace(paintedText))
                         actualTextState.RememberInvisibleAnchor(spans, spans.Count - 1);
                 }
