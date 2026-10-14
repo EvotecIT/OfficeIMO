@@ -131,7 +131,7 @@ public sealed partial class HtmlRenderingTests {
             + "<aside style='float:top;float-reference:page;height:80px'>Floating"
             + "<span style='float:footnote'>Note</span></aside><p>Body</p>";
         HtmlRenderDocument rendered = RenderPageFloatFixture(html);
-        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Floating" && item.Y == 10D);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Floating" && item.LayoutY == 10D);
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Note");
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Note");
         HtmlRenderText[] all = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();

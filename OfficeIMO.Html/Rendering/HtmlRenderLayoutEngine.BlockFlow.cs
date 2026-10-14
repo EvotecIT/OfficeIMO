@@ -58,7 +58,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
         List<HtmlFloatExclusion>? activeFloats = pageBoundary.HasValue || emittedFloats != null
             ? inheritedFloats == null ? new List<HtmlFloatExclusion>() : new List<HtmlFloatExclusion>(inheritedFloats)
             : null;
-        foreach (INode node in nodes) {
+        foreach (TableFlowEntry entry in EnumerateTableFlowEntries(container, nodes, width, parentStyle)) {
+            if (entry.TableNodes != null) {
+                if (seekingContinuation && !entry.TableNodes.OfType<IElement>().Any(element => ReferenceEquals(element, continuationChild))) continue;
+                seekingContinuation = false;
+                double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth,
+                    pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
+                flowHeight += inlineHeight;
+                HtmlRenderBoxStyle tableStyle = CreateAnonymousBoxStyle(parentStyle, "table", "anonymous-table");
+                double tableY = flowHeight;
+                tableStyle = PlaceIndependentBlockBesideFloats(tableStyle, width, floatContext, ref tableY);
+                if (tableY > flowHeight) {
+                    blocks.Add(CreateFloatClearanceBlock(width, tableY - flowHeight));
+                    flowHeight = tableY;
+                }
+                TableFormattingStructure formatting = BuildTableFormattingStructure(container, width, tableStyle, depth, entry.TableNodes);
+                HtmlRenderFlowBlock tableBlock = LayoutTable(container, width, tableStyle, depth, continuationTarget, formatting);
+                blocks.Add(tableBlock);
+                flowHeight += tableBlock.Height;
+                if (continuationTarget != null && formatting.Rows.Any(row => row.Contains(continuationTarget))) {
+                    continuationTarget = null;
+                    continuationLogicalCharacters = 0;
+                }
+                adjoiningMargins.Clear();
+                continue;
+            }
+            INode node = entry.Node!;
             CheckCancellation();
             for (int index = (activeFloats?.Count ?? 0) - 1; index >= 0; index--) {
                 if (activeFloats![index].Bottom <= flowHeight + 0.0001D) activeFloats.RemoveAt(index);
@@ -74,6 +99,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle);
+                childStyle = ForwardContainingHeightBasis(element, childStyle, parentStyle);
                 if (childStyle.Display == "none") {
                     continue;
                 }
@@ -170,9 +196,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
                     }
+                    // Absolute fixed tracks can enlarge a table beyond its
+                    // authored width. Float fitting must use that same minimum.
+                    double? tableMinimumOuterWidth = childStyle.Display == "table"
+                        && childStyle.TableLayout == "fixed" && childStyle.ExplicitWidth.HasValue
+                        && (floatContext.HasFloats || activeFloats?.Count > 0)
+                            ? ResolveFixedTableIntrinsicOuterWidth(element, childStyle, width, depth + 1)
+                            : null;
                     if (activeFloats == null) {
                         double blockY = Math.Max(flowHeight, floatContext.Clearance(childStyle.ClearSide));
-                        childStyle = PlaceIndependentBlockBesideFloats(childStyle, width, floatContext, ref blockY);
+                        childStyle = PlaceIndependentBlockBesideFloats(childStyle, width, floatContext, ref blockY, tableMinimumOuterWidth);
                         if (blockY > flowHeight) {
                             blocks.Add(CreateFloatClearanceBlock(width, blockY - flowHeight));
                             flowHeight = blockY;
@@ -185,7 +218,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ? anticipatedMargins.Allocated - anticipatedMargins.Collapsed : 0D;
                     HtmlRenderBoxStyle unavoidedStyle = childStyle.Clone();
                     childStyle = AvoidActiveFloatsForFormattingContext(
-                        unavoidedStyle, width, flowHeight, activeFloats);
+                        unavoidedStyle, width, flowHeight, activeFloats, minimumOuterWidth: tableMinimumOuterWidth);
+                    childStyle = ResolveOrdinaryIntrinsicWidths(element, childStyle, width, depth + 1);
                     childStyle = ResolveNormalFlowHorizontalAutoMargins(element, childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
                     List<HtmlFloatExclusion>? childFloats = activeFloats != null
@@ -206,16 +240,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             -flowHeight - childStyle.MarginTop - childStyle.BorderTopWidth - childStyle.PaddingTop)).ToArray() : null,
                         childFloats, floatContext.At(width, 0D, flowHeight - anticipatedMarginAdjustment));
                     HtmlRenderFlowBlock childBlock = LayoutPlacedChild();
-                    if (activeFloats?.Count > 0 && EstablishesFloatContainingBlock(unavoidedStyle)
-                        && !unavoidedStyle.ExplicitHeight.HasValue) {
-                        // Auto height is only known after layout. Recheck the
+                    if (activeFloats?.Count > 0 && AvoidsActiveFloatsAsBlock(unavoidedStyle)
+                        && (!unavoidedStyle.ExplicitHeight.HasValue || unavoidedStyle.Display == "table")) {
+                        // Auto height and a table's height beyond its authored
+                        // minimum are only known after layout. Recheck the
                         // float bands with that height so a short box can stay
                         // beside a float without a taller box crossing a later one.
                         for (int attempt = 0; attempt <= activeFloats.Count; attempt++) {
                             double measuredHeight = Math.Max(0.01D,
                                 childBlock.Height - childStyle.MarginTop - childStyle.MarginBottom);
                             HtmlRenderBoxStyle measuredStyle = AvoidActiveFloatsForFormattingContext(
-                                unavoidedStyle, width, flowHeight, activeFloats, measuredHeight);
+                                unavoidedStyle, width, flowHeight, activeFloats, measuredHeight, tableMinimumOuterWidth);
+                            measuredStyle = ResolveOrdinaryIntrinsicWidths(element, measuredStyle, width, depth + 1);
                             measuredStyle = ResolveNormalFlowHorizontalAutoMargins(element, measuredStyle, width);
                             if (Math.Abs(measuredStyle.MarginTop - childStyle.MarginTop) <= 0.0001D
                                 && Math.Abs(measuredStyle.MarginLeft - childStyle.MarginLeft) <= 0.0001D

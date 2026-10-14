@@ -51,4 +51,8 @@ internal sealed class HtmlRenderTextIndent {
         _containerWidth, _containerHeight, out result, _characterAdvance);
 
     internal double Resolve(double width) => TryResolve(width, out double result) ? result : 0D;
+
+    // CSS Text intrinsic sizing treats percentage components as zero, while
+    // preserving the absolute part of a supported length/percentage calculation.
+    internal double ResolveIntrinsicContribution() => Resolve(0D);
 }

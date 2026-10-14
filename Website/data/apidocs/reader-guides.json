@@ -1,0 +1,12 @@
+[
+  {
+    "title": "Read documents into normalized content",
+    "url": "/docs/reader/",
+    "kind": "guide",
+    "targets": [
+      "OfficeIMO.Reader.OfficeDocumentReader",
+      "OfficeIMO.Reader.OfficeDocumentReaderBuilder",
+      "OfficeIMO.Reader.OfficeDocumentReadResult"
+    ]
+  }
+]

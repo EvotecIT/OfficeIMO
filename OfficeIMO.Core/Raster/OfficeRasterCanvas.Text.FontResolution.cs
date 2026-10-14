@@ -27,7 +27,8 @@ public sealed partial class OfficeRasterCanvas {
         // Measurement, outline bounds and painting must reject the same incomplete
         // default face; otherwise an empty .notdef outline silently loses text.
         resolvedStyle = OfficeFontStyle.Regular;
-        if (_font != null && (string.IsNullOrEmpty(text) || _font.HasGlyphs(text!))) return ResolveMetricScale(_font);
+        if (_font != null && (string.IsNullOrEmpty(text) || _font.HasGlyphs(text!) ||
+            OfficeMissingSpaceMetrics.CoversWithSynthesis(_font, text!))) return ResolveMetricScale(_font);
         if (OfficeManagedTextShaper.RequiresComplexLayout(text)) ReportTextShapingFallback(incomplete: true);
         return null;
     }

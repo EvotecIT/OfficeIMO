@@ -8,6 +8,16 @@ namespace OfficeIMO.Pdf;
 /// Author content through <see cref="Create(System.Action{PdfDocumentBuilder}, PdfOptions)"/> or <see cref="Compose"/>;
 /// use the focused capability properties for reading and existing-document operations.
 /// </summary>
+/// <example>
+/// <code language="csharp">
+/// using OfficeIMO.Pdf;
+///
+/// PdfDocument.Create(pdf => pdf.Content(content => content
+///     .H1("OfficeIMO.Pdf")
+///     .Paragraph(paragraph => paragraph.Text("Hello from OfficeIMO."))))
+///     .Save("hello.pdf");
+/// </code>
+/// </example>
 public sealed partial class PdfDocument {
     private readonly System.Collections.Generic.List<IPdfBlock> _blocks = new();
     private PdfOptions? _optionsStorage;

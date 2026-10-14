@@ -181,15 +181,16 @@ internal sealed class HtmlCssPseudoClassSelector {
             foreach (HtmlCssSelectorAttributeValue attribute in current.Attributes) {
                 context.ThrowIfCancellationRequested();
                 context.RecordEvaluation();
-                if (attribute.NamespaceUri.Length == 0 && HtmlCssAscii.EqualsIgnoreCase(attribute.LocalName, "lang")) {
+                if (attribute.NamespaceUri == XmlNamespace && attribute.LocalName == "lang") {
                     language = attribute.Value; declared = true; break;
                 }
             }
-            if (!declared) {
+            if (!declared && (current.NamespaceUri == HtmlElement.HtmlNamespace
+                || current.NamespaceUri == "http://www.w3.org/2000/svg")) {
                 foreach (HtmlCssSelectorAttributeValue attribute in current.Attributes) {
                     context.ThrowIfCancellationRequested();
                     context.RecordEvaluation();
-                    if (attribute.NamespaceUri == XmlNamespace && attribute.LocalName == "lang") {
+                    if (attribute.NamespaceUri.Length == 0 && attribute.LocalName == "lang") {
                         language = attribute.Value; declared = true; break;
                     }
                 }

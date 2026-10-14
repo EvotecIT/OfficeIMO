@@ -11,19 +11,24 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData(5)]
     [InlineData(40)]
-    public void HtmlPdfTypography_UsesResolvedNestedScriptScaleAndNumericOffset(int offset) {
+    public void HtmlPdfTypography_PaintsResolvedNestedScriptFontAndNumericOffset(int offset) {
         string html = "<p style='font:20px/30px Helvetica;margin:0'>NORMAL " +
             "<sup><sup>NESTED</sup></sup> <span style='vertical-align:" + offset + "px'>RAISED</span></p>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         var options = new HtmlToPdfOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
         HtmlRenderText nested = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "NESTED");
-        PdfCore.PdfTextSpan[] spans = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(options)).Pages[0].GetTextSpans().ToArray();
-        PdfCore.PdfTextSpan nestedPdf = Assert.Single(spans, span => span.Text == "NESTED");
-        Assert.Equal(nested.Font.Size * nested.BaselineScale * .75D, nestedPdf.FontSize, 3);
-        PdfCore.PdfTextSpan normalPdf = Assert.Single(spans, span => span.Text.Trim() == "NORMAL");
-        PdfCore.PdfTextSpan raisedPdf = Assert.Single(spans, span => span.Text == "RAISED");
-        Assert.Equal(offset * .75D, raisedPdf.Y - normalPdf.Y, 3);
+        Assert.Equal(20D / 1.2D / 1.2D, nested.Font.Size, 6);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(options));
+        // Logical extraction carriers may use an invisible, independently fitted font.
+        // Only painted glyph operators establish visible typography.
+        var visible = pdf.GetPage(1).Letters.Where(letter =>
+            letter.RenderingMode == UglyToad.PdfPig.Core.TextRenderingMode.Fill).ToArray();
+        var nestedPdf = Assert.Single(visible, letter => letter.Value == "T");
+        Assert.Equal(20D / 1.2D / 1.2D * .75D, nestedPdf.FontSize, 3);
+        var normalPdf = Assert.Single(visible, letter => letter.Value == "O");
+        var raisedPdf = Assert.Single(visible, letter => letter.Value == "I");
+        Assert.Equal(offset * .75D, raisedPdf.StartBaseLine.Y - normalPdf.StartBaseLine.Y, 3);
     }
 
     [Fact]

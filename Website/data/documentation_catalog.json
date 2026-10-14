@@ -9,7 +9,7 @@
     "validationProjectCount": 59,
     "apiReferenceCount": 122,
     "conceptualPageCount": 129,
-    "conceptualWordCount": 58505
+    "conceptualWordCount": 58504
   },
   "categories": [
     {
@@ -455,7 +455,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1073,
+      "sourceFileCount": 1079,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -780,7 +780,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 438,
+      "sourceFileCount": 471,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -806,7 +806,7 @@
       "description": "Owned HTML document, editing, parser provider and lossless CSS syntax contracts for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
-      "sourceFileCount": 31,
+      "sourceFileCount": 32,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-core/",
@@ -819,7 +819,7 @@
       "description": "Direct HTML-to-PDF rendering and PDF-to-HTML conversion for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
-      "sourceFileCount": 42,
+      "sourceFileCount": 43,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-pdf/",
@@ -1313,7 +1313,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1420,
+      "sourceFileCount": 1423,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1419,7 +1419,7 @@
       "projectPath": "OfficeIMO.Project/OfficeIMO.Project.csproj",
       "sourceFileCount": 189,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/project/",
       "apiUrl": "/api/project/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Project"
     },

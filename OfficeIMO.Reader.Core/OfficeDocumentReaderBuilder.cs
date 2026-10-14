@@ -9,6 +9,19 @@ namespace OfficeIMO.Reader;
 /// A builder may be reused or changed after <see cref="Build"/>. Each built reader retains its own
 /// immutable snapshot and is unaffected by later builder changes.
 /// </remarks>
+/// <example>
+/// Register format handlers from the corresponding Reader package; this example uses OfficeIMO.Reader.Word.
+/// <code language="csharp">
+/// using OfficeIMO.Reader;
+/// using OfficeIMO.Reader.Word;
+///
+/// OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+///     .AddWordHandler()
+///     .WithMaxConcurrentReads(4)
+///     .Build();
+/// OfficeDocumentReadResult document = reader.ReadDocument("hello.docx");
+/// </code>
+/// </example>
 public sealed partial class OfficeDocumentReaderBuilder {
     private readonly ReaderHandlerRegistry _handlers = new ReaderHandlerRegistry();
     private int _maxConcurrentReads = DocumentReaderEngine.DefaultMaxConcurrentReads;

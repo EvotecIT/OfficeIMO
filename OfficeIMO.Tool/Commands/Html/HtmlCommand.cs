@@ -139,11 +139,9 @@ claim conformance without passing external validator evidence.
             conversion = await document.RenderToPdfDocumentResultAsync(request, cancellationToken).ConfigureAwait(false);
         } else {
             var documentOptions = new HtmlConversionDocumentOptions {
-                BaseUri = options.BaseUri,
-                Limits = new HtmlConversionLimits {
-                    MaxInputCharacters = (int)Math.Min(arguments.MaxInputBytes, int.MaxValue)
-                }
+                BaseUri = options.BaseUri
             };
+            documentOptions.Limits.MaxInputCharacters = (int)Math.Min(arguments.MaxInputBytes, int.MaxValue);
             HtmlConversionDocument document = await HtmlConversionDocument.LoadAsync(
                 inputStream,
                 documentOptions,
@@ -226,11 +224,9 @@ claim conformance without passing external validator evidence.
             inputDiagnostics = mhtml.MimeDiagnostics.Select(MapMhtmlDiagnostic).ToArray();
         } else {
             var documentOptions = new HtmlConversionDocumentOptions {
-                BaseUri = options.BaseUri,
-                Limits = new HtmlConversionLimits {
-                    MaxInputCharacters = (int)Math.Min(arguments.MaxInputBytes, int.MaxValue)
-                }
+                BaseUri = options.BaseUri
             };
+            documentOptions.Limits.MaxInputCharacters = (int)Math.Min(arguments.MaxInputBytes, int.MaxValue);
             htmlDocument = await HtmlConversionDocument.LoadAsync(
                 inputStream,
                 documentOptions,

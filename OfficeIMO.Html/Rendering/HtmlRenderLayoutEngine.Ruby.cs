@@ -12,7 +12,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? link,
         double paintOffsetX,
         double paintOffsetY,
-        ICollection<HtmlInlineRun> runs) {
+        IList<HtmlInlineRun> runs) {
         List<INode> baseNodes = element.ChildNodes
             .Where(node => node is not IElement child || !IsRubyAnnotationContainer(child))
             .ToList();

@@ -77,7 +77,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double glyphWidth = MeasureText(element, effectiveFont, segment.Run.Style.FontDescriptor);
                 double advance = glyphWidth
                     + segment.Run.Style.LetterSpacing
-                    + (IsWhitespaceToken(element) ? segment.Run.Style.WordSpacing : 0D);
+                    + (IsWordSpacingSeparator(element) ? segment.Run.Style.WordSpacing : 0D);
                 result.Add(new InlinePaintSegment(element, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? index));
                 cursor += advance;
             }
@@ -86,9 +86,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         int start = 0;
         while (start < elements.Count) {
-            bool whitespace = IsWhitespaceToken(elements[start]);
+            bool whitespace = IsWordSpacingSeparator(elements[start]);
             int end = start + 1;
-            while (end < elements.Count && IsWhitespaceToken(elements[end]) == whitespace) end++;
+            while (end < elements.Count && IsWordSpacingSeparator(elements[end]) == whitespace) end++;
             string text = string.Concat(elements.Skip(start).Take(end - start));
             double glyphWidth = MeasureText(text, effectiveFont, segment.Run.Style.FontDescriptor);
             double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
@@ -120,12 +120,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (lines.Count == 1 && lines[0].Count < 2) return null;
         if (lines.SelectMany(static line => line).Any(static segment =>
                 segment.Run.AtomicBlock != null ||
+                segment.Run.IsEmptyInlineBox ||
                 segment.Run.RunningStringElement != null ||
                 segment.Run.PositionedMarkerElement != null)) {
             return null;
         }
 
-        string directionalText = string.Concat(lines.SelectMany(static line => line).Select(static segment => segment.Text));
+        string directionalText = string.Concat(lines.SelectMany(static line => line).Select(static segment =>
+            segment.Text.Length == 0 && segment.LogicalText == "\t" ? "\t" : segment.Text));
         if (!OfficeTextElements.ContainsBidiControl(directionalText)) return null;
 
         var visibleLines = new List<IReadOnlyList<InlineBidiElement>>(lines.Count);
@@ -156,6 +158,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
             CheckCancellation();
             InlineSegment segment = segments[segmentIndex];
+            if (segment.Text.Length == 0 && segment.LogicalText == "\t") {
+                // A preserved tab is a width-bearing source segment even though it paints no glyph.
+                visibleElements.Add(new InlineBidiElement(string.Empty, "\t", segmentIndex, 0, segment.Width));
+                continue;
+            }
             IReadOnlyList<string> paintElements = OfficeTextElements.Split(segment.Text);
             IReadOnlyList<string> logicalElements = OfficeTextElements.Split(segment.LogicalText);
             OfficeFontInfo effectiveFont = GetEffectiveTextFont(segment.Run.Style);
@@ -200,6 +207,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<InlineSegment> sources,
         IReadOnlyList<InlineBidiElement> ordered) {
         var result = new List<InlineSegment>();
+        var firstGroups = new InlineSegment?[sources.Count];
+        var lastGroups = new InlineSegment?[sources.Count];
         int start = 0;
         while (start < ordered.Count) {
             int end = start + 1;
@@ -211,14 +220,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .OrderBy(static element => element.SourceElementIndex)
                 .Select(static element => element.LogicalText));
             double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
-            result.Add(new InlineSegment(
+            int sourceIndex = ordered[start].SourceSegmentIndex;
+            var group = new InlineSegment(
                 text,
                 segmentWidth,
-                sources[ordered[start].SourceSegmentIndex].Run,
+                sources[sourceIndex].Run,
                 logicalText,
                 bidiResolved: true,
-                logicalEndProgress: sources[ordered[start].SourceSegmentIndex].LogicalEndProgress));
+                logicalEndProgress: sources[sourceIndex].LogicalEndProgress);
+            result.Add(group);
+            firstGroups[sourceIndex] ??= group;
+            lastGroups[sourceIndex] = group;
             start = end;
+        }
+        // Reordering may split a source segment into several visual groups.
+        // Its box edges belong to the two visual ends, never to every group.
+        for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
+            if (firstGroups[sourceIndex] is not InlineSegment first || lastGroups[sourceIndex] is not InlineSegment last) continue;
+            first.LeadingAdvance += sources[sourceIndex].LeadingAdvance;
+            last.TrailingAdvance += sources[sourceIndex].TrailingAdvance;
         }
         return result.AsReadOnly();
     }
@@ -252,7 +272,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string element = elements[index];
             double advance = (hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont, style.FontDescriptor))
                 + style.LetterSpacing
-                + (IsWhitespaceToken(element) ? style.WordSpacing : 0D);
+                + (IsWordSpacingSeparator(element) ? style.WordSpacing : 0D);
             right -= advance;
             double glyphWidth = hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont, style.FontDescriptor);
             result.Add(new InlinePaintSegment(

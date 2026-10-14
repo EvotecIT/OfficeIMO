@@ -102,7 +102,11 @@ public sealed partial class OfficeRasterCanvas {
                     if (high <= low) continue;
                     crossings.Clear();
                     if (rowEdges != null) AddContourRowCrossings(rowEdges, rowEdgeCount, (low + high) / 2D, crossings);
+#if NET8_0_OR_GREATER
+                    crossings.Sort(ContourCrossingComparer.Comparison);
+#else
                     crossings.Sort(ContourCrossingComparer.Instance);
+#endif
                     if (crossings.Count >= 2) {
                         if (crossings.Count > MaximumRetainedContourCrossings - retainedCrossings) {
                             throw new InvalidOperationException("Contour coverage intersections exceed the rasterization limit.");
@@ -263,6 +267,9 @@ public sealed partial class OfficeRasterCanvas {
 
     private sealed class ContourCrossingComparer : IComparer<ContourCrossing> {
         internal static readonly ContourCrossingComparer Instance = new ContourCrossingComparer();
+#if NET8_0_OR_GREATER
+        internal static readonly Comparison<ContourCrossing> Comparison = Instance.Compare;
+#endif
         public int Compare(ContourCrossing x, ContourCrossing y) => x.X.CompareTo(y.X);
     }
 }
