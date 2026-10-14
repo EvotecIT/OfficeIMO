@@ -273,7 +273,8 @@ internal static partial class ManagedTextShapingTestAssets {
         IReadOnlyDictionary<int, int>? glyphHeights = null,
         IReadOnlyDictionary<int, int>? glyphBottoms = null,
         IReadOnlyDictionary<int, int>? glyphWidths = null,
-        IReadOnlyDictionary<int, int>? glyphLefts = null, byte[]? vdmx = null) {
+        IReadOnlyDictionary<int, int>? glyphLefts = null, byte[]? vdmx = null,
+        IReadOnlyList<(string Tag, byte[] Data)>? additionalTables = null) {
         byte[] glyph = emptyGlyphs ? Array.Empty<byte>() : CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -320,6 +321,7 @@ internal static partial class ManagedTextShapingTestAssets {
         if (math != null) tables.Add(("MATH", math));
         if (os2 != null) tables.Add(("OS/2", os2));
         if (vdmx != null) tables.Add(("VDMX", vdmx));
+        if (additionalTables != null) tables.AddRange(additionalTables);
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];

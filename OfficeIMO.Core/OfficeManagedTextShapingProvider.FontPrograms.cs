@@ -16,6 +16,11 @@ public sealed partial class OfficeManagedTextShapingProvider {
     }
 
     private static IOfficeFontProgram? LoadShapingFont(OfficeTextShapingRequest request) {
+        // Internal HTML/raster requests carry the selected built-in instance.
+        // Retain its canonical coordinates rather than recreating it from the
+        // public float projection. Public requests cannot supply this identity.
+        if (request.FontProgramCacheKeyForShaping is OfficeTrueTypeFont trueType) return trueType;
+        if (request.FontProgramCacheKeyForShaping is OfficeOpenTypeCffFont cff) return cff;
         if (request.IsOpenTypeCff)
             return OfficeOpenTypeCffFont.TryLoad(request.FontDataForShaping,
                 request.VariationCoordinatesForShaping, out _);
