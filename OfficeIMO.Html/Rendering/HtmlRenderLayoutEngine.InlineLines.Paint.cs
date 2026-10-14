@@ -79,7 +79,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
             bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle);
             bool emptyAtomicBaseline = TryResolveEmptyInlineBlockLineMetrics(current, paragraphStyle, ref lineHeight, out double resolvedEmptyBaseline);
-            double baseline = emptyAtomicBaseline ? resolvedEmptyBaseline : alignTextBaseline || current.HasReplacedImage
+            double resolvedTextBaseline = 0D;
+            bool textLineMetrics = !emptyAtomicBaseline
+                && TryResolveTextOnlyLineMetrics(current, paragraphStyle, ref lineHeight, out resolvedTextBaseline);
+            alignTextBaseline |= textLineMetrics;
+            double baseline = emptyAtomicBaseline ? resolvedEmptyBaseline : textLineMetrics ? resolvedTextBaseline : alignTextBaseline || current.HasReplacedImage
                 ? ResolveInlineSharedBaseline(current, paragraphStyle, ref lineHeight)
                 : current.ResolveBaseline(paragraphStyle);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;

@@ -553,6 +553,12 @@ font size before resolving these dependent values. Keyword baseline shifts use
 bounded offsets; mixed-font line boxes and browser-relative baseline fidelity remain
 limited.
 
+Horizontal text-only lines combine each run's selected-face ascent and descent,
+half-leading and resolved vertical offset when advancing following content,
+including beside floats. Mixed sizes retain the paragraph paint anchor and lift it
+by any extra top extent. Font-metric rounding, keyword shifts, mixed faces and
+atomic baselines retain their browser-relative qualification limits.
+
 The PDF adapter paints the scene's resolved size and vertical offset. Logical
 replacement text owns its painted content once, so independent PDF text extraction
 does not repeat the visible glyphs alongside their replacement. Page image exports

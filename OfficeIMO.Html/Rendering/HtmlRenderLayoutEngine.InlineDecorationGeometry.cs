@@ -51,7 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlTextFaceMetrics? face = qualifiedLine && style.TableVerticalAlignment == "baseline"
                         && IsOrdinaryInlineDecorationStyle(style, paragraphStyle)
                         ? ResolveTextFaceMetrics(string.Empty, style) : null;
-                    if (!IsUsableInlineDecorationFace(face)) {
+                    if (!IsUsableTextFaceMetrics(face)) {
                         // Specialized, mixed-face, bidi and displaced runs retain
                         // their existing route. Do not replace their geometry by
                         // assuming this ordinary horizontal baseline policy.
@@ -92,8 +92,5 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.WritingMode == "horizontal-tb" && style.Direction == "ltr"
         && HasSameEmptyAtomicStrutFace(style, paragraphStyle) && style.Font.Size > 0D;
 
-    private static bool IsUsableInlineDecorationFace(HtmlTextFaceMetrics? face) =>
-        face.HasValue && face.Value.Height > 0D && !double.IsNaN(face.Value.Height) && !double.IsInfinity(face.Value.Height)
-        && !double.IsNaN(face.Value.BaselineOffset) && !double.IsInfinity(face.Value.BaselineOffset)
-        && face.Value.BaselineOffset >= 0D && face.Value.BaselineOffset <= face.Value.Height;
+
 }

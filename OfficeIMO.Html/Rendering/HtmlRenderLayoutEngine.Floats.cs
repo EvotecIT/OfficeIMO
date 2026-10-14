@@ -450,7 +450,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (line.Segments.Count > 0 || includeEmpty) {
             lines.Add(line);
             double height = line.ResolveLineHeight(defaultLineHeight);
-            if (line.ParagraphStyle != null) TryResolveEmptyInlineBlockLineMetrics(line, line.ParagraphStyle, ref height, out _);
+            if (line.ParagraphStyle != null
+                && !TryResolveEmptyInlineBlockLineMetrics(line, line.ParagraphStyle, ref height, out _)) {
+                TryResolveTextOnlyLineMetrics(line, line.ParagraphStyle, ref height, out _);
+            }
             y = line.Y + height;
             if (line.HasFlowContent || includeEmpty) context.FirstLineIndent = 0D;
         }

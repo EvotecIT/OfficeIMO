@@ -73,12 +73,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlTextFaceMetrics? ResolveInlineShortLineFace(string text, HtmlRenderBoxStyle style) {
         if (style.LineHeight >= style.Font.Size) return null;
         HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(text, style);
-        if (!face.HasValue || face.Value.Height <= 0D
-            || double.IsNaN(face.Value.Height) || double.IsInfinity(face.Value.Height)
-            || double.IsNaN(face.Value.BaselineOffset) || double.IsInfinity(face.Value.BaselineOffset)
-            || face.Value.BaselineOffset < 0D || face.Value.BaselineOffset > face.Value.Height) return null;
-        return face;
+        return IsUsableTextFaceMetrics(face) ? face : null;
     }
+
+    private static bool IsUsableTextFaceMetrics(HtmlTextFaceMetrics? face) =>
+        face.HasValue && face.Value.Height > 0D && !double.IsNaN(face.Value.Height) && !double.IsInfinity(face.Value.Height)
+        && !double.IsNaN(face.Value.BaselineOffset) && !double.IsInfinity(face.Value.BaselineOffset)
+        && face.Value.BaselineOffset >= 0D && face.Value.BaselineOffset <= face.Value.Height;
 
     private HtmlTextFaceMetrics? ResolveTextFaceMetrics(string text, HtmlRenderBoxStyle style) {
         IOfficeFontProgram? program = text.Length == 0
