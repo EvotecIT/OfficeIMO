@@ -300,12 +300,12 @@ namespace OfficeIMO.Tests {
             source.FormatCell(1, 1, "yyyy-mm-dd");
             source.CellValue(1, 2, "General style");
             source.DefineNamedStyle("Header", 1, route == "redefine" ? 2 : 1);
-            if (route == "redefine") sheet.ApplyNamedStyle("Header", "A1");
+            if (route == "redefine") sheet.ApplyNamedStyle("Header", "A1:A1");
             Assert.Equal(1, sheet.GetHeaderMap()["45292"]);
             switch (route) {
                 case "cell": sheet.FormatCell(1, 1, "yyyy-mm-dd"); break;
                 case "range": sheet.FormatRange("A1:A1", "yyyy-mm-dd"); break;
-                case "apply": sheet.ApplyNamedStyle("Header", "A1"); break;
+                case "apply": sheet.ApplyNamedStyle("Header", "A1:A1"); break;
                 case "redefine": source.DefineNamedStyle("Header", 1, 1); break;
             }
             Dictionary<string, int> changed = sheet.GetHeaderMap();
