@@ -7180,4 +7180,7 @@ Option 2</value>
   <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
     <value>« {0} » existe déjà. L’enregistrement le remplacera après les éventuelles étapes de vérification restantes. Continuer ?</value>
   </data>
+  <data name="Output.PublicationTooLarge" xml:space="preserve"><value>Le résultat dépasse la taille de document prise en charge.</value></data>
+  <data name="Output.DestinationChanged" xml:space="preserve"><value>Le fichier de destination a changé. Choisissez un autre emplacement pour conserver les deux versions.</value></data>
+  <data name="Output.VerificationChanged" xml:space="preserve"><value>Le fichier enregistré a changé pendant la vérification. Vérifiez-le avant de réessayer.</value></data>
 </root>

@@ -7180,4 +7180,7 @@ Opcja 2</value>
   <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
     <value>Plik „{0}” już istnieje. Zapis zastąpi go po zakończeniu pozostałych kroków przeglądu. Kontynuować?</value>
   </data>
+  <data name="Output.PublicationTooLarge" xml:space="preserve"><value>Wynik przekracza obsługiwany rozmiar dokumentu.</value></data>
+  <data name="Output.DestinationChanged" xml:space="preserve"><value>Plik docelowy uległ zmianie. Wybierz inną lokalizację, aby zachować obie wersje.</value></data>
+  <data name="Output.VerificationChanged" xml:space="preserve"><value>Zapisany plik zmienił się podczas weryfikacji. Sprawdź go przed ponowną próbą.</value></data>
 </root>

@@ -3570,4 +3570,7 @@ Option 2</value>
   <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
     <value>“{0}” already exists. Save will replace it after any remaining review. Continue?</value>
   </data>
+  <data name="Output.PublicationTooLarge" xml:space="preserve"><value>The output exceeds the supported document size.</value></data>
+  <data name="Output.DestinationChanged" xml:space="preserve"><value>The destination file changed. Choose another location to preserve both versions.</value></data>
+  <data name="Output.VerificationChanged" xml:space="preserve"><value>The saved file changed during verification. Check it before trying again.</value></data>
 </root>
