@@ -82,6 +82,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal double MarginRight;
     internal double MarginBottom;
     internal double MarginLeft;
+    // Keep computed auto-margin space separate from float-avoidance offsets
+    // so table measurement can replace that space after resolving its used width.
+    internal double HorizontalAutoMarginLeftShare;
+    internal double HorizontalAutoMarginRightShare;
     internal double PaddingTop;
     internal double PaddingRight;
     internal double PaddingBottom;

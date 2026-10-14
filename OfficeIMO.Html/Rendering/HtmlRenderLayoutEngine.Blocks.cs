@@ -710,32 +710,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(style.HorizontalInsets, Math.Max(1D, width));
     }
 
-    private HtmlRenderBoxStyle ResolveNormalFlowHorizontalAutoMargins(IElement element, HtmlRenderBoxStyle style, double containingWidth) {
-        if (!style.MarginLeftAuto && !style.MarginRightAuto) return style;
-        if (element.LocalName.Equals("table", StringComparison.OrdinalIgnoreCase) && !style.ExplicitWidth.HasValue) {
-            // An auto-width table needs its intrinsic columns before its free space is known.
-            return style;
-        }
-
-        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
-        double boxWidth = IsReplacedImageElement(element)
-            ? ResolveReplacedImageBoxWidth(element, style)
-            : ResolveBoxWidth(availableWidth, style);
-        double freeSpace = Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - boxWidth);
-        if (freeSpace <= 0D) return style;
-
-        var resolved = style.Clone();
-        if (style.MarginLeftAuto && style.MarginRightAuto) {
-            resolved.MarginLeft += freeSpace / 2D;
-            resolved.MarginRight += freeSpace / 2D;
-        } else if (style.MarginLeftAuto) {
-            resolved.MarginLeft += freeSpace;
-        } else {
-            resolved.MarginRight += freeSpace;
-        }
-        return resolved;
-    }
-
     private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style) {
         double height;
         bool usesAspectRatio = !style.ExplicitHeight.HasValue && style.AspectRatio.HasValue;
