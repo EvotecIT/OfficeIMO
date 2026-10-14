@@ -137,7 +137,7 @@ permissions:
 
 env:
   DOTNET_VERSION: |
-    8.0.418
+    8.0.426
     10.0.113
   BUILD_CONFIGURATION: Release
   GALLERY_PATH: artifacts/pdf-visual-review

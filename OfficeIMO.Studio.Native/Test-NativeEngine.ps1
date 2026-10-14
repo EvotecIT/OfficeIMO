@@ -10,6 +10,11 @@ native host because a .NET process cannot load the library on macOS or Linux: bo
 thread-suspension signal. The compiler is $env:CC when set, otherwise cc or clang, and on Windows clang or the
 Visual C++ compiler found through vswhere.
 
+.PARAMETER ExpectedBlankPageInsertion
+The fixture's independent preservation contract. Supported requires insertion to work;
+Blocked requires rejection without changing document facts or undo history. Tagged fixtures
+can use Blocked while still exercising their permitted page operations and save behavior.
+
 .EXAMPLE
 ./Test-NativeEngine.ps1 -Library ./publish/OfficeIMOStudioEngine.dylib -Pdf ./sample.pdf -WorkDirectory /tmp/engine-check
 #>
@@ -17,7 +22,8 @@ Visual C++ compiler found through vswhere.
 param(
     [Parameter(Mandatory)][string]$Library,
     [Parameter(Mandatory)][string]$Pdf,
-    [Parameter(Mandatory)][string]$WorkDirectory
+    [Parameter(Mandatory)][string]$WorkDirectory,
+    [ValidateSet('Supported', 'Blocked')][string]$ExpectedBlankPageInsertion = 'Supported'
 )
 $ErrorActionPreference = 'Stop'
 $Library = (Resolve-Path $Library).Path
@@ -72,7 +78,7 @@ if ($IsWindows -and (-not $compiler -or [IO.Path]::GetFileNameWithoutExtension($
 }
 if ($LASTEXITCODE -ne 0) { throw "Compiling the journey failed with exit code $LASTEXITCODE." }
 
-& $journey $Library $source $WorkDirectory
+& $journey $Library $source $WorkDirectory $ExpectedBlankPageInsertion.ToLowerInvariant()
 $journeyExit = $LASTEXITCODE
 if ((Get-FileHash $Pdf).Hash -ne (Get-FileHash (Join-Path $WorkDirectory 'source.pdf')).Hash) {
     Write-Host 'FAILED: the source file changed; the journey saves only to a copy'

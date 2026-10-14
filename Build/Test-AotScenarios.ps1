@@ -50,7 +50,7 @@ $scenarios = @(
         'OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf',
         'OfficeIMO.TestAssets/MultilingualLayout/latin-0-native.pdf',
         'OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf'
-    ) }
+    ); blockedBlankPageFixtures = @('OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf') }
 )
 
 if (@($scenarios | Where-Object { $_.group -notin @('libraries', 'iwork', 'surfaces') }).Count -gt 0) {
@@ -182,6 +182,9 @@ try {
                     $journeyArguments = @('-NoLogo', '-NoProfile', '-File', (Join-Path $RepositoryRoot $scenarioDefinition.journey),
                         '-Library', $executablePath, '-Pdf', (Join-Path $RepositoryRoot $fixture),
                         '-WorkDirectory', (Join-Path $artifactRoot ($scenarioDefinition.id + '-journey-' + $fixtureName)))
+                    if ($fixture -in $scenarioDefinition.blockedBlankPageFixtures) {
+                        $journeyArguments += @('-ExpectedBlankPageInsertion', 'Blocked')
+                    }
                     $runOutput += "Fixture: $fixture"
                     $runOutput += @(& ([Environment]::ProcessPath) @journeyArguments 2>&1)
                     if ($LASTEXITCODE -ne 0) { $runExit = $LASTEXITCODE }

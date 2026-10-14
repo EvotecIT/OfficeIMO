@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            8.0.418
+            8.0.426
             10.0.113
       - name: Verify PDF performance budgets
         shell: pwsh

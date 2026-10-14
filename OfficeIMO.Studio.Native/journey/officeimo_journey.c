@@ -144,8 +144,8 @@ static int json_escape(char *buffer, size_t size, const char *text) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <library> <pdf> <work-directory>\n", argv[0]);
+    if (argc != 4 && argc != 5) {
+        fprintf(stderr, "Usage: %s <library> <pdf> <work-directory> [supported|blocked]\n", argv[0]);
         return 2;
     }
     const char *library_path = argv[1], *source = argv[2], *work = argv[3];
@@ -270,7 +270,13 @@ int main(int argc, char **argv) {
     expect(has(json, "rotation", "90"), "redo not applied", json);
     engine_officeimo_free(json);
 
-    /* Page organization: each edit is one undoable change, and the journey undoes them back to the rotated page. */
+    int expect_blank_insertion = argc == 4 || strcmp(argv[4], "supported") == 0;
+    if (argc == 5 && !expect_blank_insertion && strcmp(argv[4], "blocked") != 0) {
+        fprintf(stderr, "Unknown blank-page expectation: %s\n", argv[4]);
+        return 2;
+    }
+    /* Each permitted page edit is undone back to the rotated page. Fixture expectations
+       are independent of the reported capability, so losing support still fails. */
     CHECK("duplicate page 1", engine_officeimo_document_duplicate_pages(document, first_page, 1, 0, &error), OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "number", "2"), "the duplicate is missing", json);
@@ -282,19 +288,33 @@ int main(int argc, char **argv) {
     CHECK("delete page 1", engine_officeimo_document_delete_pages(document, first_page, 1, 0, &error), OFFICEIMO_OK);
     CHECK("delete the last page", engine_officeimo_document_delete_pages(document, first_page, 1, 0, &error),
           OFFICEIMO_INVALID_ARGUMENT);
-    CHECK("insert blank page", engine_officeimo_document_insert_blank_page(document, 2, 612, 792, 0, &error), OFFICEIMO_OK);
+    char *before_insert = facts(document);
+    expect(has(before_insert, "canInsertBlankPages", expect_blank_insertion ? "true" : "false"),
+           "blank-page capability differs from the fixture expectation", before_insert);
+    CHECK("insert blank page", engine_officeimo_document_insert_blank_page(document, 2, 612, 792, 0, &error),
+          expect_blank_insertion ? OFFICEIMO_OK : OFFICEIMO_UNSUPPORTED);
     json = facts(document);
-    expect(has(json, "width", "612") && has(json, "height", "792"), "the blank page is missing", json);
+    if (expect_blank_insertion) {
+        expect(has(json, "number", "2") && has(json, "width", "612") && has(json, "height", "792"),
+               "the blank page is missing", json);
+    } else {
+        expect(before_insert && json && strcmp(before_insert, json) == 0,
+               "rejected blank-page insertion changed document facts or history", json);
+    }
+    engine_officeimo_free(before_insert);
     engine_officeimo_free(json);
 
     char extracted[1024];
     path_in(extracted, sizeof extracted, work, "extracted.pdf");
-    CHECK("extract page 2", engine_officeimo_document_extract_pages(document, reversed, 1, extracted, 0, &error), OFFICEIMO_OK);
+    CHECK("extract page", engine_officeimo_document_extract_pages(document,
+          expect_blank_insertion ? reversed : first_page, 1, extracted, 0, &error), OFFICEIMO_OK);
     officeimo_document extract = 0;
     CHECK("open extracted", engine_officeimo_document_open(extracted, NULL, 0, &extract, &error), OFFICEIMO_OK);
     if (extract) {
         json = facts(extract);
-        expect(has(json, "width", "612") && !has(json, "number", "2"), "the extract is not the blank page", json);
+        expect(!has(json, "number", "2") && (expect_blank_insertion
+               ? has(json, "width", "612") && has(json, "height", "792") && has(json, "rotation", "0")
+               : has(json, "rotation", "90")), "the extract differs from the selected page", json);
         engine_officeimo_free(json);
         engine_officeimo_document_close(extract);
     }
@@ -317,20 +337,24 @@ int main(int argc, char **argv) {
     json = NULL;
     int recognized = 0;
     if (can_make_searchable) {
-        /* Both pages gain searchable text as one undoable change. */
+        int expected_pages = expect_blank_insertion ? 2 : 1;
+        /* Every current page gains searchable text as one undoable change. */
         CHECK("make searchable", engine_officeimo_document_make_searchable_json(document, recognize_page, &recognized, 0, &json, &error),
               OFFICEIMO_OK);
-        expect(recognized == 2 && has(json, "words", "2"), "the recognized words were not added", json);
+        expect(recognized == expected_pages && has(json, "words", expected_pages == 2 ? "2" : "1"),
+               "the recognized words were not added", json);
         engine_officeimo_free(json);
         CHECK("search recognized", engine_officeimo_document_search_json(document, "journeyword", 0, &json, &error), OFFICEIMO_OK);
-        expect(json && strstr(json, "\"page\":1") != NULL && strstr(json, "\"page\":2") != NULL, "the recognized words are not searchable",
+        expect(json && strstr(json, "\"page\":1") != NULL &&
+               (strstr(json, "\"page\":2") != NULL) == (expected_pages == 2), "the recognized words are not searchable",
                json);
         engine_officeimo_free(json);
         struct search_pages pages = { 0, 0 };
         CHECK("search stream", engine_officeimo_document_search_stream_json(document, "journeyword", search_page, &pages, 0, &json, &error),
               OFFICEIMO_OK);
-        expect(pages.count == 2 && pages.with_hits == 2 && json && strstr(json, "\"page\":2") != NULL,
-               "the streamed search did not report both pages", json);
+        expect(pages.count == expected_pages && pages.with_hits == expected_pages && json &&
+               strstr(json, expected_pages == 2 ? "\"page\":2" : "\"page\":1") != NULL,
+               "the streamed search did not report every current page", json);
         engine_officeimo_free(json);
         CHECK("undo searchable", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     } else {
@@ -341,7 +365,8 @@ int main(int argc, char **argv) {
         /* No undo: rejecting content editing must preserve the existing page-edit history. */
     }
 
-    for (int edit = 0; edit < 4; edit++) CHECK("undo page edit", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    for (int edit = 0; edit < (expect_blank_insertion ? 4 : 3); edit++)
+        CHECK("undo page edit", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "rotation", "90") && !has(json, "number", "2"), "page edits not undone", json);
     engine_officeimo_free(json);
