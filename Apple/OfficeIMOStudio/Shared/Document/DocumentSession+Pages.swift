@@ -3,7 +3,7 @@ import Foundation
 /// Page organization and import, with temporary inputs retained only through their password retry.
 extension DocumentSession {
     func rotate(_ pages: [Int], degrees: Int) {
-        guard !pages.isEmpty else { return }
+        guard canRotatePages, !pages.isEmpty else { return }
         edit(degrees < 0 ? String(localized: "Rotate Left") : String(localized: "Rotate Right")) { try await $0.rotatePages(pages, degrees: degrees) }
     }
 

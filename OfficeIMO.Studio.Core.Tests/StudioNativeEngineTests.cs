@@ -491,6 +491,19 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.True(signature.IsStructurallyValid);
         Assert.True(signature.CryptographicResult?.IsMathematicallyValid);
         Assert.False((await document.GetInfoAsync(default)).IsDirty);
+
+        // Signed pages permit an append-only rotation even when general page organization is unavailable.
+        using StudioNativeDocument reopened = await StudioNativeDocument.OpenAsync(signed, null, default);
+        var facts = await reopened.GetInfoAsync(default);
+        Assert.False(facts.CanMutatePages);
+        Assert.True(facts.CanRotatePages);
+        await reopened.RotatePagesAsync([1], 90, default);
+        Assert.Equal(90, (await reopened.GetInfoAsync(default)).Pages[0].Rotation);
+        string rotated = Path.Combine(_root, "signed-rotated.pdf");
+        await reopened.SaveCopyAsync(rotated, default);
+        var rotatedSignatures = PdfDocument.Load(rotated).Security
+            .ValidateSignatures(new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default));
+        Assert.True(Assert.Single(rotatedSignatures.Signatures).CryptographicResult?.IsMathematicallyValid);
     }
 
     [Fact]

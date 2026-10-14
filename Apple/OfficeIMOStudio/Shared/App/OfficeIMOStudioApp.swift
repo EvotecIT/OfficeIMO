@@ -158,7 +158,10 @@ struct StudioCommands: Commands {
                     .keyboardShortcut("l")
                 Button("Rotate Right") { rotate(90) }
                     .keyboardShortcut("r")
-                Divider()
+            }
+            .disabled(session?.canRotatePages != true || (session?.task == .pages && session?.selection.isEmpty == true))
+            Divider()
+            Group {
                 Button("Duplicate Pages") { session.map { $0.duplicate($0.targetPages) } }
                     .keyboardShortcut("d")
                 Button("Delete Pages") { session.map { $0.delete($0.targetPages) } }
