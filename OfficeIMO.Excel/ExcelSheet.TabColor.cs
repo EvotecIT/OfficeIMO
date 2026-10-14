@@ -23,7 +23,6 @@ namespace OfficeIMO.Excel {
                 sheetProperties.TabColor = new TabColor {
                     Rgb = parsed.ToArgbHex()
                 };
-                WorksheetRoot.Save();
             });
         }
 
@@ -43,7 +42,6 @@ namespace OfficeIMO.Excel {
                     sheetProperties.Remove();
                 }
 
-                WorksheetRoot.Save();
             });
         }
     }

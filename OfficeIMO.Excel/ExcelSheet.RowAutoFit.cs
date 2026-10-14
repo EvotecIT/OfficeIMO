@@ -281,13 +281,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void UpdateSheetFormat() {
+        /// <summary>
+        /// Gives the sheet a default row height once any row has a custom height.
+        /// </summary>
+        /// <param name="customHeightSet">True when the caller has just given a row a custom height, which makes the
+        /// scan over every row for an existing custom height unnecessary.</param>
+        private void UpdateSheetFormat(bool customHeightSet = false) {
             var worksheet = WorksheetRoot;
             EnsureDefaultSheetView(worksheet);
-            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
 
-            bool anyCustom = sheetData?.Elements<Row>()
+            bool anyCustom = customHeightSet || worksheet.GetFirstChild<SheetData>()?.Elements<Row>()
                 .Any(r => r.CustomHeight != null && r.CustomHeight.Value) == true;
 
             if (anyCustom) {
@@ -351,7 +355,6 @@ namespace OfficeIMO.Excel {
                 SheetData sheetData = GetOrCreateSheetData();
                 Row row = GetOrCreateRowElement(sheetData, rowIndex);
                 row.Hidden = hidden ? true : (bool?)null;
-                WorksheetRoot.Save();
             });
         }
 
@@ -392,8 +395,7 @@ namespace OfficeIMO.Excel {
                 SheetData sheetData = GetOrCreateSheetData();
                 Row row = GetOrCreateRowElement(sheetData, rowIndex);
                 SetRowHeightCore(row, height, roundToHundredths: roundToHundredths);
-                UpdateSheetFormat();
-                WorksheetRoot.Save();
+                UpdateSheetFormat(customHeightSet: height > 0);
             });
         }
     }

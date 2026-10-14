@@ -24,11 +24,6 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (options?.ValidateOpenXml == true) {
-                skipReason = "Open XML validation requires the standard package finalization path.";
-                return false;
-            }
-
             if (_packagePropertiesDirty) {
                 skipReason = "Package properties changed.";
                 return false;
@@ -49,6 +44,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (WorkbookRoot.Sheets?.Elements<Sheet>().Any(sheet => string.IsNullOrEmpty(sheet.Name?.Value) || sheet.SheetId == null || sheet.Id == null) == true) {
+                skipReason = "Incomplete worksheet metadata requires the standard package validation path.";
+                return false;
+            }
+
             if (WorkbookPartRoot.WorksheetParts.Any(static part => !part.IsRootElementLoaded)) {
                 skipReason = "An unmaterialized worksheet requires the extended package writer.";
                 return false;
@@ -60,12 +60,14 @@ namespace OfficeIMO.Excel {
             }
 
             ct.ThrowIfCancellationRequested();
-            using Stream? boundedOrStagedPackage = CreateBoundedPackageWriteStream(destination, options);
+            using Stream? boundedOrStagedPackage = CreateBoundedPackageWriteStream(
+                destination, options, forceStaging: options?.ValidateOpenXml == true);
             Stream writeTarget = boundedOrStagedPackage ?? destination;
             PrepareDestinationStreamForWrite(writeTarget);
             FastWorkbookPackageWriter.Write(writeTarget, model, ct);
 
             writeTarget.Flush();
+            ValidateStagedFastPackage(writeTarget, options, ct);
             if (boundedOrStagedPackage is FileStream stagedPackage) {
                 CommitStagedPackageToStream(stagedPackage, destination, options);
             } else {
@@ -99,11 +101,6 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (options?.ValidateOpenXml == true) {
-                skipReason = "Open XML validation requires the standard package finalization path.";
-                return false;
-            }
-
             if (_packagePropertiesDirty) {
                 skipReason = "Package properties changed.";
                 return false;
@@ -121,6 +118,11 @@ namespace OfficeIMO.Excel {
 
             if (HasCalculationSaveWork(options)) {
                 skipReason = "Calculation save work is pending.";
+                return false;
+            }
+
+            if (WorkbookRoot.Sheets?.Elements<Sheet>().Any(sheet => string.IsNullOrEmpty(sheet.Name?.Value) || sheet.SheetId == null || sheet.Id == null) == true) {
+                skipReason = "Incomplete worksheet metadata requires the standard package validation path.";
                 return false;
             }
 
@@ -162,7 +164,7 @@ namespace OfficeIMO.Excel {
             using Stream? boundedOrStagedPackage = CreateBoundedPackageWriteStream(
                 destination,
                 options,
-                forceStaging: !destination.CanSeek || destinationBacksOpenPackage);
+                forceStaging: !destination.CanSeek || destinationBacksOpenPackage || options?.ValidateOpenXml == true);
             Stream writeTarget = boundedOrStagedPackage ?? destination;
 
             PrepareDestinationStreamForWrite(writeTarget);
@@ -171,6 +173,7 @@ namespace OfficeIMO.Excel {
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.WritePackage");
 
             writeTarget.Flush();
+            ValidateStagedFastPackage(writeTarget, options, ct);
             if (destinationBacksOpenPackage) {
                 FileStream stagedPackage = (FileStream)boundedOrStagedPackage!;
                 stagedPackage!.Position = 0;
@@ -195,6 +198,15 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        /// <summary>Validates the encoded package before any caller destination or clean-state marker changes.</summary>
+        private static void ValidateStagedFastPackage(Stream stagedPackage, ExcelSaveOptions? options, CancellationToken ct) {
+            if (options?.ValidateOpenXml != true) return;
+            var file = (FileStream)stagedPackage;
+            ThrowIfPackageMaterializationExceedsLimit(file.Length, options);
+            file.Position = 0;
+            ThrowIfOpenXmlValidationFails(file, options, ct);
         }
 
         private void ReportExtendedPackageTiming(Stopwatch? stopwatch, string operation) {

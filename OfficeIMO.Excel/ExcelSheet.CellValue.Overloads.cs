@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellStringValueCore(row, column, value);
                 return;
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDoubleValueCore(row, column, value);
                 return;
@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDoubleValueCore(row, column, (double)value);
                 return;
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDecimalValueCore(row, column, value);
                 return;
@@ -105,7 +105,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
@@ -128,7 +128,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
@@ -151,7 +151,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDateTimeValueCore(row, column, value);
                 return;
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDateTimeOffsetValueCore(row, column, value);
                 return;
@@ -221,7 +221,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDateOnlyValueCore(row, column, value);
                 return;
@@ -244,7 +244,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellTimeOnlyValueCore(row, column, value);
                 return;
@@ -268,7 +268,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellTimeSpanValueCore(row, column, value);
                 return;
@@ -291,7 +291,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
@@ -314,7 +314,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
@@ -337,7 +337,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
@@ -360,7 +360,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
@@ -383,7 +383,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
@@ -406,7 +406,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellBooleanValueCore(row, column, value);
                 return;
@@ -439,7 +439,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            if (_isBatchOperation || Locking.IsNoLock) {
+            if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellFormulaCore(row, column, formula);
                 return;

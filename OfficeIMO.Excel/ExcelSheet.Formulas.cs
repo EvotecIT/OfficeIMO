@@ -49,7 +49,6 @@ namespace OfficeIMO.Excel {
                 foreach (var formula in WorksheetRoot.Descendants<CellFormula>()) {
                     formula.CalculateCell = true;
                 }
-                WorksheetRoot.Save();
             });
         }
 
@@ -73,7 +72,6 @@ namespace OfficeIMO.Excel {
                     ClearCellTextSharedStringCache();
                 }
 
-                WorksheetRoot.Save();
             });
         }
 
@@ -166,7 +164,6 @@ namespace OfficeIMO.Excel {
                     _excelDocument.MarkFormulaSheetRecalculated(_worksheetPart, formulaInputMutationVersion);
                 }
 
-                WorksheetRoot.Save();
             });
 
             return count;
@@ -573,7 +570,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 InvalidateDynamicArrayWriteIndex();
-                WorksheetRoot.Save();
             });
         }
 
@@ -610,7 +606,6 @@ namespace OfficeIMO.Excel {
                     _worksheetPart,
                     A1.CellReference(r1, c1),
                     retainedCachedValue: retainsCachedValue);
-                WorksheetRoot.Save();
             });
         }
 
@@ -644,7 +639,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 InvalidateDynamicArrayWriteIndex();
-                WorksheetRoot.Save();
             });
         }
 
