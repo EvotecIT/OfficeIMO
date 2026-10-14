@@ -16,7 +16,9 @@ namespace OfficeIMO.Excel {
         internal NoLockContext BeginNoLock() => new NoLockContext();
 
         /// <summary>
-        /// Executes multiple worksheet mutations under a single workbook write lock.
+        /// Executes multiple worksheet mutations under a single workbook write lock. Cell styling inside the batch
+        /// (bold, fills, fonts, wrapping, number formats and similar) looks formats up through an index and saves the
+        /// stylesheet once when the batch ends, so styling cells row by row stays proportional to the cells styled.
         /// </summary>
         /// <param name="action">The worksheet updates to execute.</param>
         public void Batch(Action<ExcelSheet> action) {
@@ -24,7 +26,9 @@ namespace OfficeIMO.Excel {
 
             if (Locking.IsNoLock) {
                 MaterializeDeferredDataSetImportIfNeeded();
-                action(this);
+                using (TryBeginStyleBatch()) {
+                    action(this);
+                }
                 return;
             }
 
@@ -42,7 +46,9 @@ namespace OfficeIMO.Excel {
                 MaterializeDeferredDataSetImportIfNeeded();
                 _isBatchOperation = true;
                 _batchHasCellMutations = false;
-                action(this);
+                using (TryBeginStyleBatch()) {
+                    action(this);
+                }
                 if (_batchHasCellMutations) _excelDocument.MarkPackageDirty();
             } finally {
                 _isBatchOperation = wasBatchOperation;

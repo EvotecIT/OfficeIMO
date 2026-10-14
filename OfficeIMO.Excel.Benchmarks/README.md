@@ -104,6 +104,21 @@ $env:OFFICEIMO_TYPED_BENCHMARK_ROWS = '25000'
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelWorksheetPreparationBenchmarks*' --priority Normal --warmupCount 8 --iterationCount 8 --invocationCount 1 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/worksheet-preparation
 ```
 
+## Formatted report layout
+
+`ExcelFormattedReportBenchmarks` writes a report sheet cell by cell: text rows
+with one filled, bold status cell per row, a table, a frozen header, a width and
+wrapped text for every column, a fixed 42 point height for every data row, page
+setup, and an in-memory save. `StyleInBatch` runs the row writes and styling
+inside `ExcelSheet.Batch`, which resolves repeated cell formats once and saves
+the stylesheet once. Setup validates the row count, every data-row height, the
+wrap-text format and the saved page setup. Compare the two `StyleInBatch` values
+at the same `RowCount`; time that grows faster than the row count points at a
+layout setter that rewrites the worksheet or stylesheet on every call.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelFormattedReportBenchmarks*' --priority Normal --warmupCount 2 --iterationCount 6 --invocationCount 1 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/formatted-report
+```
 ## Numeric XML result shapes
 
 `ExcelNumericXmlReadBenchmarks` exercises numeric decoding through DataReader

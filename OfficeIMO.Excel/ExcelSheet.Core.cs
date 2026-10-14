@@ -44,6 +44,7 @@ namespace OfficeIMO.Excel {
         private readonly List<TableDefinitionPart> _pendingTableDefinitionPartSaves = new();
         private Row? _lastAccessedRow;
         private int _lastAccessedRowIndex;
+        private Row? _rowElementCursor;
         private Cell? _lastAccessedCell;
         private int _lastAccessedCellRowIndex;
         private int _lastAccessedCellColumnIndex;
@@ -444,22 +445,36 @@ namespace OfficeIMO.Excel {
             return _sheetDataCache;
         }
 
+        /// <summary>
+        /// Finds the row element for <paramref name="rowIndex"/> or inserts one in row order. The search resumes from
+        /// the row found by the previous call when that row is still in the sheet and not past the target, so
+        /// row-by-row layout loops stay linear instead of rescanning the sheet from its first row on every call.
+        /// </summary>
         private Row GetOrCreateRowElement(SheetData sheetData, int rowIndex) {
-            foreach (Row row in sheetData.Elements<Row>()) {
-                if (row.RowIndex != null) {
-                    if (row.RowIndex.Value == (uint)rowIndex) {
-                        return row;
-                    }
-                    if (row.RowIndex.Value > (uint)rowIndex) {
-                        var inserted = new Row { RowIndex = (uint)rowIndex };
-                        sheetData.InsertBefore(inserted, row);
-                        return inserted;
-                    }
+            uint target = (uint)rowIndex;
+            Row? cursor = _rowElementCursor;
+            Row? row = cursor != null && ReferenceEquals(cursor.Parent, sheetData) && cursor.RowIndex != null && cursor.RowIndex.Value <= target
+                ? cursor
+                : sheetData.GetFirstChild<Row>();
+            for (; row != null; row = row.NextSibling<Row>()) {
+                if (row.RowIndex == null) {
+                    continue;
+                }
+                if (row.RowIndex.Value == target) {
+                    _rowElementCursor = row;
+                    return row;
+                }
+                if (row.RowIndex.Value > target) {
+                    var inserted = new Row { RowIndex = target };
+                    sheetData.InsertBefore(inserted, row);
+                    _rowElementCursor = inserted;
+                    return inserted;
                 }
             }
 
-            var appended = new Row { RowIndex = (uint)rowIndex };
+            var appended = new Row { RowIndex = target };
             sheetData.Append(appended);
+            _rowElementCursor = appended;
             return appended;
         }
 

@@ -443,42 +443,18 @@ namespace OfficeIMO.Excel {
 
             // Base on existing cell's style if present
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
-            var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat {
-                NumberFormatId = 0U,
-                FontId = 0U,
-                FillId = 0U,
-                BorderId = 0U,
-                FormatId = 0U
-            };
-
-            // Try to find an existing format with same base ids and WrapText enabled
-            int wrapIndex = -1;
-            for (int i = 0; i < cellFormats.Count; i++) {
-                var cf = cellFormats[i];
-                var align = cf.Alignment;
-                bool wrap = align != null && align.WrapText != null && align.WrapText.Value;
-                if (wrap && cf.NumberFormatId?.Value == baseFormat.NumberFormatId?.Value
-                        && cf.FontId?.Value == baseFormat.FontId?.Value
-                        && cf.FillId?.Value == baseFormat.FillId?.Value
-                        && cf.BorderId?.Value == baseFormat.BorderId?.Value) {
-                    wrapIndex = i;
-                    break;
-                }
+            if (BatchFor(stylesheet) is { } batch) {
+                cell.StyleIndex = batch.WrapTextFormatIndex(baseIndex);
+                return;
             }
 
+            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
+            var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? CreateDefaultCellFormat();
+
+            int wrapIndex = FindWrapTextFormat(cellFormats, baseFormat);
             if (wrapIndex == -1) {
-                var newFormat = new CellFormat {
-                    NumberFormatId = baseFormat.NumberFormatId ?? 0U,
-                    FontId = baseFormat.FontId ?? 0U,
-                    FillId = baseFormat.FillId ?? 0U,
-                    BorderId = baseFormat.BorderId ?? 0U,
-                    FormatId = baseFormat.FormatId ?? 0U,
-                    ApplyAlignment = true,
-                    Alignment = new Alignment { WrapText = true }
-                };
-                cellFormatsEl.Append(newFormat);
+                cellFormatsEl.Append(CreateWrapTextFormat(baseFormat));
                 cellFormatsEl.Count = (uint)cellFormatsEl.Count();
                 wrapIndex = (int)cellFormatsEl.Count.Value - 1;
                 SaveStylesheet(stylesPart);
@@ -487,8 +463,47 @@ namespace OfficeIMO.Excel {
             cell.StyleIndex = (uint)wrapIndex;
         }
 
+        private static CellFormat CreateDefaultCellFormat() => new CellFormat {
+            NumberFormatId = 0U,
+            FontId = 0U,
+            FillId = 0U,
+            BorderId = 0U,
+            FormatId = 0U
+        };
+
         /// <summary>
-        /// Enables WrapText for every cell in a column within a given row range.
+        /// Finds the first format that wraps text and shares the number format, font, fill and border of
+        /// <paramref name="baseFormat"/>; returns -1 when there is none.
+        /// </summary>
+        private static int FindWrapTextFormat(IReadOnlyList<CellFormat> cellFormats, CellFormat baseFormat) {
+            for (int i = 0; i < cellFormats.Count; i++) {
+                var cf = cellFormats[i];
+                var align = cf.Alignment;
+                bool wrap = align != null && align.WrapText != null && align.WrapText.Value;
+                if (wrap && cf.NumberFormatId?.Value == baseFormat.NumberFormatId?.Value
+                        && cf.FontId?.Value == baseFormat.FontId?.Value
+                        && cf.FillId?.Value == baseFormat.FillId?.Value
+                        && cf.BorderId?.Value == baseFormat.BorderId?.Value) {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private static CellFormat CreateWrapTextFormat(CellFormat baseFormat) => new CellFormat {
+            NumberFormatId = baseFormat.NumberFormatId ?? 0U,
+            FontId = baseFormat.FontId ?? 0U,
+            FillId = baseFormat.FillId ?? 0U,
+            BorderId = baseFormat.BorderId ?? 0U,
+            FormatId = baseFormat.FormatId ?? 0U,
+            ApplyAlignment = true,
+            Alignment = new Alignment { WrapText = true }
+        };
+
+        /// <summary>
+        /// Enables WrapText for every cell in a column within a given row range. The cells are styled in one style
+        /// batch, so the stylesheet is searched through an index and saved once for the whole range.
         /// </summary>
         /// <param name="fromRow">The first 1-based row index in the range.</param>
         /// <param name="toRow">The last 1-based row index in the range.</param>
@@ -496,8 +511,10 @@ namespace OfficeIMO.Excel {
         public void WrapCells(int fromRow, int toRow, int column) {
             if (fromRow < 1 || toRow < fromRow || column < 1) return;
             WriteLockConditional(() => {
-                for (int r = fromRow; r <= toRow; r++) {
-                    ApplyWrapText(r, column);
+                using (BeginStyleBatch()) {
+                    for (int r = fromRow; r <= toRow; r++) {
+                        ApplyWrapText(r, column);
+                    }
                 }
             });
         }
@@ -716,12 +733,14 @@ namespace OfficeIMO.Excel {
 
                 string argb = NormalizeHexColor(hexColor);
 
-                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-                var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
-                var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontColor(font, argb));
-                ApplyCellFormatOverride(stylesheet, cell, format => {
-                    format.FontId = fontId;
-                    format.ApplyFont = true;
+                ApplyDerivedCellFormat(stylesheet, cell, "font-color " + argb, () => {
+                    uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                    var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+                    var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontColor(font, argb));
+                    ApplyCellFormatOverride(stylesheet, cell, format => {
+                        format.FontId = fontId;
+                        format.ApplyFont = true;
+                    });
                 });
 
                 SaveStylesheet(stylesPart);
@@ -737,12 +756,14 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
-            var boldFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetBold(font, bold));
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.FontId = boldFontId;
-                format.ApplyFont = true;
+            ApplyDerivedCellFormat(stylesheet, cell, bold ? "bold" : "not-bold", () => {
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+                var boldFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetBold(font, bold));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FontId = boldFontId;
+                    format.ApplyFont = true;
+                });
             });
             SaveStylesheet(stylesPart);
         }
@@ -756,12 +777,14 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
-            var italicFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetItalic(font, italic));
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.FontId = italicFontId;
-                format.ApplyFont = true;
+            ApplyDerivedCellFormat(stylesheet, cell, italic ? "italic" : "not-italic", () => {
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+                var italicFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetItalic(font, italic));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FontId = italicFontId;
+                    format.ApplyFont = true;
+                });
             });
             SaveStylesheet(stylesPart);
         }
@@ -775,12 +798,14 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
-            var underlineFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetUnderline(font, underline));
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.FontId = underlineFontId;
-                format.ApplyFont = true;
+            ApplyDerivedCellFormat(stylesheet, cell, underline ? "underline" : "not-underline", () => {
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+                var underlineFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetUnderline(font, underline));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FontId = underlineFontId;
+                    format.ApplyFont = true;
+                });
             });
             SaveStylesheet(stylesPart);
         }
@@ -894,15 +919,17 @@ namespace OfficeIMO.Excel {
 
             // Create a fill with solid color
             string argb = NormalizeHexColor(hexColor);
-            var fill = new Fill(new PatternFill {
-                PatternType = PatternValues.Solid,
-                ForegroundColor = new ForegroundColor { Rgb = argb },
-                BackgroundColor = new BackgroundColor { Rgb = argb }
-            });
-            var fillId = GetOrCreateFill(stylesheet, fill);
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.FillId = fillId;
-                format.ApplyFill = true;
+            ApplyDerivedCellFormat(stylesheet, cell, "fill " + argb, () => {
+                var fill = new Fill(new PatternFill {
+                    PatternType = PatternValues.Solid,
+                    ForegroundColor = new ForegroundColor { Rgb = argb },
+                    BackgroundColor = new BackgroundColor { Rgb = argb }
+                });
+                var fillId = GetOrCreateFill(stylesheet, fill);
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FillId = fillId;
+                    format.ApplyFill = true;
+                });
             });
             SaveStylesheet(stylesPart);
         }

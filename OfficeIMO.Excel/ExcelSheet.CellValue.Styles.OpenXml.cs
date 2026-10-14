@@ -26,6 +26,25 @@ namespace OfficeIMO.Excel {
             };
         }
 
+        /// <summary>
+        /// Runs <paramref name="derive"/>, which gives <paramref name="cell"/> a format derived from its current one.
+        /// Inside a style batch the resulting index is remembered per starting format and <paramref name="operation"/>,
+        /// so styling many cells the same way resolves the format once instead of cloning and comparing it per cell.
+        /// </summary>
+        private static void ApplyDerivedCellFormat(Stylesheet stylesheet, Cell cell, string operation, Action derive) {
+            StyleBatch? batch = BatchFor(stylesheet);
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            if (batch is not null && batch.TryGetDerivedFormat(baseIndex, operation, out uint index)) {
+                cell.StyleIndex = index;
+                return;
+            }
+
+            derive();
+            if (batch is not null && cell.StyleIndex?.Value is uint derived) {
+                batch.SetDerivedFormat(baseIndex, operation, derived);
+            }
+        }
+
         private static void ApplyCellFormatOverride(Stylesheet stylesheet, Cell cell, Action<CellFormat> mutate) {
             var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
             mutate(baseFormat);
@@ -78,7 +97,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static uint GetOrCreateNumberFormatId(Stylesheet stylesheet, string numberFormat) {
-            if (BatchFor(stylesheet) is { } batch) return batch.NumberFormatId(numberFormat);
+            if (BatchFor(stylesheet) is { IndexesNumberFormats: true } batch) return batch.NumberFormatId(numberFormat);
             stylesheet.NumberingFormats ??= new NumberingFormats();
             NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
                 .FirstOrDefault(n => n.FormatCode != null && n.FormatCode.Value == numberFormat);
@@ -306,6 +325,15 @@ namespace OfficeIMO.Excel {
         /// 1 CellStyleFormat, and 1 CellFormat present.
         /// </summary>
         private static void EnsureDefaultStylePrimitives(Stylesheet stylesheet) {
+            // Inside a style batch the primitives are ensured once; repeating the sweep for every styled cell
+            // only re-enumerates fonts, fills and formats without changing them.
+            StyleBatch? batch = BatchFor(stylesheet);
+            if (batch is { PrimitivesEnsured: true }) return;
+            EnsureDefaultStylePrimitivesCore(stylesheet);
+            if (batch is not null) { batch.PrimitivesEnsured = true; batch.MarkModified(); }
+        }
+
+        private static void EnsureDefaultStylePrimitivesCore(Stylesheet stylesheet) {
             // Fonts
             if (stylesheet.Fonts == null || !stylesheet.Fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().Any()) {
                 stylesheet.Fonts = new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font(new FontSize { Val = 11D }, new FontName { Val = "Calibri" }));
