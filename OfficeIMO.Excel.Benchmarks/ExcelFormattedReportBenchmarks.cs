@@ -92,6 +92,11 @@ namespace OfficeIMO.Excel.Benchmarks {
                 }
                 for (int columnIndex = 0; columnIndex < cells.Length; columnIndex++) {
                     Cell cell = cells[columnIndex];
+                    string expectedReference = ((char)('A' + columnIndex)).ToString()
+                        + (rowIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    if (cell.CellReference?.Value != expectedReference) {
+                        throw new InvalidOperationException($"Cell {cell.CellReference} has an unexpected coordinate.");
+                    }
                     string actual = cell.DataType?.Value == CellValues.SharedString
                         ? strings[int.Parse(cell.CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture)]
                         : cell.InlineString?.InnerText ?? cell.CellValue?.Text ?? string.Empty;
