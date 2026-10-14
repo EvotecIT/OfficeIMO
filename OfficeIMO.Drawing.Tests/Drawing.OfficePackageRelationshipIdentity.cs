@@ -14,15 +14,13 @@ public sealed class DrawingOfficePackageRelationshipIdentityTests {
     [Theory]
     [InlineData("word")]
     [InlineData("powerpoint")]
-    public void SerializedPackageRootPayloadRelationshipCountsItsPartOnce(string format) {
+    public void SerializedPackagePayloadRelationshipCountsItsPartOnce(string format) {
         byte[] bytes = SerializedPackage(format);
         using (var archive = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read)) {
             Assert.Single(archive.Entries.Where(entry => entry.FullName.Contains("/embeddings/")));
             var relationships = archive.Entries.Where(entry => entry.FullName.EndsWith(".rels", StringComparison.Ordinal))
                 .SelectMany(entry => { using Stream stream = entry.Open(); return XDocument.Load(stream).Root!.Elements().ToArray(); });
-            string target = Assert.Single(relationships, element => (string?)element.Attribute("Id") == "rPayload")
-                .Attribute("Target")!.Value;
-            Assert.StartsWith("/", target);
+            Assert.Single(relationships, element => (string?)element.Attribute("Id") == "rPayload");
         }
         Assert.Equal(1, OfficePackageSecurityInspector.Inspect(bytes).EmbeddedPayloadPartCount);
         using var source = new MemoryStream(bytes); source.Position = 7;

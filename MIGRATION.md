@@ -12,6 +12,8 @@ Compound-file admission retains its structured quota failure through public Word
 
 OpenDocument package, depth and native text admission ceilings use `OfficeInspectionResourceLimitException` with owner `opendocument`. Compression-ratio admission uses `OfficePackageSecurityException` and its exact fractional `ObservedValue` and `Limit`. Reader preserves integer ceilings as `ReaderResourceLimitException`; fractional admission and native encrypted-resource failures use `ReaderAdmissionLimitException`. Its nullable `Maximum` and `Actual` stay unknown when the native engine does not expose them. Both Reader exception types terminate nested, folder, batch and processor operations rather than becoming ordinary warnings.
 
+The PDF Reader adapter translates configured parser and projection ceilings into `ReaderAdmissionLimitException`, including `PdfReadLimits.MaxInputBytes`. The original `PdfReadLimitException` remains in `InnerException` with its `Kind`, `Limit` and `Actual` values. These failures terminate folder and batch reads. Direct `OfficeIMO.Pdf` APIs retain their native exception type.
+
 System.Xml's own character ceiling still reports an XML parsing exception. Callers that require distinct admission evidence can bound admitted XML source bytes at or below the XML character ceiling while keeping DTD processing prohibited. The byte envelope does not bound semantic text expansion such as repeated ODF spaces; the native text ceilings apply separately.
 
 ## Text and metadata inspection

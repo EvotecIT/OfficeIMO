@@ -57,6 +57,8 @@ Set `ReaderOptions.Projection = ReaderProjection.TextAndMetadata` to retain plai
 
 To project an already loaded `PdfDocumentReadResult`, call `logical.ReadDocument("input.pdf", readerOptions, pdfOptions)`. This uses the same Reader projection and operation budgets without opening the named path, parsing again, or rendering pages. The caller controls the native load, input limits and authentication. Inspection describes the supplied logical pages as `existing-projection`; it does not reassess original page completion or recreate native failure outcomes. Load with native `IncludeImages = false` and `IncludeFormWidgets = false` as well when you need to avoid that work before the Reader projection.
 
+When you already have a `PdfInspectionReadResult`, call `inspection.ReadDocument("input.pdf", readerOptions, pdfOptions)`. This preserves failed page outcomes and original selection indexes, including repeated pages. Choose pages in the native `ReadForInspection` call; this overload rejects a second page selection during projection. It retains bounded inspection evidence and uses the same Reader output budgets without reopening the source.
+
 ### Discover OCR needs on mixed pages
 
 The default policy emits candidates for image pages without native text. For a scanned body with a native footer, opt into mixed-page discovery:

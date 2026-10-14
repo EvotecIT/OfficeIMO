@@ -25,7 +25,8 @@ public sealed class ReaderPdfImageProjectionPrerequisitesTests {
         Assert.Contains(result.Metadata, entry => entry.Category == "pdf.page-outcome" && entry.Value == "Read");
         Assert.Contains(result.Metadata, entry => entry.Category == "pdf.form" && entry.Name == "SourceWidgetCount" && entry.Value == "1");
         Assert.Contains(result.Metadata, entry => entry.Category == "pdf.source.form-widget" && entry.Value == "Entry");
-        Assert.Throws<PdfReadLimitException>(() => reader.ReadDocument(bytes, "full.pdf", new ReaderOptions { Inspection = new ReaderInspectionOptions() }));
+        ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() => reader.ReadDocument(bytes, "full.pdf", new ReaderOptions { Inspection = new ReaderInspectionOptions() }));
+        Assert.IsType<PdfReadLimitException>(error.InnerException);
         OfficeDocumentReadResult full = new OfficeDocumentReaderBuilder().AddPdfHandler().Build().ReadDocument(bytes, "full.pdf");
         Assert.NotNull(full.Markdown); Assert.NotEmpty(full.Assets); Assert.NotEmpty(full.Forms);
         OfficeDocumentReadResult documentChunks = new OfficeDocumentReaderBuilder().AddPdfHandler(new ReaderPdfOptions { ChunkByPage = false })

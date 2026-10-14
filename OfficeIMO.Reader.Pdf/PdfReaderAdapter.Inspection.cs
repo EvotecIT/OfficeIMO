@@ -3,9 +3,33 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Reader.Pdf;
 
 internal static partial class PdfReaderAdapter {
-    private static PdfInspectionReadResult? LoadInspection(PdfDocument pdf, ReaderOptions readerOptions,
-        ReaderPdfOptions pdfOptions, CancellationToken cancellationToken) => readerOptions.Inspection is null
-        ? null : pdf.ReadForInspection(GetEffectiveReadOptions(readerOptions, pdfOptions), cancellationToken);
+    internal static OfficeDocumentReadResult ReadDocument(PdfInspectionReadResult inspection, string sourceName,
+        ReaderOptions readerOptions, ReaderPdfOptions? pdfOptions, CancellationToken token) {
+        ReaderPdfOptions effectivePdfOptions = ReaderPdfOptionsCloner.CloneOrDefault(pdfOptions);
+        if (effectivePdfOptions.ReadOptions?.PageSelection is not null)
+            throw new ArgumentException("A loaded PDF inspection preserves its native page selection. Select pages in ReadForInspection.", nameof(pdfOptions));
+        string logicalName = NormalizeLogicalSourceName(sourceName, "document.pdf");
+        var source = new SourceMetadata { Path = logicalName, SourceId = BuildSourceId(logicalName) };
+        SetInspectionSelections(source, inspection);
+        return BuildDocumentResult(inspection.Document, source, readerOptions, effectivePdfOptions,
+            preflight: null, applyPageRanges: false, token, inspection);
+    }
+
+    private static PdfInspectionReadResult? LoadInspection(PdfDocument pdf, SourceMetadata source, ReaderOptions readerOptions,
+        ReaderPdfOptions pdfOptions, CancellationToken cancellationToken) {
+        if (readerOptions.Inspection is null) return null;
+        PdfInspectionReadResult inspection = WithNativeLimits(() => pdf.ReadForInspection(GetEffectiveReadOptions(readerOptions, pdfOptions), cancellationToken));
+        SetInspectionSelections(source, inspection);
+        return inspection;
+    }
+
+    private static void SetInspectionSelections(SourceMetadata source, PdfInspectionReadResult inspection) =>
+        source.SuccessfulPageSelectionIndexes = inspection.PageOutcomes.Where(outcome => outcome.Succeeded)
+            .Select(outcome => outcome.SelectionIndex).ToArray();
+
+    // Loaded logical projections have no native inspection outcome list and retain their own ordinal.
+    private static int GetPageSelectionIndex(SourceMetadata? source, int ordinal) =>
+        source?.SuccessfulPageSelectionIndexes is IReadOnlyList<int> indexes ? indexes[ordinal] : ordinal;
 
     private static IEnumerable<ReaderChunk> BuildInspectionWarningChunks(PdfInspectionReadResult? inspection,
         SourceMetadata source) {
@@ -34,6 +58,9 @@ internal static partial class PdfReaderAdapter {
         var diagnostics = result.Diagnostics.ToList();
         if (inspection is not null) {
             evidence.Add("pdf.source.structure", "SourcePageCount", inspection.SourceInfo.PageCount.ToString(CultureInfo.InvariantCulture), "count");
+            evidence.Add("pdf.source.structure", "HeaderVersion", inspection.SourceInfo.HeaderVersion, "string");
+            evidence.Add("pdf.source.structure", "SourceFormFieldCount", inspection.SourceInfo.FormFieldCount.ToString(CultureInfo.InvariantCulture), "count");
+            evidence.Add("pdf.source.structure", "SourceFormWidgetCount", inspection.SourceInfo.FormWidgetCount.ToString(CultureInfo.InvariantCulture), "count");
             foreach (PdfPageReadOutcome outcome in inspection.PageOutcomes) {
                 cancellationToken.ThrowIfCancellationRequested();
                 ReaderLocation location = InspectionLocation(source, outcome.PageNumber, outcome.SelectionIndex);
@@ -47,12 +74,14 @@ internal static partial class PdfReaderAdapter {
                     attributes["hasDeclaredToUnicode"] = mapping.HasDeclaredToUnicode.ToString();
                 }
                 if (outcome.UnsupportedFilters.Count > 0) attributes["unsupportedFilters"] = string.Join(",", outcome.UnsupportedFilters);
+                if (!outcome.Succeeded) attributes["disposition"] = "Skipped";
                 evidence.Add("pdf.page-outcome", "NativeText", outcome.Status.ToString(), "outcome", location, attributes: attributes);
                 if (!outcome.Succeeded) {
                     diagnostics.Add(new OfficeDocumentDiagnostic {
                         Code = outcome.Status == PdfPageReadStatus.UnmappableText ? "pdf-page-unmappable-text" : "pdf-page-unsupported-content-filter",
                         Severity = OfficeDocumentDiagnosticSeverity.Error,
                         Message = GetInspectionFailureMessage(outcome),
+                        IsRecoverable = true,
                         Location = location,
                         Attributes = attributes
                     });

@@ -29,9 +29,10 @@ internal static partial class PdfReaderAdapter {
             }
             yield break;
         }
-        for (int selectionIndex = 0; selectionIndex < pages.Count; selectionIndex++) {
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             token.ThrowIfCancellationRequested();
-            PdfLogicalPage page = pages[selectionIndex];
+            PdfLogicalPage page = pages[pageIndex];
+            int selectionIndex = GetPageSelectionIndex(source, pageIndex);
             string text = string.Join(Environment.NewLine, page.TextBlocks.Select(block => block.Text));
             IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(text, options.MaxChars);
             for (int index = 0; index < parts.Count; index++) {

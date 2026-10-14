@@ -21,8 +21,8 @@ internal static partial class PdfReaderAdapter {
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
 
-        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions), cancellationToken);
-        PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfDocument pdf = OpenReaderPdf(pdfPath, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfInspectionReadResult? inspection = LoadInspection(pdf, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
@@ -48,7 +48,7 @@ internal static partial class PdfReaderAdapter {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
-        PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfInspectionReadResult? inspection = LoadInspection(pdf, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
@@ -88,7 +88,11 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static IEnumerable<ReaderChunk> Read(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken) {
+    private static IEnumerable<ReaderChunk> Read(PdfDocumentReadResult document, SourceMetadata source,
+        ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken) =>
+        WithNativeLimits(ReadCore(document, source, readerOptions, pdfOptions, applyPageRanges, cancellationToken));
+
+    private static IEnumerable<ReaderChunk> ReadCore(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken) {
         if (readerOptions.Projection == ReaderProjection.TextAndMetadata) {
             foreach (ReaderChunk chunk in ReadTextAndMetadataChunks(applyPageRanges ? GetReaderPages(document, pdfOptions) : document.Pages,
                 source, readerOptions, cancellationToken, pdfOptions.ChunkByPage)) yield return chunk;
@@ -102,8 +106,8 @@ internal static partial class PdfReaderAdapter {
         if (!pdfOptions.ChunkByPage) {
             string markdown = BuildMarkdown(pages, markdownOptions);
             IReadOnlyList<PdfLogicalTableExtraction> documentTableExtractions = PdfLogicalTableAnalysis.ExtractTables(pages, GetMaxTableRows(readerOptions));
-            var documentTables = BuildTables(documentTableExtractions);
-            var documentVisuals = BuildVisuals(pages);
+            var documentTables = BuildTables(documentTableExtractions, source: source);
+            var documentVisuals = BuildVisuals(pages, source: source);
             var documentFormFields = BuildFormFields(document, pages, page: null);
             var documentActions = BuildActions(document, pages, page: null, includeDocumentActions: true);
             ReaderChunkDiagnostics documentDiagnostics = BuildChunkDiagnostics(document, pages, page: null, documentTableExtractions, documentActions);
@@ -134,13 +138,14 @@ internal static partial class PdfReaderAdapter {
             cancellationToken.ThrowIfCancellationRequested();
 
             PdfLogicalPage page = pages[pageIndex];
-            string pageOccurrence = pageIndex.ToString("D4", CultureInfo.InvariantCulture);
+            int selectionIndex = GetPageSelectionIndex(source, pageIndex);
+            string pageOccurrence = selectionIndex.ToString("D4", CultureInfo.InvariantCulture);
             string pageAnchor = "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
             string idPrefix = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
             string markdown = page.ToMarkdown(markdownOptions);
             IReadOnlyList<PdfLogicalTableExtraction> pageTableExtractions = PdfLogicalTableAnalysis.ExtractTables(page, GetMaxTableRows(readerOptions));
-            var pageTables = BuildTables(pageTableExtractions, pageIndex);
-            var pageVisuals = BuildVisuals(new[] { page }, pageIndex);
+            var pageTables = BuildTables(pageTableExtractions, selectionIndex);
+            var pageVisuals = BuildVisuals(new[] { page }, selectionIndex);
             var pageFormFields = BuildFormFields(document, pages, page);
             var pageActions = BuildActions(document, pages, page, includeDocumentActions: pageIndex == 0);
             ReaderChunkDiagnostics pageDiagnostics = BuildChunkDiagnostics(document, pages, page, pageTableExtractions, pageActions);
@@ -149,7 +154,7 @@ internal static partial class PdfReaderAdapter {
                 source,
                 readerOptions,
                 page.PageNumber,
-                pageIndex,
+                selectionIndex,
                 GetChunkSourceKind(new[] { page }, "page"),
                 pageAnchor,
                 pageTables,
@@ -783,14 +788,14 @@ internal static partial class PdfReaderAdapter {
         return readerOptions.MaxTableRows > 0 ? readerOptions.MaxTableRows : 0;
     }
 
-    private static IReadOnlyList<ReaderTable>? BuildTables(IReadOnlyList<PdfLogicalTableExtraction> tables, int? pageSelectionIndex = null) {
+    private static IReadOnlyList<ReaderTable>? BuildTables(IReadOnlyList<PdfLogicalTableExtraction> tables, int? pageSelectionIndex = null, SourceMetadata? source = null) {
         if (tables.Count == 0) return null;
 
         var result = new List<ReaderTable>(tables.Count);
         for (int i = 0; i < tables.Count; i++) {
             PdfLogicalTableExtraction table = tables[i];
             PdfLogicalTableData data = table.Data;
-            int selectionIndex = pageSelectionIndex ?? table.PageIndex;
+            int selectionIndex = pageSelectionIndex ?? GetPageSelectionIndex(source, table.PageIndex);
 
             result.Add(new ReaderTable {
                 Kind = table.DetectionKind,
@@ -873,7 +878,7 @@ internal static partial class PdfReaderAdapter {
 
     private static PdfDocumentReadResult LoadDocument(PdfDocument document, ReaderOptions readerOptions, ReaderPdfOptions options, CancellationToken cancellationToken) {
         if (document is null) throw new ArgumentNullException(nameof(document));
-        return document.Read(GetEffectiveReadOptions(readerOptions, options), cancellationToken);
+        return WithNativeLimits(() => document.Read(GetEffectiveReadOptions(readerOptions, options), cancellationToken));
     }
 
     private static PdfLoadOptions? CreatePdfLoadOptions(ReaderOptions options, ReaderPdfOptions pdfOptions) {
@@ -890,12 +895,8 @@ internal static partial class PdfReaderAdapter {
             return ReaderInputLimits.TryGetOwnedSnapshotBytes(stream, out byte[] ownedBytes)
                 ? PdfDocument.LoadOwned(ownedBytes, readOptions, cancellationToken)
                 : PdfDocument.Load(stream, readOptions, cancellationToken);
-        } catch (PdfReadLimitException exception) when (exception.Kind == PdfReadLimitKind.InputBytes) {
-            throw new IOException(
-                "Input exceeds MaxInputBytes (" +
-                exception.Actual.ToString(CultureInfo.InvariantCulture) + " > " +
-                exception.Limit.ToString(CultureInfo.InvariantCulture) + ").",
-                exception);
+        } catch (PdfReadLimitException exception) {
+            throw TranslateNativeLimit(exception);
         }
     }
 
@@ -1024,6 +1025,7 @@ internal static partial class PdfReaderAdapter {
         public string? SourceHash { get; set; }
         public DateTime? LastWriteUtc { get; set; }
         public long? LengthBytes { get; set; }
+        public IReadOnlyList<int>? SuccessfulPageSelectionIndexes { get; set; }
     }
 
     private sealed class TextPart {

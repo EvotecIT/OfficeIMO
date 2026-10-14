@@ -1,3 +1,4 @@
+using OfficeIMO.Reader;
 using System.Reflection;
 using System.Threading.Tasks;
 using OfficeIMO.Excel.Pdf;
@@ -166,8 +167,10 @@ public sealed class PdfBridgeApiContracts {
         Assert.Throws<PdfReadLimitException>(() =>
             document.ToPowerPointPresentation(new PdfToPowerPointOptions { ReadOptions = readOptions }));
         using var stream = new MemoryStream(pdf, writable: false);
-        Assert.Throws<PdfReadLimitException>(() =>
+        ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() =>
             PdfReaderAdapter.ReadDocument(stream, pdfOptions: new ReaderPdfOptions { ReadOptions = readOptions }));
+        Assert.Equal(PdfReadLimitKind.Pages, Assert.IsType<PdfReadLimitException>(error.InnerException).Kind);
+        Assert.Equal(1, error.Maximum); Assert.Equal(2, error.Actual);
     }
 
     [Fact]

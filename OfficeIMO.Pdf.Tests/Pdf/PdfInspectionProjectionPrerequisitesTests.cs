@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;

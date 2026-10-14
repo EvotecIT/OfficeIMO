@@ -103,9 +103,9 @@ internal static partial class PdfReaderAdapter {
         var effectivePdfOptions = ReaderPdfOptionsCloner.CloneOrDefault(pdfOptions);
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
-        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions), cancellationToken);
-        PdfDocumentPreflight preflight = pdf.Preflight(null, cancellationToken);
-        PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfDocument pdf = OpenReaderPdf(pdfPath, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfDocumentPreflight preflight = WithNativeLimits(() => pdf.Preflight(null, cancellationToken));
+        PdfInspectionReadResult? inspection = LoadInspection(pdf, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection);
     }
@@ -128,8 +128,8 @@ internal static partial class PdfReaderAdapter {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
-        PdfDocumentPreflight preflight = pdf.Preflight(null, cancellationToken);
-        PdfInspectionReadResult? inspection = LoadInspection(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
+        PdfDocumentPreflight preflight = WithNativeLimits(() => pdf.Preflight(null, cancellationToken));
+        PdfInspectionReadResult? inspection = LoadInspection(pdf, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection);
     }
@@ -162,7 +162,12 @@ internal static partial class PdfReaderAdapter {
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight: null, applyPageRanges: true, cancellationToken);
     }
 
-    private static OfficeDocumentReadResult BuildDocumentResult(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges, CancellationToken cancellationToken, PdfInspectionReadResult? inspection = null) {
+    private static OfficeDocumentReadResult BuildDocumentResult(PdfDocumentReadResult document, SourceMetadata source,
+        ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges,
+        CancellationToken cancellationToken, PdfInspectionReadResult? inspection = null) =>
+        WithNativeLimits(() => BuildDocumentResultCore(document, source, readerOptions, pdfOptions, preflight, applyPageRanges, cancellationToken, inspection));
+
+    private static OfficeDocumentReadResult BuildDocumentResultCore(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges, CancellationToken cancellationToken, PdfInspectionReadResult? inspection = null) {
         if (readerOptions.Projection == ReaderProjection.TextAndMetadata)
             return BuildTextAndMetadataResult(document, source, readerOptions, pdfOptions, preflight, applyPageRanges, cancellationToken, inspection);
         var markdownOptions = ReaderPdfOptions.CloneMarkdownOptions(pdfOptions.MarkdownOptions) ?? ReaderPdfOptions.CreateOfficeIMOProfile().MarkdownOptions!;
@@ -240,18 +245,19 @@ internal static partial class PdfReaderAdapter {
         var result = new List<OfficeDocumentPage>(pages.Count);
         for (int i = 0; i < pages.Count; i++) {
             PdfLogicalPage page = pages[i];
+            int selectionIndex = GetPageSelectionIndex(source, i);
             result.Add(new OfficeDocumentPage {
                 Number = page.PageNumber,
                 Width = page.Width,
                 Height = page.Height,
                 RotationDegrees = page.RotationDegrees,
-                Location = BuildLocation(source, page.PageNumber, i, "page", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + i.ToString("D4", CultureInfo.InvariantCulture)),
-                Blocks = blocks.Where(block => IsPageSelection(block.Location, page.PageNumber, i)).ToArray(),
-                Tables = tables.Where(table => table.Location != null && IsPageSelection(table.Location, page.PageNumber, i)).ToArray(),
-                Assets = assets.Where(asset => IsPageSelection(asset.Location, page.PageNumber, i)).ToArray(),
-                Links = links.Where(link => IsPageSelection(link.Location, page.PageNumber, i)).ToArray(),
-                Forms = forms.Where(form => IsPageSelection(form.Location, page.PageNumber, i)).ToArray(),
-                OcrCandidates = ocrCandidates.Where(candidate => IsPageSelection(candidate.Location, page.PageNumber, i)).ToArray()
+                Location = BuildLocation(source, page.PageNumber, selectionIndex, "page", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture)),
+                Blocks = blocks.Where(block => IsPageSelection(block.Location, page.PageNumber, selectionIndex)).ToArray(),
+                Tables = tables.Where(table => table.Location != null && IsPageSelection(table.Location, page.PageNumber, selectionIndex)).ToArray(),
+                Assets = assets.Where(asset => IsPageSelection(asset.Location, page.PageNumber, selectionIndex)).ToArray(),
+                Links = links.Where(link => IsPageSelection(link.Location, page.PageNumber, selectionIndex)).ToArray(),
+                Forms = forms.Where(form => IsPageSelection(form.Location, page.PageNumber, selectionIndex)).ToArray(),
+                OcrCandidates = ocrCandidates.Where(candidate => IsPageSelection(candidate.Location, page.PageNumber, selectionIndex)).ToArray()
             });
         }
 
@@ -261,6 +267,7 @@ internal static partial class PdfReaderAdapter {
     private static IEnumerable<OfficeDocumentBlock> BuildDocumentBlocks(IReadOnlyList<PdfLogicalPage> pages, SourceMetadata source) {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             PdfLogicalPage page = pages[pageIndex];
+            int selectionIndex = GetPageSelectionIndex(source, pageIndex);
             PdfLogicalListItem[] projectedLists = PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent)
                 .Where(static item => item.Kind == PdfLogicalReadingOrderKind.ListItem)
                 .Select(item => page.ListItems[item.SourceIndex]).ToArray();
@@ -278,12 +285,12 @@ internal static partial class PdfReaderAdapter {
                             ? "list-item"
                             : ToDocumentBlockKind(textBlock.Kind);
                     yield return new OfficeDocumentBlock {
-                        Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture),
+                        Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture),
                         Kind = kind,
                         Text = heading?.Text ?? listItem?.Text ?? textBlock.Text,
                         Level = heading?.Level ?? listItem?.Level,
                         Marker = listItem?.Marker,
-                        Location = BuildLocation(source, page.PageNumber, pageIndex, kind, "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture)),
+                        Location = BuildLocation(source, page.PageNumber, selectionIndex, kind, "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture)),
                         Region = new OfficeDocumentRegion {
                             X = textBlock.XStart,
                             Y = textBlock.BaselineY,
@@ -293,19 +300,19 @@ internal static partial class PdfReaderAdapter {
                     };
                 } else if (element is PdfLogicalLeaderRow leaderRow) {
                     yield return new OfficeDocumentBlock {
-                        Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture),
+                        Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture),
                         Kind = "leader-row",
                         Text = leaderRow.Label + "\t" + leaderRow.Value,
                         Marker = leaderRow.Label,
-                        Location = BuildLocation(source, page.PageNumber, pageIndex, "leader-row", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture))
+                        Location = BuildLocation(source, page.PageNumber, selectionIndex, "leader-row", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture))
                     };
                 } else if (element is PdfLogicalTable table) {
                     yield return new OfficeDocumentBlock {
-                        Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-table-" + tableIndex.ToString("D4", CultureInfo.InvariantCulture),
+                        Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-table-" + tableIndex.ToString("D4", CultureInfo.InvariantCulture),
                         Kind = "table",
                         // The table's text lives in its cells. This block supplies geometry and identity only.
                         Text = string.Empty,
-                        Location = BuildLocation(source, page.PageNumber, pageIndex, "table", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-table-" + tableIndex.ToString(CultureInfo.InvariantCulture)),
+                        Location = BuildLocation(source, page.PageNumber, selectionIndex, "table", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-table-" + tableIndex.ToString(CultureInfo.InvariantCulture)),
                         Region = new OfficeDocumentRegion {
                             X = table.Columns.Count > 0 ? table.Columns[0].From : 0D,
                             Y = table.YBottom,
@@ -322,12 +329,13 @@ internal static partial class PdfReaderAdapter {
     private static IEnumerable<OfficeDocumentAsset> BuildDocumentAssets(IReadOnlyList<PdfLogicalPage> pages, SourceMetadata source) {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             PdfLogicalPage page = pages[pageIndex];
+            int selectionIndex = GetPageSelectionIndex(source, pageIndex);
             for (int imageIndex = 0; imageIndex < page.Images.Count; imageIndex++) {
                 PdfLogicalImage image = page.Images[imageIndex];
                 string imageObjectId = image.SourceImage.ObjectNumber > 0
                     ? image.SourceImage.ObjectNumber.ToString(CultureInfo.InvariantCulture)
                     : image.ResourceName;
-                string assetId = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-image-" + imageIndex.ToString("D4", CultureInfo.InvariantCulture);
+                string assetId = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-image-" + imageIndex.ToString("D4", CultureInfo.InvariantCulture);
                 yield return new OfficeDocumentAsset {
                     Id = assetId,
                     Kind = "image",
@@ -341,7 +349,7 @@ internal static partial class PdfReaderAdapter {
                     PayloadBytes = image.SourceImage.Bytes,
                     SourceObjectId = imageObjectId,
                     Region = BuildImageAssetRegion(image),
-                    Location = BuildLocation(source, page.PageNumber, pageIndex, "image", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-image-" + imageIndex.ToString(CultureInfo.InvariantCulture))
+                    Location = BuildLocation(source, page.PageNumber, selectionIndex, "image", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-image-" + imageIndex.ToString(CultureInfo.InvariantCulture))
                 };
             }
         }
@@ -366,6 +374,7 @@ internal static partial class PdfReaderAdapter {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalPage page = pages[pageIndex];
+            int selectionIndex = GetPageSelectionIndex(source, pageIndex);
             bool nativeText = HasMeaningfulNativeText(page);
             if (page.Images.Count == 0 || (nativeText && (!options.IncludeMixedPageOcrCandidates
                 || !HasSubstantialImageContent(page, options.MinimumMixedPageImageAreaRatio, cancellationToken)))) {
@@ -373,11 +382,11 @@ internal static partial class PdfReaderAdapter {
             }
 
             int pageNumber = page.PageNumber;
-            OfficeDocumentAsset? asset = assets.FirstOrDefault(asset => IsPageSelection(asset.Location, pageNumber, pageIndex));
+            OfficeDocumentAsset? asset = assets.FirstOrDefault(asset => IsPageSelection(asset.Location, pageNumber, selectionIndex));
             PdfLogicalImage? image = page.Images.Count == 1 ? page.Images[0] : null;
 
             yield return new OfficeDocumentOcrCandidate {
-                Id = "pdf-page-" + pageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-ocr-0000",
+                Id = "pdf-page-" + pageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-ocr-0000",
                 Kind = image == null ? "page" : "image",
                 Reason = nativeText
                     ? "PDF page contains substantial image content alongside native text; review whether OCR is needed for the image content."
@@ -386,7 +395,7 @@ internal static partial class PdfReaderAdapter {
                 AssetId = asset?.Id,
                 ImageCount = page.Images.Count,
                 TextBlockCount = page.TextBlocks.Count,
-                Location = BuildLocation(source, pageNumber, pageIndex, "ocr-candidate", "page-" + pageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-ocr-0000"),
+                Location = BuildLocation(source, pageNumber, selectionIndex, "ocr-candidate", "page-" + pageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-ocr-0000"),
                 Region = BuildOcrCandidateRegion(page, image)
             };
         }
@@ -444,10 +453,11 @@ internal static partial class PdfReaderAdapter {
     private static IEnumerable<OfficeDocumentLink> BuildDocumentLinks(IReadOnlyList<PdfLogicalPage> pages, SourceMetadata source) {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             PdfLogicalPage page = pages[pageIndex];
+            int selectionIndex = GetPageSelectionIndex(source, pageIndex);
             for (int linkIndex = 0; linkIndex < page.Links.Count; linkIndex++) {
                 PdfLogicalLinkAnnotation link = page.Links[linkIndex];
                 yield return new OfficeDocumentLink {
-                    Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture),
+                    Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture),
                     Kind = GetLinkKind(link),
                     Uri = link.Uri,
                     DestinationName = link.DestinationName,
@@ -467,7 +477,7 @@ internal static partial class PdfReaderAdapter {
                     RemoteDestinationBottom = NormalizeFiniteCoordinate(link.RemoteDestinationBottom),
                     RemoteDestinationRight = NormalizeFiniteCoordinate(link.RemoteDestinationRight),
                     Text = link.Contents,
-                    Location = BuildLocation(source, page.PageNumber, pageIndex, "link", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-link-" + linkIndex.ToString(CultureInfo.InvariantCulture)),
+                    Location = BuildLocation(source, page.PageNumber, selectionIndex, "link", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-link-" + linkIndex.ToString(CultureInfo.InvariantCulture)),
                     Region = new OfficeDocumentRegion {
                         X = link.X1,
                         Y = link.Y1,
@@ -482,16 +492,17 @@ internal static partial class PdfReaderAdapter {
     private static IEnumerable<OfficeDocumentFormField> BuildDocumentForms(IReadOnlyList<PdfLogicalPage> pages, SourceMetadata source) {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             PdfLogicalPage page = pages[pageIndex];
+            int selectionIndex = GetPageSelectionIndex(source, pageIndex);
             for (int formIndex = 0; formIndex < page.FormWidgets.Count; formIndex++) {
                 PdfLogicalFormWidget widget = page.FormWidgets[formIndex];
                 yield return new OfficeDocumentFormField {
-                    Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-form-" + formIndex.ToString("D4", CultureInfo.InvariantCulture),
+                    Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-form-" + formIndex.ToString("D4", CultureInfo.InvariantCulture),
                     Name = widget.FieldName,
                     Kind = widget.Field.Kind.ToString(),
                     Value = widget.Value,
                     IsReadOnly = widget.Field.IsReadOnly || widget.IsReadOnly,
                     IsRequired = widget.Field.IsRequired,
-                    Location = BuildLocation(source, page.PageNumber, pageIndex, "form-widget", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-form-" + formIndex.ToString(CultureInfo.InvariantCulture)),
+                    Location = BuildLocation(source, page.PageNumber, selectionIndex, "form-widget", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-form-" + formIndex.ToString(CultureInfo.InvariantCulture)),
                     Region = new OfficeDocumentRegion {
                         X = widget.X1,
                         Y = widget.Y1,

@@ -62,6 +62,19 @@ public sealed partial class ImageMetadataEvidenceTests {
     }
 
     [Theory]
+    [InlineData("1")]
+    [InlineData("9999999")]
+    [InlineData("999999999")]
+    public void MaximumWholeSecondAcceptsRepresentableFractionalTicks(string subseconds) {
+        OfficeExifTimestamp value = OfficeExifTimestamp.Parse("9999:12:31 23:59:59", "+00:00", subseconds);
+        Assert.True(value.IsValid); Assert.True(value.HasKnownTimezone);
+        Assert.Equal(DateTimeKind.Unspecified, value.LocalDateTime!.Value.Kind);
+        Assert.InRange(value.LocalDateTime.Value.Ticks, DateTime.MaxValue.Ticks - 9999999, DateTime.MaxValue.Ticks);
+        Assert.Equal(subseconds, value.RawSubseconds);
+        if (subseconds.Length > 7) Assert.Equal("exif:subsecond-precision-truncated", value.Issue);
+    }
+
+    [Theory]
     [InlineData(51, 0, "N")]
     [InlineData(51, 1, "north")]
     [InlineData(91, 1, "N")]
