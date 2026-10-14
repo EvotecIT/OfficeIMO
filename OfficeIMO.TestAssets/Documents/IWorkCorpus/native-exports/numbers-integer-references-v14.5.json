@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "source": "numbers-integer-references-v14.5.numbers",
+  "decode": "numbers-integer-references-v14.5-decode.json",
+  "nativeProducer": "Numbers 14.5 (7045.0.17)",
+  "host": "macOS27.0.1 (26A434), arm64",
+  "license": "MIT, OfficeIMO contributors",
+  "intake": "numbers-integer-functions-v14.5.numbers",
+  "recipe": "Copy the controlled original source. Change B2 to30, G2 to=GCD(B2,C2,D2), H2 to=LCM($B$2,$C$2:$D$2,1) in Numbers. Save, close, reopen, verify6/180, export native XLSX and one-page PDF. Native UI uses semicolon separators; stored expressions use commas.",
+  "sourceEditedCells": [
+    "B2",
+    "G2",
+    "H2"
+  ],
+  "formulaCells": 70,
+  "qualifiedReferenceCalls": 14,
+  "nativeSaveCloseReopen": true,
+  "nativePdfPages": 1,
+  "allNativePdfPagesInspected": true,
+  "nativeScreenshotInspected": true,
+  "ownedAppsClosed": true,
+  "limits": [
+    "Local numeric references only; no blank/coercion/formula-dependency/merge/whole-axis qualification.",
+    "Numbers numeric-text range LCM remains cached zero where the destination evaluator produces360; that expression remains incomplete.",
+    "Native PDF displays source error cells as blank. No general appearance equivalence or complete PDF reconstruction is claimed.",
+    "Recorded producer version and host only."
+  ],
+  "artifacts": [
+    {
+      "path": "numbers-integer-references-v14.5-decode.json",
+      "bytes": 7266,
+      "sha256": "ed9e11a1d913b154404c1d1b96faab1c2838898c2a4d3b488ff1ba4680487236"
+    },
+    {
+      "path": "numbers-integer-references-v14.5-native-pdf.png",
+      "bytes": 112364,
+      "sha256": "2b7736e20a5557c41be643b1140aa00f70ab17f28cbd362ccc43a5679eab03e5"
+    },
+    {
+      "path": "numbers-integer-references-v14.5-native.png",
+      "bytes": 105485,
+      "sha256": "70aee39119bae178d85ea34b878348553f185caec316d2788b1ca9d930dc8c28"
+    },
+    {
+      "path": "numbers-integer-references-v14.5.numbers",
+      "bytes": 684776,
+      "sha256": "a09e06af365cfbe210df7c1f5dc781630061df61c0e74ed2571a9e0c834b4970"
+    },
+    {
+      "path": "numbers-integer-references-v14.5.pdf",
+      "bytes": 72076,
+      "sha256": "103458fa87a66e53e2c0b7bb58be7091dd844f1f51f8d23b43c65d7dcd83f2fa"
+    },
+    {
+      "path": "numbers-integer-references-v14.5.xlsx",
+      "bytes": 7816,
+      "sha256": "6b979f93943bd3b34082689eeb50c29ad2e7c5f021f5a259cd1aec5306bc34b5"
+    }
+  ]
+}

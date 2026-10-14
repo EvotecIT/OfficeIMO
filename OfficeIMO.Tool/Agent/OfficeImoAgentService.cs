@@ -53,12 +53,14 @@ internal sealed partial class OfficeImoAgentService {
         CancellationToken cancellationToken = default) {
         maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
         string inputPath = _pathPolicy.ResolveInput(path);
-        AgentSourceRegistration source = _registry.Register(inputPath, cancellationToken);
-        AgentInspectResult result = IsEmailStoreSource(source)
-            ? InspectEmailStore(source, maxOutputCharacters, cancellationToken)
-            : CreateDocumentInspectResult(
-                source,
-                await ReadDocumentAsync(inputPath, cancellationToken).ConfigureAwait(false));
+        AgentSourceRegistration? source = IsIWorkPackage(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
+        AgentInspectResult result;
+        if (source != null && IsEmailStoreSource(source)) {
+            result = InspectEmailStore(source, maxOutputCharacters, cancellationToken);
+        } else {
+            var captured = await ReadDocumentSourceAsync(inputPath, source, cancellationToken).ConfigureAwait(false);
+            result = CreateDocumentInspectResult(captured.Source, captured.Document);
+        }
         TrimInspect(result, maxOutputCharacters);
         return result;
     }
@@ -81,9 +83,9 @@ internal sealed partial class OfficeImoAgentService {
         ValidateSearchBounds(take, cursor);
         maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
         string inputPath = _pathPolicy.ResolveInput(path);
-        AgentSourceRegistration source = _registry.Register(inputPath, cancellationToken);
+        AgentSourceRegistration? source = IsIWorkPackage(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
         AgentSearchResult result;
-        if (IsEmailStoreSource(source)) {
+        if (source != null && IsEmailStoreSource(source)) {
             result = SearchEmailStore(
                 source,
                 query,
@@ -107,9 +109,8 @@ internal sealed partial class OfficeImoAgentService {
                 throw new AgentUsageException(
                     "Email-store filters are only valid for PST, OST, OLM, EMLX, Mbox, MBX, or mailbox directories.");
             }
-            OfficeDocumentReadResult document =
-                await ReadDocumentAsync(inputPath, cancellationToken).ConfigureAwait(false);
-            result = SearchDocument(source, document, query!, take, cursor);
+            var captured = await ReadDocumentSourceAsync(inputPath, source, cancellationToken).ConfigureAwait(false);
+            result = SearchDocument(captured.Source, captured.Document, query!, take, cursor);
         }
         TrimSearch(result, maxOutputCharacters, cursor);
         return result;
@@ -124,26 +125,23 @@ internal sealed partial class OfficeImoAgentService {
         CancellationToken cancellationToken = default) {
         if (cursor < 0) throw new AgentUsageException("Fetch cursor must not be negative.");
         maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
-        AgentSourceRegistration source = string.IsNullOrWhiteSpace(sourcePath)
-            ? _registry.Resolve(sourceId, cancellationToken)
-            : _registry.Resolve(
-                sourceId,
-                _pathPolicy.ResolveInput(sourcePath),
-                cancellationToken);
+        string authorizedPath = _pathPolicy.ResolveInput(string.IsNullOrWhiteSpace(sourcePath)
+            ? _registry.GetRegisteredPath(sourceId) : sourcePath);
+        AgentSourceRegistration? source = IsIWorkPackage(authorizedPath) ? null
+            : _registry.Resolve(sourceId, authorizedPath, cancellationToken);
         (string kind, string value) = AgentOpaqueId.Decode(id);
         AgentFetchResult result;
         if (kind == "mail") {
-            if (!IsEmailStoreSource(source)) {
+            if (source == null || !IsEmailStoreSource(source)) {
                 throw new AgentUsageException("The mail result id does not belong to an email store.");
             }
             result = FetchEmailStoreItem(source, value, id, cursor, cancellationToken);
         } else {
-            if (IsEmailStoreSource(source)) {
+            if (source != null && IsEmailStoreSource(source)) {
                 throw new AgentUsageException("Email-store fetch requires a mail result id.");
             }
-            OfficeDocumentReadResult document =
-                await ReadDocumentAsync(source.Path, cancellationToken).ConfigureAwait(false);
-            result = FetchDocument(source, document, kind, value, id, cursor);
+            var captured = await ReadDocumentSourceAsync(authorizedPath, source, cancellationToken, sourceId).ConfigureAwait(false);
+            result = FetchDocument(captured.Source, captured.Document, kind, value, id, cursor);
         }
         TrimFetch(result, maxOutputCharacters, cursor);
         return result;
@@ -301,15 +299,23 @@ internal sealed partial class OfficeImoAgentService {
         string outputPath,
         string format = "markdown",
         bool overwrite = false,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        OfficeIMO.IWork.IWorkConversionOptions? iworkOptions = null,
+        long maximumInputBytes = 256L * 1024L * 1024L,
+        long maximumOutputBytes = 512L * 1024L * 1024L) {
+        if (format.ToLowerInvariant() is "docx" or "xlsx" or "pptx" or "pdf")
+            return await ConvertIWorkAsync(path, outputPath, format, overwrite, iworkOptions,
+                maximumInputBytes, maximumOutputBytes, cancellationToken).ConfigureAwait(false);
         string inputPath = _pathPolicy.ResolveInput(path);
-        AgentSourceRegistration source = _registry.Register(inputPath, cancellationToken);
-        if (IsEmailStoreSource(source)) {
+        AgentSourceRegistration? source = IsIWorkPackage(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
+        if (source != null && IsEmailStoreSource(source)) {
             throw new AgentUsageException(
                 "Whole-store conversion is intentionally disabled. Search the store and fetch selected items.");
         }
         string destination = _pathPolicy.ResolveOutput(outputPath);
         ReaderToolPathSafety.EnsureDistinctFile(inputPath, destination);
+        if (Directory.Exists(inputPath)) ReaderToolPathSafety.EnsureOutsideInput(inputPath, destination);
+        var publicationGuard = new AgentConversionPublicationGuard(_pathPolicy, inputPath);
         if (!overwrite && File.Exists(destination)) {
             throw new AgentUsageException(
                 "Output file already exists. Choose a new path or explicitly enable overwrite.");
@@ -319,34 +325,27 @@ internal sealed partial class OfficeImoAgentService {
             "json" => ReaderToolOutputFormat.Json,
             _ => throw new AgentUsageException("Conversion format must be 'markdown' or 'json'.")
         };
-        OfficeDocumentReadResult document =
-            await ReadDocumentAsync(inputPath, cancellationToken).ConfigureAwait(false);
+        var captured = await ReadDocumentSourceAsync(inputPath, source, cancellationToken).ConfigureAwait(false);
+        source = captured.Source;
+        OfficeDocumentReadResult document = captured.Document;
         string content = ReaderToolOutput.FormatDocument(document, outputFormat);
+        var fingerprint = ReaderToolOutput.FingerprintText(content, cancellationToken);
         await ReaderToolOutput.WriteFileAsync(
             destination,
             content,
             overwrite,
-            cancellationToken).ConfigureAwait(false);
-        string hash;
-        await using (FileStream stream = new FileStream(
-            destination,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            64 * 1024,
-            useAsync: true)) {
-            byte[] bytes = await System.Security.Cryptography.SHA256.HashDataAsync(
-                stream,
-                cancellationToken).ConfigureAwait(false);
-            hash = Convert.ToHexString(bytes).ToLowerInvariant();
-        }
+            cancellationToken,
+            async token => {
+                if (!await publicationGuard.CanPublishAsync(destination, isDirectory: false, token).ConfigureAwait(false))
+                    throw new UnauthorizedAccessException("The source or output permission changed before publication.");
+            }).ConfigureAwait(false);
         return new AgentConvertResult {
             SourceId = source.SourceId,
             SourcePath = source.Path,
             OutputPath = destination,
             Format = outputFormat == ReaderToolOutputFormat.Json ? "json" : "markdown",
-            LengthBytes = new FileInfo(destination).Length,
-            Sha256 = hash,
+            LengthBytes = fingerprint.LengthBytes,
+            Sha256 = fingerprint.Sha256,
             DiagnosticCount = document.Diagnostics.Count
         };
     }
@@ -374,20 +373,22 @@ internal sealed partial class OfficeImoAgentService {
 
     private static async Task<OfficeDocumentReadResult> ReadDocumentAsync(
         string path,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool computeHashes = false,
+        long maximumInputBytes = ReaderToolArguments.DefaultMaxInputBytes) {
         OfficeDocumentReader reader = CreateReader();
         return await reader.ReadDocumentAsync(
             path,
             new ReaderOptions {
-                MaxInputBytes = ReaderToolArguments.DefaultMaxInputBytes,
+                MaxInputBytes = maximumInputBytes,
                 MaxChars = DefaultFetchOutputCharacters,
-                ComputeHashes = false
+                ComputeHashes = computeHashes
             },
             cancellationToken).ConfigureAwait(false);
     }
 
     private static bool IsEmailStoreSource(AgentSourceRegistration source) {
-        if (source.IsDirectory) return true;
+        if (source.IsDirectory) return !AgentSourceRegistry.IsIWorkPackagePath(source.Path);
         string extension = Path.GetExtension(source.Path);
         return extension.Equals(".pst", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".ost", StringComparison.OrdinalIgnoreCase) ||

@@ -1,0 +1,97 @@
+{
+  "source": "pages-created-images-edited.pages",
+  "sha256": "bbeb2b19594862c41cbf4d81b5933f8aef59fd159d52a52434140cab88886793",
+  "bytes": 56971,
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+  "body": [
+    "Before 😀\n￼\nBetween\n￼\n￼\n￼\nAfter\n"
+  ],
+  "attachments": [
+    {
+      "offset": 10,
+      "attachment": 121,
+      "drawable": 120,
+      "type": 3005
+    },
+    {
+      "offset": 20,
+      "attachment": 127,
+      "drawable": 126,
+      "type": 3005
+    },
+    {
+      "offset": 22,
+      "attachment": 154,
+      "drawable": 130,
+      "type": 6000
+    },
+    {
+      "offset": 24,
+      "attachment": 158,
+      "drawable": 157,
+      "type": 3005
+    }
+  ],
+  "images": [
+    {
+      "id": 120,
+      "path": "Data/image-34-34.png",
+      "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+      "frame": [
+        144.0,
+        120.0
+      ],
+      "position": [
+        0.0,
+        20.392578125
+      ],
+      "rotation": 0.0,
+      "pixelSize": [
+        96.0,
+        64.0
+      ],
+      "description": "Opaque four-color PNG 😀"
+    },
+    {
+      "id": 126,
+      "path": "Data/image-41-41.png",
+      "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+      "frame": [
+        120.0,
+        80.0
+      ],
+      "position": [
+        0.0,
+        0.0
+      ],
+      "rotation": 0.0,
+      "pixelSize": [
+        96.0,
+        64.0
+      ],
+      "description": "Transparent, half-alpha, opaque purple"
+    },
+    {
+      "id": 157,
+      "path": "Data/image-75-75.jpeg",
+      "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+      "frame": [
+        160.0,
+        80.0
+      ],
+      "position": [
+        0.0,
+        0.0
+      ],
+      "rotation": 0.0,
+      "pixelSize": [
+        96.0,
+        64.0
+      ],
+      "description": "Four-color JPEG, stretched frame"
+    }
+  ],
+  "scope": "Body image attachment identity, UTF-16 positions, frames, descriptions and resource digests; wider native layout is not assessed."
+}

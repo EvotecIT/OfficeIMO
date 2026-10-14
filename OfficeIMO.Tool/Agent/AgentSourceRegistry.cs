@@ -6,7 +6,7 @@ using System.Text;
 
 namespace OfficeIMO.Tool.Agent;
 
-internal sealed class AgentSourceRegistry {
+internal sealed partial class AgentSourceRegistry {
     private const string EmailDataPrefix = "officeimo-email-data:";
     private const string EmailStorePrefix = "officeimo-email-store:";
     private static readonly byte[] FingerprintSeparator = new byte[] { 0 };
@@ -17,7 +17,10 @@ internal sealed class AgentSourceRegistry {
         string path,
         CancellationToken cancellationToken = default) {
         AgentSourceRegistration registration = Create(path, cancellationToken);
-        _sources[registration.SourceId] = registration;
+        // A default-bounded request must not discard an earlier confirmed iWork
+        // admission if its own read later fails. The caller still uses its default.
+        _sources.AddOrUpdate(registration.SourceId, registration, (_, existing) =>
+            registration with { IWorkMaximumPackageBytes = existing.IWorkMaximumPackageBytes });
         return registration;
     }
 
@@ -45,13 +48,20 @@ internal sealed class AgentSourceRegistry {
             throw new AgentUsageException(
                 "Unknown source id. Inspect or search the source again before fetching content.");
         }
-        AgentSourceRegistration current = Create(registered.Path, cancellationToken, registered.EmailDataOptions, registered.EmailContentSearch);
+        AgentSourceRegistration current = Create(registered.Path, cancellationToken, registered.EmailDataOptions,
+            registered.EmailContentSearch, registered.IWorkMaximumPackageBytes, registered.Path);
         if (!string.Equals(current.SourceId, sourceId, StringComparison.Ordinal)) {
             _sources.TryRemove(sourceId, out _);
             throw new AgentUsageException(
                 "The source changed after the id was issued. Inspect or search it again.");
         }
         return current;
+    }
+
+    internal string GetRegisteredPath(string sourceId) {
+        if (string.IsNullOrWhiteSpace(sourceId) || !_sources.TryGetValue(sourceId, out var source))
+            throw new AgentUsageException("Unknown source id. Inspect or search the source again before fetching content.");
+        return source.Path;
     }
 
     internal AgentSourceRegistration Resolve(
@@ -63,7 +73,8 @@ internal sealed class AgentSourceRegistry {
             ? registered.EmailDataOptions : contentSearch
                 ? new EmailDataOpenOptions(store: OfficeImoAgentService.CreateEmailStoreOptions(), expectedKind: EmailDataArtifactKind.Store)
                 : sourceId.StartsWith(EmailDataPrefix, StringComparison.Ordinal) ? new EmailDataInspectionOptions().OpenOptions : null;
-        AgentSourceRegistration current = Create(path, cancellationToken, dataOptions, contentSearch);
+        AgentSourceRegistration current = Create(path, cancellationToken, dataOptions, contentSearch,
+            registered?.IWorkMaximumPackageBytes, registered?.Path);
         if (!string.Equals(current.SourceId, sourceId, StringComparison.Ordinal)) {
             throw new AgentUsageException(
                 "The supplied path does not match the source id, or the source changed. Search it again.");
@@ -74,8 +85,13 @@ internal sealed class AgentSourceRegistry {
 
     private static AgentSourceRegistration Create(
         string path,
-        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions = null, bool emailContentSearch = false) {
+        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions = null, bool emailContentSearch = false,
+        long? iworkMaximumPackageBytes = null, string? expectedPath = null) {
         string fullPath = OfficeImoToolPathSafety.ResolveExistingLinks(path);
+        // Reject relocated registered paths before inspecting their new targets.
+        // The caller's prior authorization cannot admit a later link replacement.
+        if (expectedPath != null && !string.Equals(fullPath, expectedPath, StringComparison.Ordinal))
+            throw new AgentUsageException("The source path changed after the id was issued. Inspect or search it again.");
         bool isDirectory = Directory.Exists(fullPath);
         long? length = isDirectory ? null : new FileInfo(fullPath).Length;
         DateTime lastWriteUtc = isDirectory
@@ -86,13 +102,13 @@ internal sealed class AgentSourceRegistry {
             isDirectory,
             length,
             lastWriteUtc,
-            cancellationToken, dataOptions);
+            cancellationToken, dataOptions, null, iworkMaximumPackageBytes);
         return new AgentSourceRegistration(
             (emailContentSearch ? EmailStorePrefix : dataOptions == null ? "officeimo:" : EmailDataPrefix) + hash.Substring(0, 24),
             fullPath,
             isDirectory,
             length,
-            lastWriteUtc, dataOptions, emailContentSearch);
+            lastWriteUtc, dataOptions, emailContentSearch, iworkMaximumPackageBytes);
     }
 
     private static string CreateHash(
@@ -100,12 +116,16 @@ internal sealed class AgentSourceRegistry {
         bool isDirectory,
         long? length,
         DateTime lastWriteUtc,
-        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions) {
+        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions, string? capturedIWorkContentHash,
+        long? iworkMaximumPackageBytes = null) {
         using IncrementalHash fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         Append(fingerprint, fullPath);
         Append(fingerprint, isDirectory ? "directory" : "file");
-        Append(fingerprint, length?.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        Append(fingerprint, lastWriteUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        bool iworkPackage = dataOptions is null && IsIWorkPackagePath(fullPath);
+        Append(fingerprint, iworkPackage ? null : length?.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        // Native identities bind captured content. File length and timestamps do
+        // not identify an in-place edit and are informational metadata only.
+        if (!iworkPackage) Append(fingerprint, lastWriteUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
         if (dataOptions != null) {
             // Identity discovery uses the same bounded artifact owners as the inspector.
             using var opened = EmailDataArtifact.Open(fullPath, dataOptions, cancellationToken);
@@ -122,6 +142,8 @@ internal sealed class AgentSourceRegistry {
                     fingerprint.AppendData(buffer, 0, read);
                 }
             }
+        } else if (iworkPackage) {
+            Append(fingerprint, capturedIWorkContentHash ?? ComputeIWorkSourceHash(fullPath, isDirectory, iworkMaximumPackageBytes, cancellationToken));
         } else if (isDirectory) {
             using EmailStoreSession session = EmailStoreSession.Open(
                 fullPath,
@@ -145,4 +167,5 @@ internal sealed record AgentSourceRegistration(
     long? LengthBytes,
     DateTime LastWriteUtc,
     EmailDataOpenOptions? EmailDataOptions = null,
-    bool EmailContentSearch = false);
+    bool EmailContentSearch = false,
+    long? IWorkMaximumPackageBytes = null);

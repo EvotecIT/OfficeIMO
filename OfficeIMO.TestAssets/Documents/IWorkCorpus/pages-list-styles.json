@@ -126,6 +126,33 @@
               "first": 0,
               "second": 0
             }
+          ],
+          "paragraphStarts": [
+            {
+              "characterOffset": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 575,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "characterOffset": 627,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 753,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "characterOffset": 772,
+              "first": 0,
+              "second": 0
+            }
           ]
         }
       ],
@@ -254,6 +281,376 @@
           "fontNameCleared": true
         }
       ]
+    },
+    {
+      "path": "native-exports/pages-list-continuation-v15.4.pages",
+      "sha256": "4696ff27d21db00e93d7a7985aba09c22f5f483bf714ce97c680e1a5528a4d53",
+      "storages": [
+        {
+          "identifier": 1732641,
+          "listSelections": [
+            {
+              "characterOffset": 0,
+              "styleIdentifier": 1731481
+            },
+            {
+              "characterOffset": 33,
+              "styleIdentifier": 1732808
+            },
+            {
+              "characterOffset": 61,
+              "styleIdentifier": 1731481
+            },
+            {
+              "characterOffset": 83,
+              "styleIdentifier": 1732808
+            },
+            {
+              "characterOffset": 156,
+              "styleIdentifier": 1732811
+            },
+            {
+              "characterOffset": 195,
+              "styleIdentifier": 1731481
+            },
+            {
+              "characterOffset": 224,
+              "styleIdentifier": 1732811
+            },
+            {
+              "characterOffset": 247,
+              "styleIdentifier": 1732808
+            },
+            {
+              "characterOffset": 270,
+              "styleIdentifier": 1732814
+            }
+          ],
+          "paragraphData": [
+            {
+              "characterOffset": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 33,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "characterOffset": 47,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 98,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "characterOffset": 125,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 136,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "characterOffset": 156,
+              "first": 1,
+              "second": 1
+            },
+            {
+              "characterOffset": 176,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "characterOffset": 195,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 224,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "characterOffset": 247,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "characterOffset": 291,
+              "first": 0,
+              "second": 0
+            }
+          ],
+          "paragraphStarts": [
+            {
+              "characterOffset": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 33,
+              "first": 7,
+              "second": 0
+            },
+            {
+              "characterOffset": 47,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 156,
+              "first": 5,
+              "second": 0
+            },
+            {
+              "characterOffset": 176,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 247,
+              "first": 11,
+              "second": 0
+            },
+            {
+              "characterOffset": 270,
+              "first": 3,
+              "second": 0
+            },
+            {
+              "characterOffset": 291,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        }
+      ],
+      "selectedStyles": [
+        {
+          "identifier": 1731481,
+          "parentIdentifier": null,
+          "labelTypes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "numberTypes": [],
+          "strings": [],
+          "indents": [
+            0.0,
+            36.0,
+            72.0,
+            108.0,
+            144.0,
+            180.0,
+            216.0,
+            252.0,
+            288.0
+          ],
+          "tieredNumbers": [],
+          "fontName": null,
+          "fontNameCleared": null
+        },
+        {
+          "identifier": 1732807,
+          "parentIdentifier": null,
+          "labelTypes": [
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "numberTypes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "strings": [],
+          "indents": [
+            0.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0
+          ],
+          "tieredNumbers": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "fontName": null,
+          "fontNameCleared": true
+        },
+        {
+          "identifier": 1732808,
+          "parentIdentifier": 1732807,
+          "labelTypes": [],
+          "numberTypes": [],
+          "strings": [],
+          "indents": [],
+          "tieredNumbers": [],
+          "fontName": null,
+          "fontNameCleared": null
+        },
+        {
+          "identifier": 1732810,
+          "parentIdentifier": null,
+          "labelTypes": [
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "numberTypes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "strings": [],
+          "indents": [
+            0.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0
+          ],
+          "tieredNumbers": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "fontName": null,
+          "fontNameCleared": true
+        },
+        {
+          "identifier": 1732811,
+          "parentIdentifier": 1732810,
+          "labelTypes": [],
+          "numberTypes": [],
+          "strings": [],
+          "indents": [],
+          "tieredNumbers": [],
+          "fontName": null,
+          "fontNameCleared": null
+        },
+        {
+          "identifier": 1732813,
+          "parentIdentifier": null,
+          "labelTypes": [
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "numberTypes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "strings": [],
+          "indents": [
+            0.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            18.0
+          ],
+          "tieredNumbers": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "fontName": null,
+          "fontNameCleared": true
+        },
+        {
+          "identifier": 1732814,
+          "parentIdentifier": 1732813,
+          "labelTypes": [],
+          "numberTypes": [],
+          "strings": [],
+          "indents": [],
+          "tieredNumbers": [],
+          "fontName": null,
+          "fontNameCleared": null
+        }
+      ]
     }
   ],
   "listLevelEvidence": {
@@ -262,5 +659,5 @@
     "source": "src/lib/IWAParser.cpp",
     "contract": "Storage field 6 entries select list levels from entry field 2 at field 1 character offsets."
   },
-  "limits": "Selected native declarations only. Paragraph-data first is the explicit list level; second semantics, restarts, continuation, tiered numbering and destination rendering are not qualified by this extraction."
+  "limits": "Selected native declarations only. Paragraph-data first selects the explicit list level; starts and the observed restart flag require the paired Apple PDF/fixture qualification. This extraction alone does not qualify counter evaluation, tiered numbering or destination rendering."
 }

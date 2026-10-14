@@ -11,6 +11,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordPdfLigatureTests {
+    [Theory]
+    [InlineData("none", "standard", true)]
+    [InlineData("standard", "none", false)]
+    public void ConditionalTableLigaturesOverrideInheritedTypography(string inherited, string conditional, bool enabled) {
+        byte[] bytes = Render("cell", inherited, null, "15", "1", conditional: conditional);
+        if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
+            Directory.CreateDirectory(output);
+            File.WriteAllBytes(Path.Combine(output, "conditional-ligature-" + conditional + ".pdf"), bytes);
+        }
+        AssertLigature(bytes, enabled);
+    }
+
     public static IEnumerable<object[]> StoryCases() {
         foreach (string story in new[] { "body", "cell", "header", "footer", "link" }) {
             foreach (string? setting in new[] { null, "none", "standard" })
@@ -70,7 +82,7 @@ public sealed class WordPdfLigatureTests {
     }
 
     private static byte[] Render(string story, string? inherited, string? direct, string? mode, string? enabled, string feature = "liga",
-        string? malformedRoute = null, bool otherNamespace = false) {
+        string? malformedRoute = null, bool otherNamespace = false, string? conditional = null) {
         using WordDocument document = WordDocument.Create();
         var part = document._wordprocessingDocument.MainDocumentPart!;
         var defaults = new W.RunPropertiesBaseStyle(new W.RunFonts {
@@ -93,6 +105,14 @@ public sealed class WordPdfLigatureTests {
         if (story == "cell") {
             var table = document.AddTable(1, 1);
             table._tableProperties!.TableStyle = null;
+            if (conditional != null) {
+                part.StyleDefinitionsPart!.Styles!.Append(new W.Style(new W.TableStyleProperties(
+                    new W.RunPropertiesBaseStyle(Ligatures(conditional))) { Type = W.TableStyleOverrideValues.FirstRow }) {
+                    Type = W.StyleValues.Table, StyleId = "ConditionalLigatures"
+                });
+                table._tableProperties.TableStyle = new W.TableStyle { Val = "ConditionalLigatures" };
+                table.ConditionalFormattingFirstRow = true;
+            }
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "fi";
         } else if (story is "header" or "footer") {

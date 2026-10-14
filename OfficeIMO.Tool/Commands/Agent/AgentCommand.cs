@@ -1,4 +1,5 @@
 using OfficeIMO.Tool.Agent;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Tool.Commands.Agent;
 
@@ -19,7 +20,7 @@ Usage:
                                      [--take <1-25>] [--max-items-scanned <1-10000>]
                                      [--max-decoded-bytes <1-67108864>] [--max-searchable-characters <1-2000000>]
                                      [--max-output-characters <512-64000>] [mailbox filters as above]
-  officeimo agent convert <path> --output <file> [--format markdown|json] [--overwrite]
+  officeimo agent convert <path> --output <file> [--format markdown|json|docx|xlsx|pptx|pdf] [--overwrite]
   officeimo agent capabilities [--extension <.ext>] [--operation create|read|edit|preserve|inspect|validate|remove|search|fetch|convert|export]
                                 [--cursor <n>] [--conversion-cursor <n>] [--max-output-characters <512-64000>]
 
@@ -97,6 +98,9 @@ Output is one compact JSON object. Inspect or search first, then fetch selected 
                 _ => throw new AgentUsageException("Unknown agent command.")
             };
             await standardOutput.WriteLineAsync(AgentJson.Serialize(result)).ConfigureAwait(false);
+            if (result is AgentConvertResult { Workflow: { Succeeded: false } workflow })
+                return (int)(workflow.Status == OfficeWorkflowStatus.Cancelled
+                    ? OfficeImoToolExitCode.Cancelled : OfficeImoToolExitCode.OperationFailed);
             return (int)OfficeImoToolExitCode.Success;
         } catch (OperationCanceledException) {
             await standardError.WriteLineAsync("Operation cancelled.").ConfigureAwait(false);

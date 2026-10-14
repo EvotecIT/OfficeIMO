@@ -36,6 +36,9 @@ public sealed class PdfCellBorder {
     /// <summary>Prepared document cells can retain all border paint inside their allocated box.</summary>
     internal bool PaintInsideFrame { get; set; }
 
+    /// <summary>Insets a separate cell's top paint when its text shares a larger row margin.</summary>
+    internal double PaintTopInset { get; set; }
+
     /// <summary>Optional top border override. When set, it overrides the shared color and width for this side.</summary>
     public PdfCellBorderSide? TopBorder {
         get => _topBorder?.Clone();
@@ -126,6 +129,7 @@ public sealed class PdfCellBorder {
         DashStyle = DashStyle,
         LineStyle = LineStyle,
         PaintInsideFrame = PaintInsideFrame,
+        PaintTopInset = PaintTopInset,
         Top = Top,
         Right = Right,
         Bottom = Bottom,

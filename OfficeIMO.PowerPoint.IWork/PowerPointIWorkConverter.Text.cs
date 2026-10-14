@@ -1,13 +1,14 @@
 using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.PowerPoint.IWork;
 
 public static partial class PowerPointIWorkConverter {
     private static void AddRichTextBox(PowerPointSlide slide, IWorkTextBox source,
         double fallbackLeft, double fallbackTop, double fallbackWidth, double fallbackHeight,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, Func<string?, string?> resolveHyperlink) {
         double left = source.Geometry?.LeftPoints ?? fallbackLeft;
         double top = source.Geometry?.TopPoints ?? fallbackTop;
         double width = source.Geometry?.WidthPoints ?? fallbackWidth;
@@ -29,7 +30,7 @@ public static partial class PowerPointIWorkConverter {
         textBox.Rotation = source.Geometry?.RotationDegrees;
         textBox.AltText = source.AccessibilityDescription;
         if (source.Hyperlink != null
-            && Uri.TryCreate(source.Hyperlink, UriKind.RelativeOrAbsolute, out Uri? shapeLink)) {
+            && Uri.TryCreate(resolveHyperlink(source.Hyperlink), UriKind.RelativeOrAbsolute, out Uri? shapeLink)) {
             textBox.SetHyperlink(shapeLink);
         }
         textBox.Clear();
@@ -47,12 +48,12 @@ public static partial class PowerPointIWorkConverter {
             }
             ApplyParagraphStyle(paragraph, sourceParagraph,
                 listState.StartsAtSourceLabel(sourceParagraph));
-            WriteParagraphContent(paragraph, sourceParagraph, cancellationToken);
+            WriteParagraphContent(paragraph, sourceParagraph, cancellationToken, resolveHyperlink);
         }
     }
 
     private static void SetRichPresenterNotes(PowerPointNotes notes, IWorkTextContent source,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, Func<string?, string?> resolveHyperlink) {
         IReadOnlyList<PowerPointParagraph> paragraphs = notes.SetParagraphs(
             source.Paragraphs.Select(_ => string.Empty));
         var listState = new IWorkPowerPointListState();
@@ -62,7 +63,7 @@ public static partial class PowerPointIWorkConverter {
             PowerPointParagraph paragraph = paragraphs[paragraphIndex];
             ApplyParagraphStyle(paragraph, sourceParagraph,
                 listState.StartsAtSourceLabel(sourceParagraph));
-            WriteParagraphContent(paragraph, sourceParagraph, cancellationToken);
+            WriteParagraphContent(paragraph, sourceParagraph, cancellationToken, resolveHyperlink);
         }
         notes.Save();
     }
@@ -76,7 +77,8 @@ public static partial class PowerPointIWorkConverter {
             else if (source.ListMarkerKind == IWorkListMarkerKind.Number
                 && TryParseNumbering(source.ListLabel!, out PowerPointNumberingScheme scheme,
                          out int start)) {
-                if (startsAtSourceLabel) paragraph.SetNumbered(scheme, start);
+                if (startsAtSourceLabel || source.ListStartNumber.HasValue)
+                    paragraph.SetNumbered(scheme, source.ListNumber ?? start);
                 else paragraph.SetNumbered(scheme);
             } else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
             if (source.ListFontName != null) paragraph.BulletFontName = source.ListFontName;
@@ -85,7 +87,10 @@ public static partial class PowerPointIWorkConverter {
                 paragraph.LeftMarginPoints = source.Style.LeftIndentPoints.GetValueOrDefault()
                     + layout.MarkerIndentPoints + textOffset;
                 paragraph.IndentPoints = source.Style.FirstLineIndentPoints.GetValueOrDefault() - textOffset;
-                paragraph.BulletSizePercent = checked((int)Math.Round(layout.MarkerScale * 100d));
+                if (IWorkDecimalListLayout.TryResolve(source, out double markerSize, out _)) {
+                    paragraph.BulletSizePoints = checked((int)markerSize);
+                    paragraph.BulletFontName = IWorkDecimalListLayout.MarkerFontName(source);
+                } else paragraph.BulletSizePercent = checked((int)Math.Round(layout.MarkerScale * 100d));
             }
         }
     }
@@ -123,28 +128,52 @@ public static partial class PowerPointIWorkConverter {
         private readonly HashSet<int> _observedLevels = new();
         private bool _inList;
         private ulong? _listIdentifier;
+        private int? _previousQualifiedLevel;
+        private string? _markerFontName;
+        private double? _markerFontSize;
 
         internal bool StartsAtSourceLabel(IWorkTextParagraph paragraph) {
             if (paragraph.ListLevel < 0) {
                 _inList = false;
                 _listIdentifier = null;
                 _observedLevels.Clear();
+                _previousQualifiedLevel = null;
+                _markerFontName = null;
+                _markerFontSize = null;
                 return false;
             }
             if (!_inList || paragraph.ListIdentifier != _listIdentifier) {
                 _inList = true;
                 _listIdentifier = paragraph.ListIdentifier;
                 _observedLevels.Clear();
+                _previousQualifiedLevel = null;
+                _markerFontName = null;
+                _markerFontSize = null;
             }
-            return _observedLevels.Add(paragraph.ListLevel);
+            bool parentTransition = paragraph.ListNumber.HasValue && _previousQualifiedLevel.HasValue
+                && paragraph.ListLevel < _previousQualifiedLevel.Value;
+            bool markerProfileChanged = false;
+            if (paragraph.ListNumber.HasValue
+                && IWorkDecimalListLayout.TryResolve(paragraph, out double markerSize, out _)) {
+                string? markerFont = IWorkDecimalListLayout.MarkerFontName(paragraph);
+                markerProfileChanged = _previousQualifiedLevel.HasValue
+                    && (_markerFontSize != markerSize
+                        || !string.Equals(_markerFontName, markerFont, StringComparison.Ordinal));
+                _markerFontName = markerFont;
+                _markerFontSize = markerSize;
+            }
+            _previousQualifiedLevel = paragraph.ListNumber.HasValue ? paragraph.ListLevel : null;
+            // Receiving applications can start a different native sequence after
+            // a parent transition or marker-profile change. Restate the known counter.
+            return _observedLevels.Add(paragraph.ListLevel) || parentTransition || markerProfileChanged;
         }
     }
 
     private static void WriteParagraphContent(PowerPointParagraph paragraph,
-        IWorkTextParagraph source, CancellationToken cancellationToken, IWorkTextStyle? defaultStyle = null, bool header = false) {
+        IWorkTextParagraph source, CancellationToken cancellationToken, Func<string?, string?> resolveHyperlink,
+        IWorkTextStyle? defaultStyle = null) {
         paragraph.Text = string.Empty;
         foreach (PowerPointTextRun run in paragraph.Runs) {
-            if (header) run.Bold = true;
             if (defaultStyle != null) ApplyTextStyle(run, defaultStyle);
             ApplyTextStyle(run, source.Style.TextStyle);
         }
@@ -160,7 +189,7 @@ public static partial class PowerPointIWorkConverter {
                 }
                 if (lines[lineIndex].Length > 0) {
                     AppendStyledText(paragraph, lines[lineIndex], sourceRun.Style,
-                        sourceRun.Hyperlink, ref canReuseInitialRun, defaultStyle, header);
+                        resolveHyperlink(sourceRun.Hyperlink), ref canReuseInitialRun, defaultStyle);
                 }
             }
         }
@@ -271,7 +300,7 @@ public static partial class PowerPointIWorkConverter {
     }
 
     private static void AppendStyledText(PowerPointParagraph paragraph, string text,
-        IWorkTextStyle style, string? hyperlink, ref bool canReuseInitialRun, IWorkTextStyle? defaultStyle = null, bool header = false) {
+        IWorkTextStyle style, string? hyperlink, ref bool canReuseInitialRun, IWorkTextStyle? defaultStyle = null) {
         PowerPointTextRun run;
         if (canReuseInitialRun) {
             run = paragraph.Runs[0];
@@ -280,7 +309,6 @@ public static partial class PowerPointIWorkConverter {
         } else {
             run = paragraph.AddRun(text);
         }
-        if (header) run.Bold = true;
         if (defaultStyle != null) ApplyTextStyle(run, defaultStyle);
         ApplyTextStyle(run, style);
         if (hyperlink != null
@@ -295,8 +323,16 @@ public static partial class PowerPointIWorkConverter {
         if (style.Underline.HasValue) run.Underline = style.Underline.Value;
         if (style.Strikethrough.HasValue) run.Strikethrough = style.Strikethrough.Value;
         if (style.FontSizePoints.HasValue) run.FontSizePoints = style.FontSizePoints.Value;
+        if (style.CharacterSpacingPoints.HasValue) run.CharacterSpacingPoints = style.CharacterSpacingPoints.Value;
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontName = style.FontName;
         if (style.Color != null) run.Color = style.Color.RgbHex;
         if (style.BackgroundColor != null) run.HighlightColor = style.BackgroundColor.RgbHex;
     }
+
+    private static bool CanApplyCharacterTracking(IWorkTextStyle style) => !style.CharacterTrackingEm.HasValue
+        || style.CharacterSpacingPoints is double spacing && IsFinite(spacing) && spacing is >= -4000d and <= 4000d;
+
+    private static bool CharacterTrackingNeedsRounding(IWorkTextStyle style) =>
+        style.CharacterSpacingPoints is double spacing
+        && Math.Abs(spacing - Math.Round(spacing * 100d, MidpointRounding.AwayFromZero) / 100d) > 0.00001d;
 }

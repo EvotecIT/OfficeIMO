@@ -1,4 +1,5 @@
 using System.Threading;
+using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
 
 namespace OfficeIMO.Word.IWork;
@@ -14,6 +15,17 @@ public static partial class WordIWorkConverter {
         // Rows and Cells enumerate and rebuild wrapper lists on every access.
         // Keep row wrappers once and materialize cells only when a row needs them.
         List<WordTableRow> rows = table.Rows;
+        var mergedBorders = new Dictionary<(int Row, int Column), OfficeBorderBox>();
+        var hiddenEdge = new OfficeBorderSide(default, 0);
+        foreach (var merge in source.ResolveMergedBorders(cancellationToken)) {
+            for (int row = merge.Range.FirstRow; row <= merge.Range.LastRow; row++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                // Word retains one horizontal-span cell per row of a vertical merge.
+                mergedBorders[(row, merge.Range.FirstColumn)] = new OfficeBorderBox(merge.Borders.Left,
+                    row == merge.Range.FirstRow ? merge.Borders.Top : hiddenEdge, merge.Borders.Right,
+                    row == merge.Range.LastRow ? merge.Borders.Bottom : hiddenEdge);
+            }
+        }
         table.Description = source.AccessibilityDescription;
         if (source.DefaultColumnWidth is > 0 || source.ColumnWidths.Count > 0) {
             List<int> widths = table.ColumnWidth;
@@ -24,11 +36,14 @@ public static partial class WordIWorkConverter {
             }
             table.ColumnWidth = widths;
         }
+        int?[] rowHeights = WordTableRowHeights(source, cancellationToken);
+        bool hasBorderDeclarations = source.HasBorderDeclarations;
+
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (source.GetRowHeight(row) is double height) {
-                if (source.AutoResizeRows == true) rows[row - 1].MinimumHeight = ToSignedTwips(height);
-                else rows[row - 1].Height = ToSignedTwips(height);
+            if (rowHeights[row - 1] is int height) {
+                if (source.AutoResizeRows == true) rows[row - 1].MinimumHeight = height;
+                else rows[row - 1].Height = height;
             }
         }
         for (int row = 1; row <= source.RowCount; row++) {
@@ -36,16 +51,35 @@ public static partial class WordIWorkConverter {
             List<WordTableCell>? targetCells = null;
             for (int column = 1; column <= source.ColumnCount; column++) {
                 var fill = source.GetFill(row, column);
+                var borders = mergedBorders.TryGetValue((row, column), out var perimeter)
+                    ? perimeter : source.GetBorders(row, column);
                 IWorkParagraphStyle? style = source.GetParagraphStyle(row, column);
-                if (fill == null && style == null) continue;
+                IWorkCellPadding? padding = source.GetPadding(row, column);
+                IWorkCellVerticalAlignment? vertical = source.GetVerticalAlignment(row, column);
+                if (fill == null && style == null && padding == null && vertical == null && borders.Left == null && borders.Top == null && borders.Right == null && borders.Bottom == null && !hasBorderDeclarations) continue;
                 targetCells ??= rows[row - 1].Cells;
                 WordTableCell target = targetCells[column - 1];
+                ApplyTableBorders(target, borders, hasBorderDeclarations);
+                if (padding != null) {
+                    target.MarginLeftWidth = checked((short)ToSignedTwips(padding.LeftPoints));
+                    target.MarginTopWidth = checked((short)ToSignedTwips(padding.TopPoints));
+                    target.MarginRightWidth = checked((short)ToSignedTwips(padding.RightPoints));
+                    target.MarginBottomWidth = checked((short)ToSignedTwips(padding.BottomPoints));
+                }
+                if (vertical.HasValue) target.VerticalAlignment = vertical.Value switch {
+                    IWorkCellVerticalAlignment.Top => WordTableVerticalAlignment.Top,
+                    IWorkCellVerticalAlignment.Middle => WordTableVerticalAlignment.Center,
+                    _ => WordTableVerticalAlignment.Bottom
+                };
+
+
                 if (fill != null) {
                     if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
                     else target.ShadingPattern = WordShadingPattern.Nil;
                 }
                 if (style != null) {
                     WordParagraph paragraph = target.Paragraphs[0];
+                    InitializeParagraphSpacing(paragraph);
                     ApplyParagraphStyle(paragraph, style, string.Empty);
                     ApplyParagraphTextStyle(paragraph, style.TextStyle);
                 }
@@ -60,21 +94,7 @@ public static partial class WordIWorkConverter {
                 sourceRowCells = rows[sourceRow - 1].Cells;
             }
             WordTableCell target = sourceRowCells![sourceCell.Column - 1];
-            if (sourceCell.Padding is { } padding) {
-                target.MarginLeftWidth = checked((short)ToSignedTwips(padding.LeftPoints));
-                target.MarginTopWidth = checked((short)ToSignedTwips(padding.TopPoints));
-                target.MarginRightWidth = checked((short)ToSignedTwips(padding.RightPoints));
-                target.MarginBottomWidth = checked((short)ToSignedTwips(padding.BottomPoints));
-            }
-            if (sourceCell.VerticalAlignment is { } vertical) target.VerticalAlignment = vertical switch {
-                IWorkCellVerticalAlignment.Top => WordTableVerticalAlignment.Top,
-                IWorkCellVerticalAlignment.Middle => WordTableVerticalAlignment.Center,
-                _ => WordTableVerticalAlignment.Bottom
-            };
             IWorkParagraphStyle? defaultStyle = source.GetParagraphStyle(sourceCell.Row, sourceCell.Column);
-            bool header = sourceCell.Row <= source.HeaderRowCount
-                || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount;
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 bool first = true;
                 AddRichText(richText, _ => {
@@ -82,12 +102,12 @@ public static partial class WordIWorkConverter {
                         removeExistingParagraphs: first);
                     first = false;
                     return paragraph;
-                }, nativeLists, forceBold: header && defaultStyle?.TextStyle.Bold == null, cancellationToken: cancellationToken, defaultStyle: defaultStyle);
+                }, nativeLists, cancellationToken: cancellationToken, defaultStyle: defaultStyle);
             } else {
                 sourceCell.TryGetFormattedNumber(out string cellText, out string? numericColor);
                 WordParagraph paragraph = target.AddParagraph(cellText,
                     removeExistingParagraphs: true);
-                if (header) paragraph.Bold = true;
+                InitializeParagraphSpacing(paragraph);
                 if (defaultStyle != null) {
                     ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);
                     ApplyParagraphTextStyle(paragraph, defaultStyle.TextStyle);

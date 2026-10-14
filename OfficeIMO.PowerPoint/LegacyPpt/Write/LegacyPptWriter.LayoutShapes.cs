@@ -95,7 +95,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     unsupportedReason = $"The group contains '{element.LocalName}' content that is not yet encoded by the native binary writer.";
                     return result;
                 }
-                if (group.OwnerSlide != null) child.AttachTo(group.OwnerSlide);
+                if (group.OwnerSlide != null) child.AttachTo(group.OwnerSlide, group.OwnerPart);
                 result.Add(child);
             }
             if (result.Count == 0) {
@@ -124,7 +124,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ownerPart),
                 P.GraphicFrame frame when frame.Graphic?.GraphicData?
                     .GetFirstChild<A.Table>() != null =>
-                    new PowerPointTable(frame, ownerPart as SlidePart),
+                    new PowerPointTable(frame, ownerPart),
                 P.GraphicFrame frame when frame.Graphic?.GraphicData?
                     .GetFirstChild<C.ChartReference>() != null =>
                     new PowerPointChart(frame, ownerPart),

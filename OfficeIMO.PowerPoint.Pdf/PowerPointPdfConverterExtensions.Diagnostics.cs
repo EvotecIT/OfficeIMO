@@ -6,6 +6,28 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
+    private static void ReportOmittedSpeakerNotes(PptCore.PowerPointPresentation presentation, PowerPointToPdfOptions options) {
+        if (options.PageLayout != PowerPointPdfPageLayout.Slides && options.IncludeSpeakerNotes) return;
+        for (int index = 0; index < presentation.Slides.Count; index++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            PptCore.PowerPointSlide slide = presentation.Slides[index];
+            if ((!options.IncludeHiddenSlides && slide.Hidden)
+                || !slide.Notes.TryGetText(out string notes) || string.IsNullOrWhiteSpace(notes)) continue;
+            AddWarning(options, index + 1, "speaker-notes-omitted",
+                "Speaker notes are omitted by the selected PDF page layout or IncludeSpeakerNotes setting.",
+                lossKind: OfficeConversionLossKind.Omission);
+        }
+    }
+
+    private static void AddWarning(PowerPointToPdfOptions options, int slideNumber, string code, string message,
+        PdfCore.PdfLayoutDiagnostic? layoutDiagnostic = null, OfficeConversionLossKind? lossKind = null) {
+        var warning = lossKind.HasValue
+            ? new PowerPointPdfExportWarning(slideNumber, code, message, layoutDiagnostic, lossKind.Value)
+            : new PowerPointPdfExportWarning(slideNumber, code, message, layoutDiagnostic);
+        options.Warnings.Add(warning);
+        options.Report.Add(warning.ToConversionWarning());
+    }
+
     private static void AddLayoutWarning(
         PowerPointToPdfOptions options,
         int slideNumber,

@@ -1,0 +1,627 @@
+{
+  "producer": "Apple Numbers 14.5 (7045.0.17), macOS 27.0.1 (26A434), arm64",
+  "comparisonProducer": "Microsoft Excel 16.113.3, same macOS host",
+  "license": "MIT, OfficeIMO contributors",
+  "source": "numbers-duration-seconds-v14.5.numbers",
+  "sourceSha256": "08936b0937a8b07cd70e567f213f2f77c7389f4362b4f2791dc239fd9c4ec823",
+  "nativeExport": "numbers-duration-seconds-v14.5.xlsx",
+  "decode": "numbers-duration-seconds-v14.5-decode.json",
+  "provenance": "OfficeIMO-authored OOXML intake imported into Numbers. C2:D8 on each sheet is explicitly set to Duration, abbreviated labels, fixed custom units; D2:D8 is replaced with native C+C formulas. Saved locally, then exported by Numbers with one XLSX worksheet per source sheet and one PDF page per sheet. Source duration caches and formats are independently decoded with numbers-parser 4.19.0. Excel observations open the unchanged Apple XLSX export without saving.",
+  "nativeUi": {
+    "noRepairDialogObserved": true,
+    "sourceSavedLocally": true,
+    "ownedNumbersDocumentClosed": true,
+    "numbersQuitVerified": true,
+    "ownedExcelWorkbookClosed": true,
+    "preexistingExcelProcessRetained": true,
+    "allNumbersPdfPagesVisuallyInspected": true,
+    "allExcelProfileScreenshotsVisuallyInspected": true,
+    "pdfFonts": [
+      {
+        "family": "Calibri",
+        "embedded": true,
+        "subset": true,
+        "provenance": "Native Numbers PDF; installed on the recorded host, not bundled by OfficeIMO."
+      }
+    ],
+    "allComposedPdfPagesVisuallyInspected": true
+  },
+  "qualification": "Five complete source rows per profile (zero, minute/hour components, more than one day, negative) retain numeric values and mapped formats; 21 native C+C formulas and their typed caches survive saved/reopened XLSX and local recalculation. All 42 mapped format codes and native day-serial caches agree with Apple XLSX. Integral shared display agrees with native Numbers PDF. Fractional and destination-application display remain approximated.",
+  "knownLimits": [
+    "Numbers rounds fractional source seconds; the shared elapsed formatter can truncate them. Raw values and formula caches are retained, and duration display approximation is reported.",
+    "Native Excel renders the Apple XLSX hour/second and minute/second negative cells as hashes; the observed seconds-only negatives are displayed. Fractional display differs between Numbers, Excel and the shared formatter. The screenshots qualify only the recorded values and versions.",
+    "Synthetic Pages/Keynote table and blank-format cases prove adapter behavior; this native reference is a Numbers fixture. Other label styles, automatic units, milliseconds, locale and unit ranges remain unqualified.",
+    "This reference does not qualify exact composed PDF geometry, typography, other producers, sandbox hosts or published packages."
+  ],
+  "profiles": [
+    {
+      "sheet": "Hours to seconds",
+      "page": 1,
+      "pagePoints": [
+        716,
+        792
+      ],
+      "sourceTableDimensions": [
+        10,
+        5
+      ],
+      "nativeFormatCode": "[h]\"h\" m\"m\" s\"s\"",
+      "cells": [
+        {
+          "address": "C2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0h 0m 0s",
+          "excelObservedDisplay": "0h 0m 0s",
+          "officeimoSharedDisplay": "0h 0m 0s"
+        },
+        {
+          "address": "D2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0h 0m 0s",
+          "excelObservedDisplay": "0h 0m 0s",
+          "officeimoSharedDisplay": "0h 0m 0s"
+        },
+        {
+          "address": "C3",
+          "case": "Minute plus one",
+          "sourceSeconds": 60.99999999999999,
+          "numbersPdfDisplay": "0h 1m 1s",
+          "excelObservedDisplay": "0h 1m 1s",
+          "officeimoSharedDisplay": "0h 1m 1s"
+        },
+        {
+          "address": "D3",
+          "case": "Minute plus one",
+          "sourceSeconds": 121.99999999999999,
+          "numbersPdfDisplay": "0h 2m 2s",
+          "excelObservedDisplay": "0h 2m 2s",
+          "officeimoSharedDisplay": "0h 2m 2s"
+        },
+        {
+          "address": "C4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 3661.0,
+          "numbersPdfDisplay": "1h 1m 1s",
+          "excelObservedDisplay": "1h 1m 1s",
+          "officeimoSharedDisplay": "1h 1m 1s"
+        },
+        {
+          "address": "D4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 7322.0,
+          "numbersPdfDisplay": "2h 2m 2s",
+          "excelObservedDisplay": "2h 2m 2s",
+          "officeimoSharedDisplay": "2h 2m 2s"
+        },
+        {
+          "address": "C5",
+          "case": "Beyond one day",
+          "sourceSeconds": 129661.0,
+          "numbersPdfDisplay": "36h 1m 1s",
+          "excelObservedDisplay": "36h 1m 1s",
+          "officeimoSharedDisplay": "36h 1m 1s"
+        },
+        {
+          "address": "D5",
+          "case": "Beyond one day",
+          "sourceSeconds": 259322.0,
+          "numbersPdfDisplay": "72h 2m 2s",
+          "excelObservedDisplay": "72h 2m 2s",
+          "officeimoSharedDisplay": "72h 2m 2s"
+        },
+        {
+          "address": "C6",
+          "case": "Negative",
+          "sourceSeconds": -3661.0,
+          "numbersPdfDisplay": "-1h 1m 1s",
+          "excelObservedDisplay": "hash marks",
+          "officeimoSharedDisplay": "-1h 1m 1s"
+        },
+        {
+          "address": "D6",
+          "case": "Negative",
+          "sourceSeconds": -7322.0,
+          "numbersPdfDisplay": "-2h 2m 2s",
+          "excelObservedDisplay": "hash marks",
+          "officeimoSharedDisplay": "-2h 2m 2s"
+        },
+        {
+          "address": "C7",
+          "case": "Fractional positive",
+          "sourceSeconds": 3661.7500000000005,
+          "numbersPdfDisplay": "1h 1m 2s",
+          "excelObservedDisplay": "1h 1m 1s",
+          "officeimoSharedDisplay": "1h 1m 1s"
+        },
+        {
+          "address": "D7",
+          "case": "Fractional positive",
+          "sourceSeconds": 7323.500000000001,
+          "numbersPdfDisplay": "2h 2m 4s",
+          "excelObservedDisplay": "2h 2m 3s",
+          "officeimoSharedDisplay": "2h 2m 3s"
+        },
+        {
+          "address": "C8",
+          "case": "Fractional negative",
+          "sourceSeconds": -0.75,
+          "numbersPdfDisplay": "-0h 0m 1s",
+          "excelObservedDisplay": "hash marks",
+          "officeimoSharedDisplay": "-0h 0m 0s"
+        },
+        {
+          "address": "D8",
+          "case": "Fractional negative",
+          "sourceSeconds": -1.5,
+          "numbersPdfDisplay": "-0h 0m 2s",
+          "excelObservedDisplay": "hash marks",
+          "officeimoSharedDisplay": "-0h 0m 1s"
+        }
+      ]
+    },
+    {
+      "sheet": "Minutes to seconds",
+      "page": 2,
+      "pagePoints": [
+        716,
+        792
+      ],
+      "sourceTableDimensions": [
+        10,
+        5
+      ],
+      "nativeFormatCode": "[m]\"m\" s\"s\"",
+      "cells": [
+        {
+          "address": "C2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0m 0s",
+          "excelObservedDisplay": "0m 0s",
+          "officeimoSharedDisplay": "0m 0s"
+        },
+        {
+          "address": "D2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0m 0s",
+          "excelObservedDisplay": "0m 0s",
+          "officeimoSharedDisplay": "0m 0s"
+        },
+        {
+          "address": "C3",
+          "case": "Minute plus one",
+          "sourceSeconds": 60.99999999999999,
+          "numbersPdfDisplay": "1m 1s",
+          "excelObservedDisplay": "1m 1s",
+          "officeimoSharedDisplay": "1m 1s"
+        },
+        {
+          "address": "D3",
+          "case": "Minute plus one",
+          "sourceSeconds": 121.99999999999999,
+          "numbersPdfDisplay": "2m 2s",
+          "excelObservedDisplay": "2m 2s",
+          "officeimoSharedDisplay": "2m 2s"
+        },
+        {
+          "address": "C4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 3661.0,
+          "numbersPdfDisplay": "61m 1s",
+          "excelObservedDisplay": "61m 1s",
+          "officeimoSharedDisplay": "61m 1s"
+        },
+        {
+          "address": "D4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 7322.0,
+          "numbersPdfDisplay": "122m 2s",
+          "excelObservedDisplay": "122m 2s",
+          "officeimoSharedDisplay": "122m 2s"
+        },
+        {
+          "address": "C5",
+          "case": "Beyond one day",
+          "sourceSeconds": 129661.0,
+          "numbersPdfDisplay": "2161m 1s",
+          "excelObservedDisplay": "2161m 1s",
+          "officeimoSharedDisplay": "2161m 1s"
+        },
+        {
+          "address": "D5",
+          "case": "Beyond one day",
+          "sourceSeconds": 259322.0,
+          "numbersPdfDisplay": "4322m 2s",
+          "excelObservedDisplay": "4322m 2s",
+          "officeimoSharedDisplay": "4322m 2s"
+        },
+        {
+          "address": "C6",
+          "case": "Negative",
+          "sourceSeconds": -3661.0,
+          "numbersPdfDisplay": "-61m 1s",
+          "excelObservedDisplay": "hash marks",
+          "officeimoSharedDisplay": "-61m 1s"
+        },
+        {
+          "address": "D6",
+          "case": "Negative",
+          "sourceSeconds": -7322.0,
+          "numbersPdfDisplay": "-122m 2s",
+          "excelObservedDisplay": "hash marks",
+          "officeimoSharedDisplay": "-122m 2s"
+        },
+        {
+          "address": "C7",
+          "case": "Fractional positive",
+          "sourceSeconds": 3661.7500000000005,
+          "numbersPdfDisplay": "61m 2s",
+          "excelObservedDisplay": "61m 1s",
+          "officeimoSharedDisplay": "61m 1s"
+        },
+        {
+          "address": "D7",
+          "case": "Fractional positive",
+          "sourceSeconds": 7323.500000000001,
+          "numbersPdfDisplay": "122m 4s",
+          "excelObservedDisplay": "122m 3s",
+          "officeimoSharedDisplay": "122m 3s"
+        },
+        {
+          "address": "C8",
+          "case": "Fractional negative",
+          "sourceSeconds": -0.75,
+          "numbersPdfDisplay": "-0m 1s",
+          "excelObservedDisplay": "hash marks",
+          "officeimoSharedDisplay": "-0m 0s"
+        },
+        {
+          "address": "D8",
+          "case": "Fractional negative",
+          "sourceSeconds": -1.5,
+          "numbersPdfDisplay": "-0m 2s",
+          "excelObservedDisplay": "hash marks",
+          "officeimoSharedDisplay": "-0m 1s"
+        }
+      ]
+    },
+    {
+      "sheet": "Seconds only",
+      "page": 3,
+      "pagePoints": [
+        716,
+        792
+      ],
+      "sourceTableDimensions": [
+        10,
+        5
+      ],
+      "nativeFormatCode": "[s]\"s\"",
+      "cells": [
+        {
+          "address": "C2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0s",
+          "excelObservedDisplay": "0s",
+          "officeimoSharedDisplay": "0s"
+        },
+        {
+          "address": "D2",
+          "case": "Zero",
+          "sourceSeconds": 0.0,
+          "numbersPdfDisplay": "0s",
+          "excelObservedDisplay": "0s",
+          "officeimoSharedDisplay": "0s"
+        },
+        {
+          "address": "C3",
+          "case": "Minute plus one",
+          "sourceSeconds": 60.99999999999999,
+          "numbersPdfDisplay": "61s",
+          "excelObservedDisplay": "61s",
+          "officeimoSharedDisplay": "61s"
+        },
+        {
+          "address": "D3",
+          "case": "Minute plus one",
+          "sourceSeconds": 121.99999999999999,
+          "numbersPdfDisplay": "122s",
+          "excelObservedDisplay": "122s",
+          "officeimoSharedDisplay": "122s"
+        },
+        {
+          "address": "C4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 3661.0,
+          "numbersPdfDisplay": "3661s",
+          "excelObservedDisplay": "3661s",
+          "officeimoSharedDisplay": "3661s"
+        },
+        {
+          "address": "D4",
+          "case": "Hour plus minute",
+          "sourceSeconds": 7322.0,
+          "numbersPdfDisplay": "7322s",
+          "excelObservedDisplay": "7322s",
+          "officeimoSharedDisplay": "7322s"
+        },
+        {
+          "address": "C5",
+          "case": "Beyond one day",
+          "sourceSeconds": 129661.0,
+          "numbersPdfDisplay": "129661s",
+          "excelObservedDisplay": "129661s",
+          "officeimoSharedDisplay": "129661s"
+        },
+        {
+          "address": "D5",
+          "case": "Beyond one day",
+          "sourceSeconds": 259322.0,
+          "numbersPdfDisplay": "259322s",
+          "excelObservedDisplay": "259322s",
+          "officeimoSharedDisplay": "259322s"
+        },
+        {
+          "address": "C6",
+          "case": "Negative",
+          "sourceSeconds": -3661.0,
+          "numbersPdfDisplay": "-3661s",
+          "excelObservedDisplay": "-3661s",
+          "officeimoSharedDisplay": "-3661s"
+        },
+        {
+          "address": "D6",
+          "case": "Negative",
+          "sourceSeconds": -7322.0,
+          "numbersPdfDisplay": "-7322s",
+          "excelObservedDisplay": "-7322s",
+          "officeimoSharedDisplay": "-7322s"
+        },
+        {
+          "address": "C7",
+          "case": "Fractional positive",
+          "sourceSeconds": 3661.7500000000005,
+          "numbersPdfDisplay": "3662s",
+          "excelObservedDisplay": "3662s",
+          "officeimoSharedDisplay": "3661s"
+        },
+        {
+          "address": "D7",
+          "case": "Fractional positive",
+          "sourceSeconds": 7323.500000000001,
+          "numbersPdfDisplay": "7324s",
+          "excelObservedDisplay": "7323s",
+          "officeimoSharedDisplay": "7323s"
+        },
+        {
+          "address": "C8",
+          "case": "Fractional negative",
+          "sourceSeconds": -0.75,
+          "numbersPdfDisplay": "-1s",
+          "excelObservedDisplay": "-1s",
+          "officeimoSharedDisplay": "-0s"
+        },
+        {
+          "address": "D8",
+          "case": "Fractional negative",
+          "sourceSeconds": -1.5,
+          "numbersPdfDisplay": "-2s",
+          "excelObservedDisplay": "-2s",
+          "officeimoSharedDisplay": "-1s"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "numbers-duration-seconds-v14.5-composed-page1.png",
+      "sha256": "1c0526b5cf81c61922898023bb7dc6cf4991e29fc8b81c9fe2dd7afb933c2e9d",
+      "bytes": 29531
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-composed-page2.png",
+      "sha256": "e3749a9fc991126585ca6a00f8d55ce19813b229c358f48fd3d1258536048db5",
+      "bytes": 14711
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-composed-page3.png",
+      "sha256": "a097af8fb458d262cce4ff08af83c4427646835f4c422143834c3ec2841dbadd",
+      "bytes": 28528
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-composed-page4.png",
+      "sha256": "4cf403903f9bf7e22225536cfb8ab9229bffe8548b810d5669e5e739c6a18f9d",
+      "bytes": 13007
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-composed-page5.png",
+      "sha256": "3b932e7960be25f8023224bb46770c809a7e1f8290b15a25b1fb6f1ef3de7fbc",
+      "bytes": 27491
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-composed-page6.png",
+      "sha256": "35b08987ac374105795830e2f06c417e5112069fee1778e70979b95c2d442791",
+      "bytes": 12946
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-composed.pdf",
+      "sha256": "b77f7c81ee2829b5f470f14dcad8867a18b64fcd523850838dd2f5e9c94e8ebb",
+      "bytes": 8834
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-decode.json",
+      "sha256": "2f8406266d7a89d6d564571705383d24741fab6fcfdcf4baf898dfbaceb5349b",
+      "bytes": 26660
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-excel-hours.png",
+      "sha256": "9d44a499ece3e73c77d760df758bdca4a8dfe0b334f22d50a9abcbb71f7120fb",
+      "bytes": 115402
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-excel-minutes.png",
+      "sha256": "963c92a636f5597ef6e792d6b7f9dbca21b7fff7a7ad6eb94a7fb82ee7d793d6",
+      "bytes": 118559
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-excel-seconds.png",
+      "sha256": "8013eec79bd9f844ba45c867766d9775fc8bbd580cf1b850986b6cfba067575e",
+      "bytes": 114275
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-intake.xlsx",
+      "sha256": "6f530a3b7762f899a9b495de9bc226fa613390f4d5be166b84164632c5f8c683",
+      "bytes": 6095
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-page1.png",
+      "sha256": "224ac3c3203d1d40806ef0f3c5e7465f6f88fa4d916d3f889bb7c98dfdb91e02",
+      "bytes": 40719
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-page2.png",
+      "sha256": "36327ffecc28a1e271b9fb949de7841abd141fbda6f2016e481fe42342e13c81",
+      "bytes": 39457
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5-page3.png",
+      "sha256": "b2dbbc99c3f87a100322786ae23c96dcbd0ba24203a59c9c002e7b75aa95769b",
+      "bytes": 38377
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5.numbers",
+      "sha256": "08936b0937a8b07cd70e567f213f2f77c7389f4362b4f2791dc239fd9c4ec823",
+      "bytes": 693438
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5.pdf",
+      "sha256": "7513766914e78df4b71ee3056760f565301c0b2a855fc66dbfaa50389c584d03",
+      "bytes": 64024
+    },
+    {
+      "path": "numbers-duration-seconds-v14.5.xlsx",
+      "sha256": "92808e6bf1a42cde39e58f2657bbc71217b20b6f59761167f8ff061b8354b851",
+      "bytes": 9125
+    }
+  ],
+  "composedPdf": {
+    "route": "numbers-pdf",
+    "defaultAcceptance": true,
+    "sourceUnits": "7",
+    "partialEditableReconstruction": false,
+    "sourceFormulaCells": 21,
+    "stages": "iwork-editable,pdf",
+    "pages": 6,
+    "allPagesVisuallyInspected": true,
+    "outputBytes": 8834,
+    "report": {
+      "FidelityDiagnostics": [
+        {
+          "Code": "IWORK_SOURCE_READ",
+          "Message": "Read 1036 IWA payload records from 110 package entries.",
+          "LossKind": 0,
+          "Source": "OfficeIMO.IWork",
+          "Location": null
+        },
+        {
+          "Code": "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED",
+          "Message": "Numbers automatic decimal formats use up to fifteen optional fractional places in XLSX; scientific formats apply them to the mantissa. Significant-digit selection, rounding and exponent presentation can differ; numeric values and formula caches are unchanged.",
+          "LossKind": 1,
+          "Source": "OfficeIMO.IWork",
+          "Location": null
+        },
+        {
+          "Code": "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED",
+          "Message": "Qualified fixed abbreviated hour/minute, hour/second, minute/second and second-only durations use elapsed XLSX formats; day-only durations use a numeric whole-day format. Numeric values and formula caches are retained, with source seconds converted to day serials. Fractional days use destination numeric rounding rather than source truncation; unit spacing, fractional-second rounding and negative-duration display can differ between applications. Other duration settings and locale equivalence are unqualified.",
+          "LossKind": 1,
+          "Source": "OfficeIMO.IWork",
+          "Location": null
+        },
+        {
+          "Code": "IWORK_RECORD_FIDELITY_UNASSESSED",
+          "Message": "1036 source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content.",
+          "LossKind": 4,
+          "Source": "OfficeIMO.IWork",
+          "Location": null
+        },
+        {
+          "Code": "WorksheetFontFamilySubstituted",
+          "Message": "The source font family 'Calibri' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+          "LossKind": 1,
+          "Source": "OfficeIMO.Excel.Pdf",
+          "Location": "Hours to seconds"
+        }
+      ],
+      "Facts": {
+        "packageContentSha256": "18b63004d3e3c8f184c4b5934e2b6c432185ede5cc1758afc2a9488a10ec4935",
+        "sourceKind": "Numbers",
+        "projectionKind": "EditableReconstruction",
+        "producerBuildVersions": "xlsx, M14.5-7045.0.17-4",
+        "totalRecordCount": "1036",
+        "unassessedRecordCount": "1036",
+        "reconstructedItemCount": "102",
+        "sourceUnitCount": "7",
+        "reconstructedSourceUnitCount": "7",
+        "omittedSourceUnitCount": "0",
+        "unassessedSourceUnitCount": "0",
+        "sourceReferenceIssueCount": "0",
+        "sourceDeclarationIssueCount": "0",
+        "sourceCellIssueCount": "0",
+        "sourceMissingReferenceTargetCount": "0",
+        "sourceMalformedReferenceCount": "0",
+        "sourceRejectedReferenceSetCount": "0",
+        "sourceUnexpectedReferenceTargetTypeCount": "0",
+        "sourceFormulaCellCount": "21",
+        "sourceCompleteFormulaExpressionCount": "21",
+        "sourceIncompleteFormulaExpressionCount": "0",
+        "sourceUnassessedFormulaExpressionCount": "0",
+        "sourceCompleteFormulaCacheCount": "21",
+        "sourcePartialFormulaCacheCount": "0",
+        "sourceApproximateFormulaCacheCount": "0",
+        "sourceMissingFormulaCacheCount": "0",
+        "sourceUnassessedFormulaCacheCount": "0",
+        "partialEditableReconstruction": "False",
+        "visualCoverage": "NotApplicable",
+        "conversionStages": "iwork-editable,pdf",
+        "pdfOutputBytes": "8834"
+      },
+      "HasLoss": true
+    },
+    "callerFontInputs": [
+      {
+        "family": "Carlito",
+        "style": "Regular",
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+        "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+        "license": "SIL Open Font License 1.1; existing corpus font provenance applies."
+      },
+      {
+        "family": "Carlito",
+        "style": "Bold",
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf",
+        "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db",
+        "license": "SIL Open Font License 1.1; existing corpus font provenance applies."
+      },
+      {
+        "family": "Carlito",
+        "style": "Italic",
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Italic.ttf",
+        "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c",
+        "license": "SIL Open Font License 1.1; existing corpus font provenance applies."
+      },
+      {
+        "family": "Carlito",
+        "style": "BoldItalic",
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-BoldItalic.ttf",
+        "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517",
+        "license": "SIL Open Font License 1.1; existing corpus font provenance applies."
+      }
+    ],
+    "fontPolicy": "Portable deterministic, installed font discovery disabled; Calibri maps to PDF Helvetica, caller Carlito available as embedded fallback. Substitution reported.",
+    "contentQualification": "All seven populated rows and all 21 formula-result cells remain in order. Native Numbers has three positioned-sheet pages; the composed route paginates width into six pages, with the formula column on each second page. This is complete content, not equivalent geometry or typography."
+  }
+}

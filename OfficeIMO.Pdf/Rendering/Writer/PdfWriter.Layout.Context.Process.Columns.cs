@@ -71,6 +71,7 @@ internal static partial class PdfWriter {
         private void AdvanceColumnFrame(bool forcePhysicalPage, bool preserveEmptyPage = false) {
             cancellationToken.ThrowIfCancellationRequested();
             ColumnFlowScope scope = activeColumnFlow ?? throw new InvalidOperationException("There is no active column frame.");
+            forcePhysicalPage |= scope.RequiresPhysicalContinuation;
             if (preserveEmptyPage) RecordRunningContentSection();
             PrepareActiveContainerScopesForPageBreak(scope.ContainerDepth);
             FinishColumnFrame(scope);
@@ -99,6 +100,7 @@ internal static partial class PdfWriter {
                 ResolveBalancedColumnHeight(scope.PendingBalanceContent, scope);
             scope.PendingBalanceContent = null;
             scope.ColumnIndex = 0;
+            scope.RequiresPhysicalContinuation = false;
             EnterColumnFrame(scope);
             ResumeActiveContainerScopesOnNewPage(scope.ContainerDepth);
         }
@@ -136,6 +138,9 @@ internal static partial class PdfWriter {
             public double[] Gaps { get; }
             public int ContainerDepth { get; }
             public int ColumnIndex { get; set; }
+            // An imported line taller than the physical body frame uses a new
+            // physical page for its continuation, including following blocks.
+            public bool RequiresPhysicalContinuation { get; set; }
         }
     }
 }

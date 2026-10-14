@@ -52,11 +52,6 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 int columnSpan = GetNativeCellColumnSpan(cell);
-                if (IsNativeVerticalMergeContinuation(cell)) {
-                    logicalColumnIndex += columnSpan;
-                    continue;
-                }
-
                 changed |= ApplyNativeTableConditionalCellPadding(cellPaddings, (rowIndex, logicalColumnIndex), conditionalStyle.CellPadding);
                 logicalColumnIndex += columnSpan;
             }
@@ -87,11 +82,6 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     int columnSpan = GetNativeCellColumnSpan(cell);
-                    if (IsNativeVerticalMergeContinuation(cell)) {
-                        logicalColumnIndex += columnSpan;
-                        continue;
-                    }
-
                     (int Row, int Column) key = (rowIndex, logicalColumnIndex);
                     if (bodyRowIndex % 2 == 1) {
                         changed |= ApplyNativeTableConditionalCellPadding(cellPaddings, key, horizontalBandPadding);
@@ -130,11 +120,6 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     int columnSpan = GetNativeCellColumnSpan(cell);
-                    if (IsNativeVerticalMergeContinuation(cell)) {
-                        logicalColumnIndex += columnSpan;
-                        continue;
-                    }
-
                     (int Row, int Column) key = (rowIndex, logicalColumnIndex);
                     if (logicalColumnIndex == 0) {
                         changed |= ApplyNativeTableConditionalCellPadding(cellPaddings, key, firstColumnPadding);

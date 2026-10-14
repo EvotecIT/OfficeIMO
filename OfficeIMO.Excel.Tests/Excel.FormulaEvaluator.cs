@@ -183,14 +183,14 @@ namespace OfficeIMO.Tests {
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(11, before.TotalFormulas);
-                Assert.Equal(10, before.SupportedFormulas);
+                Assert.Equal(11, before.SupportedFormulas);
                 Assert.Contains("SUMIFS", before.Capabilities.SupportedFunctions);
                 Assert.Contains("AVERAGEIFS", before.Capabilities.SupportedFunctions);
                 Assert.Contains("MINIFS", before.Capabilities.SupportedFunctions);
                 Assert.Contains("MAXIFS", before.Capabilities.SupportedFunctions);
-                Assert.Contains(before.Formulas, formula => formula.CellReference == "F11" && !formula.IsSupportedByOfficeIMO);
+                Assert.Contains(before.Formulas, formula => formula.CellReference == "F11" && formula.IsSupportedByOfficeIMO);
 
-                Assert.Equal(10, document.Calculate());
+                Assert.Equal(11, document.Calculate());
                 ExcelFormulaInspection after = document.InspectFormulas();
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "F1" && formula.CachedValue == "3");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "F2" && formula.CachedValue == "60");
@@ -202,6 +202,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "F8" && formula.CachedValue == "3");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "F9" && formula.CachedValue == "10");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "F10" && formula.CachedValue == "30");
+                Assert.Contains(after.Formulas, formula => formula.CellReference == "F11" && formula.CachedValue == "0");
                 document.Save();
             }
 

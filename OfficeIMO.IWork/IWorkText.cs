@@ -53,7 +53,7 @@ public sealed class IWorkColor {
 public sealed class IWorkTextStyle {
     internal IWorkTextStyle(string? name, bool? bold, bool? italic, bool? underline,
         bool? strikethrough, double? fontSizePoints, string? fontName,
-        IWorkColor? color, IWorkColor? backgroundColor) {
+        IWorkColor? color, IWorkColor? backgroundColor, double? characterTrackingEm = null) {
         Name = name;
         Bold = bold;
         Italic = italic;
@@ -63,6 +63,7 @@ public sealed class IWorkTextStyle {
         FontName = fontName;
         Color = color;
         BackgroundColor = backgroundColor;
+        CharacterTrackingEm = characterTrackingEm;
     }
 
     /// <summary>Gets the source style name, when present.</summary>
@@ -83,6 +84,11 @@ public sealed class IWorkTextStyle {
     public IWorkColor? Color { get; }
     /// <summary>Gets the background or highlight color.</summary>
     public IWorkColor? BackgroundColor { get; }
+    /// <summary>Gets additional character spacing as a fraction of the effective font size. Zero explicitly clears inherited tracking.</summary>
+    public double? CharacterTrackingEm { get; }
+    /// <summary>Gets character spacing in points when tracking and its effective font size are known.</summary>
+    public double? CharacterSpacingPoints => CharacterTrackingEm is double tracking
+        ? tracking == 0 ? 0 : FontSizePoints is double size ? tracking * size : null : null;
 }
 
 /// <summary>Paragraph formatting recovered from an iWork paragraph style.</summary>
@@ -90,7 +96,8 @@ public sealed class IWorkParagraphStyle {
     internal IWorkParagraphStyle(string? name, IWorkTextAlignment? alignment,
         double? firstLineIndentPoints, double? leftIndentPoints, double? rightIndentPoints,
         double? spaceBeforePoints, double? spaceAfterPoints, bool? pageBreakBefore,
-        bool? keepWithNext, bool? keepLinesTogether, IWorkTextStyle textStyle, double? lineSpacingMultiplier = null, IReadOnlyList<IWorkTabStop>? tabStops = null) {
+        bool? keepWithNext, bool? keepLinesTogether, IWorkTextStyle textStyle, double? lineSpacingMultiplier = null,
+        IReadOnlyList<IWorkTabStop>? tabStops = null, string? decimalTabSymbol = null, bool decimalTabSymbolDeclared = false) {
         Name = name;
         Alignment = alignment;
         FirstLineIndentPoints = firstLineIndentPoints;
@@ -104,6 +111,8 @@ public sealed class IWorkParagraphStyle {
         TextStyle = textStyle;
         LineSpacingMultiplier = lineSpacingMultiplier;
         TabStops = tabStops;
+        DecimalTabSymbol = decimalTabSymbol;
+        DecimalTabSymbolDeclared = decimalTabSymbolDeclared || decimalTabSymbol != null;
     }
 
     /// <summary>Gets the source style name, when present.</summary>
@@ -124,6 +133,11 @@ public sealed class IWorkParagraphStyle {
     public double? LineSpacingMultiplier { get; }
     /// <summary>Gets qualified custom tabs; null means unspecified and an empty list clears inherited source tabs.</summary>
     public IReadOnlyList<IWorkTabStop>? TabStops { get; }
+    /// <summary>Gets an explicit period or comma used by decimal tabs; null when unspecified, cleared or unqualified.</summary>
+    public string? DecimalTabSymbol { get; }
+
+    // An explicit native clear must suppress a cell default; absence inherits it.
+    internal bool DecimalTabSymbolDeclared { get; }
     /// <summary>Gets whether the paragraph starts on a new page.</summary>
     public bool? PageBreakBefore { get; }
     /// <summary>Gets whether the paragraph should stay with the next paragraph.</summary>
@@ -147,7 +161,7 @@ public sealed class IWorkTextRun {
     public string Text { get; }
     /// <summary>Gets resolved run formatting.</summary>
     public IWorkTextStyle Style { get; }
-    /// <summary>Gets an external hyperlink target, when present.</summary>
+    /// <summary>Gets a source hyperlink target, including native Keynote slide references, when present.</summary>
     public string? Hyperlink { get; }
     /// <summary>Gets the drawable attachment at this run's source position, or null for an ordinary text run.</summary>
     public IWorkInlineObject? InlineObject { get; }
@@ -158,7 +172,8 @@ public sealed class IWorkTextParagraph {
     internal IWorkTextParagraph(IReadOnlyList<IWorkTextRun> runs, IWorkParagraphStyle style,
         ulong? listIdentifier, int listLevel, string? listLabel,
         IWorkParagraphBreakKind breakKind, string? listFontName = null,
-        IWorkListMarkerKind listMarkerKind = IWorkListMarkerKind.Text, IWorkListLayout? listLayout = null) {
+        IWorkListMarkerKind listMarkerKind = IWorkListMarkerKind.Text, IWorkListLayout? listLayout = null,
+        int? listNumber = null, int? listStartNumber = null) {
         Runs = Array.AsReadOnly(runs.ToArray());
         Style = style;
         ListIdentifier = listIdentifier;
@@ -166,6 +181,8 @@ public sealed class IWorkTextParagraph {
         ListLabel = listLabel;
         ListFontName = listFontName;
         ListLayout = listLayout;
+        ListNumber = listNumber;
+        ListStartNumber = listStartNumber;
         ListMarkerKind = listLevel < 0 ? IWorkListMarkerKind.None : listMarkerKind;
         BreakKind = breakKind;
     }
@@ -181,6 +198,10 @@ public sealed class IWorkTextParagraph {
     /// <summary>Gets the source string label or the initial marker for a recovered numbering kind.
     /// A numbering marker describes its format, not a qualified paragraph counter or restart value.</summary>
     public string? ListLabel { get; }
+    /// <summary>Gets the qualified decimal counter for this paragraph, or null when its numbering is unqualified.</summary>
+    public int? ListNumber { get; }
+    /// <summary>Gets a qualified explicit decimal start or restart declared on this paragraph, or null for continuation or unqualified numbering.</summary>
+    public int? ListStartNumber { get; }
     /// <summary>Gets the explicit marker font, including inherited list-style formatting, or null when unspecified or cleared.</summary>
     public string? ListFontName { get; }
     /// <summary>Gets selected character-marker layout, or null when unspecified or unqualified.</summary>

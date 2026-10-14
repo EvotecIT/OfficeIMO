@@ -1,0 +1,171 @@
+{
+  "title": "Native Numbers calculation registration and numeric cross-table integer references",
+  "recordedUtc": "2026-10-11T02:30:38.890990+00:00",
+  "license": "Newly authored OfficeIMO fixtures and evidence use the repository MIT license. No seed document or standalone font files are distributed.",
+  "producer": {
+    "application": "Numbers",
+    "version": "14.5",
+    "build": "7045.0.17",
+    "operatingSystem": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "creation": {
+    "source": "numbers-created-calculation-v14.5.numbers",
+    "bytes": 22574,
+    "sha256": "ec59da6a0a61e623433dcf708e96e228cadc5a84c79f3a82fcdcaad3a7a7faa7",
+    "records": 111,
+    "requiredFieldsComplete": true,
+    "referencesComplete": true,
+    "calculationOwners": [
+      {
+        "tableInfo": 34,
+        "tableModel": 35,
+        "uuid": "8159b2c1-9a17-5abc-8630-19865332313e",
+        "ownerIndex": 1,
+        "rows": 4,
+        "columns": 4,
+        "coordinateSpace": 0
+      },
+      {
+        "tableInfo": 59,
+        "tableModel": 60,
+        "uuid": "7e775597-45f2-58ab-9fa1-68b5d74afc29",
+        "ownerIndex": 2,
+        "rows": 2,
+        "columns": 2,
+        "coordinateSpace": 0
+      },
+      {
+        "tableInfo": 94,
+        "tableModel": 95,
+        "uuid": "11071dc1-9ee5-5527-af9f-406d0f0eeb64",
+        "ownerIndex": 3,
+        "rows": 2,
+        "columns": 3,
+        "coordinateSpace": 0
+      }
+    ],
+    "scalarExample": {
+      "source": "numbers-created-scalar-calculation-v14.5.numbers",
+      "bytes": 22573,
+      "sha256": "6436e88b042c639e7d512a295cf988ca230d71505f3dfdf13637546fa1705786",
+      "records": 111,
+      "nativeEditedSource": "numbers-created-scalar-calculation-edited-v14.5.numbers",
+      "nativeFormula": "GCD(Totals::B1,6)",
+      "nativeValue": 3,
+      "originalScalarsRetained": true
+    },
+    "requireCalculationOwners": true
+  },
+  "nativeAcceptance": {
+    "repairPrompt": false,
+    "createdNumericInputs": [
+      30,
+      36,
+      60,
+      99
+    ],
+    "integerCalls": 8,
+    "arithmeticControl": "30+6",
+    "baselineSaveCloseReopenObserved": true,
+    "baselineCaches": [
+      3,
+      198,
+      36,
+      6,
+      180,
+      3,
+      990,
+      3,
+      0
+    ],
+    "nativeOperandEdit": "Budget / Data B2: 30 -> 24",
+    "changedCaches": [
+      3,
+      198,
+      36,
+      12,
+      360,
+      3,
+      792,
+      3,
+      0
+    ],
+    "xlsxExport": "One worksheet per table, no summary worksheet, no password",
+    "pdfExport": "Default print settings, best image quality, no password",
+    "pdfPages": 3,
+    "allPdfPagesInspected": true,
+    "fontInputs": "Arial 14 pt for Data; Arial 12 pt for Totals and Empty. Native PDF embeds ArialMT subsets; no standalone fonts are distributed.",
+    "decodedCalls": "numbers-integer-cross-table-v14.5-decode.json"
+  },
+  "limits": [
+    "Creation authors scalar cells only; users can enter and calculate formulas after opening the generated workbook in Numbers. No formula-authoring API is added.",
+    "Controlled nonnegative finite numeric GCD/LCM references use existing qualification limits, source table UUIDs and destination worksheet binding. No broader mixed-type, formula-dependent, whole-axis or larger-integer qualification.",
+    "OfficeIMO XLSX retains explicit IWORK_NUMBERS_CELL_PADDING_OMITTED. Complete editable PDF workflows still reject this profile.",
+    "Native Excel places the small table at B2:D3; OfficeIMO exports its table-relative A1:C2 grid. Exact native Excel placement and appearance are unqualified.",
+    "The default native PDF splits the wide Data table after column C: pages 1-2 show Budget, page 3 shows Empty grid. All three native pages are inspected; no OfficeIMO/native PDF layout equivalence is claimed.",
+    "Native acceptance is specific to the recorded Numbers version and macOS arm64 host. Historical creation/numeric-format receipts retain their original bytes and scopes."
+  ],
+  "files": [
+    {
+      "path": "numbers-created-calculation-v14.5.numbers",
+      "bytes": 22574,
+      "sha256": "ec59da6a0a61e623433dcf708e96e228cadc5a84c79f3a82fcdcaad3a7a7faa7"
+    },
+    {
+      "path": "numbers-created-scalar-calculation-v14.5.numbers",
+      "bytes": 22573,
+      "sha256": "6436e88b042c639e7d512a295cf988ca230d71505f3dfdf13637546fa1705786"
+    },
+    {
+      "path": "numbers-created-scalar-calculation-edited-v14.5.numbers",
+      "bytes": 87769,
+      "sha256": "c5e074e8325fd6b8e54b1fd0248eac2a14ff8bcb63c2aea2bea7b67177b40c78"
+    },
+    {
+      "path": "numbers-integer-cross-table-v14.5.numbers",
+      "bytes": 85242,
+      "sha256": "5551aad4e3ba7e2b918681c39282499a6e409fde7139c268de32c63367df68fd"
+    },
+    {
+      "path": "numbers-integer-cross-table-changed-v14.5.numbers",
+      "bytes": 84998,
+      "sha256": "0dbffd11551fff2d830a671f04e0e7fe0f6e071156f50e2e98f2d31c4e1835bd"
+    },
+    {
+      "path": "numbers-integer-cross-table-v14.5.xlsx",
+      "bytes": 7865,
+      "sha256": "9e5e0181c33223adad195d8805e2a5cdd16f8b58d3f7a7b854753082409973b4"
+    },
+    {
+      "path": "numbers-integer-cross-table-changed-v14.5.xlsx",
+      "bytes": 7865,
+      "sha256": "a03dfdfb972e6d0e9c69df09d4b3a5f4573bd5ebee80f8b2d01588075ba486e9"
+    },
+    {
+      "path": "numbers-integer-cross-table-v14.5.pdf",
+      "bytes": 35740,
+      "sha256": "022fe1634401a3dac1e7587bd01278c284b09e2482abc66a9b4cb141001faa68"
+    },
+    {
+      "path": "numbers-integer-cross-table-v14.5-page1.png",
+      "bytes": 20703,
+      "sha256": "0ff69ff686fc88d4d17adf5917208aaa20a77632af42d0de15e33bb549e1c676"
+    },
+    {
+      "path": "numbers-integer-cross-table-v14.5-page2.png",
+      "bytes": 7235,
+      "sha256": "179f61c118eca04b4061bc5abce436edc3c49e818b0202733f4561f06791c57e"
+    },
+    {
+      "path": "numbers-integer-cross-table-v14.5-page3.png",
+      "bytes": 6342,
+      "sha256": "fde6b2d3c5d1e2288327aa1725b5e574d6742b7b39be6c3a54d79ceab049da69"
+    },
+    {
+      "path": "numbers-integer-cross-table-v14.5-decode.json",
+      "bytes": 11963,
+      "sha256": "4801b9f599b3beddb3f9bf669d5e1ef6d18e11eabb76aa045a2bf1db229c4c06"
+    }
+  ]
+}

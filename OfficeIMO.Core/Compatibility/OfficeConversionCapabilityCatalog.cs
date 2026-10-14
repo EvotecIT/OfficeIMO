@@ -531,6 +531,15 @@ public static class OfficeConversionCapabilityCatalog {
             "OfficeIMO.PowerPoint.IWork", "PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions)",
             "Reconstruct a bounded Keynote source as an editable PowerPoint presentation with source and fallback evidence.",
             OfficeConversionFidelityKind.Editable, "KeynoteToPowerPointResult"));
+        AddPdf("pages-pdf", "Pages", ".pages");
+        AddPdf("numbers-pdf", "Numbers", ".numbers");
+        AddPdf("keynote-pdf", "Keynote", ".key");
+
+        void AddPdf(string id, string source, string extension) => routes.Add(Route(
+            id, source, "PDF", OfficeConversionInputKind.File, new[] { extension }, ".pdf",
+            "OfficeIMO.Workflows.IWork", "IWorkWorkflow.CreateRunner().RunAsync(request)",
+            "Create a PDF when all supported source content can be reconstructed. Review reported font, layout, and rendering approximations.",
+            OfficeConversionFidelityKind.FixedLayout, "OfficeWorkflowResult"));
     }
 
     private static void AddImageRoutes(

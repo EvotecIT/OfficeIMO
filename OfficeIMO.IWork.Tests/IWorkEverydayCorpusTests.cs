@@ -12,15 +12,18 @@ public sealed class IWorkEverydayCorpusTests {
     private static string Corpus(string path) => Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", path);
 
     [Fact]
-    public void Simple_native_numbers_converts_without_partial_policy_and_matches_Apple_export_values_and_alignment() {
+    public void Simple_native_numbers_reports_padding_omission_and_matches_Apple_export_values_and_alignment() {
         using var evidence = JsonDocument.Parse(File.ReadAllText(Corpus("native-exports/numbers-simple-v14.5.json")));
         var manifest = evidence.RootElement;
         string path = Corpus(manifest.GetProperty("source").GetString()!);
         string applePath = Corpus(manifest.GetProperty("export").GetString()!);
         Assert.Equal(manifest.GetProperty("sourceSha256").GetString(), Hash(path));
         Assert.Equal(manifest.GetProperty("exportSha256").GetString(), Hash(applePath));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path);
-        result.Report.RequireCompleteEditableReconstruction();
+        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.Empty(result.Report.SourceDeclarationIssues);
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
         Assert.Equal(1, table.TextStyles.Body!.LineSpacingMultiplier);
@@ -48,8 +51,8 @@ public sealed class IWorkEverydayCorpusTests {
             }
         }
         Assert.Empty(actual.ValidateOpenXml());
-        using var convenience = ExcelIWorkConverter.ConvertNumbersToExcel(path);
-        Assert.Single(convenience.Sheets);
+        Assert.Throws<InvalidOperationException>(() => ExcelIWorkConverter.ConvertNumbersToExcel(path,
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
     }
 
     [Fact]

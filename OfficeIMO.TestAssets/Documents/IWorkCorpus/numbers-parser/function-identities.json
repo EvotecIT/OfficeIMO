@@ -123,6 +123,11 @@
       "sampleArgumentCount": 2
     },
     {
+      "index": 58,
+      "name": "GCD",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 60,
       "name": "HOUR",
       "sampleArgumentCount": 1
@@ -155,6 +160,11 @@
     {
       "index": 70,
       "name": "ISERROR",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 75,
+      "name": "LCM",
       "sampleArgumentCount": 1
     },
     {

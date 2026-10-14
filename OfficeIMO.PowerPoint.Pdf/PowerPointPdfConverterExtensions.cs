@@ -36,6 +36,13 @@ public static partial class PowerPointPdfConverterExtensions {
         options.NativeTextDefaultFontFamily = string.IsNullOrWhiteSpace(options.FontFamily) ? null
             : PdfCore.PdfFontNames.ToBaseFontName(PdfCore.PdfStandardFontMapper.GetStyledFont(pdfOptions.DefaultFont, false, false));
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
+        ReportOmittedSpeakerNotes(presentation, options);
+
+        IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
+        for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
+            if (options.IncludeHiddenSlides || !slides[slideIndex].Hidden)
+                options.SlideLinkDestinations.Add(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideIndex + 1));
+        }
 
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
             RenderNotesPages(pdf, presentation, pdfOptions.PageWidth, pdfOptions.PageHeight, options);
@@ -46,7 +53,6 @@ public static partial class PowerPointPdfConverterExtensions {
             return pdf;
         }
 
-        IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
         int renderedSlides = 0;
         for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -195,6 +201,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options) {
         pdf.Canvas(canvas => {
+            canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), 0, 0);
             RenderSlideBackground(canvas, slide, slideNumber, pageWidth, pageHeight, options);
 
             RenderShapes(canvas, slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, groupDepth: 0);
@@ -225,10 +232,10 @@ public static partial class PowerPointPdfConverterExtensions {
                     color: PdfCore.PdfColor.FromRgb(80, 86, 96));
                 string notes = string.Empty;
                 if (options.IncludeSpeakerNotes) item.Slide.Notes.TryGetText(out notes);
-                canvas.Text(string.IsNullOrWhiteSpace(notes) ? "No speaker notes." : notes,
+                RenderSpeakerNotes(canvas, string.IsNullOrWhiteSpace(notes) ? "No speaker notes." : notes,
                     margin, margin + slideHeight + 48D, availableWidth,
-                    Math.Max(36D, pageHeight - margin * 2D - slideHeight - 48D), fontSize: 12D,
-                    color: PdfCore.PdfColor.FromRgb(35, 42, 52));
+                    Math.Max(36D, pageHeight - margin * 2D - slideHeight - 48D), 12D,
+                    PdfCore.PdfColor.FromRgb(35, 42, 52), item.Number, options);
             });
         }
     }
@@ -258,14 +265,16 @@ public static partial class PowerPointPdfConverterExtensions {
         const double gutter = 18D;
         if (options.HandoutSlidesPerPage == 3) {
             double rowHeight = (pageHeight - margin * 2D - gutter * 2D) / 3D;
-            double thumbWidth = (pageWidth - margin * 2D - gutter) * 0.46D;
+            double thumbColumnWidth = (pageWidth - margin * 2D - gutter) * 0.46D;
             for (int index = 0; index < slides.Count; index++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 double top = margin + index * (rowHeight + gutter);
-                double thumbHeight = Math.Min(rowHeight - 18D, thumbWidth *
+                double thumbHeight = Math.Min(rowHeight - 18D, thumbColumnWidth *
                     presentation.SlideSize.HeightPoints / presentation.SlideSize.WidthPoints);
+                double thumbWidth = thumbHeight * presentation.SlideSize.WidthPoints /
+                    presentation.SlideSize.HeightPoints;
                 RenderSnapshotThumbnail(canvas, slides[index].Slide, slides[index].Number,
-                    margin, top, thumbWidth, thumbHeight, options);
+                    margin + (thumbColumnWidth - thumbWidth) / 2D, top, thumbWidth, thumbHeight, options);
                 string notes = string.Empty;
                 if (options.IncludeSpeakerNotes) slides[index].Slide.Notes.TryGetText(out notes);
                 string noteText = string.IsNullOrWhiteSpace(notes)
@@ -274,9 +283,9 @@ public static partial class PowerPointPdfConverterExtensions {
                       "________________________________" + Environment.NewLine + "________________________________"
                     : "Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture) +
                       Environment.NewLine + notes;
-                canvas.Text(noteText, margin + thumbWidth + gutter, top,
-                    pageWidth - margin * 2D - thumbWidth - gutter, rowHeight,
-                    fontSize: 9D, color: PdfCore.PdfColor.FromRgb(55, 62, 72));
+                RenderSpeakerNotes(canvas, noteText, margin + thumbColumnWidth + gutter, top,
+                    pageWidth - margin * 2D - thumbColumnWidth - gutter, rowHeight,
+                    9D, PdfCore.PdfColor.FromRgb(55, 62, 72), slides[index].Number, options);
             }
             return;
         }
@@ -304,8 +313,8 @@ public static partial class PowerPointPdfConverterExtensions {
                 color: PdfCore.PdfColor.FromRgb(80, 86, 96), align: PdfCore.PdfAlign.Center);
             if (notesHeight > 0D && slides[index].Slide.Notes.TryGetText(out string notes) &&
                 !string.IsNullOrWhiteSpace(notes)) {
-                canvas.Text(notes, left, top + thumbHeight + labelHeight + 2D, cellWidth, notesHeight,
-                    fontSize: 7D, color: PdfCore.PdfColor.FromRgb(55, 62, 72));
+                RenderSpeakerNotes(canvas, notes, left, top + thumbHeight + labelHeight + 2D, cellWidth, notesHeight,
+                    7D, PdfCore.PdfColor.FromRgb(55, 62, 72), slides[index].Number, options);
             }
         }
     }
@@ -323,9 +332,11 @@ public static partial class PowerPointPdfConverterExtensions {
                 IncludeCharts = options.IncludeCharts,
                 MaxGroupShapeDepth = options.MaxGroupShapeDepth
             });
+        canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), x, y);
+        RemoveUnavailableDrawingSlideLinks(snapshot.Drawing, options, slideNumber);
         canvas.Drawing(snapshot.Drawing, x, y, width, height);
         foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
-            AddWarning(options, slideNumber, "snapshot-" + diagnostic.Code, diagnostic.Message);
+            AddWarning(options, slideNumber, "snapshot-" + diagnostic.Code, diagnostic.Message, lossKind: diagnostic.LossKind);
         }
     }
 
@@ -351,86 +362,6 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, int groupDepth) {
-        foreach (PptCore.PowerPointShape shape in shapes) {
-            if (shape.Hidden) {
-                continue;
-            }
-
-            if (!TryGetShapeBox(shape, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, out double x, out double y, out double width, out double height)) {
-                continue;
-            }
-
-            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
-            if (shape is PptCore.PowerPointGroupShape) {
-                // Establish the page clip before any nested group transforms change coordinates.
-                canvas.Clip(0D, 0D, pageWidth, pageHeight, render);
-            } else if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
-                NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
-                canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
-            } else {
-                render(canvas);
-            }
-        }
-    }
-
-    private static void RenderShapeContent(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape, double x, double y, double width, double height, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, int groupDepth) {
-        if (shape is PptCore.PowerPointTextBox textBox) {
-            bool renderedGeometry = options.IncludeAutoShapes && RenderTextBoxGeometry(canvas, textBox, x, y, width, height);
-            if (options.IncludeTextBoxes) {
-                RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options, suppressFrame: renderedGeometry);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointPicture picture) {
-            if (options.IncludePictures) {
-                RenderPicture(canvas, picture, x, y, width, height, slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointTable table) {
-            if (options.IncludeTables) {
-                RenderTable(canvas, table, x, y, width, height, slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointChart chart) {
-            if (options.IncludeCharts) {
-                RenderChart(canvas, chart, x, y, width, height, slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointSmartArt smartArt) {
-            if (options.IncludeSmartArt) {
-                RenderSmartArt(canvas, smartArt, x, y, width, height,
-                    slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointAutoShape autoShape) {
-            if (options.IncludeAutoShapes) {
-                RenderAutoShape(canvas, autoShape, x, y, width, height, slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointGroupShape groupShape) {
-            if (shape.OwnerSlide != null) {
-                RenderGroupShape(canvas, groupShape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
-            } else {
-                AddWarning(options, slideNumber, "unsupported-shape", "Skipped a PowerPoint group shape because its owning slide context could not be resolved.");
-            }
-            return;
-        }
-
-        AddWarning(options, slideNumber, "unsupported-shape", "Skipped unsupported PowerPoint shape content type '" + shape.ShapeContentType + "'.");
-    }
-
     private static void RenderEmptySlide(PdfCore.PdfDocument pdf, double pageWidth, double pageHeight) {
         pdf.Canvas(canvas => RenderFallbackBackground(canvas, pageWidth, pageHeight));
     }
@@ -449,7 +380,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 return;
             }
 
-            AddWarning(options, slideNumber, "invalid-slide-background-color", "Used a white fallback because the PowerPoint slide background color could not be parsed.");
+            AddWarning(options, slideNumber, "invalid-slide-background-color", "Used a white fallback because the PowerPoint slide background color could not be parsed.", lossKind: OfficeConversionLossKind.Omission);
         } else if (background.Kind == PptCore.PowerPointSlideBackgroundKind.Image && background.ImageBytes != null) {
             RenderFallbackBackground(canvas, pageWidth, pageHeight);
             try {
@@ -468,7 +399,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     alternativeText: "PowerPoint slide background");
                 return;
             } catch (Exception ex) {
-                AddWarning(options, slideNumber, "unsupported-slide-background-image", "Used a white fallback because the PowerPoint slide background image could not be embedded as a PDF image: " + ex.Message);
+                AddWarning(options, slideNumber, "unsupported-slide-background-image", "Used a white fallback because the PowerPoint slide background image could not be embedded as a PDF image: " + ex.Message, lossKind: OfficeConversionLossKind.Omission);
                 return;
             }
         } else if (background.Kind == PptCore.PowerPointSlideBackgroundKind.LinearGradient) {
@@ -481,9 +412,9 @@ public static partial class PowerPointPdfConverterExtensions {
                 return;
             }
 
-            AddWarning(options, slideNumber, "invalid-slide-background-gradient", "Used a white fallback because the PowerPoint slide background gradient colors could not be parsed.");
+            AddWarning(options, slideNumber, "invalid-slide-background-gradient", "Used a white fallback because the PowerPoint slide background gradient colors could not be parsed.", lossKind: OfficeConversionLossKind.Omission);
         } else if (background.Kind == PptCore.PowerPointSlideBackgroundKind.Unsupported) {
-            AddWarning(options, slideNumber, "unsupported-slide-background", "Used a white fallback because " + (background.UnsupportedReason ?? "the PowerPoint slide background is not supported."));
+            AddWarning(options, slideNumber, "unsupported-slide-background", "Used a white fallback because " + (background.UnsupportedReason ?? "the PowerPoint slide background is not supported."), lossKind: OfficeConversionLossKind.Omission);
         }
 
         RenderFallbackBackground(canvas, pageWidth, pageHeight);
@@ -499,54 +430,6 @@ public static partial class PowerPointPdfConverterExtensions {
         background.FillGradient = fillGradient?.Clone();
         background.StrokeWidth = 0D;
         canvas.Shape(background, 0, 0);
-    }
-
-    private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options, bool suppressFrame = false) {
-        if (!suppressFrame) RenderTextBoxFrame(canvas, textBox, x, y, width, height);
-        var diagnostics = new List<OfficeImageExportDiagnostic>();
-        OfficeDrawing drawing = PptCore.PowerPointSlideImageRenderer.CreateTextBoxDrawing(
-            textBox, width, height, diagnostics, options.NativeTextMeasure!, options.NativeTextDefaultFontFamily);
-        foreach (OfficeImageExportDiagnostic diagnostic in diagnostics) {
-            string code = diagnostic.Code switch {
-                "POWERPOINT_TEXT_OVERFLOW" => "text-box-overflow",
-                "POWERPOINT_TEXT_PADDING" => "text-box-padding",
-                PptCore.PowerPointImageExportDiagnosticCodes.SmallCapsApproximated => "small-caps-approximation",
-                PptCore.PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated => "baseline-percent-approximation",
-                _ => diagnostic.Code
-            };
-            if (code == "text-box-overflow") {
-                AddLayoutWarning(options, slideNumber, code, diagnostic.Message,
-                    PdfCore.PdfLayoutDiagnosticKind.ClippedContent, "PowerPointTextBox",
-                    diagnostic.Message, x, y, width, height);
-            } else {
-                AddWarning(options, slideNumber, code, diagnostic.Message);
-            }
-        }
-        foreach (PptCore.PowerPointTextRun run in textBox.Paragraphs.SelectMany(paragraph => paragraph.InlineNodes)
-                     .Where(node => node.Run != null).Select(node => node.Run!)) {
-            if (run.Hyperlink is { IsAbsoluteUri: false })
-                AddWarning(options, slideNumber, "relative-hyperlink", "Skipped a relative PowerPoint hyperlink because PDF URI annotations require absolute targets.");
-        }
-        if (drawing.Elements.Count > 0) canvas.Drawing(drawing, x, y, width, height);
-    }
-
-    private static void RenderTextBoxFrame(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
-        OfficeColor? fill = textBox.FillTransparency == 100 ? null : ParseOfficeColor(textBox.FillColor);
-        OfficeColor? outline = ParseOfficeColor(textBox.OutlineColor);
-        if (!fill.HasValue && !outline.HasValue) {
-            return;
-        }
-
-        OfficeShape frame = OfficeShape.Rectangle(width, height);
-        frame.FillColor = fill;
-        if (textBox.FillTransparency.HasValue && textBox.FillTransparency.Value > 0 && textBox.FillTransparency.Value < 100) {
-            frame.FillOpacity = 1D - textBox.FillTransparency.Value / 100D;
-        }
-
-        frame.StrokeColor = outline;
-        frame.StrokeWidth = outline.HasValue ? textBox.OutlineWidthPoints ?? 0.75D : 0D;
-        frame.StrokeDashStyle = MapDash(textBox.OutlineDash.ToOpenXml());
-        canvas.Shape(frame, x, y, rotationAngle: textBox.Rotation ?? 0D);
     }
 
     private static string ApplyPowerPointDisplayCase(
@@ -623,9 +506,8 @@ public static partial class PowerPointPdfConverterExtensions {
             string? linkUri = null;
             if (hyperlink != null && hyperlink.IsAbsoluteUri) {
                 linkUri = hyperlink.AbsoluteUri;
-            } else if (hyperlink != null) {
-                AddWarning(options, slideNumber, "relative-picture-hyperlink", "Skipped a relative PowerPoint picture hyperlink because PDF URI annotations require absolute targets.");
             }
+            string? destination = ResolveSlideLinkDestination(hyperlink, slideNumber, options, "picture");
 
             byte[] imageBytes = picture.GetImageBytes();
             AddPowerPointPictureAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
@@ -643,6 +525,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 rotationAngle: picture.Rotation ?? 0D,
                 horizontalFlip: picture.HorizontalFlip == true,
                 verticalFlip: picture.VerticalFlip == true);
+            if (destination != null) RenderSlideLinkFrame(canvas, picture, destination, x, y, width, height);
         } catch (Exception ex) {
             AddLayoutWarning(
                 options,
@@ -684,7 +567,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
         OfficeShape? shape = CreateOfficeShape(autoShape.ShapeType.ToOpenXml(), autoShape, width, height);
         if (shape == null) {
-            AddWarning(options, slideNumber, "unsupported-auto-shape", "Skipped unsupported PowerPoint auto-shape type '" + GetShapePresetName(autoShape.ShapeType.ToOpenXml()) + "'.");
+            AddWarning(options, slideNumber, "unsupported-auto-shape", "Skipped unsupported PowerPoint auto-shape type '" + GetShapePresetName(autoShape.ShapeType.ToOpenXml()) + "'.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
@@ -767,7 +650,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         if (warnInvalidBounds) {
-            AddWarning(options, slideNumber, "invalid-shape-bounds", "Skipped a PowerPoint shape with non-positive or off-slide PDF bounds.");
+            AddWarning(options, slideNumber, "invalid-shape-bounds", "Skipped a PowerPoint shape with non-positive or off-slide PDF bounds.", lossKind: OfficeConversionLossKind.Omission);
         }
 
         return false;
@@ -898,15 +781,4 @@ public static partial class PowerPointPdfConverterExtensions {
         return OfficeColor.TryParseHex(normalized, out OfficeColor color) ? color : (OfficeColor?)null;
     }
 
-    private static void AddWarning(PowerPointToPdfOptions options, int slideNumber, string code, string message) {
-        var warning = new PowerPointPdfExportWarning(slideNumber, code, message);
-        options.Warnings.Add(warning);
-        options.Report.Add(warning.ToConversionWarning());
-    }
-
-    private static void AddWarning(PowerPointToPdfOptions options, int slideNumber, string code, string message, PdfCore.PdfLayoutDiagnostic layoutDiagnostic) {
-        var warning = new PowerPointPdfExportWarning(slideNumber, code, message, layoutDiagnostic);
-        options.Warnings.Add(warning);
-        options.Report.Add(warning.ToConversionWarning());
-    }
 }

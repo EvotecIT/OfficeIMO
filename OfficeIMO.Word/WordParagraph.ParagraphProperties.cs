@@ -90,7 +90,7 @@ namespace OfficeIMO.Word {
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
-                indentation.Left = value?.ToString();
+                indentation.Left = value.HasValue ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
                 props.Indentation = indentation;
             }
         }
@@ -128,7 +128,7 @@ namespace OfficeIMO.Word {
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
-                indentation.Right = value?.ToString();
+                indentation.Right = value.HasValue ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
                 props.Indentation = indentation;
             }
         }
@@ -238,7 +238,7 @@ namespace OfficeIMO.Word {
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
-                indentation.FirstLine = value?.ToString();
+                indentation.FirstLine = value.HasValue ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
                 props.Indentation = indentation;
             }
         }
@@ -276,7 +276,7 @@ namespace OfficeIMO.Word {
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
-                indentation.Hanging = value?.ToString();
+                indentation.Hanging = value.HasValue ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
                 props.Indentation = indentation;
             }
         }

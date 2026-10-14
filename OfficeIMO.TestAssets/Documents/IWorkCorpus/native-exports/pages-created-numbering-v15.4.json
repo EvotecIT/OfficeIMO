@@ -1,0 +1,364 @@
+{
+  "schemaVersion": 1,
+  "profile": "native Pages two-level decimal body-list creation",
+  "application": {
+    "name": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79"
+  },
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "candidateBase": "65e1eb83aba3f05e3b36b62cb8ec04431b6075b0",
+  "artifacts": {
+    "created": {
+      "path": "pages-created-numbering-v15.4.pages",
+      "bytes": 17340,
+      "sha256": "ec6ca0c63892a5d266478be084a585f25721f269723b861bc5f163354a91606d"
+    },
+    "listOnly": {
+      "path": "pages-created-numbering-only-v15.4.pages",
+      "bytes": 6254,
+      "sha256": "c6ba923da791eb24bca60d58454cebddd6d52b84ca7ae7ea25ef638c7a2d9d26"
+    },
+    "nativeEdited": {
+      "path": "pages-created-numbering-edited-v15.4.pages",
+      "bytes": 78389,
+      "sha256": "4a7c98de6f2b0f95ad04f0591d36788d1cdad11cca24222a828d5d3abfa0022a"
+    },
+    "nativeDocx": {
+      "path": "pages-created-numbering-v15.4.docx",
+      "bytes": 10160,
+      "sha256": "46bf3c63d2838cdc012bbb50c0821fa6efc9f09839a2a1cc162c1b66206cfeb6"
+    },
+    "nativeEditedDocx": {
+      "path": "pages-created-numbering-edited-v15.4.docx",
+      "bytes": 10175,
+      "sha256": "4171db680bf93e6cc01908b268a3a774e4a1828d0690ebad3e4e6d9dc675d038"
+    },
+    "nativePdf": {
+      "path": "pages-created-numbering-v15.4.pdf",
+      "bytes": 67541,
+      "sha256": "233736b896266e0c1a59816ddf3742a3774b9c38f194eabff7c799015bad1bf5"
+    },
+    "nativeEditedPdf": {
+      "path": "pages-created-numbering-edited-v15.4.pdf",
+      "bytes": 68064,
+      "sha256": "45d1d063e86a478bbd39e9332e08f91d56f4ab5c593745d1dc69513bad821002"
+    },
+    "officeimoPdf": {
+      "path": "pages-created-numbering-officeimo-v15.4.pdf",
+      "bytes": 10062,
+      "sha256": "d5aaa13633b5f23e363e2f1a4edf1c9d04e9d9f00ff4a2b731552b839fb2b4d0"
+    },
+    "officeimoEditedPdf": {
+      "path": "pages-created-numbering-edited-officeimo-v15.4.pdf",
+      "bytes": 10084,
+      "sha256": "62384557eee9ff853a3256a2085f1751567a9669bb278f6976458eef01ba0370"
+    },
+    "nativeOpen": {
+      "path": "pages-created-numbering-v15.4-open.png",
+      "bytes": 75523,
+      "sha256": "d610322018167f316e5c56a73548421d3b7356c4b609aec24b3f7e6ad5a5e9ee"
+    },
+    "nativeReopened": {
+      "path": "pages-created-numbering-v15.4-reopened.png",
+      "bytes": 118354,
+      "sha256": "896c38dd245c0f4008d3846616b229013674172bdc33b7ab4243fe32cf76a9d1"
+    },
+    "nativeListOnlyOpen": {
+      "path": "pages-created-numbering-only-v15.4-open.png",
+      "bytes": 47686,
+      "sha256": "016a38e3196fd0e5a181907156100684ed25fbd0c5886d7a9d95bb4b94dd1deb"
+    },
+    "nativeRaster": {
+      "path": "pages-created-numbering-v15.4-native.png",
+      "bytes": 42160,
+      "sha256": "0247893126c1a5bfdc06fc2368280060090563851c703a0d8adcdf357c47a4b5"
+    },
+    "nativeEditedRaster": {
+      "path": "pages-created-numbering-edited-v15.4-native.png",
+      "bytes": 44864,
+      "sha256": "f4b1d6089a169c3438f272120acf95c19a33e11ae4bca95ae649cf0467fb515d"
+    },
+    "officeimoRaster": {
+      "path": "pages-created-numbering-officeimo-v15.4.png",
+      "bytes": 41572,
+      "sha256": "c4d196c24594956d6438e1ac53c4d6b2bb5bd89a4290738eca03c4c3d316575a"
+    },
+    "officeimoEditedRaster": {
+      "path": "pages-created-numbering-edited-officeimo-v15.4.png",
+      "bytes": 44258,
+      "sha256": "44cd5a74f409af33ee8207a915c7544bc9b6b1caa9c4c74142a5f58a8b8c804c"
+    },
+    "independentCreated": {
+      "path": "pages-created-numbering-v15.4-decode.json",
+      "bytes": 21086,
+      "sha256": "129bce1f75b8f67f2018365fef40fe5dac89ab6a7360a4813246e9e607fce333"
+    },
+    "independentListOnly": {
+      "path": "pages-created-numbering-only-v15.4-decode.json",
+      "bytes": 4860,
+      "sha256": "7927fcda5e0fb526061faf7e1bb3a6d106232f38f8b02cf682163dda19353dcf"
+    },
+    "independentNativeEdited": {
+      "path": "pages-created-numbering-edited-v15.4-decode.json",
+      "bytes": 42083,
+      "sha256": "f60fac537cf443ed9177df03f666fd3fbcd7a5e66ec7d7ea8a951a69a4e995d1"
+    },
+    "independentPdf": {
+      "path": "pages-created-numbering-v15.4-pdf-decode.json",
+      "bytes": 3153,
+      "sha256": "9b8b0d07e0d628f3d7bbb998692989fea1db7ec24617a8369230514a880554e5"
+    },
+    "independentDocx": {
+      "path": "pages-created-numbering-v15.4-docx-decode.json",
+      "bytes": 11022,
+      "sha256": "dd044b2e508d10997c4176567b89626466243d7a8c42b421ea48826b9bd5dcdb"
+    },
+    "alphaPayload": {
+      "path": "keynote-created-images-alpha.png",
+      "bytes": 220,
+      "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5"
+    }
+  },
+  "cases": [
+    {
+      "case": "created",
+      "source": "created",
+      "nativePdf": "nativePdf",
+      "officeimoPdf": "officeimoPdf",
+      "expectedItems": [
+        {
+          "text": "Parent seven",
+          "number": 7,
+          "level": 0
+        },
+        {
+          "text": "Parent eight",
+          "number": 8,
+          "level": 0
+        },
+        {
+          "text": "Continued nine",
+          "number": 9,
+          "level": 0
+        },
+        {
+          "text": "Child one",
+          "number": 1,
+          "level": 1
+        },
+        {
+          "text": "Child two",
+          "number": 2,
+          "level": 1
+        },
+        {
+          "text": "Parent ten",
+          "number": 10,
+          "level": 0
+        },
+        {
+          "text": "Reset child one",
+          "number": 1,
+          "level": 1
+        },
+        {
+          "text": "Child restart five",
+          "number": 5,
+          "level": 1
+        },
+        {
+          "text": "Separate parent three",
+          "number": 3,
+          "level": 0
+        },
+        {
+          "text": "Resumed child six",
+          "number": 6,
+          "level": 1
+        },
+        {
+          "text": "Resumed parent eleven",
+          "number": 11,
+          "level": 0
+        },
+        {
+          "text": "Reset child one again",
+          "number": 1,
+          "level": 1
+        },
+        {
+          "text": "Parent restart four",
+          "number": 4,
+          "level": 0
+        },
+        {
+          "text": "Parent five",
+          "number": 5,
+          "level": 0
+        }
+      ]
+    },
+    {
+      "case": "nativeEdited",
+      "source": "nativeEdited",
+      "nativePdf": "nativeEditedPdf",
+      "officeimoPdf": "officeimoEditedPdf",
+      "expectedItems": [
+        {
+          "text": "Parent seven",
+          "number": 7,
+          "level": 0
+        },
+        {
+          "text": "Inserted parent eight",
+          "number": 8,
+          "level": 0
+        },
+        {
+          "text": "Parent eight",
+          "number": 9,
+          "level": 0
+        },
+        {
+          "text": "Continued nine",
+          "number": 10,
+          "level": 0
+        },
+        {
+          "text": "Child one",
+          "number": 1,
+          "level": 1
+        },
+        {
+          "text": "Child two",
+          "number": 2,
+          "level": 1
+        },
+        {
+          "text": "Parent ten",
+          "number": 11,
+          "level": 0
+        },
+        {
+          "text": "Reset child one",
+          "number": 1,
+          "level": 1
+        },
+        {
+          "text": "Child restart five",
+          "number": 5,
+          "level": 1
+        },
+        {
+          "text": "Separate parent three",
+          "number": 3,
+          "level": 0
+        },
+        {
+          "text": "Resumed child six",
+          "number": 6,
+          "level": 1
+        },
+        {
+          "text": "Resumed parent eleven",
+          "number": 11,
+          "level": 0
+        },
+        {
+          "text": "Reset child one again",
+          "number": 1,
+          "level": 1
+        },
+        {
+          "text": "Parent restart four",
+          "number": 4,
+          "level": 0
+        },
+        {
+          "text": "Parent five",
+          "number": 5,
+          "level": 0
+        }
+      ]
+    }
+  ],
+  "acceptance": {
+    "createdRecords": 87,
+    "bodyParagraphs": 18,
+    "listOnlyRecords": 27,
+    "nativeOpensWithoutRepair": true,
+    "nativeEdit": "Insert a parent after Parent seven; save, close and reopen; export PDF and DOCX after reopening.",
+    "listOnlyOpensWithoutRepairOrTrailingMarker": true,
+    "nativeTextAndMarkerFont": "Arial, 12 points, scale one",
+    "nativeDocxIndentsTwips": {
+      "level0": 360,
+      "level1": 720,
+      "hanging": 360
+    },
+    "nativeEditedSparseRestart": "Paragraph data at UTF-16 offset 23 has restart flag 1; inserted continuation at 36 has no new level entry and a zero counter start. Restart applies only at its own paragraph boundary.",
+    "nativeAndComposedPdfMarkers": "All 14 original and 15 edited items agree, including restarts, parent resets, plain gaps, inline table/image and return to an earlier group.",
+    "strictSavedOfficeimoDocx": true,
+    "allNativeAndComposedPagesInspected": true
+  },
+  "independentDecoder": {
+    "provider": "numbers-parser",
+    "providerVersion": "4.19.0",
+    "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+    "createdCommand": "python Build/IWork/verify-pages-creation.py <created.pages> --descriptor <descriptor.pb> --out <graph.json>",
+    "nativeEditedCommand": "python Build/IWork/extract-pages-list-profile.py <edited.pages> --descriptor <descriptor.pb> --out <graph.json>"
+  },
+  "composedPdf": {
+    "created": {
+      "pages": 1,
+      "sourceUnits": 10,
+      "reconstructedSourceUnits": 10,
+      "omittedSourceUnits": 0,
+      "unassessedSourceUnits": 0
+    },
+    "nativeEdited": {
+      "pages": 1,
+      "sourceUnits": 10,
+      "reconstructedSourceUnits": 10,
+      "omittedSourceUnits": 0,
+      "unassessedSourceUnits": 0
+    },
+    "resourcePolicy": "PortableDeterministic",
+    "fontInputs": [
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf",
+        "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-BoldItalic.ttf",
+        "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Italic.ttf",
+        "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+        "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/TestAssets/NotoEmoji-VariableFont_wght.ttf",
+        "sha256": "dbd8394b0ee513b356b5a101fb0f64628ce9508294523e051a0efb1679bb34e3"
+      }
+    ],
+    "fontDiagnostic": "NativeFontFamilySubstituted: Arial to Helvetica; caller Carlito and Noto Emoji fallbacks",
+    "recordFidelity": "Native records remain captured but unassessed; zero omitted/unassessed selected content units does not mean no loss."
+  },
+  "limits": [
+    "Decimal-dot markers at levels zero and one with uniform black marker/body text and whole-point font size; richer items, tiered numbering, other scripts, bullets and additional containers remain unqualified.",
+    "Returning to an earlier list group encodes explicit starts to restore its authored counters. Later native edits before another group do not propagate through those restored starts.",
+    "Native PDF and DOCX exports and OfficeIMO PDF output are qualified for this fixture. Receiving-application appearance of OfficeIMO DOCX is not qualified.",
+    "Native and composed fonts, emoji appearance, vertical spacing and exact pagination equivalence remain unqualified.",
+    "Pages accessibility text reports ordinal marker positions that differ from its visible counters. Screenshots and native PDF exports supply counter evidence.",
+    "Apple PDFs contain repaired zero-offset xref entries for objects 8,19,20 and extract table text after body text; visual body order is checked separately.",
+    "Additional application versions, runtime architectures, native sandbox and physical-device acceptance remain separate gates."
+  ]
+}

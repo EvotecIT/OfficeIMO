@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-10T17:04:45.251072+00:00",
+  "sourceRevision": "7f7fb9c7740db45ce839036842c83105e9ccb35e",
+  "sourceOnly": true,
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64",
+    "sdk": "10.0.112"
+  },
+  "project": "OfficeIMO.IWork.AotSmoke",
+  "executions": [
+    {
+      "targetFramework": "net8.0",
+      "runtimeVersion": "8.0.31",
+      "runtimeIdentifier": "osx-arm64",
+      "executableSha256": "9451410ddcd44b60c592a13f71c6e9ff902c4d6419f42420fc48085291fe08c9",
+      "executableBytes": 95790296,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 24,
+      "output": [
+        "PASS | simple.pages | 5AEE6D03277D2DB2104F593E64AFE081DEC539F0117B97124B6F99158124C93E | complete editable conversion, save/reopen, source preservation",
+        "PASS | simple.numbers | D0B00D9CAE5985CCCAA3B2FB251FAE92EB0E38360FB4B5DF8B4350EB658F752B | complete editable conversion, save/reopen, source preservation",
+        "PASS | simple.key | BA95755DF82CEB0CA834E1E03E2777C34FAD906320D8336B4F3FEFC6B48607EB | complete editable conversion, save/reopen, source preservation",
+        "PASS | formulas.numbers | DD85BAD68898CE5B065F277C0B9BE1F3C32D696E3BAA6B09D3614BBD35A5249F | complete editable conversion, save/reopen, source preservation",
+        "PASS | bounded iWork NativeAOT destination conversions | .NET 8.0.31",
+        "PASS | native Keynote creation | 8E25C78B8FFF278DFF256515D6D1A7B171F7C313F82EBCD841457C527F87D6A1 | 7423 bytes | deterministic Unicode model, byte/stream/path saves, readback and active cancellation",
+        "PASS | native Keynote rich runs | AA1A3834B31716024420F37B808AE0E8A164BD5BFDCC59719C0B17F5CC1F6654 | 8281 bytes | UTF-16 ranges, decoration resets, deterministic creation, saved/reopened PPTX and run limits",
+        "PASS | native Keynote images | 5523DBE029B9A508D2BF3E3AD1A54C6266AC6C3BDDF8F23D6051FCC5F1E2F765 | 13399 bytes | PNG alpha/JPEG, reserved metadata identities, stacking, deterministic creation, saved/reopened PPTX and image limits",
+        "PASS | native Keynote tables | 51D624971820BD161909E957DCB11ECE88B59F39F95268DB75DC166068FBCE88 | 25227 bytes | Decimal128 numbers, text/booleans, empty grid, Unicode, stacking, deterministic creation, saved/reopened PPTX and table limits",
+        "PASS | native Keynote table borders | native 15.4 source | inherited strokes, region visibility, ordered shared edits, disabled categories and saved/reopened PPTX",
+        "PASS | native Pages body creation | C6822FD3C93E1D9D87CE11270573AEC07AC5AF5167AEFDA1C5C25A8FA683AD53 | 47534 bytes | deterministic graph, rich Unicode paragraphs, plain resets, page settings, caller stream, strict saved/reopened DOCX and paragraph bounds",
+        "PASS | native Pages paragraph layout | 689B9A9A31704D48E8092E189F46928F11B30F783CF87F92D7220EDF33FBEBFD | 8450 bytes | spacing, four tab alignments, TAB text, blank metrics, resets, strict DOCX and custom-tab bounds",
+        "PASS | native Pages decimal levels and continuation | 4696FF27D21DB00E93D7A7985ABA09C22F5F483BF714CE97C680E1A5528A4D53 | parent resets, explicit restarts, plain-text gaps, strict DOCX save/reopen, evaluated counters, marker declarations and geometry",
+        "PASS | native Pages table borders | 16 values, 64 independently decoded edges, hidden edge, physical row heights, fixed grid and complete inline-table flow",
+        "PASS | native Numbers fixed second ranges | 08936B0937A8B07CD70E567F213F2F77C7389F4362B4F2791DC239FD9C4EC823 | three profiles, 42 typed caches, 21 formulas, native XLSX codes, saved/reopened recalculation, integral-second boundaries and explicit display limits",
+        "PASS | native Numbers fixed millisecond ranges | CC4993FADC018E5B31C525A6FBA2D4C847710A2FF1524FC510D12BBB380EB0FF | three profiles, 42 typed caches, 21 formulas, native XLSX codes, saved/reopened recalculation, integral-second boundaries and explicit display limits",
+        "PASS | native Numbers integer functions | 99F2F0445B9985FEAC658FA876502C854452026E383F078D41D41260A9CFC0B1 | 19 bounded literal calls, incompatible cache retention, saved/reopened operand edits, native Excel coercion, typed overflow, shared reference qualification and cell budget",
+        "PASS | native Numbers table borders | 64 independently decoded edges, hidden edge, later edit, saved/native indexed-palette XLSX and explicit native padding loss",
+        "PASS | native Numbers scalar creation | 08F6F8C2B82B99514D657FDBB0402E3FAD25EF7C7005C9B84AFAFD929D1E719C | 22090 bytes | deterministic sheets/tables, Decimal128, Unicode, booleans, empty grid, caller stream, strict saved/reopened XLSX and dense-grid bounds",
+        "PASS | native unchanged Pages save | DC07FA4028AC9F261FDB7CB23F8B409CD80E092CDF8A8ED938ADC420B37AD6B4 | 248 records | complete file-entry identity and caller stream",
+        "PASS | native unchanged Numbers save | C907C567584786CE9C5183A376F61D813F3BF56757DE531CBDBFB1FEFB4FCFD6 | 316 records | complete file-entry identity and caller stream",
+        "PASS | native unchanged Keynote save | C0BC70026C2C977FDE0879F37849C14CD819DC055A3CD7F95E97CAC789828A17 | 205 records | complete file-entry identity and caller stream",
+        "PASS | native Keynote image translation | D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F | exact package, resources, cache acceptance, immutable source, strict saved/reopened PPTX and cancellation",
+        "PASS | native preservation tight source bounds | unchanged/translated saves, expanded carrier and aggregate entries, retained 32KiB decompression and 205-record limits"
+      ],
+      "publishLogSha256": "ca908139488e8d5c88a122f39dadbafa4d0583e50b07aa487ff4bf8023556bf9",
+      "nativeRunLogSha256": "553f58163e4a2bec77f0f86591689feb99af6ae24eead30a1f758a6d05994332"
+    },
+    {
+      "targetFramework": "net10.0",
+      "runtimeVersion": "10.0.12",
+      "runtimeIdentifier": "osx-arm64",
+      "executableSha256": "b7cfabcefea3846f5fe877e765396c0a10824a1649d51d54d6b4e12526ebfceb",
+      "executableBytes": 53323000,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 24,
+      "output": [
+        "PASS | simple.pages | 5AEE6D03277D2DB2104F593E64AFE081DEC539F0117B97124B6F99158124C93E | complete editable conversion, save/reopen, source preservation",
+        "PASS | simple.numbers | D0B00D9CAE5985CCCAA3B2FB251FAE92EB0E38360FB4B5DF8B4350EB658F752B | complete editable conversion, save/reopen, source preservation",
+        "PASS | simple.key | BA95755DF82CEB0CA834E1E03E2777C34FAD906320D8336B4F3FEFC6B48607EB | complete editable conversion, save/reopen, source preservation",
+        "PASS | formulas.numbers | DD85BAD68898CE5B065F277C0B9BE1F3C32D696E3BAA6B09D3614BBD35A5249F | complete editable conversion, save/reopen, source preservation",
+        "PASS | bounded iWork NativeAOT destination conversions | .NET 10.0.12",
+        "PASS | native Keynote creation | 8E25C78B8FFF278DFF256515D6D1A7B171F7C313F82EBCD841457C527F87D6A1 | 7423 bytes | deterministic Unicode model, byte/stream/path saves, readback and active cancellation",
+        "PASS | native Keynote rich runs | AA1A3834B31716024420F37B808AE0E8A164BD5BFDCC59719C0B17F5CC1F6654 | 8281 bytes | UTF-16 ranges, decoration resets, deterministic creation, saved/reopened PPTX and run limits",
+        "PASS | native Keynote images | 5523DBE029B9A508D2BF3E3AD1A54C6266AC6C3BDDF8F23D6051FCC5F1E2F765 | 13399 bytes | PNG alpha/JPEG, reserved metadata identities, stacking, deterministic creation, saved/reopened PPTX and image limits",
+        "PASS | native Keynote tables | 51D624971820BD161909E957DCB11ECE88B59F39F95268DB75DC166068FBCE88 | 25227 bytes | Decimal128 numbers, text/booleans, empty grid, Unicode, stacking, deterministic creation, saved/reopened PPTX and table limits",
+        "PASS | native Keynote table borders | native 15.4 source | inherited strokes, region visibility, ordered shared edits, disabled categories and saved/reopened PPTX",
+        "PASS | native Pages body creation | C6822FD3C93E1D9D87CE11270573AEC07AC5AF5167AEFDA1C5C25A8FA683AD53 | 47534 bytes | deterministic graph, rich Unicode paragraphs, plain resets, page settings, caller stream, strict saved/reopened DOCX and paragraph bounds",
+        "PASS | native Pages paragraph layout | 689B9A9A31704D48E8092E189F46928F11B30F783CF87F92D7220EDF33FBEBFD | 8450 bytes | spacing, four tab alignments, TAB text, blank metrics, resets, strict DOCX and custom-tab bounds",
+        "PASS | native Pages decimal levels and continuation | 4696FF27D21DB00E93D7A7985ABA09C22F5F483BF714CE97C680E1A5528A4D53 | parent resets, explicit restarts, plain-text gaps, strict DOCX save/reopen, evaluated counters, marker declarations and geometry",
+        "PASS | native Pages table borders | 16 values, 64 independently decoded edges, hidden edge, physical row heights, fixed grid and complete inline-table flow",
+        "PASS | native Numbers fixed second ranges | 08936B0937A8B07CD70E567F213F2F77C7389F4362B4F2791DC239FD9C4EC823 | three profiles, 42 typed caches, 21 formulas, native XLSX codes, saved/reopened recalculation, integral-second boundaries and explicit display limits",
+        "PASS | native Numbers fixed millisecond ranges | CC4993FADC018E5B31C525A6FBA2D4C847710A2FF1524FC510D12BBB380EB0FF | three profiles, 42 typed caches, 21 formulas, native XLSX codes, saved/reopened recalculation, integral-second boundaries and explicit display limits",
+        "PASS | native Numbers integer functions | 99F2F0445B9985FEAC658FA876502C854452026E383F078D41D41260A9CFC0B1 | 19 bounded literal calls, incompatible cache retention, saved/reopened operand edits, native Excel coercion, typed overflow, shared reference qualification and cell budget",
+        "PASS | native Numbers table borders | 64 independently decoded edges, hidden edge, later edit, saved/native indexed-palette XLSX and explicit native padding loss",
+        "PASS | native Numbers scalar creation | 08F6F8C2B82B99514D657FDBB0402E3FAD25EF7C7005C9B84AFAFD929D1E719C | 22090 bytes | deterministic sheets/tables, Decimal128, Unicode, booleans, empty grid, caller stream, strict saved/reopened XLSX and dense-grid bounds",
+        "PASS | native unchanged Pages save | DC07FA4028AC9F261FDB7CB23F8B409CD80E092CDF8A8ED938ADC420B37AD6B4 | 248 records | complete file-entry identity and caller stream",
+        "PASS | native unchanged Numbers save | C907C567584786CE9C5183A376F61D813F3BF56757DE531CBDBFB1FEFB4FCFD6 | 316 records | complete file-entry identity and caller stream",
+        "PASS | native unchanged Keynote save | C0BC70026C2C977FDE0879F37849C14CD819DC055A3CD7F95E97CAC789828A17 | 205 records | complete file-entry identity and caller stream",
+        "PASS | native Keynote image translation | D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F | exact package, resources, cache acceptance, immutable source, strict saved/reopened PPTX and cancellation",
+        "PASS | native preservation tight source bounds | unchanged/translated saves, expanded carrier and aggregate entries, retained 32KiB decompression and 205-record limits"
+      ],
+      "publishLogSha256": "35b9c4df976327fa2c8fc1f8a6479613e983d2c83a75346f5a52f4aff1b071e1",
+      "nativeRunLogSha256": "699cb93ceed1ef550cd9f4ddafc9e5f0e13251d1f51d1fb81f9d04f530f249cb"
+    }
+  ],
+  "productionSourceFiles": [
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.cs",
+      "sha256": "0cd694e332ea75fbebb0e10923c607d9d1d9f4a1294eae44d26c09dc13f698e8"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.Validation.cs",
+      "sha256": "eba4f72a649a59843396078677e4bfcef3e39ec75a118e7328028327d1979820"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.InlineObjects.cs",
+      "sha256": "c5cc19fe685bad22c476050111a3cb6829348c33df1aa491001665a7fdb36488"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.InlineTableLayout.cs",
+      "sha256": "bf80b1dbf28e3cc9d41f0d58377a95de733cd37828c1cdca7458e469e2053daf"
+    },
+    {
+      "path": "OfficeIMO.Word.IWork/WordIWorkConverter.TableRowHeights.cs",
+      "sha256": "ec39d10a02c5e9c39be43822baab233ce9ac21ca7acdce79a32bcc3647044a84"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativeKeynoteWriterSmoke.Images.cs",
+      "sha256": "415711e283a8905caf1a8d487ab39284b1ce805dccd6dbae9798d48dc1756cd3"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativeKeynoteWriterSmoke.RichText.cs",
+      "sha256": "9d41f8d9c93be0dd6f72bd49f1d479bfe544ef24a039e460bffe863fa27eedb3"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativeKeynoteWriterSmoke.Tables.cs",
+      "sha256": "fe284e1c740402af5d51f73cc3f2ff9f4202e951396950121f763b530855b903"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativeKeynoteWriterSmoke.cs",
+      "sha256": "dbb290e97ab24e4d3f2408e4a07da7048fc30c137ef8e231758e7e4b29b17afb"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativeNumbersBorderSmoke.cs",
+      "sha256": "6b98b8e889539ecab5f63ac128fab5ee86a83cdb8c38ef63fd5e19c0ca5224b6"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativeNumbersFixedDurationSmoke.cs",
+      "sha256": "2f1129046b39347cd56feb6a16f2517531121201a2886b3c3be4597b7df427ac"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativeNumbersIntegerFunctionSmoke.cs",
+      "sha256": "0fdc98eeb767c53318c8bbd4bbb88efa9c6081ef8cd674285a7b12a257361b80"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativeNumbersWriterSmoke.cs",
+      "sha256": "aa886e73d214acd926ff8220f5eff1a7ed773096d2024ad6cf3e401b8adfe57f"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativePagesBorderSmoke.cs",
+      "sha256": "51ba6285488ae6c9cbc9ce66e331b7e47f615394c0cccb10e2fc9b928178d2ec"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativePagesListCounterSmoke.cs",
+      "sha256": "54e222370b6c6c03bf51ca00cb114e647df9c7db28ff17accfb9e360b1ab1a5d"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativePagesParagraphWriterSmoke.cs",
+      "sha256": "14d13ab38a8e294f93b448db07957b3cd7a32492f881f504cd28f497ad7887b0"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativePagesWriterSmoke.cs",
+      "sha256": "19def56560d65579954eff23179fc83b74d00f8d831d7747517103aef76bb038"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/NativePreservationSmoke.cs",
+      "sha256": "50bbd797165ea76edd7a57ffe18443f4ff3993ed3abd7d7e9daa5d73cac738c7"
+    },
+    {
+      "path": "OfficeIMO.IWork.AotSmoke/Program.cs",
+      "sha256": "65421a7c7ff8a858f85e800bf2e08cae2741f998021d8390285c25a1be9477d8"
+    }
+  ],
+  "nativeSource": {
+    "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4.pages",
+    "sha256": "d6fefca93e07ab4c2f8557f91ad6dd34bca5864c0372733751d74db992fcc65d",
+    "bytes": 666745
+  },
+  "nativeQualification": {
+    "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-inline-table-flow-word-v16.113.3.json",
+    "sha256": "0f4ae8b9baa0072af43cb8b7f53c4770115ae5fb3fd8cf123ad6933a1643efa6"
+  },
+  "managedValidation": [
+    {
+      "receipt": "iwork-flow-final-net8.trx",
+      "sha256": "aa6887d26deb1a67d97e59d64675530a5b993c46a549e1753fa6f4c1666dc661",
+      "passed": 2785,
+      "failed": 0
+    },
+    {
+      "receipt": "iwork-flow-final-net10.trx",
+      "sha256": "e602c0d819146bf715bad47032bfbba82a67c60db0205e5d4bb33b99ce58c11a",
+      "passed": 2785,
+      "failed": 0
+    },
+    {
+      "receipt": "workflows-iwork-flow-final-net8.trx",
+      "sha256": "2d42cab882e119dcf82478ab476f9a7418445b83ab38087ee29ba97f0f15ea4e",
+      "passed": 98,
+      "failed": 0
+    },
+    {
+      "receipt": "workflows-iwork-flow-final-net10.trx",
+      "sha256": "d2329053d82ef761ccc99aaa60809dac123abd5e04ba67f0d21b089122398ddb",
+      "passed": 98,
+      "failed": 0
+    }
+  ],
+  "scope": [
+    "Actual unsigned macOS arm64 native executable execution on .NET 8 and .NET 10.",
+    "Default strict complete conversion of the independently decoded 4x4 Pages source, 16 values, 64 edges, hidden edge and blank cell.",
+    "Saved/reopened DOCX has no leading attachment paragraph, fixed 8640-twip width and four 2160-twip columns, padding-aware physical row declarations 560/540/560/560 twips.",
+    "Existing 24 bounded conversion, creation, formula/format, border, cancellation and preservation smoke contracts remain green."
+  ],
+  "limits": [
+    "Consecutive-table separation has managed and native Word proof in the linked receipt; this native executable exercises the single-table profile.",
+    "NativeAOT execution does not establish composed PDF NativeAOT, typography equivalence, signed sandbox/provider acceptance, physical devices, other architectures/platforms or published packages.",
+    "Pages 15.4 DOCX reimport remains 23 points taller; retain the qualified Word physical-height mapping and the receiving-application limit."
+  ],
+  "reproduction": [
+    "dotnet publish OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj -c Release -f <net8.0|net10.0> -r osx-arm64 -p:UserAotValidation=true -o <task-output>",
+    "Run the produced OfficeIMO.IWork.AotSmoke executable directly; all 24 PASS lines must be present."
+  ]
+}

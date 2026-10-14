@@ -1,6 +1,6 @@
 ---
 name: officeimo-document-operator
-description: Use when a user wants to inspect, search, summarize, extract from, or convert a local Office or document file with OfficeIMO, including DOCX, XLSX, PPTX, PDF, MSG, EML, RTF, ODT, ODS, ODP, OneNote, Markdown, HTML, CSV, EPUB, and related formats.
+description: Use when a user wants to inspect, search, summarize, extract from, or convert a local Office or document file with OfficeIMO, including DOCX, XLSX, PPTX, PDF, MSG, EML, RTF, ODT, ODS, ODP, OneNote, Apple Pages/Numbers/Keynote, Markdown, HTML, CSV, EPUB, and related formats.
 ---
 
 # OfficeIMO Document Operator
@@ -16,6 +16,8 @@ Use the plugin's `officeimo_*` MCP tools when available. They return compact str
 3. Call `officeimo_fetch` only for selected result ids. Follow `nextCursor` only when more of that result is needed.
 4. Call `officeimo_convert` only when the user wants a file written. Choose a new output path unless overwrite was explicitly requested.
 5. Call `officeimo_capabilities` only when format support is uncertain; filter by extension.
+
+For iWork ZIP files and directory packages, `officeimo_convert` also accepts the matching `docx`, `xlsx`, or `pptx` destination and `pdf`. Keep default strict acceptance unless the user explicitly accepts partial Office reconstruction. PDF always requires complete editable content; embedded previews and partial output are rejected. Retain `sourceSha256`, the workflow publication status, and per-stage fidelity diagnostics. Directory packages use the same allowed-root checks and captured source identity as file inputs.
 
 ## PDF output workflows
 
