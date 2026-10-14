@@ -289,6 +289,9 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "transform-origin", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedOriginSyntax(normalized);
         }
+        if (string.Equals(propertyName, "clip", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssLegacyClipParser.IsSupportedSyntax(normalized);
+        }
         if (string.Equals(propertyName, "clip-path", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssClipPathParser.IsSupportedSyntax(normalized);
         }
@@ -390,11 +393,16 @@ public static partial class HtmlComputedStyleEngine {
         OfficeIMO.Html.Css.HtmlCssPropertyParseResult owned =
             OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(propertyName, value, UnboundedPropertyTokenization);
         if (owned.Definition != null && owned.IsAccepted) return true;
+        if (DimensionDeclarationNames.Contains(propertyName)) return IsIntrinsicDimensionSyntax(value);
         if (owned.Definition != null
             && (string.Equals(owned.Definition.Name, "display", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(owned.Definition.Name, "visibility", StringComparison.OrdinalIgnoreCase))) return false;
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "overflow-wrap":
+                return IsKnownKeyword(normalized, "normal", "break-word", "anywhere");
+            case "word-break":
+                return IsKnownKeyword(normalized, "normal", "break-all", "keep-all", "break-word");
             case "place-items":
             case "place-self":
             case "place-content":
@@ -451,7 +459,7 @@ public static partial class HtmlComputedStyleEngine {
                     && (containerNames == "none" || TryParseContainerNameList(containerNames, out _))
                     && IsKnownKeyword(containerType, "normal", "size", "inline-size");
             case "display":
-                return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-caption", "table-column-group", "table-column", "table-header-group", "table-row", "table-cell", "list-item", "contents", "flow-root", "-webkit-box");
+                return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "inline-table", "table-caption", "table-column-group", "table-column", "table-header-group", "table-row-group", "table-footer-group", "table-row", "table-cell", "list-item", "contents", "flow-root", "-webkit-box");
             case "-webkit-box-orient":
                 return IsKnownKeyword(normalized, "vertical", "horizontal");
             case "visibility":
@@ -468,6 +476,13 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "solid", "double", "dotted", "dashed", "wavy");
             case "text-decoration-thickness":
                 return IsTextDecorationThicknessSyntax(value);
+            case "text-underline-offset":
+                return normalized == "auto" || HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)
+                    && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, 100D, 100D, out _);
+            case "text-decoration-skip-ink":
+                return IsKnownKeyword(normalized, "auto", "none", "all");
+            case "text-underline-position":
+                return IsKnownKeyword(normalized, "auto", "under", "left", "right", "from-font");
             case "font-style":
                 return normalized == "normal" || normalized == "italic" || normalized.StartsWith("oblique", StringComparison.Ordinal);
             case "font-stretch":

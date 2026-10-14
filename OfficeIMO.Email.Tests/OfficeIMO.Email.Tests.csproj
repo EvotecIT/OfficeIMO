@@ -39,8 +39,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <!-- MsgReader's legacy dependency range otherwise selects an older PKCS package. -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <!-- Service MsgReader's .NET Framework oracle dependency without changing production package references. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" PrivateAssets="all" />
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
 

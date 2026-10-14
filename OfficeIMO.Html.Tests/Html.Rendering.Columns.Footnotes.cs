@@ -126,7 +126,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText last = Assert.Single(lastPage.Visuals.OfType<HtmlRenderText>(), t => t.Text == "Line04");
         HtmlRenderText previous = Assert.Single(lastPage.Visuals.OfType<HtmlRenderText>(), t => t.Text == "Line03");
         Assert.Equal(previous.X, last.X, 3);
-        Assert.Equal(20D, last.Y - previous.Y, 3);
+        Assert.Equal(20D, last.LayoutY - previous.LayoutY, 3);
         Assert.Equal(5, document.Pages.SelectMany(p => p.Visuals).OfType<HtmlRenderText>().Count(t => t.Text.StartsWith("Line")));
     }
 

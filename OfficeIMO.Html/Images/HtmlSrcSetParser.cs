@@ -185,17 +185,10 @@ public static class HtmlSrcSetParser {
     }
 
     private static bool TryParseNonNegativeFloatingPoint(string value) {
-        if (!System.Text.RegularExpressions.Regex.IsMatch(
-                value,
-                "^-?(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?$",
-                System.Text.RegularExpressions.RegexOptions.CultureInvariant,
-                TimeSpan.FromMilliseconds(100)) ||
-            !double.TryParse(
-                value,
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out double result)) return false;
-        return result > 0D && !double.IsInfinity(result) && !double.IsNaN(result);
+        // A srcset density has no leading '+', unlike a CSS number.
+        return value.Length > 0 && value[0] != '+'
+            && OfficeCssNumber.TryParse(value, out double result)
+            && result > 0D;
     }
 
     private static string TrimHtmlWhitespace(string value) {

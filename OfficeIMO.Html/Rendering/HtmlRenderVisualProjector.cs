@@ -6,16 +6,18 @@ namespace OfficeIMO.Html;
 internal sealed class HtmlRenderVisualProjector {
     private readonly int _maximumVisuals;
     private readonly CancellationToken _cancellationToken;
+    private readonly bool _navigationAlreadyPageOwned;
     private readonly HashSet<HtmlRenderLogicalTextGroup> _ownedLogicalText = new();
     private readonly HashSet<HtmlRenderText> _ownedText = new();
     private readonly HashSet<HtmlRenderVisual> _ownedNavigation = new();
     private readonly List<ProjectionClip> _clips = new();
     private int _materializedVisuals;
 
-    internal HtmlRenderVisualProjector(int maximumVisuals, CancellationToken cancellationToken) {
+    internal HtmlRenderVisualProjector(int maximumVisuals, CancellationToken cancellationToken, bool navigationAlreadyPageOwned = false) {
         if (maximumVisuals <= 0) throw new ArgumentOutOfRangeException(nameof(maximumVisuals));
         _maximumVisuals = maximumVisuals;
         _cancellationToken = cancellationToken;
+        _navigationAlreadyPageOwned = navigationAlreadyPageOwned;
     }
 
     internal IReadOnlyList<HtmlRenderVisual> Project(
@@ -84,9 +86,16 @@ internal sealed class HtmlRenderVisualProjector {
         }
         // Container frames describe flow, not transformed or overflowing child paint.
         // Select leaves in destination coordinates and retain their enclosing graphics state.
-        if (!Intersects(visual, transform, left, top, right, bottom)) return null;
-        if ((visual is HtmlRenderNamedDestination || visual is HtmlRenderBookmarkAnchor)
-            && !_ownedNavigation.Add(visual)) {
+        if (visual is HtmlRenderNamedDestination or HtmlRenderBookmarkAnchor) {
+            // Navigation has a point and page owner even when its element paints
+            // nothing. Ancestor paint clips must not remove an incoming target.
+            OfficePoint point = transform.TransformPoint(new OfficePoint(visual.X, visual.Y));
+            // Vertical slicing assigns a point to one page, including points
+            // outside its horizontal paint bounds. Stitching preserves the page
+            // owner already established by layout, even for off-page targets.
+            if (!_navigationAlreadyPageOwned && (point.Y < top || point.Y >= bottom)) return null;
+            if (!_ownedNavigation.Add(visual)) return null;
+        } else if (!Intersects(visual, transform, left, top, right, bottom)) {
             return null;
         }
         if (visual is HtmlRenderText text && !_ownedText.Add(text)) {

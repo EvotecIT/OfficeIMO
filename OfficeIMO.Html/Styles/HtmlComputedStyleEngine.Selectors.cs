@@ -107,14 +107,28 @@ public static partial class HtmlComputedStyleEngine {
 
     private static bool MatchesSimpleSelector(IElement element, string selector) {
         if (selector.StartsWith(".", StringComparison.Ordinal)) {
-            return element.ClassList.Contains(selector.Substring(1));
+            return MatchesClass(element, selector.Substring(1));
         }
 
         if (selector.StartsWith("#", StringComparison.Ordinal)) {
-            return string.Equals(element.Id, selector.Substring(1), StringComparison.Ordinal);
+            return UsesQuirksIdClassMatching(element.Owner)
+                ? OfficeIMO.Html.Css.HtmlCssAscii.EqualsIgnoreCase(element.Id ?? string.Empty, selector.Substring(1))
+                : string.Equals(element.Id, selector.Substring(1), StringComparison.Ordinal);
         }
 
         return string.Equals(element.TagName, selector, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool UsesQuirksIdClassMatching(IDocument? document) => document?.CompatMode == "BackCompat";
+
+    private static string SelectorIdentityKey(string value, bool quirksMode) =>
+        quirksMode ? OfficeIMO.Html.Css.HtmlCssAscii.ToLowerInvariant(value) : value;
+
+    private static bool MatchesClass(IElement element, string name) {
+        if (!UsesQuirksIdClassMatching(element.Owner)) return element.ClassList.Contains(name);
+        foreach (string token in element.ClassList)
+            if (OfficeIMO.Html.Css.HtmlCssAscii.EqualsIgnoreCase(token, name)) return true;
+        return false;
     }
 
     internal static bool TryParsePseudoElementSelector(string selector, out string hostSelector, out HtmlPseudoElementKind kind) {

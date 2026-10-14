@@ -6,6 +6,8 @@ namespace OfficeIMO.Html;
 /// Stable diagnostic codes emitted by the first-party HTML renderer.
 /// </summary>
 public static class HtmlRenderDiagnosticCodes {
+    /// <summary>An intrinsic box-size keyword used auto sizing or omitted a minimum or maximum constraint.</summary>
+    public const string IntrinsicSizeUnsupported = "HtmlRenderIntrinsicSizeUnsupported";
     /// <summary>A fragment hyperlink referenced an element that is absent from the document.</summary>
     public const string HyperlinkTargetUnavailable = "HtmlRenderHyperlinkTargetUnavailable";
     /// <summary>A serialized shadow tree was flattened for static rendering without shadow-scoped CSS or live behavior.</summary>
@@ -56,9 +58,9 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
     /// <summary>A CSS font-variant used a documented managed-rendering approximation.</summary>
     public const string FontVariantApproximated = "HtmlRenderFontVariantApproximated";
-    /// <summary>An authored overline cannot be painted by the static text renderer.</summary>
+    /// <summary>An authored overline cannot be painted in a specialized text context.</summary>
     public const string TextDecorationLineUnsupported = "HtmlRenderTextDecorationLineUnsupported";
-    /// <summary>Authored decoration thickness uses automatic paint thickness while preserving line style and color.</summary>
+    /// <summary>Decoration geometry retains a named approximation outside ordinary horizontal explicit-length paint.</summary>
     public const string TextDecorationThicknessApproximated = "HtmlRenderTextDecorationThicknessApproximated";
     /// <summary>A requested OpenType feature requires a shaping lookup outside the bounded managed subset.</summary>
     public const string OpenTypeFeatureUnsupported = "HtmlRenderOpenTypeFeatureUnsupported";
@@ -128,6 +130,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string TransformValueUnsupported = "HtmlRenderTransformValueUnsupported";
     /// <summary>A CSS clip-path value used no clipping because it could not be represented.</summary>
     public const string ClipPathValueUnsupported = "HtmlRenderClipPathValueUnsupported";
+    /// <summary>An applicable legacy CSS clip value used no clipping because it could not be represented.</summary>
+    public const string ClipValueUnsupported = "HtmlRenderClipValueUnsupported";
     /// <summary>A PDF semantic tag override was invalid and automatic HTML semantics were used.</summary>
     public const string PdfSemanticTagUnsupported = "HtmlRenderPdfSemanticTagUnsupported";
     /// <summary>A CSS bookmark value was invalid and automatic heading navigation was used.</summary>
@@ -282,10 +286,12 @@ public static class HtmlRenderDiagnosticCodes {
         FontVariantApproximated,
         TextDecorationThicknessApproximated,
         TextDecorationLineUnsupported,
+        TextIndentValueUnsupported,
         OpenTypeFeatureUnsupported,
         ComplexTextShapingUnsupported,
         InlinePaintEffectUnsupported,
         FlexLayoutPending,
+        IntrinsicSizeUnsupported,
         FlexValueUnsupported,
         FloatValueUnsupported,
         MultiColumnLimitExceeded,
@@ -311,6 +317,7 @@ public static class HtmlRenderDiagnosticCodes {
         OverflowValueUnsupported,
         TransformValueUnsupported,
         ClipPathValueUnsupported,
+        ClipValueUnsupported,
         PdfSemanticTagUnsupported,
         BookmarkValueUnsupported,
         FormFieldTransformStaticFallback,

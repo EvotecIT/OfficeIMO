@@ -4,6 +4,36 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
+    /// <summary>Returns the footnote-call font when CSS does not override its user-agent default.</summary>
+    internal static double ResolveDefaultFootnoteCallFontSize(double parentFontSize) => parentFontSize * 0.7D;
+
+    private double ResolveComputedFontSize(
+        string tag,
+        HtmlComputedStyle computed,
+        string fontSizeValue,
+        double parentFontSize,
+        bool pseudoElement,
+        string pseudoSemanticRole) {
+        // Call defaults must precede line-height and other font-relative properties.
+        // Explicit inherit/reset declarations retain the ordinary CSS font contract.
+        if (pseudoElement && pseudoSemanticRole == "footnote-call" && !HasAuthoredValue(computed, "font-size")) {
+            return ResolveDefaultFootnoteCallFontSize(parentFontSize);
+        }
+        double defaultFontSize = pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize);
+        return computed.IsOriginRevertedValue("font-size")
+            ? defaultFontSize
+            : computed.IsResetValue("font-size")
+            ? _options.DefaultFontSize
+            : computed.IsImplicitlyInheritedValue("font-size")
+            ? defaultFontSize
+            : computed.IsInheritedValue("font-size")
+            ? parentFontSize
+            : string.IsNullOrWhiteSpace(fontSizeValue)
+            ? defaultFontSize
+            : ResolveFontSize(fontSizeValue, parentFontSize,
+                tag == "html" && !pseudoElement ? _options.DefaultFontSize : _rootFontSize);
+    }
+
     internal static OfficeFontFaceDescriptor ResolveFontFaceDescriptor(
         string tag,
         HtmlComputedStyle computed,

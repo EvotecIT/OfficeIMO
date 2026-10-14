@@ -139,10 +139,13 @@ internal sealed class OfficeOpenTypeKerning {
     internal OfficeOpenTypeGlyphPositioning[] PositionRun(
         IReadOnlyList<int> glyphs,
         IReadOnlyList<int> scalars,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        bool[]? synthesizedSpaces = null) {
         if (glyphs == null) throw new ArgumentNullException(nameof(glyphs));
         if (scalars == null) throw new ArgumentNullException(nameof(scalars));
         if (glyphs.Count != scalars.Count) throw new ArgumentException("Glyph and scalar runs must have the same length.");
+        if (synthesizedSpaces != null && synthesizedSpaces.Length != glyphs.Count)
+            throw new ArgumentException("Synthesized-space flags must match the glyph run.", nameof(synthesizedSpaces));
 
         var result = new OfficeOpenTypeGlyphPositioning[glyphs.Count];
         if (glyphs.Count < 2) return result;
@@ -160,6 +163,11 @@ internal sealed class OfficeOpenTypeKerning {
         if (hasGposLayout) {
             for (int index = 0; index < pairCount; index++) {
                 if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (OfficeMissingSpaceMetrics.IsSynthesized(synthesizedSpaces, index) ||
+                    OfficeMissingSpaceMetrics.IsSynthesized(synthesizedSpaces, index + 1)) {
+                    pairLookups[index] = new HashSet<ushort>();
+                    continue;
+                }
                 string scriptTag = ResolveScriptTag(scalars[index], scalars[index + 1]);
                 if (!lookupsByScript.TryGetValue(scriptTag, out HashSet<ushort>? lookups)) {
                     lookups = new HashSet<ushort>();
@@ -202,6 +210,10 @@ internal sealed class OfficeOpenTypeKerning {
 
         for (int index = 0; index < pairCount; index++) {
             if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            // A synthesized blank is not glyph zero: its advance must not pick
+            // up unrelated .notdef pair positioning on either side.
+            if (OfficeMissingSpaceMetrics.IsSynthesized(synthesizedSpaces, index) ||
+                OfficeMissingSpaceMetrics.IsSynthesized(synthesizedSpaces, index + 1)) continue;
             if (gposApplied[index]) continue;
             int legacyAdjustment = KernPairAdjustment((ushort)glyphs[index], (ushort)glyphs[index + 1], budget);
             result[index] = result[index].Add(0, legacyAdjustment);
