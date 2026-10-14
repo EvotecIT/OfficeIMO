@@ -218,6 +218,7 @@ namespace OfficeIMO.Excel {
                 cellFormats.ReplaceChild(replacement, applied);
             }
             cellFormats.Count = (uint)cellFormats.Count();
+            if (cellFormats.Parent is Stylesheet stylesheet) StyleBatch.InvalidateCellFormats(stylesheet);
         }
 
     }

@@ -26,8 +26,12 @@ namespace OfficeIMO.Excel {
 
             if (Locking.IsNoLock) {
                 MaterializeDeferredDataSetImportIfNeeded();
-                using (TryBeginStyleBatch()) {
-                    action(this);
+                try {
+                    using (TryBeginStyleBatch()) {
+                        action(this);
+                    }
+                } finally {
+                    CommitCommentVmlChanges();
                 }
                 return;
             }
@@ -39,22 +43,27 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            lck.EnterWriteLock();
-            bool wasBatchOperation = _isBatchOperation;
-            bool hadBatchCellMutations = _batchHasCellMutations;
-            try {
-                MaterializeDeferredDataSetImportIfNeeded();
-                _isBatchOperation = true;
-                _batchHasCellMutations = false;
-                using (TryBeginStyleBatch()) {
-                    action(this);
+            Locking.ExecuteWrite(lck, () => {
+                bool wasBatchOperation = _isBatchOperation;
+                bool hadBatchCellMutations = _batchHasCellMutations;
+                try {
+                    MaterializeDeferredDataSetImportIfNeeded();
+                    _isBatchOperation = true;
+                    _batchHasCellMutations = false;
+                    using (TryBeginStyleBatch()) {
+                        action(this);
+                    }
+                } finally {
+                    // Batch is not a transaction: edits made before a callback throws still need to reach Save.
+                    try {
+                        CommitCommentVmlChanges();
+                        if (_batchHasCellMutations) _excelDocument.MarkPackageDirty();
+                    } finally {
+                        _isBatchOperation = wasBatchOperation;
+                        _batchHasCellMutations = hadBatchCellMutations;
+                    }
                 }
-                if (_batchHasCellMutations) _excelDocument.MarkPackageDirty();
-            } finally {
-                _isBatchOperation = wasBatchOperation;
-                _batchHasCellMutations = hadBatchCellMutations;
-                lck.ExitWriteLock();
-            }
+            });
         }
 
         internal sealed class NoLockContext : IDisposable {

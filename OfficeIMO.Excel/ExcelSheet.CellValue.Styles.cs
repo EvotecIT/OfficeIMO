@@ -80,21 +80,7 @@ namespace OfficeIMO.Excel {
         public void CellWrapText(int row, int column, bool wrapText = true) {
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
-                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
-                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
-                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
-                EnsureDefaultStylePrimitives(stylesheet);
-
-                ApplyCellFormatOverride(stylesheet, cell, format => {
-                    var alignment = format.Alignment != null
-                        ? (Alignment)format.Alignment.CloneNode(true)
-                        : new Alignment();
-                    alignment.WrapText = wrapText ? true : null;
-                    format.Alignment = alignment;
-                    format.ApplyAlignment = true;
-                });
-
-                SaveStylesheet(stylesPart);
+                ApplyWrapText(cell, wrapText);
             });
         }
 
@@ -431,7 +417,7 @@ namespace OfficeIMO.Excel {
             return index;
         }
 
-        private void ApplyWrapText(Cell cell) {
+        private void ApplyWrapText(Cell cell, bool wrapText = true) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {
@@ -441,65 +427,16 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            // Base on existing cell's style if present
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            if (BatchFor(stylesheet) is { } batch) {
-                cell.StyleIndex = batch.WrapTextFormatIndex(baseIndex);
-                return;
-            }
-
-            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
-            var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? CreateDefaultCellFormat();
-
-            int wrapIndex = FindWrapTextFormat(cellFormats, baseFormat);
-            if (wrapIndex == -1) {
-                cellFormatsEl.Append(CreateWrapTextFormat(baseFormat));
-                cellFormatsEl.Count = (uint)cellFormatsEl.Count();
-                wrapIndex = (int)cellFormatsEl.Count.Value - 1;
-                SaveStylesheet(stylesPart);
-            }
-
-            cell.StyleIndex = (uint)wrapIndex;
+            ApplyDerivedCellFormat(stylesheet, cell, wrapText ? "wrap" : "no-wrap", () => {
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    var alignment = format.Alignment ?? new Alignment();
+                    alignment.WrapText = wrapText ? true : null;
+                    format.Alignment = alignment;
+                    format.ApplyAlignment = true;
+                });
+            });
+            SaveStylesheet(stylesPart);
         }
-
-        private static CellFormat CreateDefaultCellFormat() => new CellFormat {
-            NumberFormatId = 0U,
-            FontId = 0U,
-            FillId = 0U,
-            BorderId = 0U,
-            FormatId = 0U
-        };
-
-        /// <summary>
-        /// Finds the first format that wraps text and shares the number format, font, fill and border of
-        /// <paramref name="baseFormat"/>; returns -1 when there is none.
-        /// </summary>
-        private static int FindWrapTextFormat(IReadOnlyList<CellFormat> cellFormats, CellFormat baseFormat) {
-            for (int i = 0; i < cellFormats.Count; i++) {
-                var cf = cellFormats[i];
-                var align = cf.Alignment;
-                bool wrap = align != null && align.WrapText != null && align.WrapText.Value;
-                if (wrap && cf.NumberFormatId?.Value == baseFormat.NumberFormatId?.Value
-                        && cf.FontId?.Value == baseFormat.FontId?.Value
-                        && cf.FillId?.Value == baseFormat.FillId?.Value
-                        && cf.BorderId?.Value == baseFormat.BorderId?.Value) {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        private static CellFormat CreateWrapTextFormat(CellFormat baseFormat) => new CellFormat {
-            NumberFormatId = baseFormat.NumberFormatId ?? 0U,
-            FontId = baseFormat.FontId ?? 0U,
-            FillId = baseFormat.FillId ?? 0U,
-            BorderId = baseFormat.BorderId ?? 0U,
-            FormatId = baseFormat.FormatId ?? 0U,
-            ApplyAlignment = true,
-            Alignment = new Alignment { WrapText = true }
-        };
 
         /// <summary>
         /// Enables WrapText for every cell in a column within a given row range. The cells are styled in one style

@@ -367,7 +367,7 @@ namespace OfficeIMO.Excel {
                 };
                 cellFormatsEl.Append(newFormat);
                 hyperlinkFormatIndex = cellFormatsEl.Elements<CellFormat>().Count() - 1;
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             }
 
             cell.StyleIndex = (uint)hyperlinkFormatIndex;

@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static uint GetOrCreateNumberFormatId(Stylesheet stylesheet, string numberFormat) {
-            if (BatchFor(stylesheet) is { IndexesNumberFormats: true } batch) return batch.NumberFormatId(numberFormat);
+            if (BatchFor(stylesheet) is { } batch) return batch.NumberFormatId(numberFormat);
             stylesheet.NumberingFormats ??= new NumberingFormats();
             NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
                 .FirstOrDefault(n => n.FormatCode != null && n.FormatCode.Value == numberFormat);

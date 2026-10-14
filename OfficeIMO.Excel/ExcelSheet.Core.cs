@@ -40,8 +40,6 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private bool _hasWorksheetMutations;
-        private bool _requiresSavePreparation;
-        private readonly List<TableDefinitionPart> _pendingTableDefinitionPartSaves = new();
         private Row? _lastAccessedRow;
         private int _lastAccessedRowIndex;
         private Row? _rowElementCursor;
@@ -108,7 +106,7 @@ namespace OfficeIMO.Excel {
             var workbookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             _worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
             _hasWorksheetMutations = excelDocument.IsPackageDirty && _worksheetPart.IsRootElementLoaded;
-            _requiresSavePreparation = _hasWorksheetMutations;
+            _requiresSavePreparation |= _hasWorksheetMutations;
             _id = sheet.SheetId!;
             if (registerSheetWrapper) {
                 excelDocument.RegisterSheetWrapper(this);
@@ -127,7 +125,6 @@ namespace OfficeIMO.Excel {
             _excelDocument = excelDocument;
             _spreadSheetDocument = spreadSheetDocument;
             _hasWorksheetMutations = true;
-            _requiresSavePreparation = true;
 
             UInt32Value id = excelDocument.id.Max(v => v.Value) + 1;
             if (name == "") {
@@ -159,6 +156,7 @@ namespace OfficeIMO.Excel {
             this._sheet = sheet;
             this._id = sheet.SheetId!;
             this._worksheetPart = worksheetPart;
+            _requiresSavePreparation = true;
 
             excelDocument.id.Add(id);
             excelDocument.RegisterSheetWrapper(this);
@@ -714,48 +712,5 @@ namespace OfficeIMO.Excel {
             // No local lock to dispose anymore - using document's lock
         }
 
-        /// <summary>
-        /// Persists pending changes on this worksheet to its underlying OpenXml part.
-        /// </summary>
-        internal void Commit() {
-            if (_pendingTableDefinitionPartSaves.Count > 0) {
-                foreach (var tableDefinitionPart in _pendingTableDefinitionPartSaves) {
-                    tableDefinitionPart.Table?.Save();
-                }
-
-                _pendingTableDefinitionPartSaves.Clear();
-            }
-
-            _worksheetPart?.Worksheet?.Save();
-            _requiresSavePreparation = false;
-        }
-
-        internal bool RequiresSavePreparation => _requiresSavePreparation;
-
-        internal void MarkRequiresSavePreparation() {
-            if (_requiresSavePreparation) {
-                return;
-            }
-
-            _requiresSavePreparation = true;
-            _excelDocument.MarkRequiresSavePreflight();
-        }
-
-        internal void MarkRequiresWorksheetPreparation() {
-            if (_requiresSavePreparation) {
-                return;
-            }
-
-            _requiresSavePreparation = true;
-            _excelDocument.MarkPackageDirty();
-        }
-
-        internal void DeferTableDefinitionPartSave(TableDefinitionPart tableDefinitionPart) {
-            if (!_pendingTableDefinitionPartSaves.Contains(tableDefinitionPart)) {
-                _pendingTableDefinitionPartSaves.Add(tableDefinitionPart);
-            }
-
-            MarkRequiresSavePreparation();
-        }
     }
 }

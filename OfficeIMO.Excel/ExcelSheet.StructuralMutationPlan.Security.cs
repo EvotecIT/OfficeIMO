@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         private void EnsureMutationPlanPartsFitWithinBudget(
             ExcelMutationPlanOptions options) {
+            CommitCommentVmlChanges();
             var budget = new MutationPlanScanBudget(
                 options.MaximumScannedElements,
                 options.MaximumScannedCharacters);

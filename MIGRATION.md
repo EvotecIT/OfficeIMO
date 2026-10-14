@@ -1,5 +1,11 @@
 # Upgrading OfficeIMO
 
+## Excel worksheet persistence and wrapping
+
+Worksheet layout, comments, table settings, formulas, headers/footers and conditional-formatting edits are committed by `ExcelDocument.Save(...)` or configured save-on-dispose. Call `Save` before reading the underlying package streams through the low-level Open XML API. Setters with an explicit `save` argument still honor it; pass `save: false` when applying row or column outlines repeatedly.
+
+`WrapCells`, automatic wrapping for multiline values and `CellWrapText` preserve the cell's existing alignment and other formatting. Workbooks that previously relied on wrapping to reset alignment should set the desired alignment explicitly.
+
 ## Excel future-function spelling
 
 Normal and array formula authoring stores `IFNA`, `MINIFS` and `MAXIFS` with the XLSX `_xlfn.` prefix. For example, `CellFormula(1, 1, "IFNA(NA(),99)")` stores `_xlfn.IFNA(NA(),99)`, which `GetFormulaText` returns. Update literal formula-text comparisons to use that stored spelling. Prefix expansion above 8,192 characters throws before changing the destination cells.

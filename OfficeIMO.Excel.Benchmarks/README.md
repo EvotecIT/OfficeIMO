@@ -109,10 +109,9 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --fil
 `ExcelFormattedReportBenchmarks` writes a report sheet cell by cell: text rows
 with one filled, bold status cell per row, a table, a frozen header, a width and
 wrapped text for every column, a fixed 42 point height for every data row, page
-setup, and an in-memory save. `StyleInBatch` runs the row writes and styling
+setup, and an in-memory save. `WriteValidatedFormattedReport` also validates the encoded package before committing it. `StyleInBatch` runs the row writes and styling
 inside `ExcelSheet.Batch`, which resolves repeated cell formats once and saves
-the stylesheet once. Setup validates the row count, every data-row height, the
-wrap-text format and the saved page setup. Compare the two `StyleInBatch` values
+the stylesheet once. Setup validates every cell value and wrap setting, status-cell fonts and fills, row order and heights, the table/filter range and the saved page setup. Compare the two `StyleInBatch` values
 at the same `RowCount`; time that grows faster than the row count points at a
 layout setter that rewrites the worksheet or stylesheet on every call.
 

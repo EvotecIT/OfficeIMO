@@ -104,8 +104,10 @@ namespace OfficeIMO.Excel {
                 var cell = GetCell(row, column);
                 ClearCellValueMetadata(cell);
                 var inline = new InlineString();
+                bool hasLineBreak = false;
                 foreach (var run in runs) {
                     var text = new Text(run.Text ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve };
+                    hasLineBreak |= text.Text.IndexOf('\n') >= 0 || text.Text.IndexOf('\r') >= 0;
                     var properties = new RunProperties();
                     if (run.BoldSpecified) properties.Append(new Bold { Val = run.Bold });
                     if (run.ItalicSpecified) properties.Append(new Italic { Val = run.Italic });
@@ -132,6 +134,7 @@ namespace OfficeIMO.Excel {
                 cell.CellValue = null;
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
                 cell.InlineString = inline;
+                if (hasLineBreak) ApplyWrapText(cell);
                 _excelDocument.MarkFormulaInputMutation();
                 ClearHeaderCache();
             });

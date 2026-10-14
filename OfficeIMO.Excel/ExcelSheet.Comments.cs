@@ -140,10 +140,9 @@ namespace OfficeIMO.Excel {
                 var comment = new Comment { Reference = reference, AuthorId = authorId };
                 comment.Append(commentText);
                 comments.CommentList.Append(comment);
-                comments.Save();
+                DeferPartSave(commentsPart!);
 
                 EnsureCommentVmlShape(row, column, visible, anchor);
-                WorksheetRoot.Save();
             });
         }
 
@@ -193,14 +192,11 @@ namespace OfficeIMO.Excel {
 
                 bool removedComment = RemoveCommentInternal(commentsPart.Comments.CommentList, reference);
                 if (removedComment) {
-                    commentsPart.Comments.Save();
+                    DeferPartSave(commentsPart);
                 }
 
                 RemoveCommentVmlShape(row, column);
-                bool removedArtifacts = CleanupCommentArtifacts();
-                if (removedArtifacts) {
-                    WorksheetRoot.Save();
-                }
+                CleanupCommentArtifacts();
             });
         }
 
@@ -320,7 +316,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (updated > 0) {
-                    comments.Save();
+                    DeferPartSave(commentsPart!);
                 }
             });
 
@@ -360,11 +356,8 @@ namespace OfficeIMO.Excel {
 
                 removed = removals.Count;
                 if (removed > 0) {
-                    comments.Save();
-                    bool removedArtifacts = CleanupCommentArtifacts();
-                    if (removedArtifacts) {
-                        WorksheetRoot.Save();
-                    }
+                    DeferPartSave(commentsPart!);
+                    CleanupCommentArtifacts();
                 }
             });
 
@@ -1071,46 +1064,6 @@ namespace OfficeIMO.Excel {
                 return (VmlDrawingPart)_worksheetPart.GetPartById(legacyRelId);
             }
             return null;
-        }
-
-        private static XDocument LoadOrCreateVmlDocument(VmlDrawingPart part) {
-            try {
-                using var stream = part.GetStream();
-                if (stream.Length > 0) {
-                    return LoadVmlXDocument(stream);
-                }
-            } catch (Exception ex) {
-                System.Diagnostics.Debug.WriteLine($"Failed to load VML drawing part stream: {ex}");
-            }
-
-            var v = XNamespace.Get("urn:schemas-microsoft-com:vml");
-            var o = XNamespace.Get("urn:schemas-microsoft-com:office:office");
-            var x = XNamespace.Get("urn:schemas-microsoft-com:office:excel");
-
-            var root = new XElement("xml",
-                new XAttribute(XNamespace.Xmlns + "v", v),
-                new XAttribute(XNamespace.Xmlns + "o", o),
-                new XAttribute(XNamespace.Xmlns + "x", x),
-                new XElement(o + "shapelayout",
-                    new XAttribute(v + "ext", "edit"),
-                    new XElement(o + "idmap", new XAttribute(v + "ext", "edit"), new XAttribute("data", "1"))
-                ),
-                new XElement(v + "shapetype",
-                    new XAttribute("id", "_x0000_t202"),
-                    new XAttribute("coordsize", "21600,21600"),
-                    new XAttribute(o + "spt", "202"),
-                    new XAttribute("path", "m,l,21600r21600,l21600,xe"),
-                    new XElement(v + "stroke", new XAttribute("joinstyle", "miter")),
-                    new XElement(v + "path", new XAttribute("gradientshapeok", "t"), new XAttribute(o + "connecttype", "rect"))
-                )
-            );
-
-            return new XDocument(root);
-        }
-
-        private static void SaveVmlDocument(VmlDrawingPart part, XDocument doc) {
-            using var stream = part.GetStream(FileMode.Create, FileAccess.Write);
-            doc.Save(stream);
         }
 
         private static int NextVmlShapeId(XElement root) {
