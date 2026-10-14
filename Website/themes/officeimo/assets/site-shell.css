@@ -235,7 +235,7 @@ body.imo-body { overflow-x: clip; }
 .imo-body--reference .member-group, .imo-body--reference .param-list, .imo-body--reference .param-list dt, .imo-body--reference .param-list dd { min-width: 0; overflow-wrap: anywhere; }
 .imo-body--reference .api-overview, .imo-body--reference .type-detail { padding: 0; margin: 0; }
 .imo-body--reference .type-toc { display: block; order: -1; position: static; max-height: 12rem; overflow: auto; margin-bottom: 20px; }
-.imo-body--reference .type-toc ul { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 0; }
+.imo-body--reference .type-toc:not(.collapsed) ul { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 0; }
 .imo-body--reference .type-detail, .imo-body--reference .member-card > * { min-width: 0; }
 .imo-body--reference .member-signature { white-space: pre-wrap; overflow-wrap: anywhere; }
 .imo-body--reference .member-card table { width: 100%; table-layout: fixed; }
