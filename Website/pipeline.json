@@ -397,10 +397,7 @@
     {
       "task": "dotnet-build",
       "id": "build-api-net10-0",
-      "projects": [
-        "../OfficeIMO.AI/OfficeIMO.AI.csproj",
-        "../OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj"
-      ],
+      "project": "../OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj",
       "configuration": "Release",
       "framework": "net10.0"
     },
