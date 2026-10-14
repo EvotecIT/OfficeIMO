@@ -14,8 +14,9 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
     /// The engine's copy of the document, inside the app's temporary folder.
     let workingCopy: URL
     private let opened = Mutex<EngineDocument?>(nil)
-    private let pendingDrawing = Mutex<[AnnotationRequest]>([])
-    private let snapshotPreparation = Mutex<(@MainActor @Sendable () throws -> Void)?>(nil)
+    // A replacement page view must not overwrite the immutable draft left by a failed commit in its predecessor.
+    private let pendingDrawings = Mutex<[UUID: [AnnotationRequest]]>([:])
+    private let snapshotPreparations = Mutex<[UUID: @MainActor @Sendable () throws -> Void]>([:])
     private let publicationObserver = Mutex<StudioFilePublicationObserver?>(nil)
     private let initializationError: Error?
 
@@ -78,7 +79,7 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
     /// Captures the drawing and engine state while SwiftUI has disabled edits. Serialization uses only these bytes.
     func snapshot(contentType: UTType) throws -> Data {
         if let initializationError { throw initializationError }
-        if let prepare = snapshotPreparation.withLock({ $0 }) {
+        for prepare in snapshotPreparations.withLock({ Array($0.values) }) {
             if Thread.isMainThread {
                 try MainActor.assumeIsolated { try prepare() }
             } else {
@@ -86,7 +87,7 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
             }
         }
         // A view may have gone away after a failed commit; its immutable drawing still belongs to this document.
-        try commitPendingDrawingAndWait()
+        try commitPendingDrawingsAndWait()
         if let engine = opened.withLock({ $0 }) { return try engine.prepareSaveAndWait() }
         return try Data(contentsOf: workingCopy)
     }
@@ -95,22 +96,42 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
         FileWrapper(regularFileWithContents: snapshot)
     }
 
-    func setSnapshotPreparation(_ prepare: @escaping @MainActor @Sendable () throws -> Void) {
-        snapshotPreparation.withLock { $0 = prepare }
+    func setSnapshotPreparation(for drawingID: UUID, _ prepare: @escaping @MainActor @Sendable () throws -> Void) {
+        snapshotPreparations.withLock { $0[drawingID] = prepare }
     }
 
-    func updatePendingDrawing(_ requests: [AnnotationRequest]) {
-        pendingDrawing.withLock { $0 = requests }
+    func removeSnapshotPreparation(for drawingID: UUID) {
+        snapshotPreparations.withLock { $0.removeValue(forKey: drawingID) }
+    }
+
+    var hasPendingDrawing: Bool { pendingDrawings.withLock { !$0.isEmpty } }
+
+    func updatePendingDrawing(_ requests: [AnnotationRequest], for drawingID: UUID) {
+        pendingDrawings.withLock {
+            if requests.isEmpty { $0.removeValue(forKey: drawingID) }
+            else { $0[drawingID] = requests }
+        }
     }
 
     @discardableResult
-    func commitPendingDrawingAndWait() throws -> Bool {
-        try pendingDrawing.withLock { requests in
-            guard !requests.isEmpty else { return false }
+    func commitPendingDrawingAndWait(for drawingID: UUID) throws -> Bool {
+        try pendingDrawings.withLock { drafts in
+            guard let requests = drafts[drawingID], !requests.isEmpty else { return false }
             guard let engine = opened.withLock({ $0 }) else { throw CocoaError(.fileWriteUnknown) }
             try engine.addAnnotationsAndWait(requests)
-            requests.removeAll()
+            drafts.removeValue(forKey: drawingID)
             return true
+        }
+    }
+
+    /// Flushes drafts whose page views have gone away. Live views prepare their own drawing and undo entry first.
+    private func commitPendingDrawingsAndWait() throws {
+        try pendingDrawings.withLock { drafts in
+            let requests = drafts.values.flatMap { $0 }
+            guard !requests.isEmpty else { return }
+            guard let engine = opened.withLock({ $0 }) else { throw CocoaError(.fileWriteUnknown) }
+            try engine.addAnnotationsAndWait(requests)
+            drafts.removeAll()
         }
     }
 

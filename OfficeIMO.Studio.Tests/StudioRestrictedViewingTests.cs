@@ -84,7 +84,10 @@ public sealed class StudioRestrictedViewingTests {
                     using var renderTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
                     while (page.IsRendering) await Task.Delay(10, renderTimeout.Token);
                     Assert.Null(page.RenderError); Assert.NotNull(page.PageImage);
-                    Assert.NotNull(page.Scene); Assert.Null(page.Scene.Interactions);
+                    Assert.NotNull(page.Scene);
+                    Assert.NotNull(page.Scene.Interactions);
+                    Assert.Empty(page.Scene.Interactions.TextRegions);
+                    Assert.Empty(page.Scene.Interactions.Regions);
                 }
                 model.ZoomInCommand.Execute(null);
                 model.NextPageCommand.Execute(null);
@@ -107,7 +110,10 @@ public sealed class StudioRestrictedViewingTests {
                     Assert.Single(model.Pages[0].SearchHighlights);
                     Assert.NotNull(model.Pages[0].ActiveSearchHighlight);
                     model.Pages[0].AttachToViewport(); await model.Pages[0].EnsureRenderedAsync();
-                    Assert.NotNull(model.Pages[0].Scene); Assert.Null(model.Pages[0].Scene!.Interactions);
+                    Assert.NotNull(model.Pages[0].Scene);
+                    Assert.NotNull(model.Pages[0].Scene!.Interactions);
+                    Assert.Empty(model.Pages[0].Scene!.Interactions!.TextRegions);
+                    Assert.Empty(model.Pages[0].Scene!.Interactions!.Regions);
                 } else {
                     Assert.Empty(model.SearchResults);
                     Assert.Equal(services.Localizer.Get("Capability.SearchRestricted"), model.SearchPosition);
@@ -143,8 +149,10 @@ public sealed class StudioRestrictedViewingTests {
             Assert.Equal(contentAllowed, workspace.DocumentInfo is not null);
             var reader = PdfDocumentSession.FromWorkspace(workspace);
             var scene = await reader.LoadPageSceneAsync(1, default);
-            Assert.Equal(contentAllowed, scene.Interactions is not null);
+            Assert.NotNull(scene.Interactions);
+            Assert.Equal(contentAllowed, scene.Interactions.TextRegions.Count > 0);
             if (!contentAllowed) {
+                Assert.Empty(scene.Interactions.Regions);
                 Assert.True(scene.RequiresRasterFallback);
                 Assert.Empty(scene.Drawing.Elements);
             }

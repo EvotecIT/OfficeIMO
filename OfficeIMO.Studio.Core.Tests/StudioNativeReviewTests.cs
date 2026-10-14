@@ -186,6 +186,26 @@ public sealed class StudioNativeReviewTests : IDisposable {
     }
 
     [Fact]
+    public async Task Encrypted_owner_rectangle_redaction_retains_authentication_and_undo() {
+        string path = CreateTextPdf("encrypted-redact.pdf", "Account 4111 1111 belongs to Alex");
+        File.WriteAllBytes(path, PdfDocument.Load(path).Security.Encrypt(new("reader") {
+            OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None
+        }).Pdf);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, "owner", default);
+        Assert.True((await document.GetStructureAsync(default)).CanRedact);
+        StudioNativeRectangle name = Assert.Single((await document.RedactAsync(
+            new(Find: new("Alex")), default)).Marks!).Bounds!;
+        StudioNativeRedactionVerification result = (await document.RedactAsync(new(Apply: new(
+            [new(1, name with { X = name.X - 2, Y = name.Y - 2, Width = name.Width + 4, Height = name.Height + 4 })])), default)).Verification!;
+        Assert.True(result.Verified);
+        Assert.DoesNotContain("Alex", await PageTextAsync(document, 1));
+        Assert.Contains("Account", await PageTextAsync(document, 1));
+        Assert.True((await document.GetInfoAsync(default)).IsEncrypted);
+        await document.UndoAsync(default);
+        Assert.Contains("Alex", await PageTextAsync(document, 1));
+    }
+
+    [Fact]
     public async Task Redaction_finds_text_removes_it_verifiably_and_undoes_as_one_change() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("redact.pdf", "Account 4111 1111 belongs to Alex", "Nothing here"), null, default);
 

@@ -11,6 +11,7 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
     private unowned let scrollView: PageScrollView
     private let canvas = MarkupCanvasView()
     private let toolPicker = PKToolPicker()
+    private let drawingID = UUID()
     private var page = 0
     /// The zoom the strokes were drawn at: the canvas is in screen points, the document in page points.
     private var drawnZoom: CGFloat = 1
@@ -35,7 +36,7 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
         toolPicker.overrideUserInterfaceStyle = .unspecified
         toolPicker.addObserver(canvas)
         toolPicker.addObserver(self)
-        session.document.setSnapshotPreparation { [weak self] in try self?.commitSynchronously() }
+        session.document.setSnapshotPreparation(for: drawingID) { [weak self] in try self?.commitSynchronously() }
     }
 
     func setActive(_ active: Bool) {
@@ -57,6 +58,12 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
             canvas.isUserInteractionEnabled = false
             if !isAwaitingCommitRender { canvas.removeFromSuperview() }
         }
+    }
+
+    /// Retain a failed draft in the document when SwiftUI replaces this page view.
+    func detach() {
+        setActive(false)
+        session.document.removeSnapshotPreparation(for: drawingID)
     }
 
     /// Follows the session: a commit request, or the page in view changing.
@@ -81,7 +88,7 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
             let ratio = zoom / drawnZoom
             canvas.drawing = canvas.drawing.transformed(using: CGAffineTransform(scaleX: ratio, y: ratio))
             drawnZoom = zoom
-            session.document.updatePendingDrawing(annotationRequests())
+            rememberDrawing()
         }
         place()
     }
@@ -94,18 +101,23 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
         addedStrokes = 0
         canvas.undoManager?.removeAllActions()
         if isActive { session.markupUndoManager = canvas.undoManager }
-        session.hasPendingMarkup = !canvas.drawing.strokes.isEmpty
-        session.document.updatePendingDrawing(annotationRequests())
+        rememberDrawing()
         canvas.isUserInteractionEnabled = isActive
         if !isActive {
-            if session.hasPendingMarkup { commit() }
+            if !canvas.drawing.strokes.isEmpty { commit() }
             if !isAwaitingCommitRender { canvas.removeFromSuperview() }
         }
     }
 
     private func move(to newPage: Int) {
         if page != newPage {
-            commit()
+            do { try commitSynchronously() }
+            catch {
+                session.errorMessage = error.localizedDescription
+                // Keep both the canvas and its requests on their original page so the user can retry or undo.
+                session.show(page: page)
+                return
+            }
             // Strokes not yet added belong to the page they were drawn on; they go once added.
             if !isAwaitingCommitRender { canvas.drawing = PKDrawing() }
         }
@@ -132,12 +144,12 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
         guard !session.isWorking else { throw CocoaError(.fileWriteUnknown) }
         let requests = annotationRequests()
         guard !requests.isEmpty else { return }
-        session.document.updatePendingDrawing(requests)
+        session.document.updatePendingDrawing(requests, for: drawingID)
         canvas.isUserInteractionEnabled = false
         if session.markupUndoManager === canvas.undoManager { session.markupUndoManager = nil }
         isAwaitingCommitRender = true
         addedStrokes = strokes.count
-        do { try session.commitPendingDrawingSynchronously() }
+        do { try session.commitPendingDrawingSynchronously(for: drawingID) }
         catch {
             isAwaitingCommitRender = false
             addedStrokes = 0
@@ -179,10 +191,14 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
     // MARK: PKCanvasViewDelegate
 
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-        session.hasPendingMarkup = !canvasView.drawing.strokes.isEmpty
-        session.document.updatePendingDrawing(annotationRequests())
+        rememberDrawing()
         // PencilKit has a private undo manager; explicitly mark the system document as changed too.
         session.document.objectWillChange.send()
+    }
+
+    private func rememberDrawing() {
+        session.document.updatePendingDrawing(annotationRequests(), for: drawingID)
+        session.pendingDrawingDidChange()
     }
 }
 

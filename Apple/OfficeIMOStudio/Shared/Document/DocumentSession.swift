@@ -142,7 +142,14 @@ final class DocumentSession {
 
     // Markup
     /// Whether drawing not yet added to the document is on the page.
-    var hasPendingMarkup = false
+    var hasPendingMarkup: Bool {
+        _ = pendingDrawingVersion
+        return document.hasPendingDrawing
+    }
+    private var pendingDrawingVersion = 0
+
+    /// Invalidates controls observing a drawing change; the document remains the authority for retained drafts.
+    func pendingDrawingDidChange() { pendingDrawingVersion &+= 1 }
     /// Asks the page view to add its pending drawing to the document, as Done does.
     private(set) var markupCommitRequest: UUID?
     /// The drawing style on the Mac, where the page view draws without PencilKit.
@@ -411,9 +418,9 @@ final class DocumentSession {
     }
 
     /// A system snapshot must finish the drawing before returning; no task on the main actor is needed to publish it.
-    func commitPendingDrawingSynchronously() throws {
+    func commitPendingDrawingSynchronously(for drawingID: UUID) throws {
         guard let engine else { throw CocoaError(.fileWriteUnknown) }
-        if try document.commitPendingDrawingAndWait() {
+        if try document.commitPendingDrawingAndWait(for: drawingID) {
             registerUndo(String(localized: "Add Drawing"), steps: 1)
             do { facts = try engine.factsAndWait() }
             catch { errorMessage = error.localizedDescription }

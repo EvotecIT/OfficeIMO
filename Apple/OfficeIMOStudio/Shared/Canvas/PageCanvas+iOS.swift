@@ -39,7 +39,7 @@ struct PageCanvas: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ view: PageScrollView, coordinator: ()) {
-        view.markup.setActive(false)
+        view.markup.detach()
         view.tiles.cancelAll()
     }
 }

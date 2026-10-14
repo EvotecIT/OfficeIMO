@@ -165,7 +165,7 @@ internal sealed partial class StudioNativeDocument {
             IReadOnlyList<StudioNativeRedactionMark> areas = apply.Areas ?? [];
             if (areas.Count == 0 && apply.Find is null) throw new ArgumentException("Mark at least one area to redact.", nameof(request));
             if (!_workspace.CanRedact) throw new NotSupportedException("This document's pages can't be redacted.");
-            byte[] snapshot = _workspace.CopyBytes();
+            PdfDocument snapshot = _workspace.CreateDocumentSnapshot();
             var planned = new List<PdfRedactionArea>(areas.Count);
             if (apply.Find is { } search) {
                 // Searching again on the same revision keeps the found text's exact glyph areas rather than rectangles around them.
