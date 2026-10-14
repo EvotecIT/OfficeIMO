@@ -1,0 +1,610 @@
+{
+  "schemaVersion": 1,
+  "qualifiedUtc": "2026-10-14T15:07:50.339610+00:00",
+  "scope": "Retained optional runtime select correctness and ordinary enabled single-select parsing; static provider upgrade not adopted.",
+  "consumerSourceCommit": "9288ab4c153b7a94ba23dc43fad34dcb934e16ed",
+  "providerSourceCommits": {
+    "External/AngleSharp": "353ad27c680d7585ace3989fc70065856b96a3e6",
+    "External/AngleSharp.Js": "01df7181bc933fff3d21c5f06d40ea7888004111",
+    "External/Jint": "77a87addbe78e9026c58594a2f27bb817d452832"
+  },
+  "upstreamCoreRelease": {
+    "version": "1.8.4",
+    "tagCommit": "32981ded5b0c78c4a5afcfbb677ffb329078fdf8"
+  },
+  "upstreamContributions": [
+    {
+      "url": "https://github.com/AngleSharp/AngleSharp/pull/1383",
+      "candidateCommit": "c21607181e3729ffa0e1fa3468c366e326ed7554",
+      "contract": "Grouped option collection parent routing; independent correction"
+    },
+    {
+      "url": "https://github.com/AngleSharp/AngleSharp/pull/1384",
+      "candidateCommit": "cda7b1c364dc22489c60e6fb2eb07651d3a5e844",
+      "contract": "Selectedness/default/dirtiness/mutation/reset/clone with selected-owner tracking"
+    }
+  ],
+  "coreQualification": {
+    "buildTargets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "warnings": 0,
+    "errors": 0,
+    "normal": {
+      "passed": 4420,
+      "notExecuted": 7
+    },
+    "prefetched": {
+      "passed": 4417,
+      "notExecuted": 10
+    },
+    "upstreamCandidate": {
+      "normalPassed": 4287,
+      "normalNotExecuted": 7,
+      "prefetchedPassed": 4284,
+      "prefetchedNotExecuted": 10,
+      "coreBuildTargets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "benchmarkBuildTargets": [
+        "net472",
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    "review": "Original full core pass and targeted remediation confirmation, then a fresh read-only pass scoped to newly introduced selected-option ownership/cache lifetime; no material findings in the latter pass."
+  },
+  "workerQualification": [
+    {
+      "targetFramework": "net8.0",
+      "passed": 19,
+      "failed": 0,
+      "capturedProviderId": "AngleSharp/1.8.4-evotec.1+353ad27c680d7585ace3989fc70065856b96a3e6; AngleSharp.Js/1.1.0.0; Jint/4.16.0.0",
+      "sourceCoreSha256": "d00b95dff4305b9fe04bea2cba803596a8d8896837120419bb6b9a4a7c47d3a4",
+      "staticHost": {
+        "package": "AngleSharp/1.8.3",
+        "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7",
+        "packageBytesMatchHost": true,
+        "differentFromWorkerSourceCore": true
+      },
+      "receipt": {
+        "name": "normalization-worker-focused-net80.json",
+        "bytes": 2299,
+        "sha256": "a7198f2844ac7e357e01c508bf26cd9ec966fb017b4727bbe6a157b6c57cf0f2"
+      },
+      "bindingReceipt": {
+        "name": "normalization-worker-binding-net80.json",
+        "bytes": 4910,
+        "sha256": "d812c6031721f5534ef70bf586721a3d18cd2f96d64b1252dafd9a9b9b541ff6"
+      }
+    },
+    {
+      "targetFramework": "net10.0",
+      "passed": 19,
+      "failed": 0,
+      "capturedProviderId": "AngleSharp/1.8.4-evotec.1+353ad27c680d7585ace3989fc70065856b96a3e6; AngleSharp.Js/1.1.0.0; Jint/4.16.0.0",
+      "sourceCoreSha256": "1a6a1eeae8ef8028c43af3aeb0c834a2acb857ab4e0dd171ad4f0cfce73f70a1",
+      "staticHost": {
+        "package": "AngleSharp/1.8.3",
+        "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911",
+        "packageBytesMatchHost": true,
+        "differentFromWorkerSourceCore": true
+      },
+      "receipt": {
+        "name": "normalization-worker-focused-net100.json",
+        "bytes": 2304,
+        "sha256": "a0a3671b02b3a0ff09f36dd2e8bcad34a705a69226c1213938160e18f4b72efd"
+      },
+      "bindingReceipt": {
+        "name": "normalization-worker-binding-net100.json",
+        "bytes": 4918,
+        "sha256": "4caf046627b5e3c230bb9fb0baed2b2b703fbe96cc39f7cc3e932957716c191a"
+      }
+    }
+  ],
+  "priorBroadWorkerBoundary": {
+    "sourceCommit": "eebb3ec63f28d5f02a038d843e7cdea9be1d7d23",
+    "coreCommit": "b225e3b469e38995462fe8f81c0edc6ec0d252ff",
+    "net8": {
+      "passed": 661,
+      "failed": 16,
+      "total": 677,
+      "failureClass": "Command deadline Timeouts at OpenTrustedAsync; unchanged failed-method rerun20cases passed"
+    },
+    "net10": {
+      "passed": 684,
+      "failed": 1,
+      "total": 685,
+      "failureClass": "OpenTrustedAsync command deadline Timeout; unchanged case plus affected selection/form/focus rerun20cases passed"
+    },
+    "acceptance": "No single clean full-runtime run established. Earlier failures retained. Final353 affected contract qualification does not relabel prior broad red runs."
+  },
+  "priorStandaloneJsBoundary": {
+    "coreCommit": "b225e3b469e38995462fe8f81c0edc6ec0d252ff",
+    "passed": 332,
+    "excludedLiveSites": [
+      "PageEcoEnergyShouldLoadFine",
+      "PageGamestarShouldLoadFine"
+    ],
+    "explicitHtml5PageTest": "Not run",
+    "jintPackageVersion": "4.15.3",
+    "acceptance": "Bounded prior standalone binding proof; worker source Jint4.16 qualifies separately; not rerun at353."
+  },
+  "performance": {
+    "capturedUtc": "2026-10-14T15:02:57.429180+00:00",
+    "sourceHeads": {
+      "public": "678a12c832d844444adb38d179e2d76d57d68979",
+      "submitted": "b7e4febc8469da28375d044b3dc6b4f68bd1986d",
+      "optimized": "cda7b1c364dc22489c60e6fb2eb07651d3a5e844"
+    },
+    "orders": {
+      "v3": [
+        "submitted",
+        "public",
+        "optimized"
+      ],
+      "v4": [
+        "optimized",
+        "public",
+        "submitted"
+      ]
+    },
+    "runs": [
+      {
+        "round": "v3",
+        "role": "public",
+        "coreSha256": "01b674715f662e8092ab270ba9f765861188bddf3c5b10e560d1c5404f4b4ae8",
+        "fixtureSha256": "c146b9800bd6e6c30c3ad41e58d568a91220dd308c0f1cc088bb5e3615c0c26e",
+        "rows": [
+          {
+            "options": 1000,
+            "meanMilliseconds": 0.5352067937825521,
+            "standardDeviationMilliseconds": 0.03876269628537912,
+            "rawNanoseconds": [
+              490794.73876953125,
+              562231.9135742188,
+              552593.7290039062
+            ],
+            "allocatedBytesPerOperation": 809936,
+            "measuredIterations": 3,
+            "operations": 1024
+          },
+          {
+            "options": 2000,
+            "meanMilliseconds": 1.2069697259114582,
+            "standardDeviationMilliseconds": 0.003795447662495864,
+            "rawNanoseconds": [
+              1203377.521484375,
+              1206591.552734375,
+              1210940.103515625
+            ],
+            "allocatedBytesPerOperation": 1743062,
+            "measuredIterations": 3,
+            "operations": 512
+          },
+          {
+            "options": 4000,
+            "meanMilliseconds": 3.0834508424479163,
+            "standardDeviationMilliseconds": 0.15321803136871553,
+            "rawNanoseconds": [
+              3093510.90234375,
+              2925450.6796875,
+              3231390.9453125
+            ],
+            "allocatedBytesPerOperation": 3478086,
+            "measuredIterations": 3,
+            "operations": 256
+          }
+        ],
+        "receiptSha256": "c923093e3cbbb0ff38a330f43743ac66c888f5a8a8efaf5109d7162a5e7e8338",
+        "reportSha256": "1bc57ab29a721c0278f54edfeed15c9130d5edac83b999e23f48fc17b2ee4692",
+        "allThreeChildExitCodesZero": true
+      },
+      {
+        "round": "v3",
+        "role": "submitted",
+        "coreSha256": "1a81f4116893d70a7011a16137758bffa3fa27ba7c447430f45459ee7dcbe81a",
+        "fixtureSha256": "c146b9800bd6e6c30c3ad41e58d568a91220dd308c0f1cc088bb5e3615c0c26e",
+        "rows": [
+          {
+            "options": 1000,
+            "meanMilliseconds": 15.617243921875,
+            "standardDeviationMilliseconds": 3.2503325510888024,
+            "rawNanoseconds": [
+              11898908.859375,
+              17034653.640625,
+              17918169.265625
+            ],
+            "allocatedBytesPerOperation": 905992,
+            "measuredIterations": 3,
+            "operations": 64
+          },
+          {
+            "options": 2000,
+            "meanMilliseconds": 51.12348014285714,
+            "standardDeviationMilliseconds": 7.075374980819131,
+            "rawNanoseconds": [
+              59069336.28571428,
+              45504812.5,
+              48796291.64285714
+            ],
+            "allocatedBytesPerOperation": 1935104,
+            "measuredIterations": 3,
+            "operations": 14
+          },
+          {
+            "options": 4000,
+            "meanMilliseconds": 168.67212033333334,
+            "standardDeviationMilliseconds": 19.12963486679617,
+            "rawNanoseconds": [
+              190495333.33333334,
+              160719138.66666666,
+              154801889
+            ],
+            "allocatedBytesPerOperation": 3862128,
+            "measuredIterations": 3,
+            "operations": 3
+          }
+        ],
+        "receiptSha256": "43847eec962956404f289f56ef4b5dd41e1625b323a30e4be537b2db0491a5a8",
+        "reportSha256": "f07b8be4acad2787019ddd5a2ef3c386be6def7d4c159890377167718a1b38e1",
+        "allThreeChildExitCodesZero": true
+      },
+      {
+        "round": "v3",
+        "role": "optimized",
+        "coreSha256": "1f7effda1928a44850d4ae73a671fbdaa1699d617a3e3205600173d1648e6c00",
+        "fixtureSha256": "c146b9800bd6e6c30c3ad41e58d568a91220dd308c0f1cc088bb5e3615c0c26e",
+        "rows": [
+          {
+            "options": 1000,
+            "meanMilliseconds": 1.9938904889322917,
+            "standardDeviationMilliseconds": 0.6982691483096508,
+            "rawNanoseconds": [
+              2725574.70703125,
+              1921405.59765625,
+              1334691.162109375
+            ],
+            "allocatedBytesPerOperation": 817960,
+            "measuredIterations": 3,
+            "operations": 512
+          },
+          {
+            "options": 2000,
+            "meanMilliseconds": 3.4679158515625,
+            "standardDeviationMilliseconds": 0.28899630720847,
+            "rawNanoseconds": [
+              3734112.46875,
+              3509097.1640625,
+              3160537.921875
+            ],
+            "allocatedBytesPerOperation": 1759081,
+            "measuredIterations": 3,
+            "operations": 128
+          },
+          {
+            "options": 4000,
+            "meanMilliseconds": 12.802192171875,
+            "standardDeviationMilliseconds": 4.397183215489684,
+            "rawNanoseconds": [
+              9170789.390625,
+              17691150.078125,
+              11544637.046875
+            ],
+            "allocatedBytesPerOperation": 3510276,
+            "measuredIterations": 3,
+            "operations": 64
+          }
+        ],
+        "receiptSha256": "aa0f62851fca260c1b93e36be369d8852cb63924cb4567f6d289e1ea37ce64f5",
+        "reportSha256": "9f4af085323474872cf6d8c4d126da14e6664e03213087a51091e3972849b57a",
+        "allThreeChildExitCodesZero": true
+      },
+      {
+        "round": "v4",
+        "role": "public",
+        "coreSha256": "01b674715f662e8092ab270ba9f765861188bddf3c5b10e560d1c5404f4b4ae8",
+        "fixtureSha256": "c146b9800bd6e6c30c3ad41e58d568a91220dd308c0f1cc088bb5e3615c0c26e",
+        "rows": [
+          {
+            "options": 1000,
+            "meanMilliseconds": 1.1285073772786458,
+            "standardDeviationMilliseconds": 0.12466680836341054,
+            "rawNanoseconds": [
+              1206876.3818359375,
+              1193895.9951171875,
+              984749.7548828125
+            ],
+            "allocatedBytesPerOperation": 809936,
+            "measuredIterations": 3,
+            "operations": 512
+          },
+          {
+            "options": 2000,
+            "meanMilliseconds": 2.8953444557291665,
+            "standardDeviationMilliseconds": 0.26422143812413174,
+            "rawNanoseconds": [
+              3085411.296875,
+              3006996.58203125,
+              2593625.48828125
+            ],
+            "allocatedBytesPerOperation": 1743110,
+            "measuredIterations": 3,
+            "operations": 256
+          },
+          {
+            "options": 4000,
+            "meanMilliseconds": 8.1060646796875,
+            "standardDeviationMilliseconds": 1.8470459295849821,
+            "rawNanoseconds": [
+              7589796.8828125,
+              6572082.6953125,
+              10156314.4609375
+            ],
+            "allocatedBytesPerOperation": 3478140,
+            "measuredIterations": 3,
+            "operations": 64
+          }
+        ],
+        "receiptSha256": "b54e8829290a5cc0ed950534939da8b2c7deed0131bec0beb5ba2746a7a5efb3",
+        "reportSha256": "4230700c08fcb0d1b5c2fc539e51313d61d4fd2526ad82f91890935b2f9bcfb4",
+        "allThreeChildExitCodesZero": true
+      },
+      {
+        "round": "v4",
+        "role": "submitted",
+        "coreSha256": "1a81f4116893d70a7011a16137758bffa3fa27ba7c447430f45459ee7dcbe81a",
+        "fixtureSha256": "c146b9800bd6e6c30c3ad41e58d568a91220dd308c0f1cc088bb5e3615c0c26e",
+        "rows": [
+          {
+            "options": 1000,
+            "meanMilliseconds": 12.026842010416667,
+            "standardDeviationMilliseconds": 0.734954080451949,
+            "rawNanoseconds": [
+              11770605.46875,
+              11454307.28125,
+              12855613.28125
+            ],
+            "allocatedBytesPerOperation": 905992,
+            "measuredIterations": 3,
+            "operations": 64
+          },
+          {
+            "options": 2000,
+            "meanMilliseconds": 43.42619321212121,
+            "standardDeviationMilliseconds": 4.579767768596637,
+            "rawNanoseconds": [
+              45513151.54545455,
+              38174659.09090909,
+              46590769
+            ],
+            "allocatedBytesPerOperation": 1935008,
+            "measuredIterations": 3,
+            "operations": 11
+          },
+          {
+            "options": 4000,
+            "meanMilliseconds": 179.071426,
+            "standardDeviationMilliseconds": 10.150017564548095,
+            "rawNanoseconds": [
+              168536389,
+              188786708.33333334,
+              179891180.66666666
+            ],
+            "allocatedBytesPerOperation": 3862144,
+            "measuredIterations": 3,
+            "operations": 3
+          }
+        ],
+        "receiptSha256": "d4c5e1de4cd2d7e97c8adb063b614b1e8ff5f51e0d81fff5240367dfd6984ce2",
+        "reportSha256": "08c161806d357c4a5fbdec688d60f8f8374623a21d07a0a29a1f0d1319c3aeeb",
+        "allThreeChildExitCodesZero": true
+      },
+      {
+        "round": "v4",
+        "role": "optimized",
+        "coreSha256": "1f7effda1928a44850d4ae73a671fbdaa1699d617a3e3205600173d1648e6c00",
+        "fixtureSha256": "c146b9800bd6e6c30c3ad41e58d568a91220dd308c0f1cc088bb5e3615c0c26e",
+        "rows": [
+          {
+            "options": 1000,
+            "meanMilliseconds": 1.0667779264322916,
+            "standardDeviationMilliseconds": 0.06949957299534058,
+            "rawNanoseconds": [
+              1064995.158203125,
+              1137151.732421875,
+              998186.888671875
+            ],
+            "allocatedBytesPerOperation": 817960,
+            "measuredIterations": 3,
+            "operations": 512
+          },
+          {
+            "options": 2000,
+            "meanMilliseconds": 2.5682163912760414,
+            "standardDeviationMilliseconds": 0.09420083530915199,
+            "rawNanoseconds": [
+              2544111.412109375,
+              2672127.521484375,
+              2488410.240234375
+            ],
+            "allocatedBytesPerOperation": 1759086,
+            "measuredIterations": 3,
+            "operations": 256
+          },
+          {
+            "options": 4000,
+            "meanMilliseconds": 6.214272247395833,
+            "standardDeviationMilliseconds": 0.29016629016827017,
+            "rawNanoseconds": [
+              6530924.15625,
+              6150789.0703125,
+              5961103.515625
+            ],
+            "allocatedBytesPerOperation": 3510333,
+            "measuredIterations": 3,
+            "operations": 128
+          }
+        ],
+        "receiptSha256": "276fb8b2156866511c0e1942a8094412fb17ca17e2b72c0ee27799daf8d8900e",
+        "reportSha256": "51757319a8d10769cbb341bdbf1a7803965d7a9f6c5a1dd0e3e2210e93d05edc",
+        "allThreeChildExitCodesZero": true
+      }
+    ],
+    "boundary": "Normal shared AppleM4 Macload; BDN ShortRun3iterations. Large timing variance remains; no Windows/quiet-host/cross-platform/universal speed or general linearity claim. Ordinary enabledsingle-select fixture only; all-disabled/no-selection fallback can still scan. Same semantic count/index/value/last-value validation outside timing; exactcoreSHA asserted every process. Temporary rawDLLhost widens return interface to object (same managed reference expression), committed upstreambenchmark uses nativeprojectreference."
+  },
+  "nativeCompatibility": {
+    "oracle": "Chromium153.0.8010.12",
+    "result": {
+      "name": "result.json",
+      "bytes": 10662,
+      "sha256": "a9067a9b31085c2e934ad36936b79f0c9adac14ff139670bff0b92126b9d3521"
+    },
+    "contract": "Explicit value/index clears and disabled option/group toggles preserve current selection. Sole selected=false normalization and clean default toggles follow observed native behavior. Draft disabled-reset rules are not silently adopted."
+  },
+  "staticBoundary": {
+    "qualifiedPublishedSourceCommit": "db9a2f4466bc71ae3f781d5ca7ab56af6591c769",
+    "staticSourceAndPinsUnchanged": true,
+    "package": "AngleSharp1.8.3",
+    "pinReceipts": [
+      {
+        "path": "Tools/OfficeIMO.Html.Pdf.Workbench/OfficeIMO.Html.Pdf.Workbench.csproj",
+        "sha256": "f2756eef34a537fd9a4570b09674d3d8d6011afbe8cabd6ded8cf5f1ae648828",
+        "byteIdenticalToQualifiedPublishedSource": true
+      },
+      {
+        "path": "OfficeIMO.Html/OfficeIMO.Html.csproj",
+        "sha256": "542daa72462f13762d878f95b98c5306e9b08219c638450b71a1ad2468318658",
+        "byteIdenticalToQualifiedPublishedSource": true
+      },
+      {
+        "path": "OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
+        "sha256": "d772ac8251303fd16b42fb751c74040a3d2b812950adbabc1e05b6d163c96281",
+        "byteIdenticalToQualifiedPublishedSource": true
+      },
+      {
+        "path": "OfficeIMO.Mhtml.Benchmarks.Comparisons/OfficeIMO.Mhtml.Benchmarks.Comparisons.csproj",
+        "sha256": "7af10d7bcdc13c5a5676d9e4cc55692c1d4ff74acd311bd106adebbedb9f5fe6",
+        "byteIdenticalToQualifiedPublishedSource": true
+      },
+      {
+        "path": "Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj",
+        "sha256": "8ced961adb62c01486efd30e90f65b9904bab33a25871dda95e03cd63ab24bad",
+        "byteIdenticalToQualifiedPublishedSource": true
+      }
+    ],
+    "renderEvidence": "Existing source-bound frozen-page/H4/static-package proof retained; no static rendering behavior changed by this optional provider checkpoint."
+  },
+  "acceptanceLimits": [
+    "No full clean worker suite on the final353 candidate; previous broad source has retained deadline failures.",
+    "No packaged-worker cross-platform distribution acceptance, public hostile-page isolation or general browser compatibility claim.",
+    "Windows profiling remains explicitly deferred; existing static Mac/Windows elapsed ceilings remain unmet.",
+    "Captured original-font appearance and manual assistive-technology acceptance remain open in Docs/ROADMAP.md.",
+    "Retained provider source and upstream openPRs are separate from released NuGet packages."
+  ],
+  "decisiveProofReceipts": [
+    {
+      "name": "normalization-core-build-netstandard20.json",
+      "bytes": 2238,
+      "sha256": "9390f13852c0342745b1ec908ebad0e09ddf2028f8e72b2cc3abfe9ec9c1598e"
+    },
+    {
+      "name": "normalization-core-build-net80.json",
+      "bytes": 2206,
+      "sha256": "9bdd04dea278c98de461dab91cfb03585a5ddd40688148c03d97281f8794578d"
+    },
+    {
+      "name": "normalization-core-build-net100.json",
+      "bytes": 2210,
+      "sha256": "ee8baf641e8339203276fe8ca06e75649397e56a89d3bd05592596bc2b10b7eb"
+    },
+    {
+      "name": "normalization-core-full-normal.json",
+      "bytes": 2470,
+      "sha256": "a9807406caf4b62b6bfce6248cfbeaa93461328228ecb273b7115f82ec1b650d"
+    },
+    {
+      "name": "normalization-core-full-prefetched.json",
+      "bytes": 2523,
+      "sha256": "a70c24df72975590e82e0f337f08311b9f717cd82047e1a4fd9696c7721bb320"
+    },
+    {
+      "name": "select-state-normalization-full-normal.json",
+      "bytes": 2532,
+      "sha256": "5a59bf4dc921f4e71621906e69d89957d1ef394311e1167a1df357d37eecfdcc"
+    },
+    {
+      "name": "select-state-normalization-full-prefetched.json",
+      "bytes": 2585,
+      "sha256": "8ae680f3b44aa291e9f08e3603249014f576f271d2355325d6245fd687f46f03"
+    },
+    {
+      "name": "select-state-normalization-build-netstandard20.json",
+      "bytes": 2288,
+      "sha256": "50fe2ba7ea079a2452064227bee6d0731c82634084a3c3a0fa9be1658d601958"
+    },
+    {
+      "name": "select-state-normalization-build-net80.json",
+      "bytes": 2256,
+      "sha256": "70dbf7f55009a886a1336f9b275b5472cfc15a3fd8aa95f631a53115dddc2a57"
+    },
+    {
+      "name": "normalization-benchmark-build.json",
+      "bytes": 2233,
+      "sha256": "dc993f0c2e337ebe93e36a359fb97edc303055683b5c276225de0894e3f379c9"
+    }
+  ],
+  "sdk": {
+    "version": "10.0.303",
+    "selection": "Retained optional Jint source compiler floor; no change to staticPR SDK policy."
+  },
+  "protectedProofArchives": [
+    {
+      "role": "retained-core",
+      "name": "normalization-proof-compact.zip",
+      "bytes": 11108151,
+      "sha256": "591ba8e43d27f62226759fd14e2ae76d1f4c088dd429c2e6b06b763157835268"
+    },
+    {
+      "role": "public-core",
+      "name": "normalization-cda-proof.zip",
+      "bytes": 8092320,
+      "sha256": "bb6bcc22e3611e46dd776186d218546f04e8d3475f7ff737ec1919ef868787ce"
+    },
+    {
+      "role": "public-benchmark-compiler",
+      "name": "normalization-benchmark-compiler-proof.zip",
+      "bytes": 3784389,
+      "sha256": "3ca416224def38a506a40ea98e9866e2eb16ad2f7d10bd647f00010dc25066cb",
+      "requiresArchive": "normalization-cda-proof.zip"
+    },
+    {
+      "role": "benchmark-comparison",
+      "name": "compiler-runtime-inputs-results-deduplicated.zip",
+      "bytes": 2306969,
+      "sha256": "5c1d19cc0b1b2b911dff9e641177f3d186a44da4cbaf91db9b7e2c82f1809621"
+    },
+    {
+      "role": "worker-current",
+      "name": "current-compiler-worker-proof-deduplicated.zip",
+      "bytes": 22234094,
+      "sha256": "9e4ccf08bc4f58b71169b226be04318c5d19c1e4d27efb1c4c47fa9d96c1697b",
+      "requiresArchive": "worker-b225-compiler-proof.zip"
+    },
+    {
+      "role": "worker-required-prior-archive",
+      "name": "worker-b225-compiler-proof.zip",
+      "bytes": 32943676,
+      "sha256": "c0106cc1bad369a54886b817ea3eecc0108684d76d8d2ba5f93359dd157f27ec"
+    }
+  ],
+  "cleanup": {
+    "logicalBytesRemovedForFinalCorePublicWorkerAndComparisonGraphs": 921322803,
+    "archivesRetained": "Compact exact-byte evidence above; prior failed/broad/native/static proof preserved separately.",
+    "physicalSpaceClaimed": false
+  }
+}
