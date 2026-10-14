@@ -882,12 +882,16 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
-    public void ReaderAll_ComposesOnlyReaderPackages() {
+    public void ReaderAll_ComposesReaderPackagesAndSharedArchiveOptions() {
         string projectPath = GetRepositoryPath("OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj");
         string[] references = GetProjectReferences(projectPath);
 
         Assert.NotEmpty(references);
-        Assert.All(references, reference =>
+        const string archives = "../OfficeIMO.Archives/OfficeIMO.Archives.csproj";
+        // ReaderAllOptions exposes ArchiveTraversalOptions directly; the owning package
+        // must remain a visible dependency rather than relying on an adapter's transitives.
+        Assert.Contains(archives, references, StringComparer.Ordinal);
+        Assert.All(references.Where(reference => !string.Equals(reference, archives, StringComparison.Ordinal)), reference =>
             Assert.StartsWith("../OfficeIMO.Reader.", reference, StringComparison.Ordinal));
         Assert.Contains("../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj", references, StringComparer.Ordinal);
         Assert.Contains("../OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj", references, StringComparer.Ordinal);
