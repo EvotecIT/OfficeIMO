@@ -1,5 +1,9 @@
 # Upgrading OfficeIMO
 
+## Shared archive reading
+
+`OfficeIMO.Zip` retains its public traversal signatures and result types and delegates to `OfficeIMO.Archives`. When copying assemblies manually, include the matching `OfficeIMO.Archives` assembly; normal NuGet restore resolves it automatically. New code can reference Archives directly and use `ArchiveReader.TraverseZip` with `ArchiveTraversalOptions` or `ArchiveReader.ReadZip` with `ArchiveReadOptions`. Traversal reports ingestion warnings; verified content reads and filesystem extraction reject unsafe or corrupt selected payloads.
+
 ## Excel future-function spelling
 
 Normal and array formula authoring stores `IFNA`, `MINIFS` and `MAXIFS` with the XLSX `_xlfn.` prefix. For example, `CellFormula(1, 1, "IFNA(NA(),99)")` stores `_xlfn.IFNA(NA(),99)`, which `GetFormulaText` returns. Update literal formula-text comparisons to use that stored spelling. Prefix expansion above 8,192 characters throws before changing the destination cells.

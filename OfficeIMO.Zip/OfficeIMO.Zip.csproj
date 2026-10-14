@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Archives\OfficeIMO.Archives.csproj" />
     <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>

@@ -1,5 +1,7 @@
 # OfficeIMO.Zip - safe ZIP traversal primitives
 
+OfficeIMO.Zip preserves its ZIP traversal API over the shared [OfficeIMO.Archives](../OfficeIMO.Archives/README.md) engine. Existing `ZipTraversal` calls and result types continue to work. New consumers can use `ArchiveReader.TraverseZip` for metadata and ingestion warnings, `ArchiveReader.ReadZip` for verified content in memory, or `ArchiveExtractor.Extract` for transactional filesystem output.
+
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Zip)](https://www.nuget.org/packages/OfficeIMO.Zip)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Zip?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Zip)
 

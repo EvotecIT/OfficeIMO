@@ -49,4 +49,23 @@ CAB folder decompression counts toward expansion and work bounds even when its f
 
 See [SUPPORT.md](SUPPORT.md) for supported compression and MSI profiles. There are no native archive executables to install or download.
 
-For bounded read-only ZIP enumeration and ingestion warnings, use [OfficeIMO.Zip](../OfficeIMO.Zip/README.md). Both packages use the shared Core ZIP reader; Archives adds strict path validation and transactional filesystem publication.
+## Read ZIP content in memory
+
+`ArchiveReader.ReadZip` returns complete selected files after validating their lengths, Deflate framing and CRC-32. It uses the same strict name, path, collision and payload rules as extraction. It creates no filesystem output and executes no content.
+
+```csharp
+using OfficeIMO.Archives;
+
+var files = ArchiveReader.ReadZip(packageBytes, new ArchiveReadOptions {
+    IncludeFile = path => path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase),
+    MaxInputBytes = 32L * 1024 * 1024,
+    MaxEntryBytes = 8L * 1024 * 1024,
+    MaxExpandedBytes = 64L * 1024 * 1024
+});
+foreach (var file in files)
+    Console.WriteLine($"{file.RelativePath}: {file.Length} bytes");
+```
+
+The stream overload reads from the current position through EOF into a bounded snapshot, supports nonseekable streams and leaves the input open. Returned arrays belong to the caller and remain usable after the input closes. A failure returns no partial result. This read API accepts ZIP; CAB and MSI retain the extraction API. Limits bound logical input and decoded content; buffers and result copies add managed-memory overhead.
+
+For metadata enumeration with ingestion warnings, use `ArchiveReader.TraverseZip` and `ArchiveTraversalOptions`. Traversal can skip individual entries and report warnings; it does not verify selected file contents. `ArchiveReader.ValidateZipSource` preflights a seekable source before a caller opens its own `ZipArchive`; keep those bytes immutable until that archive has been read. Stream/path traversal overloads take their own bounded snapshot. [OfficeIMO.Zip](../OfficeIMO.Zip/README.md) preserves the existing traversal API as a thin compatibility facade over this engine.

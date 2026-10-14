@@ -1,5 +1,13 @@
 # Archive support
 
+| Operation | Containers | Verification and ownership |
+| --- | --- | --- |
+| `ArchiveReader.TraverseZip` | ZIP | Bounded metadata traversal with ingestion warnings; file content is not decoded or checksum-verified. The `OfficeIMO.Zip` facade uses this same engine. |
+| `ArchiveReader.ReadZip` | ZIP | Strict metadata/path preflight and complete selected-content length, framing and CRC verification; selected arrays belong to the caller. Input streams stay open. No partial result or filesystem output. |
+| `ArchiveExtractor.Extract` | ZIP, CAB, MSI | Strict verified extraction through a sibling staging directory and completed-directory publication. |
+
+In-memory reading defaults to 64 MiB compressed input, 10,000 physical members, 16 MiB per declared member and 64 MiB aggregate selected bytes. These are logical data limits; snapshots, buffering and owned result copies add memory overhead. CAB/MSI in-memory reading, lazy member streams and a cumulative nested-container budget are not exposed.
+
 | Container | Supported read profile | Boundaries |
 | --- | --- | --- |
 | ZIP | Single-disk archives with stored or Deflate members | Prepended self-extracting stubs, encryption, patched data sets, enhanced Deflate and reserved flag profiles, compression-level flags on stored members, other compression methods, multi-disk archives, ambiguous directory layouts (including distant ZIP64 locators with saturated classic counts), unflagged non-ASCII and invalid UTF-8 names are rejected; central-directory member count, ZIP64 coordinates, matching local names/flags/methods, exact Deflate framing, actual decoded EOF, declared lengths, CRC-32 and expansion bounds are enforced; directory members must have verified empty payloads |
