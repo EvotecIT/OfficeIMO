@@ -13,8 +13,8 @@ public enum ArchiveFormat {
 /// <summary>A verified file published by an extraction operation.</summary>
 public sealed class ExtractedArchiveFile {
     internal ExtractedArchiveFile(string relativePath, long length) { RelativePath = relativePath; Length = length; }
-    /// <summary>Authored relative path, using forward slashes and preserving case.
-    /// Equivalent MSI aliases use the ordinal-smallest authored spelling in their complete group.</summary>
+    /// <summary>Portable relative path, using forward slashes and preserving case.
+    /// MSI uses installed filename spelling; equivalent aliases use the ordinal-smallest normalized path in their group.</summary>
     public string RelativePath { get; }
     /// <summary>Complete extracted file length in bytes.</summary>
     public long Length { get; }
