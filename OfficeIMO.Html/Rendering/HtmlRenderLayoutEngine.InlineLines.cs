@@ -95,6 +95,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
             }
             if (!HasReplacedImage) {
+                // Content-derived atomic baselines retain their separate route.
+                // Text-only face metrics are resolved by the layout engine below.
+                if (Segments.Any(segment => segment.Run.AtomicBlock != null && !segment.Run.IsFlowMarker)
+                    && HasMixedTextSizes(Segments[0].Run.Style)) {
+                    double textBaseline = 0D;
+                    double textDescent = 0D;
+                    foreach (InlineSegment segment in Segments) {
+                        if (segment.Run.AtomicBlock == null) {
+                            textBaseline = Math.Max(textBaseline, segment.Run.Style.Font.Size);
+                            textDescent = Math.Max(textDescent, segment.Run.Style.LineHeight - segment.Run.Style.Font.Size);
+                        }
+                    }
+                    height = Math.Max(height, textBaseline + textDescent);
+                }
                 return Math.Max(0.01D, height);
             }
 
