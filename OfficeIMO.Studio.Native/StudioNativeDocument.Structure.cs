@@ -347,8 +347,9 @@ internal sealed partial class StudioNativeDocument {
     /// </summary>
     private async Task<(IReadOnlyList<string> Files, string? Notes)> ExportAsync(StudioNativeExport export, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(export.Path)) throw new ArgumentException("A destination is required.", nameof(export));
-        if (!_workspace.ViewInfo.CanExtractText) throw new NotSupportedException("This document doesn't allow its content to be copied.");
         string format = export.Format ?? string.Empty;
+        bool allowed = format == "text" ? _workspace.ViewInfo.CanExtractText : _workspace.ViewInfo.CanExtractContent;
+        if (!allowed) throw new NotSupportedException("This document doesn't allow its content to be copied.");
         if (PdfConversion.PdfTargets.ContainsKey(format)) {
             PdfConversionResult result = await PdfConversion.ConvertPdfAsync(_workspace.CopyBytes(), _workspace.ReadOptions?.Password, format,
                 Path.GetFullPath(export.Path), cancellationToken).ConfigureAwait(false);

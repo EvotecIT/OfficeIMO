@@ -117,7 +117,7 @@ final class DocumentSession {
     var pendingImport: PendingImport?
     /// The properties, outline and attachments, for the revision they were read from.
     var structure: DocumentStructure?
-    @ObservationIgnored var structureLoad: Task<Void, Never>?
+    let structureLoad = RevisionRead<DocumentStructure>()
     /// What the sidebar lists in the Read task: page thumbnails or the outline.
     var sidebarMode = SidebarMode.thumbnails
     /// The page production or output sheet shown.
@@ -136,7 +136,7 @@ final class DocumentSession {
     var noticeTitle: String?
     /// Form fields of pages near the one in view, for the revision they were read from.
     @ObservationIgnored var formPages: [Int: FormFields] = [:]
-    @ObservationIgnored var formLoads: [Int: Task<FormFields?, Never>] = [:]
+    @ObservationIgnored var formLoads: [Int: RevisionRead<FormFields>] = [:]
     /// Bumped when form fields load, so the page view shows where they are.
     var formFieldsVersion = 0
 
@@ -173,7 +173,7 @@ final class DocumentSession {
     /// Text selected in the Read task, on one page.
     var textSelection: TextSelection?
     @ObservationIgnored private var pageTexts: [Int: PageText] = [:]
-    @ObservationIgnored private var pageTextLoads: [Int: Task<PageText?, Never>] = [:]
+    @ObservationIgnored private var pageTextLoads: [Int: RevisionRead<PageText>] = [:]
 
     // Search
     var searchText = ""
@@ -343,20 +343,20 @@ final class DocumentSession {
     func loadPageText(_ page: Int) async -> PageText? {
         if let text = pageText(page) { return text }
         guard let engine, canCopyText, (1...max(pageCount, 1)).contains(page) else { return nil }
-        if let load = pageTextLoads[page] { return await load.value }
-        let load = Task<PageText?, Never> {
-            do { return try await engine.pageText(page: page) }
-            catch {
-                if !Task.isCancelled { errorMessage = error.localizedDescription }
-                return nil
-            }
-        }
+        let load = pageTextLoads[page] ?? RevisionRead<PageText>()
         pageTextLoads[page] = load
-        let text = await load.value
-        pageTextLoads[page] = nil
-        if let text, text.revision == revision {
-            pageTexts[page] = text
-            if pageTexts.count > 8, let far = pageTexts.keys.max(by: { abs($0 - page) < abs($1 - page) }) { pageTexts[far] = nil }
+        defer {
+            if pageTextLoads[page] === load, !load.isLoading { pageTextLoads[page] = nil }
+        }
+        do {
+            let text = try await load.read(source: engine, revision: { self.revision }) { try await engine.pageText(page: page) }
+            guard !Task.isCancelled, isReady, self.engine === engine else { return nil }
+            if text.revision == revision {
+                pageTexts[page] = text
+                if pageTexts.count > 8, let far = pageTexts.keys.max(by: { abs($0 - page) < abs($1 - page) }) { pageTexts[far] = nil }
+            }
+        } catch {
+            if !Task.isCancelled, self.engine === engine { errorMessage = error.localizedDescription }
         }
         return pageText(page)
     }

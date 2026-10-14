@@ -163,9 +163,10 @@ struct StudioCommands: Commands {
                     .keyboardShortcut("d")
                 Button("Delete Pages") { session.map { $0.delete($0.targetPages) } }
                     .disabled((session?.targetPages.count ?? 0) >= (session?.pageCount ?? 0))
-                Button("Insert Blank Page") { session?.insertBlankPage() }
             }
             .disabled(session?.canEditPages != true || (session?.task == .pages && session?.selection.isEmpty == true))
+            Button("Insert Blank Page") { session?.insertBlankPage() }
+                .disabled(session?.canInsertBlankPages != true || (session?.task == .pages && session?.selection.isEmpty == true))
             Button("Insert Pages from File…") { session?.isChoosingPagesToImport = true }
                 .disabled(session?.canImportPages != true)
             Divider()

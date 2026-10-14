@@ -47,7 +47,7 @@ extension DocumentSession {
 
     /// Inserts a blank page the size of the page it follows, after the last target page.
     func insertBlankPage() {
-        guard let facts, let after = targetPages.last, facts.pages.indices.contains(after - 1) else { return }
+        guard canInsertBlankPages, let facts, let after = targetPages.last, facts.pages.indices.contains(after - 1) else { return }
         let size = facts.pages[after - 1].displaySize
         edit(String(localized: "Insert Blank Page")) {
             try await $0.insertBlankPage(before: after + 1, width: size.width, height: size.height)

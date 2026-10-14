@@ -48,6 +48,48 @@ public sealed class StudioNativePermissionFactsTests : IDisposable {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task AccessibilityTextAndDisplayDoNotGrantContentExportOrPrinting(bool owner) {
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC");
+        string path = Path.Combine(_root, "accessible-image.pdf");
+        File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => {
+                content.Paragraph(paragraph => paragraph.Text("Accessible text"));
+                content.Image(png, 24, 24);
+            }))
+            .Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
+                OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.Accessibility
+            }).Pdf);
+        byte[] original = File.ReadAllBytes(path);
+        using var document = await StudioNativeDocument.OpenAsync(path, owner ? "owner" : "reader", default);
+        var facts = await document.GetInfoAsync(default);
+        Assert.True(facts.CanExtractText);
+        Assert.Equal(owner, facts.CanExtractContent);
+        Assert.Equal(owner, facts.CanPrint);
+        var display = await document.RenderPageAsync(1, 2, default);
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, display.Bytes[..8]);
+        string text = Path.Combine(_root, "accessible.txt");
+        await document.WriteAsync(new(Export: new("text", text)), default);
+        Assert.Contains("Accessible text", File.ReadAllText(text));
+        string images = Path.Combine(_root, "images");
+        string html = Path.Combine(_root, "converted.html");
+        if (owner) {
+            var result = await document.WriteAsync(new(Export: new("images", images)), default);
+            Assert.True(new FileInfo(Assert.Single(result.Files)).Length > 0);
+            await document.WriteAsync(new(Export: new("html", html)), default);
+            Assert.Contains("Accessible text", File.ReadAllText(html));
+        } else {
+            foreach (string format in new[] { "images", "html", "word", "excel", "powerpoint", "markdown", "json" }) {
+                string blocked = Path.Combine(_root, "blocked-" + format);
+                await Assert.ThrowsAsync<NotSupportedException>(() => document.WriteAsync(new(Export: new(format, blocked)), default));
+                Assert.False(File.Exists(blocked));
+                Assert.False(Directory.Exists(blocked));
+            }
+        }
+        Assert.Equal(original, File.ReadAllBytes(path));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task EncryptedAnnotationCreationAndBoundsRetainAuthentication(bool owner) {
         using var document = await StudioNativeDocument.OpenAsync(Source(PdfStandardPermissions.ModifyAnnotations), owner ? "owner" : "reader", default);
         await document.AddAnnotationsAsync([

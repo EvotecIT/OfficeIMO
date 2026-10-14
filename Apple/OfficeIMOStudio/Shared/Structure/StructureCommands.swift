@@ -12,8 +12,11 @@ struct StructureCommands: View {
                 .disabled(!session.canResize)
             Divider()
             Button("Header and Footer…", systemImage: "textformat.123") { session.structureSheet = .headerFooter }
+                .disabled(!session.canStampPages)
             Button("Watermark…", systemImage: "drop") { session.structureSheet = .watermark }
+                .disabled(!session.canStampPages)
             Button("Bates Numbering…", systemImage: "number") { session.structureSheet = .bates }
+                .disabled(!session.canStampPages)
         }
         .disabled(!session.isReady || session.currentStructure == nil)
         .disabled(!session.canStampPages && !session.canCrop && !session.canResize)
@@ -44,6 +47,6 @@ struct StructureCommands: View {
         Button("Split Document…", systemImage: "square.split.1x2") { session.structureSheet = .split }
             .disabled(!session.canSplit)
         Button("Export…", systemImage: "square.and.arrow.up.on.square") { session.structureSheet = .export }
-            .disabled(!session.canExportText)
+            .disabled(!session.canExportDocument)
     }
 }

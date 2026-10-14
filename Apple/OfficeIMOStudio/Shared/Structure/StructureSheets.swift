@@ -428,7 +428,7 @@ private struct ExportSheet: View {
     @State private var isWriting = false
 
     var body: some View {
-        SheetForm(title: "Export", confirm: converted == nil ? "Export" : "Save…", isComplete: true, isWriting: isWriting, problem: problem,
+        SheetForm(title: "Export", confirm: converted == nil ? "Export" : "Save…", isComplete: converted != nil || session.canExport(format), isWriting: isWriting, problem: problem,
                   cancel: cancel, confirmAction: export) {
             if let converted, let notes = converted.notes {
                 Section {
@@ -459,6 +459,7 @@ private struct ExportSheet: View {
         Picker("Format", selection: $format) {
             ForEach(formats) { format in
                 Text(format.title).tag(format)
+                    .disabled(!session.canExport(format))
             }
         }
         .pickerStyle(.inline)

@@ -209,7 +209,7 @@ struct RedactSheet: View {
     let session: DocumentSession
     @Environment(\.dismiss) private var dismiss
     @State private var find = RedactionFind(text: "")
-    @State private var searched: RedactionFind?
+    @State private var searched: RedactionSearchBinding?
     @State private var marks: [RedactionMark] = []
     @State private var included: Set<Int> = []
     @State private var sanitize = false
@@ -217,7 +217,7 @@ struct RedactSheet: View {
     @State private var isSearching = false
 
     var body: some View {
-        SheetForm(title: "Redact", confirm: "Redact", isComplete: searched != nil && !included.isEmpty, isWriting: isSearching,
+        SheetForm(title: "Redact", confirm: "Redact", isComplete: searched?.matches(find, revision: session.revision) == true && !included.isEmpty, isWriting: isSearching,
                   problem: problem, cancel: { dismiss() }, confirmAction: apply) {
             Section {
                 TextField("Text to Remove", text: $find.text)
@@ -252,20 +252,25 @@ struct RedactSheet: View {
                 }
             }
         }
-        .onChange(of: find) { searched = nil }
+        .onChange(of: find) {
+            if searched?.matches(find, revision: session.revision) != true { searched = nil }
+        }
+        .onChange(of: session.revision) { searched = nil }
     }
 
     private func search() {
-        let request = RedactionFind(text: find.text.trimmingCharacters(in: .whitespaces), regex: find.regex, matchCase: find.matchCase)
-        guard !request.text.isEmpty else { return }
+        let request = RedactionSearchBinding(find: find, revision: session.revision)
+        guard !isSearching, !request.find.text.isEmpty else { return }
         problem = nil
+        searched = nil
         isSearching = true
         Task {
             defer { isSearching = false }
             do {
-                marks = try await session.findRedactions(request)
+                let found = try await session.findRedactions(request.find)
+                guard request.matches(find, revision: session.revision) else { return }
+                marks = found
                 included = Set(marks.indices)
-                find = request
                 searched = request
             } catch {
                 problem = error.localizedDescription
@@ -274,8 +279,8 @@ struct RedactSheet: View {
     }
 
     private func apply() {
-        guard let searched else { return }
-        session.redact(.init(find: searched, include: included.sorted(), removedText: searched.regex ? nil : searched.text, sanitize: sanitize))
+        guard let searched, searched.matches(find, revision: session.revision) else { return }
+        session.redact(.init(find: searched.find, include: included.sorted(), removedText: searched.find.regex ? nil : searched.find.text, sanitize: sanitize))
         dismiss()
     }
 }

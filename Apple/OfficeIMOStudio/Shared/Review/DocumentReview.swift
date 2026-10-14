@@ -95,12 +95,6 @@ struct RedactionMark: Codable, Sendable, Hashable {
     var preview: String?
 }
 
-struct RedactionFind: Encodable, Sendable, Equatable {
-    var text: String
-    var regex = false
-    var matchCase = false
-}
-
 /// Finds text to redact, or redacts; exactly one field is set.
 struct RedactionRequest: Encodable, Sendable {
     struct Apply: Encodable, Sendable {

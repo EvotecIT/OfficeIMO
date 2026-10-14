@@ -102,12 +102,15 @@ internal sealed partial class PdfWorkspace {
         if (kind == PdfExportKind.Images) {
             return await ExportImagesAsync(snapshot, destination, cancellationToken, progress).ConfigureAwait(false);
         }
+        bool canReadLogicalContent = ViewInfo.CanExtractContent;
         // Structured serialization and draft-filled XFDF do not accept cancellation. Keep the
         // caller attached until they finish so Studio never reports cancellation while they hold the CPU gate.
         string content = await RunNonDetachableCpuWorkAsync(() => kind switch {
             PdfExportKind.Markdown => snapshot.Read(cancellationToken: cancellationToken).ExportStructured(PdfStructuredExportFormat.Markdown),
             PdfExportKind.Json => snapshot.Read(cancellationToken: cancellationToken).ExportStructured(PdfStructuredExportFormat.Json),
-            PdfExportKind.Text => snapshot.Read(cancellationToken: cancellationToken).Text,
+            // Accessibility permits plain text, while the logical model also reads protected document objects.
+            PdfExportKind.Text => canReadLogicalContent ? snapshot.Read(cancellationToken: cancellationToken).Text
+                : snapshot.GetReadDocument(ReadOptions, cancellationToken).ExtractText(cancellationToken),
             PdfExportKind.FormData => ExportFormData(snapshot, formDrafts),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         }, cancellationToken).ConfigureAwait(false);

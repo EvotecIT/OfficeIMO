@@ -40,6 +40,16 @@ The `Shared` folder is synchronized with both targets, so new files need no proj
 xcrun xcstringstool sync Shared/Localizable.xcstrings --stringsdata <derived data>/Build/Intermediates.noindex/OfficeIMOStudio.build/*/*.build/Objects-normal/arm64/*.stringsdata
 ```
 
+## State contract tests
+
+The Foundation state contracts can also be tested without building the app or the native engine. From the repository root on a Mac:
+
+```sh
+xcrun swift test --package-path Apple --scratch-path <test-output>/swift-state
+```
+
+These tests cover export permission selection, revision-bound reads and redaction search state. They do not qualify SwiftUI interactions or the native apps. To produce an XCTest report with Swift 6.4, add `--parallel --num-workers 1 --disable-swift-testing --xunit-output <test-output>/swift-state.xml`.
+
 ## Unattended runs
 
 | Launch argument | Effect |

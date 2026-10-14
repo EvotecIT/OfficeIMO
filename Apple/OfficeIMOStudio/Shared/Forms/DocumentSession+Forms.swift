@@ -13,24 +13,20 @@ extension DocumentSession {
     /// Loads a page's form fields once per revision, keeping a few pages.
     func loadFormFields(_ page: Int) async {
         guard formFields(page) == nil, let engine, canFillForms, (1...max(pageCount, 1)).contains(page) else { return }
-        if let load = formLoads[page] {
-            _ = await load.value
-            return
-        }
-        let load = Task<FormFields?, Never> {
-            do { return try await engine.formFields(page: page) }
-            catch {
-                if !Task.isCancelled { errorMessage = error.localizedDescription }
-                return nil
-            }
-        }
+        let load = formLoads[page] ?? RevisionRead<FormFields>()
         formLoads[page] = load
-        let fields = await load.value
-        formLoads[page] = nil
-        guard let fields, fields.revision == revision else { return }
-        formPages[page] = fields
-        if formPages.count > 8, let far = formPages.keys.max(by: { abs($0 - page) < abs($1 - page) }) { formPages[far] = nil }
-        formFieldsVersion += 1
+        defer {
+            if formLoads[page] === load, !load.isLoading { formLoads[page] = nil }
+        }
+        do {
+            let fields = try await load.read(source: engine, revision: { self.revision }) { try await engine.formFields(page: page) }
+            guard !Task.isCancelled, isReady, self.engine === engine, fields.revision == revision else { return }
+            formPages[page] = fields
+            if formPages.count > 8, let far = formPages.keys.max(by: { abs($0 - page) < abs($1 - page) }) { formPages[far] = nil }
+            formFieldsVersion += 1
+        } catch {
+            if !Task.isCancelled, self.engine === engine { errorMessage = error.localizedDescription }
+        }
     }
 
     /// The boxes of fillable fields on loaded pages, in each page's displayed points, to show where they are.

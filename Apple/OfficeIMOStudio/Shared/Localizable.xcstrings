@@ -16996,6 +16996,46 @@
         }
       }
     },
+    "This document does not allow copying its content." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Dokument erlaubt das Kopieren seines Inhalts nicht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este documento no permite copiar su contenido."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce document n’autorise pas la copie de son contenu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo documento non consente di copiarne il contenuto."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten dokument nie zezwala na kopiowanie jego zawartości."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este documento não permite copiar seu conteúdo."
+          }
+        }
+      }
+    },
     "This document’s permissions don’t allow changing its security without its permissions password." : {
       "localizations" : {
         "de" : {

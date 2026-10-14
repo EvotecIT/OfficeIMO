@@ -34,26 +34,22 @@ extension DocumentSession {
     var canFlattenForms: Bool { isReady && currentStructure?.canFlattenForms == true }
     var canFlattenMarkup: Bool { isReady && currentStructure?.canFlattenMarkup == true }
     var canSplit: Bool { canExtractPages && pageCount > 1 }
-    var canExportText: Bool { isReady && facts?.canExtractText != false }
+    var canExportDocument: Bool { ExportFormat.allCases.contains { canExport($0) } }
+
+    func canExport(_ format: ExportFormat) -> Bool {
+        isReady && format.isAllowed(canExtractText: facts?.canExtractText == true,
+                                   canExtractContent: facts?.canExtractContent == true)
+    }
 
     /// Reads the structure once per revision.
     func loadStructure() async {
         guard let engine, isReady, currentStructure == nil else { return }
-        if let structureLoad {
-            await structureLoad.value
-            return
+        do {
+            let read = try await structureLoad.read(source: engine, revision: { self.revision }) { try await engine.structure() }
+            if !Task.isCancelled, isReady, self.engine === engine, read.revision == revision { structure = read }
+        } catch {
+            if !Task.isCancelled, self.engine === engine { errorMessage = error.localizedDescription }
         }
-        let load = Task {
-            do {
-                let read = try await engine.structure()
-                if read.revision == revision { structure = read }
-            } catch {
-                if !Task.isCancelled { errorMessage = error.localizedDescription }
-            }
-        }
-        structureLoad = load
-        await load.value
-        structureLoad = nil
     }
 
     /// Applies an edit as one undoable change, then reads the structure it changed.
@@ -201,6 +197,10 @@ extension DocumentSession {
     /// Writes the document in another format, which the export sheet then offers to save: an Office document, a web
     /// page, its text, its pages as PNG images or its embedded images. The file carries the converter's notes.
     func export(_ format: ExportFormat) async throws -> ExportedFile? {
+        guard canExport(format) else {
+            throw EngineError(status: .unsupported, code: EngineStatus.unsupported.rawValue,
+                              message: String(localized: "This document does not allow copying its content."))
+        }
         let name = format.isFolder ? String(localized: "\(documentBaseName) – Images") : "\(documentBaseName).\(format.fileExtension)"
         let pages = pageCount
         let base = documentBaseName
@@ -248,11 +248,7 @@ extension DocumentSession {
 }
 
 /// The formats a document exports to, as the engine names them.
-enum ExportFormat: String, CaseIterable, Identifiable {
-    case word, excel, powerpoint, html, text, markdown, json, pageImages, images
-
-    var id: Self { self }
-
+extension ExportFormat {
     var title: LocalizedStringKey {
         switch self {
         case .word: "Word Document"
