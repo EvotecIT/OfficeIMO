@@ -263,7 +263,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 
@@ -361,7 +361,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 
@@ -436,7 +436,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 

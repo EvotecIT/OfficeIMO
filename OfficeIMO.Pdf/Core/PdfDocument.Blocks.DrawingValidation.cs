@@ -94,7 +94,6 @@ public sealed partial class PdfDocument {
                 throw new System.ArgumentException("Clip paths require commands starting with MoveTo.", paramName);
             }
 
-            bool hasDraw = false;
             for (int i = 0; i < clipPath.Commands.Count; i++) {
                 var command = clipPath.Commands[i];
                 switch (command.Kind) {
@@ -103,18 +102,15 @@ public sealed partial class PdfDocument {
                         break;
                     case OfficePathCommandKind.LineTo:
                         ValidatePointInsideClip(command.Point, clipPath);
-                        hasDraw = true;
                         break;
                     case OfficePathCommandKind.QuadraticBezierTo:
                         ValidatePointInsideClip(command.ControlPoint1, clipPath);
                         ValidatePointInsideClip(command.Point, clipPath);
-                        hasDraw = true;
                         break;
                     case OfficePathCommandKind.CubicBezierTo:
                         ValidatePointInsideClip(command.ControlPoint1, clipPath);
                         ValidatePointInsideClip(command.ControlPoint2, clipPath);
                         ValidatePointInsideClip(command.Point, clipPath);
-                        hasDraw = true;
                         break;
                     case OfficePathCommandKind.Close:
                         break;
@@ -123,9 +119,6 @@ public sealed partial class PdfDocument {
                 }
             }
 
-            if (!hasDraw) {
-                throw new System.ArgumentException("Clip paths require at least one drawing command.", paramName);
-            }
         } else if (clipPath.Kind != OfficeClipPathKind.Rectangle) {
             throw new System.ArgumentOutOfRangeException(paramName, "Unsupported clip path kind.");
         }

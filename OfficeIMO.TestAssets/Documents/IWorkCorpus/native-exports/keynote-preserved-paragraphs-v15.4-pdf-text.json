@@ -1,0 +1,105 @@
+{
+  "provider": "pypdf",
+  "providerVersion": "6.10.0",
+  "allPagesHaveCompleteOrderedText": true,
+  "outputs": [
+    {
+      "kind": "native",
+      "file": "keynote-preserved-paragraphs-edited-v15.4.pdf",
+      "sha256": "c3ee1fbc9000763d3e43275251d6cebdc640a100429d60b97a886d6259c6e5f5",
+      "pages": [
+        {
+          "page": 1,
+          "canvasPoints": [
+            960,
+            540
+          ],
+          "completeOrderedText": "Edited PNG — image behind text Covered source label TEXT IN FRONT"
+        },
+        {
+          "page": 2,
+          "canvasPoints": [
+            960,
+            540
+          ],
+          "completeOrderedText": "Edited alpha PNG 0% / 50% / 100% alpha"
+        },
+        {
+          "page": 3,
+          "canvasPoints": [
+            960,
+            540
+          ],
+          "completeOrderedText": "Native checked JPEG JPEG / stretched frame"
+        }
+      ]
+    },
+    {
+      "kind": "composedEdited",
+      "file": "keynote-preserved-paragraphs-edited-v15.4.pdf",
+      "sha256": "770c63cd603ae6f31ad9b9556a5fb88310adf6942303290c32df6af63afcabd0",
+      "pages": [
+        {
+          "page": 1,
+          "canvasPoints": [
+            960,
+            540
+          ],
+          "completeOrderedText": "Edited PNG — image behind text Covered source label TEXT IN FRONT"
+        },
+        {
+          "page": 2,
+          "canvasPoints": [
+            960,
+            540
+          ],
+          "completeOrderedText": "Edited alpha PNG 0% / 50% / 100% alpha"
+        },
+        {
+          "page": 3,
+          "canvasPoints": [
+            960,
+            540
+          ],
+          "completeOrderedText": "Native checked JPEG JPEG / stretched frame"
+        }
+      ]
+    },
+    {
+      "kind": "composedInitial",
+      "file": "keynote-preserved-paragraphs-v15.4.pdf",
+      "sha256": "c8b36dba30c94077a8636780345ef43ccb0671baf4f16b579cf80ed99d6b60af",
+      "pages": [
+        {
+          "page": 1,
+          "canvasPoints": [
+            960,
+            540
+          ],
+          "completeOrderedText": "Edited PNG — image behind text Covered source label TEXT IN FRONT"
+        },
+        {
+          "page": 2,
+          "canvasPoints": [
+            960,
+            540
+          ],
+          "completeOrderedText": "Edited alpha PNG 0% / 50% / 100% alpha"
+        },
+        {
+          "page": 3,
+          "canvasPoints": [
+            960,
+            540
+          ],
+          "completeOrderedText": "Edited JPEG JPEG / stretched frame"
+        }
+      ]
+    }
+  ],
+  "limits": "Selected three-slide profile; fonts/metrics may differ. Raw output and canvas/text proof do not establish pixel equivalence. Apple PDF parser warnings are retained; this is not PDF structural-conformance qualification.",
+  "nativePdfParserWarnings": [
+    "Ignoring wrong pointing object 27 0 (offset 0)",
+    "Ignoring wrong pointing object 28 0 (offset 0)"
+  ]
+}

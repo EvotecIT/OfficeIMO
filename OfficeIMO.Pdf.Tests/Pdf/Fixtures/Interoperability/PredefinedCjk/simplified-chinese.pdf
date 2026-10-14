@@ -1,0 +1,127 @@
+%PDF-1.3
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 1
+/Kids [ 4 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Outlines 9 0 R
+>>
+endobj
+4 0 obj
+<<
+/Contents 5 0 R
+/MediaBox [ 0 0 612 792 ]
+/Resources <<
+/Font 6 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+/Parent 2 0 R
+>>
+endobj
+5 0 obj
+<<
+/Length 306
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+BT /F2 18 Tf 21.6 TL ET
+BT 1 0 0 1 72 700 Tm /F2 18 Tf 21.6 TL (\000B\000e\000f\000o\000r\000e\000 y\330[\306\000 \000a\000f\000t\000e\000r\000 \000p\000a\000g\000e) Tj T* ET
+BT /F1 12 Tf 14.4 TL ET
+BT 1 0 0 1 72 660 Tm (Public summary remains readable.) Tj T* ET
+ 
+
+endstream
+endobj
+6 0 obj
+<<
+/F1 7 0 R
+/F2 8 0 R
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /STSong-Light
+/DescendantFonts [ <<
+/BaseFont /STSong-Light
+/CIDSystemInfo <<
+/Ordering (GB1)
+/Registry (Adobe)
+/Supplement 0
+>>
+/DW 1000
+/FontDescriptor <<
+/Ascent 752
+/CapHeight 737
+/Descent -271
+/Flags 6
+/FontBBox [ -25 -254 1000 880 ]
+/FontName /STSongStd-Light
+/ItalicAngle 0
+/Leading 148
+/MaxWidth 1000
+/MissingWidth 500
+/StemH 91
+/StemV 58
+/Type /FontDescriptor
+/XHeight 553
+>>
+/Subtype /CIDFontType0
+/Type /Font
+/W [ 1 [ 207 270 342 467 462 797 710 239 374 ] 10 [ 374 423 605 238 375 238 334 462 ] 18 26 462 27 28 238 29 31 605 32 [ 344 748 684 560 695 739 563 511 729 793 318 312 666 526 896 758 772 544 772 628 465 607 753 711 972 647 620 607 374 333 374 606 500 239 417 503 427 529 415 264 444 518 241 230 495 228 793 527 524 ] 81 [ 524 504 338 336 277 517 450 652 466 452 407 370 258 370 605 ] ]
+>> ]
+/Encoding /UniGB-UCS2-H
+/Name /F2
+/Subtype /Type0
+/Type /Font
+>>
+endobj
+9 0 obj
+<<
+>>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000054 00000 n 
+0000000113 00000 n 
+0000000178 00000 n 
+0000000367 00000 n 
+0000000724 00000 n 
+0000000765 00000 n 
+0000000872 00000 n 
+0000001778 00000 n 
+trailer
+<<
+/Size 10
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+1799
+%%EOF

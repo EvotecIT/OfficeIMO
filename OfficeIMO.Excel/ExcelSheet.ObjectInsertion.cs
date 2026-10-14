@@ -21,6 +21,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Inserts objects into the worksheet by flattening their properties into columns.
+        /// Null and DBNull values remain blank cells; an empty string remains text.
         /// </summary>
         /// <typeparam name="T">Type of objects being inserted.</typeparam>
         /// <param name="items">Collection of objects to insert.</param>
@@ -96,18 +97,19 @@ namespace OfficeIMO.Excel {
 
             foreach (var dict in flattenedItems) {
                 for (int c = 0; c < headers.Count; c++) {
-                    object value = dict.TryGetValue(headers[c], out var entry) ? entry ?? string.Empty : string.Empty;
-                    cells[cellIndex++] = (row, c + 1, value);
+                    object? value = dict.TryGetValue(headers[c], out var entry) ? entry : null;
+                    cells[cellIndex++] = (row, c + 1, value!);
                 }
                 row++;
             }
 
             // Use the batch CellValues path with planner + execution policy
-            CellValues(cells, hasBlankDisplayHeader ? ExcelExecutionMode.Parallel : null);
+            CellValuesCore(cells, hasBlankDisplayHeader ? ExcelExecutionMode.Parallel : null, CancellationToken.None, preserveMissingValues: true);
         }
 
         /// <summary>
         /// Inserts objects into the worksheet using explicit column selectors (AOT-safe).
+        /// Null and DBNull selector results remain blank cells; an empty string remains text.
         /// </summary>
         /// <typeparam name="T">Type of objects being inserted.</typeparam>
         /// <param name="items">Collection of objects to insert.</param>
@@ -118,6 +120,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Inserts objects into the worksheet using explicit column selectors (AOT-safe).
+        /// Null and DBNull selector results remain blank cells; an empty string remains text.
         /// </summary>
         /// <typeparam name="T">Type of objects being inserted.</typeparam>
         /// <param name="items">Collection of objects to insert.</param>
@@ -186,7 +189,7 @@ namespace OfficeIMO.Excel {
                 for (int r = 0; r < rows.Count; r++) {
                     int rowOffset = r * headers.Length;
                     for (int c = 0; c < headers.Length; c++) {
-                        cells[cellIndex++] = (row, c + 1, values[rowOffset + c] ?? string.Empty);
+                        cells[cellIndex++] = (row, c + 1, values[rowOffset + c]!);
                     }
 
                     row++;
@@ -194,14 +197,14 @@ namespace OfficeIMO.Excel {
             } else {
                 foreach (var item in rows) {
                     for (int c = 0; c < headers.Length; c++) {
-                        cells[cellIndex++] = (row, c + 1, selectors[c](item) ?? string.Empty);
+                        cells[cellIndex++] = (row, c + 1, selectors[c](item)!);
                     }
 
                     row++;
                 }
             }
 
-            CellValues(cells, hasBlankDisplayHeader ? ExcelExecutionMode.Parallel : null);
+            CellValuesCore(cells, hasBlankDisplayHeader ? ExcelExecutionMode.Parallel : null, CancellationToken.None, preserveMissingValues: true);
         }
 
         private static IReadOnlyList<T> MaterializeObjectRowsBounded<T>(IEnumerable<T> items, bool includeHeaders, int startRow) {

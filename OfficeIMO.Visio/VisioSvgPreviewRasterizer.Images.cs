@@ -48,15 +48,19 @@ namespace OfficeIMO.Visio {
                 return true;
             }
 
-            double left = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X));
-            double top = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y));
-            double right = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X));
-            double bottom = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y));
-            if (right <= left || bottom <= top) {
+            OfficeTransform imageTransform = new(
+                (topRight.X - topLeft.X) / image.Width,
+                (topRight.Y - topLeft.Y) / image.Width,
+                (bottomLeft.X - topLeft.X) / image.Height,
+                (bottomLeft.Y - topLeft.Y) / image.Height,
+                topLeft.X,
+                topLeft.Y);
+            if (!imageTransform.TryInvert(out _)) {
+                context.ReportUnsupportedFeature();
                 return false;
             }
 
-            canvas.DrawImage(renderedImage, left, top, right - left, bottom - top);
+            canvas.DrawAffineImage(renderedImage, imageTransform);
             return true;
         }
 
@@ -117,23 +121,20 @@ namespace OfficeIMO.Visio {
 
             double determinant = (columnX * rowY) - (columnY * rowX);
             bool flipHorizontal = determinant < 0D;
-            double placementX = topLeft.X;
-            double placementY = topLeft.Y;
             double rotationColumnX = columnX;
             double rotationColumnY = columnY;
             if (flipHorizontal) {
                 rotationColumnX = -rotationColumnX;
                 rotationColumnY = -rotationColumnY;
-                placementX += columnX;
-                placementY += columnY;
             }
 
             double rotationDegrees = Math.Atan2(rotationColumnY, rotationColumnX) * 180D / Math.PI;
+            // Keep the transformed source origin fixed while rotation and reflection map its axes.
             projection = new OfficeImageProjection(
-                new OfficeImagePlacement(placementX, placementY, width, height),
+                new OfficeImagePlacement(topLeft.X, topLeft.Y, width, height),
                 rotationDegrees: rotationDegrees,
-                rotationCenterX: placementX,
-                rotationCenterY: placementY,
+                rotationCenterX: topLeft.X,
+                rotationCenterY: topLeft.Y,
                 flipHorizontal: flipHorizontal);
             return true;
         }

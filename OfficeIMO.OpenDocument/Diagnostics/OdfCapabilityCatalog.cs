@@ -45,7 +45,7 @@ public static class OdfCapabilityCatalog {
         new OdfCapability("presentation-animations", "Presentation animations", OdfCapabilityLevel.Limited,
             "Basic shape attribute animations and fade-in effects can be authored and inspected; advanced timing trees remain preservation-oriented."),
         new OdfCapability("flat-xml", "Flat OpenDocument XML", OdfCapabilityLevel.Limited,
-            "FODT, FODS, and FODP-style single XML documents can be opened and written, including embedded raster image binary data; package-only and exotic embedded-object features may not project losslessly."),
+            "FODT, FODS, FODP, and FODG-style single XML documents can be opened and written, including embedded raster image binary data; package-only and exotic embedded-object features may not project losslessly."),
         new OdfCapability("encryption", "OpenDocument encryption", OdfCapabilityLevel.Limited,
             "Password loading and saving support the bounded AES-256-CBC, PBKDF2-HMAC-SHA1 ODF profile, with classified failures and explicit protection removal. Other encryption profiles are rejected; independent copies retain the source protection contract."),
         new OdfCapability("digital-signatures", "OpenDocument digital signatures", OdfCapabilityLevel.Limited,

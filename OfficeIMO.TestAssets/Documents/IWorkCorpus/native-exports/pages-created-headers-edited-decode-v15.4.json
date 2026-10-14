@@ -1,0 +1,57 @@
+{
+  "source": "pages-created-headers-edited-v15.4.pages",
+  "sourceSha256": "646b208c135743b886353bc8a63264ebe4b1f4981300d9c88fb7cdf018c8c16f",
+  "docx": "pages-created-headers-edited-v15.4.docx",
+  "docxSha256": "f8aea4861c6e7e9abae5e23fc55edee0254d39ea392a92ad09968948cedffd44",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "primaryRecords": 231,
+  "physicalRecords": 231,
+  "bodyParagraphs": 73,
+  "pageTexts": [
+    {
+      "kind": "header",
+      "storage": 196,
+      "text": "OfficeIMO — Native header",
+      "font": "Arial",
+      "size": 14.0,
+      "bold": true,
+      "italic": false
+    },
+    {
+      "kind": "footer",
+      "storage": 199,
+      "text": "Zażółć café — native footer",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": true
+    }
+  ],
+  "headerDistancePoints": 30,
+  "footerDistancePoints": 36,
+  "nativeDocxFormatting": {
+    "header": {
+      "fonts": [
+        "Arial Unicode MS"
+      ],
+      "boldDeclarations": [
+        "0"
+      ],
+      "italicDeclarations": [
+        "0"
+      ]
+    },
+    "footer": {
+      "fonts": [
+        "Arial Unicode MS"
+      ],
+      "boldDeclarations": [
+        "0"
+      ],
+      "italicDeclarations": [
+        "0"
+      ]
+    }
+  },
+  "limits": "Native source and PDF retain Arial bold/italic; this Pages DOCX export maps fonts to Arial Unicode MS and clears explicit bold/italic. Text and distances match; native DOCX appearance is not qualified."
+}

@@ -13,6 +13,39 @@ public sealed class PdfPageViewTests {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
     [Fact]
+    public async Task RenderingNotesFlyoutShowsPageDetailsAfterPointerActivation() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            using var renderCoordinator = new PageRenderCoordinator((page, scale, _) =>
+                Task.FromResult(new PdfRenderedPage(page, scale, TinyPng, 1, 1, TimeSpan.Zero, Array.Empty<string>())));
+            using var sceneCoordinator = new PageSceneCoordinator((page, _) =>
+                Task.FromResult(TestPdfPageScenes.Create(page,
+                    diagnostics: ["Installed font substitute is approximate.", "Retained metrics do not prove exact outlines."])));
+            using var page = new PdfPageViewModel(1, 612, 792, 0, 0.7D, sceneCoordinator, renderCoordinator);
+            var view = new PdfPageView { DataContext = page };
+            var window = new Window { Width = 800, Height = 900, Content = view };
+            try {
+                window.Show();
+                await WaitUntilAsync(() => page.HasDiagnostics && !page.IsRendering);
+                window.UpdateLayout();
+                Button notes = view.GetVisualDescendants().OfType<Button>().Single(button => button.Flyout is Flyout);
+                Point hit = notes.TranslatePoint(new Point(notes.Bounds.Width / 2D, notes.Bounds.Height / 2D), window)!.Value;
+                window.MouseDown(hit, Avalonia.Input.MouseButton.Left);
+                window.MouseUp(hit, Avalonia.Input.MouseButton.Left);
+                var flyout = Assert.IsType<Flyout>(notes.Flyout);
+                await WaitUntilAsync(() => flyout.IsOpen);
+                var scroll = Assert.IsType<ScrollViewer>(flyout.Content);
+                TextBlock detail = Assert.IsType<TextBlock>(scroll.Content);
+                Assert.Equal(page.DiagnosticsDetails, detail.Text);
+                Assert.True(detail.IsEffectivelyVisible);
+                Assert.True(detail.Bounds.Width > 0 && detail.Bounds.Height > 0);
+                flyout.Hide();
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task PendingFormFocusIsAppliedWhenVirtualizedPageViewAttaches() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

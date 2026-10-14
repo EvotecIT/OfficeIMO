@@ -8,8 +8,11 @@ internal sealed partial class PdfTrueTypeFontProgram {
     internal PdfTextShowCommand EncodeTextShowCommand(string text) =>
         ToTextShowCommand(text, ShapeText(text));
 
-    internal double MeasureShapedTextWidth(string text, PdfGlyphRun run, double fontSize, double fontMetricScale = 1D) {
-        double nominal = run.TotalAdvanceWidth1000 * fontSize / 1000D;
+    internal double MeasureFontUnitAdvanceWidth1000(PdfGlyphRun run, double horizontalScaling = 100D) =>
+        _fontUnitLayoutMetrics.MeasureAdvanceWidth1000(run, horizontalScaling);
+
+    internal double MeasureShapedTextWidth(string text, PdfGlyphRun run, double fontSize, double fontMetricScale = 1D, bool useFontUnitAdvances = false) {
+        double nominal = (useFontUnitAdvances ? MeasureFontUnitAdvanceWidth1000(run) : run.TotalAdvanceWidth1000) * fontSize / 1000D;
         if (_tracking == null || run.Direction == OfficeTextDirection.TopToBottom) return nominal;
         int count = 0;
         foreach (bool boundary in GetTrackingBoundaries(text, run)) if (boundary) count++;

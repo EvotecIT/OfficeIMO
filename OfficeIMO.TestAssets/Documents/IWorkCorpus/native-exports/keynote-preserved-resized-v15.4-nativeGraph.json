@@ -1,0 +1,121 @@
+{
+  "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917",
+  "cases": [
+    {
+      "case": "officeimo",
+      "source": "keynote-preserved-resized-v15.4.key",
+      "sha256": "49d1293b65a1aa6eab6fd9a15ff0a1d482ef76760344f61a5d48f0d5e1f5a851",
+      "images": [
+        {
+          "slide": 1,
+          "id": 125,
+          "frame": [
+            80.0,
+            125.0,
+            420.0,
+            168.0
+          ],
+          "pixelSize": [
+            96,
+            64
+          ],
+          "resource": "image-45-45.png",
+          "resourceSha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+          "description": "Opaque four-color PNG \ud83d\ude00"
+        },
+        {
+          "slide": 2,
+          "id": 139,
+          "frame": [
+            80.0,
+            135.0,
+            360.0,
+            180.0
+          ],
+          "pixelSize": [
+            96,
+            64
+          ],
+          "resource": "image-60-60.png",
+          "resourceSha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+          "description": "Transparent, half-alpha, opaque purple"
+        },
+        {
+          "slide": 3,
+          "id": 154,
+          "frame": [
+            100.0,
+            135.0,
+            420.0,
+            168.0
+          ],
+          "pixelSize": [
+            96,
+            64
+          ],
+          "resource": "image-78-78.jpeg",
+          "resourceSha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+          "description": "Four-color JPEG, intentionally stretched frame"
+        }
+      ]
+    },
+    {
+      "case": "appleEdited",
+      "source": "keynote-preserved-resized-edited-v15.4.key",
+      "sha256": "b079128ad659c0130e28bea97d62824ff504b3a0bc34e77c6b380421210fe099",
+      "images": [
+        {
+          "slide": 1,
+          "id": 125,
+          "frame": [
+            80.0,
+            125.0,
+            420.0,
+            168.0
+          ],
+          "pixelSize": [
+            96,
+            64
+          ],
+          "resource": "image-45-45.png",
+          "resourceSha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+          "description": "Opaque four-color PNG \ud83d\ude00"
+        },
+        {
+          "slide": 2,
+          "id": 139,
+          "frame": [
+            80.0,
+            135.0,
+            360.0,
+            180.0
+          ],
+          "pixelSize": [
+            96,
+            64
+          ],
+          "resource": "image-60-60.png",
+          "resourceSha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+          "description": "Transparent, half-alpha, opaque purple"
+        },
+        {
+          "slide": 3,
+          "id": 154,
+          "frame": [
+            100.0,
+            135.0,
+            421.0,
+            168.0
+          ],
+          "pixelSize": [
+            96,
+            64
+          ],
+          "resource": "image-78-78.jpeg",
+          "resourceSha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+          "description": "Four-color JPEG, intentionally stretched frame"
+        }
+      ]
+    }
+  ]
+}

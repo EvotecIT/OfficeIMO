@@ -68,6 +68,7 @@ namespace OfficeIMO.Visio {
                     dataRow.MirroredDataValue = dataRow.Value;
                 }
 
+                dataRow.ResetValueAssignments();
                 shapeData.Add(dataRow);
             }
         }

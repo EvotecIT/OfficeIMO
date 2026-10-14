@@ -132,8 +132,9 @@ internal static partial class PdfWriter {
                         : 0D
                 : 0D;
             double cursorX = x + dx;
-
-            foreach (PdfTextRun run in line) {
+            RichSeg[] segments = BuildPageTextSegments(line, baseFont, defaultFontSize, options);
+            for (int runIndex = 0; runIndex < line.Count; runIndex++) {
+                PdfTextRun run = line[runIndex];
                 string text = run.Text ?? string.Empty;
                 if (text.Length == 0) {
                     continue;
@@ -148,7 +149,7 @@ internal static partial class PdfWriter {
                 double requestedFontSize = run.FontSize ?? defaultFontSize;
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
-                double width = MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
+                double width = GetRichSegmentWidth(segments[runIndex]);
                 PdfColor runColor = ResolvePageTextColor(run.Color ?? defaultColor, options);
                 PdfColor decorationColor = ResolvePageTextColor(run.DecorationColor ?? run.Color ?? defaultColor, options);
 
@@ -210,6 +211,9 @@ internal static partial class PdfWriter {
         }
 
         if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
+            // Round joins keep every zigzag tip inside the amplitude plus half
+            // stroke width used by page and drawing paint-bound measurements.
+            content.LineJoin(1);
             double step = Math.Max(width * 5D, 2D);
             double amplitude = Math.Max(width * 1.5D, 0.75D);
             content.MoveTo(x1, y);

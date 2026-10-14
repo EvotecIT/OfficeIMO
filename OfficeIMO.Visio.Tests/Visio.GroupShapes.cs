@@ -10,7 +10,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class VisioGroupShapes {
-        private static string AssetsPath => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets"));
+        private static string AssetsPath => Path.Combine(RepositoryTestPaths.Find(), "Assets");
         private static readonly XNamespace VisioNs = XNamespace.Get("http://schemas.microsoft.com/office/visio/2012/main");
 
         [Fact]

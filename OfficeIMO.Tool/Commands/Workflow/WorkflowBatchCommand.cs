@@ -22,6 +22,7 @@ internal static class WorkflowBatchCommand {
             if (option == "--retry-failed") { settings.RetryFailed = true; continue; }
             if (option == "--no-recursive") { settings.Recursive = false; continue; }
             if (option == "--allow-legacy-loss") { settings.ConversionOptions.LegacyDocLossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow; continue; }
+            if (option == "--require-no-loss") { settings.ConversionOptions.RequireNoLoss = true; continue; }
             if (++index >= args.Length) throw new WorkflowUsageException("Missing value for " + option);
             string value = args[index];
             switch (option) {
@@ -40,6 +41,12 @@ internal static class WorkflowBatchCommand {
                 case "--maximum-files": settings.MaximumFiles = Number(value, option, int.MaxValue); break;
                 case "--maximum-input-bytes": settings.MaximumInputBytes = Bytes(value, option); break;
                 case "--maximum-output-bytes": settings.MaximumOutputBytes = Bytes(value, option); break;
+                case "--maximum-xml-characters-in-part": settings.MaximumXmlCharactersInPart = Bytes(value, option); break;
+                case "--diagram-layers":
+                    settings.ConversionOptions.Draw = new OfficeIMO.OpenDocument.Odg.Pdf.OdgToPdfOptions { ForPrint = value switch {
+                        "print" => true, "screen" => false, _ => throw new WorkflowUsageException("Choose diagram layers: screen or print.")
+                    } };
+                    break;
                 case "--profile": settings.OutputProfile = EnumValue<OfficeWorkflowOutputProfile>(value, option); break;
                 case "--conflict": settings.ConflictPolicy = EnumValue<OfficeWorkflowConflictPolicy>(value, option); break;
                 default: throw new WorkflowUsageException("Unknown batch option: " + option);
@@ -65,8 +72,10 @@ internal static class WorkflowBatchCommand {
     private sealed class BatchProgress(TextWriter output) : IProgress<OfficeConversionBatchItemResult> {
         public void Report(OfficeConversionBatchItemResult item) {
             if (item.Skipped || item.Status != OfficeWorkflowStatus.Completed) output.WriteLine(item.InputPath + ": " + item.Summary);
-            foreach (var finding in item.Diagnostics.Where(finding => finding.Severity != OfficeWorkflowDiagnosticSeverity.Information))
-                output.WriteLine(item.InputPath + ": " + finding.Code + ": " + finding.Message);
+            foreach (var finding in item.Diagnostics.Where(finding => finding.Severity != OfficeWorkflowDiagnosticSeverity.Information)) {
+                finding.Details.TryGetValue("location", out string? location);
+                output.WriteLine(item.InputPath + ": " + finding.Code + (location == null ? "" : " [" + location + "]") + ": " + finding.Message);
+            }
         }
     }
 }

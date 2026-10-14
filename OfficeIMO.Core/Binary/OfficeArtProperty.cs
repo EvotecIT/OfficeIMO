@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing.Binary;
 
@@ -26,6 +27,29 @@ public sealed class OfficeArtProperty {
         AvailableComplexDataLength = availableComplexDataLength;
         ComplexText = string.IsNullOrWhiteSpace(complexText) ? null : complexText;
         _complexData = complexData == null ? null : (byte[])complexData.Clone();
+    }
+
+    // Select the effective entry before checking its representation. A later
+    // complex entry cannot make an older scalar value effective again.
+    internal static OfficeArtProperty? GetScalarProperty(IReadOnlyList<OfficeArtProperty> properties, int propertyId) {
+        for (int index = properties.Count - 1; index >= 0; index--) {
+            OfficeArtProperty property = properties[index];
+            if (property.PropertyId == propertyId) return property.IsComplex ? null : property;
+        }
+        return null;
+    }
+
+    // Boolean groups in later property tables override only the bits whose
+    // use masks are set. Other bits retain their preceding table's value.
+    internal static bool? GetBoolean(IReadOnlyList<OfficeArtProperty> properties,
+        ushort propertyId, uint useMask, uint valueMask) {
+        for (int index = properties.Count - 1; index >= 0; index--) {
+            OfficeArtProperty property = properties[index];
+            if (property.PropertyId != propertyId) continue;
+            if (property.IsComplex) return null;
+            if ((property.Value & useMask) != 0) return (property.Value & valueMask) != 0;
+        }
+        return null;
     }
 
     private readonly byte[]? _complexData;
@@ -60,7 +84,7 @@ public sealed class OfficeArtProperty {
     /// <summary>Gets the declared complex-data length.</summary>
     public uint? DeclaredComplexDataLength => IsComplex ? Value : null;
 
-    /// <summary>Gets the number of complex-data bytes available in the containing record.</summary>
+    /// <summary>Gets the number of complex-data bytes available in the containing record, including a recovered array header when its raw length excludes that header.</summary>
     public int? AvailableComplexDataLength { get; }
 
     /// <summary>Gets decoded text for a text-bearing complex property.</summary>
@@ -68,6 +92,16 @@ public sealed class OfficeArtProperty {
 
     /// <summary>Returns a defensive copy of the complex-data payload, when present.</summary>
     public byte[]? CopyComplexData() => _complexData == null ? null : (byte[])_complexData.Clone();
+
+    // Core decoders borrow the owned immutable payload. Inherited properties
+    // can serve many shapes without cloning rejected or bounded arrays.
+    internal OfficeArtComplexData ComplexData => new(_complexData);
+
+    // The raw length of a native array may exclude its header. Keep completeness
+    // checks on the same length contract as the property-table reader.
+    internal bool HasCompleteComplexData => IsComplex && AvailableComplexDataLength.HasValue
+        && unchecked((uint)AvailableComplexDataLength.Value) == OfficeArtPropertyTableReader.ExpectedComplexDataLength(
+            PropertyId, Value, _complexData, 0, _complexData?.Length ?? 0);
 
     private static string GetPropertyName(ushort propertyId) => propertyId switch {
         0x0004 => "rotation",
@@ -90,6 +124,13 @@ public sealed class OfficeArtProperty {
         0x0109 => "pictureBrightness",
         0x011A => "pictureRecolor",
         0x013F => "BlipBooleanProperties",
+        0x0140 => "geoLeft",
+        0x0141 => "geoTop",
+        0x0142 => "geoRight",
+        0x0143 => "geoBottom",
+        0x0144 => "shapePath",
+        0x0145 => "pVertices",
+        0x0146 => "pSegmentInfo",
         0x0147 => "adjustValue",
         0x0148 => "adjust2Value",
         0x0149 => "adjust3Value",
@@ -98,6 +139,10 @@ public sealed class OfficeArtProperty {
         0x014C => "adjust6Value",
         0x014D => "adjust7Value",
         0x014E => "adjust8Value",
+        0x0153 => "xLimo",
+        0x0154 => "yLimo",
+        0x0156 => "pGuides",
+        0x017F => "GeometryBooleanProperties",
         0x0180 => "fillType",
         0x0181 => "fillColor",
         0x0182 => "fillOpacity",
@@ -107,6 +152,7 @@ public sealed class OfficeArtProperty {
         0x018B => "fillAngle",
         0x018C => "fillFocus",
         0x0197 => "fillShadeColors",
+        0x019C => "fillShadeType",
         0x01BF => "FillStyleBooleanProperties",
         0x01C0 => "lineColor",
         0x01CB => "lineWidth",
@@ -140,4 +186,13 @@ public sealed class OfficeArtProperty {
         >= 0x0380 and <= 0x03BF => "GroupShape",
         _ => "Unknown"
     };
+}
+
+// A read-only view over OfficeArtProperty's defensive copy. Keep the view
+// available on legacy targets without adding a memory-package dependency.
+internal readonly struct OfficeArtComplexData {
+    private readonly byte[]? _bytes;
+    internal OfficeArtComplexData(byte[]? bytes) { _bytes = bytes; }
+    internal int Length => _bytes?.Length ?? 0;
+    internal byte this[int index] => _bytes![index];
 }

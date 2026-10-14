@@ -43,6 +43,7 @@ public static partial class OfficeTextBlockRenderer {
         for (int i = 0; i < line.Segments.Count; i++) {
             OfficeRichTextSegment segment = line.Segments[i];
             double renderedFontSize = ResolveRichTextRenderedFontSize(segment);
+            bool linked = AppendSvgRichTextLinkStart(builder, segment.LinkUri);
             builder.Append("<tspan")
                 .AppendAttribute("font-family", string.IsNullOrWhiteSpace(segment.FontFamily) ? "Arial, sans-serif" : segment.FontFamily)
                 .AppendNumberAttribute("font-size", renderedFontSize)
@@ -83,6 +84,7 @@ public static partial class OfficeTextBlockRenderer {
                 builder.Append(OfficeSvgFormatting.Escape(segment.Text));
             }
             builder.Append("</tspan>");
+            if (linked) builder.Append("</a>");
         }
 
         builder.Append("</text>");
@@ -90,6 +92,9 @@ public static partial class OfficeTextBlockRenderer {
     }
 
     internal static bool ShouldJustifyRichTextLine(OfficeRichTextLine line, int lineIndex, int lineCount, double availableWidth, OfficeTextAlignment alignment) {
+        // An explicit tab is a fixed advance, including a zero-width overlap. Do
+        // not discard its paint or move its following field through justification.
+        foreach (OfficeRichTextSegment segment in line.Segments) if (segment.Text.Length == 0) return false;
         return alignment == OfficeTextAlignment.Justify &&
             lineIndex < lineCount - 1 &&
             availableWidth > line.Width + 0.01D &&

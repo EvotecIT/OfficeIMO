@@ -11,8 +11,9 @@ internal sealed class ToUnicodeCMap {
     private const RegexOptions StaticRegexOptions =
         RegexOptions.Compiled | RegexOptions.CultureInvariant;
 #endif
+    // Hex strings can contain whitespace inside source codes and UTF-16 destinations.
     private static readonly Regex BfCharEntryRegex = new Regex(
-        @"<(?<src>[0-9A-Fa-f]+)>\s*<(?<dst>[0-9A-Fa-f]+)>",
+        @"<(?<src>[0-9A-Fa-f\s\x00]+)>\s*<(?<dst>[0-9A-Fa-f\s\x00]+)>",
         StaticRegexOptions,
         RegexTimeout);
     private static readonly Regex BfCharSectionRegex = new Regex(
@@ -20,7 +21,7 @@ internal sealed class ToUnicodeCMap {
         StaticRegexOptions | RegexOptions.IgnoreCase,
         RegexTimeout);
     private static readonly Regex BfRangeSequentialEntryRegex = new Regex(
-        @"<(?<from>[0-9A-Fa-f]+)>\s*<(?<to>[0-9A-Fa-f]+)>\s*<(?<dst>[0-9A-Fa-f]+)>",
+        @"<(?<from>[0-9A-Fa-f\s\x00]+)>\s*<(?<to>[0-9A-Fa-f\s\x00]+)>\s*<(?<dst>[0-9A-Fa-f\s\x00]+)>",
         StaticRegexOptions,
         RegexTimeout);
     private static readonly Regex BfRangeSectionRegex = new Regex(
@@ -28,7 +29,7 @@ internal sealed class ToUnicodeCMap {
         StaticRegexOptions | RegexOptions.IgnoreCase,
         RegexTimeout);
     private static readonly Regex BfRangeArrayEntryRegex = new Regex(
-        @"<(?<from>[0-9A-Fa-f]+)>\s*<(?<to>[0-9A-Fa-f]+)>\s*\[(?<dsts>[\s\S]*?)\]",
+        @"<(?<from>[0-9A-Fa-f\s\x00]+)>\s*<(?<to>[0-9A-Fa-f\s\x00]+)>\s*\[(?<dsts>[\s\S]*?)\]",
         StaticRegexOptions | RegexOptions.IgnoreCase,
         RegexTimeout);
 
@@ -46,8 +47,19 @@ internal sealed class ToUnicodeCMap {
     private int _processedMappings;
     private int _reverseMapNodeCount = 1;
     private bool _reverseMapBudgetExhausted;
+    private long _retainedMappingTextCharacters;
+    private long _retainedReverseCodeCharacters;
+    private int _reverseMapTerminalCount;
 
     internal int MappingCount => _map.Count;
+
+    /// <summary>Conservative retained-size estimate used when admitting a font to the document cache.</summary>
+    /// <remarks>Allowances cover mapping entries and strings, plus reverse nodes, sparse child dictionaries
+    /// and their capacity. Reverse terminal strings can outlive replacement of a forward mapping.</remarks>
+    internal long EstimatedRetainedBytes =>
+        _map.Count * 128L + _retainedMappingTextCharacters * sizeof(char) +
+        _reverseMapNodeCount * 256L + _reverseMapTerminalCount * 24L +
+        _retainedReverseCodeCharacters * sizeof(char);
 
     /// <summary>Source code hex strings and their mapped text.</summary>
     internal IEnumerable<KeyValuePair<string, string>> Mappings => _map;
@@ -89,16 +101,20 @@ internal sealed class ToUnicodeCMap {
                     break;
                 }
 
-                int from = Convert.ToInt32(m.Groups["from"].Value, 16);
-                int to = Convert.ToInt32(m.Groups["to"].Value, 16);
-                int dst = Convert.ToInt32(m.Groups["dst"].Value, 16);
-                int rangeLength = to >= from ? to - from + 1 : 0;
-                if (rangeLength <= 0 || rangeLength > MaxRangeMappings || _processedMappings + rangeLength > MaxMappings) {
+                string fromHex = RemoveHexWhitespace(m.Groups["from"].Value);
+                uint from = Convert.ToUInt32(fromHex, 16);
+                uint to = Convert.ToUInt32(RemoveHexWhitespace(m.Groups["to"].Value), 16);
+                uint dst = Convert.ToUInt32(RemoveHexWhitespace(m.Groups["dst"].Value), 16);
+                ulong rangeLength = to >= from ? (ulong)to - from + 1 : 0;
+                if (rangeLength == 0 || rangeLength > MaxRangeMappings || rangeLength > (ulong)(MaxMappings - _processedMappings)) {
                     continue;
                 }
 
-                int keyBytes = m.Groups["from"].Value.Length / 2; // bytes per code
-                for (int code = from, u = dst; code <= to; code++, u++) {
+                int keyBytes = fromHex.Length / 2; // bytes per code
+                // Bound iterations by the validated count, including a range ending at FFFFFFFF.
+                for (int index = 0; index < (int)rangeLength; index++) {
+                    uint code = from + (uint)index;
+                    uint u = unchecked(dst + (uint)index);
                     string srcHex = code.ToString("X", System.Globalization.CultureInfo.InvariantCulture).PadLeft(keyBytes * 2, '0');
                     string dstHex = u.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
                     AddMap(srcHex, dstHex);
@@ -110,22 +126,25 @@ internal sealed class ToUnicodeCMap {
                     break;
                 }
 
-                int from = Convert.ToInt32(m.Groups["from"].Value, 16);
-                int to = Convert.ToInt32(m.Groups["to"].Value, 16);
-                int keyBytes = m.Groups["from"].Value.Length / 2;
-                int code = from;
+                string fromHex = RemoveHexWhitespace(m.Groups["from"].Value);
+                uint from = Convert.ToUInt32(fromHex, 16);
+                uint to = Convert.ToUInt32(RemoveHexWhitespace(m.Groups["to"].Value), 16);
+                if (to < from) {
+                    continue;
+                }
+
+                int rangeLength = (int)Math.Min((ulong)MaxRangeMappings, (ulong)to - from + 1);
+                int keyBytes = fromHex.Length / 2;
+                int index = 0;
                 foreach (string destination in ReadHexArrayEntries(m.Groups["dsts"].Value)) {
-                    if (code > to) {
+                    if (index >= rangeLength || HasReachedMappingLimit()) {
                         break;
                     }
 
-                    if (HasReachedMappingLimit() || code - from >= MaxRangeMappings) {
-                        break;
-                    }
-
+                    uint code = from + (uint)index;
                     string srcHex = code.ToString("X", System.Globalization.CultureInfo.InvariantCulture).PadLeft(keyBytes * 2, '0');
                     AddMap(srcHex, destination);
-                    code++;
+                    index++;
                 }
             }
         }
@@ -153,6 +172,9 @@ internal sealed class ToUnicodeCMap {
         string key = srcHex.ToUpperInvariant();
         // dst may be multi-codepoints; keep as UTF-16 string
         string s = HexToString(dstHex);
+        if (_map.TryGetValue(key, out string? previous)) _retainedMappingTextCharacters -= previous.Length;
+        else _retainedMappingTextCharacters += key.Length;
+        _retainedMappingTextCharacters += s.Length;
         _map[key] = s;
         if (!_reverseMapBudgetExhausted && s.Length > 0 && s.Length <= MaxReverseMappingTextCharacters) {
             ReverseMapNode node = _reverseMapRoot;
@@ -163,7 +185,13 @@ internal sealed class ToUnicodeCMap {
                 }
             }
 
-            node.CodeHex ??= key;
+            if (node.CodeHex is null) {
+                node.CodeHex = key;
+                // Reverse terminals and partially created branches survive forward-map replacement.
+                // Charge their source strings separately, including conservative string-object overhead.
+                _retainedReverseCodeCharacters += key.Length;
+                _reverseMapTerminalCount++;
+            }
         }
     }
 
@@ -172,7 +200,7 @@ internal sealed class ToUnicodeCMap {
     private static string RemoveHexWhitespace(string value) {
         bool hasWhitespace = false;
         for (int i = 0; i < value.Length; i++) {
-            if (char.IsWhiteSpace(value[i])) {
+            if (char.IsWhiteSpace(value[i]) || value[i] == '\0') {
                 hasWhitespace = true;
                 break;
             }
@@ -184,7 +212,7 @@ internal sealed class ToUnicodeCMap {
 
         var sb = new System.Text.StringBuilder(value.Length);
         for (int i = 0; i < value.Length; i++) {
-            if (!char.IsWhiteSpace(value[i])) {
+            if (!char.IsWhiteSpace(value[i]) && value[i] != '\0') {
                 sb.Append(value[i]);
             }
         }

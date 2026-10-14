@@ -9,11 +9,12 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgRenderer {
-        private static string BuildPath(VisioPage page, VisioShape shape, IReadOnlyList<(double X, double Y)> localPoints, double scale, bool isClosed) {
+        private static string BuildPath(VisioPage page, VisioShape shape, IReadOnlyList<(double X, double Y)> localPoints, VisioRenderProjection projection, bool isClosed) {
             List<OfficePoint> points = new(localPoints.Count);
+            VisioNativeShapeTransform transform = VisioNativeShapeTransform.Create(shape);
             for (int i = 0; i < localPoints.Count; i++) {
-                (double absX, double absY) = GetPagePoint(shape, localPoints[i].X, localPoints[i].Y);
-                (double x, double y) = ToSvg(page, absX, absY, scale);
+                OfficePoint point = transform.PagePoint(localPoints[i].X, localPoints[i].Y);
+                (double x, double y) = ToSvg(page, point.X, point.Y, projection);
                 points.Add(new OfficePoint(x, y));
             }
 
@@ -21,10 +22,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
-            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
-            return shape.Parent != null
-                ? GetPagePoint(shape.Parent, absX, absY)
-                : (absX, absY);
+            OfficePoint point = VisioNativeShapeTransform.Create(shape).PagePoint(x, y);
+            return (point.X, point.Y);
         }
 
         private static (double Left, double Bottom, double Right, double Top) GetPageBounds(VisioShape shape) {
@@ -67,19 +66,18 @@ namespace OfficeIMO.Visio {
             return points * scale / 72D;
         }
 
-        private static string BuildOpenPath(VisioPage page, IReadOnlyList<(double X, double Y)> points, double scale) {
+        private static string BuildOpenPath(VisioPage page, IReadOnlyList<(double X, double Y)> points, VisioRenderProjection projection) {
             List<OfficePoint> svgPoints = new(points.Count);
             for (int i = 0; i < points.Count; i++) {
-                (double x, double y) = ToSvg(page, points[i].X, points[i].Y, scale);
+                (double x, double y) = ToSvg(page, points[i].X, points[i].Y, projection);
                 svgPoints.Add(new OfficePoint(x, y));
             }
 
             return OfficeSvgFormatting.FormatMoveLinePathData(svgPoints);
         }
 
-        private static (double X, double Y) ToSvg(VisioPage page, double x, double y, double scale) {
-            return (x * scale, (page.Height - y) * scale);
-        }
+        private static (double X, double Y) ToSvg(VisioPage page, double x, double y, VisioRenderProjection projection) =>
+            projection.PagePoint(x, y);
 
         private static double Distance((double X, double Y) a, (double X, double Y) b) =>
             OfficeIMO.Drawing.OfficeGeometry.Distance(a, b);

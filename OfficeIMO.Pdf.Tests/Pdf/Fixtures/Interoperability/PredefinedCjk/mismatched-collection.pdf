@@ -1,0 +1,127 @@
+%PDF-1.3
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 1
+/Kids [ 4 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Outlines 9 0 R
+>>
+endobj
+4 0 obj
+<<
+/Contents 5 0 R
+/MediaBox [ 0 0 612 792 ]
+/Resources <<
+/Font 6 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+/Parent 2 0 R
+>>
+endobj
+5 0 obj
+<<
+/Length 306
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+BT /F2 18 Tf 21.6 TL ET
+BT 1 0 0 1 72 700 Tm /F2 18 Tf 21.6 TL (\000B\000e\000f\000o\000r\000e\000 y\330[\306\000 \000a\000f\000t\000e\000r\000 \000p\000a\000g\000e) Tj T* ET
+BT /F1 12 Tf 14.4 TL ET
+BT 1 0 0 1 72 660 Tm (Public summary remains readable.) Tj T* ET
+ 
+
+endstream
+endobj
+6 0 obj
+<<
+/F1 7 0 R
+/F2 8 0 R
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /MSung-Light
+/DescendantFonts [ <<
+/BaseFont /MSung-Light
+/CIDSystemInfo <<
+/Ordering (CNS1)
+/Registry (Adobe)
+/Supplement 1
+>>
+/DW 1000
+/FontDescriptor <<
+/Ascent 752
+/CapHeight 737
+/Descent -271
+/Flags 6
+/FontBBox [ -160 -249 1015 888 ]
+/FontName /MSung-Light
+/ItalicAngle 0
+/Leading 148
+/MaxWidth 1000
+/MissingWidth 500
+/StemH 45
+/StemV 58
+/Type /FontDescriptor
+/XHeight 553
+>>
+/Subtype /CIDFontType0
+/Type /Font
+/W [ 1 2 250 3 [ 408 668 490 875 698 250 240 ] 10 [ 240 417 667 250 313 250 520 500 ] 18 26 500 27 28 250 29 31 667 32 [ 396 921 677 615 719 760 625 552 771 802 354 ] 43 [ 354 781 604 927 750 823 563 823 729 542 698 771 729 948 771 677 635 344 520 344 469 500 250 469 521 427 521 438 271 469 531 250 ] 75 [ 250 458 240 802 531 500 521 ] 82 [ 521 365 333 292 521 458 677 479 458 427 480 496 480 667 ] ]
+>> ]
+/Encoding /UniGB-UCS2-H
+/Name /F2
+/Subtype /Type0
+/Type /Font
+>>
+endobj
+9 0 obj
+<<
+>>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000054 00000 n 
+0000000113 00000 n 
+0000000178 00000 n 
+0000000367 00000 n 
+0000000724 00000 n 
+0000000765 00000 n 
+0000000872 00000 n 
+0000001788 00000 n 
+trailer
+<<
+/Size 10
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+1809
+%%EOF

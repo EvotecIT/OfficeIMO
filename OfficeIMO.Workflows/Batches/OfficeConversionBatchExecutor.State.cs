@@ -61,7 +61,7 @@ internal static partial class OfficeConversionBatchExecutor {
 
     private static OfficeConversionBatchRequest Snapshot(OfficeConversionBatchRequest request, IReadOnlyList<OfficeWorkflowRoute> routes) {
         ArgumentNullException.ThrowIfNull(request);
-        if (request.MaximumConcurrency is < 1 or > 32 || request.MaximumFiles < 1 || request.MaximumInputBytes < 1 || request.MaximumOutputBytes < 1)
+        if (request.MaximumConcurrency is < 1 or > 32 || request.MaximumFiles < 1 || request.MaximumInputBytes < 1 || request.MaximumOutputBytes < 1 || request.MaximumXmlCharactersInPart < 1)
             throw new ArgumentException("Batch resource limits are invalid.", nameof(request));
         var copy = request with {
             InputDirectory = request.InputDirectory == null ? null : Path.GetFullPath(request.InputDirectory),

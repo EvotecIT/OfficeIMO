@@ -22,7 +22,8 @@ public static partial class ExcelIWorkConverter {
         IWorkNumbersProjection projection = source.ReadNumbers();
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindExcelProjectionLimitation(projection, settings.NormalizeWorksheetNames);
+            : FindExcelProjectionLimitation(projection, settings.NormalizeWorksheetNames,
+                settings.AllowPartialEditableReconstruction, cancellationToken);
         bool hasEditableContent = projection.HasEditableContent
             || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
         bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
@@ -34,17 +35,14 @@ public static partial class ExcelIWorkConverter {
                 "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED", destinationLimitation) };
         if (editable
             && projection.Sheets.SelectMany(sheet => sheet.Tables)
-            .SelectMany(table => table.Cells)
-            .Any(cell => cell.RichText != null
-                && HasUnsupportedRichText(cell.RichText, cell.Kind == IWorkCellKind.Formula))) {
+            .Any(table => table.Cells.Any(cell => HasUnsupportedRichText(table, cell)))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL",
-                    "Some formula-cell rich text, paragraph formatting, list markers, run links, highlights, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
+                    "Mixed formula-result styles, incomplete rich-text formatting, paragraph layout, list markers, mixed run links, highlights, character tracking, or transparent colors cannot be represented in XLSX; uniform formula-result fonts and alignment are retained as whole-cell formatting. Source paragraphs and runs remain available on the iWork projection.")
             }).ToArray();
         }
-        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
-            .Any(cell => cell.Padding != null)) {
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).Any(table => table.CellPaddings.Any())) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_CELL_PADDING_OMITTED",
                     "Four-sided native cell padding remains on the source projection; XLSX cell alignment has no equivalent padding setting.",
@@ -55,7 +53,7 @@ public static partial class ExcelIWorkConverter {
             .Any(HasUnsupportedTableTextStyle)) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_TABLE_TEXT_STYLE_PARTIAL",
-                    "XLSX retains supported table fonts and horizontal alignment; paragraph indents, spacing, pagination, highlights and color transparency remain on the iWork projection.",
+                    "XLSX retains supported table fonts and horizontal alignment; paragraph indents, spacing, pagination, highlights, character tracking and color transparency remain on the iWork projection.",
                     lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
             }).ToArray();
         }
@@ -84,6 +82,22 @@ public static partial class ExcelIWorkConverter {
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(FractionFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DurationFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DateTimeFormatDiagnostics(projection)).ToArray();
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables)
+            .Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_MERGED_TABLE_BORDERS_APPROXIMATED",
+                    "Merged XLSX cells use the first recovered segment of each outer edge; varying native perimeter segments remain on the source projection.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+            }).ToArray();
+        }
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => TableBorderWidths(table, cancellationToken))
+            .Any(width => width is not (0.5d or 1d or 2d or 3d))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED",
+                    "Native border widths outside the portable 0.5, 1, 2 and 3 point profile use the nearest XLSX hair, thin, medium or thick style; colors and explicit invisible edges are retained.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+            }).ToArray();
+        }
         if (editable && settings.FindUnacceptedDestinationOmission(destinationDiagnostics) is { } omission) {
             destinationLimitation = omission;
             editable = false;
@@ -193,8 +207,10 @@ public static partial class ExcelIWorkConverter {
                                 sheet.CellFormulaWithTextCache(cell.Row, cell.Column,
                                     formula!, cachedText);
                                 formulaWritten = true;
-                            } else if (cell.Kind != IWorkCellKind.Formula
-                                || cell.Value != null && cell.CachedValueIsComplete) {
+                            } else if (cell.Kind != IWorkCellKind.Empty
+                                && (cell.Kind != IWorkCellKind.Formula
+                                    || cell.Value != null && cell.CachedValueIsComplete)) {
+                                // SetValue(null) writes empty text; source empty cells must retain blank semantics.
                                 targetCell.SetValue(value);
                             }
                             if (cell.Kind != IWorkCellKind.Formula
@@ -204,18 +220,15 @@ public static partial class ExcelIWorkConverter {
                                     sheet.SetHyperlink(cell.Row, cell.Column, hyperlink,
                                         display: null, style: false);
                                 }
-                                bool headerCell = cell.Row <= table.HeaderRowCount
-                                    || cell.Column <= table.HeaderColumnCount
-                                    || cell.Row > table.RowCount - table.FooterRowCount;
-                                targetCell.SetRichText(ToExcelRichTextRuns(richText, headerCell && defaultStyle?.TextStyle.Bold == null, cancellationToken, defaultStyle?.TextStyle));
-                            }
-                            if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
-                                || cell.Row > table.RowCount - table.FooterRowCount) {
-                                if (defaultStyle?.TextStyle.Bold == null) targetCell.SetBold();
+                                targetCell.SetRichText(ToExcelRichTextRuns(richText, false, cancellationToken, defaultStyle?.TextStyle));
                             }
                             if (cell.Kind == IWorkCellKind.Formula && formula != null
                                 && !string.IsNullOrEmpty(formula) && !formulaWritten) {
                                 targetCell.SetFormula(formula!);
+                            }
+                            if (cell.Kind == IWorkCellKind.Formula && cell.RichText is { } formulaText) {
+                                ApplyUniformFormulaTextStyle(sheet, targetCell, formulaText,
+                                    false, defaultStyle);
                             }
                             if (cell.VerticalAlignment is { } vertical) sheet.CellVerticalAlign(cell.Row, cell.Column, vertical switch {
                                 IWorkCellVerticalAlignment.Top => ExcelVerticalAlignment.Top,
@@ -225,6 +238,12 @@ public static partial class ExcelIWorkConverter {
                             if (isDuration && cell.Value is double) targetCell.DurationHours();
                             if (cell.NumberFormat is { } numberFormat)
                                 sheet.FormatCell(cell.Row, cell.Column, numberFormat.ToSpreadsheetFormatCode());
+                        }
+                        foreach (var merge in table.ResolveMergedBorders(cancellationToken)) {
+                            var anchor = sheet.CellAt(merge.Range.FirstRow, merge.Range.FirstColumn);
+                            // An absent perimeter edge must clear any physical interior edge already applied to this anchor.
+                            anchor.SetBorder(ExcelCellBorders.All, ExcelBorderStyle.None);
+                            ApplyTableBorders(anchor, merge.Borders);
                         }
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -280,80 +299,17 @@ public static partial class ExcelIWorkConverter {
             ? cell.CachedDisplayText
             : cell.DisplayText;
 
-    internal static bool HasUnsupportedRichText(IWorkTextContent content, bool formula) =>
-        formula
-        || content.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-            .Any(run => run.Hyperlink != null)
-            && UniformCellHyperlink(content) == null
-        || content.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-            .Any(run => run.Style.BackgroundColor != null
-                || run.Style.Color is { Alpha: < byte.MaxValue })
-        || content.Paragraphs.Any(paragraph =>
-            paragraph.ListLevel >= 0 || !string.IsNullOrEmpty(paragraph.ListLabel)
-            || paragraph.Style.Alignment.HasValue
-            || paragraph.Style.FirstLineIndentPoints.HasValue
-            || paragraph.Style.LeftIndentPoints.HasValue
-            || paragraph.Style.RightIndentPoints.HasValue
-            || paragraph.Style.SpaceBeforePoints.HasValue
-            || paragraph.Style.SpaceAfterPoints.HasValue
-            || paragraph.Style.LineSpacingMultiplier.HasValue
-            || paragraph.Style.TabStops?.Count > 0
-            || paragraph.Style.PageBreakBefore.HasValue
-            || paragraph.Style.KeepWithNext.HasValue
-            || paragraph.Style.KeepLinesTogether.HasValue
-            || paragraph.BreakKind is IWorkParagraphBreakKind.Section
-                or IWorkParagraphBreakKind.Layout or IWorkParagraphBreakKind.Page);
-
-    private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content, bool forceBold,
-        CancellationToken cancellationToken, IWorkTextStyle? defaultStyle = null) {
-        var runs = new List<ExcelRichTextRun>();
-        for (int paragraphIndex = 0; paragraphIndex < content.Paragraphs.Count; paragraphIndex++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (paragraphIndex > 0) {
-                var separator = new ExcelRichTextRun("\n");
-                if (forceBold) separator.Bold = true;
-                runs.Add(separator);
-            }
-            foreach (IWorkTextRun source in content.Paragraphs[paragraphIndex].Runs) {
-                cancellationToken.ThrowIfCancellationRequested();
-                var run = new ExcelRichTextRun(source.Text);
-                run.Bold = source.Style.Bold ?? defaultStyle?.Bold ?? forceBold;
-                run.Italic = source.Style.Italic ?? defaultStyle?.Italic ?? false;
-                run.Underline = source.Style.Underline ?? defaultStyle?.Underline ?? false;
-                run.Strikethrough = source.Style.Strikethrough ?? defaultStyle?.Strikethrough ?? false;
-                run.FontSize = source.Style.FontSizePoints ?? defaultStyle?.FontSizePoints;
-                run.FontName = source.Style.FontName ?? defaultStyle?.FontName;
-                run.FontColor = source.Style.Color?.RgbHex ?? defaultStyle?.Color?.RgbHex;
-                runs.Add(run);
-            }
-        }
-        return runs.ToArray();
-    }
-
-    private static string? UniformCellHyperlink(IWorkTextContent content) {
-        string? hyperlink = null;
-        foreach (IWorkTextRun run in content.Paragraphs.SelectMany(paragraph => paragraph.Runs)) {
-            if (run.Text.Length == 0) continue;
-            if (run.Hyperlink == null) return null;
-            if (hyperlink != null && !string.Equals(hyperlink, run.Hyperlink,
-                    StringComparison.Ordinal)) return null;
-            hyperlink = run.Hyperlink;
-        }
-        return hyperlink != null && Uri.TryCreate(hyperlink, UriKind.Absolute, out _)
-            ? hyperlink
-            : null;
-    }
-
     private static bool IsNativeExcelError(string value) => value is
             "#NULL!" or "#DIV/0!" or "#VALUE!" or "#REF!" or "#NAME?"
                 or "#NUM!" or "#N/A" or "#GETTING_DATA";
 
     private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection,
-        bool normalizeWorksheetNames) {
+        bool normalizeWorksheetNames, bool allowPartialEditableReconstruction, CancellationToken cancellationToken) {
         long styledCellCount = 0;
         var commentAuthors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var destinationSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IWorkNumbersSheet sheet in projection.Sheets) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!FitsTextBoxesInWorksheet(sheet.TextBoxes.Count)) {
                 return $"Numbers sheet '{sheet.Name}' contains more text boxes than the XLSX row limit of 1,048,576.";
             }
@@ -366,6 +322,7 @@ public static partial class ExcelIWorkConverter {
                 return $"Numbers sheet '{sheet.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
             }
             for (int tableIndex = 0; tableIndex < sheet.Tables.Count; tableIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 IWorkTable table = sheet.Tables[tableIndex];
                 string tableSheetName = sheet.Tables.Count == 1 && sheet.TextBoxes.Count == 0
                     ? sheet.Name
@@ -380,7 +337,7 @@ public static partial class ExcelIWorkConverter {
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }
-                if (TableParagraphStyles(table).Any() || HasTableFillDefaults(table)) {
+                if (HasTableDefaultStyles(table)) {
                     long area = (long)table.RowCount * table.ColumnCount;
                     if (area > 100_000 || styledCellCount > 1_000_000 - area)
                         return "Numbers table style defaults exceed the bounded XLSX styled-cell budget.";
@@ -394,6 +351,8 @@ public static partial class ExcelIWorkConverter {
                 if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Numbers table '{table.Name}' contains content in a covered merged cell that the XLSX owner cannot preserve.";
                 }
+                if (!allowPartialEditableReconstruction && table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))
+                    return $"Numbers table '{table.Name}' has varying borders along a merged perimeter that requires explicit partial reconstruction.";
                 if (table.DefaultRowHeight is double rowHeight
                     && (!IsFinite(rowHeight) || rowHeight > 409d
                         || rowHeight <= 0d)) {
@@ -424,15 +383,15 @@ public static partial class ExcelIWorkConverter {
                             return "Numbers comment author names differ only by case and cannot be preserved by the XLSX person owner.";
                         commentAuthors[authorComment.Author] = authorComment.Author;
                     }
-                    if (cell.Kind != IWorkCellKind.Formula && cell.RichText != null
-                        && cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                            .Any(run => run.Style.FontSizePoints is double size
+                    if (cell.RichText != null
+                        && RichTextStyles(cell.RichText)
+                            .Any(style => style.FontSizePoints is double size
                                 && (!IsFinite(size) || size < 1d || size > 409d))) {
                         return $"Numbers table '{table.Name}' contains a rich-text font size outside the XLSX-supported range of 1 to 409 points.";
                     }
-                    if (cell.Kind != IWorkCellKind.Formula && cell.RichText != null
-                        && cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                            .Any(run => run.Style.FontName is { Length: > 255 })) {
+                    if (cell.RichText != null
+                        && RichTextStyles(cell.RichText)
+                            .Any(style => style.FontName is { Length: > 255 })) {
                         return $"Numbers table '{table.Name}' contains a rich-text font name longer than the bounded XLSX conversion limit of 255 characters.";
                     }
                     string? text = cell.Kind == IWorkCellKind.Error

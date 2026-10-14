@@ -18,7 +18,7 @@ public static partial class OfficeDrawingRasterRenderer {
         bool visibleTile = false;
         foreach (OfficeImagePlacement placement in placements) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (canvas.IntersectsVisibleSurface(new OfficeImageProjection(placement).CreateUnitSquareTransform(), 1D, 1D)) {
+            if (canvas.IntersectsVisibleSurface(new OfficeImageProjection(placement).CreateUnitSquareTransform(), 1D, 1D, includePartialCoverage: false)) {
                 visibleTile = true;
                 break;
             }
@@ -50,7 +50,10 @@ public static partial class OfficeDrawingRasterRenderer {
 
         foreach (OfficeImagePlacement tile in placements) {
             cancellationToken.ThrowIfCancellationRequested();
-            canvas.DrawImage(image, new OfficeImageProjection(tile));
+            // Pattern boundaries select pixel centres while the tile contents keep
+            // bilinear filtering, matching the continuous vector-pattern route.
+            canvas.DrawAffineImage(image, new OfficeTransform(tile.Width / image.Width, 0D, 0D,
+                tile.Height / image.Height, tile.X, tile.Y), 1D, interpolate: true, antialiasBoundary: false);
         }
     }
 }

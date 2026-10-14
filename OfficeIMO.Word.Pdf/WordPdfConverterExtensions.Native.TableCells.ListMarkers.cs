@@ -18,10 +18,10 @@ namespace OfficeIMO.Word.Pdf {
             NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(info.Value, textStyle.ListMarkerTextSpacing);
             double markerWidth = nativeFontMap?.MeasureText(markerRun)
                 ?? EstimateNativeListMarkerWidth(marker, markerFontSize, markerSpacing);
-            double anchorShift = GetNativeMarkerAnchorShift(info.Value, markerWidth);
             double suffixWidth = info.Value.LevelSuffix == WordListLevelSuffix.Space
                 ? ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle)
                 : 0D;
+            double anchorShift = GetNativeMarkerAnchorShift(info.Value, markerWidth + suffixWidth);
             double trailingOffset = info.Value.LevelSuffix switch {
                 WordListLevelSuffix.Nothing => 0D,
                 WordListLevelSuffix.Space => suffixWidth,
@@ -31,7 +31,10 @@ namespace OfficeIMO.Word.Pdf {
             };
 
             var result = new List<PdfCore.PdfTextRun>(2) { markerRun };
-            AddNativeCellListSpacer(result, trailingOffset);
+            if (info.Value.LevelSuffix == WordListLevelSuffix.Space)
+                result.Add(CreateNativeListSpaceSuffixTextRun(paragraph, nativeDefaults, nativeFontMap,
+                    out _, out _, tableStyleDefaults.RunStyle));
+            else AddNativeCellListSpacer(result, trailingOffset);
             return (result, anchorShift);
         }
 

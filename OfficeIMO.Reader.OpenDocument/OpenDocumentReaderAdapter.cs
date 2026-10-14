@@ -14,7 +14,9 @@ internal static partial class OpenDocumentReaderAdapter {
         ReaderOptions effective = options ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, effective.MaxInputBytes);
         ReaderOpenDocumentOptions formatOptions = (openDocumentOptions ?? new ReaderOpenDocumentOptions()).Clone();
-        OdfDocument document = OdfDocument.Load(path, CreateOpenOptions(effective, formatOptions));
+        OdfDocument document = string.Equals(Path.GetExtension(path), ".fodg", StringComparison.OrdinalIgnoreCase)
+            ? OdgDocument.LoadFlatXml(path, CreateOpenOptions(effective, formatOptions))
+            : OdfDocument.Load(path, CreateOpenOptions(effective, formatOptions));
         foreach (ReaderChunk chunk in ReadDocument(document, Path.GetFullPath(path), effective, formatOptions, cancellationToken)) yield return chunk;
     }
 
@@ -27,8 +29,10 @@ internal static partial class OpenDocumentReaderAdapter {
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, effective.MaxInputBytes, cancellationToken, out bool ownsStream);
         try {
             ReaderOpenDocumentOptions formatOptions = (openDocumentOptions ?? new ReaderOpenDocumentOptions()).Clone();
-            OdfDocument document = OdfDocument.Load(parseStream, CreateOpenOptions(effective, formatOptions));
             string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "document.odf" : sourceName!.Trim();
+            OdfDocument document = string.Equals(Path.GetExtension(logicalName), ".fodg", StringComparison.OrdinalIgnoreCase)
+                ? OdgDocument.LoadFlatXml(parseStream, CreateOpenOptions(effective, formatOptions))
+                : OdfDocument.Load(parseStream, CreateOpenOptions(effective, formatOptions));
             foreach (ReaderChunk chunk in ReadDocument(document, logicalName, effective, formatOptions, cancellationToken)) yield return chunk;
         } finally {
             if (ownsStream) parseStream.Dispose();
@@ -84,6 +88,8 @@ internal static partial class OpenDocumentReaderAdapter {
             foreach (ReaderChunk chunk in ReadSpreadsheet(spreadsheet, sourceName, options, formatOptions, budget, cancellationToken)) yield return chunk;
         } else if (document is OdpPresentation presentation) {
             foreach (ReaderChunk chunk in ReadPresentation(presentation, sourceName, options, formatOptions, budget, cancellationToken)) yield return chunk;
+        } else if (document is OdgDocument drawing) {
+            foreach (ReaderChunk chunk in ReadDrawing(drawing, sourceName, budget, cancellationToken)) yield return chunk;
         }
     }
 

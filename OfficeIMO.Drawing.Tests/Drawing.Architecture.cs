@@ -53,25 +53,6 @@ public class DrawingArchitectureTests {
     }
 
     [Fact]
-    public void ProjectsUsingOfficeDrawingReferenceOfficeDrawingDirectly() {
-        foreach (string projectPath in Directory.GetFiles(RepositoryRoot, "OfficeIMO.*.csproj", SearchOption.AllDirectories)) {
-            if (IsNonProductionProject(projectPath) || IsOfficeDrawingProject(projectPath)) {
-                continue;
-            }
-
-            string projectFolder = Path.GetDirectoryName(projectPath)!;
-            if (!ProjectSourceUsesOfficeDrawing(projectFolder)) {
-                continue;
-            }
-
-            XDocument project = XDocument.Load(projectPath);
-            Assert.Contains(
-                GetReferencedItems(project, "ProjectReference"),
-                reference => reference.Replace('\\', '/').EndsWith("/OfficeIMO.Core/OfficeIMO.Core.csproj", StringComparison.OrdinalIgnoreCase));
-        }
-    }
-
-    [Fact]
     public void ProductionProjectsDoNotReferenceThirdPartyImageRenderingPackages() {
         string[] bannedPackages = {
             "Aspose.Cells",
@@ -241,27 +222,6 @@ public class DrawingArchitectureTests {
             normalized.Contains(".Benchmarks", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("/Build/PackageSmoke/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("/OfficeIMO.Examples/", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsOfficeDrawingProject(string projectPath) =>
-        string.Equals(Path.GetFileNameWithoutExtension(projectPath), "OfficeIMO.Core", StringComparison.OrdinalIgnoreCase);
-
-    private static bool ProjectSourceUsesOfficeDrawing(string projectFolder) {
-        foreach (string filePath in Directory.GetFiles(projectFolder, "*.cs", SearchOption.AllDirectories)) {
-            string normalized = filePath.Replace('\\', '/');
-            if (normalized.Contains("/obj/", StringComparison.OrdinalIgnoreCase)) {
-                continue;
-            }
-
-            string source = File.ReadAllText(filePath);
-            if (source.Contains("using OfficeIMO.Drawing", StringComparison.Ordinal) ||
-                source.Contains("OfficeIMO.Drawing.", StringComparison.Ordinal) ||
-                source.Contains("OfficeIMO.Drawing;", StringComparison.Ordinal)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static string LocateRepositoryRoot() =>

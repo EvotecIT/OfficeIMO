@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel {
             if (tokens.Count == 3 && !TryResolveHolidayDates(tokens[2], holidays)) {
                 return false;
             }
+            if (_formulaReferenceError.IsError) return true;
 
             int direction = Math.Floor(startSerial) <= Math.Floor(endSerial) ? 1 : -1;
             double current = Math.Floor(Math.Min(startSerial, endSerial));
@@ -42,6 +43,7 @@ namespace OfficeIMO.Excel {
             } else if (!TryResolveFormulaArguments(token, out values)) {
                 return false;
             }
+            if (values.Any(value => value.IsUnresolvedFormula)) return false;
 
             foreach (var value in values) {
                 if (value.Number.HasValue && TryGetDateFromSerial(value.Number.Value, out DateTime date)) {
@@ -75,6 +77,7 @@ namespace OfficeIMO.Excel {
             if (tokens.Count > holidayIndex && !TryResolveHolidayDates(tokens[holidayIndex], holidays)) {
                 return false;
             }
+            if (_formulaReferenceError.IsError) return true;
 
             double currentSerial = Math.Floor(startSerial);
             if (days == 0) {

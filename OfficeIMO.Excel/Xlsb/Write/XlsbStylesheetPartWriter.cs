@@ -35,6 +35,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtXf = 47;
         private const int BrtStyle = 48;
 
+        /// <summary>Defines style zero even when a new workbook has no explicit formatting.</summary>
+        internal static byte[] CreateForNewWorkbook(Stylesheet? stylesheet, out int cellFormatCount) =>
+            Create(stylesheet ?? ExcelDocument.CreateDefaultStylesheet(), out cellFormatCount);
+
         internal static byte[] Create(Stylesheet stylesheet, out int cellFormatCount) {
             if (stylesheet == null) throw new ArgumentNullException(nameof(stylesheet));
             ValidateUnsupportedCollections(stylesheet);

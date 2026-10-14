@@ -18,6 +18,13 @@ public sealed partial class PdfPageViewModel {
     public bool HasInlineFormEditor => InlineFormWidgets.Count > 0;
     /// <summary>Set when a page click or Tab should focus the selected widget after layout.</summary>
     internal bool FocusInlineFormEditorRequested { get; set; }
+    /// <summary>Acknowledges successful presentation focus to the canonical page, so it cannot replay the request.</summary>
+    internal event Action? InlineFormEditorFocusCompleted;
+
+    internal void CompleteInlineFormEditorFocus() {
+        FocusInlineFormEditorRequested = false;
+        InlineFormEditorFocusCompleted?.Invoke();
+    }
     /// <summary>Raised by Tab (+1) and Shift+Tab (-1) inside an on-page editor.</summary>
     internal event Action<int>? InlineFormNavigationRequested;
     internal void RequestInlineFormNavigation(int direction) => InlineFormNavigationRequested?.Invoke(direction);

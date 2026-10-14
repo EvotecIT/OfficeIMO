@@ -1,0 +1,65 @@
+{
+  "source": "numbers-created-edited-v14.5.numbers",
+  "output": "numbers-preserved-scalars.numbers",
+  "sourceSha256": "c907c567584786ce9c5183a376f61d813f3bf56757de531cbdbfb1fefb4fcfd6",
+  "outputSha256": "588a8c65a12f75d5969f73eff4bf8bfe8fef5134f9d3700ce1f8b3dcc77afb98",
+  "fileEntries": 103,
+  "recordsIncludingAuxiliary": 316,
+  "changedEntries": [
+    "Index/Tables/Tile-150-2.iwa",
+    "Index/Tables/Tile-175-2.iwa"
+  ],
+  "changedTiles": [
+    150,
+    175
+  ],
+  "cells": [
+    [
+      141,
+      2,
+      2,
+      "number",
+      42.125
+    ],
+    [
+      141,
+      2,
+      3,
+      "boolean",
+      false
+    ],
+    [
+      141,
+      3,
+      2,
+      "number",
+      -7.5
+    ],
+    [
+      141,
+      3,
+      3,
+      "boolean",
+      true
+    ],
+    [
+      166,
+      1,
+      2,
+      "number",
+      123.75
+    ],
+    [
+      166,
+      2,
+      1,
+      "boolean",
+      true
+    ]
+  ],
+  "onlyDeclaredScalarSpansDiffer": true,
+  "rawHeadersSiblingsAndOtherBytesIdentical": true,
+  "numbersParser": "4.19.0",
+  "protobuf": "7.36.2",
+  "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917"
+}

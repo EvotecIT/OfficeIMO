@@ -10,10 +10,14 @@ internal interface IScanTextRecognitionService {
 }
 
 internal sealed class ScanTextRecognitionService : IScanTextRecognitionService {
+    private readonly StudioOcrRuntime? _runtime;
+    internal ScanTextRecognitionService(StudioOcrRuntime? runtime = null) => _runtime = runtime;
     public async Task<PdfSearchableOcrReview> PrepareAsync(byte[] source, SearchablePdfOcrOptions options, CancellationToken cancellationToken) {
-        var session = await StudioOcrProvider.CreateSessionAsync(new TesseractOcrSessionOptions {
+        var sessionOptions = new TesseractOcrSessionOptions {
             Languages = options.Languages, ProvisionMissingLanguageData = options.ProvisionMissingLanguageData
-        }, cancellationToken).ConfigureAwait(false);
+        };
+        var session = await (_runtime is null ? StudioOcrProvider.CreateSessionAsync(sessionOptions, cancellationToken)
+            : _runtime.CreateSessionAsync(sessionOptions, cancellationToken)).ConfigureAwait(false);
         var settings = options.Pdf.Clone();
         settings.Language = options.Languages.ToTesseractExpression();
         return await PdfDocument.Load(source).PrepareSearchableOcrAsync(session.Engine, settings, cancellationToken).ConfigureAwait(false);

@@ -61,7 +61,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     /// <summary>True when at least one error-severity warning was recorded.</summary>
     public bool HasErrors => Warnings.Any(static warning => warning.Severity == PdfConversionWarningSeverity.Error);
 
-    /// <summary>True when conversion reported an approximation, omission, or error.</summary>
+    /// <summary>True when conversion reported an approximation, omission, failure, or unassessed fidelity.</summary>
     public bool HasLoss => Warnings.Any(static warning => warning.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Gets category-preserving diagnostics for composed conversion routes.</summary>
@@ -110,7 +110,8 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>
-    /// Throws when conversion reported an approximation, omission, or error; informational diagnostics are allowed.
+    /// Throws when conversion reported an approximation, omission, failure, or unassessed fidelity.
+    /// Informational diagnostics with no fidelity loss are allowed.
     /// </summary>
     public PdfConversionReport RequireNoLoss() {
         PdfConversionWarning[] lossWarnings = Warnings

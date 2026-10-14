@@ -18,7 +18,7 @@
   "Sources": [
     {
       "Repo": "EvotecIT/PSWriteOffice",
-      "Ref": "53f5e6cf96e8c38fa77735e50c1b9995509c61e5",
+      "Ref": "c7a9d408e711859c7c71e8d498687086a4143f2f",
       "Slug": "pswriteoffice",
       "Destination": "./projects/pswriteoffice",
       "Clean": true
@@ -89,6 +89,15 @@
       "Include": ["*.md", "**/*.md"]
     },
     {
+      "Name": "browser-tools",
+      "Input": "content/browser",
+      "Output": "/browser",
+      "DefaultLayout": "browser-tool",
+      "UseToc": false,
+      "SitemapLastModified": "sourceDate",
+      "Include": ["*.md", "**/*.md"]
+    },
+    {
       "Name": "pdf-workflows",
       "Input": "content/pdf-workflows",
       "Output": "/pdf",
@@ -123,7 +132,7 @@
       "DefaultLayout": "blog-post",
       "ListLayout": "page",
       "UseToc": false,
-      "SitemapLastModified": "publishedDate",
+      "SitemapLastModified": "sourceDate",
       "EditorialCards": {
         "ImageAspect": "16/9",
         "ImageFit": "cover",
@@ -205,12 +214,15 @@
     "Enabled": true,
     "Breadcrumbs": true,
     "Article": true,
+    "WebPage": true,
+    "OrganizationName": "Evotec",
+    "OrganizationUrl": "https://evotec.xyz/",
     "FaqPage": true,
     "HowTo": true,
     "SoftwareApplication": true,
     "OrganizationLegalName": "Evotec Services sp. z o.o.",
     "OrganizationDescription": "Open source .NET libraries for creating, reading, and editing Office documents without Microsoft Office.",
-    "OrganizationLogo": "https://officeimo.com/favicon.svg",
+    "OrganizationLogo": "https://evotec.xyz/favicon.svg",
     "OrganizationSameAs": [
       "https://github.com/EvotecIT/OfficeIMO",
       "https://github.com/EvotecIT/PSWriteOffice",
@@ -322,8 +334,8 @@
       },
       {
         "Name": "convert_selected_document",
-        "Route": "/apps/officeimo-converter/",
-        "Description": "Convert the document already selected in the visible OfficeIMO workspace using the current browser-local route and settings.",
+        "Route": "/browser/word-to-pdf/",
+        "Description": "Run the open OfficeIMO browser tool on the file already chosen on the page, with the settings shown. Processing stays in the browser.",
         "Kind": "page-tool",
         "ReadOnly": false
       }
@@ -335,7 +347,12 @@
       "EdgeTtlSeconds": 604800
     },
     "PurgeMode": "hostname",
-    "SmartTieredCache": true
+    "SmartTieredCache": true,
+    "ImmutablePaths": [
+      "/apps/officeimo-converter/_framework/*.*.wasm",
+      "/apps/officeimo-converter/_framework/*.*.js",
+      "/apps/officeimo-converter/_framework/*.*.dat"
+    ]
   },
   "EditLinks": {
     "Enabled": true,
@@ -343,7 +360,7 @@
     "PathBase": "Website"
   },
   "AssetRegistry": {
-    "CssStrategy": "standard",
+    "CssStrategy": "blocking",
     "Bundles": [
       {
         "Name": "global",
@@ -352,6 +369,7 @@
           "/css/prism-theme.css"
         ],
         "Js": [
+          "/js/browser-handoff.js",
           "/js/site.js",
           "/js/source-viewer.js"
         ]
@@ -360,6 +378,15 @@
         "Name": "home",
         "Css": [
           "/css/home.css"
+        ]
+      },
+      {
+        "Name": "format-map",
+        "Css": [
+          "/css/format-map.css"
+        ],
+        "Js": [
+          "/js/format-map.js"
         ]
       },
       {
@@ -412,6 +439,15 @@
         "Js": [
           "/js/benchmarks.js"
         ]
+      },
+      {
+        "Name": "browser-tool",
+        "Css": [
+          "/css/browser-tool.css"
+        ],
+        "Js": [
+          "/js/browser-pages.js"
+        ]
       }
     ],
     "RouteBundles": [
@@ -421,7 +457,8 @@
           "global",
           "home",
           "experience",
-          "applications"
+          "applications",
+          "format-map"
         ]
       },
       {
@@ -492,6 +529,20 @@
         ]
       },
       {
+        "Match": "/browser/**",
+        "Bundles": [
+          "global",
+          "experience",
+          "browser-tool"
+        ]
+      },
+      {
+        "Match": "/convert/",
+        "Bundles": [
+          "format-map"
+        ]
+      },
+      {
         "Match": "/convert/**",
         "Bundles": [
           "global",
@@ -549,6 +600,15 @@
           "global",
           "docs",
           "experience"
+        ]
+      },
+      {
+        "Match": "/docs/integrations/**",
+        "Bundles": [
+          "global",
+          "docs",
+          "experience",
+          "showcase"
         ]
       },
       {

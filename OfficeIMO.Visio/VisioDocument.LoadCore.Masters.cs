@@ -28,7 +28,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (!string.IsNullOrEmpty(shape.MasterShapeId) && effectiveMaster != null) {
-                VisioShape? referencedMasterShape = effectiveMaster.Shape.FindDescendantById(shape.MasterShapeId!);
+                VisioShape? referencedMasterShape = FindMasterShapeByNativeId(effectiveMaster.Shape, shape.MasterShapeId!);
                 if (referencedMasterShape != null) {
                     shape.MasterShape = referencedMasterShape;
                     effectiveMasterShape = referencedMasterShape;
@@ -37,18 +37,8 @@ namespace OfficeIMO.Visio {
 
             VisioShape? fallbackMasterShape = shape.MasterShape ?? effectiveMasterShape ?? effectiveMaster?.Shape;
             if (fallbackMasterShape != null) {
-                if (!shape.HasExplicitWidth) {
-                    shape.Width = fallbackMasterShape.Width;
-                }
-                if (!shape.HasExplicitHeight) {
-                    shape.Height = fallbackMasterShape.Height;
-                }
-                if (!shape.HasExplicitLocPinX) {
-                    shape.LocPinX = fallbackMasterShape.LocPinX;
-                }
-                if (!shape.HasExplicitLocPinY) {
-                    shape.LocPinY = fallbackMasterShape.LocPinY;
-                }
+                shape.MasterShape = fallbackMasterShape;
+                ApplyInheritedMasterProperties(shape, shapeElement, ns, fallbackMasterShape);
             }
 
             XElement? childShapes = shapeElement.Element(ns + "Shapes");
@@ -64,6 +54,15 @@ namespace OfficeIMO.Visio {
                     ApplyMasterReferences(shape.Children[i], childElements[i], ns, masters, effectiveMaster, inheritedChildMasterShape ?? fallbackMasterShape);
                 }
             }
+        }
+
+        private static VisioShape? FindMasterShapeByNativeId(VisioShape root, string id) {
+            if (string.Equals(root.PersistedId ?? root.Id, id, StringComparison.Ordinal)) return root;
+            foreach (VisioShape child in root.Children) {
+                VisioShape? found = FindMasterShapeByNativeId(child, id);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private static void RegisterShapeHierarchy(VisioShape shape, Dictionary<string, VisioShape> shapeMap) {

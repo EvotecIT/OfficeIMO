@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Leadership", title.Text);
             Assert.True(title.PinY - title.Height / 2D > highestChartTop);
-            Assert.Contains(page.Connectors, connector => connector.From.Id == "ceo" && connector.To.Id == "ea");
+            Assert.Contains(page.Connectors, connector => connector.From?.Id == "ceo" && connector.To?.Id == "ea");
             Assert.Contains(page.Shapes, shape => shape.Id == "org-band-engineering");
             Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
 

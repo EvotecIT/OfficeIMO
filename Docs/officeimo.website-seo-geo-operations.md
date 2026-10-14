@@ -12,6 +12,42 @@ This runbook turns website publishing into a measurable discovery loop. It appli
 - [ ] Confirm `search=yes`, `ai-input=yes`, and `ai-train=yes` agree with explicit crawler rules for `OAI-SearchBot`, `ChatGPT-User`, and `GPTBot`.
 - [ ] Deploy only after the source commit, generated artifacts, and published version agree.
 
+## Article structured data
+
+PowerForge owns JSON-LD generation. Keep `structured_data_html` in the theme
+head and describe each article in front matter:
+
+```yaml
+meta.schema.type: Article
+meta.author.name: Evotec
+meta.author.type: Organization
+meta.author.url: https://evotec.xyz/
+image: /downloads/integrations/events/preview.png
+```
+
+Use `BlogPosting` for journal posts. A person uses `Person` (the default) and a
+profile URL; an editorial team uses `Organization`. The shared article metadata
+partial displays that same byline. Blog publication dates come from their
+existing `date` field; modification dates come from explicit metadata or source
+history and appear beside the byline. Undated guides remain undated.
+
+Choose an image that represents the article and appears in its content. The
+reporting articles use their native report previews. Text and code posts reuse
+their successfully generated per-article social cards. When neither is available,
+the article omits that recommended property instead of using the generic site image.
+Site configuration connects the canonical page, article, website and Evotec
+publisher. Breadcrumbs retain the documentation or journal hierarchy.
+
+After building, inspect the actual JSON-LD, byline, dates and image URL on the
+three reporting articles and representative blog posts. Run SEO Doctor, then
+check a supported article with Google's
+[Rich Results Test](https://search.google.com/test/rich-results) and the
+[Schema.org validator](https://validator.schema.org/). Google's
+[Article guidance](https://developers.google.com/search/docs/appearance/structured-data/article)
+defines recommended properties, with no required-property list. Valid markup
+does not guarantee a search feature. Verify crawling and indexing against the
+deployed URLs in Search Console after publication.
+
 ## Post-deploy verification
 
 Within one hour:

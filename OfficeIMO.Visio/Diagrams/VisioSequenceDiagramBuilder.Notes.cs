@@ -5,10 +5,8 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio.Diagrams {
-    /// <summary>
-    /// High-level builder for UML-style sequence diagrams with deterministic participant,
-    /// lifeline, and message placement.
-    /// </summary>
+    // High-level builder for UML-style sequence diagrams with deterministic participant,
+    // lifeline, and message placement.
     public sealed partial class VisioSequenceDiagramBuilder {
         private void AddNotes(VisioPage page, double firstMessageY) {
             List<LayoutBounds> reservedBounds = BuildNoteReservedBounds(page);
@@ -132,18 +130,18 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static void AddConnectorSegmentReservedBounds(VisioConnector connector, IList<LayoutBounds> reservedBounds) {
-            List<(double X, double Y)> points = new() {
-                (connector.From.PinX, connector.From.PinY)
-            };
+            (double X, double Y) start = connector.From != null ? (connector.From.PinX, connector.From.PinY) : (connector.StartPoint.X, connector.StartPoint.Y);
+            (double X, double Y) end = connector.To != null ? (connector.To.PinX, connector.To.PinY) : (connector.EndPoint.X, connector.EndPoint.Y);
+            List<(double X, double Y)> points = new() { start };
             foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
                 points.Add((waypoint.X, waypoint.Y));
             }
 
             if (connector.Waypoints.Count == 0 && connector.Kind == ConnectorKind.RightAngle) {
-                points.Add((connector.From.PinX, connector.To.PinY));
+                points.Add((start.X, end.Y));
             }
 
-            points.Add((connector.To.PinX, connector.To.PinY));
+            points.Add(end);
             const double thickness = 0.08D;
             for (int i = 0; i < points.Count - 1; i++) {
                 double left = Math.Min(points[i].X, points[i + 1].X) - (thickness / 2D);

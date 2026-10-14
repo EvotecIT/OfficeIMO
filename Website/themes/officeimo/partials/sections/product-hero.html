@@ -44,35 +44,21 @@
       {{ if preview }}
       <figure class="imo-product-example">
         <a href="{{ preview.image }}" data-pf-media data-pf-media-caption="{{ preview.title | html.escape }}" aria-label="Open full-size preview: {{ preview.title }}"><img sizes="(max-width: 1023px) 92vw, 440px" src="{{ preview.image }}" width="{{ preview.image_width }}" height="{{ preview.image_height }}" alt="{{ preview.image_alt }}" decoding="async" fetchpriority="high" /></a>
-        <figcaption><strong>{{ preview.title }}</strong><p>{{ preview.proof }}</p><a href="{{ preview.artifact_url }}">{{ preview.artifact_label }}</a> · <a href="{{ preview.source_url }}">View source</a> · <a href="/showcase/#{{ preview.id }}">Explore the example</a></figcaption>
+        <figcaption><strong>{{ preview.title }}</strong><p>{{ preview.proof }}</p><a href="{{ preview.artifact_url }}">{{ preview.artifact_label }}</a> · <a href="{{ if preview.source_language == "powershell" }}{{ preview.walkthrough_url }}#example-code{{ else }}{{ preview.source_url }}{{ end }}">View source</a> · <a href="/showcase/#{{ preview.id }}">Explore the example</a></figcaption>
       </figure>
       {{ else }}
       <div class="imo-product-example imo-product-example--guide"><h2>Start with a working example</h2><p>Find the input, generated output, and source for the document workflow you need.</p><a href="/showcase/">Browse document examples →</a></div>
       {{ end }}
-      {{ if page.title == "PSWriteOffice" || nuget_pkg == "OfficeIMO.Word" || nuget_pkg == "OfficeIMO.Pdf" }}
+      {{ excerpt = null }}
+      {{ if preview && data.showcase_excerpts }}{{ excerpt = data.showcase_excerpts[preview.id] }}{{ end }}
+      {{ if excerpt }}
+      {{ card = preview; include "showcase-language" }}
+      {{ is_powershell = source_language == "powershell" }}
+      {{ if is_powershell == (page.title == "PSWriteOffice") }}
       <div class="imo-product-proof__code">
-        {{ if page.title == "PSWriteOffice" }}
-        <span>PowerShell</span><pre class="language-powershell"><code class="language-powershell">New-OfficeWord -Path '.\report.docx' {
-    Add-OfficeWordSection {
-        Add-OfficeWordParagraph `
-            -Text 'Quarterly report' `
-            -Style Heading1
-    }
-}</code></pre>
-        {{ else if nuget_pkg == "OfficeIMO.Word" }}
-        <span>C#</span><pre class="language-csharp"><code class="language-csharp">using var document =
-    WordDocument.Create("report.docx");
-document.AddParagraph(
-    "Quarterly operations review");
-document.Save();</code></pre>
-        {{ else if nuget_pkg == "OfficeIMO.Pdf" }}
-        <span>C#</span><pre class="language-csharp"><code class="language-csharp">using OfficeIMO.Pdf;
-
-PdfDocument.Create(pdf =&gt; pdf.Content(content =&gt; content
-    .H1("Quarterly report")))
-    .Save("report.pdf");</code></pre>
-        {{ end }}
+        <span>{{ source_language_label }} · {{ if is_powershell }}excerpt from the example; follow the walkthrough for the complete code{{ else }}excerpt cut from the example source; the full file is linked above{{ end }}</span><pre tabindex="0" class="language-{{ source_language }}"><code class="language-{{ source_language }}">{{ excerpt | html.escape }}</code></pre>
       </div>
+      {{ end }}
       {{ end }}
     </div>
   </div>

@@ -8,10 +8,11 @@ internal static class ConvertCommand {
 OfficeIMO.Tool - document conversion
 
 Usage:
-  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx> [output.pdf] [--force]
+  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx|input.odg|input.fodg|input.djvu|input.djv> [output.pdf] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
-  officeimo convert <input.pages|input.numbers|input.key> [output.docx|output.xlsx|output.pptx]
+                    [--diagram-layers screen|print] [--require-no-loss]
+  officeimo convert <input.pages|input.numbers|input.key> [output.docx|output.xlsx|output.pptx|output.pdf]
                     [--iwork-mode auto|editable|visual] [--allow-partial]
                     [--allow-incomplete-preview] [--normalize-worksheet-names]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>] [--force]
@@ -19,11 +20,15 @@ Usage:
                     [--assets <directory>] [--max-input-bytes <bytes>] [--force]
 
 PDF output uses the first-party format adapters and literal text converter.
-Apple OOXML output uses the shared iWork workflow adapter and writes structured JSON evidence.
+Apple Office and PDF output use the shared iWork workflow adapter and write structured JSON evidence.
+Apple PDF requires complete editable reconstruction; previews and partial policies are rejected.
 Defaults reject partial editable reconstruction and previews without known complete coverage.
 Apple workflow conversion accepts ZIP files and directory bundles.
 Markdown and JSON output use the OfficeIMO Reader pipeline.
-The default destination for DOC, DOCX, TXT, XLSX, and PPTX input is a sibling PDF file.
+Draw PDF output keeps source page dimensions and uses print-visible layers by default.
+DjVu PDF output preserves scan pixels, page sizes and existing searchable text.
+Diagram and DjVu --require-no-loss reject source and PDF-stage fidelity losses before publishing.
+The default destination for supported PDF input is a sibling PDF file.
 """;
 
     internal static async Task<int> RunAsync(
@@ -151,10 +156,12 @@ internal sealed class ConvertRoute {
                 case "--max-characters-in-part":
                 case "--text-encoding":
                 case "--tab-size":
+                case "--diagram-layers":
                     _ = NextValue(args, ref index, token);
                     hasPdfOnlyOption = true;
                     break;
                 case "--allow-legacy-loss":
+                case "--require-no-loss":
                     hasPdfOnlyOption = true;
                     break;
                 case "--force":
@@ -185,11 +192,12 @@ internal sealed class ConvertRoute {
         outputPath ??= optionOutputPath;
         ConvertOutputFormat format = outputPath is null && Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant() is ".pages" or ".numbers" or ".key"
             ? ConvertOutputFormat.IWork : ParseOutputFormat(outputPath);
-        if (format == ConvertOutputFormat.IWork) {
-            if (assetsPath is not null || hasPdfOnlyOption) throw new ConvertUsageException("Apple OOXML conversion does not accept assets or XML-part limits.");
-            return new ConvertRoute { Format = format };
+        bool appleInput = Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant() is ".pages" or ".numbers" or ".key";
+        if (format == ConvertOutputFormat.IWork || appleInput && format == ConvertOutputFormat.Pdf) {
+            if (assetsPath is not null || hasPdfOnlyOption) throw new ConvertUsageException("Apple workflow conversion does not accept assets or XML-part limits.");
+            return new ConvertRoute { Format = ConvertOutputFormat.IWork };
         }
-        if (hasAppleOnlyOption) throw new ConvertUsageException("iWork acceptance options require an Apple-to-OOXML conversion.");
+        if (hasAppleOnlyOption) throw new ConvertUsageException("iWork acceptance options require an Apple-to-Office or Apple-to-PDF conversion.");
         if (format == ConvertOutputFormat.Pdf) {
             if (assetsPath != null) {
                 throw new ConvertUsageException("--assets is only valid for Markdown or JSON output.");
@@ -199,7 +207,7 @@ internal sealed class ConvertRoute {
 
         if (hasPdfOnlyOption || hasOutputLimit) {
             throw new ConvertUsageException(
-                "--max-output-bytes requires PDF or Apple OOXML output; --max-characters-in-part requires PDF output.");
+                "PDF conversion options require PDF output; --max-output-bytes requires PDF or Apple OOXML output.");
         }
 
         var readerArguments = new List<string> {

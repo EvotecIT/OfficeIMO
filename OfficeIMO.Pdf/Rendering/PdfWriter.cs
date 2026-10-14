@@ -122,11 +122,11 @@ internal static partial class PdfWriter {
         ValidateGeneratedFormFieldNames(layout.Pages);
         System.Collections.Generic.Dictionary<string, string> positionedRadioValues = ResolvePositionedRadioButtonValues(
             layout.Pages.SelectMany(page => page.FormFields));
+        ValidateEmittedAssociatedFiles(layout, opts, cancellationToken);
         complianceEvidence = CollectGeneratedComplianceEvidence(layout, opts);
         PdfComplianceValidator.ValidateGeneratedDocument(opts, title, complianceEvidence);
         PdfFileVersion serializationFileVersion = complianceEvidence.EffectiveFileVersion ?? opts.FileVersion;
         ValidateAssociatedFileMetadata(opts, serializationFileVersion);
-        ValidateStructureAssociatedFileNames(layout, opts, cancellationToken);
 
         // Build indirect objects through either the bounded replay store or the opt-in one-pass object writer.
         bool finalArtifactBuffered = outputStream == null;
@@ -164,7 +164,7 @@ internal static partial class PdfWriter {
 
         // Collect fonts used across pages
         var fontObjectIds = new Dictionary<(PdfStandardFont Font, PdfEmbeddedFont? EmbeddedFont, bool IncludeToUnicode, int ShapingContextId), int>();
-        var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language)>();
+        var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language, OfficeIMO.Drawing.OfficeTextFeatureSettings Features)>();
         var namedFontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfNamedFontFace, int>>();
         var formHelveticaFontIds = new Dictionary<PdfOptions, int>();
         var printColorTransforms = new Dictionary<PdfOptions, PdfPrintColorTransform?>();
@@ -178,7 +178,8 @@ internal static partial class PdfWriter {
                 var context = shapingContexts[index];
                 if (context.Mode == fontOptions.TextShapingModeSnapshot &&
                     ReferenceEquals(context.Provider, fontOptions.TextShapingProviderSnapshot) &&
-                    string.Equals(context.Language, fontOptions.Language, StringComparison.Ordinal)) {
+                    string.Equals(context.Language, fontOptions.Language, StringComparison.Ordinal) &&
+                    context.Features.Equals(fontOptions.DefaultTextFeatureSettings)) {
                     return index + 1;
                 }
             }
@@ -186,7 +187,8 @@ internal static partial class PdfWriter {
             shapingContexts.Add((
                 fontOptions.TextShapingModeSnapshot,
                 fontOptions.TextShapingProviderSnapshot,
-                fontOptions.Language));
+                fontOptions.Language,
+                fontOptions.DefaultTextFeatureSettings));
             return shapingContexts.Count;
         }
 
@@ -431,6 +433,7 @@ internal static partial class PdfWriter {
             ? 0
             : AddObject(objects, PdfOptionalContentDictionaryBuilder.BuildProperties(layerDefinitions, optionalContentGroupIds));
 
+        var runningShapePaintCache = new RunningShapePaintCache();
         for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             var page = layout.Pages[pageIndex];
@@ -506,7 +509,7 @@ internal static partial class PdfWriter {
                 pageNamedFontResources[usedFont] = usedFont.ResourceName;
                 EnsureNamedFont(usedFont, pageOpts);
             }
-            PdfTextWatermark? textWatermark = pageOpts.GetTextWatermarkForPage(pageNumberInfo.VariantPageNumber);
+            PdfTextWatermark? textWatermark = pageOpts.GetTextWatermarkForPage(pageNumberInfo.VariantPageNumber, pageNumberInfo.PageNumber);
             string? watermarkFontAlias = null;
             string? textWatermarkGraphicsStateName = null;
             if (textWatermark != null && textWatermark.Opacity > 0D) {
@@ -520,7 +523,7 @@ internal static partial class PdfWriter {
             if (pageBackgroundImage != null && pageBackgroundImage.Opacity > 0D) {
                 AddPageBackgroundImage(page, pageOpts, pageBackgroundImage);
             }
-            PdfImageWatermark? imageWatermark = pageOpts.GetImageWatermarkForPage(pageNumberInfo.VariantPageNumber);
+            PdfImageWatermark? imageWatermark = pageOpts.GetImageWatermarkForPage(pageNumberInfo.VariantPageNumber, pageNumberInfo.PageNumber);
             if (imageWatermark != null && imageWatermark.Opacity > 0D) {
                 AddImageWatermark(page, pageOpts, imageWatermark);
             }
@@ -557,6 +560,7 @@ internal static partial class PdfWriter {
             }
 
             string headerFooterShapeContent = BuildHeaderFooterShapes(
+                runningShapePaintCache,
                 page,
                 pageOpts,
                 headerFooterVariantPageNumber,
@@ -1876,10 +1880,19 @@ internal static partial class PdfWriter {
 
     private static List<PageNumberInfo> BuildPageNumberInfos(IReadOnlyList<LayoutResult.Page> pages) {
         var seen = new Dictionary<int, int>();
+        var sectionPages = new Dictionary<int, int>();
+        foreach (var page in pages) {
+            if (page.RunningContentSections == null) continue;
+            foreach (int sectionId in page.RunningContentSections) {
+                sectionPages.TryGetValue(sectionId, out int count);
+                sectionPages[sectionId] = count + 1;
+            }
+        }
         var pending = new List<(int VariantPageNumber, int PageNumber, int SequenceId, int GroupId)>(pages.Count);
         int nextSequenceId = 0;
         int currentSequenceId = -1;
         int currentVisiblePageNumber = 0;
+        var logicalPageNumbers = new Dictionary<int, int>();
 
         foreach (var page in pages) {
             seen.TryGetValue(page.PageGroupId, out int pageNumber);
@@ -1893,7 +1906,17 @@ internal static partial class PdfWriter {
             currentVisiblePageNumber = ResolveNextVisiblePageNumber(pending.Count, firstPageOfGroup,
                 currentVisiblePageNumber, page.Options);
 
-            pending.Add((pageNumber, currentVisiblePageNumber, currentSequenceId, page.PageGroupId));
+            // A continuous source section can share its first page with the
+            // preceding section. Count that page in both sections, while the
+            // running variants belong to the section whose body owns the page.
+            if (page.RunningContentSections != null)
+                foreach (int sectionId in page.RunningContentSections) {
+                    logicalPageNumbers.TryGetValue(sectionId, out int logicalPage);
+                    logicalPageNumbers[sectionId] = logicalPage + 1;
+                }
+            int variantPage = page.RunningContentSectionId is int owner && logicalPageNumbers.TryGetValue(owner, out int ownerPage)
+                ? ownerPage : pageNumber;
+            pending.Add((variantPage, currentVisiblePageNumber, currentSequenceId, page.PageGroupId));
         }
 
         var totals = new Dictionary<int, int>();
@@ -1902,8 +1925,11 @@ internal static partial class PdfWriter {
         }
 
         var infos = new List<PageNumberInfo>(pages.Count);
-        foreach (var item in pending) {
-            infos.Add(new PageNumberInfo(item.VariantPageNumber, item.PageNumber, totals[item.SequenceId], seen[item.GroupId]));
+        for (int index = 0; index < pending.Count; index++) {
+            var item = pending[index];
+            int count = pages[index].RunningContentSectionId is int sectionId && sectionPages.TryGetValue(sectionId, out int logicalCount)
+                ? logicalCount : seen[item.GroupId];
+            infos.Add(new PageNumberInfo(item.VariantPageNumber, item.PageNumber, totals[item.SequenceId], count));
         }
 
         return infos;

@@ -4,6 +4,15 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private readonly Dictionary<TableBlock, ContainerRenderScope> tableFrameScopes = new();
 
+        private void PrepareTableFrameContinuation(TableBlock table, int rowIndex) {
+            if (!tableFrameScopes.TryGetValue(table, out ContainerRenderScope? scope) ||
+                scope.Container?.FrameTableTopOutsets is not { } outsets || outsets.Count == 0) return;
+            PdfTableStyle style = table.Style!;
+            bool repeatsHeader = GetTableRepeatHeaderRowCount(style) > 0 && rowIndex >= style.HeaderRowCount;
+            int firstRow = repeatsHeader ? 0 : Math.Min(rowIndex, outsets.Count - 1);
+            scope.Style.ContinuationPaddingTopOverride = outsets[firstRow];
+        }
+
         private void RecordTableFrameContentBottom(TableBlock table, double bottom) {
             if (tableFrameScopes.TryGetValue(table, out ContainerRenderScope? scope))
                 scope.TableContentBottom = bottom;
@@ -25,6 +34,7 @@ internal static partial class PdfWriter {
             ValidatePanelStyle(style, outerWidth);
             PdfTableStyle placement = tableStyle.Clone();
             placement.LeftIndent = container.FrameTableIndent;
+            placement.HorizontalOffset = container.FrameTableHorizontalOffset;
             return (ResolveTableX(table.Align, placement, parentLeft, parentWidth, outerWidth), outerWidth, contentWidth);
         }
 

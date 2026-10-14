@@ -435,8 +435,7 @@ public static class OfficeImageOptimizer {
         long retainedManagedBytes) {
         OfficeImageExportFormat exportFormat = ToExportFormat(format);
         var options = new OfficeRasterEncodingOptions {
-            DpiX = dpiX,
-            DpiY = dpiY,
+            Resolution = new OfficeImageResolution(dpiX, dpiY),
             WriteResolutionMetadata = writeResolution,
             Png = new OfficePngEncodeOptions {
                 Compression = request.PngCompression

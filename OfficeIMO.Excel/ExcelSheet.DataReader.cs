@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Streams rows from an <see cref="IDataReader"/> (including provider-owned DbDataReader implementations) into the worksheet and optionally creates an Excel table.
         /// The caller owns the connection, command, query, and provider.
+        /// Null and DBNull values remain blank cells; an empty string remains text.
         /// </summary>
         /// <param name="reader">Open data reader positioned before the first row.</param>
         /// <param name="startRow">1-based start row.</param>
@@ -77,6 +78,7 @@ namespace OfficeIMO.Excel {
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
             if (reader.FieldCount < 1) throw new ArgumentException("Data reader must expose at least one field.", nameof(reader));
+            ct.ThrowIfCancellationRequested();
 
             string[] headers = BuildReaderHeaders(reader);
             Type[] fieldTypes = BuildReaderFieldTypes(reader);
@@ -98,10 +100,11 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     ct,
                     out ExcelDataReaderInsertResult deferredResult)) {
+                ct.ThrowIfCancellationRequested();
                 return deferredResult;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
 
             if (TryInsertDataReaderByAppendingRows(
                     reader,
@@ -114,6 +117,7 @@ namespace OfficeIMO.Excel {
                     ct,
                     out int appendedDataRows,
                     out List<object?[]>? appendedDirectRows)) {
+                ct.ThrowIfCancellationRequested();
                 int appendedOccupiedRows = appendedDataRows + (includeHeaders ? 1 : 0);
                 if (appendedOccupiedRows == 0) {
                     return new ExcelDataReaderInsertResult(Name, null, string.Empty, 0, headers.Length);
@@ -138,7 +142,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (autoFit) {
-                    AutoFitContiguousColumns(startColumn, headers.Length);
+                    AutoFitContiguousColumns(startColumn, headers.Length, ct: ct);
                 }
 
                 RegisterDirectDataReaderSaveCandidateIfPossible(
@@ -152,8 +156,10 @@ namespace OfficeIMO.Excel {
                     style,
                     includeAutoFilter,
                     autoFit,
-                    canRegisterDirectSave);
+                    canRegisterDirectSave,
+                    ct);
 
+                ct.ThrowIfCancellationRequested();
                 return new ExcelDataReaderInsertResult(Name, appendedTableName, appendedRange, appendedDataRows, headers.Length);
             }
 
@@ -162,6 +168,7 @@ namespace OfficeIMO.Excel {
             int row = startRow;
             if (includeHeaders) {
                 for (int i = 0; i < headers.Length; i++) {
+                    ct.ThrowIfCancellationRequested();
                     CellValue(row, startColumn + i, headers[i]);
                 }
 
@@ -182,9 +189,11 @@ namespace OfficeIMO.Excel {
                     : reusableValues ??= new object?[headers.Length];
                 FillDataReaderValues(reader, values, headers.Length, ref useBulkRead);
                 for (int i = 0; i < headers.Length; i++) {
+                    ct.ThrowIfCancellationRequested();
                     object? value = values[i];
                     int column = startColumn + i;
                     CellValue(row, column, value);
+                    ct.ThrowIfCancellationRequested();
 
                     string? numberFormat = GetReaderNumberFormat(fieldTypes[i], value);
                     if (!string.IsNullOrWhiteSpace(numberFormat)) {
@@ -203,6 +212,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            ct.ThrowIfCancellationRequested();
             int occupiedRows = dataRows + (includeHeaders ? 1 : 0);
             if (occupiedRows == 0) {
                 return new ExcelDataReaderInsertResult(Name, null, string.Empty, 0, headers.Length);
@@ -218,7 +228,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (autoFit) {
-                AutoFitContiguousColumns(startColumn, headers.Length);
+                AutoFitContiguousColumns(startColumn, headers.Length, ct: ct);
             }
 
             RegisterDirectDataReaderSaveCandidateIfPossible(
@@ -232,8 +242,10 @@ namespace OfficeIMO.Excel {
                 style,
                 includeAutoFilter,
                 autoFit,
-                canRegisterDirectSave);
+                canRegisterDirectSave,
+                ct);
 
+            ct.ThrowIfCancellationRequested();
             return new ExcelDataReaderInsertResult(Name, actualTableName, range, dataRows, headers.Length);
         }
 
@@ -284,6 +296,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            ct.ThrowIfCancellationRequested();
             int occupiedRows = rows.Count + (includeHeaders ? 1 : 0);
             if (occupiedRows == 0) {
                 result = new ExcelDataReaderInsertResult(Name, null, string.Empty, 0, columnCount);
@@ -308,7 +321,8 @@ namespace OfficeIMO.Excel {
                 createTable,
                 style,
                 includeAutoFilter,
-                autoFit)) {
+                autoFit,
+                cancellationToken: ct)) {
                 result = new ExcelDataReaderInsertResult(
                     deferredResult!.SheetName,
                     deferredResult.TableName,
@@ -318,7 +332,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
             string? actualTableName = InsertBufferedDataReaderRows(
                 headers,
                 fieldTypes,
@@ -331,7 +345,9 @@ namespace OfficeIMO.Excel {
                 includeAutoFilter,
                 createTable,
                 autoFit,
-                range);
+                range,
+                ct);
+            ct.ThrowIfCancellationRequested();
             result = new ExcelDataReaderInsertResult(Name, actualTableName, range, rows.Count, columnCount);
             return true;
         }
@@ -348,11 +364,14 @@ namespace OfficeIMO.Excel {
             bool includeAutoFilter,
             bool createTable,
             bool autoFit,
-            string range) {
+            string range,
+            CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
             string? actualTableName = null;
             int row = startRow;
             if (includeHeaders) {
                 for (int i = 0; i < headers.Count; i++) {
+                    ct.ThrowIfCancellationRequested();
                     CellValue(row, startColumn + i, headers[i]);
                 }
 
@@ -360,10 +379,13 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (object?[] values in rows) {
+                ct.ThrowIfCancellationRequested();
                 for (int i = 0; i < headers.Count; i++) {
+                    ct.ThrowIfCancellationRequested();
                     object? value = values[i];
                     int column = startColumn + i;
                     CellValue(row, column, value);
+                    ct.ThrowIfCancellationRequested();
 
                     string? numberFormat = GetReaderNumberFormat(fieldTypes[i], value);
                     if (!string.IsNullOrWhiteSpace(numberFormat)) {
@@ -374,6 +396,7 @@ namespace OfficeIMO.Excel {
                 row++;
             }
 
+            ct.ThrowIfCancellationRequested();
             if (createTable && range.Length != 0) {
                 string[]? headerNames = includeHeaders
                     ? headers is string[] headerArray ? headerArray : headers.ToArray()
@@ -382,7 +405,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (autoFit) {
-                AutoFitContiguousColumns(startColumn, headers.Count);
+                AutoFitContiguousColumns(startColumn, headers.Count, ct: ct);
             }
 
             return actualTableName;
@@ -635,12 +658,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 object? value = values[offset];
-                var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
-                var cell = new Cell {
-                    CellReference = columnReferencePrefixes[offset] + rowReference,
-                    CellValue = cellValue,
-                    DataType = GetCachedDataTableCellType(cellType)
-                };
+                var cell = CreateTabularAppendValueCell(columnReferencePrefixes[offset] + rowReference, value, TabularAppendColumnKind.General, useDirectStringCells, ref sharedStringIndexes);
 
                 if (offset < styleIndexes.Count && styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
@@ -668,12 +686,7 @@ namespace OfficeIMO.Excel {
             var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < values.Count; offset++) {
                 object? value = values[offset];
-                var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
-                var cell = new Cell {
-                    CellReference = columnReferencePrefixes[offset] + rowReference,
-                    CellValue = cellValue,
-                    DataType = GetCachedDataTableCellType(cellType)
-                };
+                var cell = CreateTabularAppendValueCell(columnReferencePrefixes[offset] + rowReference, value, TabularAppendColumnKind.General, useDirectStringCells, ref sharedStringIndexes);
 
                 if (offset < styleIndexes.Count && styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
@@ -698,7 +711,9 @@ namespace OfficeIMO.Excel {
             ExcelTableStyle style,
             bool includeAutoFilter,
             bool autoFit,
-            bool canRegisterDirectSave) {
+            bool canRegisterDirectSave,
+            CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
             if (!canRegisterDirectSave || directRows == null || range.Length == 0) {
                 return;
             }
@@ -718,7 +733,8 @@ namespace OfficeIMO.Excel {
                 createTable,
                 style,
                 includeAutoFilter,
-                autoFit);
+                autoFit,
+                cancellationToken: ct);
         }
 
         internal static string[] BuildReaderHeaders(IDataReader reader) {

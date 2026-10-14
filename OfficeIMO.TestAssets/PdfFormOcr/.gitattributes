@@ -1,0 +1,2 @@
+# Preserve independent producer hashes and PDF byte offsets on every platform.
+*.pdf -text -diff

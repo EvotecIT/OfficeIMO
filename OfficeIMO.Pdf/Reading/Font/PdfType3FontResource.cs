@@ -29,6 +29,10 @@ internal sealed class PdfType3FontResource {
 
     internal bool IsUncolored { get; }
 
+    /// <summary>Estimates the local lookup dictionaries and widths without charging the shared PDF object graph.</summary>
+    internal long EstimatedRetainedBytes =>
+        (_glyphNames.Count + _glyphStreams.Count) * 96L + _widths.Count * (long)sizeof(double) + 256L;
+
     internal bool TryGetGlyph(byte characterCode, out PdfStream glyph) {
         string glyphName = _glyphNames.TryGetValue(characterCode, out string? mappedName) ? mappedName : ".notdef";
         if (_glyphStreams.TryGetValue(glyphName, out glyph!)) return true;

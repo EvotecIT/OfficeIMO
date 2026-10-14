@@ -1,0 +1,3 @@
+These files were graciously provided by Jon Breen, author of the XVDtoSVG
+project (http://xvdtosvg.sourceforge.net) under the MIT license.  They are
+all Visio 2002 format.

@@ -9,8 +9,10 @@ namespace OfficeIMO.Visio {
     public sealed class VisioInspectionConnectorSnapshot {
         internal VisioInspectionConnectorSnapshot(
             string id,
-            string fromId,
-            string toId,
+            string? fromId,
+            string? toId,
+            OfficeIMO.Drawing.OfficePoint startPoint,
+            OfficeIMO.Drawing.OfficePoint endPoint,
             string kind,
             string? label,
             bool hasLabelPlacement,
@@ -37,6 +39,8 @@ namespace OfficeIMO.Visio {
             Id = id;
             FromId = fromId;
             ToId = toId;
+            StartPoint = startPoint;
+            EndPoint = endPoint;
             Kind = kind;
             Label = label;
             HasLabelPlacement = hasLabelPlacement;
@@ -62,14 +66,20 @@ namespace OfficeIMO.Visio {
             Data = data;
         }
 
+        /// <summary>Resolved start endpoint in page inches.</summary>
+        public OfficeIMO.Drawing.OfficePoint StartPoint { get; }
+
+        /// <summary>Resolved end endpoint in page inches.</summary>
+        public OfficeIMO.Drawing.OfficePoint EndPoint { get; }
+
         /// <summary>Connector identifier.</summary>
         public string Id { get; }
 
-        /// <summary>Source shape identifier.</summary>
-        public string FromId { get; }
+        /// <summary>Source shape identifier, or null for a free endpoint.</summary>
+        public string? FromId { get; }
 
-        /// <summary>Target shape identifier.</summary>
-        public string ToId { get; }
+        /// <summary>Target shape identifier, or null for a free endpoint.</summary>
+        public string? ToId { get; }
 
         /// <summary>Connector kind.</summary>
         public string Kind { get; }
@@ -144,6 +154,10 @@ namespace OfficeIMO.Visio {
             string prefix = pagePrefix + ".connector[" + VisioInspectionSnapshot.EscapeKey(Id) + "]";
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".from", FromId);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".to", ToId);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".startX", StartPoint.X);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".startY", StartPoint.Y);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".endX", EndPoint.X);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".endY", EndPoint.Y);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".kind", Kind);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".label", Label);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".hasLabelPlacement", HasLabelPlacement);

@@ -21,6 +21,7 @@ public sealed class PowerPointToPdfOptions {
     internal CancellationToken CancellationToken { get; set; }
     internal Func<string?, double, string?, DrawingCore.OfficeFontStyle, double>? NativeTextMeasure { get; set; }
     internal string? NativeTextDefaultFontFamily { get; set; }
+    internal HashSet<string> SlideLinkDestinations { get; private set; } = new(StringComparer.Ordinal);
 
     private int _handoutSlidesPerPage = 6;
     private PdfCore.PdfOptions? _pdfOptions;
@@ -266,6 +267,7 @@ public sealed class PowerPointToPdfOptions {
         clone.ResourcePolicy = ResourcePolicy.Clone();
         clone.Warnings = new List<PowerPointPdfExportWarning>();
         clone.Report = new PdfCore.PdfConversionReport();
+        clone.SlideLinkDestinations = new HashSet<string>(StringComparer.Ordinal);
         return clone;
     }
 }

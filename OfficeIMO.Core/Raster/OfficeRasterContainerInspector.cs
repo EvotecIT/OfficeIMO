@@ -313,7 +313,7 @@ public static class OfficeRasterContainerInspector {
             canvasWidth = imageInfo.Height;
             canvasHeight = imageInfo.Width;
         }
-        container = CreateStatic(imageInfo, canvasWidth, canvasHeight);
+        container = CreateStatic(imageInfo, canvasWidth, canvasHeight, orientation);
         return true;
     }
 
@@ -605,7 +605,8 @@ public static class OfficeRasterContainerInspector {
     private static OfficeRasterContainerInfo CreateStatic(
         OfficeImageInfo info,
         int canvasWidth,
-        int canvasHeight) =>
+        int canvasHeight,
+        OfficeImageOrientation orientation = OfficeImageOrientation.Normal) =>
         new OfficeRasterContainerInfo(
             info.Format,
             canvasWidth,
@@ -621,7 +622,8 @@ public static class OfficeRasterContainerInspector {
                     TimeSpan.Zero,
                     OfficeRasterFrameDisposal.None,
                     OfficeRasterFrameBlend.Source,
-                    true)
+                    true,
+                    orientation: orientation)
             },
             1,
             OfficeColor.Transparent);

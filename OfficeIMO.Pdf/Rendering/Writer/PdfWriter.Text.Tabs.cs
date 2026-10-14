@@ -66,14 +66,34 @@ internal static partial class PdfWriter {
     private static PdfTabLeaderStyle ResolveTabLeader(PdfTabLeaderStyle runLeader, PdfTabStop? tabStop) =>
         tabStop != null && runLeader == PdfTabLeaderStyle.None ? tabStop.Leader : runLeader;
 
-    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D) {
+    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, char? decimalSeparator = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
-        int decimalIndex = text.IndexOfAny(DecimalTabAnchorChars);
+        int decimalIndex = decimalSeparator.HasValue ? text.IndexOf(decimalSeparator.Value) : text.IndexOfAny(DecimalTabAnchorChars);
         if (decimalIndex < 0) {
             return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);
+        }
+
+        // Shape the whole token: a pair spanning the separator can adjust both
+        // the preceding advance and the separator's own painted position.
+        PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings,
+            layoutHorizontalScaling: horizontalTextScaling);
+        if (command.VisualGlyphs is { Count: > 0 } glyphs) {
+            double effectiveSize = EffectiveRichFontSize(fontSize, baseline);
+            double scale = horizontalTextScaling / 100D;
+            double advance = 0D;
+            double tracking = GetIntrinsicGlyphTrackingAdvance(command, effectiveSize);
+            for (int index = 0; index < glyphs.Count; index++) {
+                PdfGlyphInfo glyph = glyphs[index];
+                if (glyph.TextIndex == decimalIndex) {
+                    return advance + glyph.OffsetX1000 * effectiveSize / 1000D * scale;
+                }
+                double glyphAdvance = glyph.AdvanceWidth1000 * effectiveSize / 1000D;
+                if (command.TrackingBoundaries?[index] == true) glyphAdvance += tracking;
+                advance += glyphAdvance * scale + characterSpacing;
+            }
         }
 
         return MeasureRichText(text.Substring(0, decimalIndex), font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);
@@ -140,24 +160,10 @@ internal static partial class PdfWriter {
             return string.Empty;
         }
 
-        double Measure(string text) => MeasureRichText(text, segment.Font, segment.NamedFont,
-            segment.FontSize, segment.Baseline, options, segment.FeatureSettings,
-            segment.HorizontalTextScaling, segment.CharacterSpacing, segment.TextDirection, segment.FontMetricScale);
-        double glyphWidth = Measure(leaderGlyph);
-        if (glyphWidth <= 0 || gap <= glyphWidth * 3D) {
-            return string.Empty;
-        }
-
-        // Measure the repeated text as it will be painted, including intrinsic
-        // font tracking and shaping. Keep synthesis bounded even for a tiny advance.
-        int low = 3, high = MaxTabLeaderGlyphCount, count = 0;
-        while (low <= high) {
-            int candidate = low + (high - low) / 2;
-            if (Measure(new string(leaderGlyph[0], candidate)) <= gap) {
-                count = candidate;
-                low = candidate + 1;
-            } else high = candidate - 1;
-        }
-        return new string(leaderGlyph[0], count);
+        return OfficeIMO.Drawing.OfficeTextTabLeaderLayout.Create(leaderGlyph, gap, MaxTabLeaderGlyphCount,
+            value => MeasureRichText(value, segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
+                options, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing,
+                segment.TextDirection, segment.FontMetricScale), System.Threading.CancellationToken.None,
+            minimumGapGlyphs: 3).Text ?? string.Empty;
     }
 }

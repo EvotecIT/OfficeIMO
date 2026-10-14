@@ -7,17 +7,17 @@ using System.Xml.Linq;
 namespace OfficeIMO.Visio {
     internal static partial class VisioShapeGeometry {
 
-        private static bool TryParseGeometrySection(VisioShape shape, XElement section, int fillGroup, out List<VisioShapeGeometryPath> paths) {
+        private static bool TryParseGeometrySection(VisioShape shape, XElement section, int fillGroup, bool includeHidden, out List<VisioShapeGeometryPath> paths) {
             paths = new List<VisioShapeGeometryPath>();
             List<(double X, double Y)> points = new();
             XNamespace ns = section.Name.Namespace;
             ReadGeometryFlags(shape, section, ns, out bool noFill, out bool noLine, out bool noShow);
-            if (noShow) {
+            if (noShow && !includeHidden) {
                 return true;
             }
 
             bool handledStandaloneGeometry = false;
-            bool closedPath = true;
+            bool closedPrimitive = false;
             bool currentNoFill = noFill;
             bool currentNoLine = noLine;
             List<XElement> rows = section.Elements(ns + "Row").ToList();
@@ -48,6 +48,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     AppendEllipse(points, (centerX, centerY), (point1X, point1Y), (point2X, point2Y));
+                    closedPrimitive = true;
                     handledStandaloneGeometry = true;
                     continue;
                 }
@@ -63,7 +64,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     points.AddRange(linePoints);
-                    closedPath = false;
+                    closedPrimitive = false;
                     handledStandaloneGeometry = true;
                     continue;
                 }
@@ -251,12 +252,12 @@ namespace OfficeIMO.Visio {
                 }
 
                 if (isMove && points.Count > 0) {
-                    if (!TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPath, fillGroup)) {
+                    if (!TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPrimitive, fillGroup)) {
                         return false;
                     }
 
                     points = new List<(double X, double Y)>();
-                    closedPath = true;
+                    closedPrimitive = false;
                     currentNoFill = noFill;
                     currentNoLine = noLine;
                 }
@@ -274,7 +275,7 @@ namespace OfficeIMO.Visio {
                 points.Add(point);
             }
 
-            return TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPath, fillGroup);
+            return TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPrimitive, fillGroup);
         }
 
         private static bool TryAddGeometryPath(
@@ -282,10 +283,11 @@ namespace OfficeIMO.Visio {
             List<(double X, double Y)> points,
             bool noFill,
             bool noLine,
-            bool closedPath,
+            bool closedPrimitive,
             int fillGroup) {
             bool explicitlyClosed = points.Count > 1 && NearlyEqual(points[0], points[points.Count - 1]);
-            bool renderClosedPath = closedPath && (!noFill || explicitlyClosed);
+            // Fill closes implicitly; only native closure may join the stroke's endpoints.
+            bool renderClosedPath = closedPrimitive || explicitlyClosed;
             int minimumPointCount = renderClosedPath ? 3 : 2;
             if (points.Count < minimumPointCount) {
                 return false;
@@ -328,9 +330,23 @@ namespace OfficeIMO.Visio {
                     noShow = rowNoShow;
                 }
             }
+            // Standard section cells take precedence over historical OfficeIMO header rows.
+            // Keep the latter as a fallback for previously generated documents.
+            if (TryReadBooleanCell(section, ns, "NoFill", shape, out bool sectionNoFill)) noFill = sectionNoFill;
+            if (TryReadBooleanCell(section, ns, "NoLine", shape, out bool sectionNoLine)) noLine = sectionNoLine;
+            if (TryReadBooleanCell(section, ns, "NoShow", shape, out bool sectionNoShow)) noShow = sectionNoShow;
         }
 
-        private static bool IsDeleted(XElement row) {
+        /// <summary>Reads stroke suppression without requiring active, projectable path rows.</summary>
+        internal static bool HasVisibleSectionLine(VisioShape shape) {
+            foreach (XElement section in shape.PreservedGeometrySections) {
+                ReadGeometryFlags(shape, section, section.Name.Namespace, out _, out bool noLine, out bool noShow);
+                if (!noLine && !noShow) return true;
+            }
+            return false;
+        }
+
+        internal static bool IsDeleted(XElement row) {
             string? raw = row.Attribute("Del")?.Value;
             return string.Equals(raw, "1", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase);

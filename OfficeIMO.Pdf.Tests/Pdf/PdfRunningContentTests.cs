@@ -6,6 +6,192 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunningContentTests {
+    [Fact]
+    public void GeometryOnlyFooterRetainsProjectedNumbersAtTheirPhysicalAnchorAcrossVariantsAndReplays() {
+        var source = PdfDocument.Create(Options());
+        source.Footer(footer => footer.Text("F{page}").Content(content => content.Spacer(60), 36)
+            .FirstPageText("F{page}").FirstPageContent(content => content.Spacer(80), 36)
+            .EvenPagesText("F{page}").EvenPagesContent(content => content.Spacer(40), 36));
+        foreach (PdfRunningContentVariant variant in Enum.GetValues(typeof(PdfRunningContentVariant))) {
+            source.Options.RetainRunningContentTextProjection(isHeader: false, variant);
+            source.Options.ReserveEmptyRunningContentDistance(isHeader: false, variant);
+        }
+        source.Options.AllowRunningContentTextFallback(isHeader: false);
+        // The imported definition survives the public options snapshot, and its
+        // page-local projection must leave that snapshot unchanged on replay.
+        var document = PdfDocument.Create(source.Options.Clone());
+        document.Paragraph(paragraph => {
+            for (int index = 0; index < 12; index++) {
+                if (index > 0) paragraph.LineBreak();
+                paragraph.Text("A");
+            }
+        }, style: new PdfParagraphStyle { FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(40), WidowControl = false });
+        for (int replay = 0; replay < 2; replay++) {
+            using var pdf = PdfPigDocument.Open(document.ToBytes());
+            Assert.Equal(3, pdf.NumberOfPages);
+            Assert.Equal(new[] { 4, 5, 3 }, pdf.GetPages().Select(page => page.Letters.Count(letter => letter.Value == "A")));
+            for (int page = 1; page <= 3; page++) {
+                Assert.Contains("F" + page, pdf.GetPage(page).Text);
+                Assert.Equal(14D, pdf.GetPage(page).Letters.Single(letter => letter.Value == "F").StartBaseLine.Y, 3);
+            }
+        }
+        Assert.Equal(32D, document.Options.MarginBottom);
+        Assert.Equal(18D, document.Options.FooterOffsetY);
+    }
+
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 2)]
+    public void ImportedFooterFirstLineOverlapRetainsHeaderWithoutChangingOrdinaryFlow(bool allowOverlap, int pages) {
+        var options = Options();
+        options.PageHeight = 300; options.MarginTop = options.MarginBottom = 72;
+        var document = PdfDocument.Create(options);
+        document.Header(header => header.Text("FALLBACK").Content(content => content.Spacer(96), 36));
+        document.Footer(footer => footer.Content(content => content.Spacer(96), 36));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        document.Paragraph(paragraph => paragraph.Text("ALPHA").LineBreak().Text("BETA"), style: new PdfParagraphStyle {
+            FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(48), SpacingBefore = 0, SpacingAfter = 0,
+            WidowControl = false, AllowFirstLineOverlapWithRunningFooter = allowOverlap
+        });
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(pages, pdf.NumberOfPages);
+        Assert.Contains("ALPHA", pdf.GetPage(1).Text);
+        if (allowOverlap) {
+            Assert.DoesNotContain("FALLBACK", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("BETA", pdf.GetPage(1).Text);
+            Assert.Contains("BETA", pdf.GetPage(2).Text);
+        } else {
+            Assert.Contains("FALLBACK", pdf.GetPage(1).Text);
+            Assert.Contains("BETA", pdf.GetPage(1).Text);
+        }
+    }
+
+    [Fact]
+    public void EmptyOrdinaryRunningContentDoesNotExpandTheBodyFrame() {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Content(_ => { }, 80, 20));
+        document.Footer(footer => footer.Content(_ => { }, 60, 20));
+        document.Paragraph(paragraph => paragraph.FontSize(40)
+            .Text("A").LineBreak().Text("A").LineBreak().Text("A").LineBreak().Text("A"));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Equal(4, pdf.GetPage(1).Letters.Count(letter => letter.Value == "A"));
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public void ImportedHeaderFitReservesActiveContainerPaddingAcrossExplicitBreaks(bool breakEndsPanel, bool repeatDecoration) {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("TEXT")
+            .Content(content => content.Table(new[] { new[] { "TALL" } }, style: TableStyle(230)), 18)
+            .FirstPageContent(content => content.Table(new[] { new[] { "FIRST HEADER" } }, style: TableStyle(24)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        document.Panel(panel => {
+            panel.Paragraph(paragraph => paragraph.Text("FIRST")).PageBreak();
+            if (!breakEndsPanel) panel.Paragraph(paragraph => paragraph.FontSize(20).Text("BODY"));
+        }, new PdfPanelStyle { PaddingX = 12, PaddingY = 20, RepeatFragmentDecoration = repeatDecoration, SpacingBefore = 0, SpacingAfter = 0 });
+        if (breakEndsPanel) document.Paragraph(paragraph => paragraph.FontSize(20).Text("BODY"));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("FIRST", pdf.GetPage(1).Text);
+        Assert.Contains("TEXT", pdf.GetPage(2).Text);
+        Assert.Contains("BODY", pdf.GetPage(2).Text);
+        Assert.DoesNotContain("TALL", pdf.GetPage(2).Text);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ImportedHeaderFitReservesActiveContainerBottomInsetForContinuationLines(bool nested) {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("TEXT").Content(content =>
+            content.Table(new[] { new[] { "TALL" } }, style: TableStyle(230)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        var style = new PdfPanelStyle { PaddingX = 12, PaddingY = 0, FragmentBottomInset = nested ? 10 : 20, SpacingBefore = 0, SpacingAfter = 0 };
+        document.Panel(panel => {
+            if (nested) panel.Panel(inner => inner.Paragraph(paragraph =>
+                paragraph.Text("SMALL").LineBreak().FontSize(20).Text("LARGE")), style);
+            else panel.Paragraph(paragraph => paragraph.Text("SMALL").LineBreak().FontSize(20).Text("LARGE"));
+        }, style);
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("TALL", pdf.GetPage(1).Text);
+        Assert.Contains("SMALL", pdf.GetPage(1).Text);
+        Assert.Contains("TEXT", pdf.GetPage(2).Text);
+        Assert.Contains("LARGE", pdf.GetPage(2).Text);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void ImportedHeaderFitSkipsLeadingNonvisualContent(int leadingKind) {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("TEXT").Content(content =>
+            content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(246)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        if (leadingKind == 2) {
+            document.Page(page => page.Content(content => content.Panel(panel => panel
+                .Semantic(PdfSemanticRole.Division, empty => { })
+                .Paragraph(paragraph => paragraph.FontSize(40).Text("BODY")),
+                new PdfPanelStyle { PaddingX = 0, PaddingY = 2, SpacingBefore = 0, SpacingAfter = 0 })));
+        } else if (leadingKind == 1) {
+            document.Page(page => page.Content(content => content
+                .Semantic(PdfSemanticRole.Division, empty => { })
+                .Paragraph(paragraph => paragraph.FontSize(40).Text("BODY"))));
+        } else {
+            document.Bookmark("body").Paragraph(paragraph => paragraph.FontSize(40).Text("BODY"));
+        }
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Contains("TEXT", pdf.GetPage(1).Text);
+        Assert.Contains("BODY", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
+    public void ImportedHeaderFitUsesTheActualParagraphContinuationLine() {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("TEXT").Content(content =>
+            content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(246)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        document.Paragraph(paragraph => paragraph.Text("SMALL").LineBreak().FontSize(40).Text("LARGE"));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("FLOW", pdf.GetPage(1).Text);
+        Assert.Contains("SMALL", pdf.GetPage(1).Text);
+        Assert.Contains("TEXT", pdf.GetPage(2).Text);
+        Assert.Contains("LARGE", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
+    public void ImportedTextFallbackIsLocalToThePageVariantAndReservesTheBodyLine() {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("DEFAULT TEXT").FirstPageText("FIRST TEXT")
+            .Content(content => content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(24)), 18)
+            .FirstPageContent(content => content.Table(new[] { new[] { "TALL" } }, style: TableStyle(246)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        document.Paragraph(paragraph => paragraph.FontSize(40).Text("BODY")).PageBreak()
+            .Paragraph(paragraph => paragraph.Text("BODY"));
+
+        for (int pass = 0; pass < 2; pass++) {
+            using var pdf = PdfPigDocument.Open(document.ToBytes());
+            Assert.Equal(2, pdf.NumberOfPages);
+            Assert.Contains("FIRST TEXT", pdf.GetPage(1).Text);
+            Assert.Contains("BODY", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("TALL", pdf.GetPage(1).Text);
+            Assert.Contains("FLOW", pdf.GetPage(2).Text);
+            Assert.Contains("BODY", pdf.GetPage(2).Text);
+            Assert.DoesNotContain("DEFAULT TEXT", pdf.GetPage(2).Text);
+        }
+    }
+
     private static PdfOptions Options(long memoryLimit = 1024 * 1024) => new() {
         PageWidth = 240, PageHeight = 320, MarginTop = 32, MarginBottom = 32,
         MarginLeft = 24, MarginRight = 24, DefaultFont = PdfStandardFont.Helvetica,

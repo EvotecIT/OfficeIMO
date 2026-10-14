@@ -1,13 +1,13 @@
 namespace OfficeIMO.OpenDocument;
 
-internal static class OdfTextCodec {
+internal static partial class OdfTextCodec {
     internal const int MaximumDecodedCharacters = 16 * 1024 * 1024;
 
     internal static string Read(XElement element) {
         if (element == null) throw new ArgumentNullException(nameof(element));
         XNode? first = element.FirstNode;
         if (first == null) return string.Empty;
-        if (first is XText text && first.NextNode == null) {
+        if (first is XText text && first.NextNode == null && !text.Value.Any(IsXmlSpace)) {
             string value = text.Value;
             if (value.Length > MaximumDecodedCharacters) {
                 throw new InvalidDataException($"Decoded OpenDocument text exceeds the {MaximumDecodedCharacters}-character safety limit.");
@@ -19,35 +19,51 @@ internal static class OdfTextCodec {
 
     internal static string ReadNodes(IEnumerable<XNode> nodes) {
         if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-        var builder = new StringBuilder();
-        AppendValue(nodes, builder, MaximumDecodedCharacters);
-        return builder.ToString();
+        return DecodeNodes(nodes, MaximumDecodedCharacters).Text;
     }
 
     internal static string Read(XElement element, ref int remainingCharacters) {
-        string value = ReadBounded(element.Nodes(), remainingCharacters);
-        remainingCharacters -= value.Length;
-        return value;
+        return ReadNodes(element.Nodes(), ref remainingCharacters);
     }
 
     internal static string ReadNodes(IEnumerable<XNode> nodes, ref int remainingCharacters) {
-        string value = ReadBounded(nodes, remainingCharacters);
-        remainingCharacters -= value.Length;
-        return value;
+        TextSnapshot snapshot = DecodeNodes(nodes, remainingCharacters);
+        remainingCharacters -= snapshot.SourceCharacters;
+        return snapshot.Text;
+    }
+
+    /// <summary>Decodes inline fallback syntax while charging the caller's story-wide node budget.</summary>
+    internal static string ReadNodes(IEnumerable<XNode> nodes, ref int remainingCharacters, ref int visitedNodes) {
+        if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+        TextSnapshot snapshot;
+        int visited = visitedNodes;
+        try {
+            snapshot = DecodeNodes(nodes, remainingCharacters, () => {
+                if (++visited > OdfTextTraversal.MaximumVisitedElements)
+                    throw new NotSupportedException("Inline text traversal exceeds the projection node limit.");
+            });
+        } finally {
+            visitedNodes = visited;
+        }
+        remainingCharacters -= snapshot.SourceCharacters;
+        return snapshot.Text;
     }
 
     internal static string ReadJoined(IEnumerable<XElement> elements) {
         if (elements == null) throw new ArgumentNullException(nameof(elements));
         var builder = new StringBuilder();
         bool first = true;
+        int remaining = MaximumDecodedCharacters;
         foreach (XElement element in elements) {
             if (element == null) throw new ArgumentException("Text elements cannot contain null entries.", nameof(elements));
             if (!first) {
                 EnsureCapacity(builder, 1, MaximumDecodedCharacters);
+                if (remaining == 0) throw new InvalidDataException("Decoded OpenDocument text exceeds the character safety limit.");
                 builder.Append('\n');
+                remaining--;
             }
             first = false;
-            AppendValue(element.Nodes(), builder, MaximumDecodedCharacters);
+            builder.Append(Read(element, ref remaining));
         }
         return builder.ToString();
     }
@@ -67,13 +83,6 @@ internal static class OdfTextCodec {
             builder.Append(value);
             first = false;
         }
-        return builder.ToString();
-    }
-
-    private static string ReadBounded(IEnumerable<XNode> nodes, int maximumCharacters) {
-        if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-        var builder = new StringBuilder();
-        AppendValue(nodes, builder, maximumCharacters);
         return builder.ToString();
     }
 
@@ -195,14 +204,13 @@ internal static class OdfTextCodec {
         IEnumerable<XNode> nodes,
         IList<string> segments,
         IList<XText?> targets) {
-        foreach (XNode node in nodes) {
+        foreach (XNode node in VisibleNodes(nodes)) {
             if (node is XText text) {
                 segments.Add(text.Value);
                 targets.Add(text);
                 continue;
             }
             if (!(node is XElement element)) continue;
-            if (IsNonVisibleTextElement(element)) continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 segments.Add(new string(' ', ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"))));
                 targets.Add(null);
@@ -212,14 +220,12 @@ internal static class OdfTextCodec {
             } else if (element.Name == OdfNamespaces.Text + "line-break") {
                 segments.Add("\n");
                 targets.Add(null);
-            } else {
-                CollectTransformSegments(element.Nodes(), segments, targets);
             }
         }
     }
 
     private static void AssignTransformedText(IEnumerable<XNode> nodes, string transformed, ref int offset) {
-        foreach (XNode node in nodes) {
+        foreach (XNode node in VisibleNodes(nodes)) {
             if (node is XText text) {
                 int length = text.Value.Length;
                 text.Value = transformed.Substring(offset, length);
@@ -227,14 +233,11 @@ internal static class OdfTextCodec {
                 continue;
             }
             if (!(node is XElement element)) continue;
-            if (IsNonVisibleTextElement(element)) continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 offset += ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
             } else if (element.Name == OdfNamespaces.Text + "tab" ||
                        element.Name == OdfNamespaces.Text + "line-break") {
                 offset++;
-            } else {
-                AssignTransformedText(element.Nodes(), transformed, ref offset);
             }
         }
     }
@@ -246,12 +249,12 @@ internal static class OdfTextCodec {
     }
 
     private static void AppendTransformValue(IEnumerable<XNode> nodes, StringBuilder builder, int maximumCharacters) {
-        foreach (XNode node in nodes) {
+        foreach (XNode node in VisibleNodes(nodes)) {
             if (node is XText text) {
                 AppendBounded(builder, text.Value, maximumCharacters);
                 continue;
             }
-            if (!(node is XElement element) || IsNonVisibleTextElement(element)) continue;
+            if (!(node is XElement element)) continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 int count = ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
                 EnsureCapacity(builder, count, maximumCharacters);
@@ -262,16 +265,15 @@ internal static class OdfTextCodec {
             } else if (element.Name == OdfNamespaces.Text + "line-break") {
                 EnsureCapacity(builder, 1, maximumCharacters);
                 builder.Append('\n');
-            } else {
-                AppendTransformValue(element.Nodes(), builder, maximumCharacters);
             }
         }
     }
 
-    private static bool IsNonVisibleTextElement(XElement element) =>
+    internal static bool IsNonVisibleTextElement(XElement element) =>
         element.Name == OdfNamespaces.Office + "annotation" ||
         element.Name == OdfNamespaces.Presentation + "notes" ||
         element.Name == OdfNamespaces.Text + "note" ||
+        element.Name == OdfNamespaces.Text + "ruby-text" ||
         element.Name == OdfNamespaces.Svg + "title" ||
         element.Name == OdfNamespaces.Svg + "desc" ||
         element.Name == OdfNamespaces.Office + "binary-data" ||
@@ -282,27 +284,53 @@ internal static class OdfTextCodec {
         element.Name == OdfNamespaces.Draw + "applet" ||
         element.Name == OdfNamespaces.Draw + "floating-frame";
 
-    private static void AppendValue(IEnumerable<XNode> nodes, StringBuilder builder, int maximumCharacters) {
-        foreach (XNode node in nodes) {
-            if (node is XText text) {
-                AppendBounded(builder, text.Value, maximumCharacters);
-                continue;
+    /// <summary>
+    /// Enumerates visible text and whitespace tokens without entering another text story.
+    /// Bounds apply before a container is descended or a text transform can begin assigning values.
+    /// </summary>
+    private static IEnumerable<XNode> VisibleNodes(IEnumerable<XNode> nodes, Action? onVisit = null, Func<XElement, bool>? atomic = null) {
+        var pending = new Stack<IEnumerator<XNode>>();
+        pending.Push(nodes.GetEnumerator());
+        int visited = 0;
+        try {
+            while (pending.Count > 0) {
+                IEnumerator<XNode> current = pending.Peek();
+                if (!current.MoveNext()) {
+                    pending.Pop().Dispose();
+                    continue;
+                }
+                if (++visited > OdfTextTraversal.MaximumVisitedElements)
+                    throw new NotSupportedException($"OpenDocument text decoding exceeds the {OdfTextTraversal.MaximumVisitedElements}-node safety limit.");
+                onVisit?.Invoke();
+
+                XNode node = current.Current;
+                if (node is XElement element) {
+                    if (IsNonVisibleTextElement(element)) continue;
+                    if (atomic?.Invoke(element) == true) {
+                        if (pending.Count > OdfTextTraversal.MaximumContainerDepth)
+                            throw new NotSupportedException($"OpenDocument text decoding exceeds the {OdfTextTraversal.MaximumContainerDepth}-container nesting limit.");
+                        // Scalar projections still charge every source node, including empty
+                        // cache text and comments; atomic rendering must not bypass traversal limits.
+                        foreach (XNode child in element.Nodes()) {
+                            if (++visited > OdfTextTraversal.MaximumVisitedElements)
+                                throw new NotSupportedException("OpenDocument scalar text exceeds the node safety limit.");
+                            onVisit?.Invoke();
+                        }
+                        yield return node;
+                        continue;
+                    }
+                    if (element.Name != OdfNamespaces.Text + "s" && element.Name != OdfNamespaces.Text + "tab" &&
+                        element.Name != OdfNamespaces.Text + "line-break") {
+                        if (pending.Count > OdfTextTraversal.MaximumContainerDepth)
+                            throw new NotSupportedException($"OpenDocument text decoding exceeds the {OdfTextTraversal.MaximumContainerDepth}-container nesting limit.");
+                        pending.Push(element.Nodes().GetEnumerator());
+                        continue;
+                    }
+                }
+                yield return node;
             }
-            if (!(node is XElement element)) continue;
-            if (IsNonVisibleTextElement(element)) continue;
-            if (element.Name == OdfNamespaces.Text + "s") {
-                int count = ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
-                EnsureCapacity(builder, count, maximumCharacters);
-                builder.Append(' ', count);
-            } else if (element.Name == OdfNamespaces.Text + "tab") {
-                EnsureCapacity(builder, 1, maximumCharacters);
-                builder.Append('\t');
-            } else if (element.Name == OdfNamespaces.Text + "line-break") {
-                EnsureCapacity(builder, 1, maximumCharacters);
-                builder.Append('\n');
-            } else {
-                AppendValue(element.Nodes(), builder, maximumCharacters);
-            }
+        } finally {
+            while (pending.Count > 0) pending.Pop().Dispose();
         }
     }
 

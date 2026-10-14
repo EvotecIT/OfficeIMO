@@ -785,6 +785,8 @@ internal static partial class CsvWriter
             return nullValue ?? string.Empty;
         }
 
+        if (value is byte[] bytes) return Convert.ToBase64String(bytes);
+
         if (value is DateTime dateTime)
         {
             if (useUtc)
@@ -909,7 +911,7 @@ internal static partial class CsvWriter
 
                 WriteEscaped(buffer, nullText, delimiter, quoteMode, forceQuote);
             }
-            else if (quoteMode == CsvQuoteMode.Always || forceQuote)
+            else if (quoteMode != CsvQuoteMode.Never && (quoteMode == CsvQuoteMode.Always || forceQuote))
             {
                 buffer.Append("\"\"");
             }

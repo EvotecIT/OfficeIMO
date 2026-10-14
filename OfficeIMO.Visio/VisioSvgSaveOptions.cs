@@ -13,7 +13,8 @@ namespace OfficeIMO.Visio {
         public int PageIndex { get; set; }
 
         /// <summary>
-        /// Number of SVG units used per Visio inch. Defaults to 96 so the SVG maps naturally to browser pixels.
+        /// Number of SVG units used per physical page inch after applying the page's drawing scale.
+        /// Defaults to 96 so the SVG maps naturally to browser pixels.
         /// </summary>
         public double PixelsPerInch { get; set; } = 96D;
 
@@ -26,6 +27,9 @@ namespace OfficeIMO.Visio {
         /// Gets or sets whether shape text is emitted.
         /// </summary>
         public bool RenderText { get; set; } = true;
+
+        /// <summary>Layer selection for the preview. Defaults to visible screen layers.</summary>
+        public VisioLayerRenderMode LayerMode { get; set; } = VisioLayerRenderMode.Visible;
 
         /// <summary>Caller-supplied deterministic TrueType faces embedded in SVG output.</summary>
         public OfficeFontFaceCollection Fonts { get; set; } = new OfficeFontFaceCollection();
@@ -64,6 +68,7 @@ namespace OfficeIMO.Visio {
                 PixelsPerInch = PixelsPerInch,
                 BackgroundColor = BackgroundColor,
                 RenderText = RenderText,
+                LayerMode = LayerMode,
                 Fonts = Fonts?.Clone() ?? new OfficeFontFaceCollection(),
                 RenderStencilArtwork = RenderStencilArtwork,
                 RenderConnectorLabels = RenderConnectorLabels,

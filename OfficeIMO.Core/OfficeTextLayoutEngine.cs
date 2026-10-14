@@ -10,9 +10,9 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public static partial class OfficeTextLayoutEngine {
     private const int DefaultTabSize = 4;
-    private const int MaximumLayoutTextCharacters = 100_000;
-    private const int MaximumLayoutLines = 4_096;
-    private const int MaximumLayoutTextRuns = 4_096;
+    internal const int MaximumLayoutTextCharacters = 100_000;
+    internal const int MaximumLayoutLines = 4_096;
+    internal const int MaximumLayoutTextRuns = 4_096;
     private const int MaximumExhaustiveEllipsisElements = 256;
 
     /// <summary>
@@ -612,7 +612,7 @@ public static partial class OfficeTextLayoutEngine {
 
         bool Fits(OfficeTextBlockLayout candidate) => !candidate.Clipped && candidate.Width <= width + .01D
             && candidate.Lines.Count * candidate.LineHeight <= height
-            && OfficeDrawingTextLayout.RequiredFrameHeight(candidate, measurePaint) <= height + .01D;
+            && OfficeDrawingTextLayout.RequiredFrameHeight(candidate, measurePaint) <= height + .000001D;
         if (!Fits(layout) && resolvedFontSize > minFontSize) {
             double low = minFontSize, high = resolvedFontSize;
             layout = CreateBlockLayout(text, low, width, lineFactor, measure, indent);

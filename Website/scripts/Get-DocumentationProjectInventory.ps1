@@ -19,8 +19,11 @@ $validationProjects = @($allProjects | Where-Object {
     $_.BaseName -in @(
         'OfficeIMO.Examples',
         'OfficeIMO.Browser.Examples',
+        'OfficeIMO.ChartForgeX.Examples',
         'OfficeIMO.MarkdownRenderer.SamplePlugin',
         'OfficeIMO.Access.Verification',
+        'OfficeIMO.DjVu.Verification',
+        'OfficeIMO.Odbc.Verification',
         'OfficeIMO.Project.Verification',
         'OfficeIMO.Project.IndependentVerification',
         'OfficeIMO.Project.ReportVerification'

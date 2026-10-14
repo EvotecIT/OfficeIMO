@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
                 double startY = y;
                 double deepest = y;
                 foreach (IPdfBlock block in ExpandTransparentMeasurementBlocks(blocks)) {
-                    if (block is BookmarkBlock) {
+                    if (block is BookmarkBlock or RunningContentSectionBlock) {
                         continue;
                     }
 

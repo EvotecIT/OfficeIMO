@@ -17,7 +17,7 @@ internal static partial class VisioReaderAdapter {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(visioPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(visioPath, effectiveReaderOptions.ComputeHashes);
-        VisioDocument document = VisioDocument.Load(visioPath, CreateLoadOptions(effectiveReaderOptions));
+        VisioDocument document = LoadForReader(visioPath, CreateLoadOptions(effectiveReaderOptions), source, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, cancellationToken)) {
             yield return chunk;
         }
@@ -44,7 +44,7 @@ internal static partial class VisioReaderAdapter {
                 parseStream.Position = 0;
             }
 
-            VisioDocument document = VisioDocument.Load(parseStream, CreateLoadOptions(effectiveReaderOptions));
+            VisioDocument document = LoadForReader(parseStream, logicalSourceName, CreateLoadOptions(effectiveReaderOptions), source, cancellationToken);
             foreach (var chunk in Read(document, source, effectiveReaderOptions, cancellationToken)) {
                 yield return chunk;
             }
@@ -187,7 +187,7 @@ internal static partial class VisioReaderAdapter {
             "Visio page " + page.Name + ": " + page.Shapes.Count.ToString(CultureInfo.InvariantCulture) + " shape(s), " + page.Connectors.Count.ToString(CultureInfo.InvariantCulture) + " connector(s)."
         };
         parts.AddRange(page.Shapes.Select(shape => string.IsNullOrWhiteSpace(shape.Text) ? shape.Id : shape.Text!));
-        parts.AddRange(page.Connectors.Select(connector => string.IsNullOrWhiteSpace(connector.Label) ? connector.FromId + " -> " + connector.ToId : connector.Label!));
+        parts.AddRange(page.Connectors.Select(connector => string.IsNullOrWhiteSpace(connector.Label) ? EndpointText(connector.FromId, connector.StartPoint) + " -> " + EndpointText(connector.ToId, connector.EndPoint) : connector.Label!));
         return string.Join(Environment.NewLine, parts);
     }
 
@@ -216,6 +216,9 @@ internal static partial class VisioReaderAdapter {
         }
     }
 
+    private static string EndpointText(string? id, OfficeIMO.Drawing.OfficePoint point) => id ??
+        "(" + point.X.ToString("0.####", CultureInfo.InvariantCulture) + ", " + point.Y.ToString("0.####", CultureInfo.InvariantCulture) + ") in";
+
     private static void AppendConnectorMarkdown(StringBuilder builder, VisioInspectionPageSnapshot page) {
         if (page.Connectors.Count == 0) return;
 
@@ -223,9 +226,9 @@ internal static partial class VisioReaderAdapter {
         builder.AppendLine("## Connectors");
         foreach (VisioInspectionConnectorSnapshot connector in page.Connectors) {
             builder.Append("- ");
-            builder.Append(connector.FromId);
+            builder.Append(EndpointText(connector.FromId, connector.StartPoint));
             builder.Append(" -> ");
-            builder.Append(connector.ToId);
+            builder.Append(EndpointText(connector.ToId, connector.EndPoint));
             if (!string.IsNullOrWhiteSpace(connector.Label)) {
                 builder.Append(": ");
                 builder.Append(connector.Label);
@@ -300,6 +303,7 @@ internal static partial class VisioReaderAdapter {
     }
 
     internal static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
+        if (source.ImportDiagnostics.Count > 0) chunk.Warnings = (chunk.Warnings ?? Array.Empty<string>()).Concat(source.ImportDiagnostics.Select(item => item.Message)).Distinct().ToArray();
         chunk.SourceId ??= source.SourceId;
         chunk.SourceHash ??= source.SourceHash;
         chunk.SourceLastWriteUtc ??= source.LastWriteUtc;
@@ -453,6 +457,7 @@ internal static partial class VisioReaderAdapter {
     }
 
     internal sealed class SourceMetadata {
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> ImportDiagnostics { get; set; } = Array.Empty<OfficeConversionFidelityDiagnostic>();
         public string? Path { get; set; }
         public string? SourceId { get; set; }
         public string? SourceHash { get; set; }

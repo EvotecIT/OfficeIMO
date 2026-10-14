@@ -4,4 +4,4 @@
 
 The document is licensed under MIT. ReportLab and pypdf are fixture-generation tools under their BSD licenses; neither is an OfficeIMO runtime dependency. The byte length and SHA-256 are pinned in `source.json`.
 
-This fixture protects an explicit refusal: extraction and redaction search cannot treat composite character codes as WinAnsi bytes. It does not qualify predefined CJK font rendering or add Adobe CMap data to OfficeIMO.
+This fixture exercises extraction and reviewed redaction through the bundled Adobe character maps when no ToUnicode is supplied. It checks the two-page retained text and source immutability. The separate `PredefinedCjk` corpus exercises CJK characters, mapped CID widths and a mismatched encoding/character-collection refusal. These selected files do not qualify every font, viewer or predefined encoding.

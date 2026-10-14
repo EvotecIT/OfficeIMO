@@ -12,6 +12,121 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointPdfTextFormattingTests {
     [Fact]
+    public void ShapeAndRunSlideLinksResolveToTheExportedPdfPage() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointSlide first = presentation.AddSlide();
+        presentation.AddSlide();
+        PowerPointTextBox box = first.AddTextBoxPoints("Linked", 10, 10, 200, 40);
+        box.Hyperlink = new Uri("#slide-2", UriKind.Relative);
+        box.Paragraphs[0].Runs[0].Hyperlink = new Uri("#slide-2", UriKind.Relative);
+        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult();
+        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
+        Assert.Equal(2, Assert.Single(pdf.NamedDestinations, d => d.Name == "powerpoint-slide-2").PageNumber);
+        Assert.Equal(2, pdf.LinkAnnotations.Count);
+        Assert.All(pdf.LinkAnnotations, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
+        Assert.Contains(pdf.LinkAnnotations, link => link.X2 - link.X1 < PowerPointUnits.ToPoints(box.Width));
+        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void EmptyRunsDoNotReportCharacterSpacingLoss(bool visibleText, bool table) {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.AddSlide();
+        string text = visibleText ? "Visible" : string.Empty;
+        PowerPointParagraph paragraph;
+        if (table) {
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 10, 10, 200, 40).GetCell(0, 0);
+            cell.Text = text;
+            paragraph = cell.Paragraphs[0];
+        } else {
+            paragraph = slide.AddTextBoxPoints(text, 10, 10, 200, 40).Paragraphs[0];
+        }
+        paragraph.AddText(string.Empty, empty => empty.CharacterSpacingPoints = 1.25);
+        var conversion = presentation.ToPdfDocumentResult();
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
+        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+    }
+
+    [Fact]
+    public void FieldOnlyTextInheritsTrackingAndHonorsAZeroReset() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints(string.Empty, 10, 10, 200, 40);
+        PowerPointParagraph paragraph = box.Paragraphs[0];
+        paragraph.Paragraph.RemoveAllChildren<A.Run>();
+        paragraph.AddField("1", "slidenum", "{33333333-3333-3333-3333-333333333333}");
+        paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Spacing = 125 });
+        Assert.Contains(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+        paragraph.InlineNodes.Single().Run!.CharacterSpacingPoints = 0;
+        Assert.DoesNotContain(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+    }
+
+    [Fact]
+    public void NativeAppleLayoutTrackingIsReportedAndExplicitZeroClearsInheritance() {
+        string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports", "keynote-image-tracking-v15.4.pptx");
+        using PowerPointPresentation presentation = PowerPointPresentation.Load(path);
+        PowerPointTextBox title = presentation.Slides[0].TextBoxes.First(box => box.Paragraphs.Any(item => item.InlineNodes.Any(node => node.Run != null)));
+        PowerPointParagraph paragraph = title.Paragraphs.First(item => item.InlineNodes.Any(node => node.Run != null));
+        PowerPointTextRun run = paragraph.InlineNodes.First(node => node.Run != null).Run!;
+        Assert.Null(run.CharacterSpacingPoints);
+        Assert.Equal(-2.32, PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, title));
+        Assert.Contains(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED"
+                && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        foreach (PowerPointTextRun authored in title.Paragraphs.SelectMany(item => item.InlineNodes).Where(node => node.Run != null).Select(node => node.Run!)) authored.CharacterSpacingPoints = 0;
+        Assert.Equal(0, PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, title));
+    }
+
+    [Theory]
+    [InlineData("paragraph")]
+    [InlineData("list")]
+    [InlineData("master")]
+    public void InheritedTrackingParticipatesInRenderingEvidence(string owner) {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints("Inherited", 10, 10, 200, 40);
+        A.DefaultRunProperties defaults = new() { Spacing = 125 };
+        if (owner == "paragraph") box.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(defaults);
+        else if (owner == "list") box.TextBody!.ListStyle!.PrependChild(new A.Level1ParagraphProperties(defaults));
+        else {
+            A.Level1ParagraphProperties level = box.MasterTextStyle!.GetFirstChild<A.Level1ParagraphProperties>()
+                ?? box.MasterTextStyle.AppendChild(new A.Level1ParagraphProperties());
+            A.DefaultRunProperties master = level.GetFirstChild<A.DefaultRunProperties>() ?? level.AppendChild(new A.DefaultRunProperties());
+            master.Spacing = 125;
+        }
+        Assert.Contains(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+        box.Paragraphs[0].Runs[0].CharacterSpacingPoints = 0;
+        Assert.DoesNotContain(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+    }
+
+    [Fact]
+    public void CharacterSpacingSurvivesSaveReopenAndRenderingReportsItsApproximation() {
+        using var bytes = new MemoryStream();
+        using (PowerPointPresentation presentation = PowerPointPresentation.Create(bytes, new PowerPointCreateOptions())) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTextBoxPoints("Spaced", 10, 10, 200, 40).Paragraphs[0].Runs[0].CharacterSpacingPoints = -2.32;
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 10, 80, 200, 60).GetCell(0, 0);
+            cell.Text = "Cell";
+            cell.Paragraphs[0].Runs[0].CharacterSpacingPoints = 1.25;
+            presentation.Save();
+        }
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(bytes.ToArray()));
+        Assert.Equal(-2.32, reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].CharacterSpacingPoints);
+        Assert.Equal(1.25, reopened.Slides[0].Tables.Single().GetCell(0, 0).Paragraphs[0].Runs[0].CharacterSpacingPoints);
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
+        Assert.Contains(conversion.Report.FidelityDiagnostics, d => d.Code.Contains("CHARACTER_SPACING")
+            && d.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
+    }
+
+    [Fact]
     public void NativeRunFormattingProjectsToSharedDrawingRuns() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(
             new MemoryStream(), new PowerPointCreateOptions());

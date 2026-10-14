@@ -431,6 +431,23 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return value;
         }
 
+        /// <summary>
+        /// Validates and advances over a wide string without materializing its text.
+        /// Uses the same Unicode decoder and fallback policy as delivery.
+        /// </summary>
+        internal void ValidateWideString(int maxCharacters) {
+            uint count = ReadUInt32();
+            if (count > maxCharacters) {
+                throw new InvalidDataException(
+                    $"The BIFF12 string declares {count} characters, exceeding the configured limit of {maxCharacters} characters.");
+            }
+
+            int byteCount = checked((int)count * 2);
+            EnsureAvailable(byteCount);
+            Encoding.Unicode.GetCharCount(_bytes, Position, byteCount);
+            Position += byteCount;
+        }
+
         internal void Skip(int count) {
             EnsureAvailable(count);
             Position += count;

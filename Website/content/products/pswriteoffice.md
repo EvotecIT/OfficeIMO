@@ -2,7 +2,7 @@
 title: "PSWriteOffice"
 description: "Automate Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, and LaTeX workflows from PowerShell."
 layout: product
-meta.showcase_id: "customer-delivery-summary"
+meta.showcase_id: "pswriteoffice-patch-report"
 product_color: "#d97706"
 product_label: "PowerShell document automation"
 runtime_label: "PowerShell 5.1 and 7+"
@@ -27,8 +27,8 @@ PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command sur
 - **Manifest-derived command catalog** — cmdlets, aliases, and families are counted from the current module manifest
 - **DSL aliases** — intuitive shorthand like `WordParagraph`, `ExcelSheet`, and `PptSlide` for concise scripts
 - **Broad document platform** — Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, LaTeX, and HTML asset workflows
-- **Cross-platform** — PowerShell 7+ runs on Windows, Linux, and macOS
-- **PowerShell 5.1 and 7+** — supports Windows PowerShell 5.1 on Windows and modern PowerShell across platforms
+- **Cross-platform** — PowerShell 7.4 or newer runs on Windows, Linux, and macOS
+- **Windows PowerShell** — supports Windows PowerShell 5.1 on Windows; modern batch PDF export requires PowerShell 7.4 or newer
 
 ## Command families
 
@@ -38,10 +38,13 @@ PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command sur
 
 | Job | Working path |
 |---|---|
+| Review patch compliance and maintenance actions | [Patch report walkthrough and native downloads](/showcase/pswriteoffice-patch-report/) |
+| Reconcile budget, actual spending and forecast | [Budget review, workbook and CSV input](/showcase/pswriteoffice-budget-review/) |
+| Review delivery milestones and overdue actions | [Project review, milestone register and CSV input](/showcase/pswriteoffice-project-delivery/) |
 | Export SQL data to Excel and verify the round trip | [DbaClientX database reporting guide](/docs/workflows/database-reporting/) and the {{< pswriteoffice-source kind="blob" path="Examples/Excel/Example-ExcelDbaClientXRoundTrip.ps1" label="runnable Excel example" >}} |
 | Move database data through CSV | {{< pswriteoffice-source kind="blob" path="Examples/Csv/Example-CsvDbaClientXRoundTrip.ps1" label="Runnable CSV round-trip example" >}} |
 | Create an operational Excel dashboard | {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1" label="Excel showcase example" >}} |
-| Build a PowerPoint service brief | {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1" label="PowerPoint showcase example" >}} |
+| Review quarterly support demand in PowerPoint | [CSV-driven service brief](https://github.com/EvotecIT/PSWriteOffice/blob/f28d09d2ff157925598d9396bf0f2c8ef19a2b25/Examples/Showcase/ServiceBrief.md) with location totals, ticket comparisons and dated actions. |
 | Browse copyable PowerShell patterns | [PSWriteOffice recipe gallery](/docs/workflows/powershell-recipes/) |
 | Compare Excel and CSV performance | [PSWriteOffice benchmark guide](/docs/workflows/powershell-benchmarks/) |
 | Evaluate mixed search, authenticated PDF, or Confluence publishing | [PSWriteOffice command families](/docs/pswriteoffice/command-families/) |

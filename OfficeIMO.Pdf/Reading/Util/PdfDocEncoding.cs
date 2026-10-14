@@ -8,6 +8,21 @@ internal static class PdfDocEncoding {
     private static readonly bool[] Defined = BuildDefinedMap();
     private static readonly Dictionary<char, byte> ReverseMap = BuildReverseMap();
 
+    /// <summary>Decodes semantic text while retaining the byte value for undefined codes in lenient read paths.</summary>
+    internal static string Decode(byte[] bytes, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (bytes.Length == 0) return string.Empty;
+
+        var characters = new char[bytes.Length];
+        for (int i = 0; i < bytes.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            byte encoded = bytes[i];
+            characters[i] = Defined[encoded] ? Map[encoded] : (char)encoded;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return PdfEncoding.CharArrayToStringCancellable(characters, cancellationToken);
+    }
+
     internal static bool TryDecode(byte[] bytes, out string value, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length == 0) {
@@ -55,18 +70,6 @@ internal static class PdfDocEncoding {
         }
         cancellationToken.ThrowIfCancellationRequested();
         return bytes;
-    }
-
-    internal static string Decode(byte[] bytes, CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        var characters = new char[bytes.Length];
-        for (int index = 0; index < bytes.Length; index++) {
-            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            byte encoded = bytes[index];
-            characters[index] = Defined[encoded] ? Map[encoded] : (char)encoded;
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-        return PdfEncoding.CharArrayToStringCancellable(characters, cancellationToken);
     }
 
     private static char[] BuildMap() {

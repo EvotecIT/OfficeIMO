@@ -6,6 +6,20 @@ namespace OfficeIMO.Drawing;
 /// Shared metadata for dependency-free image export formats.
 /// </summary>
 public static class OfficeImageExportFormatExtensions {
+    /// <summary>Returns the encoded container format corresponding to this export route.</summary>
+    /// <remarks>PBM output belongs to the broader PortableMap container family. PNG output can also carry APNG frames.</remarks>
+    public static OfficeImageFormat GetContainerFormat(this OfficeImageExportFormat format) => format switch {
+        OfficeImageExportFormat.Png => OfficeImageFormat.Png,
+        OfficeImageExportFormat.Svg => OfficeImageFormat.Svg,
+        OfficeImageExportFormat.Jpeg => OfficeImageFormat.Jpeg,
+        OfficeImageExportFormat.Tiff => OfficeImageFormat.Tiff,
+        OfficeImageExportFormat.Webp => OfficeImageFormat.Webp,
+        OfficeImageExportFormat.Bmp => OfficeImageFormat.Bmp,
+        OfficeImageExportFormat.Pbm => OfficeImageFormat.PortableMap,
+        OfficeImageExportFormat.Tga => OfficeImageFormat.Tga,
+        OfficeImageExportFormat.Icon => OfficeImageFormat.Icon,
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
+    };
     /// <summary>Returns the conventional file extension, including the leading dot.</summary>
     public static string GetFileExtension(this OfficeImageExportFormat format) => format switch {
         OfficeImageExportFormat.Png => ".png",

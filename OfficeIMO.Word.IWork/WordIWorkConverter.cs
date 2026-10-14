@@ -6,9 +6,6 @@ using OfficeIMO.IWork.Internal;
 using OfficeIMO.Word.IWork;
 using OpenXmlParagraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using OpenXmlRun = DocumentFormat.OpenXml.Wordprocessing.Run;
-using OpenXmlNumberingId = DocumentFormat.OpenXml.Wordprocessing.NumberingId;
-using OpenXmlNumberingLevelReference = DocumentFormat.OpenXml.Wordprocessing.NumberingLevelReference;
-using OpenXmlNumberingProperties = DocumentFormat.OpenXml.Wordprocessing.NumberingProperties;
 using OpenXmlParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using DrawingWordprocessing = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
@@ -30,9 +27,12 @@ public static partial class WordIWorkConverter {
         }
 
         IWorkPagesProjection projection = source.ReadPages();
+        HashSet<ulong> standaloneInlineTables = FindStandaloneInlineTableBlocks(projection,
+            out HashSet<ulong> inlineDrawables, cancellationToken);
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindWordProjectionLimitation(projection, settings.AllowPartialEditableReconstruction);
+            : FindWordProjectionLimitation(projection, settings.AllowPartialEditableReconstruction,
+                standaloneInlineTables, inlineDrawables, cancellationToken);
         bool hasEditableContent = projection.HasEditableContent
             || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
         bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
@@ -42,16 +42,15 @@ public static partial class WordIWorkConverter {
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED", destinationLimitation) };
-        if (editable && settings.AllowPartialEditableReconstruction && RequiresWordRounding(projection)) {
+        if (editable && settings.AllowPartialEditableReconstruction && RequiresWordRounding(projection, inlineDrawables, cancellationToken)) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_DOCX_PRECISION",
                     "Source geometry, spacing, or font sizes were rounded to the nearest supported DOCX measurement unit; original values remain available on the projection.")
             }).ToArray();
         }
         if (editable && settings.AllowPartialEditableReconstruction && projection.Tables.Any(table =>
-                table.Geometry is { } geometry && (Math.Abs(geometry.LeftPoints) > 0.000001d
-                    || Math.Abs(geometry.TopPoints) > 0.000001d || Math.Abs(geometry.WidthPoints) > 0.000001d
-                    || Math.Abs(geometry.HeightPoints) > 0.000001d || Math.Abs(geometry.RotationDegrees) > 0.000001d))) {
+                HasTableGeometry(table) && !CanApplyInlineTableGeometry(table, projection.PageLayout,
+                    standaloneInlineTables, cancellationToken))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED",
                     "Positioned source tables were retained as editable flowing DOCX tables; source geometry remains available on the projection.",
@@ -61,7 +60,15 @@ public static partial class WordIWorkConverter {
         int reconstructedSectionCount = 1 + projection.Body.Paragraphs.Count(paragraph =>
             paragraph.BreakKind == IWorkParagraphBreakKind.Section);
         if (editable) {
-            if (AllPagesText(projection).SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null)) {
+            if (projection.Tables.Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
+                destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                    new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_MERGED_TABLE_BORDERS_APPROXIMATED",
+                        "Merged DOCX cells use the first recovered segment of each outer edge; varying native perimeter segments remain on the source projection.",
+                        lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+                }).ToArray();
+            }
+            if (AllPagesText(projection).SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null
+                    && !CanApplyQualifiedListLayout(paragraph))) {
                 destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                     new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_LIST_LAYOUT_APPROXIMATED",
                         "DOCX uses destination list-marker placement and size; native list geometry remains available on the projection.",
@@ -116,6 +123,8 @@ public static partial class WordIWorkConverter {
                 ApplyPageLayout(document.Sections[0], pageLayout);
             }
             if (editable) {
+                if (PagesDecimalTabSymbols(projection, cancellationToken).SingleOrDefault() is string decimalSymbol)
+                    document.Settings.DecimalSymbol = decimalSymbol;
                 var nativeLists = new IWorkNativeListCatalog(document);
                 var cellComments = new List<WordCellComment>();
                 (double contentWidth, double contentHeight) = ContentBox(document.Sections[0]);
@@ -123,8 +132,6 @@ public static partial class WordIWorkConverter {
                 var pageHosts = new Dictionary<int, WordParagraph>();
                 var pageTableAnchors = new Dictionary<int, WordTable>();
                 int currentPageIndex = 1;
-                var inlineDrawables = new HashSet<ulong>(projection.Body.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                    .Where(run => run.InlineObject != null).Select(run => run.InlineObject!.Drawable.RecordIdentifier));
                 var drawableLookup = projection.Drawables.ToDictionary(DrawableIdentifier);
                 AddRichText(projection.Body, value => {
                         WordParagraph paragraph = document.AddParagraph(value);
@@ -145,9 +152,15 @@ public static partial class WordIWorkConverter {
                             semanticSections.Add(section);
                             currentPageIndex++;
                         }
-                    }, cancellationToken: cancellationToken, addInlineObject: (paragraph, run) =>
-                        AddInlineObject(document, paragraph, drawableLookup[run.InlineObject!.Drawable.RecordIdentifier],
-                            nativeLists, contentWidth, contentHeight, cellComments, cancellationToken));
+                    }, cancellationToken: cancellationToken, addInlineObject: (paragraph, run) => {
+                        ulong identifier = run.InlineObject!.Drawable.RecordIdentifier;
+                        if (AddInlineObject(document, paragraph, drawableLookup[identifier],
+                                nativeLists, contentWidth, contentHeight, cellComments, standaloneInlineTables,
+                                projection.PageLayout, cancellationToken)
+                            && pageHosts.TryGetValue(currentPageIndex, out WordParagraph? host) && host == paragraph) {
+                            pageHosts.Remove(currentPageIndex);
+                        }
+                    });
                 if (projection.PageLayout != null) {
                     foreach (WordSection section in document.Sections) ApplyPageLayout(section, projection.PageLayout);
                 }
@@ -197,7 +210,8 @@ public static partial class WordIWorkConverter {
                 WordSection section = document.Sections[0];
                 (double contentWidth, double contentHeight) = ContentBox(section);
                 (double width, double height) = PreviewSize(preview, contentWidth, contentHeight);
-                document.AddParagraph().AddImage(image, PreviewFileName(preview), width, height,
+                document.AddParagraph().AddImage(image, PreviewFileName(preview),
+                    Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height),
                     description: "Visual fallback from the source Pages package");
             }
 
@@ -254,7 +268,7 @@ public static partial class WordIWorkConverter {
             (width, height) = FitInside(width, height, contentWidth, contentHeight);
         }
         WordImage target = (pageHost ?? document.AddParagraph()).InsertImage(image, source.FileName,
-            width, height, WordImageTextWrapping.Square,
+            Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height), WordImageTextWrapping.Square,
             source.AccessibilityDescription ?? "Image imported from Pages");
         if (source.Geometry is { } geometry) {
             target.horizontalPosition.RelativeFrom =
@@ -351,11 +365,15 @@ public static partial class WordIWorkConverter {
         Action<IWorkParagraphBreakKind>? addSectionBreak = null,
         bool forceBold = false, CancellationToken cancellationToken = default,
         Action<WordParagraph, IWorkTextRun>? addInlineObject = null, IWorkParagraphStyle? defaultStyle = null) {
+        // Inline tables can recursively project another text storage. Its lists
+        // must not replace the current list in the surrounding storage.
+        nativeLists = nativeLists.CreateTextScope();
         ulong? previousListIdentifier = null;
         bool hasPreviousListParagraph = false;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             cancellationToken.ThrowIfCancellationRequested();
             WordParagraph paragraph = addParagraph(string.Empty);
+            InitializeParagraphSpacing(paragraph);
             if (defaultStyle != null) {
                 ApplyParagraphStyle(paragraph, defaultStyle, sourceParagraph.Text);
                 ApplyParagraphTextStyle(paragraph, defaultStyle.TextStyle);
@@ -365,10 +383,26 @@ public static partial class WordIWorkConverter {
             ApplyParagraphTextStyle(paragraph, sourceParagraph.Style.TextStyle);
             if (sourceParagraph.ListLevel >= 0) {
                 bool startsNewList = !hasPreviousListParagraph
-                    || sourceParagraph.ListIdentifier != previousListIdentifier;
+                    || sourceParagraph.ListIdentifier != previousListIdentifier
+                    || sourceParagraph.ListStartNumber.HasValue;
+                bool qualifiedLayout = CanApplyQualifiedListLayout(sourceParagraph, out double markerSize);
+                if (qualifiedLayout) {
+                    double firstRunSize = sourceParagraph.Runs.FirstOrDefault()?.Style.FontSizePoints
+                        ?? sourceParagraph.Style.TextStyle.FontSizePoints!.Value;
+                    if (firstRunSize != sourceParagraph.Style.TextStyle.FontSizePoints) {
+                        // Pages interprets relative marker sizes using the leading run and paragraph mark.
+                        // Keep both at the first body run's size; the numbering level owns the marker size.
+                        paragraph.FontSizePoints = firstRunSize;
+                        paragraph.CopyRunFormattingToParagraphMark();
+                    }
+                }
                 nativeLists.Apply(paragraph, sourceParagraph.ListLevel,
-                    sourceParagraph.ListLabel, sourceParagraph.ListFontName,
-                    sourceParagraph.ListMarkerKind, startsNewList);
+                    sourceParagraph.ListLabel, qualifiedLayout
+                        ? IWorkDecimalListLayout.MarkerFontName(sourceParagraph) : sourceParagraph.ListFontName,
+                    sourceParagraph.ListMarkerKind, startsNewList, sourceParagraph.ListNumber,
+                    qualifiedLayout ? paragraph.IndentationBefore : null,
+                    qualifiedLayout ? paragraph.IndentationHanging : null,
+                    qualifiedLayout ? checked((int)markerSize) : null);
                 previousListIdentifier = sourceParagraph.ListIdentifier;
                 hasPreviousListParagraph = true;
             } else {
@@ -409,6 +443,25 @@ public static partial class WordIWorkConverter {
 
     private static void ApplyParagraphStyle(WordParagraph paragraph, IWorkTextParagraph source) {
         ApplyParagraphStyle(paragraph, source.Style, source.Text);
+        if (CanApplyQualifiedListLayout(source)) {
+            // Native relative marker offsets are quantized to DOCX twentieth-points,
+            // matching the independently exported decimal-list reference.
+            double offset = Math.Round(source.ListLayout!.TextIndentEm
+                * source.Style.TextStyle.FontSizePoints!.Value * 20d,
+                MidpointRounding.AwayFromZero) / 20d;
+            paragraph.IndentationBeforePoints = Math.Round((source.ListLayout.MarkerIndentPoints
+                + source.ListLayout.TextIndentEm * source.Style.TextStyle.FontSizePoints!.Value) * 20d,
+                MidpointRounding.AwayFromZero) / 20d;
+            paragraph.IndentationFirstLine = null;
+            paragraph.IndentationHangingPoints = offset;
+        }
+    }
+
+    private static void InitializeParagraphSpacing(WordParagraph paragraph) {
+        // Start with native defaults before layering table and rich-text styles.
+        // Blank header/footer stories must not inherit destination template spacing.
+        paragraph.LineSpacingBeforePoints = 0d;
+        paragraph.LineSpacingAfterPoints = 0d;
     }
 
     private static void ApplyParagraphStyle(WordParagraph paragraph, IWorkParagraphStyle style, string text) {
@@ -459,6 +512,7 @@ public static partial class WordIWorkConverter {
         if (style.Underline.HasValue) run.Underline = style.Underline.Value ? WordUnderlineStyle.Single : null;
         if (style.Strikethrough.HasValue) run.Strike = style.Strikethrough.Value;
         if (style.FontSizePoints.HasValue) run.FontSizePoints = style.FontSizePoints.Value;
+        if (style.CharacterSpacingPoints is double spacing) run.Spacing = ToCharacterSpacingTwips(spacing);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;
         if (style.Color != null) run.ColorHex = style.Color.RgbHex;
         if (style.BackgroundColor != null) run.RunShadingFillColorHex = style.BackgroundColor.RgbHex;
@@ -478,198 +532,17 @@ public static partial class WordIWorkConverter {
         section.Margins.FooterDistance = ToTwips(layout.FooterMarginPoints);
     }
 
-    private sealed class IWorkNativeListCatalog {
-        private readonly WordDocument _document;
-        private readonly HashSet<int> _observedLevels = new();
-        private WordList? _current;
-
-        internal IWorkNativeListCatalog(WordDocument document) {
-            _document = document;
-        }
-
-        internal void Apply(WordParagraph paragraph, int level, string? label, string? fontName, IWorkListMarkerKind markerKind, bool startsNewList) {
-            if (startsNewList || _current == null) {
-                _current = WordList.AddCustomList(_document);
-                _observedLevels.Clear();
-            }
-            WordList list = _current;
-            WordListLevelKind levelKind = markerKind == IWorkListMarkerKind.Number
-                ? Classify(label) : WordListLevelKind.Bullet;
-            bool targetLevelExists = list.Numbering.Levels.Count > level;
-            while (list.Numbering.Levels.Count <= level) {
-                list.Numbering.AddLevel(new WordListLevel(levelKind));
-            }
-            bool firstObservation = _observedLevels.Add(level);
-            if (firstObservation && targetLevelExists) {
-                ReplacePlaceholderLevel(list, level, levelKind);
-            }
-            if (firstObservation && TryParseStart(label, levelKind, out int start) && start != 1) {
-                list.Numbering.Levels[level].SetStartNumberingValue(start);
-            }
-            if (firstObservation && levelKind == WordListLevelKind.Bullet
-                && !string.IsNullOrEmpty(label)) {
-                list.Numbering.Levels[level].LevelText = label!;
-            }
-            if (firstObservation && levelKind != WordListLevelKind.Bullet
-                && IsParenthesized(label)) {
-                list.Numbering.Levels[level].LevelText = "(%"
-                    + (level + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
-            }
-            if (firstObservation && fontName != null) list.FontName = fontName;
-            OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties
-                ?? paragraph._paragraph.PrependChild(new OpenXmlParagraphProperties());
-            properties.NumberingProperties = new OpenXmlNumberingProperties(
-                new OpenXmlNumberingLevelReference { Val = level },
-                new OpenXmlNumberingId { Val = list.NumberId });
-        }
-
-        private static void ReplacePlaceholderLevel(WordList list, int level,
-            WordListLevelKind levelKind) {
-            WordListLevel current = list.Numbering.Levels[level];
-            var replacement = new WordListLevel(levelKind);
-            replacement.OpenXmlElement.LevelIndex = level;
-            replacement.LevelText = replacement.LevelText.Replace(
-                "%CurrentLevel", "%" + (level + 1).ToString(
-                    System.Globalization.CultureInfo.InvariantCulture));
-            current.OpenXmlElement.InsertAfterSelf(replacement.OpenXmlElement);
-            current.Remove();
-        }
-
-        private static WordListLevelKind Classify(string? label) {
-            if (string.IsNullOrWhiteSpace(label)) return WordListLevelKind.Bullet;
-            string marker = label!.Trim();
-            bool bracket = marker.EndsWith(")", StringComparison.Ordinal);
-            bool dot = marker.EndsWith(".", StringComparison.Ordinal);
-            string token = MarkerToken(marker);
-            if (token.All(char.IsDigit)) {
-                return bracket ? WordListLevelKind.DecimalBracket
-                    : dot ? WordListLevelKind.DecimalDot : WordListLevelKind.Decimal;
-            }
-            bool roman = token.Length > 0
-                && token.All(character => "ivxlcdmIVXLCDM".IndexOf(character) >= 0)
-                && (token.Length > 1 || "ivxIVX".IndexOf(token[0]) >= 0);
-            if (roman) {
-                bool upper = token.All(char.IsUpper);
-                return upper
-                    ? bracket ? WordListLevelKind.UpperRomanBracket
-                        : dot ? WordListLevelKind.UpperRomanDot : WordListLevelKind.UpperRoman
-                    : bracket ? WordListLevelKind.LowerRomanBracket
-                        : dot ? WordListLevelKind.LowerRomanDot : WordListLevelKind.LowerRoman;
-            }
-            if (token.Length > 0 && token.All(char.IsLetter)) {
-                bool upper = token.All(char.IsUpper);
-                return upper
-                    ? bracket ? WordListLevelKind.UpperLetterBracket
-                        : dot ? WordListLevelKind.UpperLetterDot : WordListLevelKind.UpperLetter
-                    : bracket ? WordListLevelKind.LowerLetterBracket
-                        : dot ? WordListLevelKind.LowerLetterDot : WordListLevelKind.LowerLetter;
-            }
-            return WordListLevelKind.Bullet;
-        }
-
-        private static bool TryParseStart(string? label, WordListLevelKind kind, out int start) {
-            start = 1;
-            if (string.IsNullOrWhiteSpace(label)) return false;
-            string token = MarkerToken(label!.Trim());
-            switch (kind) {
-                case WordListLevelKind.Decimal:
-                case WordListLevelKind.DecimalDot:
-                case WordListLevelKind.DecimalBracket:
-                    return int.TryParse(token, System.Globalization.NumberStyles.None,
-                        System.Globalization.CultureInfo.InvariantCulture, out start) && start > 0;
-                case WordListLevelKind.UpperLetter:
-                case WordListLevelKind.UpperLetterDot:
-                case WordListLevelKind.UpperLetterBracket:
-                case WordListLevelKind.LowerLetter:
-                case WordListLevelKind.LowerLetterDot:
-                case WordListLevelKind.LowerLetterBracket:
-                    start = 0;
-                    foreach (char character in token) {
-                        int digit = char.ToUpperInvariant(character) - 'A' + 1;
-                        if (digit < 1 || digit > 26 || start > (int.MaxValue - digit) / 26) return false;
-                        start = start * 26 + digit;
-                    }
-                    return start > 0;
-                case WordListLevelKind.UpperRoman:
-                case WordListLevelKind.UpperRomanDot:
-                case WordListLevelKind.UpperRomanBracket:
-                case WordListLevelKind.LowerRoman:
-                case WordListLevelKind.LowerRomanDot:
-                case WordListLevelKind.LowerRomanBracket:
-                    return TryParseRoman(token, out start);
-                default:
-                    return false;
-            }
-        }
-
-        private static bool TryParseRoman(string token, out int value) {
-            value = 0;
-            int previous = 0;
-            for (int index = token.Length - 1; index >= 0; index--) {
-                int current = char.ToUpperInvariant(token[index]) switch {
-                    'I' => 1, 'V' => 5, 'X' => 10, 'L' => 50,
-                    'C' => 100, 'D' => 500, 'M' => 1000, _ => 0
-                };
-                if (current == 0) return false;
-                int delta = current < previous ? -current : current;
-                if (delta > 0 && value > int.MaxValue - delta
-                    || delta < 0 && value < int.MinValue - delta) return false;
-                value += delta;
-                if (current > previous) previous = current;
-            }
-            if (value <= 0) return false;
-            bool upper = token.All(character => character is >= 'A' and <= 'Z');
-            string canonical = FormatRoman(value);
-            return string.Equals(token, upper ? canonical : canonical.ToLowerInvariant(),
-                StringComparison.Ordinal);
-        }
-
-        private static string FormatRoman(int value) {
-            var builder = new System.Text.StringBuilder();
-            foreach ((int Number, string Token) part in new[] {
-                         (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
-                         (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
-                         (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
-                     }) {
-                while (value >= part.Number) {
-                    builder.Append(part.Token);
-                    value -= part.Number;
-                }
-            }
-            return builder.ToString();
-        }
-
-        internal static bool CanPreserveStart(string? label) {
-            if (!string.IsNullOrWhiteSpace(label)) {
-                string token = MarkerToken(label!.Trim());
-                if (token.All(char.IsLetter)
-                    && token.Any(char.IsUpper) && token.Any(char.IsLower)) return false;
-            }
-            WordListLevelKind kind = Classify(label);
-            return kind == WordListLevelKind.Bullet || TryParseStart(label, kind, out _);
-        }
-
-        private static bool IsParenthesized(string? marker) {
-            if (string.IsNullOrWhiteSpace(marker)) return false;
-            string trimmed = marker!.Trim();
-            return trimmed.Length >= 2 && trimmed[0] == '('
-                && trimmed[trimmed.Length - 1] == ')';
-        }
-
-        private static string MarkerToken(string marker) {
-            string trimmed = marker.Trim();
-            if (trimmed.Length >= 2 && trimmed[0] == '('
-                && trimmed[trimmed.Length - 1] == ')') {
-                return trimmed.Substring(1, trimmed.Length - 2).Trim();
-            }
-            return trimmed.TrimEnd('.', ')', ' ');
-        }
-    }
-
     private static uint ToTwips(double points) {
         double value = Math.Round(points * 20d, MidpointRounding.AwayFromZero);
         if (value < 0 || value > uint.MaxValue) throw new InvalidDataException("A Pages page measurement exceeds the DOCX range.");
         return (uint)value;
+    }
+
+    private static int ToCharacterSpacingTwips(double points) {
+        double value = Math.Round(points * 20d, MidpointRounding.AwayFromZero);
+        if (double.IsNaN(value) || double.IsInfinity(value) || value < int.MinValue || value > int.MaxValue)
+            throw new InvalidDataException("Pages character spacing exceeds the DOCX range.");
+        return (int)value;
     }
 
     private static int ToSignedTwips(double points) {

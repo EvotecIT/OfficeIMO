@@ -47,21 +47,35 @@ public sealed partial class OfficeRasterCanvas {
             }
         }
         IOfficeFontProgram? font = ResolveTextFont(text, fontInfo.FamilyName, fontInfo.Style, size, out OfficeFontStyle resolvedStyle);
-        // An unresolved face is not evidence of an empty glyph.
-        if (font == null) return inkOnly ? (0D, 0D, 0D, 0D, false, false, false)
+        // Inspection cannot infer filled ink from an unresolved face. Raster
+        // painting can still use the stroke fallback and its exact buffer bounds.
+        if (font == null && (inkOnly || _scopedFontResolutionOnly)) return inkOnly
+            ? (0D, 0D, 0D, 0D, false, false, false)
             : (left - size, top - size, right + size, bottom + size, true, false, false);
-        double naturalAdvance = MeasureResolvedText(text, font, size, features, textDirection);
+        double naturalAdvance = font != null ? MeasureResolvedText(text, font, size, features, textDirection)
+            : MeasureStrokeText(text, size);
         double scaleX = naturalAdvance > 0D ? advance / naturalAdvance : 1D;
         double textX = ResolveTextX(x, Math.Max(.01D, width), advance, alignment);
-        double textTop = y + ResolveRasterTextTop(font, size, height, baselineSize);
+        double textTop = y + (font != null ? ResolveRasterTextTop(font, size, height, baselineSize)
+            : ResolveStrokeTextTop(size, height, baselineSize));
         OfficeFontStyle simulated = fontInfo.Style & ~resolvedStyle;
-        bool hasColorLayers = TryGetResolvedColorTextContours(text, font, textX, textTop, size, features, palette,
-            foreground, out List<OfficeColorGlyphContours> layers, textDirection);
-        // Buffer sizing retains the historical union; ink follows the painter's choice of color or base outlines.
-        if (!inkOnly || !hasColorLayers) Include(GetResolvedTextContours(text, font, textX, textTop, size, features, textDirection));
-        if (hasColorLayers) foreach (OfficeColorGlyphContours layer in layers)
-            if (!inkOnly || layer.Color.A != 0) Include(layer.Contours);
-        double lineHeight = font.LineHeight(size);
+        if (font != null) {
+            bool hasColorLayers = TryGetResolvedColorTextContours(text, font, textX, textTop, size, features, palette,
+                foreground, out List<OfficeColorGlyphContours> layers, textDirection);
+            // Buffer sizing retains the historical union; ink follows the painter's choice of color or base outlines.
+            if (!inkOnly || !hasColorLayers) Include(GetResolvedTextContours(text, font, textX, textTop, size, features, textDirection));
+            if (hasColorLayers) foreach (OfficeColorGlyphContours layer in layers)
+                if (!inkOnly || layer.Color.A != 0) Include(layer.Contours);
+        } else {
+            var bounds = MeasureStrokeTextBounds(text, textX, textTop, size,
+                (simulated & OfficeFontStyle.Bold) != 0, (simulated & OfficeFontStyle.Italic) != 0, scaleX);
+            if (bounds.HasInk) {
+                hasInk = true;
+                left = Math.Min(left, bounds.Left); top = Math.Min(top, bounds.Top);
+                right = Math.Max(right, bounds.Right); bottom = Math.Max(bottom, bounds.Bottom);
+            }
+        }
+        double lineHeight = font?.LineHeight(size) ?? size;
         IncludeDecoration(underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle :
             (fontInfo.Style & OfficeFontStyle.Underline) != 0 ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
             textTop + lineHeight * .86D);

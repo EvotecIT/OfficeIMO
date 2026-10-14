@@ -8,18 +8,24 @@ namespace OfficeIMO.Drawing;
 /// <summary>Encodes multi-resolution Windows icons using independently compressed PNG entries.</summary>
 public static class OfficeIconEncoder {
     /// <summary>Creates an ICO container from one to 256 images, each between one and 256 pixels on each axis.</summary>
-    public static byte[] Encode(IReadOnlyList<OfficeRasterImage> images, OfficeRasterEncodingOptions? options = null, CancellationToken cancellationToken = default) {
+    public static byte[] Encode(IReadOnlyList<OfficeRasterImage> images, OfficeRasterEncodingOptions? options = null, CancellationToken cancellationToken = default) => Encode(images, options, cancellationToken, OfficeRasterGuards.MaximumEncodedBytes, 0L);
+
+    internal static byte[] Encode(IReadOnlyList<OfficeRasterImage> images, OfficeRasterEncodingOptions? options, CancellationToken cancellationToken, long maximumEncodedBytes, long additionallyRetainedBytes) {
         if (images == null) throw new ArgumentNullException(nameof(images));
         if (images.Count < 1 || images.Count > 256) throw new ArgumentOutOfRangeException(nameof(images), "An icon must contain between one and 256 images.");
-        var payloads = new byte[images.Count][]; long total = 6L + images.Count * 16L; long rasterBytes = 0;
+        var payloads = new byte[images.Count][]; long total = 6L + images.Count * 16L; long rasterBytes = images.Count * 64L;
+        for (int i = 0; i < images.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested(); OfficeRasterImage image = images[i] ?? throw new ArgumentException("Icon images cannot be null.", nameof(images));
+            rasterBytes = checked(rasterBytes + image.PixelBuffer.LongLength);
+        }
         for (int i = 0; i < images.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested(); OfficeRasterImage image = images[i] ?? throw new ArgumentException("Icon images cannot be null.", nameof(images));
             if (image.Width > 256 || image.Height > 256) throw new ArgumentOutOfRangeException(nameof(images), "Icon dimensions must not exceed 256 pixels.");
-            rasterBytes = checked(rasterBytes + image.Width * (long)image.Height * 4);
-            payloads[i] = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, options, OfficeRasterGuards.MaximumEncodedBytes - total, cancellationToken); total = checked(total + payloads[i].Length);
+            payloads[i] = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, options, maximumEncodedBytes - total, cancellationToken,
+                checked(additionallyRetainedBytes + rasterBytes - image.PixelBuffer.LongLength + total)); total = checked(total + payloads[i].Length);
         }
         int size = OfficeRasterGuards.EnsureOutputBytes(total, "Icon output exceeds the encoded-size limit.");
-        if (total * 2 + rasterBytes > OfficeRasterGuards.MaximumDecodedBytes) throw new ArgumentException("Icon encoding exceeds the managed working-set limit.", nameof(images));
+        if (total * 2 + rasterBytes + additionallyRetainedBytes > OfficeRasterGuards.MaximumDecodedBytes) throw new ArgumentException("Icon encoding exceeds the managed working-set limit.", nameof(images));
         var result = new byte[size]; OfficeExifProfileCodec.Write(result, 2, 1, 2, true); OfficeExifProfileCodec.Write(result, 4, (uint)images.Count, 2, true); int cursor = 6 + images.Count * 16;
         for (int i = 0; i < images.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested(); int entry = 6 + i * 16; result[entry] = (byte)images[i].Width; result[entry + 1] = (byte)images[i].Height;

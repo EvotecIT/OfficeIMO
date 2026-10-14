@@ -8,8 +8,8 @@
   "encoding": "UniJIS-UCS2-H",
   "toUnicode": false,
   "embeddedFontPrograms": false,
-  "purpose": "Text extraction and redaction search refuse unsupported composite text mapping; not a successful font rendering fixture",
-  "runtimeBoundary": "PDF test fixture only; no Adobe CMap or font program is embedded in OfficeIMO runtime",
+  "purpose": "Extraction and reviewed redaction through bundled Adobe mappings without ToUnicode; preserve both pages and neighboring text",
+  "runtimeBoundary": "PDF fixture only; runtime bundles separately licensed Adobe mapping data, no font program",
   "producerVersions": {
     "ReportLab": "4.4.9",
     "pypdf": "6.10.0"

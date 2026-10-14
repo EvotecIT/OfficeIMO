@@ -57,11 +57,13 @@ internal static partial class ResourceResolver {
 
     private static string DecodeNamedComposite(PdfFontResource font, byte[] bytes, int maximumCharacters) {
         if (bytes.Length == 0) return string.Empty;
-        if (!font.HasToUnicode || font.CMap == null ||
-            !font.CMap.TryMapBytes(bytes, maximumCharacters, out string decoded)) {
-            throw new PdfUnsupportedTextMappingException(font);
+        if (font.HasToUnicode) {
+            if (font.CMap != null && font.CMap.TryMapBytes(bytes, maximumCharacters, out string mapped)) return mapped;
+        } else if (font.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined &&
+            predefined.Value.TryDecode(bytes, maximumCharacters, out string decoded)) {
+            return decoded;
         }
-        return decoded;
+        throw new PdfUnsupportedTextMappingException(font);
     }
 
     private static System.Func<byte[], int, string> BuildBudgetedBaseEncodingDecoder(string encoding) {

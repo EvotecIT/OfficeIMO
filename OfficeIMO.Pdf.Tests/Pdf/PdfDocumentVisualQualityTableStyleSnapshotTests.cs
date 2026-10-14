@@ -217,6 +217,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.AllowRowBreakAcrossPages = false;
         style.MaxWidth = 180;
         style.LeftIndent = 24;
+        style.HorizontalOffset = -12;
         style.CellPaddingLeft = 7;
         style.CellPaddingRight = 8;
         style.CellPaddingTop = 9;
@@ -264,6 +265,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(160, clone.PreferredWidth);
         Assert.Equal(180, clone.MaxWidth);
         Assert.Equal(24, clone.LeftIndent);
+        Assert.Equal(-12, clone.HorizontalOffset);
         Assert.Equal(7, clone.CellPaddingLeft);
         Assert.Equal(8, clone.CellPaddingRight);
         Assert.Equal(9, clone.CellPaddingTop);

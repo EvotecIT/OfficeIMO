@@ -21,6 +21,7 @@ public sealed partial class OfficeRadialGradient {
             Stops.Reverse().Select(stop => new OfficeGradientStop(1D - stop.Offset, stop.Color)).ToArray())
             .TransformCoordinates(new OfficeTransform(EndRadiusX, 0D, 0D, EndRadiusY, EndX, EndY).Then(CoordinateTransform));
         reverse.ColorInterpolation = ColorInterpolation;
+        reverse.InterpolateAlphaSeparately = InterpolateAlphaSeparately;
         reverse.SpreadMode = SpreadMode;
         reverse._paintOutsideCone = true;
         return reverse;

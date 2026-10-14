@@ -5,6 +5,31 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmTTableBorders80 = 0xD605;
         private const ushort SprmTBrcTopCv = 0xD61A;
         private const ushort SprmTBrcRightCv = 0xD61D;
+        private const ushort SprmTSetBrc = 0xD62F;
+
+        private static bool TryReadTableCellBorderRange(byte[] bytes, int offset, int end,
+            int cellCount, ref IReadOnlyList<LegacyDocTableCellBorders>? cellBorders) {
+            if (end - offset < 14 || bytes[offset + 2] != 11) return false;
+            int first = bytes[offset + 3];
+            int limit = bytes[offset + 4];
+            byte edges = bytes[offset + 5];
+            if (first >= cellCount || first > limit || limit > cellCount || (edges & 0xC0) != 0) return false;
+            if (first == limit) return true;
+            // The model preserves the four cell sides. The Data-stream projection
+            // guard continues to hold records containing diagonal borders.
+            LegacyDocTableCellBorder border = ReadTableBrc(bytes, offset + 6);
+            var result = new LegacyDocTableCellBorders[Math.Max(cellCount, cellBorders?.Count ?? 0)];
+            for (int cell = 0; cell < result.Length; cell++) {
+                var previous = cellBorders != null && cell < cellBorders.Count ? cellBorders[cell] : default;
+                result[cell] = cell < first || cell >= limit ? previous
+                    : new LegacyDocTableCellBorders((edges & 1) != 0 ? border : previous.Top,
+                        (edges & 2) != 0 ? border : previous.Left,
+                        (edges & 4) != 0 ? border : previous.Bottom,
+                        (edges & 8) != 0 ? border : previous.Right);
+            }
+            cellBorders = result;
+            return true;
+        }
 
         private static bool TryReadTableCellBorderColors(byte[] bytes, int offset, int end, ushort sprm,
             ref IReadOnlyList<LegacyDocTableCellBorders>? cellBorders, out int operandLength) {

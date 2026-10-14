@@ -8,7 +8,11 @@ internal static class OdfImageStore {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (data.Length == 0) throw new ArgumentException("Image data cannot be empty.", nameof(data));
         if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Image file name cannot be empty.", nameof(fileName));
+        if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(data.Length))
+            throw new ArgumentException("Image data exceeds the shared encoded image size limit.", nameof(data));
 
+        // Validate, hash and store one owned snapshot; callers may reuse their input buffer after embedding.
+        data = (byte[])data.Clone();
         if (!OfficeImageReader.TryValidateContent(data, fileName, out OfficeImageInfo info)) {
             throw new ArgumentException("Image data must contain a complete supported image payload.", nameof(data));
         }

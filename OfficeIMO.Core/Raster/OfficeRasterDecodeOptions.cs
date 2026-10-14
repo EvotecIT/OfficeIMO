@@ -9,13 +9,24 @@ public enum OfficeRasterFrameLossPolicy {
     RejectMultipleFrames
 }
 
-/// <summary>Policy used when a raster container exposes more than one frame.</summary>
-public enum OfficeRasterAnimationPolicy {
-    /// <summary>Decode the explicitly selected static frame and report animation loss.</summary>
-    UseSelectedFrame,
-
-    /// <summary>Reject multi-frame or animated input instead of silently discarding frames.</summary>
-    RejectAnimated
+/// <summary>Reason a managed raster request did not produce a result.</summary>
+public enum OfficeRasterDecodeFailure {
+    /// <summary>The request succeeded.</summary>
+    None,
+    /// <summary>The input is invalid or outside the supported codec subset.</summary>
+    InvalidOrUnsupported,
+    /// <summary>The decoder could not distinguish malformed input, an unsupported subset, or an internal resource rejection.</summary>
+    Unclassified,
+    /// <summary>The encoded input exceeds the requested byte limit.</summary>
+    EncodedLimit,
+    /// <summary>The decoded result exceeds the requested aggregate pixel limit.</summary>
+    DecodedLimit,
+    /// <summary>The selected frame or page does not exist.</summary>
+    FrameSelectionOutOfRange,
+    /// <summary>The frame-loss policy rejects the source.</summary>
+    FramePolicyRejected,
+    /// <summary>The complete sequence exceeds the requested frame count.</summary>
+    FrameCountLimit
 }
 
 /// <summary>Shared options for deterministic raster decoding.</summary>
@@ -43,24 +54,6 @@ public sealed class OfficeRasterDecodeOptions {
                 throw new System.ArgumentOutOfRangeException(nameof(FrameLossPolicy));
             }
             _frameLossPolicy = value;
-        }
-    }
-
-    /// <summary>
-    /// Compatibility alias for <see cref="FrameLossPolicy"/>. The policy also applies to TIFF pages.
-    /// </summary>
-    public OfficeRasterAnimationPolicy AnimationPolicy {
-        get => _frameLossPolicy == OfficeRasterFrameLossPolicy.RejectMultipleFrames
-            ? OfficeRasterAnimationPolicy.RejectAnimated
-            : OfficeRasterAnimationPolicy.UseSelectedFrame;
-        set {
-            if (value != OfficeRasterAnimationPolicy.UseSelectedFrame &&
-                value != OfficeRasterAnimationPolicy.RejectAnimated) {
-                throw new System.ArgumentOutOfRangeException(nameof(AnimationPolicy));
-            }
-            _frameLossPolicy = value == OfficeRasterAnimationPolicy.RejectAnimated
-                ? OfficeRasterFrameLossPolicy.RejectMultipleFrames
-                : OfficeRasterFrameLossPolicy.UseSelectedFrame;
         }
     }
 
@@ -95,6 +88,15 @@ public sealed class OfficeRasterDecodeOptions {
     /// This does not add orientation processing to formats whose decoder already returns stored sample order.</remarks>
     public bool ApplyExifOrientation { get; set; } = true;
 
+    /// <summary>Whether JPEG decoding interpolates subsampled chroma components; defaults to true.</summary>
+    /// <remarks>Interpolation reduces visible color steps in JPEG images with subsampled chroma.
+    /// Set false to use faster nearest-sample chroma reconstruction. This affects JPEG pixel decoding
+    /// only; it does not change truncation handling, EXIF orientation, or other image formats.</remarks>
+    public bool JpegHighQualityChroma { get; set; } = true;
+
+    /// <summary>Creates an independent settings snapshot, retaining the trusted codec and cancellation token by reference/value.</summary>
+    public OfficeRasterDecodeOptions Clone() => WithAdditionalRetainedManagedBytes(0L);
+
     internal long RetainedManagedBytes { get; set; }
     internal long MaximumInspectionWorkPixels { get; set; } = OfficeRasterGuards.MaximumPixels;
     /// <summary>Owned fixed-page adapters use TIFF sample order instead of its optional display orientation.</summary>
@@ -111,6 +113,7 @@ public sealed class OfficeRasterDecodeOptions {
             MaximumInspectionWorkPixels = MaximumInspectionWorkPixels,
             IgnoreTiffOrientation = IgnoreTiffOrientation,
             ApplyExifOrientation = ApplyExifOrientation,
+            JpegHighQualityChroma = JpegHighQualityChroma,
             CancellationToken = CancellationToken,
             RetainedManagedBytes = checked(RetainedManagedBytes + bytes)
         };
@@ -132,6 +135,21 @@ public sealed class OfficeRasterDecodeOptions {
 public sealed class OfficeRasterDecodeInfo {
     internal bool UsedCallerCodec { get; set; }
 
+    // These container inventories bound every frame before selecting one. Owned
+    // consumers account their frame pixels separately from decode/filter work.
+    internal static bool CountsFrameInspectionPixels(OfficeImageFormat format) =>
+        format is OfficeImageFormat.Gif or OfficeImageFormat.Webp or OfficeImageFormat.Icon;
+
+    internal long InspectedFramePixels {
+        get {
+            if (!CountsFrameInspectionPixels(Format) || Container == null) return 0;
+            long pixels = 0;
+            foreach (OfficeRasterFrameInfo frame in Container.Frames)
+                pixels = checked(pixels + (long)frame.Width * frame.Height);
+            return pixels;
+        }
+    }
+
     internal OfficeRasterDecodeInfo(OfficeImageFormat format, int frameCount, int selectedFrameIndex, bool succeeded, string? diagnostic, OfficeRasterContainerInfo? container = null) {
         Format = format;
         FrameCount = frameCount;
@@ -139,6 +157,7 @@ public sealed class OfficeRasterDecodeInfo {
         Succeeded = succeeded;
         Diagnostic = diagnostic;
         Container = container;
+        Failure = succeeded ? OfficeRasterDecodeFailure.None : OfficeRasterDecodeFailure.Unclassified;
     }
 
     /// <summary>Detected source format, or <see cref="OfficeImageFormat.Unknown"/>.</summary>
@@ -150,8 +169,20 @@ public sealed class OfficeRasterDecodeInfo {
     /// <summary>Requested zero-based frame index.</summary>
     public int SelectedFrameIndex { get; }
 
-    /// <summary>True when the requested static frame was decoded.</summary>
+    /// <summary>True when the requested selected frame or complete sequence was decoded.</summary>
     public bool Succeeded { get; }
+
+    /// <summary>Typed reason for failure; cancellation and invalid caller options still throw.</summary>
+    public OfficeRasterDecodeFailure Failure { get; internal set; }
+
+    /// <summary>True when every source frame or page was retained by the operation.</summary>
+    public bool DecodedAllFrames { get; internal set; }
+
+    /// <summary>True when decoding normalized a non-default EXIF orientation in at least one retained unit.</summary>
+    public bool OrientationNormalized { get; internal set; }
+
+    /// <summary>Stored orientation of the selected source unit, or Normal when absent.</summary>
+    public OfficeImageOrientation SourceOrientation { get; internal set; } = OfficeImageOrientation.Normal;
 
     /// <summary>True when the inspected source contains timed animation frames.</summary>
     public bool IsAnimated => Container?.IsAnimated ?? FrameCount > 1;
@@ -160,13 +191,13 @@ public sealed class OfficeRasterDecodeInfo {
     public bool HasMultipleFramesOrPages => FrameCount > 1;
 
     /// <summary>True when the static result intentionally retained only the selected frame or page.</summary>
-    public bool FramesOrPagesDiscarded => Succeeded && HasMultipleFramesOrPages;
+    public bool FramesOrPagesDiscarded => Succeeded && !DecodedAllFrames && HasMultipleFramesOrPages;
 
     /// <summary>True when a multi-page source was reduced to the selected page.</summary>
     public bool PagesDiscarded => FramesOrPagesDiscarded && Container?.IsMultiPage == true;
 
     /// <summary>True when a static result intentionally represents only one frame of an animated source.</summary>
-    public bool AnimationDiscarded => Succeeded && IsAnimated;
+    public bool AnimationDiscarded => Succeeded && !DecodedAllFrames && IsAnimated;
 
     /// <summary>Stable human-readable reason when decoding did not complete or discarded animation.</summary>
     public string? Diagnostic { get; }

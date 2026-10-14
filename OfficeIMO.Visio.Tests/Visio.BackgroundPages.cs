@@ -9,7 +9,7 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioBackgroundPageTests {
-        private static string AssetsPath => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets"));
+        private static string AssetsPath => Path.Combine(RepositoryTestPaths.Find(), "Assets");
 
         [Fact]
         public void BackgroundPagesSaveLoadAndRoundTripBackPageReferences() {

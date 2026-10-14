@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Visio.Pdf;
@@ -29,6 +30,7 @@ public static class VisioPdfConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
         catch (OperationCanceledException) { throw; }
+        catch (OfficeConversionException exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception, exception.Report); }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
 
@@ -37,6 +39,7 @@ public static class VisioPdfConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
         catch (OperationCanceledException) { throw; }
+        catch (OfficeConversionException exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception, exception.Report); }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }
 
@@ -73,6 +76,8 @@ public static class VisioPdfConverterExtensions {
                 .ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
+        } catch (OfficeConversionException exception) {
+            return PdfCore.PdfSaveResult.FromFailure(path, exception, exception.Report);
         } catch (Exception exception) {
             return PdfCore.PdfSaveResult.FromFailure(path, exception);
         }
@@ -91,6 +96,8 @@ public static class VisioPdfConverterExtensions {
                 .ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
+        } catch (OfficeConversionException exception) {
+            return PdfCore.PdfSaveResult.FromFailure(null, exception, exception.Report);
         } catch (Exception exception) {
             return PdfCore.PdfSaveResult.FromFailure(null, exception);
         }

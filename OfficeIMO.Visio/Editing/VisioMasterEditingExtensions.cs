@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using OfficeIMO.Visio.Stencils;
 
@@ -7,7 +6,7 @@ namespace OfficeIMO.Visio {
     /// <summary>
     /// Editing helpers for changing the master used by existing Visio shapes.
     /// </summary>
-    public static class VisioMasterEditingExtensions {
+    public static partial class VisioMasterEditingExtensions {
         /// <summary>
         /// Replaces a shape's master by universal master name while preserving its position, text, style, data, and connectors.
         /// </summary>
@@ -29,16 +28,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Master NameU cannot be empty.", nameof(masterNameU));
             }
 
-            EnsureShapeBelongsToPage(page, shape);
-
-            VisioMaster? master = null;
-            if (page.OwnerDocument != null) {
-                if (!page.OwnerDocument.TryGetMaster(masterNameU, out master) || master == null) {
-                    master = page.OwnerDocument.EnsureBuiltinMaster(masterNameU);
-                }
-            }
-
-            ApplyMaster(page, shape, masterNameU, master, resizeToMaster);
+            ReplaceMasters(page, new[] { shape }, ResolveMaster(page, masterNameU), resizeToMaster, null);
             return shape;
         }
 
@@ -63,9 +53,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(master));
             }
 
-            EnsureShapeBelongsToPage(page, shape);
-            page.OwnerDocument?.RegisterMaster(master);
-            ApplyMaster(page, shape, master.NameU, master, resizeToMaster);
+            ReplaceMasters(page, new[] { shape }, master, resizeToMaster, null);
             return shape;
         }
 
@@ -86,31 +74,10 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(page));
             }
 
-            if (page.OwnerDocument != null &&
-                !string.IsNullOrWhiteSpace(stencil.SourcePackagePath)) {
-                if (page.OwnerDocument.TryGetMaster(stencil.MasterNameU,
-                        out VisioMaster? registeredMaster)
-                    && registeredMaster?.IsPackageBacked == true) {
-                    VisioStencilMetadata.EnsureSourcePackageMatches(
-                        registeredMaster, stencil.SourcePackagePath!);
-                } else {
-                    page.OwnerDocument.ImportStencilMasters(
-                        stencil.SourcePackagePath!,
-                        new[] { stencil.MasterNameU });
-                }
-            }
-
-            VisioShape updated = page.ReplaceMaster(shape, stencil.MasterNameU, resizeToMaster: false);
-            if (updated.Master?.IsPackageBacked == true) {
-                VisioStencilMetadata.Apply(updated.Master, stencil, catalogName: null);
-            }
-
-            if (resizeToMaster) {
-                ResizeToStencil(updated, stencil, page.DefaultUnit);
-            }
-
-            VisioStencilMetadata.Apply(updated, stencil, catalogName: null);
-            return updated;
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            EnsureShapeBelongsToPage(page, shape);
+            ReplaceMasters(page, new[] { shape }, ResolveStencilMaster(page, stencil), resizeToMaster, stencil);
+            return shape;
         }
 
         /// <summary>
@@ -126,9 +93,7 @@ namespace OfficeIMO.Visio {
             }
 
             VisioPage page = GetOwnerPage(selection);
-            foreach (VisioShape shape in selection) {
-                page.ReplaceMaster(shape, masterNameU, resizeToMaster);
-            }
+            ReplaceMasters(page, selection.ToArray(), ResolveMaster(page, masterNameU), resizeToMaster, null);
 
             return selection;
         }
@@ -146,9 +111,8 @@ namespace OfficeIMO.Visio {
             }
 
             VisioPage page = GetOwnerPage(selection);
-            foreach (VisioShape shape in selection) {
-                page.ReplaceMaster(shape, master, resizeToMaster);
-            }
+            if (master == null) throw new ArgumentNullException(nameof(master));
+            ReplaceMasters(page, selection.ToArray(), master, resizeToMaster, null);
 
             return selection;
         }
@@ -166,52 +130,10 @@ namespace OfficeIMO.Visio {
             }
 
             VisioPage page = GetOwnerPage(selection);
-            foreach (VisioShape shape in selection) {
-                page.ReplaceMaster(shape, stencil, resizeToMaster);
-            }
+            if (stencil == null) throw new ArgumentNullException(nameof(stencil));
+            ReplaceMasters(page, selection.ToArray(), ResolveStencilMaster(page, stencil), resizeToMaster, stencil);
 
             return selection;
-        }
-
-        private static void ApplyMaster(VisioPage page, VisioShape shape, string masterNameU, VisioMaster? master, bool resizeToMaster) {
-            shape.Master = master;
-            shape.NameU = masterNameU;
-            shape.MasterShapeId = null;
-            shape.MasterShape = null;
-            VisioStencilMetadata.Clear(shape);
-
-            // Local geometry from an old standalone/custom shape would otherwise
-            // fight the replacement master when saving master deltas.
-            shape.PreservedGeometrySections.Clear();
-            if (!HasConnectorPointReferences(page, shape)) {
-                shape.ConnectionPoints.Clear();
-            }
-
-            if (resizeToMaster && master?.Shape != null) {
-                ResizeShape(shape, master.Shape.Width, master.Shape.Height);
-            }
-        }
-
-        private static bool HasConnectorPointReferences(VisioPage page, VisioShape shape) {
-            return page.Connectors.Any(connector =>
-                ReferenceEquals(connector.From, shape) && connector.FromConnectionPoint != null ||
-                ReferenceEquals(connector.To, shape) && connector.ToConnectionPoint != null);
-        }
-
-        private static void ResizeToStencil(VisioShape shape, VisioStencilShape stencil, VisioMeasurementUnit unit) {
-            VisioMeasurementUnit sizeUnit = stencil.DefaultUnit ?? unit;
-            ResizeShape(shape, stencil.DefaultWidth.ToInches(sizeUnit), stencil.DefaultHeight.ToInches(sizeUnit));
-        }
-
-        private static void ResizeShape(VisioShape shape, double width, double height) {
-            if (width <= 0 || height <= 0) {
-                return;
-            }
-
-            shape.Width = width;
-            shape.Height = height;
-            shape.LocPinX = width / 2D;
-            shape.LocPinY = height / 2D;
         }
 
         private static VisioPage GetOwnerPage(VisioShapeSelection selection) {

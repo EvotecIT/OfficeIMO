@@ -30,7 +30,7 @@ public sealed class ExtendedMetadataReviewTests {
     public void BoundedAndStreamingTiffEncodingPreserveNativeResolutionAndExplicitOverrides(OfficeImageResolutionUnit unit, bool explicitDpi) {
         var image = new OfficeRasterImage(2, 1, OfficeColor.Blue);
         var options = new OfficeRasterEncodingOptions { Tiff = new OfficeTiffEncodeOptions { Resolution = new OfficeImageResolution(60, 50, unit) } };
-        if (explicitDpi) options.DpiX = 144;
+        if (explicitDpi) options.Resolution = new OfficeImageResolution(144D, 127D);
         byte[] unbounded = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Tiff, options);
         byte[] bounded = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Tiff, options, 1024 * 1024);
         using var stream = new MemoryStream(); OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Tiff, stream, options, 1024 * 1024);
@@ -49,7 +49,7 @@ public sealed class ExtendedMetadataReviewTests {
     [InlineData(OfficeImageExportFormat.Bmp)]
     public void OtherEncoderOverloadsRetainFormatSpecificDensityAndCallerSettings(OfficeImageExportFormat format) {
         var options = new OfficeRasterEncodingOptions(); options.Png.DpiX = 144; options.Png.DpiY = 120; options.Jpeg.DpiX = 144; options.Jpeg.DpiY = 120; options.Webp.DpiX = 144; options.Webp.DpiY = 120;
-        if (format == OfficeImageExportFormat.Bmp) { options.DpiX = 144; options.DpiY = 120; }
+        if (format == OfficeImageExportFormat.Bmp) { options.Resolution = new OfficeImageResolution(144D, 120D); }
         var image = new OfficeRasterImage(2, 1, OfficeColor.Blue);
         byte[] first = OfficeRasterImageEncoder.Encode(image, format, options);
         byte[] second = OfficeRasterImageEncoder.Encode(image, format, options, 1024 * 1024);

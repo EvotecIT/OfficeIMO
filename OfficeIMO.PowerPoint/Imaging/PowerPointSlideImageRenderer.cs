@@ -379,6 +379,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            ReportCharacterSpacing(textBox, diagnostics);
             AddSmallCapsApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddBaselineApproximationDiagnosticIfNeeded(textBox, diagnostics);
@@ -802,6 +803,7 @@ namespace OfficeIMO.PowerPoint {
         private static bool ShouldRenderRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
             richRuns.Count > 1 ||
             (richRuns.Count == 1 && (richRuns[0].Underline || richRuns[0].Strikethrough ||
+                richRuns[0].LinkDestinationName != null || richRuns[0].LinkUri != null ||
                 richRuns[0].BackgroundColor.HasValue || richRuns[0].Baseline != OfficeTextBaseline.Normal));
 
         private static OfficeTextParagraphIndent CreateParagraphIndent(PowerPointParagraph? paragraph, PowerPointShapeBoundsMapping mapping) {
@@ -819,12 +821,12 @@ namespace OfficeIMO.PowerPoint {
         private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTextBox textBox, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
             IReadOnlyList<PowerPointParagraph> paragraphs = textBox.Paragraphs;
             var richRuns = new List<OfficeRichTextRun>();
-            var numberingState = new Dictionary<int, int>();
+            var numberingState = new PowerPointParagraphNumberingState();
             for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 PowerPointParagraph paragraph = paragraphs[paragraphIndex];
                 IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
                 PowerPointTextRun? firstRun = inlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
-                string? marker = CreateParagraphMarker(paragraph, numberingState);
+                string? marker = numberingState.CreateMarker(paragraph);
                 bool paragraphHasVisibleText = !string.IsNullOrEmpty(marker) || inlineNodes.Any(node => !string.IsNullOrEmpty(node.Text));
                 if (!paragraphHasVisibleText) {
                     continue;
@@ -850,24 +852,6 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return richRuns;
-        }
-
-        private static string? CreateParagraphMarker(PowerPointParagraph paragraph, Dictionary<int, int> numberingState) {
-            int level = paragraph.Level ?? 0;
-            string? bullet = paragraph.BulletCharacter;
-            if (!string.IsNullOrEmpty(bullet)) {
-                return bullet + " ";
-            }
-
-            A.AutoNumberedBullet? numbered = paragraph.Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>();
-            if (numbered == null) {
-                return null;
-            }
-
-            int current = numbered.StartAt?.Value ?? (numberingState.TryGetValue(level, out int previous) ? previous + 1 : 1);
-            numberingState[level] = current;
-            return PowerPointNumberingFormatter.FormatMarker(current,
-                numbered.Type?.Value.ToOfficeEnum()) + " ";
         }
 
         private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false, string? defaultFontFamily = null) {

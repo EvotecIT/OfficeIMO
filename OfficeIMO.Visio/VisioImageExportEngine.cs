@@ -35,29 +35,32 @@ internal static class VisioImageExportEngine {
         OfficeImageExportEncodingBudget? encodingBudget) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        double logicalWidth = Math.Max(page.Width * DefaultPixelsPerInch, 0.01D);
-        double logicalHeight = Math.Max(page.Height * DefaultPixelsPerInch, 0.01D);
+        VisioRenderProjection projection = VisioRenderProjection.Create(page);
+        double logicalWidth = projection.WidthInches * DefaultPixelsPerInch;
+        double logicalHeight = projection.HeightInches * DefaultPixelsPerInch;
         double pixelsPerInch = ResolvePixelsPerInch(options.GetEffectiveScale(logicalWidth, logicalHeight));
         string resultName = string.IsNullOrWhiteSpace(name) ? page.Name : name!;
         string resultSource = string.IsNullOrWhiteSpace(source) ? "Visio page" : source!;
         var diagnostics = new List<OfficeImageExportDiagnostic>();
+        var layerVisibility = new VisioRenderLayerVisibility(page, options.LayerMode);
         if (format == OfficeImageExportFormat.Svg || string.IsNullOrWhiteSpace(options.FontFilePath)) {
-            VisioImageExportFontDiagnostics.Append(page, options.Fonts, diagnostics, resultSource);
+            VisioImageExportFontDiagnostics.Append(page, options.Fonts, diagnostics, resultSource,
+                options.RenderText, options.RenderConnectorLabels, layerVisibility, cancellationToken);
         }
         if (format == OfficeImageExportFormat.Svg) {
-            int width = Scaled(page.Width, pixelsPerInch);
-            int height = Scaled(page.Height, pixelsPerInch);
+            int width = Scaled(projection.WidthInches, pixelsPerInch);
+            int height = Scaled(projection.HeightInches, pixelsPerInch);
             byte[] bytes = encodingBudget == null
                 ? EncodeSvgWithinLimit(
                     VisioSvgRenderer.Render(
                         page,
-                        CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken)),
+                        CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken), layerVisibility),
                     options.MaximumTotalEncodedBytes)
                 : encodingBudget.EncodeWithinRemainingBudget(
                     remaining => EncodeSvgWithinLimit(
                         VisioSvgRenderer.Render(
                             page,
-                            CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken)),
+                            CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken), layerVisibility),
                         remaining),
                     cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -88,7 +91,7 @@ internal static class VisioImageExportEngine {
         double effectivePixelsPerInch = ResolvePixelsPerInch(plan.Limit.Scale);
         OfficeRasterImage image = VisioPngRenderer.RenderRaster(
             page,
-            CreatePngOptions(options, effectivePixelsPerInch, diagnostics, resultSource, cancellationToken));
+            CreatePngOptions(options, effectivePixelsPerInch, diagnostics, resultSource, cancellationToken), layerVisibility);
         byte[] encoded = encodingBudget == null
             ? OfficeRasterImageEncoder.Encode(
                 image,
@@ -134,6 +137,7 @@ internal static class VisioImageExportEngine {
             PixelsPerInch = pixelsPerInch,
             BackgroundColor = options.BackgroundColor,
             RenderText = options.RenderText,
+            LayerMode = options.LayerMode,
             FontFilePath = options.FontFilePath,
             FontFaceName = options.FontFaceName,
             FontCollectionIndex = options.FontCollectionIndex,
@@ -160,6 +164,7 @@ internal static class VisioImageExportEngine {
             PixelsPerInch = pixelsPerInch,
             BackgroundColor = options.BackgroundColor,
             RenderText = options.RenderText,
+            LayerMode = options.LayerMode,
             Fonts = options.Fonts.Clone(),
             RenderStencilArtwork = options.RenderStencilArtwork,
             RenderConnectorLabels = options.RenderConnectorLabels,

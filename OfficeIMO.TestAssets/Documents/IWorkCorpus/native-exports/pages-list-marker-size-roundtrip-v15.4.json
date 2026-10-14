@@ -1,0 +1,144 @@
+{
+  "source": "native-exports/pages-list-continuation-v15.4.pages",
+  "sourceSha256": "4696ff27d21db00e93d7a7985aba09c22f5f483bf714ce97c680e1a5528a4d53",
+  "producer": "Apple Pages",
+  "producerVersion": "15.4",
+  "producerBuild": "7051.0.79",
+  "host": "macOS27.0.1 (26A434), arm64",
+  "capturedUtc": "2026-10-11T10:46:08.501680+00:00",
+  "sourceModified": false,
+  "provenance": "OfficeIMO-owned synthetic continuation reference converted to DOCX, imported into Pages, saved as a native copy, exported to PDF/DOCX and closed/reopened. Controlled variants alter only leading-run/paragraph-mark size declarations.",
+  "license": "OfficeIMO-owned synthetic content and Apple-generated exports. No standalone font files.",
+  "nativeAcceptance": {
+    "openWithoutRepair": true,
+    "savedClosedReopened": true,
+    "ownedAppClosed": true,
+    "pages": 1,
+    "markerCount": 13,
+    "bodyPointSize": 12,
+    "markerPointSize": 11,
+    "wordBounds": 55,
+    "maximumNativeWordBoundsDeltaPoints": 0.0,
+    "allFivePdfPagesInspected": true,
+    "nativeImportAndReopenScreenshotsInspected": true,
+    "secondStrictConversionCycle": {
+      "markerPointSize": 11,
+      "markerCount": 13,
+      "wordBounds": 55,
+      "maximumNativeWordBoundsDeltaPoints": 0.0,
+      "nativeImportScreenshotInspected": true,
+      "ownedAppClosed": true,
+      "completeNativePdfPageInspected": true
+    }
+  },
+  "limits": [
+    "One Pages15.4 body-list reference with two decimal levels, Calibri markers and ArialMT body runs.",
+    "Original source and Apple-saved reimport have distinct paragraph defaults and list scopes; evaluated counters and physical geometry remain equal.",
+    "Other marker sizes, scales, containers, scripts and producer versions need separate native evidence."
+  ],
+  "artifacts": [
+    {
+      "path": "native-exports/pages-list-marker-size-roundtrip-v15.4.pages",
+      "bytes": 688123,
+      "sha256": "c74495f1952adb4b0ce431f2fc72ec311d7c7cf9ae770696699c7aa4df7bfb83"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-roundtrip-v15.4.pdf",
+      "bytes": 34609,
+      "sha256": "578694d6a4e868a18764eabae6f6abc646e39c2046706fb179de8e23e2a20966"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-roundtrip-v15.4.docx",
+      "bytes": 9479,
+      "sha256": "5c967a00aa9c45133dfd0d56a4ee7af65c770ebac2940b5214e77ba004d82bdd"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-final.docx",
+      "bytes": 20623,
+      "sha256": "1ab02c2a1da4a928ba37f13a538c474bad6f43eef281deb05e55cc231784dd90"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-current.docx",
+      "bytes": 20606,
+      "sha256": "beb0f39216182d73aa350dc080776944479b5e34907b4ce3d046e2c9dd39fff1"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-current-native.pdf",
+      "bytes": 34610,
+      "sha256": "511334114e322a4245657bd2f6ee44516920e3112c64a78f72f2e64fe807067a"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-mark-only.docx",
+      "bytes": 20605,
+      "sha256": "e182c690fea9a28fe8bff8e6bae9bb20aa0ba56c2cfa74cbe4b748f27835e1a3"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-mark-only-native.pdf",
+      "bytes": 34659,
+      "sha256": "5fab24493d06da182cef1178ca6ce388825a00f68e4571a554187691a25c22e3"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-mark-and-empty-run.docx",
+      "bytes": 20616,
+      "sha256": "5f0b93ad979633e83e833e22f7700c4d3156596041c993684d10d58ad7a586a9"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-mark-and-empty-run-native.pdf",
+      "bytes": 34619,
+      "sha256": "bab31c9a936782346f5ed548c4b5e10962d99ecf5255ff86f1781489c8d2aaf0"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-before-open-v15.4.png",
+      "bytes": 71848,
+      "sha256": "bd99ad002ef4eff035ae8eaf18310fb5d562a68d5cef32de323842de91ace1a0"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-final-open-v15.4.png",
+      "bytes": 68875,
+      "sha256": "478f81f85add72741cfded3950bb903e16f976708d5439423e04ae13ee372eb7"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-final-reopened-v15.4.png",
+      "bytes": 71863,
+      "sha256": "443eca5702f85d8ef416c3da37598631287597ec427568c45b3bc4cd535ba7b6"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-roundtrip-native-comparison-v15.4.png",
+      "bytes": 109077,
+      "sha256": "3b2d8013941d9c4ba88c5415fa551c94048b81574df810df7c7238428eab05a1"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-roundtrip-v15.4-decode.json",
+      "bytes": 58526,
+      "sha256": "71612d7c403bddc57b0ec650c059708f5fb98d1bf5d4b44c718f483ef01615da"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-independent-verification.json",
+      "bytes": 9307,
+      "sha256": "da3b327f7a25396ce0755f0b78a88bf2b3d26baf621fe6c679ba8cca365c2338"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-reconverted.docx",
+      "bytes": 20621,
+      "sha256": "92ef6b6912c9592f2731a319c403f2489d3746b1ad34c7f7fb78922867293030"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-reconverted-native.pdf",
+      "bytes": 34612,
+      "sha256": "cc8e573f028409291e4ab054055808d2f4c0dbc403f4994c5bed489b66a92d81"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-reconverted-open-v15.4.png",
+      "bytes": 71662,
+      "sha256": "d449b61e889a683dfd936b33c7009316f6860ccc59ef7832a87aa8a7d605f367"
+    },
+    {
+      "path": "native-exports/pages-list-marker-size-second-cycle.json",
+      "bytes": 1352,
+      "sha256": "3983fea3e032e9e3000da904c94693cd0b34359c5bed8d8cb07ecc41f39ea18d"
+    }
+  ],
+  "independentVerification": "native-exports/pages-list-marker-size-independent-verification.json",
+  "runtimeContract": "Uniform relative scaling resolves whole-point marker size from either the marker-size or body-size paragraph default. DOCX leading run and paragraph mark retain the first body run size; numbering owns marker size.",
+  "secondCycleVerification": "native-exports/pages-list-marker-size-second-cycle.json"
+}

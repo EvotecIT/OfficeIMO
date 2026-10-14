@@ -1,0 +1,23 @@
+[
+  {
+    "Before": "Native PNG — image behind text",
+    "After": "Edited PNG — image behind text",
+    "StorageId": 119,
+    "Paragraph": 1,
+    "TextBoxId": 118
+  },
+  {
+    "Before": "Native alpha PNG",
+    "After": "Edited alpha PNG",
+    "StorageId": 138,
+    "Paragraph": 1,
+    "TextBoxId": 137
+  },
+  {
+    "Before": "Native JPEG",
+    "After": "Edited JPEG",
+    "StorageId": 153,
+    "Paragraph": 1,
+    "TextBoxId": 152
+  }
+]

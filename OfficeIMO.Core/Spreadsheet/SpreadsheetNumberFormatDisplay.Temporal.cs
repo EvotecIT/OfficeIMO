@@ -78,14 +78,12 @@ internal static partial class SpreadsheetNumberFormatDisplay {
         string section = SelectNumberFormatSection(formatCode, value < 0 ? 1 : value == 0 ? 2 : 0, value, out int selectedSection);
         var syntax = SpreadsheetNumberFormatSyntax.Parse(section);
         if (!syntax.IsValid || !syntax.Tokens.Any(token => ElapsedUnit(token) != '\0')) return false;
-        TimeSpan duration;
-        try {
-            duration = TimeSpan.FromDays(value).Duration();
-        } catch (ArgumentException) {
-            return false;
-        } catch (OverflowException) {
-            return false;
-        }
+        // Resolve the nearest representable tick before splitting units. FromDays
+        // truncates a floating-point tail: for example, 11 / 86400 becomes 10.9999999s.
+        // Fractional-second display rounding remains controlled by the format.
+        double ticks = Math.Abs(value) * TimeSpan.TicksPerDay;
+        if (double.IsNaN(ticks) || double.IsInfinity(ticks) || ticks >= (double)long.MaxValue) return false;
+        var duration = TimeSpan.FromTicks((long)Math.Round(ticks, MidpointRounding.AwayFromZero));
         if (!TryRoundTemporalTicks(duration.Ticks, syntax.Tokens, out long roundedDurationTicks)) return false;
         duration = TimeSpan.FromTicks(roundedDurationTicks);
         var builder = new StringBuilder(section.Length);

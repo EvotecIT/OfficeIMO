@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
         ref double x, ref double y, ref double width, ref double height) {
         double left = Inset(border.Left, border.LeftBorderSnapshot);
         double right = Inset(border.Right, border.RightBorderSnapshot);
-        double top = Inset(border.Top, border.TopBorderSnapshot);
+        double top = Inset(border.Top, border.TopBorderSnapshot) + border.PaintTopInset;
         double bottom = Inset(border.Bottom, border.BottomBorderSnapshot);
         x += left;
         y += bottom;
@@ -79,7 +79,7 @@ internal static partial class PdfWriter {
         if (addVerticalBorderInsets) {
             foreach (var anchor in layouts.Keys) {
                 borders.TryGetValue(anchor, out PdfCellBorder? border);
-                verticalInsets[anchor] = (OwnVerticalInset(border, true), OwnVerticalInset(border, false));
+                verticalInsets[anchor] = (GetOwnTableCellVerticalBorderInset(prepared, border, true), GetOwnTableCellVerticalBorderInset(prepared, border, false));
             }
         }
         double spacing = GetTableCellSpacing(prepared);
@@ -123,17 +123,9 @@ internal static partial class PdfWriter {
             // The prepared snapshot already includes the inset. Deferred slices
             // and nested measurements must not add it a second time.
             prepared.CellVerticalPaddingFromBorderInterior = false;
+            prepared.CellTextClipIncludesVerticalPadding = true;
         }
         return prepared;
-
-        double OwnVerticalInset(PdfCellBorder? border, bool top) {
-            if (border == null) return prepared.BorderColor.HasValue ? prepared.BorderWidth / 2D : 0D;
-            bool enabled = top ? border.Top : border.Bottom;
-            PdfCellBorderSide? side = ResolveCellBorderSide(top ? border.TopBorderSnapshot : border.BottomBorderSnapshot, border);
-            if (!enabled || !IsRenderableCellBorderSide(side)) return 0D;
-            if (border.PaintInsideFrame) return side!.PaintThickness;
-            return side!.Width / 2D + (side.LineStyle == PdfCellBorderLineStyle.TwoLine ? GetCellBorderPairInset(side) : 0D);
-        }
 
         static double InsideThickness(PdfCellBorder border, bool right) =>
             (right ? border.Right : border.Left)
@@ -169,5 +161,14 @@ internal static partial class PdfWriter {
                 default: padding.Left = Math.Max(GetTableCellPaddingLeft(prepared, anchor.Row, anchor.Column), clearance); break;
             }
         }
+    }
+
+    private static double GetOwnTableCellVerticalBorderInset(PdfTableStyle style, PdfCellBorder? border, bool top) {
+        if (border == null) return style.BorderColor.HasValue ? style.BorderWidth / 2D : 0D;
+        bool enabled = top ? border.Top : border.Bottom;
+        PdfCellBorderSide? side = ResolveCellBorderSide(top ? border.TopBorderSnapshot : border.BottomBorderSnapshot, border);
+        if (!enabled || !IsRenderableCellBorderSide(side)) return 0D;
+        if (border.PaintInsideFrame) return side!.PaintThickness;
+        return side!.Width / 2D + (side.LineStyle == PdfCellBorderLineStyle.TwoLine ? GetCellBorderPairInset(side) : 0D);
     }
 }

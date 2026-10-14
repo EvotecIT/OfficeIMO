@@ -7,20 +7,113 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const double NativeAutoFitGridMinimumScale = 0.8D;
 
+        /// <summary>Percentage widths reserve the effective outer half-border paint before scaling the text area.</summary>
+        private static void ApplyNativeFixedTablePercentageWidth(WordTable table, TableLayout layout,
+            PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults defaults) {
+            if (style.AutoFitColumns || !style.AllowWidthBeyondFrame || !contentWidth.HasValue) return;
+            W.TableWidth? sourceWidth = table._tableProperties?.TableWidth;
+            if (!GetNativeTablePreferredWidth(sourceWidth, contentWidth).HasValue) sourceWidth = defaults.PreferredWidth;
+            if (ResolveNativeTablePreferredWidthType(sourceWidth) != W.TableWidthUnitValues.Pct || sourceWidth == null) return;
+            double? percent = GetNativeTablePreferredWidthPercent(sourceWidth);
+            if (!percent.HasValue) return;
+            var (left, right) = GetNativeTableOuterBorderInsets(layout, style);
+            double width = (contentWidth.Value - left - right) * percent.Value;
+            if (width > 0D) style.MaxWidth = width;
+        }
+
+        private static (double Left, double Right) GetNativeTableOuterBorderInsets(TableLayout layout, PdfCore.PdfTableStyle style) {
+            if (style.BorderFrame?.Border is { } perimeter) {
+                return ((GetNativeFrameSide(perimeter, top: null)?.PaintThickness ?? 0D) / 2D,
+                    (GetNativeFrameSide(perimeter, top: null, right: true)?.PaintThickness ?? 0D) / 2D);
+            }
+            double left = 0D, right = 0D;
+            int columns = GetNativeTableColumnCount(layout);
+            for (int row = 0; row < layout.Rows.Count; row++) {
+                int column = GetNativeTableRowStartColumn(layout, row);
+                foreach (WordTableCell cell in layout.Rows[row]) {
+                    if (IsNativeHorizontalMergeContinuation(cell)) continue;
+                    int span = GetNativeCellColumnSpan(cell);
+                    if (column == 0) left = Math.Max(left, GetNativeTableCellBorderInset(style, row, column, right: false));
+                    if (column + span == columns) right = Math.Max(right, GetNativeTableCellBorderInset(style, row, column, right: true));
+                    column += span;
+                }
+            }
+            return (left, right);
+        }
+
+        private static void ApplyNativeAutomaticTableFrameWidth(TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
+            if (!style.AutoFitUnspecifiedWidthToContent || style.PreferredWidth.HasValue ||
+                style.AutoFitColumnPreferredWidthPoints == null || !contentWidth.HasValue) return;
+            var (left, right) = GetNativeTableOuterBorderInsets(layout, style);
+            double width = contentWidth.Value - style.LeftIndent - left - right -
+                (style.BorderFrame == null ? 0D : 2D * style.CellSpacing);
+            if (!style.AutoFitColumns) {
+                // A fixed automatic frame can overflow its container. Its
+                // source preferences and physical cell minima remain usable.
+                double minimumFrame = style.AutoFitColumnPreferredWidthPoints.Select((preferred, column) =>
+                    Math.Max(preferred ?? 0D, style.ColumnMinWidthPoints != null && column < style.ColumnMinWidthPoints.Count
+                        ? style.ColumnMinWidthPoints[column] ?? 0D : 0D)).Sum();
+                width = Math.Max(width, minimumFrame + Math.Max(0, layout.ColumnWidths.Length - 1) * style.CellSpacing);
+            }
+            if (width > .001D) style.MaxWidth = Math.Min(style.MaxWidth ?? width, width);
+        }
+
+        private static void ApplyNativeFixedPercentageColumnPreferences(TableLayout layout, PdfCore.PdfTableStyle style) {
+            if (style.AutoFitColumns || style.ImportedColumnWidthFractions == null) return;
+            var absolute = new bool[layout.ColumnWidths.Length];
+            var cached = new bool[layout.ColumnWidths.Length];
+            foreach (var cell in EnumerateNativeTableCells(layout)) {
+                bool hasAbsoluteWidth = TablePreferredWidth.AbsoluteCellPoints(cell.Cell).HasValue;
+                bool hasCachedWidth = !GetNativeTableCellPreferredWidthPercent(cell.Cell).HasValue;
+                for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < cached.Length; column++) {
+                    absolute[column] |= hasAbsoluteWidth;
+                    cached[column] |= hasCachedWidth;
+                }
+            }
+            style.AutoFitColumnPreferredWidthPoints = layout.ColumnWidths.Select((width, column) => {
+                if (!absolute[column] && !cached[column] && style.ImportedColumnWidthFractions[column].HasValue)
+                    return (double?)null;
+                // Separate-border cached grids include the outer and intercell
+                // spacing shares. Absolute cell preferences describe the box.
+                double spacingShare = !absolute[column] && style.BorderFrame != null
+                    ? style.CellSpacing * (cached.Length == 1 ? 2D : column == 0 || column == cached.Length - 1 ? 1.5D : 1D) : 0D;
+                return (double?)Math.Max(.001D, width - spacingShare);
+            }).ToList();
+        }
+
         private static void ApplyNativeColumnWidths(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
-            List<double>? columnWidthWeights = CreateNativeColumnWidthWeights(layout);
-            if (columnWidthWeights != null) {
+            ApplyNativeAbsoluteNoWrapMinimums(layout, style);
+            if (style.AutoFitColumns) {
+                style.AutoFitCellPreferredWidthPoints =
+                    EnumerateNativeTableCellPositions(layout)
+                        .Where(cell => TablePreferredWidth.HasAbsoluteCellPreference(cell.Cell))
+                        .ToDictionary(cell => (cell.Row, cell.Column), cell => Math.Max(.001D,
+                            TablePreferredWidth.AbsoluteCellPoints(cell.Cell) ??
+                            layout.ColumnWidths.Skip(cell.Column).Take(cell.ColumnSpan).Sum(width => (double)width)));
+            }
+            if (!style.AutoFitColumns && style.ImportedColumnWidthFractions == null && !style.MaxWidth.HasValue &&
+                layout.ColumnWidths.Length > 0 && layout.ColumnWidths.All(width => width >= 0F)) {
+                double gapWidth = Math.Max(0, layout.ColumnWidths.Length - 1) * style.CellSpacing;
+                style.MaxWidth = Math.Max(layout.ColumnWidths.Sum(width => (double)width),
+                    style.ColumnMinWidthPoints?.Sum(width => width ?? 0D) ?? 0D) + gapWidth;
+                style.PreserveWidth = true;
+                style.AllowWidthBeyondFrame = true;
+            }
+            if (style.ImportedColumnWidthFractions != null) {
                 style.ColumnWidthPoints = null;
-                style.ColumnWidthWeights = columnWidthWeights;
+                style.ColumnWidthWeights = style.ImportedColumnWidthFractions.All(value => value.HasValue)
+                    ? style.ImportedColumnWidthFractions.Select(value => value!.Value).ToList() : null;
                 return;
             }
 
             if (style.AutoFitColumns) {
+                if (style.AutoFitColumnPreferredWidthPoints != null) return;
                 if (layout.ColumnWidths.Length > 0 && layout.ColumnWidths.All(width => width > 0)) {
                     ApplyNativeAutoFitGridMinimums(layout, style, contentWidth);
                 }
                 if (layout.ColumnWidths.Length > 0 &&
                     layout.ColumnWidths.All(width => width > 0) &&
+                    (!IsNativeTableAutoFitToContents(table._tableProperties) || HasNativeTableCellWidthPreferences(layout)) &&
                     layout.ColumnWidths.Skip(1).Any(width => Math.Abs(width - layout.ColumnWidths[0]) > 0.01F)) {
                     style.ColumnWidthWeights = layout.ColumnWidths.Select(width => (double)width).ToList();
                 }
@@ -28,6 +121,23 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             style.ColumnWidthPoints = CreateNativeColumnWidthPoints(layout, style);
+        }
+
+        /// <summary>No-wrap absolute cells can wrap words, but retain their preferred allocation before other cells shrink.</summary>
+        private static void ApplyNativeAbsoluteNoWrapMinimums(TableLayout layout, PdfCore.PdfTableStyle style) {
+            if (!style.AutoFitColumns) return;
+            foreach (var cell in EnumerateNativeTableCellPositions(layout)) {
+                double? width = TablePreferredWidth.AbsoluteCellPoints(cell.Cell);
+                if (cell.Cell.WrapText || width is not > 0D) continue;
+                style.ColumnMinWidthPoints ??= new List<double?>();
+                while (style.ColumnMinWidthPoints.Count < layout.ColumnWidths.Length)
+                    style.ColumnMinWidthPoints.Add(null);
+                double borderWidth = style.BorderFrame?.Border == null ? 0D : 2D * (
+                    GetNativeTableCellBorderInset(style, cell.Row, cell.Column, right: false) +
+                    GetNativeTableCellBorderInset(style, cell.Row, cell.Column, right: true));
+                ApplyNativeSpanMinimum(layout, style.ColumnMinWidthPoints, cell.Column, cell.ColumnSpan,
+                    Math.Max(0D, width.Value + borderWidth - Math.Max(0, cell.ColumnSpan - 1) * style.CellSpacing));
+            }
         }
 
         private static void ApplyNativeAutoFitGridMinimums(TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
@@ -51,7 +161,7 @@ namespace OfficeIMO.Word.Pdf {
                 // Automatic cells share the remaining width according to content.
                 var hasAbsolutePreference = new bool[derivedMinimums.Count];
                 foreach (var cell in EnumerateNativeTableCells(layout)) {
-                    if (cell.Cell.WidthType != WordTableWidthUnit.Dxa || cell.Cell.Width.GetValueOrDefault() <= 0)
+                    if (!TablePreferredWidth.HasAbsoluteCellPreference(cell.Cell))
                         continue;
                     for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < hasAbsolutePreference.Length; column++)
                         hasAbsolutePreference[column] = true;
@@ -78,7 +188,7 @@ namespace OfficeIMO.Word.Pdf {
             style.ColumnMinWidthPoints = mergedMinimums;
         }
 
-        private static List<double>? CreateNativeColumnWidthWeights(TableLayout layout) {
+        private static List<double?>? CreateNativeColumnWidthFractions(TableLayout layout) {
             int columnCount = GetNativeTableColumnCount(layout);
             if (columnCount == 0) {
                 return null;
@@ -87,14 +197,27 @@ namespace OfficeIMO.Word.Pdf {
             var weights = new double[columnCount];
             var hasPercentWidth = new bool[columnCount];
             bool hasAnyPercentWidth = false;
-            foreach ((WordTableCell Cell, int Column, int ColumnSpan) cell in EnumerateNativeTableCells(layout)) {
+            foreach ((WordTableCell Cell, int Column, int ColumnSpan) cell in EnumerateNativeTableCells(layout).OrderBy(cell => cell.ColumnSpan)) {
                 double? percent = GetNativeTableCellPreferredWidthPercent(cell.Cell);
                 if (!percent.HasValue) {
                     continue;
                 }
 
                 double columnWeight = percent.Value / cell.ColumnSpan;
+                if (cell.ColumnSpan > 1) {
+                    // Individual cells constrain their own columns. A merged
+                    // preference supplies only the still-unassigned share.
+                    double assigned = 0D;
+                    int missing = 0;
+                    for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < weights.Length; column++) {
+                        if (hasPercentWidth[column]) assigned += weights[column];
+                        else missing++;
+                    }
+                    if (missing == 0) continue;
+                    if (percent.Value > assigned) columnWeight = (percent.Value - assigned) / missing;
+                }
                 for (int columnIndex = cell.Column; columnIndex < cell.Column + cell.ColumnSpan && columnIndex < weights.Length; columnIndex++) {
+                    if (cell.ColumnSpan > 1 && hasPercentWidth[columnIndex]) continue;
                     if (!hasPercentWidth[columnIndex] || columnWeight > weights[columnIndex]) {
                         weights[columnIndex] = columnWeight;
                         hasPercentWidth[columnIndex] = true;
@@ -108,40 +231,20 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            double fallbackWeight = 0D;
-            int weightedColumnCount = 0;
-            for (int columnIndex = 0; columnIndex < weights.Length; columnIndex++) {
-                if (hasPercentWidth[columnIndex]) {
-                    fallbackWeight += weights[columnIndex];
-                    weightedColumnCount++;
-                }
-            }
-
-            fallbackWeight = weightedColumnCount == 0 ? 1D : fallbackWeight / weightedColumnCount;
-            for (int columnIndex = 0; columnIndex < weights.Length; columnIndex++) {
-                if (!hasPercentWidth[columnIndex]) {
-                    weights[columnIndex] = fallbackWeight;
-                }
-            }
-
-            return weights.ToList();
+            return weights.Select((weight, column) => hasPercentWidth[column] ? (double?)weight : null).ToList();
         }
 
         private static List<double?>? CreateNativeColumnWidthPoints(TableLayout layout, PdfCore.PdfTableStyle style) {
-            if (style.AutoFitColumns || layout.ColumnWidths.Length == 0 || !layout.ColumnWidths.All(width => width > 0)) {
+            if (style.AutoFitColumns || layout.ColumnWidths.Length == 0 || !layout.ColumnWidths.All(width => width >= 0)) {
                 return null;
             }
 
-            var widths = layout.ColumnWidths.Select(width => (double)width).ToList();
-            double totalWidth = widths.Sum();
-            if (style.MaxWidth.HasValue && totalWidth > style.MaxWidth.Value + 0.001D) {
-                double scale = style.MaxWidth.Value / totalWidth;
-                for (int i = 0; i < widths.Count; i++) {
-                    widths[i] *= scale;
-                }
-            }
-
-            return widths.Select(width => (double?)width).ToList();
+            // Core fits the complete grid once, locking columns at their
+            // physical minimums before redistributing the remaining width.
+            // Pre-scaling here can make a narrow column invalid before that fit.
+            return layout.ColumnWidths.Select((width, column) => (double?)Math.Max(Math.Max(.001D, width),
+                style.ColumnMinWidthPoints != null && column < style.ColumnMinWidthPoints.Count
+                    ? style.ColumnMinWidthPoints[column] ?? 0D : 0D)).ToList();
         }
 
         private static void ApplyNativeTableLayoutOptions(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {
@@ -149,6 +252,7 @@ namespace OfficeIMO.Word.Pdf {
             if (ShouldUseNativeAutoFitTableLayout(properties, tableStyleDefaults)) {
                 style.AutoFitColumns = true;
             }
+            style.ImportedColumnWidthFractions = CreateNativeColumnWidthFractions(layout);
 
             double? cellSpacing = GetNativeTableCellSpacing(properties?.TableCellSpacing) ?? tableStyleDefaults.CellSpacing;
             if (cellSpacing.HasValue) {
@@ -160,12 +264,22 @@ namespace OfficeIMO.Word.Pdf {
             if (preferredWidth.HasValue && !style.AutoFitColumns) {
                 style.MaxWidth = preferredWidth.Value;
                 style.PreserveWidth = true;
+                // Fixed source grids retain their width in narrow columns and
+                // beyond the page text area, including after indentation.
+                style.AllowWidthBeyondFrame = true;
             } else {
                 preferredWidth ??= GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
                 if (preferredWidth.HasValue) {
                     // An automatic table's preferred width can grow to fit an
                     // unbreakable cell; it is not a clipping boundary.
                     style.PreferredWidth = preferredWidth.Value;
+                    W.TableWidth? authoredWidth = properties?.TableWidth;
+                    if (!GetNativeTablePreferredWidth(authoredWidth, contentWidth).HasValue)
+                        authoredWidth = tableStyleDefaults.PreferredWidth;
+                    if (style.AutoFitColumns && ResolveNativeTablePreferredWidthType(authoredWidth) == W.TableWidthUnitValues.Dxa) {
+                        style.AllowWidthBeyondFrame = true;
+                        style.AutoFitColumnPreferredWidthPoints = CreateNativeAutoFitColumnPreferences(layout);
+                    }
                     // Positive spacing receives its independent perimeter and
                     // final cell-grid minimums after cell formatting is applied.
                     style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns && style.CellSpacing <= 0D;
@@ -173,27 +287,62 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            if (style.AutoFitColumns && style.CellSpacing <= 0D && IsNativeTableAutoFitToContents(properties)) {
+            if (style.AutoFitColumns && IsNativeTableAutoFitToContents(properties)) {
                 // A valid automatic grid can contain only zero/automatic widths.
                 // Its physical content minimum still determines the table frame.
                 style.AutoFitWidthUsesContentMinimum = true;
                 style.AutoFitUnspecifiedWidthToContent = true;
                 style.PreserveWidth = true;
+                // An automatic frame derives its width from cell preferences
+                // and content, independently of the stored grid extent.
+                if (preferredWidth.HasValue) style.PreferredWidth = null;
+                style.AutoFitColumnPreferredWidthPoints = CreateNativeAutoFitColumnPreferences(layout);
+            }
+            if (!style.AutoFitColumns && style.ImportedColumnWidthFractions != null) {
+                style.AutoFitColumnPreferredWidthPoints = CreateNativeAutoFitColumnPreferences(layout);
+                foreach (var cell in EnumerateNativeTableCells(layout))
+                    if (!GetNativeTableCellPreferredWidthPercent(cell.Cell).HasValue)
+                        for (int column = cell.Column; column < cell.Column + cell.ColumnSpan &&
+                            column < style.AutoFitColumnPreferredWidthPoints.Count; column++)
+                            style.AutoFitColumnPreferredWidthPoints[column] ??= Math.Max(.001D, layout.ColumnWidths[column]);
+                for (int column = 0; column < style.ImportedColumnWidthFractions.Count; column++)
+                    if (!style.ImportedColumnWidthFractions[column].HasValue)
+                        style.AutoFitColumnPreferredWidthPoints[column] ??= Math.Max(.001D, layout.ColumnWidths[column]);
+                if (ResolveNativeTablePreferredWidthType(properties?.TableWidth) == W.TableWidthUnitValues.Auto) {
+                    style.PreferredWidth = null;
+                    style.AutoFitUnspecifiedWidthToContent = true;
+                    style.PreserveWidth = true;
+                    style.AllowWidthBeyondFrame = true;
+                }
             }
 
+            // tblInd applies only to left-aligned tables. A floating coordinate
+            // remains a placement coordinate even in the column fallback path.
             double? leftIndent = GetNativeTableHorizontalPositionIndent(properties?.TablePositionProperties) ??
-                GetNativeTableLeftIndent(properties?.TableIndentation) ??
-                tableStyleDefaults.LeftIndent;
+                (MapNativeTableAlignment(ResolveNativeTableAlignment(table, tableStyleDefaults)) == PdfCore.PdfAlign.Left
+                    ? GetNativeTableLeftIndent(properties?.TableIndentation) ?? tableStyleDefaults.LeftIndent
+                    : null);
             if (leftIndent.HasValue) {
                 style.LeftIndent = leftIndent.Value;
             }
 
         }
 
+        private static List<double?> CreateNativeAutoFitColumnPreferences(TableLayout layout) {
+            var result = Enumerable.Repeat<double?>(null, layout.ColumnWidths.Length).ToList();
+            foreach (var cell in EnumerateNativeTableCells(layout)) {
+                if (!TablePreferredWidth.HasAbsoluteCellPreference(cell.Cell)) continue;
+                for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < result.Count; column++)
+                    result[column] = Math.Max(.001D, layout.ColumnWidths[column]);
+            }
+            return result;
+        }
+
         private static double? GetNativeAutoFitGridPreferredWidth(W.TableProperties? properties, TableLayout layout, double? contentWidth, double cellSpacing) {
             if (!IsNativeTableAutoFitToContents(properties) ||
                 layout.ColumnWidths.Length == 0 ||
-                !layout.ColumnWidths.All(width => width > 0F)) {
+                !layout.ColumnWidths.All(width => width > 0F) ||
+                !HasNativeTableCellWidthPreferences(layout)) {
                 return null;
             }
 
@@ -207,6 +356,11 @@ namespace OfficeIMO.Word.Pdf {
                 ? Math.Min(gridWidth, contentWidth.Value)
                 : gridWidth;
         }
+
+        private static bool HasNativeTableCellWidthPreferences(TableLayout layout) =>
+            EnumerateNativeTableCells(layout).Any(cell =>
+                TablePreferredWidth.HasAbsoluteCellPreference(cell.Cell) ||
+                GetNativeTableCellPreferredWidthPercent(cell.Cell).HasValue);
 
         private static bool ShouldUseNativeAutoFitTableLayout(W.TableProperties? properties, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableLayoutValues? effectiveLayout = properties?.TableLayout?.Type?.Value ?? tableStyleDefaults.Layout;
@@ -224,22 +378,18 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeTableAutoFitToContents(W.TableProperties? properties) =>
             IsNativeTableAutoFitLayout(properties) &&
-            properties?.TableWidth?.Type?.Value == W.TableWidthUnitValues.Auto;
+            ResolveNativeTablePreferredWidthType(properties?.TableWidth) == W.TableWidthUnitValues.Auto;
 
-        private static bool IsNativeTableAutoFitLayout(W.TableProperties? properties) {
-            if (properties?.TableLayout?.Type?.Value == W.TableLayoutValues.Autofit) {
-                return true;
-            }
+        private static bool IsNativeTableAutoFitLayout(W.TableProperties? properties) =>
+            properties?.TableLayout?.Type?.Value != W.TableLayoutValues.Fixed;
 
-            if (properties?.TableLayout?.Type?.Value == W.TableLayoutValues.Fixed) {
-                return false;
-            }
-
-            return properties?.TableWidth?.Type?.Value == W.TableWidthUnitValues.Auto;
-        }
+        /// <summary>Resolves omitted defaults and Word's zero, nil and percentage preferred-width rules.</summary>
+        private static W.TableWidthUnitValues ResolveNativeTablePreferredWidthType(W.TableWidth? width) =>
+            TablePreferredWidth.ResolveType(width);
 
         private static double? GetNativeTablePreferredWidth(W.TableWidth? width, double? contentWidth) {
-            if (width?.Type?.Value == W.TableWidthUnitValues.Pct) {
+            W.TableWidthUnitValues type = ResolveNativeTablePreferredWidthType(width);
+            if (type == W.TableWidthUnitValues.Pct && width != null) {
                 double? percent = GetNativeTablePreferredWidthPercent(width);
                 if (!percent.HasValue || !contentWidth.HasValue || contentWidth.Value <= 0D) {
                     return null;
@@ -248,7 +398,7 @@ namespace OfficeIMO.Word.Pdf {
                 return contentWidth.Value * percent.Value;
             }
 
-            if (width?.Type?.Value != W.TableWidthUnitValues.Dxa) {
+            if (type != W.TableWidthUnitValues.Dxa || width == null) {
                 return null;
             }
 
@@ -262,37 +412,14 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? GetNativeTableCellPreferredWidthPercent(WordTableCell cell) {
             W.TableCellWidth? width = cell._tableCellProperties?.TableCellWidth;
-            if (width?.Type?.Value != W.TableWidthUnitValues.Pct) {
+            if (TablePreferredWidth.ResolveCellType(width) != W.TableWidthUnitValues.Pct) {
                 return null;
             }
 
-            return GetNativeTableWidthPercent(width.Width?.Value);
+            return GetNativeTableWidthPercent(width?.Width?.Value);
         }
 
-        private static double? GetNativeTableWidthPercent(string? rawWidth) {
-            if (string.IsNullOrWhiteSpace(rawWidth)) {
-                return null;
-            }
-
-            string valueText = rawWidth!.Trim();
-            if (valueText.EndsWith("%", StringComparison.Ordinal)) {
-                string percentText = valueText.Substring(0, valueText.Length - 1);
-                if (!double.TryParse(percentText, NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) ||
-                    percent <= 0D ||
-                    double.IsNaN(percent) ||
-                    double.IsInfinity(percent)) {
-                    return null;
-                }
-
-                return percent / 100D;
-            }
-
-            if (!int.TryParse(valueText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) || value <= 0) {
-                return null;
-            }
-
-            return value / 5000D;
-        }
+        private static double? GetNativeTableWidthPercent(string? rawWidth) => TablePreferredWidth.Percentage(rawWidth);
 
         private static double? GetNativeTableLeftIndent(W.TableIndentation? indentation) {
             if (indentation?.Type?.Value != W.TableWidthUnitValues.Dxa || indentation.Width == null) {
@@ -328,6 +455,16 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return ConvertNativeTwipsToPoints(spacing.Width?.Value);
+        }
+
+        /// <summary>An absolute spacing declaration selects separate border geometry even when its value is zero.</summary>
+        private static bool UsesNativeSeparateTableCellBorders(WordTable table, PdfCore.PdfTableStyle style,
+            NativeTableStyleDefaults defaults) {
+            if (style.CellSpacing > 0D) return true;
+            W.TableCellSpacing? spacing = table._tableProperties?.TableCellSpacing;
+            return GetNativeTableCellSpacing(spacing).HasValue
+                ? spacing!.Type?.Value == W.TableWidthUnitValues.Dxa
+                : defaults.SeparateCellBorders == true;
         }
 
         private static void ApplyNativeTableDefaultCellMargins(WordTable table, PdfCore.PdfTableStyle style, bool preserveConfiguredFallbackPadding, NativeTableStyleDefaults tableStyleDefaults) {

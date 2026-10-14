@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             VisioConnector connector = Assert.Single(page.Connectors);
-            Assert.Equal("input", connector.From.Id);
-            Assert.Equal("output", connector.To.Id);
+            Assert.Equal("input", connector.From?.Id);
+            Assert.Equal("output", connector.To?.Id);
             Assert.Equal("data", connector.Label);
         }
 

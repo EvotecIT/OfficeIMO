@@ -6,15 +6,13 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Load core and parse helpers for <see cref="VisioDocument"/>.
-    /// </summary>
+    // Load core and parse helpers for VisioDocument.
     public partial class VisioDocument {
-        private const int MaximumLoadedFontFamilyCharacters = 256;
-
-        private static VisioDocument LoadCore(Package package, string? filePath) {
+        private static VisioDocument LoadCore(Package package, string? filePath, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             VisioDocument document = new() { _filePath = filePath };
             Dictionary<int, string> faceNamesById = new();
 
@@ -35,96 +33,20 @@ namespace OfficeIMO.Visio {
             }
             document._packageType = packageType;
             LoadVbaProject(documentPart, document);
-            XDocument documentXml = LoadPackageXml(documentPart, "Visio document XML part");
-            if (documentXml.Root != null) {
-                foreach (XAttribute attribute in documentXml.Root.Attributes().Where(ShouldPreserveDocumentAttribute)) {
-                    document.PreservedDocumentAttributes.Add(new XAttribute(attribute));
-                }
-                foreach (XElement element in documentXml.Root.Elements().Where(ShouldPreserveDocumentElement)) {
-                    document.PreservedDocumentElements.Add(new XElement(element));
-                }
-
-                XElement? documentSettings = documentXml.Root.Element(XName.Get("DocumentSettings", VisioNamespace));
-                if (documentSettings != null) {
-                    foreach (XAttribute attribute in documentSettings.Attributes().Where(ShouldPreserveDocumentSettingsAttribute)) {
-                        document.PreservedDocumentSettingsAttributes.Add(new XAttribute(attribute));
-                    }
-                    foreach (XElement element in documentSettings.Elements().Where(ShouldPreserveDocumentSettingsElement)) {
-                        document.PreservedDocumentSettingsElements.Add(new XElement(element));
-                    }
-
-                    XElement? relayout = documentSettings.Element(XName.Get("RelayoutAndRerouteUponOpen", VisioNamespace));
-                    if (relayout != null && !string.Equals(relayout.Value, "0", StringComparison.OrdinalIgnoreCase)) {
-                        document._requestRecalcOnOpen = true;
-                    }
-                }
-
-                XElement? colors = documentXml.Root.Element(XName.Get("Colors", VisioNamespace));
-                if (colors != null) {
-                    foreach (XAttribute attribute in colors.Attributes().Where(ShouldPreserveColorsAttribute)) {
-                        document.PreservedColorsAttributes.Add(new XAttribute(attribute));
-                    }
-
-                    foreach (XElement element in colors.Elements().Where(ShouldPreserveColorsElement)) {
-                        document.PreservedColorsElements.Add(new XElement(element));
-                    }
-                }
-
-                XElement? faceNames = documentXml.Root.Element(XName.Get("FaceNames", VisioNamespace));
-                if (faceNames != null) {
-                    foreach (XAttribute attribute in faceNames.Attributes().Where(ShouldPreserveFaceNamesAttribute)) {
-                        document.PreservedFaceNamesAttributes.Add(new XAttribute(attribute));
-                    }
-
-                    foreach (XElement element in faceNames.Elements().Where(ShouldPreserveFaceNamesElement)) {
-                        document.PreservedFaceNamesElements.Add(new XElement(element));
-                        if (string.Equals(element.Name.LocalName, "FaceName", StringComparison.OrdinalIgnoreCase) &&
-                            int.TryParse(element.Attribute("ID")?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int faceId)) {
-                            string? name = element.Attribute("Name")?.Value;
-                            if (!string.IsNullOrWhiteSpace(name) && !faceNamesById.ContainsKey(faceId)) {
-                                string normalizedName = name!.Trim();
-                                faceNamesById[faceId] = normalizedName.Length <= MaximumLoadedFontFamilyCharacters
-                                    ? normalizedName
-                                    : normalizedName.Substring(0, MaximumLoadedFontFamilyCharacters);
-                            }
-                        }
-                    }
-                }
-
-                XElement? styleSheets = documentXml.Root.Element(XName.Get("StyleSheets", VisioNamespace));
-                if (styleSheets != null) {
-                    foreach (XAttribute attribute in styleSheets.Attributes().Where(ShouldPreserveStyleSheetsAttribute)) {
-                        document.PreservedStyleSheetsAttributes.Add(new XAttribute(attribute));
-                    }
-
-                    foreach (XElement element in styleSheets.Elements().Where(ShouldPreserveStyleSheetsElement)) {
-                        document.PreservedStyleSheetsElements.Add(new XElement(element));
-                    }
-
-                    foreach (XElement styleSheet in styleSheets.Elements(XName.Get("StyleSheet", VisioNamespace))) {
-                        string id = styleSheet.Attribute("ID")?.Value ?? string.Empty;
-                        if (!IsGeneratedStyleSheet(id)) {
-                            document.PreservedAdditionalStyleSheets.Add(new XElement(styleSheet));
-                            continue;
-                        }
-
-                        PreservedStyleSheetData preserved = GetOrCreatePreservedStyleSheet(document, id);
-                        foreach (XAttribute attribute in styleSheet.Attributes().Where(attribute => ShouldPreserveStyleSheetAttribute(attribute, id))) {
-                            preserved.Attributes.Add(new XAttribute(attribute));
-                        }
-
-                        foreach (XElement element in styleSheet.Elements().Where(element => ShouldPreserveStyleSheetElement(element, id))) {
-                            preserved.ChildElements.Add(new XElement(element));
-                        }
-                    }
-                }
+            XDocument documentXml = LoadPackageXml(documentPart, "Visio document XML part", cancellationToken);
+            VisioFontWireCodec? fontWire = documentXml.Root == null ? null : VisioFontWireCodec.ReadDocument(documentXml.Root);
+            if (documentXml.Root != null) fontWire!.DecodeCells(documentXml.Root, VisioNativeCellMetadata.Read(documentXml.Root.Elements()));
+            var textBackgroundColors = ReadTextBackgroundPalette(documentXml.Root?.Element(XName.Get("Colors", VisioNamespace))?.Elements() ?? Enumerable.Empty<XElement>());
+            var paintStyles = new VisioNativePaintStyleResolver(documentXml.Root);
+            if (documentXml.Root is XElement documentRoot) {
+                PreserveDocumentMetadata(document, documentRoot, faceNamesById, cancellationToken);
             }
 
             PackageRelationship? themeRel = documentPart.GetRelationshipsByType(ThemeRelationshipType).FirstOrDefault();
             if (themeRel != null) {
                 Uri themeUri = PackUriHelper.ResolvePartUri(documentPart.Uri, themeRel.TargetUri);
                 PackagePart themePart = package.GetPart(themeUri);
-                XDocument themeDoc = LoadPackageXml(themePart, "Visio theme XML part");
+                XDocument themeDoc = LoadPackageXml(themePart, "Visio theme XML part", cancellationToken);
                 document.PackageTheme = new VisioPackageTheme {
                     Name = themeDoc.Root?.Attribute("name")?.Value,
                     TemplateXml = new XDocument(themeDoc)
@@ -150,12 +72,16 @@ namespace OfficeIMO.Visio {
                 pagesPart = package.GetPart(pagesUri);
             }
 
+            var nativeCells = VisioNativeCellMetadata.Read(document.PreservedDocumentElements);
+            fontWire?.BindModelFaces(document.PreservedFaceNamesElements);
+
             // Load masters (if exist) to populate references on shapes
             Dictionary<string, VisioMaster> masters = new();
             if (documentPart.GetRelationshipsByType(MastersRelationshipType).FirstOrDefault() is PackageRelationship mastersRel) {
                 Uri mastersUri = PackUriHelper.ResolvePartUri(documentPart.Uri, mastersRel.TargetUri);
                 PackagePart mastersPart = package.GetPart(mastersUri);
-                XDocument mastersDoc = LoadPackageXml(mastersPart, "Visio masters XML part");
+                XDocument mastersDoc = LoadPackageXml(mastersPart, "Visio masters XML part", cancellationToken);
+                if (mastersDoc.Root != null) fontWire?.DecodeCells(mastersDoc.Root, nativeCells, "Masters");
                 XNamespace ns = VisioNamespace;
                 XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
                 List<XAttribute> preservedMastersRootAttributes = mastersDoc.Root?
@@ -170,6 +96,7 @@ namespace OfficeIMO.Visio {
                     .ToList() ?? new List<XElement>();
 
                 foreach (XElement masterElement in mastersDoc.Root?.Elements(ns + "Master") ?? Enumerable.Empty<XElement>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string masterId = masterElement.Attribute("ID")?.Value ?? string.Empty;
                     string masterNameU = masterElement.Attribute("NameU")?.Value ?? string.Empty;
                     string? mRelIdValue = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
@@ -181,26 +108,42 @@ namespace OfficeIMO.Visio {
                     PackageRelationship rel = mastersPart.GetRelationship(mRelId);
                     Uri masterUri = PackUriHelper.ResolvePartUri(mastersPart.Uri, rel.TargetUri);
                     PackagePart masterPart = package.GetPart(masterUri);
-                    XDocument masterDoc = LoadPackageXml(masterPart, "Visio master XML part");
+                    XDocument masterDoc = LoadPackageXml(masterPart, "Visio master XML part", cancellationToken);
+                    if (masterDoc.Root != null) fontWire?.DecodeCells(masterDoc.Root, nativeCells, VisioNativeCellMetadata.MasterScope(masterNameU));
+                    HashSet<string> foreignRelationshipIds = ForeignRelationshipIds(masterDoc.Elements());
+                    var foreignResources = new List<VisioForeignResource>();
+                    document.CaptureForeignResources(masterPart, masterDoc, foreignResources);
                     XElement? masterShapesElement = masterDoc.Root?.Element(ns + "Shapes");
                     XElement? masterShapeElement = masterShapesElement?.Elements(ns + "Shape").FirstOrDefault();
-                    VisioShape masterShape = masterShapeElement != null ? ParseShapeCore(masterShapeElement, ns, faceNamesById) : new VisioShape("1");
+                    VisioShape masterShape = masterShapeElement != null ? ParseShapeCore(masterShapeElement, ns, faceNamesById, textBackgroundColors: textBackgroundColors, paintStyles: paintStyles, cancellationToken: cancellationToken) : new VisioShape("1");
+                    if (masterShapeElement != null) VisioNativeCellMetadata.BindTree(masterShape, masterShapeElement, VisioNativeCellMetadata.MasterScope(masterNameU), nativeCells);
+                    BindForeignResources(masterShape, foreignResources);
                     VisioMaster master = new(masterId, masterNameU, masterShape);
-                    if (!masterPart.GetRelationships().Any()) {
+                    master.ForeignResources.AddRange(foreignResources);
+                    // Captured foreign relationships have bounded, owned bytes and remapped IDs.
+                    // They do not prevent merging edits into the retained native ShapeSheet.
+                    if (masterPart.GetRelationships().All(relationship => foreignRelationshipIds.Contains(relationship.Id))) {
                         master.RawMasterContentXml = new XDocument(masterDoc);
+                        master.LoadedModelShapeXml = document.CreateMasterModelShapeXml(masterShape, masterDoc);
                     }
                     foreach (XAttribute attribute in masterElement.Attributes().Where(ShouldPreserveMasterAttribute)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         master.PreservedMasterAttributes.Add(new XAttribute(attribute));
                     }
                     XElement? masterPageSheet = masterElement.Element(ns + "PageSheet");
                     if (masterPageSheet != null) {
+                        master.NativePageSheetMetadata = VisioNativeCellMetadata.Bind(masterPageSheet, "Masters", nativeCells);
+                        master.LoadedPageSheetXml = new XElement(masterPageSheet);
                         foreach (XAttribute attribute in masterPageSheet.Attributes().Where(ShouldPreserveMasterPageSheetAttribute)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedPageSheetAttributes.Add(new XAttribute(attribute));
                         }
                         foreach (XElement cell in masterPageSheet.Elements(ns + "Cell").Where(ShouldPreserveMasterPageSheetCell)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedPageSheetCells.Add(new XElement(cell));
                         }
                         foreach (XElement section in masterPageSheet.Elements(ns + "Section")) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (string.Equals(section.Attribute("N")?.Value, "User", StringComparison.OrdinalIgnoreCase)) {
                                 List<VisioUserCell> userCells = new();
                                 ParseUserCells(section, ns, userCells);
@@ -211,41 +154,53 @@ namespace OfficeIMO.Visio {
                         }
                     }
                     foreach (XElement element in masterElement.Elements().Where(ShouldPreserveMasterElement)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         master.PreservedMasterElements.Add(new XElement(element));
                     }
                     if (masterShapesElement != null) {
                         foreach (XAttribute attribute in masterShapesElement.Attributes().Where(ShouldPreserveMasterShapesAttribute)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedShapesAttributes.Add(new XAttribute(attribute));
                         }
                         foreach (XElement additionalShape in masterShapesElement.Elements(ns + "Shape").Skip(1)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedAdditionalShapeElements.Add(new XElement(additionalShape));
+                            VisioNativeCellMetadata.BindRawShapeTree(master.NativeAdditionalShapeMetadata, additionalShape,
+                                VisioNativeCellMetadata.MasterScope(masterNameU), nativeCells);
                         }
                     }
                     if (masterDoc.Root != null) {
                         foreach (XAttribute attribute in masterDoc.Root.Attributes().Where(ShouldPreserveMasterContentAttribute)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedMasterContentAttributes.Add(new XAttribute(attribute));
                         }
                         foreach (XElement element in masterDoc.Root.Elements().Where(element => element.Name != ns + "Shapes")) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedMasterContentElements.Add(new XElement(element));
                         }
                     }
                     foreach (XAttribute attribute in preservedMastersRootAttributes) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         master.PreservedMastersRootAttributes.Add(new XAttribute(attribute));
                     }
                     foreach (XElement element in preservedMastersRootElements) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         master.PreservedMastersRootElements.Add(new XElement(element));
                     }
                     masters[masterId] = master;
+                    document.CaptureMasterFontScope(master);
                     document.RegisterMaster(master);
                 }
             }
 
             XDocument? pagesDoc = pagesPart == null ? null :
-                LoadPackageXml(pagesPart, "Visio pages XML part");
+                LoadPackageXml(pagesPart, "Visio pages XML part", cancellationToken);
+            if (pagesDoc?.Root != null) fontWire?.DecodeCells(pagesDoc.Root, nativeCells, "Pages");
             XNamespace vNs = VisioNamespace;
             XNamespace relNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
             foreach (XElement pageRef in pagesDoc?.Root?.Elements(vNs + "Page") ?? Enumerable.Empty<XElement>()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string name = pageRef.Attribute("Name")?.Value ?? "Page";
                 int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
                 VisioPage page = document.AddPage(name, id: pageId);
@@ -256,6 +211,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 foreach (XAttribute attribute in pageRef.Attributes().Where(ShouldPreservePageAttribute)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     page.PreservedPageAttributes.Add(new XAttribute(attribute));
                 }
                 string? viewScaleValue = pageRef.Attribute("ViewScale")?.Value;
@@ -269,6 +225,7 @@ namespace OfficeIMO.Visio {
                 double viewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
 
                 XElement? pageSheet = pageRef.Element(vNs + "PageSheet");
+                if (pageSheet != null) page.NativePageSheetMetadata = VisioNativeCellMetadata.Bind(pageSheet, "Pages", nativeCells);
                 VisioMeasurementUnit? detectedScaleUnit = null;
                 VisioScaleSetting? pendingDrawingScale = null;
                 bool pageScaleApplied = false;
@@ -291,6 +248,7 @@ namespace OfficeIMO.Visio {
                 VisioMeasurementUnit? layoutGridUnit = null;
                 if (pageSheet != null) {
                     foreach (XElement cell in pageSheet.Elements(vNs + "Cell")) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string? cellName = cell.Attribute("N")?.Value;
                         string? valueAttr = cell.Attribute("V")?.Value;
                         string? unitAttr = cell.Attribute("U")?.Value;
@@ -301,8 +259,8 @@ namespace OfficeIMO.Visio {
                                 }
                                 double parsedPageWidth = ParseDouble(valueAttr);
                                 if (!double.IsNaN(parsedPageWidth) && !double.IsInfinity(parsedPageWidth) && parsedPageWidth > 0) {
-                                    VisioMeasurementUnit pageWidthUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, detectedScaleUnit ?? page.ScaleMeasurementUnit);
-                                    pageWidthInches = parsedPageWidth.ToInches(pageWidthUnit);
+                                    // ShapeSheet distance caches are internal inches; U is a display-unit hint.
+                                    pageWidthInches = parsedPageWidth;
                                 }
                                 break;
                             case "PageHeight":
@@ -311,8 +269,7 @@ namespace OfficeIMO.Visio {
                                 }
                                 double parsedPageHeight = ParseDouble(valueAttr);
                                 if (!double.IsNaN(parsedPageHeight) && !double.IsInfinity(parsedPageHeight) && parsedPageHeight > 0) {
-                                    VisioMeasurementUnit pageHeightUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, detectedScaleUnit ?? page.ScaleMeasurementUnit);
-                                    pageHeightInches = parsedPageHeight.ToInches(pageHeightUnit);
+                                    pageHeightInches = parsedPageHeight;
                                 }
                                 break;
                             case "PageScale":
@@ -402,22 +359,22 @@ namespace OfficeIMO.Visio {
                             case "BlockSizeX":
                                 VisioMeasurementUnit blockSizeXUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, layoutGridUnit ?? VisioMeasurementUnit.Inches);
                                 layoutGridUnit ??= blockSizeXUnit;
-                                blockSizeX = ParseNonNegativeDouble(valueAttr)?.ToInches(blockSizeXUnit);
+                                blockSizeX = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "BlockSizeY":
                                 VisioMeasurementUnit blockSizeYUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, layoutGridUnit ?? VisioMeasurementUnit.Inches);
                                 layoutGridUnit ??= blockSizeYUnit;
-                                blockSizeY = ParseNonNegativeDouble(valueAttr)?.ToInches(blockSizeYUnit);
+                                blockSizeY = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "AvenueSizeX":
                                 VisioMeasurementUnit avenueSizeXUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, layoutGridUnit ?? VisioMeasurementUnit.Inches);
                                 layoutGridUnit ??= avenueSizeXUnit;
-                                avenueSizeX = ParseNonNegativeDouble(valueAttr)?.ToInches(avenueSizeXUnit);
+                                avenueSizeX = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "AvenueSizeY":
                                 VisioMeasurementUnit avenueSizeYUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, layoutGridUnit ?? VisioMeasurementUnit.Inches);
                                 layoutGridUnit ??= avenueSizeYUnit;
-                                avenueSizeY = ParseNonNegativeDouble(valueAttr)?.ToInches(avenueSizeYUnit);
+                                avenueSizeY = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "RouteStyle":
                                 if (TryParseCellIntValue(valueAttr, out int routeStyle) &&
@@ -470,38 +427,38 @@ namespace OfficeIMO.Visio {
                             case "LineToLineX":
                                 VisioMeasurementUnit lineToLineXUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, connectorSpacingUnit ?? VisioMeasurementUnit.Inches);
                                 connectorSpacingUnit ??= lineToLineXUnit;
-                                lineToLineX = ParseNonNegativeDouble(valueAttr)?.ToInches(lineToLineXUnit);
+                                lineToLineX = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "LineToLineY":
                                 VisioMeasurementUnit lineToLineYUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, connectorSpacingUnit ?? VisioMeasurementUnit.Inches);
                                 connectorSpacingUnit ??= lineToLineYUnit;
-                                lineToLineY = ParseNonNegativeDouble(valueAttr)?.ToInches(lineToLineYUnit);
+                                lineToLineY = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "LineToNodeX":
                                 VisioMeasurementUnit lineToNodeXUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, connectorSpacingUnit ?? VisioMeasurementUnit.Inches);
                                 connectorSpacingUnit ??= lineToNodeXUnit;
-                                lineToNodeX = ParseNonNegativeDouble(valueAttr)?.ToInches(lineToNodeXUnit);
+                                lineToNodeX = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "LineToNodeY":
                                 VisioMeasurementUnit lineToNodeYUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, connectorSpacingUnit ?? VisioMeasurementUnit.Inches);
                                 connectorSpacingUnit ??= lineToNodeYUnit;
-                                lineToNodeY = ParseNonNegativeDouble(valueAttr)?.ToInches(lineToNodeYUnit);
+                                lineToNodeY = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "PageLeftMargin":
                                 marginUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, marginUnit);
-                                leftMargin = ParseNonNegativeDouble(valueAttr)?.ToInches(marginUnit);
+                                leftMargin = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "PageRightMargin":
                                 marginUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, marginUnit);
-                                rightMargin = ParseNonNegativeDouble(valueAttr)?.ToInches(marginUnit);
+                                rightMargin = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "PageTopMargin":
                                 marginUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, marginUnit);
-                                topMargin = ParseNonNegativeDouble(valueAttr)?.ToInches(marginUnit);
+                                topMargin = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "PageBottomMargin":
                                 marginUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, marginUnit);
-                                bottomMargin = ParseNonNegativeDouble(valueAttr)?.ToInches(marginUnit);
+                                bottomMargin = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "PrintPageOrientation":
                                 if (TryParseCellIntValue(valueAttr, out int orientation) &&
@@ -518,6 +475,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     foreach (XElement section in pageSheet.Elements(vNs + "Section").Where(ShouldPreservePageSection)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (string.Equals(section.Attribute("N")?.Value, "Layer", StringComparison.OrdinalIgnoreCase)) {
                             ParseLayerSection(page, section, vNs);
                         } else {
@@ -556,6 +514,9 @@ namespace OfficeIMO.Visio {
                     avenueSizeX,
                     avenueSizeY,
                     layoutGridUnit ?? VisioMeasurementUnit.Inches);
+                if (pageSheet != null) {
+                    page.PageSheetLengthCells = new VisioPageSheetLengthCells(pageSheet, document.CreatePageSheetModel(VisioNamespace, page));
+                }
                 page.ViewCenterX = viewCenterX;
                 page.ViewCenterY = viewCenterY;
 
@@ -568,14 +529,18 @@ namespace OfficeIMO.Visio {
                 PackageRelationship pageRel = pagesPart!.GetRelationship(relId);
                 Uri pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 PackagePart pagePart = package.GetPart(pageUri);
-                XDocument pageDoc = LoadPackageXml(pagePart, "Visio page XML part");
+                XDocument pageDoc = LoadPackageXml(pagePart, "Visio page XML part", cancellationToken);
+                if (pageDoc.Root != null) fontWire?.DecodeCells(pageDoc.Root, nativeCells, VisioNativeCellMetadata.PageScope(pageId));
+                document.CaptureForeignResources(pagePart, pageDoc, page.ForeignResources);
 
                 if (pageDoc.Root != null) {
                     foreach (XAttribute attribute in pageDoc.Root.Attributes().Where(ShouldPreservePageContentsAttribute)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedPageContentAttributes.Add(new XAttribute(attribute));
                     }
 
                     foreach (XElement element in pageDoc.Root.Elements().Where(ShouldPreservePageContentsElement)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedPageContentElements.Add(new XElement(element));
                     }
                 }
@@ -583,10 +548,12 @@ namespace OfficeIMO.Visio {
                 XElement? shapesRoot = pageDoc.Root?.Element(vNs + "Shapes");
                 if (shapesRoot != null) {
                     foreach (XAttribute attribute in shapesRoot.Attributes().Where(ShouldPreserveShapesContainerAttribute)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedShapesContainerAttributes.Add(new XAttribute(attribute));
                     }
 
                     foreach (XElement element in shapesRoot.Elements().Where(ShouldPreserveShapesContainerElement)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedShapesContainerElements.Add(new XElement(element));
                     }
                 }
@@ -595,12 +562,15 @@ namespace OfficeIMO.Visio {
                 List<XElement> connectorElements = new();
                 Dictionary<XElement, VisioShape> loadedShapesByElement = new();
                 foreach (XElement shapeElement in shapesRoot?.Elements(vNs + "Shape") ?? Enumerable.Empty<XElement>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (IsConnectorShape(shapeElement, masters)) {
                         connectorElements.Add(shapeElement);
                         continue;
                     }
 
-                    VisioShape shape = ParseShapeCore(shapeElement, vNs, faceNamesById);
+                    VisioShape shape = ParseShapeCore(shapeElement, vNs, faceNamesById, textBackgroundColors: textBackgroundColors, paintStyles: paintStyles, cancellationToken: cancellationToken);
+                    VisioNativeCellMetadata.BindTree(shape, shapeElement, VisioNativeCellMetadata.PageScope(pageId), nativeCells);
+                    BindForeignResources(shape, page.ForeignResources);
                     ApplyMasterReferences(shape, shapeElement, vNs, masters);
                     ApplyLayerNamesFromIndexes(page, shape);
 
@@ -614,10 +584,12 @@ namespace OfficeIMO.Visio {
                 XElement? connectsRoot = pageDoc.Root?.Element(vNs + "Connects");
                 if (connectsRoot != null) {
                     foreach (XAttribute attribute in connectsRoot.Attributes().Where(ShouldPreserveConnectsAttribute)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedConnectsAttributes.Add(new XAttribute(attribute));
                     }
 
                     foreach (XElement element in connectsRoot.Elements().Where(ShouldPreserveConnectsElement)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedConnectsElements.Add(new XElement(element));
                     }
                 }
@@ -625,6 +597,7 @@ namespace OfficeIMO.Visio {
                 List<XElement> orderedConnectElements = connectsRoot?.Elements(vNs + "Connect").ToList() ?? new List<XElement>();
                 Dictionary<string, (string? fromId, string? fromCell, string? toId, string? toCell, List<XAttribute> beginAttributes, List<XName> beginOrder, List<XAttribute> endAttributes, List<XName> endOrder, XElement? beginElement, XElement? endElement)> connectionMap = new();
                 foreach (XElement connectElement in orderedConnectElements) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string? connectorId = connectElement.Attribute("FromSheet")?.Value;
                     string? fromCell = connectElement.Attribute("FromCell")?.Value;
                     string? toSheet = connectElement.Attribute("ToSheet")?.Value;
@@ -660,223 +633,33 @@ namespace OfficeIMO.Visio {
                 Dictionary<string, VisioConnector> loadedConnectorsByPersistedId = new(StringComparer.Ordinal);
                 Dictionary<XElement, VisioConnector> loadedConnectorsByElement = new();
                 foreach (XElement connectorElement in connectorElements) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string persistedId = connectorElement.Attribute("ID")?.Value ?? string.Empty;
-                    if (!connectionMap.TryGetValue(persistedId, out var ids)) {
-                        continue;
+                    bool hasConnections = connectionMap.TryGetValue(persistedId, out var ids);
+                    VisioShape? fromShape = null, toShape = null;
+                    // A missing attachment is a free endpoint; a broken attachment stays
+                    // preserved native XML instead of silently discarding its target.
+                    if (ids.fromId != null && !shapeMap.TryGetValue(ids.fromId, out fromShape) ||
+                        ids.toId != null && !shapeMap.TryGetValue(ids.toId, out toShape)) continue;
+                    VisioConnector? connector = LoadConnector(connectorElement, vNs, masters, faceNamesById, page, fromShape, toShape, ids.fromCell, ids.toCell, textBackgroundColors, paintStyles);
+                    if (connector == null) continue;
+                    connector.NativeCellMetadata = VisioNativeCellMetadata.Bind(connectorElement, VisioNativeCellMetadata.PageScope(pageId), nativeCells);
+                    if (hasConnections) {
+                        CopyPreservedAttributes(ids.beginAttributes, connector.PreservedBeginConnectAttributes);
+                        CopyPreservedAttributeOrder(ids.beginOrder, connector.PreservedBeginConnectAttributeOrder);
+                        CopyPreservedAttributes(ids.endAttributes, connector.PreservedEndConnectAttributes);
+                        CopyPreservedAttributeOrder(ids.endOrder, connector.PreservedEndConnectAttributeOrder);
                     }
-                    if (ids.fromId == null || ids.toId == null) {
-                        continue;
-                    }
-
-                    string id = GetOriginalId(connectorElement, vNs) ?? persistedId;
-                    string fromId = ids.fromId!;
-                    string toId = ids.toId!;
-                    if (!shapeMap.TryGetValue(fromId, out VisioShape? fromShape) || !shapeMap.TryGetValue(toId, out VisioShape? toShape)) {
-                        continue;
-                    }
-                    VisioConnector connector = new VisioConnector(id, fromShape!, toShape!) {
-                        PersistedId = persistedId,
-                        PreserveDynamicConnectorMaster =
-                            HasDynamicConnectorIdentity(connectorElement,
-                                masters)
-                    };
-
-                    foreach (XElement cell in connectorElement.Elements(vNs + "Cell")) {
-                        string? n = cell.Attribute("N")?.Value;
-                        string? v = cell.Attribute("V")?.Value;
-                        switch (n) {
-                            case "BeginArrow":
-                                if (TryParseCellIntValue(v, out int beginArrow)) {
-                                    connector.BeginArrow = (EndArrow)beginArrow;
-                                }
-                                break;
-                            case "EndArrow":
-                                if (TryParseCellIntValue(v, out int endArrow)) {
-                                    connector.EndArrow = (EndArrow)endArrow;
-                                }
-                                break;
-                            case "LineWeight":
-                                connector.LineWeight = ParseDouble(v);
-                                break;
-                            case "LinePattern":
-                                if (TryParseCellIntValue(v, out int connectorLinePattern)) {
-                                    connector.LinePattern = connectorLinePattern;
-                                }
-                                break;
-                            case "LineColor":
-                                connector.LineColor = ParseColor(v, connector.LineColor);
-                                break;
-                            case "LeftMargin":
-                                EnsureConnectorTextStyle(connector).LeftMargin = ParseDouble(v);
-                                break;
-                            case "RightMargin":
-                                EnsureConnectorTextStyle(connector).RightMargin = ParseDouble(v);
-                                break;
-                            case "TopMargin":
-                                EnsureConnectorTextStyle(connector).TopMargin = ParseDouble(v);
-                                break;
-                            case "BottomMargin":
-                                EnsureConnectorTextStyle(connector).BottomMargin = ParseDouble(v);
-                                break;
-                            case "VerticalAlign":
-                                if (TryParseCellIntValue(v, out int connectorVerticalAlign) &&
-                                    Enum.IsDefined(typeof(VisioTextVerticalAlignment), connectorVerticalAlign)) {
-                                    EnsureConnectorTextStyle(connector).VerticalAlignment = (VisioTextVerticalAlignment)connectorVerticalAlign;
-                                } else {
-                                    connector.PreservedCellElements.Add(new XElement(cell));
-                                }
-                                break;
-                            case "TextBkgnd":
-                                EnsureConnectorTextStyle(connector).BackgroundColor = ParseColor(v, default);
-                                break;
-                            case "TextBkgndTrans":
-                                EnsureConnectorTextStyle(connector).BackgroundTransparency = ParseDouble(v);
-                                break;
-                            case "TxtPinX":
-                                EnsureConnectorLabelPlacement(connector).AbsolutePinX = ParseDouble(v);
-                                break;
-                            case "TxtPinY":
-                                EnsureConnectorLabelPlacement(connector).AbsolutePinY = ParseDouble(v);
-                                break;
-                            case "TxtWidth":
-                                EnsureConnectorLabelPlacement(connector).Width = ParseDouble(v);
-                                break;
-                            case "TxtHeight":
-                                EnsureConnectorLabelPlacement(connector).Height = ParseDouble(v);
-                                break;
-                            case "TxtLocPinX":
-                                EnsureConnectorLabelPlacement(connector).LocPinX = ParseDouble(v);
-                                break;
-                            case "TxtLocPinY":
-                                EnsureConnectorLabelPlacement(connector).LocPinY = ParseDouble(v);
-                                break;
-                            case "LayerMember":
-                                ParseLayerIndexes(v, connector.LayerIndexes);
-                                break;
-                            case "ShapeRouteStyle":
-                                if (TryParseCellIntValue(v, out int connectorRouteStyle) &&
-                                    Enum.IsDefined(typeof(VisioPageRouteStyle), connectorRouteStyle)) {
-                                    connector.RouteStyle = (VisioPageRouteStyle)connectorRouteStyle;
-                                } else {
-                                    connector.PreservedCellElements.Add(new XElement(cell));
-                                }
-                                break;
-                            case "ConLineRouteExt":
-                                if (TryParseCellIntValue(v, out int connectorRouteAppearance) &&
-                                    Enum.IsDefined(typeof(VisioLineRouteExtension), connectorRouteAppearance)) {
-                                    connector.RouteAppearance = (VisioLineRouteExtension)connectorRouteAppearance;
-                                } else {
-                                    connector.PreservedCellElements.Add(new XElement(cell));
-                                }
-                                break;
-                            case "ConLineJumpStyle":
-                                if (TryParseCellIntValue(v, out int connectorJumpStyle) &&
-                                    Enum.IsDefined(typeof(VisioLineJumpStyle), connectorJumpStyle)) {
-                                    connector.LineJumpStyle = (VisioLineJumpStyle)connectorJumpStyle;
-                                } else {
-                                    connector.PreservedCellElements.Add(new XElement(cell));
-                                }
-                                break;
-                            case "ConLineJumpCode":
-                                if (TryParseCellIntValue(v, out int connectorJumpCode) &&
-                                    Enum.IsDefined(typeof(VisioConnectorLineJumpCode), connectorJumpCode)) {
-                                    connector.LineJumpCode = (VisioConnectorLineJumpCode)connectorJumpCode;
-                                } else {
-                                    connector.PreservedCellElements.Add(new XElement(cell));
-                                }
-                                break;
-                            case "ConLineJumpDirX":
-                                if (TryParseCellIntValue(v, out int connectorJumpDirX) &&
-                                    Enum.IsDefined(typeof(VisioHorizontalLineJumpDirection), connectorJumpDirX)) {
-                                    connector.HorizontalJumpDirection = (VisioHorizontalLineJumpDirection)connectorJumpDirX;
-                                } else {
-                                    connector.PreservedCellElements.Add(new XElement(cell));
-                                }
-                                break;
-                            case "ConLineJumpDirY":
-                                if (TryParseCellIntValue(v, out int connectorJumpDirY) &&
-                                    Enum.IsDefined(typeof(VisioVerticalLineJumpDirection), connectorJumpDirY)) {
-                                    connector.VerticalJumpDirection = (VisioVerticalLineJumpDirection)connectorJumpDirY;
-                                } else {
-                                    connector.PreservedCellElements.Add(new XElement(cell));
-                                }
-                                break;
-                            case "ConFixedCode":
-                                if (TryParseCellIntValue(v, out int connectorRerouteBehavior) &&
-                                    Enum.IsDefined(typeof(VisioConnectorRerouteBehavior), connectorRerouteBehavior)) {
-                                    connector.RerouteBehavior = (VisioConnectorRerouteBehavior)connectorRerouteBehavior;
-                                } else {
-                                    connector.PreservedCellElements.Add(new XElement(cell));
-                                }
-                                break;
-                            default:
-                                if (VisioProtection.IsCellName(n) &&
-                                    connector.Protection.TrySetCellValue(n, ParseNullableBoolCell(v))) {
-                                    break;
-                                }
-
-                                if (ShouldPreserveConnectorCell(n)) {
-                                    connector.PreservedCellElements.Add(new XElement(cell));
-                                }
-                                break;
-                        }
-                    }
-
-                    connector.Kind = DetermineConnectorKind(connectorElement, vNs, masters);
-                    ApplyLayerNamesFromIndexes(page, connector);
-                    XElement? connectorCharSection = connectorElement.Elements(vNs + "Section")
-                        .FirstOrDefault(section => IsCharacterSection(section.Attribute("N")?.Value));
-                    if (connectorCharSection != null && TryParseSimpleConnectorCharSection(connector, connectorCharSection, vNs, faceNamesById)) {
-                        connector.HasModeledCharSection = true;
-                    }
-
-                    XElement? connectorParaSection = connectorElement.Elements(vNs + "Section")
-                        .FirstOrDefault(section => IsParagraphSection(section.Attribute("N")?.Value));
-                    if (connectorParaSection != null && TryParseSimpleConnectorParaSection(connector, connectorParaSection, vNs)) {
-                        connector.HasModeledParaSection = true;
-                    }
-
-                    foreach (XElement geometrySection in connectorElement.Elements(vNs + "Section")
-                                 .Where(section => string.Equals(section.Attribute("N")?.Value, "Geometry", StringComparison.OrdinalIgnoreCase))) {
-                        connector.PreservedGeometrySections.Add(new XElement(geometrySection));
-                    }
-                    foreach (XElement section in connectorElement.Elements(vNs + "Section")
-                                 .Where(section => ShouldPreserveConnectorSection(connector, section))) {
-                        connector.PreservedNonGeometrySections.Add(new XElement(section));
-                    }
-                    XElement? connectorHyperlinkSection = connectorElement.Elements(vNs + "Section")
-                        .FirstOrDefault(section => string.Equals(section.Attribute("N")?.Value, "Hyperlink", StringComparison.OrdinalIgnoreCase));
-                    if (connectorHyperlinkSection != null) {
-                        ParseHyperlinks(connectorHyperlinkSection, vNs, connector.Hyperlinks);
-                    }
-
-                    XElement? connectorPropSection = connectorElement.Elements(vNs + "Section")
-                        .FirstOrDefault(section => IsShapeDataSectionName(section.Attribute("N")?.Value));
-                    if (connectorPropSection != null) {
-                        connector.ShapeDataSectionName = connectorPropSection.Attribute("N")?.Value ?? "Prop";
-                        ParseShapeDataRows(connectorPropSection, vNs, connector.ShapeData, connector.PreservedDataRows, connector.Data);
-                    }
-
-                    connector.FromConnectionPoint = ResolveConnectionPoint(fromShape, ids.fromCell);
-                    connector.ToConnectionPoint = ResolveConnectionPoint(toShape, ids.toCell);
-                    TryHydrateConnectorWaypoints(connector, connectorElement, vNs);
-                    connector.PreservedFromConnectionCell = ids.fromCell;
-                    connector.PreservedToConnectionCell = ids.toCell;
-                    CopyPreservedAttributes(ids.beginAttributes, connector.PreservedBeginConnectAttributes);
-                    CopyPreservedAttributeOrder(ids.beginOrder, connector.PreservedBeginConnectAttributeOrder);
-                    CopyPreservedAttributes(ids.endAttributes, connector.PreservedEndConnectAttributes);
-                    CopyPreservedAttributeOrder(ids.endOrder, connector.PreservedEndConnectAttributeOrder);
-                    XElement? connectorTextElement = connectorElement.Element(vNs + "Text");
-                    connector.Label = connectorTextElement?.Value;
-                    connector.PreservedTextElement = connectorTextElement != null ? new XElement(connectorTextElement) : null;
-                    connector.PreservedTextValue = connectorTextElement?.Value;
                     CaptureConnectorShapeChildOrder(connector, connectorElement);
+                    var foreignIds = ForeignRelationshipIds(new[] { connectorElement });
+                    connector.ForeignResources.AddRange(page.ForeignResources.Where(resource => foreignIds.Contains(resource.RelationshipId)));
                     page.Connectors.Add(connector);
                     loadedConnectorsByPersistedId[persistedId] = connector;
                     loadedConnectorsByElement[connectorElement] = connector;
                 }
 
                 foreach (XElement shapeChild in shapesRoot?.Elements() ?? Enumerable.Empty<XElement>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!string.Equals(shapeChild.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase)) {
                         page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(shapeChild));
                         continue;
@@ -896,6 +679,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 foreach (XElement connectChild in connectsRoot?.Elements() ?? Enumerable.Empty<XElement>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!string.Equals(connectChild.Name.LocalName, "Connect", StringComparison.OrdinalIgnoreCase)) {
                         page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connectChild));
                         continue;
@@ -927,8 +711,9 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            LoadComments(package, documentPart, document);
+            LoadComments(package, documentPart, document, cancellationToken);
             ResolvePageBackgrounds(document);
+            cancellationToken.ThrowIfCancellationRequested();
             return document;
         }
 

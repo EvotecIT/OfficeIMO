@@ -100,6 +100,7 @@ public abstract partial class OdfDocument {
             OdfDocumentKind.Text => "OpenDocument Text",
             OdfDocumentKind.Spreadsheet => "OpenDocument Spreadsheet",
             OdfDocumentKind.Presentation => "OpenDocument Presentation",
+            OdfDocumentKind.Graphics => "OpenDocument Graphics",
             _ => "OpenDocument"
         };
         var builder = new OfficeContentSafetyBuilder(format, options);
@@ -239,7 +240,7 @@ public abstract partial class OdfDocument {
 
     private static OdfContentSafetyState ResolveOdfState(OdfDocument document, XElement owner) {
         var state = new OdfContentSafetyState {
-            CanUseDefaultWhiteBackground = document.Kind != OdfDocumentKind.Presentation &&
+            CanUseDefaultWhiteBackground = document.Kind != OdfDocumentKind.Presentation && document.Kind != OdfDocumentKind.Graphics &&
                 !owner.AncestorsAndSelf().Any(element => element.Name.Namespace == OdfNamespaces.Draw)
         };
         XElement[] ancestry = owner.AncestorsAndSelf().Reverse().ToArray();

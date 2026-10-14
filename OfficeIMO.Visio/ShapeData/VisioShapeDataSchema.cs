@@ -189,19 +189,29 @@ namespace OfficeIMO.Visio {
 
         private static void ApplyField(VisioShape shape, VisioShapeDataField field, bool overwriteValues) {
             VisioShapeDataRow? existing = shape.FindShapeData(field.Name);
-            string? value = ResolveValue(existing, shape.GetShapeDataValue(field.Name), field, overwriteValues);
-            VisioShapeDataRow row = shape.SetShapeData(field.Name, value, field.Label, field.Type, field.Prompt, field.GetEffectiveFormat());
+            string? currentValue = shape.GetShapeDataValue(field.Name);
+            VisioShapeDataRow row = !overwriteValues && existing != null && HasRetainableValue(existing, currentValue)
+                ? existing
+                : shape.SetShapeData(field.Name, ResolveValue(currentValue, field, overwriteValues));
             ApplyMetadata(row, field);
         }
 
         private static void ApplyField(VisioConnector connector, VisioShapeDataField field, bool overwriteValues) {
             VisioShapeDataRow? existing = connector.FindShapeData(field.Name);
-            string? value = ResolveValue(existing, connector.GetShapeDataValue(field.Name), field, overwriteValues);
-            VisioShapeDataRow row = connector.SetShapeData(field.Name, value, field.Label, field.Type, field.Prompt, field.GetEffectiveFormat());
+            string? currentValue = connector.GetShapeDataValue(field.Name);
+            VisioShapeDataRow row = !overwriteValues && existing != null && HasRetainableValue(existing, currentValue)
+                ? existing
+                : connector.SetShapeData(field.Name, ResolveValue(currentValue, field, overwriteValues));
             ApplyMetadata(row, field);
         }
 
-        private static string? ResolveValue(VisioShapeDataRow? existing, string? currentValue, VisioShapeDataField field, bool overwriteValues) {
+        private static bool HasRetainableValue(VisioShapeDataRow row, string? currentValue) {
+            if (currentValue != null || row.ValueFormula != null) return true;
+            return row.PreservedKnownCells.TryGetValue("Value", out var cell) &&
+                (cell.Attribute("F") != null || cell.Attribute("E") != null || cell.Attribute("Err") != null);
+        }
+
+        private static string? ResolveValue(string? currentValue, VisioShapeDataField field, bool overwriteValues) {
             if (overwriteValues) {
                 return field.DefaultValue;
             }
@@ -210,6 +220,11 @@ namespace OfficeIMO.Visio {
         }
 
         private static void ApplyMetadata(VisioShapeDataRow row, VisioShapeDataField field) {
+            if (field.Label != null) row.Label = field.Label;
+            if (field.Type.HasValue) row.Type = field.Type.Value;
+            if (field.Prompt != null) row.Prompt = field.Prompt;
+            string? format = field.GetEffectiveFormat();
+            if (format != null) row.Format = format;
             if (field.SortKey != null) row.SortKey = field.SortKey;
             if (field.Invisible.HasValue) row.Invisible = field.Invisible.Value;
             if (field.Verify.HasValue) row.Verify = field.Verify.Value;

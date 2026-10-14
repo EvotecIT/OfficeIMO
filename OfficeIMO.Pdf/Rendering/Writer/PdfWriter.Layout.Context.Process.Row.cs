@@ -416,7 +416,8 @@ internal static partial class PdfWriter {
                                     applyBaselineTweak: true,
                                     structureType: "Lbl",
                                     markedContentId: labelMarkedContentId,
-                                    namedFont: listItem.MarkerNamedFont);
+                                    namedFont: listItem.MarkerNamedFont,
+                                    featureSettings: listItem.MarkerFeatureSettings);
                             }
 
                             int? bodyMarkedContentId = line == 0 || listItem.StructureElement == null
@@ -444,6 +445,8 @@ internal static partial class PdfWriter {
                             bool completed = RenderColumnTable(table, items, state, xCol, wCol,
                                 GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)),
                                 GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), closingPadding);
+                            // A merged-cell tail can advance within the same physical row and line cursor.
+                            if (state.Consumed > consumed + .001D) anyColumnAdvanced = true;
                             (idx, line, subline) = (state.Index, state.Line, state.Subline);
                             (yCol, remain, consumed) = (state.Y, state.Remaining, state.Consumed);
                             if (!completed) break;
@@ -543,8 +546,9 @@ internal static partial class PdfWriter {
                             PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing, currentOpts);
                             PdfDocument.ValidateDrawingStyle(drawingStyle, "Drawing");
                             double spacingBefore = ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, consumed);
-                            double needed = spacingBefore + drawing.Drawing.Height + drawingStyle.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Drawing", drawing.Drawing.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)));
+                            var drawingBox = ResolveDrawingFlowBox(drawing, drawingStyle, wCol);
+                            double needed = spacingBefore + drawingBox.Height + drawingStyle.SpacingAfter;
+                            EnsureFixedFlowBlockFits("Drawing", drawingBox.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)));
                             if (drawingStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
@@ -562,7 +566,7 @@ internal static partial class PdfWriter {
                             RecordFlowPlacement(yCol);
                             int? structElementIndex = DrawDrawingAt(drawing, drawingStyle, xCol, wCol, yCol);
                             AddDrawingLinkAnnotation(drawing, drawingStyle, xCol, wCol, yCol, structElementIndex);
-                            yCol -= drawing.Drawing.Height + drawingStyle.SpacingAfter;
+                            yCol -= drawingBox.Height + drawingStyle.SpacingAfter;
                             remain -= needed;
                             consumed += needed;
                             idx++;

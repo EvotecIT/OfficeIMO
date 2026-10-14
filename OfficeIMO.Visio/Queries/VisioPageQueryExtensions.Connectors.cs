@@ -103,8 +103,8 @@ namespace OfficeIMO.Visio {
 
             List<VisioShape> connectedShapes = new();
             foreach (VisioConnector connector in page.ConnectedConnectors(shape)) {
-                VisioShape candidate = MatchesShape(connector.From, shape) ? connector.To : connector.From;
-                if (!connectedShapes.Contains(candidate)) {
+                VisioShape? candidate = MatchesShape(connector.From, shape) ? connector.To : connector.From;
+                if (candidate != null && !connectedShapes.Contains(candidate)) {
                     connectedShapes.Add(candidate);
                 }
             }

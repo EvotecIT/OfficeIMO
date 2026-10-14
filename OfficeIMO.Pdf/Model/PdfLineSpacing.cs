@@ -45,22 +45,63 @@ public sealed class PdfLineSpacing {
     // within the authored line box, independent of the visible run sizes.
     internal double? FixedLineBoxBaselineOffset { get; private init; }
 
+    // A document line grid constrains natural line boxes before applying
+    // multiple or minimum spacing. Exact spacing bypasses the grid.
+    internal double? LineGridPitch { get; private init; }
+    internal PdfFontLineAlignment FontAlignment { get; private init; }
+    internal double FontAlignmentPointsPerPixel { get; private init; }
+
+    internal PdfLineSpacing WithFontAlignment(PdfFontLineAlignment alignment, double pointsPerPixel) {
+        if (pointsPerPixel <= 0D || double.IsNaN(pointsPerPixel) || double.IsInfinity(pointsPerPixel))
+            throw new System.ArgumentOutOfRangeException(nameof(pointsPerPixel));
+        return new(Rule, Value, NaturalMultiplier) {
+            FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset,
+            LineGridPitch = LineGridPitch, FontAlignment = alignment, FontAlignmentPointsPerPixel = pointsPerPixel
+        };
+    }
+
+    internal PdfLineSpacing WithLineGrid(double pitch) {
+        if (pitch <= 0D || double.IsNaN(pitch) || double.IsInfinity(pitch))
+            throw new System.ArgumentOutOfRangeException(nameof(pitch));
+        return new(Rule, Value, NaturalMultiplier) {
+            FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset,
+            LineGridPitch = IsExact ? null : pitch,
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel
+        };
+    }
+
     internal PdfLineSpacing WithFixedLineBoxBaseline(double baselineOffset) {
         if (!IsExact || baselineOffset < 0D || double.IsNaN(baselineOffset) || double.IsInfinity(baselineOffset))
             throw new System.ArgumentOutOfRangeException(nameof(baselineOffset), "A fixed line-box baseline requires exact spacing and a finite non-negative offset.");
         return new(Rule, Value, NaturalMultiplier) {
-            FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = baselineOffset
+            FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = baselineOffset, LineGridPitch = LineGridPitch,
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel
         };
     }
 
     internal PdfLineSpacing WithFontLineBoxBaseline(double naturalMultiplier) =>
         new(Rule, Value, NaturalMultiplier) {
-            FontLineBoxMultiplier = naturalMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset
+            FontLineBoxMultiplier = naturalMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset, LineGridPitch = LineGridPitch,
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel
         };
 
-    internal double GetAdvance(double fontSize) => Rule switch {
+    internal double GetAdvance(double fontSize) => LineGridPitch.HasValue && !IsExact
+        ? GetGridAdvance(fontSize * (FontLineBoxMultiplier ?? NaturalMultiplier)) : Rule switch {
         PdfLineSpacingRule.Exact => Value,
         PdfLineSpacingRule.AtLeast => System.Math.Max(Value, fontSize * NaturalMultiplier),
         _ => fontSize * Value
     };
+
+    internal double GetGridNaturalHeight(double naturalHeight) => LineGridPitch is double pitch
+        ? System.Math.Ceiling(System.Math.Max(0D, naturalHeight) / pitch - 1e-9D) * pitch : naturalHeight;
+
+    internal double GetGridAdvance(double naturalHeight) => System.Math.Max(GetGridNaturalHeight(naturalHeight),
+        Rule == PdfLineSpacingRule.AtLeast ? Value : LineGridPitch!.Value * Value / (FontLineBoxMultiplier ?? NaturalMultiplier));
+
+    internal double GetGridBaselineExpansion(double naturalHeight) {
+        double gridHeight = GetGridNaturalHeight(naturalHeight);
+        return Rule == PdfLineSpacingRule.AtLeast
+            ? (gridHeight - naturalHeight) / 2D + System.Math.Max(0D, Value - gridHeight)
+            : (GetGridAdvance(naturalHeight) - naturalHeight) / 2D;
+    }
 }

@@ -82,18 +82,18 @@ public sealed class OdtInlineNode {
         XElement paragraph,
         string partPath, Func<XElement>? materializeForEdit = null) {
         int remainingCharacters = OdfTextCodec.MaximumDecodedCharacters;
-        return ReadChildren(document, paragraph, partPath, materializeForEdit, ref remainingCharacters);
+        return ReadChildren(document, paragraph, partPath, materializeForEdit, OdfTextCodec.Snapshot(paragraph), ref remainingCharacters);
     }
 
     private static IReadOnlyList<OdtInlineNode> ReadChildren(
         OdtDocument document, XElement parent, string partPath, Func<XElement>? materializeForEdit,
-        ref int remainingCharacters) {
+        OdfTextCodec.TextSnapshot decoded, ref int remainingCharacters) {
         var result = new List<OdtInlineNode>();
         var plainNodes = new List<XNode>();
 
         void FlushPlain(ref int remaining) {
             if (plainNodes.Count == 0) return;
-            string text = OdfTextCodec.ReadNodes(plainNodes, ref remaining);
+            string text = decoded.ReadNodes(plainNodes, ref remaining);
             if (text.Length > 0) result.Add(new OdtInlineNode(OdtInlineNodeKind.Text, text));
             plainNodes.Clear();
         }
@@ -116,11 +116,11 @@ public sealed class OdtInlineNode {
             if (element.Name == OdfNamespaces.Text + "span") {
                 var span = new OdtSpan(document, element, partPath, childEdit);
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Span, null, span: span,
-                    children: ReadChildren(document, element, partPath, childEdit, ref remainingCharacters)));
+                    children: ReadChildren(document, element, partPath, childEdit, decoded, ref remainingCharacters)));
             } else if (element.Name == OdfNamespaces.Text + "a") {
                 var hyperlink = new OdtHyperlink(document, element, partPath, childEdit);
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Hyperlink, null, hyperlink: hyperlink,
-                    children: ReadChildren(document, element, partPath, childEdit, ref remainingCharacters)));
+                    children: ReadChildren(document, element, partPath, childEdit, decoded, ref remainingCharacters)));
             } else if (element.Name == OdfNamespaces.Draw + "frame"
                 && element.Element(OdfNamespaces.Draw + "image") != null) {
                 var image = new OdtImage(document, element, partPath, childEdit);
@@ -133,13 +133,13 @@ public sealed class OdtInlineNode {
             } else if (element.Name == OdfNamespaces.Text + "bookmark-end") {
                 result.Add(BookmarkNode(OdtInlineNodeKind.BookmarkEnd, element));
             } else if (OdtField.TryGetKind(element.Name, out _)) {
-                result.Add(new OdtInlineNode(OdtInlineNodeKind.Field, OdfTextCodec.Read(element, ref remainingCharacters),
+                result.Add(new OdtInlineNode(OdtInlineNodeKind.Field, decoded.Read(element, ref remainingCharacters),
                     field: new OdtField(document, element, partPath, childEdit)));
             } else if (element.Name == OdfNamespaces.Text + "note") {
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Note, string.Empty,
                     note: new OdtNote(document, element, partPath)));
             } else {
-                result.Add(new OdtInlineNode(OdtInlineNodeKind.Other, OdfTextCodec.Read(element, ref remainingCharacters),
+                result.Add(new OdtInlineNode(OdtInlineNodeKind.Other, decoded.Read(element, ref remainingCharacters),
                     qualifiedName: element.Name.ToString()));
             }
         }

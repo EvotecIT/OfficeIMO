@@ -382,23 +382,13 @@ namespace OfficeIMO.Visio {
 
         private static (double X, double Y) GetPagePoint(VisioShape shape,
             double x, double y) {
-            (double parentX, double parentY) = shape.GetAbsolutePoint(x, y);
-            return shape.Parent == null
-                ? (parentX, parentY)
-                : GetPagePoint(shape.Parent, parentX, parentY);
+            return shape.GetAbsolutePoint(x, y);
         }
 
         private static (double X, double Y) ConvertPagePointToLocal(
             VisioShape shape, double pageX, double pageY) {
-            (double parentX, double parentY) = shape.Parent == null
-                ? (pageX, pageY)
-                : ConvertPagePointToLocal(shape.Parent, pageX, pageY);
-            double dx = parentX - shape.PinX;
-            double dy = parentY - shape.PinY;
-            double cos = Math.Cos(shape.Angle);
-            double sin = Math.Sin(shape.Angle);
-            return (shape.LocPinX + cos * dx + sin * dy,
-                shape.LocPinY - sin * dx + cos * dy);
+            var point = VisioNativeShapeTransform.Create(shape).LocalPoint(new OfficeIMO.Drawing.OfficePoint(pageX, pageY));
+            return (point.X, point.Y);
         }
 
         private static void AddUnique(IList<string> values, string value) {

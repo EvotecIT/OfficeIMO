@@ -4,7 +4,7 @@
     <Description>First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.</Description>
     <AssemblyName>OfficeIMO.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Pdf</AssemblyTitle>
-    <VersionPrefix>3.4.4</VersionPrefix>
+    <VersionPrefix>3.4.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -32,6 +32,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\sRGB_IEC61966-2-1_no_black_scaling.icc" />
+    <EmbeddedResource Include="Resources/AdobeCMaps/Uni*-UCS2-H;Resources/AdobeCMaps/Adobe-*-UCS2" LogicalName="OfficeIMO.Pdf.AdobeCMaps.%(Filename)%(Extension)" />
+    <None Include="Resources/AdobeCMaps/LICENSE.md;Resources/AdobeCMaps/LICENSE.txt;Resources/AdobeCMaps/source.json" Pack="true" PackagePath="licenses/AdobeCMaps/" />
+    <None Include="THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="THIRD-PARTY-NOTICES.md" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
@@ -70,6 +73,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Ocr" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Chm.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
@@ -79,7 +83,10 @@
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Rtf.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Visio.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odg.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Xps.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.DjVu.Pdf" />
   </ItemGroup>
 
 </Project>

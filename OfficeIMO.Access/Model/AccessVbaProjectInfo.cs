@@ -20,7 +20,7 @@ namespace OfficeIMO.Access {
 
     /// <summary>A declared VBA module and its available inert source.</summary>
     public sealed class AccessVbaModuleInfo {
-        internal AccessVbaModuleInfo(OfficeIMO.Core.Internal.OfficeVbaModule module, string storagePrefix) {
+        internal AccessVbaModuleInfo(OfficeIMO.Core.Internal.OfficeVbaModuleInspection module, string storagePrefix) {
             Name = module.Name; StoragePath = storagePrefix + "VBA/" + module.StreamName; IsProcedural = module.IsProcedural;
             SourceOffset = module.SourceOffset; IsReadOnly = module.IsReadOnly; IsPrivate = module.IsPrivate;
             Source = module.Source; SourceLimitation = module.Limitation;
@@ -45,7 +45,7 @@ namespace OfficeIMO.Access {
 
     /// <summary>An inert VBA reference with its native identifier.</summary>
     public sealed class AccessVbaReferenceInfo {
-        internal AccessVbaReferenceInfo(OfficeIMO.Core.Internal.OfficeVbaReference reference) { Name = reference.Name; NativeKind = reference.NativeKind; LibraryId = reference.LibraryId; }
+        internal AccessVbaReferenceInfo(OfficeIMO.Core.Internal.OfficeVbaReferenceInspection reference) { Name = reference.Name; NativeKind = reference.NativeKind; LibraryId = reference.LibraryId; }
         /// <summary>Declared reference name.</summary>
         public string Name { get; }
         /// <summary>Native reference record type.</summary>

@@ -1,0 +1,33 @@
+{
+  "method": "Python stdlib ZIP/XML; no OfficeIMO loads",
+  "decodeSha256": "ae4cd80592f286002e658f4859090ae11d6d12a592c23b9d1f7bc9614ef3f965",
+  "artifacts": [
+    {
+      "file": "pages-table-borders-v15.4.docx",
+      "bytes": 8291,
+      "sha256": "0899227e1a4bb3b33106b005b8c7570a1492e410fe4c3b56c6c4563028d60ab8",
+      "values": 16,
+      "edges": 64,
+      "boldCells": 10,
+      "emptyD3": true
+    },
+    {
+      "file": "pages-table-borders-officeimo.docx",
+      "bytes": 19730,
+      "sha256": "13ef11968bc98c626abcfc0efe81e302338981d9589446c0b86f2b950989e1e6",
+      "values": 16,
+      "edges": 64,
+      "boldCells": 10,
+      "emptyD3": true
+    },
+    {
+      "file": "pages-table-borders-officeimo-reimport.docx",
+      "bytes": 8365,
+      "sha256": "6687dedf3d0c04098318ddaf33e71dc40d7aa50ddd19f702dadafadfae0ce6b4",
+      "values": 16,
+      "edges": 64,
+      "boldCells": 10,
+      "emptyD3": true
+    }
+  ]
+}

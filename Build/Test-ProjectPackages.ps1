@@ -142,6 +142,7 @@ try {
         'OfficeIMO.Reader.Email' = @('OfficeIMO.Email', 'OfficeIMO.Email.Html', 'OfficeIMO.Mhtml', 'OfficeIMO.Reader.Core', 'OfficeIMO.Reader.Html')
         'OfficeIMO.Reader.Epub' = @('OfficeIMO.Epub', 'OfficeIMO.Reader.Core', 'OfficeIMO.Reader.Html')
         'OfficeIMO.Visio.Pdf' = @('OfficeIMO.Core', 'OfficeIMO.Pdf', 'OfficeIMO.Visio')
+        'OfficeIMO.OpenDocument.Odg.Pdf' = @('OfficeIMO.Core', 'OfficeIMO.OpenDocument', 'OfficeIMO.Pdf')
     }
     foreach ($entry in $expectedDirectDependencies.GetEnumerator()) {
         $metadata = $packageMetadata | Where-Object { $_.Id -eq $entry.Key }

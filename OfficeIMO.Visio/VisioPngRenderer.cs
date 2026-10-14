@@ -10,7 +10,7 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Visio {
     internal static partial class VisioPngRenderer {
 
-        internal static OfficeRasterImage RenderRaster(VisioPage page, VisioPngSaveOptions options) {
+        internal static OfficeRasterImage RenderRaster(VisioPage page, VisioPngSaveOptions options, VisioRenderLayerVisibility layerVisibility) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (options.PixelsPerInch <= 0D || double.IsNaN(options.PixelsPerInch) || double.IsInfinity(options.PixelsPerInch)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "PixelsPerInch must be a finite positive number.");
@@ -20,8 +20,9 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentOutOfRangeException(nameof(options), "Supersampling must be between 1 and 4.");
             }
 
-            int width = Math.Max(1, (int)Math.Ceiling(Math.Max(page.Width, 0.01D) * options.PixelsPerInch));
-            int height = Math.Max(1, (int)Math.Ceiling(Math.Max(page.Height, 0.01D) * options.PixelsPerInch));
+            VisioRenderProjection projection = VisioRenderProjection.Create(page, options.PixelsPerInch, options.Supersampling);
+            int width = Math.Max(1, (int)Math.Ceiling(projection.WidthInches * options.PixelsPerInch));
+            int height = Math.Max(1, (int)Math.Ceiling(projection.HeightInches * options.PixelsPerInch));
             RasterCanvas canvas = new(
                 width,
                 height,
@@ -34,19 +35,21 @@ namespace OfficeIMO.Visio {
                 options.ImageDiagnostics,
                 options.ImageDiagnosticSource,
                 options.CancellationToken);
-            canvas.Scale = options.PixelsPerInch * options.Supersampling;
-
-            foreach (VisioShape shape in page.Shapes) {
-                options.CancellationToken.ThrowIfCancellationRequested();
-                DrawShape(canvas, page, shape, options);
-            }
-
-            VisioRenderLabelLayout? labelLayout = options.ResolveConnectorLabelOverlaps
-                ? VisioRenderLabelLayout.Create(page)
-                : null;
-            foreach (VisioConnector connector in page.Connectors) {
-                options.CancellationToken.ThrowIfCancellationRequested();
-                DrawConnector(canvas, page, connector, options, labelLayout);
+            foreach (VisioPage contentPage in VisioBackgroundComposition.Resolve(page, options.CancellationToken, options.ImageDiagnostics, options.ImageDiagnosticSource)) {
+                canvas.Projection = VisioRenderProjection.CreateForContent(contentPage, page, options.PixelsPerInch, options.Supersampling);
+                var contentVisibility = ReferenceEquals(contentPage, page) ? layerVisibility : new VisioRenderLayerVisibility(contentPage, options.LayerMode);
+                var textStyles = new VisioNativeTextStyleResolver(contentPage.OwnerDocument, options.CancellationToken, options.ImageDiagnostics, options.ImageDiagnosticSource);
+                foreach (VisioShape shape in contentPage.Shapes) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
+                    DrawShape(canvas, contentPage, shape, options, textStyles, contentVisibility);
+                }
+                VisioRenderLabelLayout? labelLayout = options.ResolveConnectorLabelOverlaps
+                    ? VisioRenderLabelLayout.Create(contentPage, contentVisibility) : null;
+                foreach (VisioConnector connector in contentPage.Connectors) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
+                    if (!contentVisibility.IsVisible(connector)) continue;
+                    DrawConnector(canvas, contentPage, connector, options, labelLayout, textStyles);
+                }
             }
 
             return OfficeRasterImage.FromRgba32(width, height, canvas.Resolve());
@@ -63,15 +66,34 @@ namespace OfficeIMO.Visio {
             return null;
         }
 
-        private static void DrawShape(RasterCanvas canvas, VisioPage page, VisioShape shape, VisioPngSaveOptions options) {
+        private static void DrawShape(RasterCanvas canvas, VisioPage page, VisioShape shape, VisioPngSaveOptions options, VisioNativeTextStyleResolver textStyles, VisioRenderLayerVisibility layerVisibility) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            if (layerVisibility.IsVisible(shape)) DrawShapeContent(canvas, page, shape, options, textStyles);
+            foreach (VisioShape child in shape.Children) {
+                DrawShape(canvas, page, child, options, textStyles, layerVisibility);
+            }
+        }
+
+        private static void DrawShapeContent(RasterCanvas canvas, VisioPage page, VisioShape shape, VisioPngSaveOptions options, VisioNativeTextStyleResolver textStyles) {
+            VisioNativeShapeTransform transform;
+            try {
+                transform = VisioNativeShapeTransform.Create(shape, options.ImageDiagnostics, options.ImageDiagnosticSource);
+            } catch (Exception exception) when (exception is ArgumentException || exception is InvalidDataException) {
+                VisioNativeShapeTransform.ReportInvalid(shape, options.ImageDiagnostics, options.ImageDiagnosticSource, exception);
+                return;
+            }
             string kind = VisioShapeGeometry.ResolveRenderKind(shape);
-            if (VisioShapeGeometry.TryGetRenderClosedPaths(shape, out List<VisioShapeGeometryPath> preservedPaths)) {
+            bool foreign = VisioForeignImage.IsForeign(shape);
+            if (foreign) {
+                if (VisioForeignImage.TryGetProjection(shape, page, canvas.Projection.GeometryDensity, options.ImageDiagnostics, options.ImageDiagnosticSource, out OfficeImageProjection projection))
+                    canvas.DrawImage(VisioForeignImage.Decode(shape, options.ImageCodec, options.ImageDiagnostics, options.ImageDiagnosticSource, options.CancellationToken), projection.Translate(0, canvas.Projection.ContentOffsetY));
+            } else if (VisioShapeGeometry.TryGetRenderClosedPaths(shape, out List<VisioShapeGeometryPath> preservedPaths)) {
                 List<RenderedPreservedPath> renderedPaths = new();
                 foreach (VisioShapeGeometryPath preservedPath in preservedPaths) {
                     List<(double X, double Y)> points = new();
                     for (int i = 0; i < preservedPath.Points.Count; i++) {
-                        (double px, double py) = GetPagePoint(shape, preservedPath.Points[i].X, preservedPath.Points[i].Y);
-                        points.Add(ToRaster(page, px, py, canvas.Scale));
+                        OfficePoint point = transform.PagePoint(preservedPath.Points[i].X, preservedPath.Points[i].Y);
+                        points.Add(ToRaster(page, point.X, point.Y, canvas.Projection));
                     }
 
                     renderedPaths.Add(new RenderedPreservedPath(preservedPath, points));
@@ -79,27 +101,22 @@ namespace OfficeIMO.Visio {
 
                 Color fill = shape.FillPattern == 0 ? Color.Transparent : shape.FillColor;
                 Color stroke = HasVisibleLine(shape) ? shape.LineColor : Color.Transparent;
-                double strokeWidth = Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling);
+                double strokeWidth = Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling);
                 for (int i = 0; i < renderedPaths.Count;) {
                     RenderedPreservedPath renderedPath = renderedPaths[i];
-                    if (!renderedPath.Path.IsClosed || renderedPath.Path.NoFill || fill.A == 0) {
-                        StrokeRenderedPreservedPath(canvas, renderedPath, stroke, strokeWidth, OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
-                        i++;
-                        continue;
-                    }
-
                     int fillGroup = renderedPath.Path.FillGroup;
-                    List<List<(double X, double Y)>> contours = new() { renderedPath.Points };
+                    List<List<(double X, double Y)>> contours = new();
                     int end = i + 1;
                     while (end < renderedPaths.Count &&
-                           renderedPaths[end].Path.IsClosed &&
-                           !renderedPaths[end].Path.NoFill &&
                            renderedPaths[end].Path.FillGroup == fillGroup) {
-                        contours.Add(renderedPaths[end].Points);
                         end++;
                     }
 
-                    canvas.FillPolygonsEvenOdd(contours, fill);
+                    for (int pathIndex = i; pathIndex < end; pathIndex++) {
+                        if (renderedPaths[pathIndex].Path.CanFill) contours.Add(renderedPaths[pathIndex].Points);
+                    }
+                    // Fill closes each eligible contour implicitly; stroke closure stays native.
+                    if (fill.A > 0 && contours.Count > 0) canvas.FillPolygonsEvenOdd(contours, fill);
                     for (int pathIndex = i; pathIndex < end; pathIndex++) {
                         StrokeRenderedPreservedPath(canvas, renderedPaths[pathIndex], stroke, strokeWidth, OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
                     }
@@ -108,53 +125,47 @@ namespace OfficeIMO.Visio {
                 }
             } else if (kind == "ellipse" || kind == "circle") {
                 (double centerX, double centerY) = GetPagePoint(shape, shape.Width / 2D, shape.Height / 2D);
-                (double cx, double cy) = ToRaster(page, centerX, centerY, canvas.Scale);
+                (double cx, double cy) = ToRaster(page, centerX, centerY, canvas.Projection);
                 canvas.DrawEllipse(
                     cx,
                     cy,
-                    Math.Abs(shape.Width * canvas.Scale / 2D),
-                    Math.Abs(shape.Height * canvas.Scale / 2D),
+                    Math.Abs(shape.Width * canvas.Projection.GeometryDensity / 2D),
+                    Math.Abs(shape.Height * canvas.Projection.GeometryDensity / 2D),
                     shape.FillPattern == 0 ? Color.Transparent : shape.FillColor,
                     HasVisibleLine(shape) ? shape.LineColor : Color.Transparent,
-                    Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling),
+                    Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling),
                     OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern),
-                    ToRasterRotation(shape.Angle),
+                    ToRasterRotation(Math.Atan2(transform.Matrix.M12, transform.Matrix.M11)),
                     cx,
                     cy);
             } else if (kind == "database") {
                 DrawDatabaseShape(canvas, page, shape);
+                if (transform.HasReflection) VisioNativeShapeTransform.ReportArtwork(shape, options.ImageDiagnostics, options.ImageDiagnosticSource);
             } else {
                 List<(double X, double Y)> local = VisioShapeGeometry.GetBuiltinClosedPath(shape, kind);
                 List<(double X, double Y)> points = new();
                 for (int i = 0; i < local.Count; i++) {
-                    (double px, double py) = GetPagePoint(shape, local[i].X, local[i].Y);
-                    points.Add(ToRaster(page, px, py, canvas.Scale));
+                    OfficePoint point = transform.PagePoint(local[i].X, local[i].Y);
+                    points.Add(ToRaster(page, point.X, point.Y, canvas.Projection));
                 }
 
                 canvas.FillPolygon(points, shape.FillPattern == 0 ? Color.Transparent : shape.FillColor);
-                canvas.StrokePolygon(points, HasVisibleLine(shape) ? shape.LineColor : Color.Transparent, Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling), OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
+                canvas.StrokePolygon(points, HasVisibleLine(shape) ? shape.LineColor : Color.Transparent, Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling), OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
             }
 
-            if (options.RenderStencilArtwork) {
-                if (!DrawPackagePreviewArtwork(canvas, page, shape, options)) {
+            if (!foreign && options.RenderStencilArtwork) {
+                bool preview = DrawPackagePreviewArtwork(canvas, page, shape, options);
+                if (!preview) {
                     DrawStencilArtwork(canvas, page, shape);
                 }
+                if (transform.HasReflection && (preview || !string.IsNullOrEmpty(VisioStencilArtwork.GetKey(shape))))
+                    VisioNativeShapeTransform.ReportArtwork(shape, options.ImageDiagnostics, options.ImageDiagnosticSource);
             }
 
             if (options.RenderText && !string.IsNullOrEmpty(shape.Text)) {
                 VisioTextStyle? style = shape.TextStyle;
-                double textWidth = Math.Max(0.05D, style?.TextWidth ?? shape.Width);
-                double textHeight = Math.Max(0.05D, style?.TextHeight ?? shape.Height);
-                (double localX, double localY) = ResolveTextBoxCenter(
-                    style?.TextPinX ?? shape.Width / 2D,
-                    style?.TextPinY ?? shape.Height / 2D,
-                    textWidth,
-                    textHeight,
-                    style);
-                (double textX, double textY) = GetPagePoint(shape, localX, localY);
-                (double x, double y) = ToRaster(page, textX, textY, canvas.Scale);
-                double horizontalMargins = (style?.LeftMargin ?? 0.05D) + (style?.RightMargin ?? 0.05D);
-                double verticalMargins = (style?.TopMargin ?? 0.03D) + (style?.BottomMargin ?? 0.03D);
+                VisioTextFramePlacement frame = VisioTextFramePlacement.Resolve(shape, canvas.Projection.DrawingToPhysical, transform);
+                (double x, double y) = ToRaster(page, frame.PageX, frame.PageY, canvas.Projection);
                 DrawText(
                     canvas,
                     shape.Text!,
@@ -162,16 +173,15 @@ namespace OfficeIMO.Visio {
                     y,
                     style,
                     10D,
-                    Math.Max(canvas.Supersampling * 12D, (textWidth - horizontalMargins) * canvas.Scale),
-                    Math.Max(canvas.Supersampling * 8D, (textHeight - verticalMargins) * canvas.Scale),
-                    ToRasterRotation(shape.Angle + (style?.TextAngle ?? 0D)),
-                    false);
+                    Math.Max(canvas.Supersampling * 12D, frame.ContentWidth * canvas.Projection.GeometryDensity),
+                    Math.Max(canvas.Supersampling * 8D, frame.ContentHeight * canvas.Projection.GeometryDensity),
+                    ToRasterRotation(frame.Angle),
+                    false,
+                    VisioRichTextProjection.Create(page, shape, canvas.Projection.PhysicalDensity, options.CancellationToken, textStyles));
             }
 
-            foreach (VisioShape child in shape.Children) {
-                DrawShape(canvas, page, child, options);
-            }
         }
+
 
         private static void StrokeRenderedPreservedPath(
             RasterCanvas canvas,
@@ -198,32 +208,26 @@ namespace OfficeIMO.Visio {
             internal List<(double X, double Y)> Points { get; }
         }
 
-        private static (double X, double Y) ResolveTextBoxCenter(double pinX, double pinY, double width, double height, VisioTextStyle? style) {
-            double locPinX = style?.TextLocPinX ?? width / 2D;
-            double locPinY = style?.TextLocPinY ?? height / 2D;
-            return (pinX + (width / 2D) - locPinX, pinY + (height / 2D) - locPinY);
-        }
-
         private static bool HasVisibleLine(VisioShape shape) =>
             shape.LinePattern != 0 && shape.LineWeight > 0D && shape.LineColor.A > 0;
 
         private static void DrawDatabaseShape(RasterCanvas canvas, VisioPage page, VisioShape shape) {
             double capHeight = Math.Min(shape.Height * 0.18D, shape.Width * 0.16D);
             double midX = shape.Width / 2D;
-            (double topX, double topY) = ToRasterPoint(page, shape, midX, shape.Height - capHeight, canvas.Scale);
-            (double bottomX, double bottomY) = ToRasterPoint(page, shape, midX, capHeight, canvas.Scale);
-            double radiusX = Math.Max(0.5D, shape.Width * canvas.Scale / 2D);
-            double radiusY = Math.Max(0.5D, capHeight * canvas.Scale);
+            (double topX, double topY) = ToRasterPoint(page, shape, midX, shape.Height - capHeight, canvas.Projection);
+            (double bottomX, double bottomY) = ToRasterPoint(page, shape, midX, capHeight, canvas.Projection);
+            double radiusX = Math.Max(0.5D, shape.Width * canvas.Projection.GeometryDensity / 2D);
+            double radiusY = Math.Max(0.5D, capHeight * canvas.Projection.GeometryDensity);
             Color fill = shape.FillPattern == 0 ? Color.Transparent : shape.FillColor;
             Color stroke = HasVisibleLine(shape) ? shape.LineColor : Color.Transparent;
-            double strokeWidth = Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling);
+            double strokeWidth = Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling);
             OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern);
 
             List<(double X, double Y)> body = new() {
-                ToRasterPoint(page, shape, 0D, capHeight, canvas.Scale),
-                ToRasterPoint(page, shape, 0D, shape.Height - capHeight, canvas.Scale),
-                ToRasterPoint(page, shape, shape.Width, shape.Height - capHeight, canvas.Scale),
-                ToRasterPoint(page, shape, shape.Width, capHeight, canvas.Scale)
+                ToRasterPoint(page, shape, 0D, capHeight, canvas.Projection),
+                ToRasterPoint(page, shape, 0D, shape.Height - capHeight, canvas.Projection),
+                ToRasterPoint(page, shape, shape.Width, shape.Height - capHeight, canvas.Projection),
+                ToRasterPoint(page, shape, shape.Width, capHeight, canvas.Projection)
             };
 
             canvas.FillPolygon(body, fill);
@@ -236,16 +240,16 @@ namespace OfficeIMO.Visio {
 
             canvas.StrokePolyline(
                 new[] {
-                    ToRasterPoint(page, shape, 0D, capHeight, canvas.Scale),
-                    ToRasterPoint(page, shape, 0D, shape.Height - capHeight, canvas.Scale)
+                    ToRasterPoint(page, shape, 0D, capHeight, canvas.Projection),
+                    ToRasterPoint(page, shape, 0D, shape.Height - capHeight, canvas.Projection)
                 },
                 stroke,
                 strokeWidth,
                 dashStyle);
             canvas.StrokePolyline(
                 new[] {
-                    ToRasterPoint(page, shape, shape.Width, capHeight, canvas.Scale),
-                    ToRasterPoint(page, shape, shape.Width, shape.Height - capHeight, canvas.Scale)
+                    ToRasterPoint(page, shape, shape.Width, capHeight, canvas.Projection),
+                    ToRasterPoint(page, shape, shape.Width, shape.Height - capHeight, canvas.Projection)
                 },
                 stroke,
                 strokeWidth,
@@ -254,15 +258,15 @@ namespace OfficeIMO.Visio {
             canvas.DrawEllipse(topX, topY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashStyle, rasterRotation, topX, topY);
         }
 
-        private static void DrawConnector(RasterCanvas canvas, VisioPage page, VisioConnector connector, VisioPngSaveOptions options, VisioRenderLabelLayout? labelLayout) {
+        private static void DrawConnector(RasterCanvas canvas, VisioPage page, VisioConnector connector, VisioPngSaveOptions options, VisioRenderLabelLayout? labelLayout, VisioNativeTextStyleResolver textStyles) {
             List<(double X, double Y)> pagePoints = GetConnectorPoints(connector);
             List<(double X, double Y)> points = new();
             for (int i = 0; i < pagePoints.Count; i++) {
-                points.Add(ToRaster(page, pagePoints[i].X, pagePoints[i].Y, canvas.Scale));
+                points.Add(ToRaster(page, pagePoints[i].X, pagePoints[i].Y, canvas.Projection));
             }
 
-            bool visibleLine = connector.LinePattern != 0 && connector.LineWeight > 0D && connector.LineColor.A > 0;
-            double weight = Math.Max(connector.LineWeight * canvas.Scale, canvas.Supersampling);
+            bool visibleLine = VisioConnectorGeometry.HasVisibleLine(connector);
+            double weight = Math.Max(connector.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling);
             canvas.StrokePolyline(points, visibleLine ? connector.LineColor : Color.Transparent, weight, OfficeStrokeDashStyleMapper.FromVisioLinePattern(connector.LinePattern));
 
             if (visibleLine && connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && OfficeGeometry.TryGetArrowheadSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
@@ -274,12 +278,14 @@ namespace OfficeIMO.Visio {
             }
 
             if (options.RenderConnectorLabels && !string.IsNullOrEmpty(connector.Label)) {
-                VisioRenderConnectorLabelPlacement label = labelLayout?.Resolve(connector, pagePoints) ?? ResolveConnectorLabel(connector, pagePoints);
-                (double labelCenterX, double labelCenterY) = ResolveTextBoxCenter(label.X, label.Y, label.Width, label.Height, connector.TextStyle);
-                (double x, double y) = ToRaster(page, labelCenterX, labelCenterY, canvas.Scale);
-                double maxWidth = label.Width * canvas.Scale;
-                double maxHeight = label.Height * canvas.Scale;
-                DrawText(canvas, connector.Label!, x, y, connector.TextStyle, 9D, maxWidth, maxHeight, 0D, true);
+                VisioRenderConnectorLabelPlacement label = labelLayout?.Resolve(connector, pagePoints) ?? VisioRenderLabelLayout.ResolveUnadjusted(connector, pagePoints, canvas.Projection);
+                (double labelCenterX, double labelCenterY) = VisioConnectorGeometry.GetLabelCenter(connector, label.X, label.Y, label.Width, label.Height);
+                (double x, double y) = ToRaster(page, labelCenterX, labelCenterY, canvas.Projection);
+                double maxWidth = label.Width * canvas.Projection.GeometryDensity;
+                double maxHeight = label.Height * canvas.Projection.GeometryDensity;
+                DrawText(canvas, connector.Label!, x, y, connector.TextStyle, 9D, maxWidth, maxHeight,
+                    ToRasterRotation(VisioConnectorLabelFrame.ResolveAngle(connector)), true,
+                    VisioRichTextProjection.Create(page, connector, canvas.Projection.PhysicalDensity, options.CancellationToken, textStyles));
             }
         }
 

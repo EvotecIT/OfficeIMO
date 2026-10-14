@@ -72,11 +72,17 @@ public sealed partial class OfficeFontFace {
 
     internal IOfficeFontProgram ParsedFont { get; }
 
+    // Library-selected installed substitutes retain their origin across collection
+    // snapshots. An explicit caller-created alias remains a caller-supplied family.
+    internal string? InstalledSubstituteFamily { get; set; }
+
     internal IReadOnlyDictionary<string, float>? VariationCoordinatesForShaping =>
         (ParsedFont as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping;
 
     internal OfficeFontFace Clone() =>
-        new OfficeFontFace(FamilyName, ResourceFamilyName, _data, Style, Descriptor, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true, automaticOpticalSizing: _automaticOpticalSizing);
+        new OfficeFontFace(FamilyName, ResourceFamilyName, _data, Style, Descriptor, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true, automaticOpticalSizing: _automaticOpticalSizing) {
+            InstalledSubstituteFamily = InstalledSubstituteFamily
+        };
 
     internal OfficeFontFace CreateAlias(string familyName, string resourceFamilyName) =>
         new OfficeFontFace(familyName, resourceFamilyName, _data, Style, Descriptor, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true, automaticOpticalSizing: _automaticOpticalSizing);

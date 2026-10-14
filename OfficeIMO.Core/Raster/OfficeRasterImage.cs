@@ -5,6 +5,8 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Dependency-free RGBA raster image buffer.
 /// </summary>
+/// <remarks>Pixels use tightly packed, top-to-bottom, straight-alpha RGBA bytes. The mutable image is not thread-safe.
+/// Pixel writes outside the canvas are clipped; pixel reads require in-bounds coordinates.</remarks>
 public sealed class OfficeRasterImage {
     private readonly byte[] _pixels;
 
@@ -22,6 +24,7 @@ public sealed class OfficeRasterImage {
             throw new ArgumentOutOfRangeException(nameof(height), "Height must be positive.");
         }
 
+        OfficeRasterGuards.EnsureOutputPixels(width, height, "Image dimensions exceed the managed image limit.");
         Width = width;
         Height = height;
         _pixels = new byte[checked(width * height * 4)];
@@ -36,8 +39,10 @@ public sealed class OfficeRasterImage {
     /// <summary>Image height in pixels.</summary>
     public int Height { get; }
 
-    /// <summary>Returns a copy of the RGBA pixels.</summary>
+    /// <summary>Returns an independent copy of the tightly packed RGBA pixels.</summary>
+    /// <remarks>The source and snapshot must fit the managed image working-set limit, as for <see cref="Clone"/>.</remarks>
     public byte[] GetPixels() {
+        EnsureSnapshotWorkingSet();
         byte[] copy = new byte[_pixels.Length];
         Buffer.BlockCopy(_pixels, 0, copy, 0, _pixels.Length);
         return copy;
@@ -76,7 +81,7 @@ public sealed class OfficeRasterImage {
         return OfficeColor.FromRgba(_pixels[offset], _pixels[offset + 1], _pixels[offset + 2], _pixels[offset + 3]);
     }
 
-    /// <summary>Sets a pixel without alpha blending.</summary>
+    /// <summary>Sets a pixel without alpha blending. Coordinates outside the canvas are ignored.</summary>
     public void SetPixel(int x, int y, OfficeColor color) {
         if ((uint)x >= (uint)Width || (uint)y >= (uint)Height) {
             return;
@@ -89,7 +94,7 @@ public sealed class OfficeRasterImage {
         _pixels[offset + 3] = color.A;
     }
 
-    /// <summary>Alpha blends a pixel over the current pixel.</summary>
+    /// <summary>Alpha blends a pixel over the current pixel. Coordinates outside the canvas are ignored.</summary>
     public void BlendPixel(int x, int y, OfficeColor color) {
         if ((uint)x >= (uint)Width || (uint)y >= (uint)Height || color.A == 0) {
             return;
@@ -135,6 +140,12 @@ public sealed class OfficeRasterImage {
 
         if ((uint)y >= (uint)Height) {
             throw new ArgumentOutOfRangeException(nameof(y));
+        }
+    }
+
+    private void EnsureSnapshotWorkingSet() {
+        if (_pixels.LongLength * 2L + 64L * 1024L > OfficeRasterGuards.MaximumDecodedBytes) {
+            throw new ArgumentException("Copying the RGBA image exceeds the managed image working-set limit.");
         }
     }
 

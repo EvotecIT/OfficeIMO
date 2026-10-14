@@ -1,16 +1,155 @@
 # Upgrading OfficeIMO
 
+## Excel future-function spelling
+
+Normal and array formula authoring stores `IFNA`, `MINIFS` and `MAXIFS` with the XLSX `_xlfn.` prefix. For example, `CellFormula(1, 1, "IFNA(NA(),99)")` stores `_xlfn.IFNA(NA(),99)`, which `GetFormulaText` returns. Update literal formula-text comparisons to use that stored spelling. Prefix expansion above 8,192 characters throws before changing the destination cells.
+
+## Formula entry in generated Numbers files
+
+Regenerate Numbers files created by the earlier scalar-table codec when native formula editing is required. The current creator registers every table with the native calculation engine; earlier generated files can leave newly entered formulas blank. Preservation-aware source saving retains the original graph and does not repair those registrations. Reading and converting existing scalar values remain supported.
+
+## Numbers table-cell padding
+
+Numbers conversion reads padding from applicable body, header and footer cell styles, including empty cells. XLSX has no equivalent four-sided cell padding setting, so these tables produce `IWORK_NUMBERS_CELL_PADDING_OMITTED`. A conversion previously reported as complete can now require explicit partial acceptance.
+
+To retain the editable values, formulas and supported styles while accepting this omission, use the result API and inspect its report:
+
+```csharp
+using OfficeIMO.Excel.IWork;
+using OfficeIMO.IWork;
+
+IWorkSourceDocument source = IWorkSourceDocument.Open("source.numbers");
+using NumbersToExcelResult result = source.ToExcelDocumentResult(
+    new IWorkConversionOptions {
+        Mode = IWorkConversionMode.EditableOnly,
+        AllowPartialEditableReconstruction = true
+    });
+foreach (var diagnostic in result.Report.Diagnostics)
+    Console.WriteLine(diagnostic.Code);
+result.Value.Save("converted.xlsx");
+```
+
+`ToExcelDocument` and the complete-reconstruction guards still reject partial output, including when the options permit it. Keep the default policy when completeness is required and handle rejection or an available permitted preview. The complete Numbers-to-PDF workflow also rejects padding loss; enabling partial editable reconstruction does not permit an incomplete PDF.
+
+## Shared native iWork character runs
+
+Replace `IWorkKeynoteTextRun` with `IWorkTextRunData` when calling `AddRichText` or constructing native Keynote text runs. The immutable run contract and defaults are unchanged. The same type supplies runs to `IWorkPagesDocument.AddRichParagraph`; use an explicit 12-point size for ordinary Pages body text because the shared run constructor retains Keynote's 32-point default. `AddParagraph` defaults to 12 points.
+
+## PowerPoint font resets and iWork table roles
+
+Setting `Bold = false` or `Italic = false` on a PowerPoint run, text box or table cell writes an explicit regular-font override. It overrides inherited formatting after save/reopen; it no longer removes the declaration and exposes a parent's bold or italic setting.
+
+iWork table conversion applies source fonts, fills and borders without adding bold text from header/footer roles or PowerPoint heading and banding presets. Apply destination styling explicitly when it is desired. PowerPoint PDF export uses resolved cell edges without drawing its default grid over them; an explicitly configured PDF table style retains its caller-selected grid.
+
+## PDF attachment authoring limits
+
+Generated PDF catalog attachments now default to 128 MiB per payload and 256 MiB
+across the catalog. Previously accepted larger inputs require explicit positive
+`PdfOptions.MaxEmbeddedFileBytes` and `MaxTotalEmbeddedFileBytes` values before
+calling `AddEmbeddedFile`, fluent attachment helpers, or invoice helpers.
+For example, use `MaxEmbeddedFileBytes = 256L * 1024 * 1024` and
+`MaxTotalEmbeddedFileBytes = 512L * 1024 * 1024` for a trusted workflow accepting
+256 MiB files within a 512 MiB collection.
+
+Structure attachments use the same defaults through
+`PdfCanvasStructureOptions.MaxAssociatedFileBytes` and
+`MaxTotalAssociatedFileBytes`. Raise those limits as well when attaching a larger
+trusted file to a structure element. Saving enforces the document's per-file
+limit and combined total across catalog files and distinct emitted structure
+files; repeated identical structure associations sharing one file specification
+count once. Over-budget admission or save throws `InvalidDataException`.
+
+Standalone `PdfEmbeddedFile` constructors retain their existing behavior.
+Read/edit operations continue to use their explicit `PdfLoadOptions` limits.
+The authoring limits bound admitted and emitted payload bytes, not defensive
+copies or peak process memory. See [attachment authoring limits](OfficeIMO.Pdf/README.md#attachment-authoring-limits)
+for configuration and destination-preservation behavior.
+
+## Excel worksheet page-fit inspection
+
+`ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,
+`FitToWidth` and `FitToHeight` exposed stored dimensions even when worksheet
+`fitToPage` was disabled. They now return null in that case. When fitting is
+enabled, an omitted dimension now returns the native default of `1` instead of
+null; an explicit `0` remains `0` and means no page limit for that dimension.
+
+Update inspection and export code to treat null fit dimensions as inactive and
+to use `Scale` for percentage-based printing. To enable page fitting, configure
+it through `sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U)` for one page wide
+with no height limit, instead of relying on cached dimensions in the worksheet XML.
+
+## Excel import cancellation and date conversion
+
+`ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
+
+`DateTimeOffsetWriteStrategy` runs once for each `CellValue` write, including writes that cannot use the direct-save buffer. Numeric writes use that converted value; dates outside Excel's numeric range retain the ISO text fallback. Do not depend on repeated callback invocations when a write falls back to the worksheet DOM.
+
+## PDF form value assessment
+
+`PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
+precision and range checks from the supported inert field/widget action profile.
+Unsupported script constraints produce assessment errors without executing code.
+Applications that previously displayed only length and choice errors must also
+display these errors and block acceptance until the assessment succeeds. Correct
+numeric values to the recovered rules; use a qualified form application for
+unsupported script constraints.
+The [form review contract](OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
+defines the supported helper calls; the policy does not emulate Acrobat formatting.
+## Shared raster workflow contracts
+
+`OfficeRasterEncodingOptions` uses an explicit nullable `Resolution` override in place of the shared `DpiX` and `DpiY` setters. Replace an explicit 300 DPI override with `Resolution = new OfficeImageResolution(300, 300)`. Null keeps a plain encoder's selected codec settings in control; metadata-aware encoding takes density from the supplied `OfficeImageMetadata` when the override is null. Format-specific density settings remain available on the PNG, JPEG, TIFF, and WebP option objects.
+
+Use `OfficeRasterDecodeOptions.FrameLossPolicy` and `OfficeRasterFrameLossPolicy` in place of `AnimationPolicy` and `OfficeRasterAnimationPolicy`. The policy describes discarded TIFF pages and icon entries as well as animation frames. `DecodeFrames` returns complete supported sequences; `Decode` selects one frame or page. Throwing and best-effort entry points share the same decoder and limits.
+
+Raster text effects move from the long positional `OfficeRasterText.Draw` overload to `OfficeRasterTextOptions`. Pass the same options to `Measure` and `Draw` for consistent font, style, language, shaping, and wrapping. The short plain-text primitives retain their distinct convenience role.
+
+`OfficeRasterText.Draw` places the complete layout measured by `Measure`, including fractional line spacing. Rectangle height no longer removes lines. `Clip` controls glyph and effect clipping at the rectangle edges; `Wrap = false` preserves authored line breaks without adding soft wraps.
+
+Common raster decoding interpolates subsampled JPEG chroma by default. Set `OfficeRasterDecodeOptions.JpegHighQualityChroma = false` to select nearest-sample chroma reconstruction, including when reproducing pixels decoded with the earlier common default. This setting does not change EXIF orientation or acceptance of truncated input.
+
+Rotated and affine canvas images use fractional coverage at their outer boundaries. Edge pixels can therefore have partial alpha where the earlier renderer selected fully opaque pixels by their centers. Identity placement keeps the source pixels unchanged. Periodic image and vector fills assign shared tile boundaries by pixel center while retaining interpolation within each tile, avoiding seams between opaque tiles.
+
+The raster constructor now enforces the existing 50-million-pixel limit before allocation. `GetPixels` applies the same source-plus-copy managed-storage limit as `Clone`; applications retaining a large decoded image may need a smaller result before making another complete copy. Pixel setters retain clipping behavior. Canvas drawing onto its own image samples a guarded snapshot of the original pixels.
+
+`OfficeRasterResizeOptions` and an immutable `OfficeRasterResizePlan` replace consumer-owned aspect, crop, and temporary-memory calculations. Contain rounds midpoint ties away from zero within the requested bounds; Cover rounds upward and center-crops, with an odd extra pixel removed from the right or bottom. Percentage frame resizing retains floor rounding with a one-pixel minimum. See [managed raster workflows](Docs/officeimo.core-raster-workflows.md) for examples and metadata-omission evidence.
+
+## Word VBA module identities and removal
+
+`WordDocument.Macros` returns logical names from the VBA directory when a complete
+project is present. Applications that previously used compound stream names
+must use those logical names. `RemoveMacro` rejects protected-project mutation,
+host document/designer deletion and edits to signed VBA projects. For a signed
+project, delete the selected standard/class module through `ReadVbaProject()`
+and apply it with `SetVbaProject(project, new OfficeVbaWriteOptions {
+AllowSignatureRemoval = true })` to explicitly remove invalidated signatures.
+Use the typed `ReadVbaProject()` and
+`SetVbaProject(...)` workflow for explicit source changes and signature policy;
+use `RemoveMacros()` only when removing the entire project is intended.
+
+## Word native DOC font alignment
+
+Native DOC loading and saving use the format's top, center, baseline, bottom and
+automatic font-alignment values. Earlier OfficeIMO DOC saves with an explicit
+`WordParagraph.VerticalCharacterAlignmentOnLine` could encode a different
+alignment than requested; loading those files now follows the stored native value.
+For affected OfficeIMO-produced DOC files, reload the original DOCX source or
+reapply the intended `WordVerticalCharacterAlignment` value after loading, then
+save again. Use the named enum values when setting alignment.
+
 ## PDF named composite font mappings
 
 Text extraction throws `NotSupportedException` when shown text uses a named
-composite encoding such as `UniJIS-UCS2-H` without a `ToUnicode` map covering its
-shown character codes. Explicit `ActualText` and default artifact exclusion
-retain their logical extraction behavior.
+composite encoding without a supported Unicode mapping. `UniJIS-UCS2-H`,
+`UniGB-UCS2-H`, `UniCNS-UCS2-H` and `UniKS-UCS2-H` use bundled Adobe maps when the
+font's character collection matches and no `ToUnicode` map is supplied. An explicit
+`ToUnicode` map takes precedence and must cover every shown code; other named
+encodings require that explicit map. Explicit `ActualText` and default artifact
+exclusion retain their logical extraction behavior.
 Redaction search and planning return a non-reviewable plan with an error finding
 for the same input. Previous versions could interpret these character codes as
 WinAnsi and report misleading text or no matches. Redaction review also requires
-mappings for painted text under `ActualText` or artifacts. Supply a PDF with an explicit
-Unicode map, handle the extraction failure, and check `plan.IsReviewable` before
+mappings for painted text under `ActualText` or artifacts. Supply a PDF with a supported
+encoding or an explicit Unicode map, handle the extraction failure, and check `plan.IsReviewable` before
 applying redaction. Existing `Identity-H` and `Identity-V` behavior is unchanged.
 
 ## PDF mutation assessment cancellation
@@ -19,6 +158,15 @@ Replace `pdf.AssessMutations(default)` with
 `pdf.AssessMutations(operations: default)`. The cancellation-token overload makes
 the positional `default` literal ambiguous. Parameterless calls and calls with
 an explicit operation collection retain their existing behavior.
+
+## PDF inputs without readable objects
+
+Lenient typed reading throws `PdfParseException` with code `NoIndirectObjects`
+when an input contains no recoverable indirect objects. Reject these inputs
+instead of treating their former empty page collection as an opened PDF.
+`PdfDocument.Load` still captures the source lazily; call `Read`, `Inspect`, or
+`InspectForViewing` to require a typed read. `Preflight` retains read blockers,
+and zero-page catalogs and recoverable object fragments keep their existing behavior.
 
 ## EPUB XHTML image export
 
@@ -114,9 +262,49 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## Publisher Reader identity and transport
+
+`ReaderInputKind.Publisher` (`30`) requires document transport schema version 14.
+Update exhaustive input-kind switches and transport bindings. Schemas 5 through
+13 remain readable but cannot carry Publisher input kinds. CHM (`27`), DjVu (`28`)
+and DBF (`29`) retain their existing identities and minimum schema versions.
+Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current artifact.
+
+## DBF Reader identity and transport
+
+Register `.AddDbfHandler()` from `OfficeIMO.Reader.Dbf`, or use the all-adapters
+preset, to ingest DBF/xBase tables. `ReaderInputKind.Dbf` (`29`) requires document
+transport schema v13. Update exhaustive input-kind switches and transport bindings;
+schemas v5 through v12 remain readable but cannot carry DBF input kinds. CHM (`27`)
+and DjVu (`28`) retain their existing identities and minimum schema versions.
+Memo sidecar reads require explicit opt-in through `ReaderDbfOptions` or
+`ReaderAllOptions.Dbf.AllowMemoSidecarReads`.
+
+## DjVu Reader identity and transport
+
+Register `.AddDjVuHandler()` from `OfficeIMO.Reader.DjVu` for `.djvu` and `.djv`,
+or use the all-adapters preset. Results use `ReaderInputKind.DjVu` (`28`) and
+transport schema v12. Update exhaustive input-kind switches and transport bindings
+to accept the new value and version. Historical schemas remain readable; v11 and
+earlier cannot carry DjVu input kinds. Schema v11 and `ReaderInputKind.Chm` (`27`)
+retain their existing CHM contract. Obtain the current artifact through
+`OfficeDocumentReadResultSchema.GetJsonSchema()`. Native source page numbers remain
+stable when selected pages are reordered. Page images and new OCR are explicit
+options; corrupt stored text is a parsing diagnostic.
+
 `XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
 `XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
 for bounded chunks, tables, page citations and diagnostics.
+
+## CHM Reader identity
+
+Register `.AddChmHandler()` from `OfficeIMO.Reader.Chm` to ingest compiled HTML Help,
+or use the all-adapters preset. Results use `ReaderInputKind.Chm` (`27`) and document
+transport schema version 11. Update exhaustive kind switches and transport bindings
+to accept this value and version. Versions 5 through 10 remain readable; they cannot
+carry CHM input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the
+current artifact. CHM citations identify archive/topic paths rather than physical
+page numbers, and source hashes cover the original archive bytes.
 
 ## XPS PDF reading order
 
@@ -144,6 +332,62 @@ Use `XpsPage.ReplaceStoryFragmentsMarkup()` and
 content referenced by StoryFragments, update both detached trees and call
 `page.ReplaceMarkup(pageMarkup, storyFragmentsMarkup)` so the names and references
 commit together. Page-only edits that leave dangling native names are rejected.
+
+## Visio native page lengths
+
+Page dimensions, margins, layout grid distances and routing distances now read
+and write native cached lengths in inches. The XML `U` attribute selects the
+display unit; it does not change the unit of a cached length. Public page
+properties retain their inch-based values, and setters that accept a unit keep
+their existing conversion behavior. Untouched valid native length cells retain
+their cache spelling, unit, formula and producer error through saving and copying.
+
+Older OfficeIMO files can contain metric display values in these native caches.
+Loading follows the native inch contract rather than guessing whether a file
+was written incorrectly. For an affected file, assign the known intended page
+dimensions and distances before saving. For example, an intended 210 mm width
+is `page.Width = 210 / 25.4`; do not apply this correction to native files that
+already store inch-based caches.
+
+## Visio page coordinates
+
+`VisioShape.GetAbsolutePoint()` and `GetBounds()` now include cached reflections and every containing group, matching their page-coordinate contract. `GetShapeBounds()` and `GetPageShapeBounds()` agree. Remove caller-side loops that transform the result through parents again. Shape `PinX` and `PinY` still use parent coordinates.
+
+Selection alignment, distribution and grid placement use the transformed rectangle's page bounds, including noncentered local pins and rotation. Grid cell sizes use those bounds. Code comparing layouts must allow the corrected placement of reflected or grouped shapes. Coordinate operations throw `InvalidDataException` when a native reflection has neither a finite cache nor a constant numeric formula.
+
+## Visio preview layer selection
+
+SVG and raster previews now honor layer `Visible` flags by default. Use `LayerMode = VisioLayerRenderMode.All` on SVG, PNG or image-export options, or `.LayerMode(VisioLayerRenderMode.All)` on a fluent builder, to retain the previous behavior of including every layer. `Printable` uses `Print` flags independently of screen visibility. Reader and semantic PDF extraction still include hidden content.
+
+Newly created native layer rows now use zero-based indices, matching their membership positions. Existing imported row identities are retained. Code inspecting new package/XML rows must no longer assume that their indices start at 1.
+
+## Visio layer and hyperlink edits
+
+Assigning a `VisioLayer` or `VisioHyperlink` value now replaces its imported formula, native null condition and producer error, even when assigning the current value. Leave a property untouched when its source formula must survive. Untouched cells and units remain preserved.
+
+Consumers inspecting layer XML must use each saved row's `IX` rather than assume that saving renumbers rows consecutively. Loaded row identities are retained, while `LayerMember` continues to use zero-based positions in the page layer list. Reordering the list rewrites membership positions.
+
+New unnamed hyperlinks choose unused `Row_n` names rather than always deriving the name from their list position. Read the saved name or set a unique `RowName` when other code must reference that row. Copies retain allocated source names, and inherited master names are reserved unless an explicit local name overrides them. Imported numeric-only rows retain their source identity.
+
+## Visio Open XML font values
+
+Consumers inspecting VSDX/VSSX/VSTX XML directly must read `FaceName.NameU` and family names in cached font cells instead of numeric `FaceName.ID`/`Name` mappings. Constant numeric font formulas are written as `FONT("family")`, preserving `GUARD(...)` where present. Public `FontFamily` properties keep their existing usage, and legacy XML export retains numeric identities. Loading accepts older OfficeIMO numeric Open XML files.
+
+## Visio text background values
+
+`VisioTextStyle.BackgroundTransparency` remains a percentage: `15` means 15% transparent. Native `TextBkgndTrans` caches use fractions, so OfficeIMO writes `0.15` for that value. Older OfficeIMO-written files can contain percentage caches such as `15`; loading follows native units and exposes those as `1500`. Assign the intended percentage to `BackgroundTransparency` before saving such files. Untouched source caches and formulas remain preserved.
+
+Native `TextBkgnd` values `0` and `255` disable the text background. A zero-alpha `BackgroundColor` explicitly disables it; indexed native backgrounds use the document palette with the native index offset. Explicit background assignments replace the retained source cell, including its old formula and error state.
+
+## Visio preview diagnostics in PDF conversion
+
+Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutral model, Reader result and PDF conversion report. `RequireNoLoss()` rejects reported omissions such as unsupported foreign objects replaced by placeholders. Inspect `Warnings` and their `LossKind` before accepting those fallbacks. Disabled shape text and connector labels do not generate font-substitution warnings.
+
+## Visio connector endpoints
+
+`VisioConnector.From` and `To`, and inspection snapshot `FromId` and `ToId`, are nullable because imported and authored connectors can have free ends. Check for null before accessing an attached shape; use `StartPoint` and `EndPoint` for resolved page coordinates in inches. Assigning a point detaches that end. Existing shape-to-shape creation overloads still attach both ends.
+
+Connector geometry in saved files now uses its native local transform. Consumers reading XML geometry directly must apply Pin/LocPin/Angle to obtain page coordinates. Reader text represents unattached endpoints with coordinates instead of empty shape IDs. Topology `edge` records append start X/Y and end X/Y columns after the label; absent shape IDs remain empty.
 
 ## Static HTML rendering and capability profiles
 
@@ -238,6 +482,26 @@ Arrow decimals must fit both declared scale and precision. Redundant fractional 
 `OfficeDocumentOcrExecutionOptions` bounds a whole operation with a five-minute `TotalTimeout`, 4 Mi recognized characters, 100,000 detailed spans and 4 Mi span characters by default. These totals also apply across attachments in `ApplyOcrTreeAsync`. Set `MaxTotalRecognizedCharacters`, `MaxTotalSpans`, `MaxTotalSpanCharacters` and `TotalTimeout` explicitly for workloads that require larger accepted output or longer execution. Limit diagnostics report truncation or skipped recognition; unresolved candidates remain available.
 
 Decimal field extraction rejects precision loss and underflow instead of returning a rounded `Present` value. Handle `Invalid` and review its exact raw value and citations when the requested decimal cannot represent the source exactly.
+
+## OpenDocument paragraph whitespace
+
+Native paragraph `Text`, inline snapshots and Draw text projection now collapse literal XML spaces, tabs, carriage returns and line feeds across supported spans and hyperlinks, and remove leading and trailing literal whitespace. Applications that previously treated source XML indentation as visible text should use the decoded paragraph view or inspect detached XML through `ToXml()` when they need the source syntax. Source character limits still count removed whitespace.
+
+Intentional whitespace written through typed `Text` remains encoded as explicit ODF whitespace elements. Existing `text:s`, `text:tab` and `text:line-break` content and non-XML Unicode spaces retain their characters. Ruby annotations no longer appear in paragraph text; ruby base text remains visible. See the [paragraph whitespace profile](OfficeIMO.OpenDocument/README.md#paragraph-whitespace) for cached-field and native appearance limits.
+
+## Draw window-dependent text colors
+
+Draw projection reports unsupported `text-window-color` for window-dependent or
+invalid foreground policies, including fully opaque text. `ToDrawing` and
+ODG-to-PDF conversion with `ThrowOnSkippedOrUnsupported` now reject this fallback
+where earlier versions could accept it. Use `ReportOnly` when the saved RGB
+fallback is acceptable, or give the source a fixed foreground policy. ODG/FODG
+saves retain the original declarations. See the
+[Draw text style cascade](OfficeIMO.OpenDocument/README.md#draw-text-style-cascade).
+
+## ODF style identifiers
+
+ODF named-style and dash identifiers, parent-style references, and new dash assignments must be XML NCNames. Replace labels such as `Long Short` with identifiers such as `LongShort`; invalid identifiers now fail before style XML changes. Dash pattern metrics require ODF notation such as `8pt`, without a leading plus or uppercase units. Existing imported XML remains available for preservation.
 
 ## ODS row layout conversion
 
@@ -415,6 +679,26 @@ continue to accept files. Document results use schema version 9 as described bel
 
 ## OpenDocument independent saves and formula results
 
+Draw `ToDrawing` uses `OfficeDrawingRichText` with paragraph descriptors instead of uniform `OfficeDrawingText` labels. Consumers inspecting drawing elements should read `PlainText`, `Runs` and `Paragraphs`; SVG, raster and PDF resolve paragraph positions with the configured fonts at render time. Supported text can now be present when its custom geometry is skipped. Inspect per-shape text mappings for unsupported layout, retained field caches, list labels, malformed or oversized input, and producer-specific defaults. Use `ThrowOnAnyLoss` when approximation is unacceptable.
+
+Draw projection approximates explicit width, height or both-axis growth for ordinary text boxes with horizontal text and top placement. Width grows first; height uses the selected wrapping option at that resolved width. Absolute instance minima replace the corresponding saved frame dimensions, and matching-unit maxima cap growth. A minimum can shrink a frame; a cap that clips text fails strict projection. Constrained and growing frames require both growth axes explicitly enabled or disabled. Relative, pixel, orphaned or inconsistent constraints and fitting combined with growth still fail strict projection. Width growth reserves horizontal ink insets before alignment and wrapping. Capped no-wrap text keeps its paragraph and text-area anchor. Width caps with unwrapped paint overflow and fixed-height wrapped clipping reject strict projection; growth does not enlarge pages. Chained text-box sources and incoming targets report unsupported flow even when the local target is empty. Source stories, links and saved geometry remain unchanged. See the [text-box sizing contract](OfficeIMO.OpenDocument/README.md#draw-text-box-sizing).
+
+Draw projection now reports `text-clipped` when shared layout omits content or clips text paint in fixed text frames and line/connector captions, including text without fitting. The check includes frame bounds, paragraph margins, padding, tabs, glyphs, decorations, highlights and shared layout limits. `ThrowOnSkippedOrUnsupported` rejects these cases instead of accepting a preview with missing text. Adjust the frame, margins, padding, line spacing or font sizes; inspect the report when using `ReportOnly`. Pass an `OfficeRenderingProfile` to the new `ToDrawing` or `ToDrawings` overload when supplying custom fonts or shaping. ODG-to-PDF checks use its final `PdfOptions` font selection. Later font-provider changes to returned drawings can alter the result. Unembedded PDF standard fonts use Adobe metrics; reader substitutes can paint outside those bounds. Configure licensed embedded fonts when predictable font selection is required. See the [Draw text fitting contract](OfficeIMO.OpenDocument/README.md#draw-text-fitting).
+
+Draw groups reject assignment to `Transform`, because ODF does not allow `draw:transform` on a group and native applications can discard it. Add children first and call `TransformChildren` to apply the operation to their geometry. The operation rejects attached connectors and unknown elements before changing any child; detach those ends or transform supported leaf shapes individually. Existing free connector routes and lines have their coordinates baked into native output.
+
+Draw connector route commands use points before the connector's own transform. `SetConnectorRoute` rounds them to 1/100 mm, replaces prior line offsets, and requires attached endpoints to match their glue positions. Endpoint, attachment, and routing-kind edits clear the cached path. Check `ToDrawing` reports for stale routes or missing native routing after moving shapes.
+
+Draw projection includes supported named start/end markers and pads affine paint canvases to retain strokes and markers outside the shape box. Consumers inspecting an `OfficeDrawingEffectGroup` must combine its transform with child positions to obtain a shape's page origin; the group origin can include paint padding. Marker-bound outlines are shortened and represented as paths. Draw paths now use the native shape-wide closure rule: any open contour opens all contours while retaining closing edges; fully closed shapes suppress markers. Open paths and polylines no longer paint their declared fill, with an `inactive-fill` mapping explaining the change. ODG/FODG retain the original XML. Fully closed compound fills retain their complete contour and holes. A fully consumed outline has no shaft element. Stroke opacity groups each contour's shaft and markers separately, so transparent compound strokes may introduce multiple effect groups and accumulate transparency at crossings. The marker measurement budget covers the whole shape. Inspect marker diagnostics for missing widths, measurement limits, and remaining native appearance approximations.
+
+Draw projection includes named native linear, axial and radial gradient fills. Consumers that previously treated every fill as `OfficeShape.FillColor` should also inspect `FillGradient` and `FillRadialGradient`. The shared definition model covers all six native styles; inspect `fill-gradient` mappings for unprojected fields, fixed bands, extended stops and ambiguous legacy angles. Unsupported active fills retain their stroke geometry. `FillGradientName = null` explicitly disables fill; `GradientStepCount = null` removes only the local step-count override. Replacing a gradient pattern retains unrelated attributes and updates equivalent LibreOffice endpoint stops, but rejects richer stop definitions to prevent an accidental two-color downgrade.
+
+Saving an ODF 1.2 document to a newer ODF version now rejects nonzero unitless native gradient and opacity angles. Older producers can interpret these angles in tenths of degrees, so rewriting only the root version can change appearance. Pass `new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.PreserveSource }` for preservation saves, or explicitly replace affected definitions with degree-valued patterns before upgrading. This applies even to reusable definitions that are not currently bound to a shape.
+
+Draw image frames expose `Crop` as intrinsic image-length offsets and project supported raster crop windows through the shared Drawing owner. Resizing a frame keeps its source crop; negative offsets create empty margins. Draw and `OdpImage.Crop` resolve inherited graphic styles. Assigning `null` removes the local override; use explicit zero insets to disable inherited cropping. Native `auto` reads as zero insets. Invalid crop syntax now throws `InvalidDataException` instead of silently appearing uncropped, and invalid edits fail before modifying styles. The writer emits schema-conforming comma-separated `fo:clip` values. Draw image frames also expose inherited `Mirror` values; explicit `None` disables the parent and `null` exposes it. Horizontal mirroring projects cropped pixels and blank margins around the original frame center. Other legal native mirror modes remain preserved but unsupported in projection. Inspect `image-crop` and `image-mirror` loss mappings for projection fallbacks.
+
+Regenerate ODP files previously converted from cropped PPTX pictures when the picture frame size differs from the image's intrinsic size. PowerPoint/ODP conversion now derives crop offsets from intrinsic pixel dimensions and per-axis resolution, so resizing a frame retains the selected source region. Existing ODP offsets keep their native meaning; the importer does not guess whether an older file contains frame-based offsets. Inspect the conversion report for crops that cannot be represented, or use `OdfConversionLossPolicy.ThrowOnAnyLoss` to reject them.
+
 `SaveCopy` and `SaveCopyAsync` leave the attached source and its pending edits unchanged. `Serialize`, `ToBytes`, and `ToStream` also preserve the source version, signatures, and encryption state. Stream saves behave this way when the document has a source path. Use a path-based `Save` or `SaveAsync` when the output should become the document's accepted state. Removing encryption from a copy does not authorize overwriting the encrypted source without a password or explicit removal option.
 
 The ODS evaluator follows OpenFormula precedence: `-2^2` evaluates to `4`, and `2^3^2` evaluates to `64`. Aggregate functions distinguish scalar arguments from references; `COUNT` ignores referenced errors. Call `Recalculate` explicitly to refresh caches that depend on these corrected results. Oversized text results return an evaluation error under `MaximumResultCharacters` and `MaximumTotalResultCharacters`.
@@ -535,6 +819,22 @@ path also writes directly and can leave a partial append on failure.
 `Append` and `NoClobber` are path-only options. Passing either to
 `SaveAsync(Stream, ...)` now throws `ArgumentException` instead of silently
 ignoring it.
+
+## Excel tabular imports preserve missing cells
+
+`InsertDataTable`, `InsertDataSet`, `InsertDataReader`, and projected object
+imports preserve `null` and `DBNull.Value` as blank cells through direct and
+materialized save paths.
+An explicit `string.Empty` remains a text cell. Readers return `DBNull` for the
+missing value and an empty string for the text value.
+
+If an application requires empty text for a missing imported value, replace
+that value with `string.Empty` before importing it. The existing
+`CellValue(null)` and `CellValue(DBNull.Value)` empty-text behavior is unchanged.
+
+Native XLS saves preserve explicitly authored empty strings as text, including
+styled cells. Readers now return an empty string for those cells where previous
+XLS saves wrote a blank record.
 
 ## Excel typed formula caches
 
@@ -854,6 +1154,54 @@ File overloads reject an oversized source before buffering. Applications that
 previously attached larger XML must reduce or split the payload before using
 these methods.
 
+## ChartForgeX 2.0 adapter integration
+
+`OfficeVisualConversionOptions.SvgPolicy` defaults to `RasterizeWhenNeeded` to
+preserve appearance when vector import is incomplete. Set `PreserveVector`
+explicitly to retain the previous imported-vector behavior, or `RequireVector`
+to reject unsupported content. Inspect the existing conversion report for
+fallback, approximation and omission diagnostics.
+
+When both `WidthPoints` and `HeightPoints` are supplied, `Fit` defaults to
+`OfficeImageFit.Contain`. Set `Fit = OfficeImageFit.Stretch` for the previous exact
+width-and-height sizing. A single dimension still preserves proportions.
+
+`AddVisualArtifact(artifact)` inserts directly. Word constrains an oversized
+visual to its paragraph's authored content-width estimate when no explicit size
+is supplied. PDF constrains oversized visuals to the current flow width by
+default; a custom `PdfDrawingStyle` controls `ConstrainToContentWidth` explicitly.
+The existing conversion-result overloads retain explicit Word placement.
+Use worksheet ranges and `PowerPointLayoutBox` for bounded placement.
+`OfficeVisualConversionResult.WithSize` resizes retained content without another
+render/import; prepare again to change label layout or typography. Use
+`OfficeVisualDocumentStyle.CreateContext` to prepare at the intended point size.
+
+Native Visio graph titles measure their saved text at the configured native font.
+`Title(..., height: ...)` supplies a minimum height. Preserved ChartForgeX geometry
+keeps its node and route positions; a title that cannot fit its free header
+corridor is omitted with `TitleNotProjected` rather than covering those objects.
+
+Rebuild callers of `OfficeIMO.ChartForgeX` against ChartForgeX 2.0. The bridge keeps
+its core-only ChartForgeX dependency. Add `ChartForgeX.Visuals` to the application
+when rendering factual tables, canvases, or watermarks; optional story and motion
+producers belong to `ChartForgeX.Stories`. Pass their common static artifacts to
+the existing `ToOfficeVisual` and document-placement APIs.
+
+Replace `VisualArtifactRenderOptions.Watermarks.Add(watermark)` with
+`artifact.WithWatermarks(watermark)` before conversion. Native editable Visio
+does not project those static layers. Inspect `WatermarkNotProjected`, or reject
+it through `RejectedDiagnostics`/`RequireLossless`; the diagnostic also survives
+interchange envelope and UTF-8 JSON handoff.
+
+Use `prepared.ToArtifact(id, kind)` when placing a prepared chart or diagram.
+It retains the resolved viewport, accessible text, and producer-owned semantics.
+Complete topology projection consumes resolved connector routes and label bounds;
+unprepared envelopes retain the authored waypoint and named-port contract.
+Flow and sequence keep native editable semantics with `LayoutRecomputed` and
+reject `LayoutMode = Preserve`. Their native page does not promise the prepared
+scene's placement. The Markdown companion uses `ChartForgeX.Markup.Mermaid` 2.0
+and keeps static fence materialization and document placement in their owners.
+
 ## Native ChartForgeX topology placement
 
 `OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.
@@ -984,6 +1332,8 @@ var options = new PdfToWordOptions {
 PDF-to-Word now stops image/text overlap analysis after one million comparisons per conversion by default. Set `PdfToWordOptions.MaxImageTextOverlapComparisons` higher for a trusted document that needs it. PDF-to-HTML annotation matching has a separate `PdfToHtmlOptions.MaximumAnnotationMatchWork` limit. PDF-to-HTML output is capped at 32 million characters by default; set `MaximumOutputCharacters` higher for trusted large exports, or `null` to disable that guard. Positioned page-appearance HTML emits visible text only; set `IncludeInvisibleTextInAppearanceOverlay` only when a caller intentionally needs hidden OCR text in the output.
 
 Word-to-PDF export accepts at most 1,000 images in one paragraph by default. `WordToPdfOptions.MaxImagesPerParagraph` can be raised for trusted documents. Generated PDFs can use `PdfOptions.MaxGeneratedPages` and `MaxGeneratedOutputBytes` to stop layout and serialization before excessive output is retained.
+
+PDF text layout rejects excessive cumulative cross-run kerning work with `InvalidDataException`. A very long word split across thousands of formatting runs can reach this limit even on a wide page. Reduce unnecessary run fragmentation or split the paragraph; supported layouts retain their kerning and formatting.
 
 Invoice PDF presentation now caps source XML, line text, line count, generated pages, and output bytes through `InvoicePdfLayoutOptions`. Pass explicit higher limits for known large invoices. `PdfInvoiceDocument.ToPdfBytes` and `ToPresentationPdfBytes` also accept a cancellation token. CII XML loading rejects documents with more than 100,000 nodes or 200,000 attributes before constructing an XML tree.
 
@@ -1407,6 +1757,11 @@ results retain their useful typed reports while exposing a common `Succeeded`,
 `Value`, and value-requirement vocabulary to generic applications and workflows.
 Concrete result types continue to expose their typed diagnostics, warnings, and
 exceptions.
+
+`RtfConversionResult<T>` now requires a reference-type `T` to implement these shared
+contracts. Wrap a value-type payload in a reference type when constructing a custom
+conversion result. Native documents, strings, and byte arrays already satisfy the
+constraint.
 
 Markdown, RTF, AsciiDoc, and LaTeX now expose the same native lifecycle. For example:
 
@@ -2682,6 +3037,32 @@ reports the actual delimiter used, including one selected by detection.
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 
+XML streaming Excel data readers also enforce `MaxXmlDataReaderBufferedCharacters`
+(32 Mi characters by default) while completing a physical row, or across all
+buffered out-of-order rows. Decoded raw, formula and inline text plus resolved
+strings count conservatively, including duplicate records. If intentionally
+larger trusted rows exceed this limit, close the failed reader and reopen with
+a higher value. After a limit failure, that range reader's `Read` and value
+getters continue throwing `InvalidDataException` until it is closed. XML
+preparation also bounds text used to validate shared-string indices and shared
+formula followers. Indexed UTF-8 and SDK worksheet-chunk caches keep their
+existing limits. This option does not cap framework XML parser memory; a CDATA
+or attribute node can be buffered before its decoded text is charged.
+
+XLSX numeric cells and cached numeric formula results now retain their invariant
+wire values under a configured reader culture. For example, `1.5` reads as `1.5`
+under `de-DE` instead of `15`, including decimal overflow fallback and typed object
+mapping. Legacy localized numeric text still uses the configured culture fallback.
+Culture-aware conversion of string cells and custom converter precedence
+remain unchanged. Re-read affected files if earlier imports persisted altered values.
+
+XML inline and shared strings include visible text and rich runs while excluding
+phonetic guidance and extension payloads. Only direct worksheet rows and cells
+contribute values, and only direct shared-string items contribute indexes. Cell
+extensions cannot replace a cell's value or formula. Re-read imports that included
+extension content. XML streaming data readers reject child markup inside individual
+text elements; valid rich runs, CDATA and preserved whitespace remain supported.
+
 The shared `OfficeRenderingProfile` and Excel structural mutation planning APIs are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy. Use `PlanInsertRows(...)` / `PlanDeleteRows(...)`, `PlanInsertColumns(...)` / `PlanDeleteColumns(...)`, or the range mutation plans when an application must inspect workbook impact before a transactional change; existing direct mutation calls remain available.
 
 ### PDF conversion and import
@@ -3031,6 +3412,12 @@ PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches.
 Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
 
 Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNoteToPdfOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
+
+### Native DOC paragraph spacing and alignment inheritance
+
+Loading a binary `.doc` file uses single line spacing and zero paragraph spacing when the source omits those values. Imported built-in styles inherit omitted spacing from their source base styles. Explicit source spacing remains in effect. This changes layout for files that previously acquired DOCX authoring spacing during import; remove any compensating spacing overrides that are no longer needed.
+
+Setting `WordParagraph.ParagraphAlignment` or `VerticalCharacterAlignmentOnLine` to `null` removes that direct paragraph setting and restores style inheritance. Set `WordParagraphAlignment.Left` or `WordVerticalCharacterAlignment.Auto` explicitly when an inherited setting should be overridden.
 
 ## Upgrade checklist
 

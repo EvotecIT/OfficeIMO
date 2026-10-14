@@ -1,0 +1,110 @@
+[
+  {
+    "family": "Arial",
+    "style": "Regular",
+    "path": "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "sha256": "525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9",
+    "bytes": 773236,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Arial",
+    "style": "Bold",
+    "path": "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "sha256": "d72db21f9242aedd6b917d8549ad5921766b24d5f8d0becfda2ff4c620b3c2e0",
+    "bytes": 750984,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Arial",
+    "style": "Italic",
+    "path": "/System/Library/Fonts/Supplemental/Arial Italic.ttf",
+    "sha256": "ce1d2f1ab89db45f9796100eee960f5702a40e84c225c2b48c3ec3e81d153f98",
+    "bytes": 553284,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Arial",
+    "style": "Bold Italic",
+    "path": "/System/Library/Fonts/Supplemental/Arial Bold Italic.ttf",
+    "sha256": "374b0190a9844343110d8f8ed1818117a4591803d022bbb2bd189d63a681e731",
+    "bytes": 558672,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Times New Roman",
+    "style": "Regular",
+    "path": "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+    "sha256": "f3b4ffff71c2a0c7227d37497683b2498fb2d0a4e8beae26f022e3ccfcaabfa3",
+    "bytes": 824920,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Times New Roman",
+    "style": "Bold",
+    "path": "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf",
+    "sha256": "50f5b1f27b7d34621090e437e8b1dd4510a22d2823fc876b3286bed327b64bbb",
+    "bytes": 832472,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Times New Roman",
+    "style": "Italic",
+    "path": "/System/Library/Fonts/Supplemental/Times New Roman Italic.ttf",
+    "sha256": "7bb99c3a67697fbce15ab66d806d9a2151432ce1dab2eaba4156e1251da486c0",
+    "bytes": 660268,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Times New Roman",
+    "style": "Bold Italic",
+    "path": "/System/Library/Fonts/Supplemental/Times New Roman Bold Italic.ttf",
+    "sha256": "906157e8294fdf168d83002eaabde01c2d30fc3f44977be89e33fa22f262002a",
+    "bytes": 620008,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Courier New",
+    "style": "Regular",
+    "path": "/System/Library/Fonts/Supplemental/Courier New.ttf",
+    "sha256": "c886ca3172d8ce9189976992d145ec090500a4ff516ecb9d4df56b1a78336247",
+    "bytes": 684624,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Courier New",
+    "style": "Bold",
+    "path": "/System/Library/Fonts/Supplemental/Courier New Bold.ttf",
+    "sha256": "500df4e46b554ae7d646e8727952fd8c7e60e94423481f6b82325cfddba2ee6a",
+    "bytes": 691796,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Courier New",
+    "style": "Italic",
+    "path": "/System/Library/Fonts/Supplemental/Courier New Italic.ttf",
+    "sha256": "b5c6d453f16fb1693652671fa2e11d8c8ad1cd0046c3f38ae2608d165838ecf1",
+    "bytes": 589900,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  },
+  {
+    "family": "Courier New",
+    "style": "Bold Italic",
+    "path": "/System/Library/Fonts/Supplemental/Courier New Bold Italic.ttf",
+    "sha256": "60e4c514200985d3f8405af039ffb89cd24b45fef5005b019825a4937b96135d",
+    "bytes": 506640,
+    "scope": "Installed Apple-supplied font used for local native and explicit-caller-font evidence only; no font file redistributed",
+    "fsType": 8
+  }
+]

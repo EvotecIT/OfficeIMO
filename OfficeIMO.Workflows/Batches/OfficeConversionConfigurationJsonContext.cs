@@ -5,7 +5,7 @@ namespace OfficeIMO.Workflows;
 
 // Source-generated native option metadata keeps checkpoint identity usable in trimmed and NativeAOT hosts.
 internal sealed record OfficeConversionRenderingConfiguration(string Route, OfficeWorkflowOutputProfile OutputProfile,
-    OfficeWorkflowConversionOptions Options, string Host);
+    OfficeWorkflowConversionOptions Options, string Host, long MaximumXmlCharactersInPart);
 
 [JsonSourceGenerationOptions(IncludeFields = true, GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(OfficeConversionRenderingConfiguration))]

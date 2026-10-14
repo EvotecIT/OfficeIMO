@@ -186,26 +186,30 @@ public static partial class PdfRewritePreservation {
         var inventory = new List<string>();
         for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++) {
             PdfFormField field = fields[fieldIndex];
+            AddInventory(field.Name, "field", field.Actions);
             for (int widgetIndex = 0; widgetIndex < field.Widgets.Count; widgetIndex++) {
                 PdfFormWidget widget = field.Widgets[widgetIndex];
-                var retainedOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
-                for (int actionIndex = 0; actionIndex < widget.Actions.Count; actionIndex++) {
-                    PdfFormWidgetAction action = widget.Actions[actionIndex];
-                    if (!IsPreservedActionType(options, action.ActionType)) continue;
-                    if (action.Uri is not null && options.ExcludedActionUris.Contains(action.Uri)) continue;
-                    string triggerName = NormalizeFilteredActionPath(action.TriggerName, options) ?? string.Empty;
-                    retainedOrdinals.TryGetValue(triggerName, out int retainedOrdinal);
-                    retainedOrdinals[triggerName] = retainedOrdinal + 1;
-                    inventory.Add((field.Name ?? string.Empty) + "\u001f" +
-                                  widgetIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
-                                  triggerName + "\u001f" +
-                                  retainedOrdinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
-                                  action.ActionType + "\u001f" + (action.JavaScript ?? string.Empty) + "\u001f" + (action.Uri ?? string.Empty) + "\u001f" + (action.PayloadFingerprint ?? string.Empty));
-                }
+                AddInventory(field.Name, widgetIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), widget.Actions);
             }
         }
         inventory.Sort(StringComparer.Ordinal);
         return inventory.ToArray();
+
+        void AddInventory(string? fieldName, string owner, IReadOnlyList<PdfFormWidgetAction> actions) {
+            var retainedOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++) {
+                PdfFormWidgetAction action = actions[actionIndex];
+                if (!IsPreservedActionType(options, action.ActionType)) continue;
+                if (action.Uri is not null && options.ExcludedActionUris.Contains(action.Uri)) continue;
+                string triggerName = NormalizeFilteredActionPath(action.TriggerName, options) ?? string.Empty;
+                retainedOrdinals.TryGetValue(triggerName, out int retainedOrdinal);
+                retainedOrdinals[triggerName] = retainedOrdinal + 1;
+                inventory.Add((fieldName ?? string.Empty) + "\u001f" + owner + "\u001f" +
+                              triggerName + "\u001f" +
+                              retainedOrdinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
+                              action.ActionType + "\u001f" + (action.JavaScript ?? string.Empty) + "\u001f" + (action.Uri ?? string.Empty) + "\u001f" + (action.PayloadFingerprint ?? string.Empty));
+            }
+        }
     }
 
     private static void CompareActionPayload(
@@ -224,12 +228,10 @@ public static partial class PdfRewritePreservation {
         IReadOnlyList<PdfFormField> fields,
         PdfRewritePreservationOptions options) {
         for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++) {
-            foreach (PdfFormWidget widget in fields[fieldIndex].Widgets) {
-                foreach (PdfFormWidgetAction action in widget.Actions) {
-                    if (IsPreservedActionType(options, action.ActionType) &&
-                        (action.Uri is null || !options.ExcludedActionUris.Contains(action.Uri)) &&
-                        action.PayloadFingerprint is null) return true;
-                }
+            foreach (PdfFormWidgetAction action in fields[fieldIndex].Actions.Concat(fields[fieldIndex].Widgets.SelectMany(widget => widget.Actions))) {
+                if (IsPreservedActionType(options, action.ActionType) &&
+                    (action.Uri is null || !options.ExcludedActionUris.Contains(action.Uri)) &&
+                    action.PayloadFingerprint is null) return true;
             }
         }
         return false;

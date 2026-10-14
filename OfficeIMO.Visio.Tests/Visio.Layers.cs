@@ -62,9 +62,9 @@ namespace OfficeIMO.Tests {
                 .Single(section => string.Equals(section.Attribute("N")?.Value, "Layer", StringComparison.OrdinalIgnoreCase));
             XElement[] rows = layerSection.Elements(ns + "Row").ToArray();
             Assert.Equal(3, rows.Length);
-            Assert.Equal("1", rows[0].Attribute("IX")?.Value);
-            Assert.Equal("2", rows[1].Attribute("IX")?.Value);
-            Assert.Equal("3", rows[2].Attribute("IX")?.Value);
+            Assert.Equal("0", rows[0].Attribute("IX")?.Value);
+            Assert.Equal("1", rows[1].Attribute("IX")?.Value);
+            Assert.Equal("2", rows[2].Attribute("IX")?.Value);
             Assert.Equal("Infrastructure", rows[0].Elements(ns + "Cell").Single(cell => (string?)cell.Attribute("N") == "Name").Attribute("V")!.Value);
             Assert.Equal("0", rows[1].Elements(ns + "Cell").Single(cell => (string?)cell.Attribute("N") == "Visible").Attribute("V")!.Value);
             Assert.Equal("Shared", rows[2].Elements(ns + "Cell").Single(cell => (string?)cell.Attribute("N") == "Name").Attribute("V")!.Value);
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
                     (string?)cell.Attribute("N") == "Name" &&
                     (string?)cell.Attribute("V") == "Annotations"));
 
-            Assert.Equal("2", annotations.Attribute("IX")?.Value);
+            Assert.Equal("5", annotations.Attribute("IX")?.Value);
             AssertLayerCell(annotations, ns, "Visible", "0", "BOOL", "GUARD(FALSE)");
             AssertLayerCell(annotations, ns, "Print", "0", "BOOL", "GUARD(FALSE)");
             AssertLayerCell(annotations, ns, "Lock", "1", "BOOL", "GUARD(TRUE)");

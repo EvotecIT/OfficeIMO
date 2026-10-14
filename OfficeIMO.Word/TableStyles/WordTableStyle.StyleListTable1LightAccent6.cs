@@ -2,9 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
-/// <summary>
-/// Contains predefined table style definitions.
-/// </summary>
+// Contains predefined table style definitions.
 public static partial class WordTableStyles {
 
     /// <summary>

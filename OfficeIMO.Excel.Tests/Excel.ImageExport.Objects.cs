@@ -531,10 +531,14 @@ namespace OfficeIMO.Tests {
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("Absolute shape", drawingObject.Text);
                 Assert.True(drawingObject.X > 0D, "Absolute-anchor shapes should resolve from worksheet-canvas coordinates instead of falling back to A1.");
-                Assert.Equal(19D, drawingObject.X);
+                // Stored width 8 occupies 56 grid pixels; the absolute x=80 anchor
+                // therefore starts 24 pixels inside the range beginning at column B.
+                Assert.Equal(24D, drawingObject.X);
                 Assert.True(drawingObject.Y > 0D, "Absolute-anchor shapes should preserve their vertical worksheet-canvas offset.");
                 Assert.Equal(96D, drawingObject.Width);
                 Assert.Equal(34D, drawingObject.Height);
+                ExcelVisualDrawingObject fullSheetObject = Assert.Single(sheet.Range("A1:D3").CreateVisualSnapshot().DrawingObjects);
+                Assert.Equal(80D, fullSheetObject.X);
             }
         }
 

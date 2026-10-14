@@ -70,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointTableCell> Cells =>
             Row.Elements<A.TableCell>().Select(cell =>
-                new PowerPointTableCell(cell, _table.SlidePart)).ToList();
+                _table.WrapCell(cell)).ToList();
 
         /// <summary>
         ///     Retrieves a cell at the specified column index.
@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.TableCell cell = Row.Elements<A.TableCell>().ElementAt(columnIndex);
-            return new PowerPointTableCell(cell, _table.SlidePart);
+            return _table.WrapCell(cell);
         }
 
         /// <summary>

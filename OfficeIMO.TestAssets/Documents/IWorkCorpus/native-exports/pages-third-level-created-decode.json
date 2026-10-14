@@ -1,0 +1,1082 @@
+{
+  "source": "/Volumes/Samsung/Development/Scratch/officeimo-iwork-implementation/pages-third-level/native/pages-third-level-created.pages",
+  "sha256": "50a5285d449da02eef7682a6a18b1f7103f6192304cc1f3173c52cac5576f775",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "recordCount": 62,
+  "page": {
+    "width": 612.0,
+    "height": 792.0,
+    "margins": [
+      72.0,
+      72.0,
+      72.0,
+      72.0
+    ]
+  },
+  "paragraphCount": 19,
+  "text": "Three decimal levels\nParent seven\nChild one\nGrandchild one\nGrandchild two\nPlain gap\nGrandchild continued three\nChild two resets grandchild\nGrandchild reset one\nGrandchild restart five\nSeparate root three\nResumed grandchild six\nParent eight resets descendants\nChild reset one\nGrandchild reset after root one\nParent restart four\nChild after restart one\nGrandchild after restart one\nEnd third-level profile\n",
+  "runs": [
+    {
+      "start": 0,
+      "end": 21,
+      "text": "Three decimal levels\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 21,
+      "end": 34,
+      "text": "Parent seven\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 34,
+      "end": 44,
+      "text": "Child one\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 44,
+      "end": 59,
+      "text": "Grandchild one\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 59,
+      "end": 74,
+      "text": "Grandchild two\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 74,
+      "end": 84,
+      "text": "Plain gap\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 84,
+      "end": 111,
+      "text": "Grandchild continued three\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 111,
+      "end": 139,
+      "text": "Child two resets grandchild\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 139,
+      "end": 160,
+      "text": "Grandchild reset one\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 160,
+      "end": 184,
+      "text": "Grandchild restart five\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 184,
+      "end": 204,
+      "text": "Separate root three\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 204,
+      "end": 227,
+      "text": "Resumed grandchild six\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 227,
+      "end": 259,
+      "text": "Parent eight resets descendants\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 259,
+      "end": 275,
+      "text": "Child reset one\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 275,
+      "end": 307,
+      "text": "Grandchild reset after root one\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 307,
+      "end": 327,
+      "text": "Parent restart four\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 327,
+      "end": 351,
+      "text": "Child after restart one\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 351,
+      "end": 380,
+      "text": "Grandchild after restart one\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 380,
+      "end": 404,
+      "text": "End third-level profile\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    }
+  ],
+  "paragraphLayouts": [
+    {
+      "start": 0,
+      "styleId": 32,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 21,
+      "styleId": 35,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 34,
+      "styleId": 37,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 44,
+      "styleId": 39,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 59,
+      "styleId": 41,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 74,
+      "styleId": 43,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 84,
+      "styleId": 45,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 111,
+      "styleId": 47,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 139,
+      "styleId": 49,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 160,
+      "styleId": 51,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 184,
+      "styleId": 54,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 204,
+      "styleId": 56,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 227,
+      "styleId": 58,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 259,
+      "styleId": 60,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 275,
+      "styleId": 62,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 307,
+      "styleId": 64,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 327,
+      "styleId": 66,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 351,
+      "styleId": 68,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 380,
+      "styleId": 70,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    }
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "type": 10000,
+      "references": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "type": 2001,
+      "references": [
+        5,
+        7,
+        9,
+        10,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        73
+      ]
+    },
+    {
+      "id": 4,
+      "type": 10001,
+      "references": [
+        5,
+        10,
+        11,
+        12,
+        13,
+        22,
+        33
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "references": [
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        22,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        73
+      ]
+    },
+    {
+      "id": 6,
+      "type": 10012,
+      "references": []
+    },
+    {
+      "id": 7,
+      "type": 10011,
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 10143,
+      "references": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "id": 9,
+      "type": 2024,
+      "references": []
+    },
+    {
+      "id": 10,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 11,
+      "type": 2050,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2025,
+      "references": [
+        22
+      ]
+    },
+    {
+      "id": 13,
+      "type": 3016,
+      "references": []
+    },
+    {
+      "id": 14,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 16,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 17,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 18,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 19,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 20,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 21,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 22,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 32,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 33,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 34,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 35,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 36,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 37,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 38,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 39,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 40,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 41,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 42,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 43,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 44,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 45,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 46,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 47,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 48,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 49,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 50,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 51,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 52,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 53,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 54,
+      "type": 2022,
+      "references": [
+        22,
+        53
+      ]
+    },
+    {
+      "id": 55,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 56,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 57,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 58,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 59,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 60,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 61,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 62,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 63,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 64,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 65,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 66,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 67,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 68,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 69,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 70,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 73,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "references": []
+    }
+  ],
+  "nativeTables": [],
+  "inlineTables": [],
+  "imageResources": [],
+  "inlineImages": [],
+  "decimalItems": [
+    {
+      "offset": 21,
+      "styleId": 34,
+      "level": 0,
+      "number": 7,
+      "start": 7,
+      "text": "Parent seven",
+      "font": "Arial"
+    },
+    {
+      "offset": 34,
+      "styleId": 34,
+      "level": 1,
+      "number": 1,
+      "start": 0,
+      "text": "Child one",
+      "font": "Arial"
+    },
+    {
+      "offset": 44,
+      "styleId": 34,
+      "level": 2,
+      "number": 1,
+      "start": 0,
+      "text": "Grandchild one",
+      "font": "Arial"
+    },
+    {
+      "offset": 59,
+      "styleId": 34,
+      "level": 2,
+      "number": 2,
+      "start": 0,
+      "text": "Grandchild two",
+      "font": "Arial"
+    },
+    {
+      "offset": 84,
+      "styleId": 34,
+      "level": 2,
+      "number": 3,
+      "start": 0,
+      "text": "Grandchild continued three",
+      "font": "Arial"
+    },
+    {
+      "offset": 111,
+      "styleId": 34,
+      "level": 1,
+      "number": 2,
+      "start": 0,
+      "text": "Child two resets grandchild",
+      "font": "Arial"
+    },
+    {
+      "offset": 139,
+      "styleId": 34,
+      "level": 2,
+      "number": 1,
+      "start": 0,
+      "text": "Grandchild reset one",
+      "font": "Arial"
+    },
+    {
+      "offset": 160,
+      "styleId": 34,
+      "level": 2,
+      "number": 5,
+      "start": 5,
+      "text": "Grandchild restart five",
+      "font": "Arial"
+    },
+    {
+      "offset": 184,
+      "styleId": 53,
+      "level": 0,
+      "number": 3,
+      "start": 3,
+      "text": "Separate root three",
+      "font": "Arial"
+    },
+    {
+      "offset": 204,
+      "styleId": 34,
+      "level": 2,
+      "number": 6,
+      "start": 6,
+      "text": "Resumed grandchild six",
+      "font": "Arial"
+    },
+    {
+      "offset": 227,
+      "styleId": 34,
+      "level": 0,
+      "number": 8,
+      "start": 8,
+      "text": "Parent eight resets descendants",
+      "font": "Arial"
+    },
+    {
+      "offset": 259,
+      "styleId": 34,
+      "level": 1,
+      "number": 1,
+      "start": 0,
+      "text": "Child reset one",
+      "font": "Arial"
+    },
+    {
+      "offset": 275,
+      "styleId": 34,
+      "level": 2,
+      "number": 1,
+      "start": 0,
+      "text": "Grandchild reset after root one",
+      "font": "Arial"
+    },
+    {
+      "offset": 307,
+      "styleId": 34,
+      "level": 0,
+      "number": 4,
+      "start": 4,
+      "text": "Parent restart four",
+      "font": "Arial"
+    },
+    {
+      "offset": 327,
+      "styleId": 34,
+      "level": 1,
+      "number": 1,
+      "start": 0,
+      "text": "Child after restart one",
+      "font": "Arial"
+    },
+    {
+      "offset": 351,
+      "styleId": 34,
+      "level": 2,
+      "number": 1,
+      "start": 0,
+      "text": "Grandchild after restart one",
+      "font": "Arial"
+    }
+  ],
+  "scope": "Owned body paragraphs, inline PNG/JPEG images, scalar tables and graph declarations; native application acceptance is separate."
+}

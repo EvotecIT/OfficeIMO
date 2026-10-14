@@ -5,6 +5,23 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPanelContinuationTests {
     [Fact]
+    public void Panel_ParagraphRelaxesUnavoidableWidowsWhenOnlyOneLineFits() {
+        var options = new PdfOptions { PageWidth = 300, PageHeight = 60, MarginLeft = 20, MarginRight = 20,
+            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };
+        byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
+            .Paragraph(p => p.Text("Marker001\nMarker002\nMarker003"), style: new PdfParagraphStyle {
+                LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = true
+            }), new PdfPanelStyle { PaddingX = 0, PaddingY = 0, BorderWidth = 0,
+                SpacingBefore = 0, SpacingAfter = 0 }).ToBytes();
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        Assert.Equal(3, pdf.NumberOfPages);
+        for (int page = 1; page <= 3; page++) {
+            var word = Assert.Single(pdf.GetPage(page).GetWords());
+            Assert.Equal($"Marker{page:D3}", word.Text);
+        }
+    }
+
+    [Fact]
     public void Panel_KeptTogetherAlsoMovesWithItsFollowingParagraph() {
         var options = new PdfOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 2 };

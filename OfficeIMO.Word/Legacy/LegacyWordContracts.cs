@@ -46,6 +46,8 @@ public sealed class LegacyWordRunContent {
         FontSizePoints = source.FontSizePoints;
         FontFamily = source.FontFamily;
         ColorHex = source.ColorHex;
+        NoteIndex = source.NoteIndex;
+        Image = source.Image == null ? null : new LegacyWordImageContent(source.Image);
     }
     /// <summary>Gets recovered text.</summary>
     public string Text { get; }
@@ -65,6 +67,27 @@ public sealed class LegacyWordRunContent {
     public string? FontFamily { get; }
     /// <summary>Gets the recovered RGB color.</summary>
     public string? ColorHex { get; }
+    /// <summary>Gets an anchored note's zero-based index in <see cref="LegacyWordContent.Notes"/>, when this run represents a note reference.</summary>
+    public int? NoteIndex { get; }
+    /// <summary>Gets a recovered inline image where the profile qualifies graphic recovery.</summary>
+    public LegacyWordImageContent? Image { get; }
+}
+
+/// <summary>A recovered graphic with its original WPG1 bytes and a bounded PNG projection.</summary>
+public sealed class LegacyWordImageContent {
+    private readonly byte[] _source, _png;
+    internal LegacyWordImageContent(LegacyWordImage source) {
+        _source = source.SourceBytes; _png = source.PngBytes;
+        WidthPoints = source.WidthPoints; HeightPoints = source.HeightPoints;
+    }
+    /// <summary>Gets the recovered graphic canvas width in points, before unsupported box overrides.</summary>
+    public double WidthPoints { get; }
+    /// <summary>Gets the recovered graphic canvas height in points, before unsupported box overrides.</summary>
+    public double HeightPoints { get; }
+    /// <summary>Returns an independent copy of the original WPG1 source data.</summary>
+    public byte[] GetSourceBytes() => (byte[])_source.Clone();
+    /// <summary>Returns an independent copy of the recovered PNG image.</summary>
+    public byte[] GetPngBytes() => (byte[])_png.Clone();
 }
 
 /// <summary>Describes one recovered source paragraph-style definition.</summary>
@@ -116,7 +139,7 @@ public sealed class LegacyWordStyleContent {
 }
 
 /// <summary>Describes one recovered source paragraph.</summary>
-public sealed class LegacyWordParagraphContent {
+public sealed class LegacyWordParagraphContent : LegacyWordBlockContent {
     internal LegacyWordParagraphContent(LegacyWordParagraph source) {
         Text = source.Text;
         Runs = source.Runs.ConvertAll(static run => new LegacyWordRunContent(run)).AsReadOnly();
@@ -159,11 +182,18 @@ public sealed class LegacyWordParagraphContent {
 
 /// <summary>Describes a recovered note.</summary>
 public sealed class LegacyWordNoteContent {
-    internal LegacyWordNoteContent(LegacyWordNote source) { Kind = source.Kind; Text = source.Text; }
+    internal LegacyWordNoteContent(LegacyWordNote source) {
+        Kind = source.Kind; Text = source.Text; IsAnchored = source.IsAnchored;
+        Paragraphs = source.Paragraphs.ConvertAll(paragraph => new LegacyWordParagraphContent(paragraph)).AsReadOnly();
+    }
     /// <summary>Gets the note kind.</summary>
     public LegacyWordNoteKind Kind { get; }
     /// <summary>Gets bounded note text.</summary>
     public string Text { get; }
+    /// <summary>Gets whether a recovered run retains the note's source anchor.</summary>
+    public bool IsAnchored { get; }
+    /// <summary>Gets formatted note paragraphs where the profile decodes them.</summary>
+    public IReadOnlyList<LegacyWordParagraphContent> Paragraphs { get; }
 }
 
 /// <summary>Describes an inert source resource reference. Import never resolves it.</summary>
@@ -182,8 +212,15 @@ public sealed class LegacyWordContent {
         Styles = source.Styles.ConvertAll(static style => new LegacyWordStyleContent(style)).AsReadOnly();
         Notes = source.Notes.ConvertAll(static note => new LegacyWordNoteContent(note)).AsReadOnly();
         Resources = source.Resources.ConvertAll(static resource => new LegacyWordResourceReference(resource)).AsReadOnly();
+        if (source.Sections.Count == 0) {
+            var section = new LegacyWordSection();
+            section.Blocks.AddRange(source.Paragraphs);
+            Sections = Array.AsReadOnly(new[] { new LegacyWordSectionContent(section) });
+        } else {
+            Sections = source.Sections.ConvertAll(section => new LegacyWordSectionContent(section)).AsReadOnly();
+        }
     }
-    /// <summary>Gets recovered paragraphs and formatted runs.</summary>
+    /// <summary>Gets body paragraphs outside tables. Table and running-story paragraphs are available through <see cref="Sections"/>.</summary>
     public IReadOnlyList<LegacyWordParagraphContent> Paragraphs { get; }
     /// <summary>Gets recovered paragraph-style definitions.</summary>
     public IReadOnlyList<LegacyWordStyleContent> Styles { get; }
@@ -191,6 +228,8 @@ public sealed class LegacyWordContent {
     public IReadOnlyList<LegacyWordNoteContent> Notes { get; }
     /// <summary>Gets inert resource references.</summary>
     public IReadOnlyList<LegacyWordResourceReference> Resources { get; }
+    /// <summary>Gets source-ordered body sections, including tables, page geometry, and running stories when recovered.</summary>
+    public IReadOnlyList<LegacyWordSectionContent> Sections { get; }
 }
 
 /// <summary>Describes one bounded legacy-word source profile match.</summary>

@@ -26,7 +26,10 @@ public sealed class OdfStyle {
     /// <summary>Optional parent style name.</summary>
     public string? ParentStyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Style + "parent-style-name");
-        set => SetAttribute(_element, OdfNamespaces.Style + "parent-style-name", value);
+        set {
+            if (value != null) OdfStyleRepository.ValidateStyleName(value);
+            SetAttribute(_element, OdfNamespaces.Style + "parent-style-name", value);
+        }
     }
     /// <summary>True for an automatic style.</summary>
     public bool IsAutomatic { get; }
@@ -164,6 +167,19 @@ public sealed class OdfStyle {
             return value == null ? (OdfColor?)null : OdfColor.Parse(value);
         }
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "color", value?.ToString());
+    }
+    /// <summary>Explicit text opacity from zero to one. Null means no declaration in this style.</summary>
+    /// <remarks>Reads LibreOffice's opacity extension and the legacy Draw alias. Assignment writes the extension and removes the alias; null removes both. Other text properties remain unchanged.</remarks>
+    /// <exception cref="InvalidDataException">An imported declaration is invalid or its aliases conflict.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The assigned value is not finite or is outside zero to one.</exception>
+    public double? TextOpacity {
+        get => OdfOpacity.ReadText(TextProperties);
+        set {
+            string? lexical = OdfOpacity.Format(value);
+            XElement properties = GetProperties(OdfNamespaces.Style + "text-properties");
+            SetAttribute(properties, OdfNamespaces.LoExt + "opacity", lexical);
+            SetAttribute(properties, OdfNamespaces.Draw + "opacity", null);
+        }
     }
     /// <summary>Explicit text background color, commonly used for highlighting.</summary>
     public OdfColor? TextBackgroundColor {

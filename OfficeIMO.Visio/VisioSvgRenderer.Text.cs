@@ -9,17 +9,10 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgRenderer {
-        private static void WriteShapeText(XmlWriter writer, VisioPage page, VisioShape shape, double scale) {
+        private static void WriteShapeText(XmlWriter writer, VisioPage page, VisioShape shape, VisioRenderProjection projection, VisioSvgSaveOptions options, VisioNativeTextStyleResolver textStyles, VisioNativeShapeTransform transform) {
             VisioTextStyle? style = shape.TextStyle;
-            double textWidth = Math.Max(0.05D, style?.TextWidth ?? shape.Width);
-            double textHeight = Math.Max(0.05D, style?.TextHeight ?? shape.Height);
-            double pinX = style?.TextPinX ?? shape.Width / 2D;
-            double pinY = style?.TextPinY ?? shape.Height / 2D;
-            (double localX, double localY) = ResolveTextBoxCenter(pinX, pinY, textWidth, textHeight, style);
-            (double textX, double textY) = GetPagePoint(shape, localX, localY);
-            (double x, double y) = ToSvg(page, textX, textY, scale);
-            double horizontalMargins = (style?.LeftMargin ?? 0.05D) + (style?.RightMargin ?? 0.05D);
-            double verticalMargins = (style?.TopMargin ?? 0.03D) + (style?.BottomMargin ?? 0.03D);
+            VisioTextFramePlacement frame = VisioTextFramePlacement.Resolve(shape, projection.DrawingToPhysical, transform);
+            (double x, double y) = ToSvg(page, frame.PageX, frame.PageY, projection);
             WriteText(
                 writer,
                 shape.Text!,
@@ -27,17 +20,13 @@ namespace OfficeIMO.Visio {
                 y,
                 style,
                 defaultSize: 10D,
-                scale: scale,
-                rotateRadians: shape.Angle + (style?.TextAngle ?? 0D),
-                maxWidth: Math.Max(12D, (textWidth - horizontalMargins) * scale),
-                maxHeight: Math.Max(8D, (textHeight - verticalMargins) * scale),
-                drawLabelBackground: false);
-        }
-
-        private static (double X, double Y) ResolveTextBoxCenter(double pinX, double pinY, double width, double height, VisioTextStyle? style) {
-            double locPinX = style?.TextLocPinX ?? width / 2D;
-            double locPinY = style?.TextLocPinY ?? height / 2D;
-            return (pinX + (width / 2D) - locPinX, pinY + (height / 2D) - locPinY);
+                scale: projection.PhysicalDensity,
+                rotateRadians: frame.Angle,
+                maxWidth: Math.Max(12D, frame.ContentWidth * projection.GeometryDensity),
+                maxHeight: Math.Max(8D, frame.ContentHeight * projection.GeometryDensity),
+                drawLabelBackground: false,
+                richText: VisioRichTextProjection.Create(page, shape, projection.PhysicalDensity, options.CancellationToken, textStyles),
+                cancellationToken: options.CancellationToken);
         }
 
         private static bool HasVisibleLine(VisioShape shape) =>
@@ -54,7 +43,14 @@ namespace OfficeIMO.Visio {
             double maxWidth = 0D,
             double maxHeight = 0D,
             bool drawLabelBackground = false,
-            bool labelAdjusted = false) {
+            bool labelAdjusted = false,
+            VisioRichTextProjection? richText = null,
+            System.Threading.CancellationToken cancellationToken = default) {
+            if (richText != null) {
+                WriteRichText(writer, richText, x, y, style, rotateRadians, maxWidth, maxHeight,
+                    drawLabelBackground, labelAdjusted, cancellationToken);
+                return;
+            }
             text = ResolveSvgDisplayText(text, style);
             double fontSize = PointsToSvgPixels(style?.Size ?? defaultSize, scale);
             string fontFamily = ResolveSvgTextFontFamily(style);
@@ -112,12 +108,12 @@ namespace OfficeIMO.Visio {
             VisioPage page,
             (double X, double Y) tip,
             (double X, double Y) from,
-            double scale,
+            VisioRenderProjection projection,
             Color color,
             double strokeWidth,
             string position) {
-            (double tipX, double tipY) = ToSvg(page, tip.X, tip.Y, scale);
-            (double fromX, double fromY) = ToSvg(page, from.X, from.Y, scale);
+            (double tipX, double tipY) = ToSvg(page, tip.X, tip.Y, projection);
+            (double fromX, double fromY) = ToSvg(page, from.X, from.Y, projection);
             if (!OfficeGeometry.TryCreateArrowheadPoints(
                     new OfficePoint(tipX, tipY),
                     new OfficePoint(fromX, fromY),

@@ -166,8 +166,9 @@ namespace OfficeIMO.Visio {
 
             return new VisioInspectionConnectorSnapshot(
                 connector.Id,
-                connector.From.Id,
-                connector.To.Id,
+                connector.From?.Id,
+                connector.To?.Id,
+                connector.StartPoint, connector.EndPoint,
                 connector.Kind.ToString(),
                 connector.Label,
                 placement != null,
@@ -203,6 +204,7 @@ namespace OfficeIMO.Visio {
                 return;
             }
 
+            placement = VisioConnectorLabelFrame.ResolvePlacement(connector)!;
             if (placement.PinX.HasValue && placement.PinY.HasValue) {
                 pinX = placement.PinX.Value;
                 pinY = placement.PinY.Value;
@@ -220,61 +222,9 @@ namespace OfficeIMO.Visio {
         }
 
         private static List<(double X, double Y)> BuildConnectorPath(VisioConnector connector) {
-            ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
-            ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
-            List<(double X, double Y)> waypoints = connector.Waypoints
-                .Select(waypoint => (X: waypoint.X, Y: waypoint.Y))
-                .ToList();
-
-            return OfficeGeometry.BuildConnectorPolyline(
-                (startX, startY),
-                (endX, endY),
-                waypoints,
-                connector.Kind == ConnectorKind.RightAngle);
+            return VisioConnectorGeometry.GetPoints(connector);
         }
 
-        private static void ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint, out double x, out double y) {
-            if (connectionPoint != null) {
-                (x, y) = GetPagePoint(shape, connectionPoint.X, connectionPoint.Y);
-                return;
-            }
-
-            (double left, double bottom, double right, double top) = GetPageBounds(shape);
-            (double otherLeft, double otherBottom, double otherRight, double otherTop) = GetPageBounds(other);
-            double centerX = (left + right) / 2D;
-            double centerY = (bottom + top) / 2D;
-            double otherCenterX = (otherLeft + otherRight) / 2D;
-            double otherCenterY = (otherBottom + otherTop) / 2D;
-            double dx = otherCenterX - centerX;
-            double dy = otherCenterY - centerY;
-
-            if (Math.Abs(dx) >= Math.Abs(dy)) {
-                x = dx >= 0 ? right : left;
-                y = centerY;
-            } else {
-                x = centerX;
-                y = dy >= 0 ? top : bottom;
-            }
-        }
-
-        private static (double Left, double Bottom, double Right, double Top) GetPageBounds(VisioShape shape) {
-            (double x1, double y1) = GetPagePoint(shape, 0, 0);
-            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0);
-            (double x3, double y3) = GetPagePoint(shape, 0, shape.Height);
-            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
-            double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
-            double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
-            double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
-            double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
-            return (left, bottom, right, top);
-        }
-
-        private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
-            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
-            return shape.Parent != null
-                ? GetPagePoint(shape.Parent, absX, absY)
-                : (absX, absY);
-        }
 
         private static IReadOnlyList<VisioInspectionShapeDataSnapshot> CreateShapeDataSnapshot(
             IList<VisioShapeDataRow> rows,

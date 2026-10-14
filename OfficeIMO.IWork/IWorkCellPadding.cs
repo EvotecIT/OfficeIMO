@@ -1,6 +1,6 @@
 namespace OfficeIMO.IWork;
 
-/// <summary>Selected native table-cell padding in points. A declared empty padding message sets every side to zero.</summary>
+/// <summary>Native table-cell padding in points. A declared empty padding message sets every side to zero.</summary>
 public sealed class IWorkCellPadding {
     internal IWorkCellPadding(double left, double top, double right, double bottom) {
         LeftPoints = left;
@@ -19,7 +19,7 @@ public sealed class IWorkCellPadding {
     public double BottomPoints { get; }
 }
 
-/// <summary>The selected native vertical position of content within a table cell.</summary>
+/// <summary>The native vertical position of content within a table cell.</summary>
 public enum IWorkCellVerticalAlignment {
     /// <summary>Content sits at the top of the cell.</summary>
     Top,

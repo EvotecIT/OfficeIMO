@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> Paragraphs =>
             EnsureTextBody().Elements<A.Paragraph>()
-                .Select(paragraph => new PowerPointParagraph(paragraph, _slidePart))
+                .Select(paragraph => new PowerPointParagraph(paragraph, _slidePart, _ownerPart))
                 .ToList();
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace OfficeIMO.PowerPoint {
                 textBody.Append(CreateEmptyParagraph(templateParagraph));
             }
 
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart ?? _slidePart,
                 discardedSoundIds);
 
             return results;
@@ -112,7 +112,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             textBody.Append(paragraph);
-            return new PowerPointParagraph(paragraph, _slidePart);
+            return new PowerPointParagraph(paragraph, _slidePart, _ownerPart);
         }
 
         private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {

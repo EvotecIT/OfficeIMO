@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using global::ChartForgeX.Core;
 using global::ChartForgeX.Primitives;
+using global::ChartForgeX.Raster;
 using global::ChartForgeX.SvgRaster;
 using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
@@ -15,7 +17,7 @@ using Xunit;
 
 namespace OfficeIMO.ChartForgeX.Tests;
 
-public sealed class OfficeVisualIntegrationTests {
+public sealed partial class OfficeVisualIntegrationTests {
     [Fact]
     public void ConversionPreservesVectorPayloadDimensionsAccessibilityAndRegions() {
         VisualArtifact artifact = CreateArtifact();
@@ -108,14 +110,12 @@ public sealed class OfficeVisualIntegrationTests {
     public void VectorImportWithoutNaturalSizeUsesSvgViewportDimensions() {
         VisualArtifact artifact = CreateArtifact();
         artifact.NaturalSize = null;
-        var renderOptions = new VisualArtifactRenderOptions();
-        renderOptions.Watermarks.Add(VisualWatermark.FromImage(
+        artifact.WithWatermarks(VisualWatermark.FromImage(
             CreateArtifact().ToPng(),
             "image/png"));
 
         OfficeVisualConversionResult result = artifact.ToOfficeVisual(new OfficeVisualConversionOptions {
-            SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded,
-            RenderOptions = renderOptions
+            SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded
         });
 
         Assert.True(result.Report.IsVector);
@@ -127,8 +127,7 @@ public sealed class OfficeVisualIntegrationTests {
 
         OfficeVisualConversionResult widthOnly = artifact.ToOfficeVisual(new OfficeVisualConversionOptions {
             WidthPoints = 300D,
-            SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded,
-            RenderOptions = renderOptions
+            SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded
         });
         Assert.Equal(300D, widthOnly.WidthPoints, 6);
         Assert.Equal(300D * result.HeightPoints / result.WidthPoints, widthOnly.HeightPoints, 6);
@@ -184,10 +183,20 @@ public sealed class OfficeVisualIntegrationTests {
         const string degeneratePolygon = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><polygon points='1,1 2,1 3,1'/></svg>";
 
         OfficeVisualConversionResult result = new OfficeVisualSource(degeneratePolygon).ToOfficeVisual(
-            new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded });
+            new OfficeVisualConversionOptions {
+                SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded,
+                RenderOptions = new VisualArtifactRenderOptions { Raster = new RasterImageOptions { Dpi = 144 } }
+            });
 
         Assert.True(result.Report.UsedRasterFallback);
         Assert.Equal(OfficeVisualMediaFormat.Png, result.PlacementFormat);
+        var bytes = result.GetPlacementBytes();
+        var pixels = RasterImageDecoder.Decode(bytes);
+        Assert.Equal(16, pixels.Width);
+        Assert.Equal(8, pixels.Height);
+        Assert.Equal(12D, result.WidthPoints, 6);
+        Assert.Equal(6D, result.HeightPoints, 6);
+        Assert.Equal(5669U, PngPixelsPerMeter(bytes));
     }
 
     [Fact]
@@ -236,19 +245,16 @@ public sealed class OfficeVisualIntegrationTests {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         try {
-            var renderOptions = new VisualArtifactRenderOptions();
-            renderOptions.Watermarks.Add(VisualWatermark.FromText("INTERNAL"));
             VisualWatermark imageWatermark = VisualWatermark.FromImage(
                 CreateArtifact().ToPng(),
                 "image/png");
             imageWatermark.Width = 18D;
             imageWatermark.Height = 18D;
             imageWatermark.Padding = 8D;
-            renderOptions.Watermarks.Add(imageWatermark);
-            OfficeVisualConversionResult visual = CreateArtifact().ToOfficeVisual(
+            OfficeVisualConversionResult visual = CreateArtifact()
+                .WithWatermarks(VisualWatermark.FromText("INTERNAL"), imageWatermark).ToOfficeVisual(
                 new OfficeVisualConversionOptions {
-                    WidthPoints = 300D,
-                    RenderOptions = renderOptions
+                    WidthPoints = 300D
                 });
             string wordPath = Path.Combine(folder, "visual.docx");
             string excelPath = Path.Combine(folder, "visual.xlsx");

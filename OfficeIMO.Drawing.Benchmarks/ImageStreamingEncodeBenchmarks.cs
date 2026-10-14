@@ -59,8 +59,7 @@ public class ImageStreamingEncodeBenchmarks {
     }
 
     private static OfficeRasterEncodingOptions CreateOptions() => new() {
-        DpiX = 144D,
-        DpiY = 120D,
+        Resolution = new OfficeImageResolution(144D, 120D),
         Png = new OfficePngEncodeOptions {
             Compression = OfficePngCompression.Optimal
         },

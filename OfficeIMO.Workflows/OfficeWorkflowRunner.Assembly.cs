@@ -19,6 +19,9 @@ public sealed partial class OfficeWorkflowRunner {
             [".xlsx"] = "xlsx-pdf",
             [".pptx"] = "pptx-pdf",
             [".xps"] = "xps-pdf",
+            [".chm"] = "chm-pdf",
+            [".djvu"] = "djvu-pdf",
+            [".djv"] = "djvu-pdf",
             [".oxps"] = "xps-pdf",
             [".html"] = "html-pdf",
             [".htm"] = "html-pdf"
@@ -42,6 +45,7 @@ public sealed partial class OfficeWorkflowRunner {
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedAssemblyRequest? validated = null;
         var inputs = new WorkflowInputSnapshots();
+        var stagingGuard = request.PublicationGuard as IOfficeWorkflowStagingGuard;
 
         try {
             validated = ValidateAssemblyRequest(request);
@@ -75,7 +79,7 @@ public sealed partial class OfficeWorkflowRunner {
                 Report(progress, validated.Id, "normalize", $"Preparing {index + 1:N0} of {sources.Count:N0} inputs", fraction);
                 long remainingOutputBytes = validated.Limits.MaximumOutputBytes - normalizedBytes;
                 if (remainingOutputBytes <= 0L) {
-                    throw new InvalidOperationException(
+                    throw OfficeWorkflowOutputLimitErrors.Create(
                         $"Normalized inputs exceed the configured {validated.Limits.MaximumOutputBytes:N0}-byte output limit.");
                 }
                 PdfDocument normalized = NormalizeAssemblySource(
@@ -99,7 +103,11 @@ public sealed partial class OfficeWorkflowRunner {
             string outputDirectory = validated.OutputStream is null ? Path.GetDirectoryName(validated.OutputPath)!
                 : providerStagingDirectory = OfficeTemporaryDirectory.Create("officeimo-provider-output-");
             failureStage = WorkflowFailureStage.Output;
+            if (validated.OutputStream is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(outputDirectory);
+            if (validated.OutputStream is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             stagingPath = Path.Combine(
                 outputDirectory,
                 "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
@@ -158,7 +166,6 @@ public sealed partial class OfficeWorkflowRunner {
             string publishedPath = await PublishAsync(stagingPath, validated.OutputPath, validated.ConflictPolicy,
                 validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
-            long outputBytes = new FileInfo(publishedPath).Length;
             Report(progress, validated.Id, "complete", "Assembled PDF is ready", 1D);
             return new PdfAssemblyResult(
                 validated.Id,
@@ -168,11 +175,13 @@ public sealed partial class OfficeWorkflowRunner {
                 sourceCount,
                 pageCount,
                 inputBytes,
-                outputBytes,
+                stagedOutputBytes,
                 stopwatch.Elapsed,
                 $"Assembled {sourceCount:N0} {(sourceCount == 1 ? "input" : "inputs")} into {pageCount:N0} PDF {(pageCount == 1 ? "page" : "pages")}.",
                 diagnostics);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
+            if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false } cancelledConversion)
+                AddConversionDiagnostics(cancelledConversion.Evidence, diagnostics, cancelledConversion.ImportDiagnosticSources);
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
@@ -194,19 +203,22 @@ public sealed partial class OfficeWorkflowRunner {
                 "Cancelled",
                 diagnostics);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
-            ReportInputStagingCleanupFailure(ex, diagnostics);
+            Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
+            ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
+            if (ex is WorkflowConversionFailureException { DiagnosticsAdded: false } conversionFailure)
+                AddConversionDiagnostics(conversionFailure.Evidence, diagnostics, conversionFailure.ImportDiagnosticSources);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "PdfAssemblyFailed",
                 ex.Message,
                 OfficeWorkflowDiagnosticSeverity.Error,
                 GetDiagnosticStage(failureStage),
-                new Dictionary<string, string>(StringComparer.Ordinal) { ["exceptionType"] = ex.GetType().Name }));
+                new Dictionary<string, string>(StringComparer.Ordinal) { ["exceptionType"] = failure.GetType().Name }));
             return new PdfAssemblyResult(
                 validated?.Id ?? request.Id,
                 OfficeWorkflowStatus.Failed,
-                ClassifyFailure(ex, failureStage),
+                ClassifyFailure(failure, failureStage),
                 null,
                 sourceCount,
                 pageCount,
@@ -772,7 +784,8 @@ public sealed partial class OfficeWorkflowRunner {
                     request.OutputProfile,
                     new OfficeWorkflowLimits {
                         MaximumInputBytes = request.Limits.MaximumInputBytes,
-                        MaximumOutputBytes = maximumNormalizedBytes
+                        MaximumOutputBytes = maximumNormalizedBytes,
+                        MaximumXmlCharactersInPart = request.Limits.MaximumXmlCharactersInPart
                     },
                     request.PdfLoadOptions,
                     request.PdfLoadOptions,
@@ -782,7 +795,7 @@ public sealed partial class OfficeWorkflowRunner {
                     input,
                     diagnostics,
                     cancellationToken,
-                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf",
+                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf" && source.Route?.Id != "chm-pdf",
                     htmlResourceSnapshots: source.HtmlDependencySnapshots);
                 if (artifact.Bytes == null) throw new InvalidOperationException("An Office input did not produce PDF bytes.");
                 AddAssemblySourceDiagnostic(source, "Office document normalized to PDF", diagnostics);

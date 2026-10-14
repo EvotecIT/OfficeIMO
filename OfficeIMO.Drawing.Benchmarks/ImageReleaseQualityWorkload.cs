@@ -379,7 +379,7 @@ public sealed class ImageReleaseQualityWorkload {
     }
 
     private static OfficeRasterEncodingOptions CreateOptions() => new() {
-        DpiX = 144D, DpiY = 120D,
+        Resolution = new OfficeImageResolution(144D, 120D),
         Png = new OfficePngEncodeOptions { Compression = OfficePngCompression.Optimal },
         Jpeg = new OfficeJpegEncodeOptions { Quality = 85, Subsampling = OfficeJpegSubsampling.Y420, Background = OfficeColor.White },
         Tiff = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits }
@@ -397,8 +397,8 @@ public sealed class ImageReleaseQualityWorkload {
             Format,
             Operation,
             _options.WriteResolutionMetadata.ToString(),
-            _options.DpiX.ToString("R", CultureInfo.InvariantCulture),
-            _options.DpiY.ToString("R", CultureInfo.InvariantCulture),
+            _options.Resolution!.Horizontal.ToString("R", CultureInfo.InvariantCulture),
+            _options.Resolution!.Vertical.ToString("R", CultureInfo.InvariantCulture),
             _options.Png.Compression.ToString(),
             _options.Png.DpiX.ToString("R", CultureInfo.InvariantCulture),
             _options.Png.DpiY.ToString("R", CultureInfo.InvariantCulture),

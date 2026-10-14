@@ -199,11 +199,12 @@ public class OfficeImageExportOptions {
         }
         if (TargetDpi.HasValue) {
             Scale = TargetDpi.Value / LogicalUnitsPerInch;
-            RasterEncoding.DpiX = TargetDpi.Value;
-            RasterEncoding.DpiY = TargetDpi.Value;
+            RasterEncoding.Resolution = new OfficeImageResolution(TargetDpi.Value, TargetDpi.Value);
         }
-        ValidateDpi(RasterEncoding.DpiX, nameof(RasterEncoding.DpiX));
-        ValidateDpi(RasterEncoding.DpiY, nameof(RasterEncoding.DpiY));
+        if (RasterEncoding.Resolution != null) {
+            ValidateDpi(RasterEncoding.Resolution.Horizontal, nameof(RasterEncoding.Resolution));
+            ValidateDpi(RasterEncoding.Resolution.Vertical, nameof(RasterEncoding.Resolution));
+        }
         if (Fonts == null) throw new InvalidOperationException("Font collection cannot be null.");
         TextShapingLanguage = string.IsNullOrWhiteSpace(TextShapingLanguage)
             ? null

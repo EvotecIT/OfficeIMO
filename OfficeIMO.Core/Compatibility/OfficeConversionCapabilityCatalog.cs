@@ -352,7 +352,11 @@ public static class OfficeConversionCapabilityCatalog {
         var routes = new List<OfficeConversionCapability> {
         Route("doc-pdf", "DOC", "PDF", OfficeConversionInputKind.File, new[] { ".doc" }, ".pdf", "OfficeIMO.Word.Pdf", "LegacyDocPdfConverter.ToPdfDocumentResult(stream, options)", "Convert supported binary Word documents to PDF with import and rendering evidence.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
         Route("txt-pdf", "Plain text", "PDF", OfficeConversionInputKind.Text, new[] { ".txt" }, ".pdf", "OfficeIMO.Pdf", "PdfPlainTextConverter.ToPdfDocumentResult(bytes, options)", "Render literal text with explicit decoding, tab columns and page limits.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
+        Route("djvu-pdf", "DjVu", "PDF", OfficeConversionInputKind.File, new[] { ".djvu", ".djv" }, ".pdf", "OfficeIMO.DjVu.Pdf", "DjVuDocument.Load(stream).SaveAsPdf(output, options)", "Convert scanned pages with source physical size, stored searchable text and navigation, with explicit fidelity reports.", OfficeConversionFidelityKind.FixedLayout, "PdfSaveResult"),
         Route("xps-pdf", "XPS/OpenXPS", "PDF", OfficeConversionInputKind.File, new[] { ".xps", ".oxps" }, ".pdf", "OfficeIMO.Xps.Pdf", "XpsDocument.Load(stream).SavePdf(output, options)", "Preserve supported native page paint, searchable Unicode, reading order and navigation in PDF.", OfficeConversionFidelityKind.FixedLayout, "PdfSaveResult"),
+        Route("chm-pdf", "Compiled HTML Help", "PDF", OfficeConversionInputKind.File, new[] { ".chm" }, ".pdf", "OfficeIMO.Chm.Pdf", "ChmDocument.Load(stream).ToPdfBytesResult(options)", "Render selected help topics independently with embedded resources and explicit fidelity evidence.", OfficeConversionFidelityKind.FixedLayout, "ChmConversionResult<byte[]>"),
+        Route("chm-markdown", "Compiled HTML Help", "Markdown", OfficeConversionInputKind.File, new[] { ".chm" }, ".md", "OfficeIMO.Chm.Markdown", "ChmDocument.Load(stream).ToMarkdownResult(options)", "Recover a linked topic book through the canonical HTML-to-Markdown engine.", OfficeConversionFidelityKind.Semantic, "ChmConversionResult<string>"),
+        Route("chm-epub", "Compiled HTML Help", "EPUB", OfficeConversionInputKind.File, new[] { ".chm" }, ".epub", "OfficeIMO.Chm.Epub", "ChmDocument.Load(stream).ToEpubBytesResult(options)", "Publish selected topics and embedded resources as a reflowable EPUB with contents hierarchy and conversion reports.", OfficeConversionFidelityKind.Semantic, "ChmConversionResult<byte[]>"),
         Route("docx-pdf", "DOCX", "PDF", OfficeConversionInputKind.File, new[] { ".docx" }, ".pdf", "OfficeIMO.Word.Pdf", "WordDocument.Load(stream).ToPdfDocumentResult(options)", "Convert a Word document into a fixed-layout PDF with diagnostics.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult", browser: true),
         Route("xlsx-pdf", "XLSX", "PDF", OfficeConversionInputKind.File, new[] { ".xlsx" }, ".pdf", "OfficeIMO.Excel.Pdf", "ExcelDocument.Load(stream).ToPdfDocumentResult(options)", "Render workbook sheets with layout and conversion diagnostics.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult", browser: true),
         Route("pptx-pdf", "PPTX", "PDF", OfficeConversionInputKind.File, new[] { ".pptx" }, ".pdf", "OfficeIMO.PowerPoint.Pdf", "PowerPointPresentation.Load(stream).ToPdfDocumentResult(options)", "Render presentation slides into a fixed-layout PDF.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult", browser: true),
@@ -424,10 +428,19 @@ public static class OfficeConversionCapabilityCatalog {
         Route("confluence-html", "Confluence", "HTML", OfficeConversionInputKind.ObjectModel, new[] { ".adf", ".json" }, ".html", "OfficeIMO.Confluence", "ConfluenceContentConverter.ToHtml(page)", "Project a materialized Confluence page body to HTML with fidelity diagnostics.", OfficeConversionFidelityKind.Semantic, "ConfluenceContentConversionResult<string>"),
         Route("csv-xlsx", "CSV", "XLSX", OfficeConversionInputKind.File, new[] { ".csv", ".tsv" }, ".xlsx", "OfficeIMO.Excel.Csv", "CsvDocument.Load(stream).ToExcelDocument(options)", "Import delimited values into an editable workbook.", OfficeConversionFidelityKind.Editable, "ExcelDocument"),
         Route("xlsx-csv", "XLSX", "CSV", OfficeConversionInputKind.File, new[] { ".xlsx" }, ".csv", "OfficeIMO.Excel.Csv", "ExcelDocument.Load(stream).Sheets[0].ToCsv(options)", "Export a worksheet used range as delimited values.", OfficeConversionFidelityKind.Semantic, "string"),
+        Route("dbf-csv", "DBF/xBase", "CSV", OfficeConversionInputKind.File, new[] { ".dbf" }, ".csv", "OfficeIMO.CSV", "DbfDataReader.Open(path), then CsvDocument.WriteDataReader(writer, reader, options)", "Export typed DBF rows and supported memos through DBAClientX.Dbf; binary values become Base64.", OfficeConversionFidelityKind.Semantic, "void"),
+        Route("dbf-xlsx", "DBF/xBase", "XLSX", OfficeConversionInputKind.File, new[] { ".dbf" }, ".xlsx", "OfficeIMO.Excel", "DbfDataReader.Open(path), then ExcelDocument.WriteDataReader(stream, reader, options)", "Create a workbook from typed DBF rows and supported memos through DBAClientX.Dbf.", OfficeConversionFidelityKind.Editable, "ExcelDataSetImportResult"),
         Route("officemarkup-docx", "OfficeIMO Markup", "DOCX", OfficeConversionInputKind.Text, new[] { ".omd", ".office.md" }, ".docx", "OfficeIMO.Markup.Word", "OfficeMarkupParser.Parse(markup, options).Document.ToWordDocumentResult(exportOptions)", "Render document-profile OfficeIMO Markup into an editable Word document.", OfficeConversionFidelityKind.Editable, "OfficeMarkupConversionResult<WordDocument>"),
         Route("officemarkup-xlsx", "OfficeIMO Markup", "XLSX", OfficeConversionInputKind.Text, new[] { ".omd", ".office.md" }, ".xlsx", "OfficeIMO.Markup.Excel", "OfficeMarkupParser.Parse(markup, options).Document.ToExcelDocumentResult(exportOptions)", "Render workbook-profile OfficeIMO Markup into an editable Excel workbook.", OfficeConversionFidelityKind.Editable, "OfficeMarkupConversionResult<ExcelDocument>"),
         Route("officemarkup-pptx", "OfficeIMO Markup", "PPTX", OfficeConversionInputKind.Text, new[] { ".omd", ".office.md" }, ".pptx", "OfficeIMO.Markup.PowerPoint", "OfficeMarkupParser.Parse(markup, options).Document.ToPowerPointPresentationResult(exportOptions)", "Render presentation-profile OfficeIMO Markup into an editable PowerPoint presentation.", OfficeConversionFidelityKind.Editable, "OfficeMarkupPowerPointConversionResult"),
-        Route("visio-pdf", "Visio", "PDF", OfficeConversionInputKind.File, new[] { ".vsdx" }, ".pdf", "OfficeIMO.Visio.Pdf", "VisioDocument.Load(stream).ToPdfDocumentResult(options)", "Render a Visio drawing into a fixed-layout PDF.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult")
+        Route("visio-binary-vsdx", "Binary Visio", "VSDX", OfficeConversionInputKind.File, new[] { ".vsd" }, ".vsdx", "OfficeIMO.Visio", "var imported = VisioDocument.LoadLegacyBinary(stream); var importReport = imported.Report; imported.Value.Save(output)", "Reconstruct the version 11 cached shape model as an editable drawing with an import report.", OfficeConversionFidelityKind.Editable, "OfficeConversionResult<VisioDocument, OfficeLegacyImportReport>"),
+        Route("visio-binary-vssx", "Binary Visio stencil", "VSSX", OfficeConversionInputKind.File, new[] { ".vss" }, ".vssx", "OfficeIMO.Visio", "var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Stencil); var importReport = imported.Report; imported.Value.Save(output)", "Reconstruct supported cached masters as a modern stencil with an import report.", OfficeConversionFidelityKind.Editable, "OfficeConversionResult<VisioDocument, OfficeLegacyImportReport>"),
+        Route("visio-binary-vstx", "Binary Visio template", "VSTX", OfficeConversionInputKind.File, new[] { ".vst" }, ".vstx", "OfficeIMO.Visio", "var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Template); var importReport = imported.Report; imported.Value.Save(output)", "Reconstruct supported cached pages and masters as a modern template with an import report.", OfficeConversionFidelityKind.Editable, "OfficeConversionResult<VisioDocument, OfficeLegacyImportReport>"),
+        Route("visio-binary-svg", "Binary Visio", "SVG", OfficeConversionInputKind.File, new[] { ".vsd", ".vst" }, ".svg", "OfficeIMO.Visio", "var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var svg = imported.Value.Pages[0].ToSvg()", "Infer the drawing or template family from the source path and render a selected page; retain the source import report alongside the SVG.", OfficeConversionFidelityKind.FixedLayout, "string"),
+        Route("visio-binary-pdf", "Binary Visio", "PDF", OfficeConversionInputKind.File, new[] { ".vsd", ".vst" }, ".pdf", "OfficeIMO.Visio.Pdf", "var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var pdf = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages })", "Infer the drawing or template family from the source path and project pages through the existing PDF engine; retain source import and projection diagnostics.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
+        Route("visio-pdf", "Visio", "PDF", OfficeConversionInputKind.File, new[] { ".vsdx", ".vdx", ".vtx" }, ".pdf", "OfficeIMO.Visio.Pdf", "VisioDocument.Load(stream).ToPdfDocumentResult(options)", "Export cached diagram pages or a semantic text and topology report, with explicit source and PDF loss diagnostics.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
+        Route("odg-pdf", "ODG/FODG", "PDF", OfficeConversionInputKind.File, new[] { ".odg", ".fodg" }, ".pdf", "OfficeIMO.OpenDocument.Odg.Pdf", "OdgDocument.Load(stream) or LoadFlatXml(stream), then ToPdfDocumentResult(options)", "Render Draw pages at their source dimensions with page-qualified projection losses.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
+        Route("publisher-pdf", "Publisher", "PDF", OfficeConversionInputKind.File, new[] { ".pub" }, ".pdf", "OfficeIMO.Publisher.Pdf", "PublisherDocument.Load(stream, readOptions).ToPdfDocumentResult(pdfOptions)", "Recover native publication pages with searchable text and carry source and PDF fidelity diagnostics.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult")
         };
 
         AddEmailRoutes(routes);
@@ -518,6 +531,15 @@ public static class OfficeConversionCapabilityCatalog {
             "OfficeIMO.PowerPoint.IWork", "PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions)",
             "Reconstruct a bounded Keynote source as an editable PowerPoint presentation with source and fallback evidence.",
             OfficeConversionFidelityKind.Editable, "KeynoteToPowerPointResult"));
+        AddPdf("pages-pdf", "Pages", ".pages");
+        AddPdf("numbers-pdf", "Numbers", ".numbers");
+        AddPdf("keynote-pdf", "Keynote", ".key");
+
+        void AddPdf(string id, string source, string extension) => routes.Add(Route(
+            id, source, "PDF", OfficeConversionInputKind.File, new[] { extension }, ".pdf",
+            "OfficeIMO.Workflows.IWork", "IWorkWorkflow.CreateRunner().RunAsync(request)",
+            "Create a PDF when all supported source content can be reconstructed. Review reported font, layout, and rendering approximations.",
+            OfficeConversionFidelityKind.FixedLayout, "OfficeWorkflowResult"));
     }
 
     private static void AddImageRoutes(
@@ -608,6 +630,10 @@ public static class OfficeConversionCapabilityCatalog {
             return (OfficeConversionTextFormattingKind.ReconstructedFromFixedLayout,
                 "Reconstructs supported text and formatting from PDF logical or positioned content; it cannot recover source-only font semantics absent from the PDF.");
         }
+        if (source == "DjVu" && target == "PDF") {
+            return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,
+                "Preserves scan appearance as page images, with searchable stored text and source word geometry; source font styling is not inferred.");
+        }
         if (string.Equals(target, "PDF", StringComparison.Ordinal)) {
             return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,
                 "Preserves supported font styling as fixed-layout PDF text and graphics; conversion diagnostics identify source semantics the managed renderer approximates or omits.");
@@ -615,6 +641,10 @@ public static class OfficeConversionCapabilityCatalog {
         if (source is "Markdown" or "AsciiDoc" or "LaTeX" || target is "Markdown" or "AsciiDoc" or "LaTeX") {
             return (OfficeConversionTextFormattingKind.SyntaxSubset,
                 "Preserves only emphasis, strike, script, and inline styling represented by the supported source and destination syntax profiles; arbitrary family, size, color, casing metadata, and underline variants are not portable.");
+        }
+        if (source == "DBF/xBase") {
+            return (OfficeConversionTextFormattingKind.DataOnly,
+                "DBF carries typed table values, not document typography or layout; binary values become Base64, and DBF indexes, deletion flags and native schema metadata are not exported.");
         }
         if (source == "CSV" || target == "CSV") {
             return (OfficeConversionTextFormattingKind.DataOnly,

@@ -8,8 +8,10 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
-        [Fact]
-        public void Xlsb_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Xlsb_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi(bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Text");
@@ -27,7 +29,8 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(row, 4, (row & 1) == 0);
             }
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb);
+            byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb,
+                new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings });
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
@@ -42,9 +45,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(42, reader.GetInt32(1));
             Assert.Equal(12.5m, reader.GetDecimal(2));
             Assert.True(reader.GetBoolean(3));
-            int rowCount = 1;
-            while (reader.Read()) rowCount++;
-            Assert.Equal(255, rowCount);
+            for (int row = 3; row <= 256; row++) {
+                Assert.True(reader.Read());
+                Assert.Equal("Row " + row, reader.GetString(0));
+                Assert.Equal(row, reader.GetInt32(1));
+                Assert.Equal(row + 0.5m, reader.GetDecimal(2));
+                Assert.Equal((row & 1) == 0, reader.GetBoolean(3));
+            }
+            Assert.False(reader.Read());
             Assert.False(reader.NextResult());
         }
 
@@ -79,7 +87,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Xlsb_DirectTabularSave_FallsBackForDateValuesWithoutChangingSemantics() {
+        public void Xlsb_DirectTabularSave_PreservesCellValueDateSemantics() {
             DateTime expected = new DateTime(2026, 8, 10, 14, 30, 0, DateTimeKind.Unspecified);
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Data");
@@ -88,7 +96,6 @@ namespace OfficeIMO.Tests {
 
             byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb);
 
-            Assert.NotEqual(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetDateTime(0));
@@ -207,6 +214,35 @@ namespace OfficeIMO.Tests {
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetString(0));
             Assert.False(reader.Read());
+        }
+
+        [Theory]
+        [InlineData(false, 0)]
+        [InlineData(true, 0)]
+        [InlineData(false, 32_758)]
+        [InlineData(true, 32_758)]
+        public void Xlsb_DirectRecordWriter_PreservesRawUtf16CodeUnits(bool cellRecord, int paddingLength) {
+            string value = "\0A\uD800B\uDC00C\uD83D\uDE80\uFFFF" + new string('X', paddingLength);
+            byte[] prefix = { 0, 0, 0x41, 0, 0, 0xD8, 0x42, 0, 0, 0xDC, 0x43, 0, 0x3D, 0xD8, 0x80, 0xDE, 0xFF, 0xFF };
+            using var expected = new MemoryStream();
+            if (cellRecord) XlsbRecordWriter.WriteHeader(expected, 6, checked(12 + value.Length * 2));
+            using (var primitives = new BinaryWriter(expected, System.Text.Encoding.UTF8, leaveOpen: true)) {
+                if (cellRecord) {
+                    primitives.Write(3U);
+                    primitives.Write(0U);
+                }
+                primitives.Write(checked((uint)value.Length));
+                primitives.Write(prefix);
+                for (int index = 0; index < paddingLength; index++) primitives.Write((ushort)'X');
+            }
+
+            using var actual = new MemoryStream();
+            using (var writer = new XlsbDirectRecordWriter(actual)) {
+                if (cellRecord) writer.WriteTextCell(6, 3, value);
+                else writer.WriteWideString(value);
+            }
+
+            Assert.Equal(expected.ToArray(), actual.ToArray());
         }
 
         [Fact]

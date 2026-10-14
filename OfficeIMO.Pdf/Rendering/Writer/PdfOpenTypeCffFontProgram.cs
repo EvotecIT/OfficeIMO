@@ -7,6 +7,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     private const uint OpenTypeCffScalerType = 0x4F54544F;
 
     private readonly byte[] _data;
+    private readonly PdfFontUnitLayoutMetrics _fontUnitLayoutMetrics;
     // Immutable PDF-unit widths are shared by document forks.
     private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
@@ -15,7 +16,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
     private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
-    private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements = new();
+    private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
 
     private PdfOpenTypeCffFontProgram(
         byte[] data,
@@ -36,6 +37,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         Dictionary<string, TableRecord> tables,
         int cffTableLength) {
         _data = data.ToArray();
+        _shortMeasurements = new();
+        _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
         FontName = fontName;
@@ -54,6 +57,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
     private PdfOpenTypeCffFontProgram(PdfOpenTypeCffFontProgram source) {
         _data = source._data;
+        _fontUnitLayoutMetrics = source._fontUnitLayoutMetrics;
         LineMetrics = source.LineMetrics;
         _tables = source._tables;
         FontName = source.FontName;
@@ -68,6 +72,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         _advanceWidths1000 = source._advanceWidths1000;
         _cmap = source._cmap;
         CffTableLength = source.CffTableLength;
+        _shortMeasurements = source._shortMeasurements;
     }
 
     internal PdfOpenTypeCffFontProgram ForkForDocument() => new(this);
@@ -186,12 +191,16 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         return _advanceWidths1000[glyphId];
     }
 
-    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null) {
+    internal double MeasureFontUnitAdvanceWidth1000(PdfGlyphRun run, double horizontalScaling = 100D) =>
+        _fontUnitLayoutMetrics.MeasureAdvanceWidth1000(run, horizontalScaling);
+
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null, bool useFontUnitAdvances = false) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
+        if (useFontUnitAdvances) return MeasureFontUnitAdvanceWidth1000(ShapeText(text!, options)) * fontSize / 1000D;
         int advance = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode == PdfTextShapingMode.OpenTypeLigatures
             ? MeasureDefaultLatinAdvanceWidth1000(text!, options)
             : ShapeText(text!, options).TotalAdvanceWidth1000;

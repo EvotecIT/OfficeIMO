@@ -12,18 +12,18 @@ namespace OfficeIMO.Security.Tests {
             using CancellationTokenSource canceled = new CancellationTokenSource(); canceled.Cancel();
             Assert.Throws<OperationCanceledException>(() => OfficeVbaProjectInspector.Inspect(new Dictionary<string, byte[]>(), 100, canceled.Token));
             int remaining = 100;
-            Assert.Throws<OperationCanceledException>(() => OfficeVbaProjectCanonicalizer.TryDecompress(Literal(new byte[32]), ref remaining, out _, out _, canceled.Token));
+            Assert.Throws<OperationCanceledException>(() => OfficeVbaCompression.TryDecompress(Literal(new byte[32]), ref remaining, out _, out _, canceled.Token));
             Assert.Equal(100, remaining);
         }
 
         [Fact]
         public void FailedExpansionDebitsItsActualBytesAndExposesNoPartialOutput() {
             int remaining = 40;
-            Assert.False(OfficeVbaProjectCanonicalizer.TryDecompress(MalformedAfterExpansion(32), ref remaining, out byte[] output, out _));
+            Assert.False(OfficeVbaCompression.TryDecompress(MalformedAfterExpansion(32), ref remaining, out byte[] output, out _));
             Assert.Empty(output); Assert.Equal(8, remaining);
-            Assert.True(OfficeVbaProjectCanonicalizer.TryDecompress(Literal(new byte[8]), ref remaining, out byte[] valid, out _));
+            Assert.True(OfficeVbaCompression.TryDecompress(Literal(new byte[8]), ref remaining, out byte[] valid, out _));
             Assert.Equal(8, valid.Length); Assert.Equal(0, remaining);
-            Assert.False(OfficeVbaProjectCanonicalizer.TryDecompress(Literal(new byte[1]), ref remaining, out output, out _));
+            Assert.False(OfficeVbaCompression.TryDecompress(Literal(new byte[1]), ref remaining, out output, out _));
             Assert.Empty(output); Assert.Equal(0, remaining);
         }
 
@@ -44,20 +44,20 @@ namespace OfficeIMO.Security.Tests {
             Assert.Contains("byte limit", result.Modules[1].Limitation);
         }
 
-        [Fact]
-        public void RepeatedMalformedReferencesRespectBothAllowancesAndRetainLaterSource() {
-            byte[] directory = Directory("Broken", "Broken", "Broken", "Later");
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RepeatedModuleDeclarationsKeepTheProjectInventoryInert(bool expandsBeforeFailure) {
+            byte[] directory = Directory("Broken", "Broken", "Later");
             Dictionary<string, byte[]> streams = new Dictionary<string, byte[]> {
                 ["VBA/dir"] = Literal(directory),
-                ["VBA/Broken"] = MalformedAfterExpansion(32),
+                ["VBA/Broken"] = expandsBeforeFailure ? MalformedAfterExpansion(32) : new byte[1024],
                 ["VBA/Later"] = Literal(Encoding.ASCII.GetBytes("OK"))
             };
             OfficeVbaInspection result = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 64);
-            Assert.Equal(4, result.Modules.Count);
-            for (int index = 0; index < 3; index++) Assert.Null(result.Modules[index].Source);
-            Assert.Contains("encoded input byte limit", result.Modules[1].Limitation);
-            Assert.Contains("encoded input byte limit", result.Modules[2].Limitation);
-            Assert.Equal("OK", result.Modules[3].Source);
+            Assert.Contains("repeats a module name or stream identity", result.Limitation);
+            Assert.Empty(result.Modules);
+            Assert.Null(result.Name);
         }
 
         [Fact]
@@ -94,26 +94,11 @@ namespace OfficeIMO.Security.Tests {
             Assert.Equal("Project", result.Name); Assert.Equal(65001, result.CodePage);
             Assert.Equal(2, result.Modules.Count);
             Assert.Equal("Broken", result.Modules[0].Name); Assert.Equal("Broken", result.Modules[0].StreamName);
-            Assert.Null(result.Modules[0].Source); Assert.Contains("declared code page", result.Modules[0].Limitation);
+            Assert.Null(result.Modules[0].Source); Assert.Contains("code page", result.Modules[0].Limitation);
             Assert.Equal("Zażółć", result.Modules[1].Source); Assert.Null(result.Modules[1].Limitation);
             OfficeVbaInspection bounded = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 2);
             Assert.Equal(2, bounded.Modules.Count);
             Assert.Null(bounded.Modules[1].Source); Assert.Contains("byte limit", bounded.Modules[1].Limitation);
-        }
-
-        [Fact]
-        public void ImmediateMalformedReferencesCannotReuseTheEncodedInputAllowance() {
-            byte[] directory = Directory("Broken", "Broken", "Later");
-            Dictionary<string, byte[]> streams = new Dictionary<string, byte[]> {
-                ["VBA/dir"] = Literal(directory),
-                ["VBA/Broken"] = new byte[1024], // Invalid signature; no bytes expand.
-                ["VBA/Later"] = Literal(Encoding.ASCII.GetBytes("OK"))
-            };
-            OfficeVbaInspection result = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 2);
-            Assert.Null(result.Limitation); Assert.Equal(3, result.Modules.Count);
-            Assert.Null(result.Modules[0].Source); Assert.Contains("signature", result.Modules[0].Limitation);
-            Assert.Null(result.Modules[1].Source); Assert.Contains("encoded input byte limit", result.Modules[1].Limitation);
-            Assert.Equal("OK", result.Modules[2].Source);
         }
 
         private static byte[] Directory(params string[] names) => Directory(1252, names);
@@ -137,6 +122,14 @@ namespace OfficeIMO.Security.Tests {
             };
             OfficeVbaInspection result = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 100);
             Assert.NotNull(result.Limitation); Assert.Empty(result.Modules); Assert.Null(result.Name);
+            List<OfficeCompoundStream> compoundStreams = new List<OfficeCompoundStream> {
+                new OfficeCompoundStream("PROJECT", Encoding.ASCII.GetBytes("Name=\"Project\"\r\nModule=Broken\r\n"))
+            };
+            foreach (KeyValuePair<string, byte[]> stream in streams) compoundStreams.Add(new OfficeCompoundStream(stream.Key, stream.Value));
+            byte[] projectBytes = OfficeCompoundFileWriter.Write(compoundStreams);
+            Assert.Contains("module record", Assert.Throws<System.IO.InvalidDataException>(() => OfficeVbaProject.Load(projectBytes)).Message);
+            Assert.False(OfficeVbaProjectCanonicalizer.TryCreate(projectBytes, directory.Length + 100, out _, out string detail));
+            Assert.Contains("module record", detail);
         }
 
         private static byte[] Directory(ushort codePage, params string[] names) => Directory(codePage, null, null, names);

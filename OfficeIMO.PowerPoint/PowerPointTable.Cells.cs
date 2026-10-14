@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableRow tableRow = table.Elements<A.TableRow>().ElementAt(row);
             A.TableCell cell = tableRow.Elements<A.TableCell>().ElementAt(column);
-            return new PowerPointTableCell(cell, _slidePart);
+            return WrapCell(cell);
         }
 
         /// <summary>
@@ -240,7 +240,7 @@ namespace OfficeIMO.PowerPoint {
                 .GetRelationshipIds(cell.TextBody);
             cell.TextBody.RemoveAllChildren<A.Paragraph>();
             cell.TextBody.Append(new A.Paragraph(new A.Run(new A.Text(string.Empty))));
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);
         }
 

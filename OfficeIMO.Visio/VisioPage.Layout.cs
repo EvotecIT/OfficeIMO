@@ -300,6 +300,13 @@ namespace OfficeIMO.Visio {
                 throw new InvalidOperationException("Background page must belong to the same Visio document.");
             }
 
+            var visited = new HashSet<VisioPage>();
+            for (VisioPage? current = backgroundPage; current != null; current = current.BackgroundPage) {
+                if (ReferenceEquals(current, this) || !visited.Add(current)) {
+                    throw new InvalidOperationException("Background page associations cannot contain a cycle.");
+                }
+            }
+
             backgroundPage.IsBackground = true;
             BackgroundPage = backgroundPage;
             BackgroundPageId = backgroundPage.Id;

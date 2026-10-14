@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Converts structured logical PDF tables into Excel worksheets.
     /// </summary>
-    public static class PdfExcelTableConverterExtensions {
+    public static partial class PdfExcelTableConverterExtensions {
         /// <summary>Imports logical PDF tables from an opened PDF into a new editable Excel document.</summary>
         public static ExcelDocument ImportTablesToExcelDocument(
             this PdfCore.PdfDocument document,
@@ -202,6 +202,7 @@ namespace OfficeIMO.Excel.Pdf {
                 options.CancellationToken);
             if (tables.Count == 0) {
                 AddEmptyWorkbookSheet(workbook, options);
+                options.CancellationToken.ThrowIfCancellationRequested();
                 return Array.Empty<PdfExcelTableImportEntry>();
             }
 
@@ -223,12 +224,13 @@ namespace OfficeIMO.Excel.Pdf {
                     columns,
                     rows,
                     options);
-                ExcelSheet sheet = workbook.AddWorksheet(BuildSheetName(options.SheetNamePrefix, extraction, i), ExcelSheetNameValidationMode.Sanitize);
+                ExcelSheet sheet = workbook.AddWorksheet(BuildSheetName(options.SheetNamePrefix, extraction, i), ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
                 string range = sheet.InsertDataTableAsTable(
                     dataTable,
                     tableName: requestedTableName,
                     style: options.TableStyle,
-                    includeAutoFilter: options.IncludeAutoFilter);
+                    includeAutoFilter: options.IncludeAutoFilter,
+                    ct: options.CancellationToken);
                 ApplyTypedColumnFormats(
                     sheet,
                     dataTable,
@@ -241,8 +243,9 @@ namespace OfficeIMO.Excel.Pdf {
                     options.CancellationToken);
 
                 if (options.AutoFitColumns) {
-                    sheet.AutoFitColumns();
+                    sheet.AutoFitColumns(ct: options.CancellationToken);
                 }
+                bool columnProportionsApplied = ApplyColumnProportions(sheet, extraction.Table.Columns, columns.Count, options);
 
                 string actualTableName = FindActualTableName(workbook, sheet.Name, range, requestedTableName);
                 results.Add(new PdfExcelTableImportEntry(
@@ -265,9 +268,11 @@ namespace OfficeIMO.Excel.Pdf {
                     currencyTokens,
                     currencyAffixPositions,
                     currencyAffixUsesSpacing,
-                    confirmedHeader));
+                    confirmedHeader,
+                    columnProportionsApplied));
             }
 
+            options.CancellationToken.ThrowIfCancellationRequested();
             return results.AsReadOnly();
         }
 
@@ -417,7 +422,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfTablesToExcelOptions options) {
-            ExcelSheet sheet = workbook.AddWorksheet(options.EmptyWorkbookSheetName, ExcelSheetNameValidationMode.Sanitize);
+            ExcelSheet sheet = workbook.AddWorksheet(options.EmptyWorkbookSheetName, ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
             sheet.CellValue(1, 1, "No PDF tables detected.");
         }
 

@@ -130,8 +130,11 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (source == null) return null;
 
             var result = new SheetFormatProperties();
-            if (source.DefaultColumnWidth > 0D) {
-                result.DefaultColumnWidth = source.DefaultColumnWidth;
+            if (source.DefaultColumnWidth.HasValue) {
+                result.DefaultColumnWidth = source.DefaultColumnWidth.Value;
+            }
+            if (source.BaseColumnWidth.HasValue) {
+                result.BaseColumnWidth = source.BaseColumnWidth.Value;
             }
             if (source.DefaultRowHeight > 0D) {
                 result.DefaultRowHeight = source.DefaultRowHeight;

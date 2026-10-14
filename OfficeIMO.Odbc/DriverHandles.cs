@@ -1,0 +1,123 @@
+using System.Collections.Concurrent;
+using System.Data.Common;
+
+namespace OfficeIMO.Odbc {
+
+    internal abstract class DriverHandle(short kind, nint parent) {
+        internal readonly object Sync = new();
+        internal short Kind { get; } = kind;
+        internal nint Parent { get; } = parent;
+        internal List<DriverDiagnostic> Diagnostics { get; } = [];
+        internal bool Freed;
+        internal short Fail(string state, string message) { Diagnostics.Add(new(state, message)); return -1; }
+    }
+
+    internal sealed record DriverDiagnostic(string State, string Message);
+    internal sealed class EnvironmentHandle() : DriverHandle(1, 0) {
+        internal int OdbcVersion = 3;
+    }
+    internal sealed class ConnectionHandle(nint parent) : DriverHandle(2, parent) {
+        internal WorkbookSnapshot? Snapshot;
+    }
+    internal sealed class DescriptorHandle(nint parent, StatementHandle statement, int attribute) : DriverHandle(4, parent) {
+        internal StatementHandle Statement { get; } = statement;
+        internal int Attribute { get; } = attribute;
+    }
+    internal sealed class StatementHandle(nint parent) : DriverHandle(3, parent) {
+        internal Dictionary<int, nint> Descriptors { get; } = [];
+        internal string? Sql;
+        internal DbDataReader? Reader;
+        internal IReadOnlyList<DBAClientX.SQLiteQueryColumn>? PreparedColumns;
+        internal int ColumnCount => Reader?.FieldCount ?? PreparedColumns?.Count ?? 0;
+        internal string ColumnName(int ordinal) => Reader is { } reader ? reader.GetName(ordinal) : PreparedColumns![ordinal].Name;
+        internal short ColumnType(int ordinal) => Reader is { } reader ? NativeValue.SqlType(reader, ordinal) : NativeValue.DeclaredSqlType(PreparedColumns![ordinal].DeclaredTypeName);
+        internal CancellationTokenSource? Cancellation;
+        internal Dictionary<ushort, ColumnBinding> Bindings { get; } = [];
+        internal Dictionary<ushort, ParameterBinding> Parameters { get; } = [];
+        internal ushort DataColumn;
+        internal int DataOffset;
+        internal bool OnRow;
+        internal long Fetched;
+        internal int ParameterCount;
+        internal long MaximumRows;
+        internal int TimeoutSeconds = 30;
+        internal nint RowsFetchedPointer;
+        internal nint RowStatusPointer;
+        internal void CloseCursor() {
+            try { Reader?.Dispose(); }
+            finally {
+                Reader = null;
+                PreparedColumns = null;
+                Cancellation?.Dispose();
+                Cancellation = null;
+                DataColumn = 0;
+                DataOffset = 0;
+                OnRow = false;
+                Fetched = 0;
+            }
+        }
+    }
+    internal sealed record ColumnBinding(short Type, nint Buffer, nint Length, nint Indicator);
+    internal sealed record ParameterBinding(short Type, nint Buffer, nint Length, nint Indicator, short SqlType, nuint Size, short Scale);
+
+    /// <summary>Opaque monotonic IDs prevent native callers from dereferencing managed or stale pointers.</summary>
+    internal static class DriverHandles {
+        internal static readonly ConcurrentDictionary<nint, DriverHandle> All = new();
+        private static long _next;
+        internal static short Allocate(short kind, nint parent, out nint id) {
+            id = 0;
+            if (kind == 1) return AllocateLocked(kind, parent, null, out id);
+            if (!All.TryGetValue(parent, out DriverHandle? owner)) return -2;
+            lock (owner.Sync) return AllocateLocked(kind, parent, owner, out id);
+        }
+
+        private static short AllocateLocked(short kind, nint parent, DriverHandle? owner, out nint id) {
+            id = 0;
+            lock (All) {
+                if (All.Count + (kind == 3 ? 5 : 1) > 4096) return -1;
+                if (kind != 1 && (owner is null || owner.Freed || owner.Kind != kind - 1)) return -2;
+                if (kind == 2 && All.Values.Count(handle => handle.Kind == 2) >= 32) return owner!.Fail("HY001", "Connection limit reached.");
+                DriverHandle? handle = kind switch {
+                    1 => new EnvironmentHandle(), 2 => new ConnectionHandle(parent), 3 => new StatementHandle(parent), _ => null
+                };
+                if (handle is null) return owner?.Fail("HYC00", "Explicit descriptors are not supported.") ?? (short)-1;
+                id = (nint)Interlocked.Increment(ref _next);
+                All[id] = handle;
+                if (handle is StatementHandle statement) {
+                    for (int attribute = 10010; attribute <= 10013; attribute++) {
+                        nint descriptor = (nint)Interlocked.Increment(ref _next);
+                        All[descriptor] = new DescriptorHandle(id, statement, attribute);
+                        statement.Descriptors[attribute] = descriptor;
+                    }
+                }
+                return 0;
+            }
+        }
+
+        internal static short With<T>(nint id, Func<T, short> operation) where T : DriverHandle {
+            if (!All.TryGetValue(id, out DriverHandle? handle) || handle is not T typed) return -2;
+            // A connection owns its snapshot, statements and descriptors. Independent connections
+            // never wait for this family's queries or imports. Always acquire parent locks first.
+            StatementHandle? statement = handle as StatementHandle ?? (handle as DescriptorHandle)?.Statement;
+            if (statement is null) {
+                lock (handle.Sync) return Invoke();
+            }
+            if (!All.TryGetValue(statement.Parent, out DriverHandle? parent) || parent is not ConnectionHandle connection) return -2;
+            lock (connection.Sync) lock (statement.Sync) {
+                if (connection.Freed || statement.Freed) return -2;
+                lock (handle.Sync) return Invoke();
+            }
+
+            short Invoke() {
+                if (handle.Freed) return -2;
+                handle.Diagnostics.Clear();
+                try { return operation(typed); }
+                catch (OperationCanceledException) { return handle.Fail("HY008", "Query canceled or its execution deadline expired."); }
+                catch (ParameterValueException exception) { return handle.Fail(exception.State, exception.Message); }
+                catch (NotSupportedException exception) { return handle.Fail("HYC00", exception.Message); }
+                catch (ArgumentException exception) { return handle.Fail("HY090", exception.Message); }
+                catch (Exception exception) { return handle.Fail("HY000", "OfficeIMO could not complete the operation: " + exception.GetBaseException().Message); }
+            }
+        }
+    }
+}

@@ -27,11 +27,15 @@ public sealed partial class OfficeWorkflowRunner {
             var policy = request.ConflictPolicy;
             var limits = request.Limits.CloneAndValidate();
             var options = request.Ocr.Clone();
+            var selector = request.PageSelector;
+            if (selector is not null && options.ReadOptions.PageSelection is not null)
+                throw new ArgumentException("Choose a page selector or an absolute OCR selection, not both.");
             var reviewCallback = request.ReviewAsync;
             var correctionCallback = request.ReviewCorrectionsAsync;
             if (reviewCallback is not null && correctionCallback is not null)
                 throw new ArgumentException("Choose one OCR review callback.");
             var password = request.PdfPassword;
+            var stagingGuard = request.PublicationGuard as IOfficeWorkflowStagingGuard;
             var inputStream = request.InputStream;
             var outputStream = request.OutputStream;
             string input = ValidateInputLocation(request.InputPath, inputStream);
@@ -52,6 +56,8 @@ public sealed partial class OfficeWorkflowRunner {
             IOfficeWorkflowPublicationGuard? guard = inputs.Guard(request.PublicationGuard, limits.MaximumInputBytes, [input], outputStream);
             var loadOptions = CreatePdfLoadOptions(password, limits.MaximumInputBytes);
             PdfDocument source = await PdfDocument.LoadAsync(snapshot, loadOptions, cancellationToken).ConfigureAwait(false);
+            if (selector is not null)
+                options.ReadOptions = ResolveOcrReadSelection(options.ReadOptions, selector, source.Inspect(loadOptions, cancellationToken).PageCount, options.MaxPages);
             options.SourceName ??= inputStream!.Name;
             PdfSearchableOcrReview review = await source.PrepareSearchableOcrAsync(engine, options, cancellationToken).ConfigureAwait(false);
             foreach (var page in review.Ocr.Pages) {
@@ -89,7 +95,11 @@ public sealed partial class OfficeWorkflowRunner {
             providerName = recognized.Ocr.Pages.Select(page => page.Provider).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
             string directory = outputStream is null ? Path.GetDirectoryName(output)!
                 : providerDirectory = OfficeTemporaryDirectory.Create("officeimo-ocr-output-");
+            if (outputStream is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(directory, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(directory);
+            if (outputStream is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(directory, cancellationToken).ConfigureAwait(false);
             stagingPath = Path.Combine(directory, ".ocr-" + Guid.NewGuid().ToString("N") + ".tmp");
             await using (var file = new FileStream(stagingPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous))
             await using (var bounded = new OfficeWorkflowBoundedWriteStream(file, limits.MaximumOutputBytes, leaveOpen: false)) {
@@ -100,6 +110,7 @@ public sealed partial class OfficeWorkflowRunner {
             if (reopened.Inspect(outputLoadOptions, cancellationToken).PageCount != source.Inspect(loadOptions, cancellationToken).PageCount)
                 throw new InvalidDataException("The searchable PDF did not preserve the source page count.");
             diagnostics.Add(new OfficeWorkflowDiagnostic("SearchablePdfReopened", "The staged searchable PDF was reopened and its page count verified.", stage: "validate-output"));
+            long outputBytes = new FileInfo(stagingPath).Length;
             inputs.Dispose();
             if (outputStream is not null) {
                 var outcome = await PublishProviderArtifactAsync(stagingPath, output, outputStream, limits.MaximumOutputBytes, guard, () => {
@@ -109,11 +120,13 @@ public sealed partial class OfficeWorkflowRunner {
                     providerDirectory = null;
                 }, diagnostics, cancellationToken).ConfigureAwait(false);
                 return new PdfSearchableWorkflowResult(outcome.Status, outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
-                    outcome.Status == OfficeWorkflowStatus.Completed ? PdfOcrPublicationSummary(words, diagnostics) : outcome.Summary, words, pages, providerName, diagnostics, outcome.Recovery);
+                    outcome.Status == OfficeWorkflowStatus.Completed ? PdfOcrPublicationSummary(words, diagnostics) : outcome.Summary, words, pages, providerName, diagnostics, outcome.Recovery,
+                    outcome.Status == OfficeWorkflowStatus.Completed ? outcome.OutputBytes : 0);
             }
             string published = await PublishAsync(stagingPath, output, policy, guard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
-            return new PdfSearchableWorkflowResult(OfficeWorkflowStatus.Completed, published, PdfOcrPublicationSummary(words, diagnostics), words, pages, providerName, diagnostics);
+            return new PdfSearchableWorkflowResult(OfficeWorkflowStatus.Completed, published, PdfOcrPublicationSummary(words, diagnostics), words, pages, providerName, diagnostics,
+                outputBytes: outputBytes);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
@@ -133,4 +146,11 @@ public sealed partial class OfficeWorkflowRunner {
     private static string PdfOcrPublicationSummary(int words, IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics) =>
         words == 0 ? "PDF saved; no OCR text was added." : diagnostics.Any(item => item.Severity == OfficeWorkflowDiagnosticSeverity.Warning)
             ? "Searchable PDF created with recognition warnings; review the diagnostics." : "Searchable PDF created.";
+
+    private static PdfReadOptions ResolveOcrReadSelection(PdfReadOptions snapshot, PdfPageSelector selector, int pageCount, int maximumPages) => new() {
+        Profile = snapshot.Profile,
+        PageSelection = PdfPageSelection.From(selector.Resolve(pageCount, maximumPages).ToArray()),
+        LayoutOptions = snapshot.LayoutOptions,
+        Pipeline = snapshot.Pipeline
+    };
 }

@@ -36,12 +36,15 @@ internal static partial class PdfWriter {
             int lineIndex = 0;
             bool firstSegment = true;
             var listFont = ChooseNormal(currentOpts.DefaultFont);
+            bool splitKeptItemAcrossPages = prepared.Style?.KeepTogether == true &&
+                prepared.Style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages &&
+                MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D;
             void NewListFrame() {
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     QueueColumnBalanceRemainder(MeasureListColumnBalanceUnits(prepared, itemIndex, lineIndex, lineHeights,
                         includeSpacingBefore: false), prepared.Block, blockList, blockIndex);
                 }
-                NewPage();
+                NewPage(forcePhysicalPage: splitKeptItemAcrossPages);
                 if (activeColumnFlow != null && Math.Abs(wrappedWidth - width) > 0.001D) {
                     textWidth = width - textOffset - rightInset;
                     var remainingRuns = firstSegment ? runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
@@ -66,7 +69,7 @@ internal static partial class PdfWriter {
                 double available = y - currentOpts.MarginBottom;
                 double closingPadding = itemIndex == prepared.Items.Count - 1 ? GetClosingContainerPadding() : 0D;
                 if (closingPadding > 0D) closingPadding += spacingAfter;
-                double firstLineHeight = GetRichLineHeight(lineHeights, lineIndex, leading) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
+                double firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                 if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D)
                     throw new ArgumentException("List line height exceeds the available page content height.");
                 while (available + .001D < firstLineHeight) {
@@ -74,7 +77,7 @@ internal static partial class PdfWriter {
                         throw new ArgumentException("List line height exceeds the available page content height.");
                     NewListFrame();
                     available = y - currentOpts.MarginBottom;
-                    firstLineHeight = GetRichLineHeight(lineHeights, lineIndex, leading) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
+                    firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                     if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D) {
                         throw new ArgumentException("List line height exceeds the available page content height.");
                     }
@@ -84,7 +87,7 @@ internal static partial class PdfWriter {
                 double heightSum = 0;
                 for (int k = lineIndex; k < lines.Count; k++) {
                     double lineHeight = GetRichLineHeight(lineHeights, k, leading);
-                    if (heightSum + lineHeight + (k == lines.Count - 1 ? closingPadding : 0D) > available) {
+                    if (heightSum + GetRichLineFrameFitHeight(lines[k], lineHeight) + (k == lines.Count - 1 ? closingPadding : 0D) > available) {
                         break;
                     }
 
@@ -132,14 +135,16 @@ internal static partial class PdfWriter {
                         leading,
                         currentOpts.MarginLeft + markerOffset,
                         markerWidth,
-                        AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size),
+                        AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size) +
+                            ResolveFontLineAlignmentRise(markerFont, markerNamedFont, markerSize, currentOpts, lineSpacing),
                         markerLines,
                         markerAlign,
                         markerColor ?? color,
                         applyBaselineTweak: true,
                         structureType: "Lbl",
                         markedContentId: labelMarkedContentId,
-                        namedFont: markerNamedFont);
+                        namedFont: markerNamedFont,
+                        featureSettings: prepared.Style?.MarkerFeatureSettings);
                 }
 
                 RecordFlowPlacement(y);

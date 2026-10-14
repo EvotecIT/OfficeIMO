@@ -109,7 +109,8 @@ public static partial class OfficeTiffCodec {
                     OfficeRasterFrameBlend.Source,
                     frames.Count == 0,
                     dpiX,
-                    dpiY));
+                    dpiY,
+                    (OfficeImageOrientation)orientation));
                 int nextIfdPointerOffset = checked(ifdOffset + 2 + entryCount * 12);
                 ifdOffset = ReadOffset(encodedBytes, nextIfdPointerOffset, littleEndian);
             }

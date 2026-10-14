@@ -8,7 +8,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Visio {
     internal static partial class VisioShapeGeometry {
 
-        private static bool TryReadPoint(XElement row, XNamespace ns, VisioShape shape, bool relative, out (double X, double Y) point) {
+        internal static bool TryReadPoint(XElement row, XNamespace ns, VisioShape shape, bool relative, out (double X, double Y) point) {
             if (!TryReadCell(row, ns, "X", shape, out double x) ||
                 !TryReadCell(row, ns, "Y", shape, out double y)) {
                 point = default;
@@ -40,8 +40,9 @@ namespace OfficeIMO.Visio {
 
             double midX = (start.X + end.X) / 2D;
             double midY = (start.Y + end.Y) / 2D;
-            double normalX = -dy / chord;
-            double normalY = dx / chord;
+            // ArcTo's positive bow is right of the directed chord in Visio's Y-up coordinates.
+            double normalX = dy / chord;
+            double normalY = -dx / chord;
             double radius = ((chord * chord) / (8D * Math.Abs(sagitta))) + (Math.Abs(sagitta) / 2D);
             double signedCenterOffset = Math.Sign(sagitta) * (radius - Math.Abs(sagitta));
             double centerX = midX - (normalX * signedCenterOffset);

@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "profile": "Preservation-aware fixed-length plain Keynote text-box paragraph replacement",
+  "recordedUtc": "2026-10-11T00:49:50.400212+00:00",
+  "candidateBase": "bc38efa255751cb5b23312db971ff58155e66082",
+  "license": "Newly authored and derived evidence under repository MIT. Native PDFs contain system-font subsets; no standalone fonts are distributed. Composed rendering uses the existing portable font profile.",
+  "application": {
+    "name": "Keynote Creator Studio",
+    "version": "15.4",
+    "build": "7051.0.79"
+  },
+  "host": {
+    "macOS": "27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "artifacts": {
+    "keynote-created-images-edited-v15.4.key": {
+      "bytes": 95250,
+      "sha256": "c0bc70026c2c977fde0879f37849c14cd819dc055a3cd7f95e97cac789828a17"
+    },
+    "keynote-preserved-paragraphs-edited-officeimo-v15.4.pptx": {
+      "bytes": 29082,
+      "sha256": "72d2745ebf4eacbee1236dbdaf544e074f72f5bf5d73cb4b62ff35e6355596eb"
+    },
+    "keynote-preserved-paragraphs-edited-v15.4-composed.pdf": {
+      "bytes": 4938,
+      "sha256": "770c63cd603ae6f31ad9b9556a5fb88310adf6942303290c32df6af63afcabd0"
+    },
+    "keynote-preserved-paragraphs-edited-v15.4.key": {
+      "bytes": 98720,
+      "sha256": "9ff8299c1acfa80055368f0b541544273087b747e51d1f6ae43e1ab4d8771212"
+    },
+    "keynote-preserved-paragraphs-edited-v15.4.pdf": {
+      "bytes": 51806,
+      "sha256": "c3ee1fbc9000763d3e43275251d6cebdc640a100429d60b97a886d6259c6e5f5"
+    },
+    "keynote-preserved-paragraphs-edited-v15.4.pptx": {
+      "bytes": 17512,
+      "sha256": "3841fdbf396f4fecc17abb4688791552015f5d3d9f5e24544cdd50d4f3705fc8"
+    },
+    "keynote-preserved-paragraphs-officeimo-v15.4.pptx": {
+      "bytes": 29100,
+      "sha256": "a34123354593b6e687f90d5c2249f26d92c99595edb9b620bc1a6b4526995634"
+    },
+    "keynote-preserved-paragraphs-v15.4-changes.json": {
+      "bytes": 442,
+      "sha256": "18f044a27a15ee601a7026fa65cf574743e9375dbcaf7cb77d229211ae3f1e32"
+    },
+    "keynote-preserved-paragraphs-v15.4-composed.pdf": {
+      "bytes": 4930,
+      "sha256": "c8b36dba30c94077a8636780345ef43ccb0671baf4f16b579cf80ed99d6b60af"
+    },
+    "keynote-preserved-paragraphs-v15.4-native-officeimo-semantics.json": {
+      "bytes": 3158,
+      "sha256": "f23a9cc7b34ebe96da5dda738c59c67f7f9571352408b161d78e12841e0dcbb2"
+    },
+    "keynote-preserved-paragraphs-v15.4-native-pdf-page1.png": {
+      "bytes": 20836,
+      "sha256": "6e8029ef459deb1cac9eccce5537f300b47d44a67c48191409bb26301213de0c"
+    },
+    "keynote-preserved-paragraphs-v15.4-native-pdf-page2.png": {
+      "bytes": 19754,
+      "sha256": "a6253bbf708e46677a9ae3d850f48f9206d8474c0d6b73bdabc57484ba0a0b10"
+    },
+    "keynote-preserved-paragraphs-v15.4-native-pdf-page3.png": {
+      "bytes": 19900,
+      "sha256": "5ecfe921641d6432fb52994472c239e9044673f9aea742b0b70977ecc59543df"
+    },
+    "keynote-preserved-paragraphs-v15.4-native-semantics.json": {
+      "bytes": 3158,
+      "sha256": "58f200b8baeb4b4c8cae94e50a407b74b493e8522026641f013f4397365eefc0"
+    },
+    "keynote-preserved-paragraphs-v15.4-native-slide1.png": {
+      "bytes": 68288,
+      "sha256": "679217f9c6079ca819d2e2249f2a89f02bdde5cae5d75c9c467667004a341dfe"
+    },
+    "keynote-preserved-paragraphs-v15.4-native-slide2.png": {
+      "bytes": 64341,
+      "sha256": "b4f7c86cb8f31f6c5764297096c2b2df9189f964f2d8a8674f031c6396fa4094"
+    },
+    "keynote-preserved-paragraphs-v15.4-native-slide3.png": {
+      "bytes": 64694,
+      "sha256": "04da6defdc9992ab8eeff9dbd1c4c6dc781f48ee2fb8b2d3f1af1aa3706ec955"
+    },
+    "keynote-preserved-paragraphs-v15.4-pdf-text.json": {
+      "bytes": 2931,
+      "sha256": "edb7af886ab50b37b71ac8b77dbad6a162a59502917a85c01e0822da93ce0c3d"
+    },
+    "keynote-preserved-paragraphs-v15.4-pptx-semantics.json": {
+      "bytes": 3150,
+      "sha256": "b193d20cd155a313d917c3ce7293da47c9685848f7aabc7f4b393796cf320faa"
+    },
+    "keynote-preserved-paragraphs-v15.4-raw-preservation.json": {
+      "bytes": 1589,
+      "sha256": "0cff7ec3d715605aa5731a43e48f9bede0f90a0c8a36503331cb8ad1601b3840"
+    },
+    "keynote-preserved-paragraphs-v15.4-rendering-baseline.json": {
+      "bytes": 510,
+      "sha256": "addd5ea51a9274f1efb7c166a662c011f4ff279beeca10094547b5aa78094278"
+    },
+    "keynote-preserved-paragraphs-v15.4-rich-span.json": {
+      "bytes": 249,
+      "sha256": "74e759bed5fb205bf1cc6c1e6eaba2267871519aa34c65c8f0b6b35d10dcbfb0"
+    },
+    "keynote-preserved-paragraphs-v15.4.key": {
+      "bytes": 99316,
+      "sha256": "b4b6a57fbcd4fc724fa34aeb78a8ea7702cc350439069278492e3332d26ad254"
+    }
+  },
+  "changes": [
+    {
+      "Before": "Native PNG — image behind text",
+      "After": "Edited PNG — image behind text",
+      "StorageId": 119,
+      "Paragraph": 1,
+      "TextBoxId": 118
+    },
+    {
+      "Before": "Native alpha PNG",
+      "After": "Edited alpha PNG",
+      "StorageId": 138,
+      "Paragraph": 1,
+      "TextBoxId": 137
+    },
+    {
+      "Before": "Native JPEG",
+      "After": "Edited JPEG",
+      "StorageId": 153,
+      "Paragraph": 1,
+      "TextBoxId": 152
+    }
+  ],
+  "independentPreservation": {
+    "source": "keynote-created-images-edited-v15.4.key",
+    "output": "keynote-preserved-paragraphs-frozen-v15.4.key",
+    "sourceSha256": "c0bc70026c2c977fde0879f37849c14cd819dc055a3cd7f95e97cac789828a17",
+    "outputSha256": "b4b6a57fbcd4fc724fa34aeb78a8ea7702cc350439069278492e3332d26ad254",
+    "fileEntries": 24,
+    "recordsIncludingAuxiliary": 205,
+    "textBoxes": [
+      {
+        "textBox": 118,
+        "storage": 119,
+        "slide": 112
+      },
+      {
+        "textBox": 137,
+        "storage": 138,
+        "slide": 131
+      },
+      {
+        "textBox": 152,
+        "storage": 153,
+        "slide": 146
+      }
+    ],
+    "paragraphs": [
+      {
+        "paragraph": 1,
+        "payloadByteOffset": 6,
+        "bytes": 32,
+        "before": "Native PNG — image behind text",
+        "after": "Edited PNG — image behind text",
+        "storageRecordId": 119
+      },
+      {
+        "paragraph": 1,
+        "payloadByteOffset": 6,
+        "bytes": 16,
+        "before": "Native alpha PNG",
+        "after": "Edited alpha PNG",
+        "storageRecordId": 138
+      },
+      {
+        "paragraph": 1,
+        "payloadByteOffset": 6,
+        "bytes": 11,
+        "before": "Native JPEG",
+        "after": "Edited JPEG",
+        "storageRecordId": 153
+      }
+    ],
+    "changedEntries": [
+      "Index/Slide-131-2.iwa",
+      "Index/Slide-146-2.iwa",
+      "Index/Slide.iwa"
+    ],
+    "onlyDeclaredUtf8RangesDiffer": true,
+    "rawHeadersSiblingsAndOtherBytesIdentical": true,
+    "nativeStoragePropertiesIdenticalExceptText": true,
+    "numbersParser": "4.19.0",
+    "protobuf": "7.36.2",
+    "descriptorSha256": "2c46d6ee3eaf4d8419d0cc8329b74776f69517c1e14de0571e0434e29c4fc216"
+  },
+  "independentSemantics": {
+    "schemaRevision": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "initialOfficeimoPptx": "keynote-preserved-paragraphs-v15.4-pptx-semantics.json",
+    "nativePptx": "keynote-preserved-paragraphs-v15.4-native-semantics.json",
+    "nativeEditedOfficeimoPptx": "keynote-preserved-paragraphs-v15.4-native-officeimo-semantics.json",
+    "allOrderedTextGeometryImageBytesAndDescriptionsMatch": true,
+    "slides": 3,
+    "geometryTolerancePoints": 0.001
+  },
+  "nativeAcceptance": {
+    "openWithoutRepair": true,
+    "allThreeReplacementsRetained": true,
+    "untouchedRichTextAndImagesRetained": true,
+    "furtherNativeEdit": "Slide 3 title replaced with Native checked JPEG",
+    "savedClosedReopened": true,
+    "powerPointExport": true,
+    "pdfExportPages": 3,
+    "allNativeAndComposedPdfPagesInspected": true,
+    "ownedAppClosed": true
+  },
+  "rendering": {
+    "route": "keynote-pdf",
+    "sourceUnits": 14,
+    "reconstructedSourceUnits": 14,
+    "omittedSourceUnits": 0,
+    "unassessedSelectedSourceUnits": 0,
+    "nativePdfPages": 3,
+    "composedInitialPdfPages": 3,
+    "composedEditedPdfPages": 3,
+    "completeOrderedTextAndCanvasMatch": true,
+    "fontProfileReference": "iwork-composed-pdf-portable.json#/fontProfile",
+    "resourcePolicy": "PdfResourcePolicy.CreatePortableDeterministic()",
+    "richRunPdfFont": "Helvetica-Bold 28pt",
+    "appearanceBaseline": {
+      "source": "keynote-preserved-resized-officeimo-v15.4.pdf",
+      "sourceSha256": "922968316724b2954760b3fec1d39ffb08791e88b7985bb6fba8f29dad66e80e",
+      "renderer": "pdftocairo 26.09.0",
+      "dpi": 96,
+      "regionPixels": [
+        80,
+        600,
+        1200,
+        667
+      ],
+      "comparedPixels": 75040,
+      "changedPixels": 0,
+      "result": "Untouched rich caption is pixel-identical to the earlier qualified composed PDF. Saved PPTX b=1 and PDF Helvetica-Bold at 28pt retain bold semantics; Apple Arial-Bold appearance differs."
+    },
+    "limits": "Explicit font substitution and metrics differ. Native typography and pixel equivalence are not qualified. The Apple PDF produces two recorded pypdf object-offset warnings; no PDF conformance claim."
+  },
+  "boundaries": [
+    "Complete modern selected projection; direct unlocked primary freeform text shape with unique storage. Placeholder/inherited/shared storage and selected shape hyperlinks/inline objects are rejected.",
+    "Selected paragraph has a uniform run and no list marker or hyperlink. Exact UTF-16 length and UTF-8 byte length retain all native offsets; TAB is allowed and line/inline markers are rejected.",
+    "Only the declared UTF-8 ranges change. Headers, siblings, styles, IDs/references, geometry, resources and unknown bytes are identical. Raw preservation is distinct from semantic assessment of opaque records.",
+    "Edited saves require explicit AllowUnassessedVisualCaches; previews and visual caches are retained without refresh and wider application metadata remains unassessed.",
+    "Length, rich-run/list/table/structural/nested-index edits, other Apple versions, scripts and runtime architectures require separate evidence.",
+    "Apple may change view state after opening. Raw preservation proof applies to the frozen initial OfficeIMO output."
+  ]
+}

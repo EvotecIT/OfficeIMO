@@ -242,10 +242,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
-            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
-            return shape.Parent != null
-                ? GetPagePoint(shape.Parent, absX, absY)
-                : (absX, absY);
+            return shape.GetAbsolutePoint(x, y);
         }
 
         private static double ResolvePercent(string value, VisioDataGraphicItem item) {

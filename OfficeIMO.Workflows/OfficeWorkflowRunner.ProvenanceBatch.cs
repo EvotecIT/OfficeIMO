@@ -237,7 +237,8 @@ public sealed partial class OfficeWorkflowRunner {
             ? null!
             : new OfficeWorkflowLimits {
                 MaximumInputBytes = source.Limits.MaximumInputBytes,
-                MaximumOutputBytes = source.Limits.MaximumOutputBytes
+                MaximumOutputBytes = source.Limits.MaximumOutputBytes,
+                MaximumXmlCharactersInPart = source.Limits.MaximumXmlCharactersInPart
             }
     };
 

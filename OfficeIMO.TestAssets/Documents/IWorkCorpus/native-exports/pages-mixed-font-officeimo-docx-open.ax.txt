@@ -1,0 +1,92 @@
+Window: "pages-mixed-font-created-officeimo", App: Pages.
+0 okno standardowe pages-mixed-font-created-officeimo, Secondary Actions: Raise
+	1 grupa podziału
+		2 element podziału (disabled, settable, float) -1
+		3 obszar przewijania Secondary Actions: Scroll Left, Scroll Right, Scroll Up, Scroll Down
+			4 obszar układu Description: Dokument, Help: Formatuj, przenoś i zmieniaj wielkość rzeczy, które zawiera Dokument
+				5 strona (selectable) Secondary Actions: Przejdź do formatu strony, Description: strona 1, podsumowanie: Mixed family decimal items
+Root seven serif mono plain
+Depth 1 serif mono plain
+Depth 2 serif mono plain
+Depth 3 serif mono plain
+Depth 4 serif mono plain
+Depth 5 serif mono plain
+Depth 6 serif mono plain
+Depth 7 serif mono plain
+Depth 8 serif mono plain
+Deep two serif mono plain
+Plain gap retains counters
+Root eight serif mono plain
+Child one serif mono plain
+Serif marker serif mono plain
+Serif child serif mono plain
+Mono marker serif mono plain
+Mono child serif mono plain
+Resumed c
+					6 container Description: Nagłówek, Help: Aby ukryć lub pokazać nagłówki i stopki, przejdź do części głównej dokumentu i użyj polecenia czynności własnej.
+					7 obszar wprowadzania tekstu (selectable, settable) Description: Treść, Help: Formatuj szybko tekst, przechodząc do narzędzia za pomocą VoiceOver, Secondary Actions: Ukryj nagłówki i stopki, Przejdź do formatu strony, Zakładka, Value: Mixed family decimal items
+1. **Root seven serif*** mono* plain
+    2. **Depth 1 serif*** mono* plain
+        3. **Depth 2 serif*** mono* plain
+            4. **Depth 3 serif*** mono* plain
+                5. **Depth 4 serif*** mono* plain
+                    6. **Depth 5 serif*** mono* plain
+                        7. **Depth 6 serif*** mono* plain
+                            8. **Depth 7 serif*** mono* plain
+                                9. **Depth 8 serif*** mono* plain
+                                10. **Deep two serif*** mono* plain
+Plain gap retains counters
+12. **Root eight serif*** mono* plain
+    13. **Child one serif*** mono* plain
+* **Serif marker serif*** mono* plain
+    * **Serif child serif*** mono* plain
+16. **Mono marker serif*** mono* plain
+    17. **Mono child serif*** mono* plain
+    18. **Resumed child serif*** mono* plain
+
+					8 container Description: Stopka, Help: Aby ukryć lub pokazać nagłówki i stopki, przejdź do części głównej dokumentu i użyj polecenia czynności własnej.
+			9 pasek przewijania (disabled, settable, float) 0
+			10 pasek przewijania (settable, float) 0
+				11 wskaźnik wartości (settable, float) 0
+				12 przycisk strzałki zwiększającej
+				13 przycisk strzałki zmniejszającej
+				14 przycisk strony następnej
+				15 przycisk strony poprzedniej
+		16 element podziału (disabled, settable, float) 780
+		17 container Narzędzie formatowania
+			18 unknown formatuj
+			19 text Nic nie jest zaznaczone. Zaznacz obiekt lub tekst, który chcesz sformatować.
+	20 pasek narzędzi
+		21 przycisk menu Description: Widok, Help: Wybierz elementy wyświetlane i ukrywane podczas tworzenia dokumentu, Secondary Actions: Przejdź do następnej rzeczy
+		22 przycisk Dodaj stronę, Help: Dodaj do dokumentu stronę, ID: ToolbarItemAddPage, Secondary Actions: Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		23 przycisk menu Description: Wstaw, Help: Dodaj podziały, numery stron, łącza lub inne elementy, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		24 przycisk Wygeneruj obrazek, Help: Twórz obrazki na podstawie opisu, innego obrazka lub sugerowanych poleceń, ID: ToolbarItemCreateImage, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		25 przycisk (disabled) Super rozdzielczość, Help: Zwiększ rozdzielczość obrazka, ID: ToolbarItemSuperResolution, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		26 przycisk Centrum zawartości, Help: Przeglądaj bibliotekę wyselekcjonowanych materiałów, ID: ToolbarItemMediaLibrary, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		27 przycisk Tabela, Help: Wybierz tabelę, która ma zostać dodana do dokumentu, ID: ToolbarItemTable, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		28 przycisk Wykres, Help: Wybierz wykres, który ma zostać dodany do dokumentu, ID: ToolbarItemChart, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		29 przycisk Tekst, Help: Dodaj do dokumentu pole tekstowe, ID: ToolbarItemText, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		30 przycisk Kształt, Help: Wybierz kształt lub linię, którą chcesz dodać do dokumentu, lub użyj narzędzia Pisak, ID: ToolbarItemShape, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		31 przycisk menu Description: Multimedia, Help: Wybierz obrazek, film lub plik audio, który ma zostać dodany do dokumentu, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		32 przycisk (disabled) Komentarz, Help: Dodaj komentarz do zaznaczonego tekstu, obiektu lub komórki tabeli, ID: ToolbarItemComment, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		33 przycisk menu Zoom, Help: Kliknij, aby powiększyć lub zmniejszyć widok dokumentu, Value: 125%, ID: ToolbarItemZoom, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		34 przycisk Description: Udostępnij, Secondary Actions: Przejdź do poprzedniej rzeczy, Przejdź do następnej rzeczy, Usuń z paska narzędzi
+		35 container Secondary Actions: Przejdź do poprzedniej rzeczy, Usuń z paska narzędzi
+			36 przycisk wyboru Description: Format, Help: Wyświetl lub ukryj opcje formatowania i stylów, Value: 1, Secondary Actions: Przejdź do poprzedniej rzeczy, Usuń z paska narzędzi
+			37 przycisk wyboru Description: Dokument, Help: Wyświetl lub ukryj opcje dokumentu i sekcji, Value: 0, Secondary Actions: Przejdź do poprzedniej rzeczy, Usuń z paska narzędzi
+	38 przycisk zamykania
+	39 przycisk trybu pełnoekranowego Help: ten przycisk pozwala też powiększyć lub pomniejszyć okno, Secondary Actions: powiększ/pomniejsz okno
+	40 przycisk minimalizacji okna
+	41 tekst pages-mixed-font-created-officeimo
+42 menu bar
+	43 Pages
+	44 Plik
+	45 Edycja
+	46 Wstaw
+	47 Format
+	48 Uporządkuj
+	49 Widok
+	50 Okno
+	51 Pomoc
+
+The focused UI element is 4 obszar układu Description: Dokument, Help: Formatuj, przenoś i zmieniaj wielkość rzeczy, które zawiera Dokument

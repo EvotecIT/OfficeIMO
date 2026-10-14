@@ -9,10 +9,19 @@ namespace OfficeIMO.Word.Pdf {
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
+            public bool OpenTypeFeaturesEnabled { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
+            public NativeParagraphSpacing ParagraphSpacing { get; init; }
             public OfficeIMO.Pdf.PdfRunningContentContext? RunningContentContext { get; init; }
+            // An inherited story uses the selecting section's page and margin geometry.
+            public WordSection? RunningContentSection { get; init; }
+            // Computed once by the read operation with its effective body styles and fonts.
+            public double? BodyTextInkTopOffset { get; init; }
+            // Immutable per-part visibility/permission inventory captured by this read operation.
+            public IReadOnlyDictionary<OpenXmlElement, NativeRunningTextBoxStoryPeers>? RunningTextBoxStoryPeers { get; init; }
+            public bool RunningStoryHasDisallowedTextBoxPeers { get; init; }
             // A missing docDefaults element follows Word's 12pt application fallback.
-            public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 12D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null);
+            public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 12D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null) { OpenTypeFeaturesEnabled = true };
         }
 
         private static NativeDocumentDefaults GetNativeDocumentDefaults(
@@ -31,7 +40,7 @@ namespace OfficeIMO.Word.Pdf {
                     NativeDocumentDefaults.WordDefault.ParagraphSpacingAfter,
                     NativeDocumentDefaults.WordDefault.ParagraphSpacingAfterDeclared,
                     NativeDocumentDefaults.WordDefault.ParagraphWidowControl,
-                    defaultTabStopWidth);
+                    defaultTabStopWidth) { OpenTypeFeaturesEnabled = AreNativeOpenTypeFeaturesEnabled(document) };
             }
 
             NativeLatinFontFamilies fontFamilies = GetNativeRunFontFamilies(document, defaults
@@ -65,7 +74,11 @@ namespace OfficeIMO.Word.Pdf {
                 FontFamilies = fontFamilies,
                 ComplexScript = default(NativeComplexScriptDefaults).Merge(defaultRuns),
                 TextSpacing = default(NativeTextSpacing).Merge(defaultRuns),
-                LineSpacing = ReadNativeLineSpacing(spacing)
+                OpenTypeFeaturesEnabled = AreNativeOpenTypeFeaturesEnabled(document),
+                LineSpacing = ReadNativeLineSpacing(spacing, defaults.GetFirstChild<W.ParagraphPropertiesDefault>()?
+                    .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?.GetFirstChild<W.TextAlignment>()),
+                ParagraphSpacing = default(NativeParagraphSpacing).Merge(defaults.GetFirstChild<W.ParagraphPropertiesDefault>()?
+                    .GetFirstChild<W.ParagraphPropertiesBaseStyle>())
             };
         }
 

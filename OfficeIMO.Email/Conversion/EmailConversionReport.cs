@@ -29,13 +29,13 @@ public sealed class EmailConversionReport : IOfficeConversionReport {
     /// <summary>Known fidelity and safety diagnostics for the requested conversion.</summary>
     public IReadOnlyList<EmailDiagnostic> Diagnostics { get; }
 
-    /// <summary>True when the conversion is known to normalize or omit source semantics.</summary>
+    /// <summary>True when conversion fidelity includes normalization, omission, failure, or unassessed semantics.</summary>
     public bool HasPotentialDataLoss => HasLoss;
 
     /// <summary>Category-preserving diagnostics for the requested format conversion.</summary>
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
 
-    /// <summary>True when the conversion approximates, omits, or fails to preserve source content.</summary>
+    /// <summary>True when the conversion approximates, omits, fails to preserve, or has not assessed source content.</summary>
     public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 

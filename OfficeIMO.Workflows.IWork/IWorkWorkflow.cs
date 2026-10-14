@@ -8,8 +8,8 @@ using OfficeIMO.Word.IWork;
 namespace OfficeIMO.Workflows.IWork;
 
 /// <summary>Opt-in Apple iWork conversion using the bounded source reader and existing Office destination owners.</summary>
-public static class IWorkWorkflow {
-    /// <summary>Creates a runner with Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint routes.</summary>
+public static partial class IWorkWorkflow {
+    /// <summary>Creates a runner with iWork-to-Office and complete-editable-subset PDF routes.</summary>
     /// <remarks>Defaults reject partial editable reconstruction and visual previews without known full-document coverage. Local ZIP files and directory bundles, and provider ZIP streams, use captured inputs and publication-time source verification.</remarks>
     public static OfficeWorkflowRunner CreateRunner(IWorkReadOptions? readOptions = null,
         IWorkConversionOptions? conversionOptions = null) => new(null, null, conversions: CreateRegistrations(readOptions, conversionOptions));
@@ -19,23 +19,31 @@ public static class IWorkWorkflow {
         IWorkConversionOptions? conversionOptions = null) {
         IWorkReadOptions reading = (readOptions ?? new IWorkReadOptions { PreserveSourceRecords = false }).Clone();
         IWorkConversionOptions conversion = (conversionOptions ?? new IWorkConversionOptions { RequireCompleteVisualCoverage = true }).Clone();
-        return Array.AsReadOnly(new[] {
+        var registrations = new List<OfficeWorkflowConversionRegistration> {
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("pages-docx", (input, output, limits, settings, token) => {
                 using PagesToWordResult result = WordIWorkConverter.ConvertPagesToWordResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
-                result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
-                return Evidence(result.Report);
+                return SaveWithEvidence(Evidence(result.Report, result.Source), () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("numbers-xlsx", (input, output, limits, settings, token) => {
                 using NumbersToExcelResult result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
-                result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
-                return Evidence(result.Report);
+                return SaveWithEvidence(Evidence(result.Report, result.Source), () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("keynote-pptx", (input, output, limits, settings, token) => {
                 using KeynoteToPowerPointResult result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
-                result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
-                return Evidence(result.Report);
+                return SaveWithEvidence(Evidence(result.Report, result.Source), () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits))
-        });
+        };
+        AddPdfRegistrations(registrations, reading, conversion);
+        return Array.AsReadOnly(registrations.ToArray());
+    }
+
+    private static OfficeWorkflowConversionEvidence SaveWithEvidence(OfficeWorkflowConversionEvidence evidence, Action save) {
+        try {
+            save();
+            return evidence;
+        } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
+            throw new OfficeConversionException(exception.Message, evidence, exception);
+        }
     }
 
     private static OfficeWorkflowStreamInput DirectoryInput(string path, IWorkReadOptions reading, OfficeWorkflowLimits limits) {
@@ -54,8 +62,9 @@ public static class IWorkWorkflow {
         return copy;
     }
 
-    private static OfficeWorkflowConversionEvidence Evidence(IWorkConversionReport report) => new(report,
+    private static OfficeWorkflowConversionEvidence Evidence(IWorkConversionReport report, IWorkSourceDocument source) => new(report,
         new Dictionary<string, string>(StringComparer.Ordinal) {
+            ["packageContentSha256"] = source.ComputePackageContentHash(),
             ["sourceKind"] = report.SourceKind.ToString(),
             ["projectionKind"] = report.ProjectionKind.ToString(),
             ["producerBuildVersions"] = string.Join(", ", report.BuildVersions),

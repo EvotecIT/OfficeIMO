@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                             : bufferedRow != null
                                 ? bufferedRow[column]
                                 : rows.GetValue(row, column);
-                        ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(rawValue);
+                        ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(rawValue, source.PreserveMissingValues);
                         if (value.Kind == ExcelDirectTabularValueKind.Unsupported) {
                             plan = null!;
                             return false;
@@ -174,6 +174,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     rows,
                     flatValues,
                     rowOffset,
+                    source.PreserveMissingValues,
                     cancellationToken);
                 returnCellCache = false;
                 return true;
@@ -596,6 +597,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 IExcelSheetTabularRowSource rows,
                 object?[]? flatValues,
                 int rowOffset,
+                bool preserveMissingValues,
                 CancellationToken cancellationToken) {
                 TotalRows = totalRows;
                 ColumnCount = columnCount;
@@ -616,6 +618,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 Rows = rows;
                 FlatValues = flatValues;
                 RowOffset = rowOffset;
+                PreserveMissingValues = preserveMissingValues;
                 CancellationToken = cancellationToken;
             }
 
@@ -639,6 +642,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal IExcelSheetTabularRowSource Rows { get; }
             internal object?[]? FlatValues { get; }
             internal int RowOffset { get; }
+            internal bool PreserveMissingValues { get; }
             internal CancellationToken CancellationToken { get; }
 
             internal void ThrowIfCancellationRequested(int row) {
@@ -681,7 +685,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         : bufferedRow != null
                             ? bufferedRow[column]
                             : plan.Rows.GetValue(sourceRow, column);
-                    value = ExcelDirectTabularValue.Normalize(rawValue);
+                    value = ExcelDirectTabularValue.Normalize(rawValue, plan.PreserveMissingValues);
                 }
 
                 if (value.Kind == ExcelDirectTabularValueKind.Unsupported) {

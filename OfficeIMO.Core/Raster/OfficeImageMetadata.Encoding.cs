@@ -26,7 +26,7 @@ public sealed partial class OfficeImageMetadata {
             throw new NotSupportedException("TIFF-relative maker-note offsets cannot be moved to a newly encoded container. Explicitly remove or replace the maker-note field before re-encoding, or use Apply with the original TIFF for lossless edits.");
         }
         OfficeImageMetadata result = Clone();
-        if (format == OfficeImageFormat.Gif) result.ResolutionUnits = OfficeImageResolutionUnit.AspectRatio;
+        if (format == OfficeImageFormat.Gif) result._resolution = new OfficeImageResolution(result.HorizontalResolution, result.VerticalResolution, OfficeImageResolutionUnit.AspectRatio);
         if ((supported & OfficeImageMetadataProfileKinds.Exif) == 0) result.ClearExif();
         if ((supported & OfficeImageMetadataProfileKinds.Xmp) == 0) result._xmp = null;
         if ((supported & OfficeImageMetadataProfileKinds.Icc) == 0) result._icc = null;

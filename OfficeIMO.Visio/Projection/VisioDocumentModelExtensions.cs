@@ -1,4 +1,5 @@
 using OfficeIMO;
+using OfficeIMO.Drawing;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -34,7 +35,8 @@ public static class VisioDocumentModelExtensions {
         OfficeDocumentModelTable[] tables = BuildTables(snapshot, logicalSourceName, operation.MaxTableRows).ToArray();
         VisioPage[] orderedPages = GetSnapshotOrderedPages(document, snapshot).ToArray();
         OfficeDocumentModelLink[] links = BuildLinks(orderedPages, logicalSourceName).ToArray();
-        OfficeDocumentModelAsset[] assets = BuildAssets(orderedPages, logicalSourceName, operation, cancellationToken).ToArray();
+        var diagnostics = new List<OfficeDocumentModelDiagnostic>();
+        OfficeDocumentModelAsset[] assets = BuildAssets(orderedPages, logicalSourceName, operation, diagnostics, cancellationToken).ToArray();
         OfficeDocumentModelVisual[] visuals = BuildVisuals(snapshot, logicalSourceName).ToArray();
         OfficeDocumentModelPage[] pages = BuildPages(snapshot, logicalSourceName, blocks, tables, links, assets).ToArray();
 
@@ -53,7 +55,7 @@ public static class VisioDocumentModelExtensions {
             Links = links,
             Forms = Array.Empty<OfficeDocumentModelFormField>(),
             Visuals = visuals,
-            Diagnostics = Array.Empty<OfficeDocumentModelDiagnostic>()
+            Diagnostics = diagnostics.ToArray()
         };
     }
 
@@ -223,21 +225,56 @@ public static class VisioDocumentModelExtensions {
         IReadOnlyList<VisioPage> pages,
         string sourceName,
         VisioDocumentProjectionOptions options,
+        ICollection<OfficeDocumentModelDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (options.IncludeSvgPreviewAssets) {
-                yield return BuildPreviewAsset(sourceName, pageIndex, "preview-svg", "image/svg+xml", ".svg", Encoding.UTF8.GetBytes(pages[pageIndex].ToSvg(options.SvgOptions)));
+                OfficeImageExportResult result = VisioSvgExportExtensions.CreateResult(pages[pageIndex], options.SvgOptions, cancellationToken);
+                AddPreviewDiagnostics(result, sourceName, pageIndex, "preview-svg", diagnostics);
+                yield return BuildPreviewAsset(sourceName, pageIndex, "preview-svg", "image/svg+xml", ".svg", result.Bytes);
             }
             if (options.IncludePngPreviewAssets) {
+                OfficeImageExportResult result = VisioPngExportExtensions.CreateResult(pages[pageIndex], options.PngOptions, cancellationToken);
+                AddPreviewDiagnostics(result, sourceName, pageIndex, "preview-png", diagnostics);
                 yield return BuildPreviewAsset(
                     sourceName,
                     pageIndex,
                     "preview-png",
                     "image/png",
                     ".png",
-                    VisioPngExportExtensions.ToPng(pages[pageIndex], options.PngOptions, cancellationToken));
+                    result.Bytes);
             }
+        }
+    }
+
+    private static void AddPreviewDiagnostics(
+        OfficeImageExportResult result,
+        string sourceName,
+        int pageIndex,
+        string kind,
+        ICollection<OfficeDocumentModelDiagnostic> diagnostics) {
+        foreach (OfficeImageExportDiagnostic diagnostic in result.Diagnostics) {
+            diagnostics.Add(new OfficeDocumentModelDiagnostic {
+                Severity = diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error
+                    ? OfficeDocumentModelDiagnosticSeverity.Error
+                    : diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Info
+                        ? OfficeDocumentModelDiagnosticSeverity.Information
+                        : OfficeDocumentModelDiagnosticSeverity.Warning,
+                Category = OfficeDocumentModelDiagnosticCategory.Content,
+                Code = diagnostic.Code,
+                Message = diagnostic.Message,
+                Source = "OfficeIMO.Visio",
+                IsRecoverable = diagnostic.Severity != OfficeImageExportDiagnosticSeverity.Error,
+                Location = BuildLocation(sourceName, pageIndex, kind, "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "-" + kind),
+                Attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
+                    ["lossKind"] = diagnostic.LossKind.ToString(),
+                    ["imageSource"] = diagnostic.Source ?? result.Source ?? string.Empty,
+                    ["sourcePath"] = sourceName,
+                    ["sourcePage"] = (pageIndex + 1).ToString(CultureInfo.InvariantCulture),
+                    ["previewKind"] = kind
+                }
+            });
         }
     }
 
@@ -303,7 +340,11 @@ public static class VisioDocumentModelExtensions {
             builder.Append("edge\t").Append(EscapeTopologyValue(connector.Id)).Append('\t')
                 .Append(EscapeTopologyValue(connector.FromId)).Append('\t')
                 .Append(EscapeTopologyValue(connector.ToId)).Append('\t')
-                .Append(EscapeTopologyValue(connector.Label)).AppendLine();
+                .Append(EscapeTopologyValue(connector.Label)).Append('\t')
+                .Append(connector.StartPoint.X.ToString(CultureInfo.InvariantCulture)).Append('\t')
+                .Append(connector.StartPoint.Y.ToString(CultureInfo.InvariantCulture)).Append('\t')
+                .Append(connector.EndPoint.X.ToString(CultureInfo.InvariantCulture)).Append('\t')
+                .Append(connector.EndPoint.Y.ToString(CultureInfo.InvariantCulture)).AppendLine();
         }
         return builder.ToString().TrimEnd();
     }
@@ -371,7 +412,7 @@ public static class VisioDocumentModelExtensions {
         if (page.Connectors.Count > 0) {
             builder.AppendLine().AppendLine("## Connectors");
             foreach (VisioInspectionConnectorSnapshot connector in page.Connectors) {
-                builder.Append("- ").Append(connector.FromId).Append(" -> ").Append(connector.ToId);
+                builder.Append("- ").Append(EndpointText(connector.FromId, connector.StartPoint)).Append(" -> ").Append(EndpointText(connector.ToId, connector.EndPoint));
                 if (!string.IsNullOrWhiteSpace(connector.Label)) builder.Append(": ").Append(connector.Label);
                 if (connector.ShapeData.Count > 0) builder.Append(" (").Append(string.Join("; ", connector.ShapeData.Select(FormatShapeData))).Append(')');
                 builder.AppendLine();
@@ -380,12 +421,15 @@ public static class VisioDocumentModelExtensions {
         return builder.ToString().TrimEnd();
     }
 
+    private static string EndpointText(string? id, OfficeIMO.Drawing.OfficePoint point) => id ??
+        "(" + point.X.ToString("0.####", CultureInfo.InvariantCulture) + ", " + point.Y.ToString("0.####", CultureInfo.InvariantCulture) + ") in";
+
     private static string BuildPageText(VisioInspectionPageSnapshot page) {
         var parts = new List<string> {
             "Visio page " + page.Name + ": " + page.Shapes.Count.ToString(CultureInfo.InvariantCulture) + " shape(s), " + page.Connectors.Count.ToString(CultureInfo.InvariantCulture) + " connector(s)."
         };
         parts.AddRange(page.Shapes.Select(shape => string.IsNullOrWhiteSpace(shape.Text) ? shape.Id : shape.Text!));
-        parts.AddRange(page.Connectors.Select(connector => string.IsNullOrWhiteSpace(connector.Label) ? connector.FromId + " -> " + connector.ToId : connector.Label!));
+        parts.AddRange(page.Connectors.Select(connector => string.IsNullOrWhiteSpace(connector.Label) ? EndpointText(connector.FromId, connector.StartPoint) + " -> " + EndpointText(connector.ToId, connector.EndPoint) : connector.Label!));
         return string.Join(Environment.NewLine, parts);
     }
 
@@ -440,7 +484,7 @@ public static class VisioDocumentModelExtensions {
     }
 
     private static string BuildConnectorText(VisioInspectionConnectorSnapshot connector) {
-        var builder = new StringBuilder().Append(connector.FromId).Append(" -> ").Append(connector.ToId);
+        var builder = new StringBuilder().Append(EndpointText(connector.FromId, connector.StartPoint)).Append(" -> ").Append(EndpointText(connector.ToId, connector.EndPoint));
         if (!string.IsNullOrWhiteSpace(connector.Label)) builder.Append(": ").Append(connector.Label);
         if (connector.ShapeData.Count > 0) builder.Append(' ').Append(string.Join("; ", connector.ShapeData.Select(FormatShapeData)));
         return builder.ToString();

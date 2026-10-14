@@ -773,6 +773,132 @@
       "limitation":""
     },
     {
+      "id":"conversion:dbf-csv",
+      "packageId":"OfficeIMO.CSV",
+      "formatId":"DBF/xBase",
+      "targetFormatId":"CSV",
+      "capabilityId":"dbf-csv",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"DbfDataReader.Open(path), then CsvDocument.WriteDataReader(writer, reader, options)",
+      "evidence":"Independent Python-produced dBASE III, FoxPro 2 and Visual FoxPro fixtures exercise typed rows, deleted-row filtering, DBT/FPT memos, binary Base64, CSV reopen, and streaming/buffered XLSX reopen and Open XML validation.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".dbf"],
+      "limitation":"Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits."
+    },
+    {
+      "id":"native:chm-native:create",
+      "packageId":"OfficeIMO.Chm",
+      "formatId":"Chm.Native",
+      "targetFormatId":"",
+      "capabilityId":"chm-native",
+      "operation":"Create",
+      "state":"Unsupported",
+      "publicApi":"ChmDocument.Load / Topics / Resources / TableOfContents / Index; ChmEntry.GetBytes / OpenRead",
+      "evidence":"OfficeIMO.Chm.Tests Microsoft-compiled fixture, independent entry hashes, bounded reads, navigation and conversion contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".chm"],
+      "limitation":"Read-only ITSF 2/3 archives with uncompressed or standard LZX storage. Raw entries remain exact; no CHM writer, Windows help viewer, ActiveX, script execution, merged-book loading or compiled full-text search is provided."
+    },
+    {
+      "id":"native:chm-native:read",
+      "packageId":"OfficeIMO.Chm",
+      "formatId":"Chm.Native",
+      "targetFormatId":"",
+      "capabilityId":"chm-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"ChmDocument.Load / Topics / Resources / TableOfContents / Index; ChmEntry.GetBytes / OpenRead",
+      "evidence":"OfficeIMO.Chm.Tests Microsoft-compiled fixture, independent entry hashes, bounded reads, navigation and conversion contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".chm"],
+      "limitation":"Read-only ITSF 2/3 archives with uncompressed or standard LZX storage. Raw entries remain exact; no CHM writer, Windows help viewer, ActiveX, script execution, merged-book loading or compiled full-text search is provided."
+    },
+    {
+      "id":"native:chm-native:edit",
+      "packageId":"OfficeIMO.Chm",
+      "formatId":"Chm.Native",
+      "targetFormatId":"",
+      "capabilityId":"chm-native",
+      "operation":"Edit",
+      "state":"Unsupported",
+      "publicApi":"ChmDocument.Load / Topics / Resources / TableOfContents / Index; ChmEntry.GetBytes / OpenRead",
+      "evidence":"OfficeIMO.Chm.Tests Microsoft-compiled fixture, independent entry hashes, bounded reads, navigation and conversion contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".chm"],
+      "limitation":"Read-only ITSF 2/3 archives with uncompressed or standard LZX storage. Raw entries remain exact; no CHM writer, Windows help viewer, ActiveX, script execution, merged-book loading or compiled full-text search is provided."
+    },
+    {
+      "id":"native:chm-native:preserve",
+      "packageId":"OfficeIMO.Chm",
+      "formatId":"Chm.Native",
+      "targetFormatId":"",
+      "capabilityId":"chm-native",
+      "operation":"Preserve",
+      "state":"Unsupported",
+      "publicApi":"ChmDocument.Load / Topics / Resources / TableOfContents / Index; ChmEntry.GetBytes / OpenRead",
+      "evidence":"OfficeIMO.Chm.Tests Microsoft-compiled fixture, independent entry hashes, bounded reads, navigation and conversion contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".chm"],
+      "limitation":"Read-only ITSF 2/3 archives with uncompressed or standard LZX storage. Raw entries remain exact; no CHM writer, Windows help viewer, ActiveX, script execution, merged-book loading or compiled full-text search is provided."
+    },
+    {
+      "id":"native:chm-native:inspect",
+      "packageId":"OfficeIMO.Chm",
+      "formatId":"Chm.Native",
+      "targetFormatId":"",
+      "capabilityId":"chm-native",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"ChmDocument.Load / Topics / Resources / TableOfContents / Index; ChmEntry.GetBytes / OpenRead",
+      "evidence":"OfficeIMO.Chm.Tests Microsoft-compiled fixture, independent entry hashes, bounded reads, navigation and conversion contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".chm"],
+      "limitation":"Read-only ITSF 2/3 archives with uncompressed or standard LZX storage. Raw entries remain exact; no CHM writer, Windows help viewer, ActiveX, script execution, merged-book loading or compiled full-text search is provided."
+    },
+    {
+      "id":"conversion:chm-epub",
+      "packageId":"OfficeIMO.Chm.Epub",
+      "formatId":"Compiled HTML Help",
+      "targetFormatId":"EPUB",
+      "capabilityId":"chm-epub",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ChmDocument.Load(stream).ToEpubBytesResult(options)",
+      "evidence":"A Microsoft-compiled book matches an independent decoder byte-for-byte across every entry. Contract fixtures cover contents, index, encodings, bounded reads, topic links, rich Reader results and reopened PDF/EPUB output.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".chm"],
+      "limitation":"ITSF 2/3 with uncompressed or standard LZX storage. ActiveX, scripts, merged-help books, the compiled search engine and Windows viewer behavior are not reproduced. Reflow can change CSS scope; multi-topic PDF is untagged and does not rebuild cross-topic links or the keyword index. See OfficeIMO.Chm/SUPPORT.md."
+    },
+    {
+      "id":"conversion:chm-markdown",
+      "packageId":"OfficeIMO.Chm.Markdown",
+      "formatId":"Compiled HTML Help",
+      "targetFormatId":"Markdown",
+      "capabilityId":"chm-markdown",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ChmDocument.Load(stream).ToMarkdownResult(options)",
+      "evidence":"A Microsoft-compiled book matches an independent decoder byte-for-byte across every entry. Contract fixtures cover contents, index, encodings, bounded reads, topic links, rich Reader results and reopened PDF/EPUB output.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".chm"],
+      "limitation":"ITSF 2/3 with uncompressed or standard LZX storage. ActiveX, scripts, merged-help books, the compiled search engine and Windows viewer behavior are not reproduced. Reflow can change CSS scope; multi-topic PDF is untagged and does not rebuild cross-topic links or the keyword index. See OfficeIMO.Chm/SUPPORT.md."
+    },
+    {
+      "id":"conversion:chm-pdf",
+      "packageId":"OfficeIMO.Chm.Pdf",
+      "formatId":"Compiled HTML Help",
+      "targetFormatId":"PDF",
+      "capabilityId":"chm-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ChmDocument.Load(stream).ToPdfBytesResult(options)",
+      "evidence":"A Microsoft-compiled book matches an independent decoder byte-for-byte across every entry. Contract fixtures cover contents, index, encodings, bounded reads, topic links, rich Reader results and reopened PDF/EPUB output.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".chm"],
+      "limitation":"ITSF 2/3 with uncompressed or standard LZX storage. ActiveX, scripts, merged-help books, the compiled search engine and Windows viewer behavior are not reproduced. Reflow can change CSS scope; multi-topic PDF is untagged and does not rebuild cross-topic links or the keyword index. See OfficeIMO.Chm/SUPPORT.md."
+    },
+    {
       "id":"conversion:confluence-html",
       "packageId":"OfficeIMO.Confluence",
       "formatId":"Confluence",
@@ -911,6 +1037,20 @@
       "sourceCatalog":"OfficeIMO.Provenance",
       "extensions":[".adoc",".asciidoc",".bat",".c",".cjs",".cmd",".cpp",".cs",".css",".go",".h",".hpp",".ini",".java",".js",".json",".lua",".mjs",".ps1",".py",".rb",".rs",".sh",".sql",".tex",".toml",".ts",".txt",".vb",".xml",".yaml",".yml"],
       "limitation":"Only standards-defined structured or wrapped text carriers are changed."
+    },
+    {
+      "id":"conversion:djvu-pdf",
+      "packageId":"OfficeIMO.DjVu.Pdf",
+      "formatId":"DjVu",
+      "targetFormatId":"PDF",
+      "capabilityId":"djvu-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"DjVuDocument.Load(stream).SaveAsPdf(output, options)",
+      "evidence":"Archival text and geometry, independent scanned-page comparisons, bounded malformed-input tests, and searchable PDF/OCR artifacts qualify the managed profile.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".djv",".djvu"],
+      "limitation":"JB2, MMR, IW44 1.2, palettes and managed JPEG profiles only. Annotations are reported without active rendering; indirect components require an explicit native resolver. OCR is caller-supplied and absent/empty-text-only. See OfficeIMO.DjVu/SUPPORT.md."
     },
     {
       "id":"native:docbook-native:create",
@@ -2843,6 +2983,20 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".epub"],
       "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+    },
+    {
+      "id":"conversion:dbf-xlsx",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"DBF/xBase",
+      "targetFormatId":"XLSX",
+      "capabilityId":"dbf-xlsx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"DbfDataReader.Open(path), then ExcelDocument.WriteDataReader(stream, reader, options)",
+      "evidence":"Independent Python-produced dBASE III, FoxPro 2 and Visual FoxPro fixtures exercise typed rows, deleted-row filtering, DBT/FPT memos, binary Base64, CSV reopen, and streaming/buffered XLSX reopen and Open XML validation.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".dbf"],
+      "limitation":"Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits."
     },
     {
       "id":"protection:vba-signature:excel:create",
@@ -7878,11 +8032,25 @@
       "capabilityId":"keynote-native-creation",
       "operation":"Create",
       "state":"Supported",
-      "publicApi":"IWorkKeynoteDocument.Create / AddSlide / AddText / SaveBytes / Save",
-      "evidence":"OfficeIMO.IWork.Tests creation contracts; native-exports/keynote-created-v15.4.json independent decoding and Apple reopen/export/edit evidence::Create",
+      "publicApi":"IWorkKeynoteDocument.Create / AddSlide / AddText / AddRichText / AddImage / AddTable / SaveBytes / Save",
+      "evidence":"OfficeIMO.IWork.Tests creation contracts; native-exports/keynote-created-v15.4.json and rich-run/image/table references with independent decoding and Apple reopen/export/edit evidence::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key"],
-      "limitation":"Template-free creation supports static slides with opaque sRGB backgrounds and positioned, uniformly styled plain text. Native acceptance is fixture-specific to Keynote 15.4; it does not qualify all fonts, producer versions, rich runs, media, tables, builds, or editing loaded packages."
+      "limitation":"Template-free static slides support positioned rich text, PNG/JPEG images and scalar tables. Broader formatting, crops/masks/rotation, transitions/builds, fonts/scripts and producer versions remain unqualified. Loaded-source preservation and image translations use a separate edit session."
+    },
+    {
+      "id":"native:keynote-native-image-edit:edit",
+      "packageId":"OfficeIMO.IWork",
+      "formatId":"IWork.Keynote",
+      "targetFormatId":"",
+      "capabilityId":"keynote-native-image-edit",
+      "operation":"Edit",
+      "state":"Partial",
+      "publicApi":"IWorkSourceDocument.BeginEdit / IWorkNativeEditSession.MoveKeynoteImage / ResizeKeynoteImage / SetKeynoteTextBoxParagraphText / SaveBytesResult / Save",
+      "evidence":"OfficeIMO.IWork.Tests native preservation contracts; native-exports/native-preservation-macos.json and Keynote resized-image/paragraph references with exact byte changes, native edit/save/reopen and all-slide PDF evidence::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".key"],
+      "limitation":"Direct unlocked unrotated unmasked images can move or resize inside a known canvas. Direct unlocked text boxes with unshared storage support fixed-length uniform plain paragraph replacements without hyperlinks or inline content. Other raw payload/header/resource bytes remain intact. Edited saves require explicit AllowUnassessedVisualCaches and report retained unrefreshed previews/cache metadata as unassessed. Other semantic/structural and nested-index edits are unsupported."
     },
     {
       "id":"native:iwork-native:create",
@@ -7891,12 +8059,12 @@
       "targetFormatId":"",
       "capabilityId":"iwork-native",
       "operation":"Create",
-      "state":"Unsupported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages or Numbers",
-      "evidence":"OfficeIMO.IWork.Tests source inspection and conversion contracts::Create",
+      "state":"Supported",
+      "publicApi":"IWorkPagesDocument.Create / AddParagraph / AddRichParagraph / CreateNumberedList / AddTable / AddImage / SetHeader / SetFooter; IWorkNumbersDocument.Create / AddSheet / AddTable / SaveBytes / Save",
+      "evidence":"OfficeIMO.IWork.Tests creation contracts; native-exports/pages-created-v15.4.json, Pages table/image/list/header references and numbers-created-v14.5.json independent decoding and Apple open/edit/save/export evidence::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".numbers",".pages"],
-      "limitation":"Native Pages and Numbers creation is not supported."
+      "limitation":"Template-free Pages supports body paragraphs, decimal lists at levels zero through eight, scalar inline tables, PNG/JPEG inline images and one left header/footer in a single section. Numbers supports scalar tables with qualified numeric formats. Broader sections/objects, bullets/tiered numbering, Numbers formulas/comments/merges and general loaded-source editing are unsupported. Native acceptance is fixture-specific to Pages 15.4 and Numbers 14.5."
     },
     {
       "id":"native:iwork-native:read",
@@ -7906,11 +8074,11 @@
       "capabilityId":"iwork-native",
       "operation":"Read",
       "state":"Supported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages, Numbers, or Keynote",
-      "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Read",
+      "publicApi":"IWorkSourceDocument.Open / project / BeginEdit / IWorkNativeEditSession.SaveBytesResult / Save",
+      "evidence":"OfficeIMO.IWork.Tests package/projection and native preservation contracts; native-exports/native-preservation-macos.json independent envelopes and Apple open evidence::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
+      "limitation":"Modern IWA snapshots are immutable. Unchanged native ZIP saves preserve all captured file-entry payloads, including nested Index.zip; ZIP carrier/filesystem metadata is rewritten or omitted. Native acceptance is fixture-specific; opaque preservation does not establish semantic fidelity."
     },
     {
       "id":"native:iwork-native:edit",
@@ -7919,12 +8087,12 @@
       "targetFormatId":"",
       "capabilityId":"iwork-native",
       "operation":"Edit",
-      "state":"Unsupported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages, Numbers, or Keynote",
-      "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Edit",
+      "state":"Partial",
+      "publicApi":"IWorkSourceDocument.BeginEdit / SetPagesBodyParagraphText / SetNumbersCellNumber / SetNumbersCellBoolean / SaveBytesResult / Save",
+      "evidence":"OfficeIMO.IWork.Tests native text/scalar preservation contracts; native-exports/pages-preserved-paragraphs-v15.4-raw-preservation.json and numbers-preserved-scalars-v14.5.json Apple edit/save/reopen evidence::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".key",".numbers",".pages"],
-      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
+      "extensions":[".numbers",".pages"],
+      "limitation":"Pages replaces uniform plain body paragraphs and qualified non-tiered decimal items in complete single-section body-only sources, retaining UTF-16 and UTF-8 lengths. Numbers replaces existing finite Decimal128 numeric or boolean cells in complete sources without selected formulas or unsupported cell features. Structural changes, type changes and nested Index.zip edits are unsupported. Edited saves require explicit AllowUnassessedVisualCaches; retained previews and cache metadata remain unrefreshed."
     },
     {
       "id":"native:iwork-native:preserve",
@@ -7933,12 +8101,12 @@
       "targetFormatId":"",
       "capabilityId":"iwork-native",
       "operation":"Preserve",
-      "state":"Unsupported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages, Numbers, or Keynote",
-      "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Preserve",
+      "state":"Supported",
+      "publicApi":"IWorkSourceDocument.Open / project / BeginEdit / IWorkNativeEditSession.SaveBytesResult / Save",
+      "evidence":"OfficeIMO.IWork.Tests package/projection and native preservation contracts; native-exports/native-preservation-macos.json independent envelopes and Apple open evidence::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
+      "limitation":"Modern IWA snapshots are immutable. Unchanged native ZIP saves preserve all captured file-entry payloads, including nested Index.zip; ZIP carrier/filesystem metadata is rewritten or omitted. Native acceptance is fixture-specific; opaque preservation does not establish semantic fidelity."
     },
     {
       "id":"native:iwork-native:inspect",
@@ -7948,11 +8116,11 @@
       "capabilityId":"iwork-native",
       "operation":"Inspect",
       "state":"Supported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages, Numbers, or Keynote",
-      "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Inspect",
+      "publicApi":"IWorkSourceDocument.Open / project / BeginEdit / IWorkNativeEditSession.SaveBytesResult / Save",
+      "evidence":"OfficeIMO.IWork.Tests package/projection and native preservation contracts; native-exports/native-preservation-macos.json independent envelopes and Apple open evidence::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
+      "limitation":"Modern IWA snapshots are immutable. Unchanged native ZIP saves preserve all captured file-entry payloads, including nested Index.zip; ZIP carrier/filesystem metadata is rewritten or omitted. Native acceptance is fixture-specific; opaque preservation does not establish semantic fidelity."
     },
     {
       "id":"native:latex-native:create",
@@ -8933,6 +9101,20 @@
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".odp",".ods",".odt"],
       "limitation":""
+    },
+    {
+      "id":"conversion:odg-pdf",
+      "packageId":"OfficeIMO.OpenDocument.Odg.Pdf",
+      "formatId":"ODG/FODG",
+      "targetFormatId":"PDF",
+      "capabilityId":"odg-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OdgDocument.Load(stream) or LoadFlatXml(stream), then ToPdfDocumentResult(options)",
+      "evidence":"Draw scene fixtures verify page dimensions, order, layer selection, searchable text, and page-qualified source and PDF diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".fodg",".odg"],
+      "limitation":"Uses the supported Draw-to-Drawing profile. Master artwork, page backgrounds, advanced graphic styles, embedded objects, metadata and exact native typography remain incomplete."
     },
     {
       "id":"conversion:odp-pdf",
@@ -15165,6 +15347,20 @@
       "limitation":"MPX 4 output supports a bounded mapped subset; unsupported XML fields, structures, and representation changes require explicit caller permission."
     },
     {
+      "id":"conversion:publisher-pdf",
+      "packageId":"OfficeIMO.Publisher.Pdf",
+      "formatId":"Publisher",
+      "targetFormatId":"PDF",
+      "capabilityId":"publisher-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"PublisherDocument.Load(stream, readOptions).ToPdfDocumentResult(pdfOptions)",
+      "evidence":"Native Contents/Quill/OfficeArt fixtures verify physical pages, searchable styled text, linked frames, native tables, embedded images and carried source/PDF diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".pub"],
+      "limitation":"Publisher 2002-and-later recovery uses the bounded shared drawing profile. Earlier generations, unsupported graphics, exact native text breaks and native Publisher pixel comparisons remain unqualified."
+    },
+    {
       "id":"protection:rtf-editing-restrictions:rtf:create",
       "packageId":"OfficeIMO.Rtf",
       "formatId":"RTF",
@@ -15373,6 +15569,62 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".rtf"],
       "limitation":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported."
+    },
+    {
+      "id":"conversion:visio-binary-vsdx",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Binary Visio",
+      "targetFormatId":"VSDX",
+      "capabilityId":"visio-binary-vsdx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(stream); var importReport = imported.Report; imported.Value.Save(output)",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vsd"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+    },
+    {
+      "id":"conversion:visio-binary-svg",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Binary Visio",
+      "targetFormatId":"SVG",
+      "capabilityId":"visio-binary-svg",
+      "operation":"Export",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var svg = imported.Value.Pages[0].ToSvg()",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vsd",".vst"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+    },
+    {
+      "id":"conversion:visio-binary-vssx",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Binary Visio stencil",
+      "targetFormatId":"VSSX",
+      "capabilityId":"visio-binary-vssx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Stencil); var importReport = imported.Report; imported.Value.Save(output)",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vss"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+    },
+    {
+      "id":"conversion:visio-binary-vstx",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Binary Visio template",
+      "targetFormatId":"VSTX",
+      "capabilityId":"visio-binary-vstx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Template); var importReport = imported.Report; imported.Value.Save(output)",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vst"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"protection:opc-package-signature:visio:create",
@@ -15655,6 +15907,20 @@
       "limitation":""
     },
     {
+      "id":"conversion:visio-binary-pdf",
+      "packageId":"OfficeIMO.Visio.Pdf",
+      "formatId":"Binary Visio",
+      "targetFormatId":"PDF",
+      "capabilityId":"visio-binary-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var pdf = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages })",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vsd",".vst"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+    },
+    {
       "id":"conversion:visio-pdf",
       "packageId":"OfficeIMO.Visio.Pdf",
       "formatId":"Visio",
@@ -15663,10 +15929,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"VisioDocument.Load(stream).ToPdfDocumentResult(options)",
-      "evidence":"Typed drawing fixtures verify supported pages, shapes, connectors, text, geometry, and fixed-layout diagnostics.",
+      "evidence":"Typed drawing and legacy XML fixtures verify semantic reports and cached diagram pages, source dimensions, searchable text, layer selection, and source/PDF loss diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".vsdx"],
-      "limitation":"Advanced masters, data graphics, themes, layers, embedded objects, and exact Visio rendering remain incomplete."
+      "extensions":[".vdx",".vsdx",".vtx"],
+      "limitation":"Diagram pages use the cached Visio-to-Drawing profile. Arbitrary formula recalculation, broad native appearance and exact native typography remain unqualified; workflow defaults select diagram pages while the direct adapter defaults to a semantic report."
     },
     {
       "id":"protection:doc-password:word:create",
@@ -19363,6 +19629,48 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".markdown",".md"],
       "limitation":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."
+    },
+    {
+      "id":"conversion:keynote-pdf",
+      "packageId":"OfficeIMO.Workflows.IWork",
+      "formatId":"Keynote",
+      "targetFormatId":"PDF",
+      "capabilityId":"keynote-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"IWorkWorkflow.CreateRunner().RunAsync(request)",
+      "evidence":"Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".key"],
+      "limitation":"Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific."
+    },
+    {
+      "id":"conversion:numbers-pdf",
+      "packageId":"OfficeIMO.Workflows.IWork",
+      "formatId":"Numbers",
+      "targetFormatId":"PDF",
+      "capabilityId":"numbers-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"IWorkWorkflow.CreateRunner().RunAsync(request)",
+      "evidence":"Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".numbers"],
+      "limitation":"Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific."
+    },
+    {
+      "id":"conversion:pages-pdf",
+      "packageId":"OfficeIMO.Workflows.IWork",
+      "formatId":"Pages",
+      "targetFormatId":"PDF",
+      "capabilityId":"pages-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"IWorkWorkflow.CreateRunner().RunAsync(request)",
+      "evidence":"Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".pages"],
+      "limitation":"Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific."
     },
     {
       "id":"conversion:xps-pdf",

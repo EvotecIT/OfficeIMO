@@ -23,13 +23,6 @@ namespace OfficeIMO.Visio {
             return CreateResult(page, options).Bytes;
         }
 
-        internal static byte[] ToPng(
-            VisioPage page,
-            VisioPngSaveOptions? options,
-            CancellationToken cancellationToken) {
-            return CreateResult(page, options, cancellationToken).Bytes;
-        }
-
         /// <summary>
         /// Saves the selected document page as PNG without requiring Microsoft Visio desktop automation.
         /// </summary>
@@ -127,7 +120,7 @@ namespace OfficeIMO.Visio {
             return CreateResult(document.Pages[resolved.PageIndex], resolved, cancellationToken);
         }
 
-        private static OfficeImageExportResult CreateResult(
+        internal static OfficeImageExportResult CreateResult(
             VisioPage page,
             VisioPngSaveOptions? options,
             CancellationToken cancellationToken = default) {
@@ -141,6 +134,7 @@ namespace OfficeIMO.Visio {
                 TargetDpi = resolved.PixelsPerInch,
                 BackgroundColor = resolved.BackgroundColor ?? OfficeColor.Transparent,
                 RenderText = resolved.RenderText,
+                LayerMode = resolved.LayerMode,
                 FontFilePath = resolved.FontFilePath,
                 FontFaceName = resolved.FontFaceName,
                 FontCollectionIndex = resolved.FontCollectionIndex,

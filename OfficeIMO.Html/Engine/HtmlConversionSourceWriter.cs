@@ -7,10 +7,13 @@ namespace OfficeIMO.Html;
 
 /// <summary>Bounds canonical source capture while retaining the provider's HTML formatting rules.</summary>
 internal static class HtmlConversionSourceWriter {
-    internal static string Serialize(IHtmlDocument document, HtmlConversionLimits limits) {
-        using var writer = new BoundedWriter(limits);
+    internal static string Serialize(IHtmlDocument document, HtmlConversionLimits limits, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var writer = new BoundedWriter(limits, cancellationToken);
         document.ToHtml(writer);
-        return writer.ToString();
+        string result = writer.ToString();
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
     }
 
     internal static void ValidateLength(long length, HtmlConversionLimits limits) {
@@ -22,18 +25,24 @@ internal static class HtmlConversionSourceWriter {
 
     private sealed class BoundedWriter : TextWriter {
         private readonly HtmlConversionLimits _limits;
+        private readonly CancellationToken _cancellationToken;
         private readonly StringBuilder _buffer = new StringBuilder();
-        internal BoundedWriter(HtmlConversionLimits limits) { _limits = limits; }
+        internal BoundedWriter(HtmlConversionLimits limits, CancellationToken cancellationToken) {
+            _limits = limits; _cancellationToken = cancellationToken;
+        }
         public override Encoding Encoding => Encoding.UTF8;
         public override void Write(char value) {
+            _cancellationToken.ThrowIfCancellationRequested();
             ValidateLength((long)_buffer.Length + 1, _limits);
             _buffer.Append(value);
         }
         public override void Write(string? value) {
+            _cancellationToken.ThrowIfCancellationRequested();
             ValidateLength((long)_buffer.Length + (value?.Length ?? 0), _limits);
             _buffer.Append(value);
         }
         public override void Write(char[] buffer, int index, int count) {
+            _cancellationToken.ThrowIfCancellationRequested();
             ValidateLength((long)_buffer.Length + count, _limits);
             _buffer.Append(buffer, index, count);
         }

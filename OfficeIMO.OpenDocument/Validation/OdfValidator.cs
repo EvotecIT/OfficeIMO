@@ -19,6 +19,7 @@ internal static partial class OdfValidator {
             switch (package.Kind) {
                 case OdfDocumentKind.Text: expectedBody = OdfNamespaces.Office + "text"; break;
                 case OdfDocumentKind.Spreadsheet: expectedBody = OdfNamespaces.Office + "spreadsheet"; break;
+                case OdfDocumentKind.Graphics: expectedBody = OdfNamespaces.Office + "drawing"; break;
                 default: expectedBody = OdfNamespaces.Office + "presentation"; break;
             }
             if (body?.Element(expectedBody) == null) {
@@ -32,7 +33,7 @@ internal static partial class OdfValidator {
         ValidateStyles(package, diagnostics);
         ValidatePackageReferences(package, diagnostics);
         if (package.Kind == OdfDocumentKind.Spreadsheet) ValidateSpreadsheet(package, diagnostics);
-        if (package.Kind == OdfDocumentKind.Presentation) ValidatePresentation(package, diagnostics);
+        if (package.Kind == OdfDocumentKind.Presentation || package.Kind == OdfDocumentKind.Graphics) ValidateDrawingPages(package, diagnostics);
         return new OdfValidationResult(diagnostics);
     }
 
@@ -153,23 +154,25 @@ internal static partial class OdfValidator {
         ValidateSpreadsheetMerges(content, diagnostics);
     }
 
-    private static void ValidatePresentation(OdfPackage package, List<OdfDiagnostic> diagnostics) {
+    private static void ValidateDrawingPages(OdfPackage package, List<OdfDiagnostic> diagnostics) {
         XDocument content = package.GetXml("content.xml");
         XDocument? styles = package.ContainsEntry("styles.xml") ? package.GetXml("styles.xml") : null;
         var masters = new HashSet<string>(styles?.Descendants(OdfNamespaces.Style + "master-page")
             .Select(element => (string?)element.Attribute(OdfNamespaces.Style + "name"))
             .Where(value => !string.IsNullOrEmpty(value)).Select(value => value!) ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+        string prefix = package.Kind == OdfDocumentKind.Graphics ? "ODG" : "ODP";
+        string label = package.Kind == OdfDocumentKind.Graphics ? "Drawing page" : "Presentation slide";
         var slideNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (XElement slide in content.Descendants(OdfNamespaces.Draw + "page")) {
             string? name = (string?)slide.Attribute(OdfNamespaces.Draw + "name");
             if (string.IsNullOrEmpty(name) || !slideNames.Add(name!)) {
-                diagnostics.Add(new OdfDiagnostic("ODP100", OdfDiagnosticSeverity.Error,
-                    "Presentation slide names must be present and unique.", "content.xml"));
+                diagnostics.Add(new OdfDiagnostic(prefix + "100", OdfDiagnosticSeverity.Error,
+                    $"{label} names must be present and unique.", "content.xml"));
             }
             string? master = (string?)slide.Attribute(OdfNamespaces.Draw + "master-page-name");
             if (!string.IsNullOrEmpty(master) && !masters.Contains(master!)) {
-                diagnostics.Add(new OdfDiagnostic("ODP101", OdfDiagnosticSeverity.Error,
-                    $"Presentation slide references missing master page '{master}'.", "content.xml"));
+                diagnostics.Add(new OdfDiagnostic(prefix + "101", OdfDiagnosticSeverity.Error,
+                    $"{label} references missing master page '{master}'.", "content.xml"));
             }
         }
     }

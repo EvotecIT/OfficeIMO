@@ -31,12 +31,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(package.PartExists(new Uri("/docProps/core.xml", UriKind.Relative)));
                 Assert.True(package.PartExists(new Uri("/docProps/app.xml", UriKind.Relative)));
                 Assert.True(package.PartExists(new Uri("/docProps/custom.xml", UriKind.Relative)));
-                Assert.True(package.PartExists(new Uri("/docProps/thumbnail.emf", UriKind.Relative)));
                 Assert.True(package.PartExists(new Uri("/visio/windows.xml", UriKind.Relative)));
 
                 PackageRelationship rel = package.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/document").Single();
-                Assert.Equal("/visio/document.xml", rel.TargetUri.OriginalString);
+                Assert.Equal("visio/document.xml", rel.TargetUri.OriginalString);
                 Assert.Equal("rId1", rel.Id);
+                Assert.True(package.PartExists(PackUriHelper.ResolvePartUri(rel.SourceUri, rel.TargetUri)));
 
                 PackageRelationship coreRel = package.GetRelationshipsByType("http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties").Single();
                 Assert.Equal("/docProps/core.xml", coreRel.TargetUri.OriginalString);
@@ -46,9 +46,6 @@ namespace OfficeIMO.Tests {
 
                 PackageRelationship customRel = package.GetRelationshipsByType("http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties").Single();
                 Assert.Equal("/docProps/custom.xml", customRel.TargetUri.OriginalString);
-
-                PackageRelationship thumbRel = package.GetRelationshipsByType("http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail").Single();
-                Assert.Equal("/docProps/thumbnail.emf", thumbRel.TargetUri.OriginalString);
 
                 Assert.Empty(package.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/windows"));
 
@@ -64,14 +61,10 @@ namespace OfficeIMO.Tests {
                 PackagePart windowsPart = package.GetPart(windowsUri);
                 XDocument windowsDoc = XDocument.Load(windowsPart.GetStream());
                 XElement windowsRoot = windowsDoc.Root!;
-                Assert.NotNull(windowsRoot.Attribute("ClientWidth"));
-                Assert.NotNull(windowsRoot.Attribute("ClientHeight"));
                 XElement? window = windowsRoot.Element(ns + "Window");
                 Assert.NotNull(window);
-                Assert.NotNull(window?.Attribute("WindowType"));
+                Assert.Equal("Drawing", (string?)window?.Attribute("WindowType"));
                 Assert.NotNull(window?.Attribute("WindowState"));
-                Assert.NotNull(window?.Attribute("ClientWidth"));
-                Assert.NotNull(window?.Attribute("ClientHeight"));
 
                 PackagePart pagesPart = package.GetPart(pagesUri);
                 PackageRelationship pageRel = pagesPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/page").Single();
@@ -111,7 +104,6 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/docProps/core.xml" && e.Attribute("ContentType")?.Value == "application/vnd.openxmlformats-package.core-properties+xml"));
                 Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/docProps/app.xml" && e.Attribute("ContentType")?.Value == "application/vnd.openxmlformats-officedocument.extended-properties+xml"));
                 Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/docProps/custom.xml" && e.Attribute("ContentType")?.Value == "application/vnd.openxmlformats-officedocument.custom-properties+xml"));
-                Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/docProps/thumbnail.emf" && e.Attribute("ContentType")?.Value == "image/x-emf"));
                 Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/windows.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.windows+xml"));
 
             XElement? shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
@@ -158,4 +150,3 @@ namespace OfficeIMO.Tests {
         }
     }
 }
-

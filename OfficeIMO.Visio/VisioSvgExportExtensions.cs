@@ -121,7 +121,7 @@ namespace OfficeIMO.Visio {
             return CreateResult(document.Pages[resolved.PageIndex], resolved, cancellationToken);
         }
 
-        private static OfficeImageExportResult CreateResult(
+        internal static OfficeImageExportResult CreateResult(
             VisioPage page,
             VisioSvgSaveOptions? options,
             CancellationToken cancellationToken = default) {
@@ -131,6 +131,7 @@ namespace OfficeIMO.Visio {
                 Scale = resolved.PixelsPerInch / 96D,
                 BackgroundColor = resolved.BackgroundColor ?? OfficeColor.Transparent,
                 RenderText = resolved.RenderText,
+                LayerMode = resolved.LayerMode,
                 Fonts = resolved.Fonts.Clone(),
                 RenderStencilArtwork = resolved.RenderStencilArtwork,
                 RenderConnectorLabels = resolved.RenderConnectorLabels,

@@ -8,6 +8,23 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("linear-gradient(to right,red,transparent)")]
+    [InlineData("radial-gradient(circle closest-side at center,red,transparent)")]
+    public void HtmlGradient_PremultipliesInteriorStopsWhenCompositingOverWhite(string background) {
+        string html = "<div style='width:100px;height:100px;background:" + background + "'></div>";
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 140D, Margins = HtmlRenderMargins.All(0D) };
+        var rendered = HtmlRenderTestDriver.Render(html, options);
+        var visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null || shape.Shape.FillRadialGradient != null);
+        var drawing = rendered.Pages[0].CreateDrawing();
+        var raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+        var pixel = raster.GetPixel((int)(visual.X + visual.Shape.Width * .75D), (int)(visual.Y + visual.Shape.Height * .5D));
+        Assert.Equal(255, pixel.R);
+        Assert.InRange(pixel.G, 30, 240);
+        Assert.Equal(pixel.G, pixel.B);
+    }
+
     [Fact]
     public void HtmlLinearGradient_PremultipliesSynthesizedBoundaryStops() {
         const string html = "<div style='width:100px;height:20px;background:linear-gradient(to right,rgba(255 0 0 / 0) -100%,blue 100%)'></div>";

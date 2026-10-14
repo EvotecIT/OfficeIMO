@@ -17,13 +17,16 @@ public class PdfDocumentMetadataTests {
     }
 
     [Fact]
-    public void MetadataWriterUsesPdfDocEncodingAndPreservesUnicodeUpdates() {
+    public void MetadataWriterPreservesUnicodeAcrossCreationAndUpdates() {
         const string title = "Earth’s € – ™";
         byte[] bytes = PdfDocument.Create().Meta(title: title).Paragraph(p => p.Text("Body")).ToBytes();
-        Assert.Contains("/Title <4561727468907320A020852092>", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
         Assert.Equal(title, PdfInspector.Inspect(bytes).Metadata.Title);
+        using var originalIndependent = PdfPigDocument.Open(bytes);
+        Assert.Equal(title, originalIndependent.Information.Title);
         byte[] edited = PdfDocument.Load(bytes).UpdateMetadata(title: title + "\u00A0").ToBytes();
         Assert.Equal(title + "\u00A0", PdfInspector.Inspect(edited).Metadata.Title);
+        using var editedIndependent = PdfPigDocument.Open(edited);
+        Assert.Equal(title + "\u00A0", editedIndependent.Information.Title);
         Assert.Contains("/Title <FEFF", Encoding.ASCII.GetString(edited), StringComparison.Ordinal);
     }
 

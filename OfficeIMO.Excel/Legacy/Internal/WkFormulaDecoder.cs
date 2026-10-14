@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.Legacy;
 
-internal static class WkFormulaDecoder {
+internal static partial class WkFormulaDecoder {
     private const int ExcelFormulaCharacterLimit = 8192;
     private const int MaximumExpressionDepth = 128;
 
@@ -22,12 +22,13 @@ internal static class WkFormulaDecoder {
         [0x46] = new("LEN", 1), [0x47] = new("VALUE", 1), [0x49] = new("MID", 3), [0x4A] = new("CHAR", 1),
         [0x50] = new("SUM", -1), [0x51] = new("AVERAGE", -1), [0x52] = new("COUNT", -1), [0x53] = new("MIN", -1), [0x54] = new("MAX", -1),
         [0x56] = new("NPV", 2), [0x57] = new("VAR", -1), [0x58] = new("STDEV", -1), [0x5A] = new("HLOOKUP", 3),
-        [0x60] = new("INDEX", 3), [0x61] = new("COLUMNS", 1), [0x62] = new("ROWS", 1), [0x64] = new("UPPER", 1),
-        [0x65] = new("LOWER", 1), [0x66] = new("LEFT", 2), [0x67] = new("RIGHT", 2), [0x69] = new("PROPER", 1), [0x6B] = new("TRIM", 1)
+        [0x62] = new("INDEX", 3), [0x63] = new("COLUMNS", 1), [0x64] = new("ROWS", 1), [0x66] = new("UPPER", 1),
+        [0x67] = new("LOWER", 1), [0x68] = new("LEFT", 2), [0x69] = new("RIGHT", 2), [0x6B] = new("PROPER", 1), [0x6D] = new("TRIM", 1)
     };
 
     internal static bool TryDecode(byte[] data, int offset, int length, int currentRowZeroBased, int currentColumnZeroBased,
-        OfficeLegacyImportLimits limits, int maxTextCharacters, CancellationToken cancellationToken, out string? formula, out string error) {
+        OfficeLegacyImportLimits limits, int maxTextCharacters, CancellationToken cancellationToken, out string? formula, out string error,
+        LaterFormulaContext? context = null) {
         formula = null;
         error = string.Empty;
         int maximumCharacters = Math.Min(ExcelFormulaCharacterLimit, Math.Max(0, maxTextCharacters));
@@ -42,17 +43,26 @@ internal static class WkFormulaDecoder {
                 if ((tokenCount & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (++tokenCount > limits.MaxRecords) throw new InvalidDataException("Formula exceeds the configured token limit.");
                 byte token = data[cursor++];
+                if (context?.IsLotus == true && token >= 0x08 && token <= 0x1E) {
+                    if (token < 0x0E) throw new InvalidDataException("Unsupported Lotus name or error reference token.");
+                    token -= 6;
+                }
                 switch (token) {
-                    case 0x00: Push(stack, Literal(ReadDouble(data, ref cursor, end).ToString("R", CultureInfo.InvariantCulture), maximumCharacters), ref nodeCount, maximumNodes); break;
-                    case 0x01: Push(stack, Literal(ReadReference(data, ref cursor, end, currentRowZeroBased, currentColumnZeroBased), maximumCharacters), ref nodeCount, maximumNodes); break;
+                    case 0x00: Push(stack, Literal(ReadLaterNumber(data, ref cursor, end, context, compact: false).ToString("R", CultureInfo.InvariantCulture), maximumCharacters), ref nodeCount, maximumNodes); break;
+                    case 0x01: Push(stack, Literal(ReadLaterReference(data, ref cursor, end, currentRowZeroBased, currentColumnZeroBased, context), maximumCharacters), ref nodeCount, maximumNodes); break;
                     case 0x02: {
-                        ExpressionNode first = Literal(ReadReference(data, ref cursor, end, currentRowZeroBased, currentColumnZeroBased), maximumCharacters);
-                        ExpressionNode last = Literal(ReadReference(data, ref cursor, end, currentRowZeroBased, currentColumnZeroBased), maximumCharacters);
-                        Push(stack, Combine(ExpressionKind.Range, ":", new[] { first, last }, maximumCharacters), ref nodeCount, maximumNodes, 3);
+                        if (context?.References != null) {
+                            Push(stack, Literal(context.NextReference(range: true), maximumCharacters), ref nodeCount, maximumNodes);
+                            break;
+                        }
+                        int flags = context?.IsLotus == true ? ReadLaterFlags(data, ref cursor, end) : -1;
+                        string first = ReadLaterReference(data, ref cursor, end, currentRowZeroBased, currentColumnZeroBased, context, flags & 15);
+                        string last = ReadLaterReference(data, ref cursor, end, currentRowZeroBased, currentColumnZeroBased, context, flags < 0 ? -1 : flags >> 4);
+                        Push(stack, Literal(LaterFormulaContext.Range(first, last), maximumCharacters), ref nodeCount, maximumNodes, 3);
                         break;
                     }
                     case 0x03:
-                        if (stack.Count != 1 || cursor != end) throw new InvalidDataException("Formula terminator did not leave one complete expression.");
+                        if (stack.Count != 1 || cursor != end || context?.ReferencesConsumed == false) throw new InvalidDataException("Formula terminator did not leave one complete expression and reference table.");
                         ExpressionNode result = stack.Pop();
                         var builder = new StringBuilder(result.RenderedLength);
                         result.Render(builder);
@@ -61,9 +71,8 @@ internal static class WkFormulaDecoder {
                     case 0x04: Unary(stack, string.Empty, ref nodeCount, maximumNodes, maximumCharacters); break;
                     case 0x05:
                         Require(cursor, 2, end);
-                        short integer = (short)(data[cursor] | (data[cursor + 1] << 8));
-                        cursor += 2;
-                        Push(stack, Literal(integer.ToString(CultureInfo.InvariantCulture), maximumCharacters), ref nodeCount, maximumNodes);
+                        double integer = ReadLaterNumber(data, ref cursor, end, context, compact: true);
+                        Push(stack, Literal(integer.ToString("R", CultureInfo.InvariantCulture), maximumCharacters), ref nodeCount, maximumNodes);
                         break;
                     case 0x06: {
                         int zero = Array.IndexOf(data, (byte)0, cursor, end - cursor);

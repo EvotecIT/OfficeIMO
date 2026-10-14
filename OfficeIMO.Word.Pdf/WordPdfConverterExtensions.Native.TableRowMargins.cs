@@ -7,7 +7,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Resolves authored row heights into physical Word cell boxes, including effective vertical cell margins.</summary>
         private static void ApplyNativeUnspacedTableRowMargins(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style) {
             // Spaced cells use their independent border-frame geometry instead.
-            if (style.CellSpacing > 0D) return;
+            if (style.CellSpacing > 0D || style.BorderFrame?.Border != null) return;
             IReadOnlyList<WordTableRow> sourceRows = table.Rows;
             var minimums = style.RowMinHeights == null ? new List<double?>() : new List<double?>(style.RowMinHeights);
             var fixedHeights = style.FixedRowHeights == null ? new List<double?>() : new List<double?>(style.FixedRowHeights);
@@ -25,12 +25,30 @@ namespace OfficeIMO.Word.Pdf {
                     fixedHeights[row] = points + bottom;
                     hasFixed = true;
                 } else {
-                    minimums[row] = points + bottom + top;
+                    minimums[row] = points + bottom + top +
+                        GetNativeTableRowBorderInset(layout, style, row, top: true) +
+                        GetNativeTableRowBorderInset(layout, style, row, top: false);
                     hasMinimum = true;
                 }
             }
             if (hasFixed) style.FixedRowHeights = fixedHeights;
             if (hasMinimum) style.RowMinHeights = minimums;
+        }
+
+        private static double GetNativeTableRowBorderInset(TableLayout layout, PdfCore.PdfTableStyle style, int row, bool top) {
+            double maximum = 0D;
+            int column = GetNativeTableRowStartColumn(layout, row);
+            foreach (WordTableCell cell in layout.Rows[row]) {
+                if (IsNativeHorizontalMergeContinuation(cell)) continue;
+                if (!IsNativeVerticalMergeContinuation(cell)) {
+                    double thickness = style.BorderColor.HasValue ? style.BorderWidth : 0D;
+                    if (style.CellBorders?.TryGetValue((row, column), out PdfCore.PdfCellBorder? border) == true)
+                        thickness = GetNativeFrameSide(border, top)?.PaintThickness ?? 0D;
+                    maximum = Math.Max(maximum, thickness / 2D);
+                }
+                column += GetNativeCellColumnSpan(cell);
+            }
+            return maximum;
         }
 
         /// <summary>Word neighbors use the row's largest effective vertical margins for their text alignment frame.</summary>
@@ -44,6 +62,15 @@ namespace OfficeIMO.Word.Pdf {
                     style.CellPaddings?.TryGetValue((row, column), out padding);
                     double ownTop = padding?.Top ?? style.CellPaddingTop ?? style.CellPaddingY;
                     double ownBottom = padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY;
+                    if (ownTop < top && style.BorderFrame?.Border != null &&
+                        style.CellBorders?.TryGetValue((row, column), out PdfCore.PdfCellBorder? border) == true &&
+                        border.PaintInsideFrame) {
+                        // Text aligns on the shared row margin, but each separate
+                        // cell retains its authored top margin inside that frame.
+                        PdfCore.PdfCellBorder prepared = border.Clone();
+                        prepared.PaintTopInset = top - ownTop;
+                        style.CellBorders[(row, column)] = prepared;
+                    }
                     if (ownTop < top || ownBottom < bottom) {
                         // Replace the effective PDF value without modifying source cells or caller-owned padding objects.
                         style.CellPaddings ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();

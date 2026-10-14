@@ -16,7 +16,7 @@ public sealed partial class OfficeWorkflowRunner {
         byte[] output = source.Security.SignExternal(request.OutputSigner!, options).Pdf;
         cancellation.Token.ThrowIfCancellationRequested();
         if (output.LongLength > request.Limits.MaximumOutputBytes)
-            throw new InvalidOperationException("The signed PDF exceeds the configured output limit.");
+            throw OfficeWorkflowOutputLimitErrors.Create("The signed PDF exceeds the configured output limit.");
         var document = PdfDocument.Load(output, request.OutputPdfLoadOptions);
         var signatures = document.Security.ValidateSignatures(request.OutputSignatureValidator!);
         cancellation.Token.ThrowIfCancellationRequested();

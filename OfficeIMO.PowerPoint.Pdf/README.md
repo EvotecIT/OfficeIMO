@@ -78,7 +78,7 @@ presentation.SaveAsPdf("training-handout.pdf", new PowerPointToPdfOptions {
 });
 ```
 
-Handouts support 1, 2, 3, 4, 6, or 9 slides per landscape page. Three-up output pairs each thumbnail with notes or writing lines. Notes are read without creating missing notes parts.
+Handouts support 1, 2, 3, 4, 6, or 9 slides per landscape page. Three-up output pairs each thumbnail with notes or writing lines. Notes are read without creating missing notes parts. A slide-page layout or `IncludeSpeakerNotes = false` reports existing nonempty notes as `speaker-notes-omitted` with typed omission evidence. Notes that exceed their Notes Pages or Handouts frame report `speaker-notes-overflow` with typed clipping evidence during serialization.
 
 ### Review conversion warnings
 
@@ -120,6 +120,14 @@ result.Report.RequireNoErrorWarnings();
 - PNG, SVG, visual-review HTML, and notes/handout thumbnails use the shared visual snapshot; those surfaces have a different scene/raster contract and do not select the PDF engine at runtime.
 - Profile presets through `PowerPointToPdfOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
+
+Numbered paragraph counters reset deeper levels after a parent item in shared visual output and PDF text boxes. PDF table cells retain numbered and character markers as separate text runs, including explicit marker fonts and sizes. Percentage marker sizes use the effective body, header or footer text size. Tables report `table-list-layout-approximation` because paragraph indentation, marker placement and spacing use the PDF table's inline layout.
+
+### Links between slides
+
+Full-slide output preserves supported internal slide links as PDF named destinations. Text-run links follow wrapping, clipping and frame/group transforms; picture and supported shape links use their transformed frame bounds. Line links include the visible stroke so horizontal and vertical lines retain a usable region. Rich table-cell links also retain their targets. Native PowerPoint next-slide actions, including inherited layout/master text, resolve against the active slide in the authored slide order.
+
+Hidden slides keep their source identities. If an export excludes a target slide, its links are omitted with `internal-slide-target-omitted` evidence. A next-slide action on the final slide has the same missing-target outcome. Other exposed relative targets produce `relative-hyperlink` omission evidence. These internal-link guarantees apply to the slides layout; notes and handouts retain their separate thumbnail contract. External text-run and picture links remain supported; external links on other shape frames and additional slideshow actions remain outside this mapping.
 
 ## Import PDF pages
 

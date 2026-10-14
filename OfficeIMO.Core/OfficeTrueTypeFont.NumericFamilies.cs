@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeTrueTypeFont {
-    private static readonly Dictionary<string, IReadOnlyList<OfficeTrueTypeFont>> NumericFamilyCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, IReadOnlyList<FontFamilyResolution>> NumericFamilyCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly OfficeFontFaceDescriptor _faceDescriptor;
 
     /// <summary>Face attributes declared by the font's OS/2 and head tables.</summary>
@@ -13,13 +14,18 @@ public sealed partial class OfficeTrueTypeFont {
 
     /// <summary>Resolves an installed family using the same numeric face ordering as document-scoped fonts.</summary>
     public static OfficeTrueTypeFont? TryLoadFontFamilyForText(string? families, OfficeFontFaceDescriptor descriptor,
-        string? text, out OfficeFontStyle resolvedStyle) {
+        string? text, out OfficeFontStyle resolvedStyle) => TryLoadFontFamilyForText(
+            families, descriptor, text, out resolvedStyle, CancellationToken.None);
+
+    internal static OfficeTrueTypeFont? TryLoadFontFamilyForText(string? families, OfficeFontFaceDescriptor descriptor,
+        string? text, out OfficeFontStyle resolvedStyle, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         resolvedStyle = OfficeFontStyle.Regular;
         if (string.IsNullOrWhiteSpace(families)) return TryLoadDefault();
         foreach (string family in ExpandFontFamilyFallbacks(families!)) {
-            var candidates = new List<OfficeTrueTypeFont>(GetNumericFamily(family));
-            candidates.Sort((left, right) => OfficeFontFaceMatcher.Compare(left.FaceDescriptor, right.FaceDescriptor, descriptor));
-            foreach (OfficeTrueTypeFont candidate in candidates) {
+            foreach (FontFamilyResolution resolved in OrderedNumericFamily(family, descriptor, cancellationToken)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                OfficeTrueTypeFont candidate = resolved.Font!;
                 if (!string.IsNullOrEmpty(text) && !candidate.HasGlyphs(text!)) continue;
                 resolvedStyle = candidate.FaceDescriptor.ToStyle();
                 return candidate;
@@ -28,13 +34,24 @@ public sealed partial class OfficeTrueTypeFont {
         return null;
     }
 
-    private static IReadOnlyList<OfficeTrueTypeFont> GetNumericFamily(string family) {
+    private static List<FontFamilyResolution> OrderedNumericFamily(string family, OfficeFontFaceDescriptor descriptor,
+        CancellationToken cancellationToken = default) {
+        var candidates = new List<FontFamilyResolution>(GetNumericFamily(family, cancellationToken));
+        candidates.Sort((left, right) => OfficeFontFaceMatcher.Compare(left.Font!.FaceDescriptor, right.Font!.FaceDescriptor, descriptor));
+        return candidates;
+    }
+
+    private static IReadOnlyList<FontFamilyResolution> GetNumericFamily(string family, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string key = NormalizeFontFamilyKey(family);
         lock (FontCacheLock) { if (NumericFamilyCache.TryGetValue(key, out var cached)) return cached; }
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var result = new List<OfficeTrueTypeFont>();
+        var result = new List<FontFamilyResolution>();
         foreach (OfficeFontStyle style in new[] { OfficeFontStyle.Regular, OfficeFontStyle.Bold, OfficeFontStyle.Italic, OfficeFontStyle.Bold | OfficeFontStyle.Italic }) {
-            foreach (string path in CandidateStyledFamilyPaths(key, style)) paths.Add(path);
+            foreach (string path in CandidateStyledFamilyPaths(key, style, cancellationToken)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                paths.Add(path);
+            }
         }
         // Abbreviated Windows filenames include faces beyond the four legacy style flags.
         string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
@@ -43,8 +60,10 @@ public sealed partial class OfficeTrueTypeFont {
                 paths.Add(Path.Combine(windows, "Fonts", file));
         }
         foreach (string path in paths) foreach (OfficeTrueTypeFont font in LoadFaces(path)) {
-            if (font.HasFamilyKey(key)) result.Add(font);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (font.HasFamilyKey(key)) result.Add(new FontFamilyResolution(font, path));
         }
+        cancellationToken.ThrowIfCancellationRequested();
         lock (FontCacheLock) {
             if (NumericFamilyCache.Count >= 32) NumericFamilyCache.Clear();
             NumericFamilyCache[key] = result.AsReadOnly();

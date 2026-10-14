@@ -1,0 +1,203 @@
+[
+  {
+    "producer": "nativeEdited",
+    "path": "keynote-preserved-resized-edited-v15.4.pdf",
+    "sha256": "cedc0b4e114b9e477c736b15f1396a024fd4b02e5e6bdb7377c98da744f0a225",
+    "pages": [
+      {
+        "page": 1,
+        "size": [
+          960,
+          540
+        ],
+        "text": "Native PNG \u2014 image behind text\nCovered source label \nTEXT IN FRONT ",
+        "images": [
+          {
+            "x0": 80.0,
+            "top": 125.0,
+            "width": 420.0,
+            "height": 168.0,
+            "srcsize": [
+              96,
+              64
+            ]
+          }
+        ]
+      },
+      {
+        "page": 2,
+        "size": [
+          960,
+          540
+        ],
+        "text": "Native alpha PNG\n0% / 50% / 100% alpha ",
+        "images": [
+          {
+            "x0": 80.0,
+            "top": 135.0,
+            "width": 360.0,
+            "height": 180.0,
+            "srcsize": [
+              96,
+              64
+            ]
+          }
+        ]
+      },
+      {
+        "page": 3,
+        "size": [
+          960,
+          540
+        ],
+        "text": "Native JPEG\nJPEG / stretched frame ",
+        "images": [
+          {
+            "x0": 100.0,
+            "top": 135.0,
+            "width": 421.0,
+            "height": 168.0,
+            "srcsize": [
+              96,
+              64
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "producer": "officeimo",
+    "path": "keynote-preserved-resized-officeimo-v15.4.pdf",
+    "sha256": "922968316724b2954760b3fec1d39ffb08791e88b7985bb6fba8f29dad66e80e",
+    "pages": [
+      {
+        "page": 1,
+        "size": [
+          960,
+          540
+        ],
+        "text": "Native PNG \u2014 image behind text\nCovered source label\nTEXT IN FRONT",
+        "images": [
+          {
+            "x0": 80.0,
+            "top": 125.0,
+            "width": 420.0,
+            "height": 168.0,
+            "srcsize": [
+              96,
+              64
+            ]
+          }
+        ]
+      },
+      {
+        "page": 2,
+        "size": [
+          960,
+          540
+        ],
+        "text": "Native alpha PNG\n0% / 50% / 100% alpha",
+        "images": [
+          {
+            "x0": 80.0,
+            "top": 135.0,
+            "width": 360.0,
+            "height": 180.0,
+            "srcsize": [
+              96,
+              64
+            ]
+          }
+        ]
+      },
+      {
+        "page": 3,
+        "size": [
+          960,
+          540
+        ],
+        "text": "Native JPEG\nJPEG / stretched frame",
+        "images": [
+          {
+            "x0": 100.0,
+            "top": 135.0,
+            "width": 420.0,
+            "height": 168.0,
+            "srcsize": [
+              96,
+              64
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "producer": "officeimoEdited",
+    "path": "keynote-preserved-resized-edited-officeimo-v15.4.pdf",
+    "sha256": "281840c6b3c873918fc18f02e9f8059acb8462c2570e03cd4baef5e48bd6321f",
+    "pages": [
+      {
+        "page": 1,
+        "size": [
+          960,
+          540
+        ],
+        "text": "Native PNG \u2014 image behind text\nCovered source label\nTEXT IN FRONT",
+        "images": [
+          {
+            "x0": 80.0,
+            "top": 125.0,
+            "width": 420.0,
+            "height": 168.0,
+            "srcsize": [
+              96,
+              64
+            ]
+          }
+        ]
+      },
+      {
+        "page": 2,
+        "size": [
+          960,
+          540
+        ],
+        "text": "Native alpha PNG\n0% / 50% / 100% alpha",
+        "images": [
+          {
+            "x0": 80.0,
+            "top": 135.0,
+            "width": 360.0,
+            "height": 180.0,
+            "srcsize": [
+              96,
+              64
+            ]
+          }
+        ]
+      },
+      {
+        "page": 3,
+        "size": [
+          960,
+          540
+        ],
+        "text": "Native JPEG\nJPEG / stretched frame",
+        "images": [
+          {
+            "x0": 100.0,
+            "top": 135.0,
+            "width": 421.0,
+            "height": 168.0,
+            "srcsize": [
+              96,
+              64
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

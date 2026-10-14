@@ -88,7 +88,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal("•", markers[cell].Marker);
         Assert.Equal("•", markers[textBox.Paragraphs[0]].Marker);
         Assert.Equal("•", markers[header].Marker);
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false })).ExtractText();
+        string pdfText = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("• Cell marker", pdfText, StringComparison.Ordinal);
         Assert.Contains("• Box marker", pdfText, StringComparison.Ordinal);
         Assert.Contains("• Header marker", pdfText, StringComparison.Ordinal);

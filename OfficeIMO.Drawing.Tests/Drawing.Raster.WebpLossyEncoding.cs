@@ -63,7 +63,7 @@ public sealed class DrawingWebpLossyEncodingTests {
     public void GenericWebpEncodingCarriesModeDensityAndCallerOwnedStream() {
         OfficeRasterImage source = CreateImage(33, 25, withAlpha: true);
         var options = new OfficeRasterEncodingOptions {
-            Webp = Lossy(85), DpiX = 144, DpiY = 120, WriteResolutionMetadata = true
+            Webp = Lossy(85), Resolution = new OfficeImageResolution(144D, 120D), WriteResolutionMetadata = true
         };
         options.Webp.WritePhysicalResolution = true;
         byte[] bytes = OfficeRasterImageEncoder.Encode(source, OfficeImageExportFormat.Webp, options);

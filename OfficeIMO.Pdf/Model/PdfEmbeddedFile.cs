@@ -50,6 +50,9 @@ public sealed class PdfEmbeddedFile {
 
     internal byte[] DataSnapshot => (byte[])_data.Clone();
 
+    /// <summary>Payload length for resource admission without allocating a defensive copy.</summary>
+    internal int ByteLength => _data.Length;
+
     /// <summary>Optional MIME type, for example "application/xml".</summary>
     public string? MimeType {
         get => _mimeType;

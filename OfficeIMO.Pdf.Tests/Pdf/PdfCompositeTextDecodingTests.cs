@@ -6,37 +6,39 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfCompositeTextDecodingTests {
     [Fact]
-    public void IndependentCompositeFontWithoutUnicodeMappingRejectsTextExtraction() {
+    public void IndependentPredefinedFontWithoutToUnicodeDecodesThroughAdobeMappings() {
         byte[] source = LoadIndependentSource();
-
-        NotSupportedException error = Assert.ThrowsAny<NotSupportedException>(
-            () => PdfReadDocument.Open(source).ExtractText());
-
-        Assert.Contains("UniJIS-UCS2-H", error.Message);
+        string text = PdfReadDocument.Open(source).ExtractText();
+        Assert.Contains("private account 123", text);
+        Assert.Contains("Public summary remains readable.", text);
     }
 
     [Theory]
     [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
     [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]
-    public void IndependentCompositeFontSearchReportsBlockedMappingInsteadOfNoMatches(PdfRedactionTextSelection selection) {
+    public void IndependentPredefinedFontSupportsReviewedRedaction(PdfRedactionTextSelection selection) {
         PdfDocument document = PdfDocument.Load(LoadIndependentSource());
 
         PdfRedactionPlan plan = document.Redactions.Search(new PdfRedactionSearchOptions {
             TextSelection = selection
         }.AddLiteral("private account 123"));
 
-        Assert.False(plan.IsReviewable);
-        Assert.Empty(plan.Areas);
-        PdfDiagnosticFinding finding = Assert.Single(plan.Findings,
-            static finding => finding.Code == "RedactionSearchTextMappingUnsupported");
-        Assert.Equal(PdfDiagnosticSeverity.Error, finding.Severity);
-        Assert.Contains("UniJIS-UCS2-H", finding.Message);
+        Assert.True(plan.IsReviewable);
+        Assert.Equal(2, plan.Areas.Count);
+        PdfDocument result = document.Redactions.Apply(plan);
+        string text = result.Read().Text;
+        Assert.DoesNotContain("private account 123", text);
+        Assert.Contains("Public summary remains readable.", text);
+        if (selection == PdfRedactionTextSelection.MatchedGlyphs) {
+            Assert.Contains("Before", text);
+            Assert.Contains("after page", text);
+        }
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void IndependentCompositeFontBlocksManualAndVerificationPlanning(bool verification) {
+    public void IndependentPredefinedFontSupportsManualAndVerificationPlanning(bool verification) {
         byte[] source = LoadIndependentSource();
         PdfRedactionArea[] areas = new[] { new PdfRedactionArea(1, 50, 680, 200, 40) };
 
@@ -44,9 +46,7 @@ public sealed class PdfCompositeTextDecodingTests {
             ? PdfRedactionPlanner.PlanForVerification(source, areas, options: null)
             : PdfDocument.Load(source).Redactions.Plan(areas);
 
-        Assert.False(plan.IsReviewable);
-        Assert.Contains(plan.Findings, static finding => finding.Severity == PdfDiagnosticSeverity.Error &&
-            finding.Message.Contains("UniJIS-UCS2-H"));
+        Assert.True(plan.IsReviewable);
     }
 
     [Theory]
@@ -198,7 +198,7 @@ public sealed class PdfCompositeTextDecodingTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 6 0 R >> >> /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
             "<< /Length " + content.Length + " >>\nstream\n" + content + "endstream",
-            "<< /Type /Font /Subtype /Type0 /BaseFont /HeiseiMin-W3 /Encoding /UniJIS-UCS2-H /DescendantFonts [7 0 R] " +
+            "<< /Type /Font /Subtype /Type0 /BaseFont /HeiseiMin-W3 /Encoding /UnsupportedTestMap /DescendantFonts [7 0 R] " +
                 (includePartialMap ? "/ToUnicode 8 0 R " : "") + ">>",
             "<< /Type /Font /Subtype /CIDFontType0 /BaseFont /HeiseiMin-W3 /CIDSystemInfo << /Registry (Adobe) /Ordering (Japan1) /Supplement 5 >> /DW 500 >>",
             "<< /Length " + map.Length + " >>\nstream\n" + map + "\nendstream"

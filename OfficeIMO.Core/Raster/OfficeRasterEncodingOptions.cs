@@ -6,37 +6,18 @@ namespace OfficeIMO.Drawing;
 /// Format-specific settings used by the shared raster encoder.
 /// </summary>
 public sealed class OfficeRasterEncodingOptions {
-    private double _dpiX = 96D;
-    private double _dpiY = 96D;
-    private bool _hasExplicitDpiX;
-    private bool _hasExplicitDpiY;
+    internal double ResolvedDpiX { get; private set; } = 96D;
+    internal double ResolvedDpiY { get; private set; } = 96D;
 
     /// <summary>Writes format-appropriate resolution metadata when supported.</summary>
     public bool WriteResolutionMetadata { get; set; } = true;
 
     /// <summary>
-    /// Horizontal output resolution shared by raster encoders when explicitly assigned.
-    /// Otherwise the selected format's DPI setting remains authoritative.
+    /// Explicit native resolution override shared by raster encoders. Null retains the selected format's own settings.
     /// </summary>
-    public double DpiX {
-        get => _dpiX;
-        set {
-            _dpiX = value;
-            _hasExplicitDpiX = true;
-        }
-    }
-
-    /// <summary>
-    /// Vertical output resolution shared by raster encoders when explicitly assigned.
-    /// Otherwise the selected format's DPI setting remains authoritative.
-    /// </summary>
-    public double DpiY {
-        get => _dpiY;
-        set {
-            _dpiY = value;
-            _hasExplicitDpiY = true;
-        }
-    }
+    /// <remarks>TIFF retains native units, including aspect ratio. Other plain encoders require physical resolution;
+    /// use EncodeWithMetadata to preserve a unitless ratio in PNG, JPEG, or GIF container metadata.</remarks>
+    public OfficeImageResolution? Resolution { get; set; }
 
     /// <summary>PNG encoding settings.</summary>
     public OfficePngEncodeOptions Png { get; set; } = new OfficePngEncodeOptions();
@@ -93,10 +74,9 @@ public sealed class OfficeRasterEncodingOptions {
             }
         };
         clone.WriteResolutionMetadata = WriteResolutionMetadata;
-        clone._dpiX = _dpiX;
-        clone._dpiY = _dpiY;
-        clone._hasExplicitDpiX = _hasExplicitDpiX;
-        clone._hasExplicitDpiY = _hasExplicitDpiY;
+        clone.Resolution = Resolution;
+        clone.ResolvedDpiX = ResolvedDpiX;
+        clone.ResolvedDpiY = ResolvedDpiY;
         return clone;
     }
 
@@ -111,46 +91,49 @@ public sealed class OfficeRasterEncodingOptions {
         }
 
         OfficeRasterEncodingOptions resolved = Clone();
+        OfficeImageResolution? resolution = Resolution;
+        if (resolution != null && resolution.Unit == OfficeImageResolutionUnit.AspectRatio &&
+            format != OfficeImageExportFormat.Tiff && resolved.WriteResolutionMetadata) {
+            throw new ArgumentException("A unitless resolution override requires TIFF or the metadata-aware encoding operation.", nameof(Resolution));
+        }
         double dpiX;
         double dpiY;
         switch (format) {
             case OfficeImageExportFormat.Png:
-                dpiX = _hasExplicitDpiX ? _dpiX : resolved.Png.DpiX;
-                dpiY = _hasExplicitDpiY ? _dpiY : resolved.Png.DpiY;
+                dpiX = resolution?.PhysicalDpiX ?? resolved.Png.DpiX;
+                dpiY = resolution?.PhysicalDpiY ?? resolved.Png.DpiY;
                 resolved.Png.DpiX = dpiX * scaleRatio;
                 resolved.Png.DpiY = dpiY * scaleRatio;
                 resolved.Png.WritePhysicalResolution &= resolved.WriteResolutionMetadata;
                 break;
             case OfficeImageExportFormat.Jpeg:
-                dpiX = _hasExplicitDpiX ? _dpiX : resolved.Jpeg.DpiX;
-                dpiY = _hasExplicitDpiY ? _dpiY : resolved.Jpeg.DpiY;
+                dpiX = resolution?.PhysicalDpiX ?? resolved.Jpeg.DpiX;
+                dpiY = resolution?.PhysicalDpiY ?? resolved.Jpeg.DpiY;
                 resolved.Jpeg.DpiX = dpiX * scaleRatio;
                 resolved.Jpeg.DpiY = dpiY * scaleRatio;
                 resolved.Jpeg.WriteJfifHeader &= resolved.WriteResolutionMetadata;
                 break;
             case OfficeImageExportFormat.Tiff:
-                dpiX = _hasExplicitDpiX ? _dpiX : resolved.Tiff.Resolution?.PhysicalDpiX ?? resolved.Tiff.DpiX;
-                dpiY = _hasExplicitDpiY ? _dpiY : resolved.Tiff.Resolution?.PhysicalDpiY ?? resolved.Tiff.DpiY;
+                dpiX = resolution?.PhysicalDpiX ?? resolved.Tiff.Resolution?.PhysicalDpiX ?? resolved.Tiff.DpiX;
+                dpiY = resolution?.PhysicalDpiY ?? resolved.Tiff.Resolution?.PhysicalDpiY ?? resolved.Tiff.DpiY;
                 // Native-derived values belong to Resolution, whose rational storage
                 // bounds differ from authored legacy DPI. Keep them out of DpiX/Y;
-                // explicitly assigned shared axes still use the legacy validation.
-                if (_hasExplicitDpiX || resolved.Tiff.Resolution == null) {
+                // explicit shared overrides use native rational storage as well.
+                if (resolved.Tiff.Resolution == null && resolution == null) {
                     resolved.Tiff.DpiX = dpiX * scaleRatio;
                 }
-                if (_hasExplicitDpiY || resolved.Tiff.Resolution == null) {
+                if (resolved.Tiff.Resolution == null && resolution == null) {
                     resolved.Tiff.DpiY = dpiY * scaleRatio;
                 }
-                if (resolved.Tiff.Resolution != null) {
-                    OfficeImageResolution native = resolved.Tiff.Resolution;
-                    resolved.Tiff.Resolution = _hasExplicitDpiX || _hasExplicitDpiY
-                        ? new OfficeImageResolution(dpiX * scaleRatio, dpiY * scaleRatio)
-                        : new OfficeImageResolution(native.Horizontal * scaleRatio, native.Vertical * scaleRatio, native.Unit);
+                if (resolution != null || resolved.Tiff.Resolution != null) {
+                    OfficeImageResolution native = resolution ?? resolved.Tiff.Resolution!;
+                    resolved.Tiff.Resolution = new OfficeImageResolution(native.Horizontal * scaleRatio, native.Vertical * scaleRatio, native.Unit);
                 }
                 resolved.Tiff.WriteResolution &= resolved.WriteResolutionMetadata;
                 break;
             case OfficeImageExportFormat.Webp:
-                dpiX = _hasExplicitDpiX ? _dpiX : resolved.Webp.DpiX;
-                dpiY = _hasExplicitDpiY ? _dpiY : resolved.Webp.DpiY;
+                dpiX = resolution?.PhysicalDpiX ?? resolved.Webp.DpiX;
+                dpiY = resolution?.PhysicalDpiY ?? resolved.Webp.DpiY;
                 resolved.Webp.DpiX = dpiX * scaleRatio;
                 resolved.Webp.DpiY = dpiY * scaleRatio;
                 resolved.Webp.WritePhysicalResolution &= resolved.WriteResolutionMetadata;
@@ -159,18 +142,17 @@ public sealed class OfficeRasterEncodingOptions {
             case OfficeImageExportFormat.Pbm:
             case OfficeImageExportFormat.Tga:
             case OfficeImageExportFormat.Icon:
-                dpiX = _dpiX;
-                dpiY = _dpiY;
+                dpiX = resolution?.PhysicalDpiX ?? 96D;
+                dpiY = resolution?.PhysicalDpiY ?? 96D;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format));
         }
 
-        resolved._dpiX = dpiX * scaleRatio;
-        resolved._dpiY = dpiY * scaleRatio;
-        // Derived format DPI is a resolved value, not a new caller assignment.
-        // Preserve the cloned provenance so nested export/streaming resolution
-        // does not turn native TIFF density or aspect ratio into an inch override.
+        resolved.ResolvedDpiX = dpiX * scaleRatio;
+        resolved.ResolvedDpiY = dpiY * scaleRatio;
+        if (resolution != null) resolved.Resolution = new OfficeImageResolution(resolution.Horizontal * scaleRatio, resolution.Vertical * scaleRatio, resolution.Unit);
+        // Preserve native units through nested export/streaming resolution.
         return resolved;
     }
 }

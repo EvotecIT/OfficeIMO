@@ -79,6 +79,27 @@ public sealed class StudioCoreSessionTests {
         } finally { Directory.Delete(root, recursive: true); }
     }
 
+    [Fact]
+    public async Task VisibleDocumentsKeepPresentationActiveWhileOnlyTheSelectedTabOwnsCommands() {
+        using var tabs = CreateTabs();
+        await tabs.OpenDocumentAsync(Path.Combine(Path.GetTempPath(), "pane-first.pdf"));
+        var first = tabs.SelectedTab!;
+        await tabs.OpenDocumentAsync(Path.Combine(Path.GetTempPath(), "pane-second.pdf"));
+        var second = tabs.SelectedTab!;
+        tabs.SetPresentedDocuments([first.Document, second.Document]);
+        tabs.SelectedTab = first;
+        Assert.True(first.Document.PresentationActive);
+        Assert.True(second.Document.PresentationActive);
+        Assert.Same(first.Document, tabs.ActiveDocument);
+        tabs.SelectedTab = second;
+        Assert.True(first.Document.PresentationActive);
+        Assert.True(second.Document.PresentationActive);
+        Assert.Same(second.Document, tabs.ActiveDocument);
+        tabs.SetPresentedDocuments([]);
+        Assert.False(first.Document.PresentationActive);
+        Assert.True(second.Document.PresentationActive);
+    }
+
     private static StudioDocumentTabs<TestDocument, TestTab> CreateTabs() =>
         new(_ => new(), _ => { }, (document, _) => new(document));
 
@@ -102,7 +123,8 @@ public sealed class StudioCoreSessionTests {
         public IEnumerable<string> OwnedOutputLocations => [];
         public bool OwnsOutputPath(string path) => false;
         public void Deactivate() { }
-        public void SetPresentationActive(bool active) { }
+        internal bool PresentationActive { get; private set; }
+        public void SetPresentationActive(bool active) => PresentationActive = active;
         public Task OpenDocumentAsync(string path, CancellationToken token) {
             token.ThrowIfCancellationRequested();
             DocumentPath = path;

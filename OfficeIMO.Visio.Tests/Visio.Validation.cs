@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ValidatorAcceptsVisioStyleRelativeRootDocumentRelationshipTarget() {
+        public void ValidatorAndLoaderAcceptPackageRootedDocumentRelationshipTarget() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
                 XElement documentRelationship = relationships.Root!
                     .Elements(packageRelationships + "Relationship")
                     .Single(element => (string?)element.Attribute("Type") == "http://schemas.microsoft.com/visio/2010/relationships/document");
-                documentRelationship.SetAttributeValue("Target", "visio/document.xml");
+                documentRelationship.SetAttributeValue("Target", "/visio/document.xml");
 
                 entry.Delete();
                 ZipArchiveEntry newEntry = archive.CreateEntry("_rels/.rels");
@@ -222,6 +222,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Empty(VisioValidator.Validate(filePath));
+            Assert.Equal("Start", Assert.Single(Assert.Single(VisioDocument.Load(filePath).Pages).Shapes).Text);
         }
     }
 }

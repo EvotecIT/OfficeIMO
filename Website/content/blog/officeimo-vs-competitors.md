@@ -4,7 +4,9 @@ description: "Compare OfficeIMO with commercial .NET document libraries by Offic
 date: 2025-05-05
 tags: [comparison, aspose, gembox]
 categories: [Comparison]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 meta.seo_title: "OfficeIMO vs Commercial .NET Document Libraries"
 ---
 

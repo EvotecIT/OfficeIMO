@@ -178,7 +178,9 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
 
             byte[] fileData = PdfFontInput.ReadFile(path);
-            System.Collections.Generic.List<byte[]> fontPrograms = ExtractTrueTypeFontPrograms(fileData);
+            System.Collections.Generic.List<byte[]> fontPrograms = IsOpenTypeCffData(fileData)
+                ? new System.Collections.Generic.List<byte[]> { fileData }
+                : ExtractTrueTypeFontPrograms(fileData);
             var found = new System.Collections.Generic.List<SystemFontFaceCandidate>();
             for (int i = 0; i < fontPrograms.Count; i++) {
                 if (TryReadSystemFontFace(path, fontPrograms[i], normalizedMetadataFamily, acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) &&
@@ -205,7 +207,9 @@ public sealed partial class PdfEmbeddedFontFamily {
     private static bool TryReadSystemFontFace(string path, byte[] data, string normalizedMetadataFamily, string[] acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) {
         candidate = null;
         try {
-            _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
+            if (IsOpenTypeCffData(data))
+                _ = PdfFontProgramCache.GetOpenTypeCff(data, fontNameOverride: null);
+            else _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
             if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata, out bool nameTableAbsent) && metadata != null) {
                 int familyScore = GetMetadataFamilyMatchScore(metadata, normalizedMetadataFamily);
                 if (familyScore >= 0) {
@@ -247,6 +251,9 @@ public sealed partial class PdfEmbeddedFontFamily {
             current = candidate;
         }
     }
+
+    private static bool IsOpenTypeCffData(byte[] data) => data.Length >= 4
+        && data[0] == 'O' && data[1] == 'T' && data[2] == 'T' && data[3] == 'O';
 
     private static bool TryClassifyFace(string fileName, string[] acceptedPrefixes, out FontFaceKind faceKind) {
         string normalizedName = NormalizeFamilyKey(fileName);
@@ -472,6 +479,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         if (!string.IsNullOrWhiteSpace(localAppData)) {
             yield return System.IO.Path.Combine(localAppData, "Microsoft", "Windows", "Fonts");
         }
+        foreach (string root in OfficeIMO.Drawing.OfficeCloudFontFiles.GetRoots()) yield return root;
 
         yield return "/usr/share/fonts";
         yield return "/usr/local/share/fonts";
@@ -539,6 +547,7 @@ public sealed partial class PdfEmbeddedFontFamily {
 
                     string extension = System.IO.Path.GetExtension(file);
                     if (string.Equals(extension, ".ttf", System.StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(extension, ".otf", System.StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(extension, ".ttc", System.StringComparison.OrdinalIgnoreCase)) {
                         yield return file;
                     }

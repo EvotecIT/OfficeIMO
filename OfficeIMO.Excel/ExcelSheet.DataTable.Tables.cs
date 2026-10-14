@@ -82,7 +82,8 @@ namespace OfficeIMO.Excel {
             string? tableName = null,
             ExcelTableStyle style = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = true,
-            CancellationToken ct = default) {
+            CancellationToken ct = default,
+            bool preserveMissingValues = true) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
@@ -97,7 +98,7 @@ namespace OfficeIMO.Excel {
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + columnCount - 1);
             string range = startRef + ":" + endRef;
 
-            if (!TryInsertTabularRowSourceForDeferredMaterialization(source, startRow, startColumn, includeHeaders, ct)) {
+            if (!TryInsertTabularRowSourceForDeferredMaterialization(source, startRow, startColumn, includeHeaders, ct, preserveMissingValues)) {
                 return string.Empty;
             }
 
@@ -139,9 +140,6 @@ namespace OfficeIMO.Excel {
             CancellationToken ct = default) {
             if (table == null) throw new ArgumentNullException(nameof(table));
 
-            bool canRegisterDirectSave = !_excelDocument.IsMaterializingDeferredDataSetImport
-                && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
-
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
             if (table.Columns.Count == 0 || rowsCount == 0) {
                 return string.Empty;
@@ -151,6 +149,10 @@ namespace OfficeIMO.Excel {
             string startRef = A1.CellReference(startRow, startColumn);
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
+
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
+            bool canRegisterDirectSave = !_excelDocument.IsMaterializingDeferredDataSetImport
+                && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
 
             if (canRegisterDirectSave) {
                 if (TryInsertDataTableAsDeferredDirectSave(
@@ -262,7 +264,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentException("Table name cannot be empty.", nameof(tableName));
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
+                _excelDocument.MaterializeDeferredDataSetImport(ct);
             }
 
             var tableDefinitionPart = FindTableDefinitionPart(tableName);

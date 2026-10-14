@@ -29,6 +29,11 @@ internal static class PdfComplianceTestFonts {
     }
 
     internal static string? FindBundledTrueTypeFont() {
+        // The project copies this fixture here, including when --artifacts-path
+        // places test binaries outside the repository's ancestor directories.
+        string copied = Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Regular.ttf");
+        if (File.Exists(copied)) return copied;
+
         const string relativePath = "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf";
         foreach (string root in EnumerateSearchRoots()) {
             string candidate = Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar));

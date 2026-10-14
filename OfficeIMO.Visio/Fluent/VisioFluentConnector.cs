@@ -177,6 +177,10 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="fromSide">Preferred source side.</param>
         /// <param name="toSide">Preferred target side.</param>
         public VisioFluentConnector Sides(VisioSide fromSide, VisioSide toSide) {
+            ValidateSide(_c.From, fromSide);
+            ValidateSide(_c.To, toSide);
+            _c.ClearEndpointPreservation(true);
+            _c.ClearEndpointPreservation(false);
             ApplySide(_c.From, fromSide, point => _c.FromConnectionPoint = point);
             ApplySide(_c.To, toSide, point => _c.ToConnectionPoint = point);
             return this;
@@ -185,6 +189,8 @@ namespace OfficeIMO.Visio.Fluent {
         /// <summary>Connects the start of the connector to an explicit side.</summary>
         /// <param name="side">Preferred source side.</param>
         public VisioFluentConnector FromSide(VisioSide side) {
+            ValidateSide(_c.From, side);
+            _c.ClearEndpointPreservation(true);
             ApplySide(_c.From, side, point => _c.FromConnectionPoint = point);
             return this;
         }
@@ -192,17 +198,24 @@ namespace OfficeIMO.Visio.Fluent {
         /// <summary>Connects the end of the connector to an explicit side.</summary>
         /// <param name="side">Preferred target side.</param>
         public VisioFluentConnector ToSide(VisioSide side) {
+            ValidateSide(_c.To, side);
+            _c.ClearEndpointPreservation(false);
             ApplySide(_c.To, side, point => _c.ToConnectionPoint = point);
             return this;
         }
 
-        private static void ApplySide(VisioShape shape, VisioSide side, Action<VisioConnectionPoint?> assign) {
+        private static void ValidateSide(VisioShape? shape, VisioSide side) {
+            if (side != VisioSide.Auto && shape == null)
+                throw new InvalidOperationException("Attach the connector endpoint before choosing a shape side.");
+        }
+
+        private static void ApplySide(VisioShape? shape, VisioSide side, Action<VisioConnectionPoint?> assign) {
             if (side == VisioSide.Auto) {
                 assign(null);
                 return;
             }
 
-            assign(shape.EnsureSideConnectionPoint(side));
+            assign(shape!.EnsureSideConnectionPoint(side));
         }
 
         private VisioTextStyle EnsureTextStyle() {

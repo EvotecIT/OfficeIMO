@@ -1,20 +1,30 @@
 namespace OfficeIMO.OpenDocument;
 
 internal static class OdfListStyleStore {
-    internal static string Create(OdfDocument document, bool ordered, string partPath = "content.xml") {
+    internal static string Create(OdfDocument document, bool ordered, string partPath = "content.xml", int listLevel = 1) {
+        if (listLevel < 1 || listLevel > 10) throw new ArgumentOutOfRangeException(nameof(listLevel));
         XDocument xml = document.GetXml(partPath);
         XElement root = xml.Root ?? throw new InvalidDataException($"OpenDocument part '{partPath}' has no root element.");
-        XElement styles = root.Element(OdfNamespaces.Office + "automatic-styles") ?? throw new InvalidDataException($"OpenDocument part '{partPath}' has no automatic styles.");
-        var existingNames = new HashSet<string>(styles.Elements(OdfNamespaces.Text + "list-style")
+        XElement styles = OdfXmlContainers.Ensure(root, OdfNamespaces.Office + "automatic-styles");
+        // A new automatic definition must not shadow a referenced common list style.
+        // Reserve both parts as flat serialization combines their automatic definitions.
+        var existingNames = new HashSet<string>(new[] { "content.xml", "styles.xml" }
+            .Where(document.Package.ContainsEntry).SelectMany(part => document.GetXml(part).Root!.Elements()
+                .Where(container => container.Name == OdfNamespaces.Office + "automatic-styles" || container.Name == OdfNamespaces.Office + "styles")
+                .SelectMany(container => container.Elements(OdfNamespaces.Text + "list-style")))
             .Select(element => (string?)element.Attribute(OdfNamespaces.Style + "name"))
             .Where(value => !string.IsNullOrEmpty(value))!, StringComparer.Ordinal);
         int index = 1; string name;
         do { name = "ofList" + index++.ToString("D4", CultureInfo.InvariantCulture); } while (existingNames.Contains(name));
         XElement level = ordered
             ? new XElement(OdfNamespaces.Text + "list-level-style-number",
-                new XAttribute(OdfNamespaces.Text + "level", 1), new XAttribute(OdfNamespaces.Style + "num-format", "1"))
+                new XAttribute(OdfNamespaces.Text + "level", listLevel), new XAttribute(OdfNamespaces.Style + "num-format", "1"), new XAttribute(OdfNamespaces.Style + "num-suffix", "."))
             : new XElement(OdfNamespaces.Text + "list-level-style-bullet",
-                new XAttribute(OdfNamespaces.Text + "level", 1), new XAttribute(OdfNamespaces.Text + "bullet-char", "•"));
+                new XAttribute(OdfNamespaces.Text + "level", listLevel), new XAttribute(OdfNamespaces.Text + "bullet-char", "•"));
+        level.Add(new XElement(OdfNamespaces.Style + "list-level-properties",
+            new XAttribute(OdfNamespaces.Text + "space-before", (listLevel - 1) * 18 + "pt"),
+            new XAttribute(OdfNamespaces.Text + "min-label-width", "18pt"),
+            new XAttribute(OdfNamespaces.Text + "min-label-distance", "3pt")));
         styles.Add(new XElement(OdfNamespaces.Text + "list-style", new XAttribute(OdfNamespaces.Style + "name", name), level));
         document.MarkPartDirty(partPath);
         return name;

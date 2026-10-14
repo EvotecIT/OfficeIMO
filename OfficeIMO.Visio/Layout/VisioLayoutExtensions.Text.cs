@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Layout and geometry helpers for Visio pages, shapes, and selections.
-    /// </summary>
+    // Layout and geometry helpers for Visio pages, shapes, and selections.
     public static partial class VisioLayoutExtensions {
         /// <summary>
         /// Resizes a shape to fit its plain text using deterministic OfficeIMO.Drawing measurement.
@@ -91,8 +89,7 @@ namespace OfficeIMO.Visio {
                 maximumWidth,
                 connector.TextStyle);
 
-            placement.Width = width;
-            placement.Height = height;
+            VisioConnectorLabelFrame.SetMeasuredDimensions(connector, placement, width, height);
             connector.LabelPlacement = placement;
             return connector;
         }
@@ -117,6 +114,22 @@ namespace OfficeIMO.Visio {
             }
 
             return selection;
+        }
+
+        /// <summary>
+        /// Measures wrapped text at a fixed width in inches, retaining the text style's margins
+        /// and the standard layout padding used when sizing native text shapes.
+        /// </summary>
+        internal static double MeasureTextHeight(string? text, VisioTextStyle textStyle, double width, double minimumHeight) {
+            return MeasureTextBox(
+                text,
+                CreateFontInfo(textStyle),
+                DefaultHorizontalPadding,
+                DefaultVerticalPadding,
+                minimumWidth: width,
+                minimumHeight,
+                maximumWidth: width,
+                textStyle).Height;
         }
 
 

@@ -24,19 +24,27 @@ namespace OfficeIMO.Visio {
 
         internal XElement Element { get; }
 
+        internal bool ValueAssigned { get; private set; }
+
         /// <summary>Gets the ShapeSheet cell name.</summary>
         public string Name => (string?)Element.Attribute("N") ?? string.Empty;
 
-        /// <summary>Gets or sets the cached cell value.</summary>
+        /// <summary>Gets or sets the cached cell value. Explicit assignments replace imported native null conditions when the section is installed, even when unchanged.</summary>
         public string? Value {
             get => (string?)Element.Attribute("V");
-            set => Element.SetAttributeValue("V", value);
+            set { Element.SetAttributeValue("V", value); ValueAssigned = true; }
         }
 
-        /// <summary>Gets or sets the native ShapeSheet formula.</summary>
+        /// <summary>Gets or sets the native ShapeSheet formula. Changing it clears the previous producer error.</summary>
         public string? Formula {
             get => (string?)Element.Attribute("F");
-            set => Element.SetAttributeValue("F", value);
+            set {
+                if (Formula != value) {
+                    Element.SetAttributeValue("E", null);
+                    Element.SetAttributeValue("Err", null);
+                }
+                Element.SetAttributeValue("F", value);
+            }
         }
 
         /// <summary>Gets or sets the native unit token.</summary>
@@ -75,7 +83,7 @@ namespace OfficeIMO.Visio {
             set => Element.SetAttributeValue("N", value);
         }
 
-        /// <summary>Gets or sets the zero-based native row index.</summary>
+        /// <summary>Gets or sets the native row index using the owning section's indexing convention.</summary>
         public int? Index {
             get => int.TryParse((string?)Element.Attribute("IX"), out int value) ? value : (int?)null;
             set => Element.SetAttributeValue("IX", value);
@@ -90,7 +98,7 @@ namespace OfficeIMO.Visio {
             _cells.FirstOrDefault(cell => string.Equals(cell.Name, name,
                 StringComparison.OrdinalIgnoreCase));
 
-        /// <summary>Sets or creates a cell while retaining unmodeled row content.</summary>
+        /// <summary>Sets or creates a cell while retaining unmodeled row content. A changed formula clears its previous error state.</summary>
         public VisioShapeSheetCell SetCell(string name, string? value = null,
             string? formula = null, string? unit = null) {
             VisioShapeSheetCell? cell = FindCell(name);
@@ -120,7 +128,7 @@ namespace OfficeIMO.Visio {
     }
 
     /// <summary>
-    /// Typed, source-preserving view of an otherwise unmodeled Visio ShapeSheet section.
+    /// Typed, source-preserving view of a Visio ShapeSheet section, including native text rows.
     /// </summary>
     public sealed class VisioShapeSheetSection {
         internal static readonly XNamespace VisioNamespace =
@@ -184,6 +192,13 @@ namespace OfficeIMO.Visio {
             for (int index = retained; index < _rows.Count; index++)
                 clone.Add(_rows[index].ToXElement());
             return clone;
+        }
+
+        internal IEnumerable<string> AssignedValueAddresses() {
+            foreach (VisioShapeSheetRow row in _rows)
+                foreach (VisioShapeSheetCell cell in row.Cells.Where(cell => cell.ValueAssigned))
+                    yield return string.Join("/", VisioNativeCellMetadata.Step(Element),
+                        VisioNativeCellMetadata.Step(row.Element), VisioNativeCellMetadata.Step(cell.Element));
         }
     }
 }

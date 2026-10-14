@@ -15,6 +15,7 @@ internal sealed class PdfFontResource {
     public bool HasToUnicode { get; }
     public bool IsVerticalWriting { get; }
     public ToUnicodeCMap? CMap { get; }
+    internal Lazy<PdfPredefinedCMap>? PredefinedCMap { get; }
     public IReadOnlyDictionary<int, string>? Differences { get; }
     public byte[]? EmbeddedTrueTypeFont { get; }
     public string? DrawingFontFamily { get; }
@@ -37,7 +38,8 @@ internal sealed class PdfFontResource {
         PdfType3FontResource? type3 = null,
         bool isVerticalWriting = false,
         int? fontWeight = null,
-        int? fontDescriptorFlags = null) {
+        int? fontDescriptorFlags = null,
+        Lazy<PdfPredefinedCMap>? predefinedCMap = null) {
         ResourceName = resourceName;
         BaseFont = baseFont;
         Encoding = encoding;
@@ -47,6 +49,7 @@ internal sealed class PdfFontResource {
         HasToUnicode = hasToUnicode;
         IsVerticalWriting = isVerticalWriting;
         CMap = cmap;
+        PredefinedCMap = predefinedCMap;
         Differences = differences;
         EmbeddedTrueTypeFont = embeddedTrueTypeFont;
         DrawingFontFamily = CreateDrawingFontFamily(baseFont, embeddedTrueTypeFont);
@@ -66,6 +69,7 @@ internal sealed class PdfFontResource {
         HasToUnicode = source.HasToUnicode;
         IsVerticalWriting = source.IsVerticalWriting;
         CMap = source.CMap;
+        PredefinedCMap = source.PredefinedCMap;
         Differences = source.Differences;
         EmbeddedTrueTypeFont = embeddedTrueTypeFont ?? source.EmbeddedTrueTypeFont;
         DrawingFontFamily = embeddedTrueTypeFont == null

@@ -6,7 +6,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class VisioMasterRegistry {
-        private static string AssetsPath => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets"));
+        private static string AssetsPath => Path.Combine(RepositoryTestPaths.Find(), "Assets");
 
         [Fact]
         public void RegisterMasterAllowsLookupAndShapeCreationByName() {

@@ -16,7 +16,7 @@ internal static partial class VisioReaderAdapter {
         var effectiveVisioOptions = ReaderVisioOptionsCloner.CloneOrDefault(visioOptions);
         ReaderInputLimits.EnforceFileSize(visioPath, effectiveReaderOptions.MaxInputBytes);
         SourceMetadata source = BuildSourceMetadataFromPath(visioPath, effectiveReaderOptions.ComputeHashes);
-        VisioDocument document = VisioDocument.Load(visioPath, CreateLoadOptions(effectiveReaderOptions));
+        VisioDocument document = LoadForReader(visioPath, CreateLoadOptions(effectiveReaderOptions), source, cancellationToken);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectiveVisioOptions, cancellationToken);
     }
 
@@ -42,7 +42,7 @@ internal static partial class VisioReaderAdapter {
                 parseStream.Position = 0;
             }
 
-            VisioDocument document = VisioDocument.Load(parseStream, CreateLoadOptions(effectiveReaderOptions));
+            VisioDocument document = LoadForReader(parseStream, logicalSourceName, CreateLoadOptions(effectiveReaderOptions), source, cancellationToken);
             return BuildDocumentResult(document, source, effectiveReaderOptions, effectiveVisioOptions, cancellationToken);
         } finally {
             if (ownsParseStream) {
@@ -214,6 +214,8 @@ internal static partial class VisioReaderAdapter {
                 writer.WriteString("id", connector.Id);
                 writer.WriteString("source", connector.FromId);
                 writer.WriteString("target", connector.ToId);
+                writer.WriteNumber("startX", connector.StartPoint.X); writer.WriteNumber("startY", connector.StartPoint.Y);
+                writer.WriteNumber("endX", connector.EndPoint.X); writer.WriteNumber("endY", connector.EndPoint.Y);
                 writer.WriteString("kind", connector.Kind);
                 writer.WriteString("label", connector.Label);
                 writer.WritePropertyName("waypoints");

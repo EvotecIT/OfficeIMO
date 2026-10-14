@@ -1,0 +1,39 @@
+{
+  "source": "numbers-parser/cross-table-formulas.numbers",
+  "sourceSha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
+  "producer": "Apple Numbers",
+  "producerVersion": "14.5",
+  "producerBuild": "7045.0.17",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "capturedUtc": "2026-10-09T08:22:23.423845+00:00",
+  "artifacts": [
+    {
+      "path": "native-exports/numbers-cross-table-v14.5.xlsx",
+      "sha256": "bb56618e879342912a3592dd1b419368745bafdf26df5bf218ec1f91b4c60ea0",
+      "bytes": 23652
+    },
+    {
+      "path": "native-exports/numbers-cross-table-v14.5.pdf",
+      "sha256": "147190abc424635d2e12d0c742dbbf8e97c4b2788cc182f15da5ff8e0033eefd",
+      "bytes": 184902
+    },
+    {
+      "path": "native-exports/numbers-cross-table-v14.5.numbers",
+      "sha256": "fc71ac85afae96c6c739002ebc4f9b1419ea31c44ccbc1ace3a20c32d6c2c8fc",
+      "bytes": 332678
+    }
+  ],
+  "sourceModified": true,
+  "sourceModificationScope": "Numbers auto-saved the scratch copy while opening/exporting. The original corpus remains unchanged; the saved copy is retained as an artifact with its own hash. No cell content was edited.",
+  "exportOptions": {
+    "office": "XLSX, one worksheet per table, no summary worksheet or password.",
+    "pdf": "Best image quality; fit each entire source sheet onto one page; no comments/password."
+  },
+  "license": "Existing upstream MIT fixture notice recorded in IWorkCorpus/README.md; exported derivatives retain that provenance.",
+  "fontProvenance": "Installed macOS fonts and native embedded PDF subsets only; no standalone font files are distributed.",
+  "qualification": [
+    "Apple exports one XLSX worksheet per source table and a title row; comparisons map table names and shift rows by one.",
+    "All 529 populated cached/text/number cells with native values match, including 109 formula caches. One SUM(#REF!) formula has no native cache; OfficeIMO reports an approximate generic error.",
+    "Worksheet ordering, complete formula-expression equivalence, cache freshness, recalculation, and appearance are not qualified. Uniform formula-result formatting is covered separately by numbers-formula-formatting-v14.5.json."
+  ]
+}

@@ -6,6 +6,7 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Word.Legacy;
 
 internal sealed class LegacyWordModel {
+    internal List<LegacyWordSection> Sections { get; } = new();
     internal List<LegacyWordParagraph> Paragraphs { get; } = new();
     internal List<LegacyWordStyle> Styles { get; } = new();
     internal List<LegacyWordNote> Notes { get; } = new();
@@ -16,7 +17,7 @@ internal sealed class LegacyWordModel {
     internal OfficeLegacyInertContentKind InertContent { get; set; }
 }
 
-internal sealed class LegacyWordParagraph {
+internal sealed class LegacyWordParagraph : LegacyWordBlock {
     internal LegacyWordParagraph() { }
 
     internal LegacyWordParagraph(string text, bool isList = false, int listLevel = 0) {
@@ -59,8 +60,11 @@ internal sealed class LegacyWordStyle {
 }
 
 internal sealed class LegacyWordRun {
-    internal LegacyWordRun(string text) => Text = text;
-    internal string Text { get; }
+    private readonly string _text;
+    private System.Text.StringBuilder? _builder;
+    internal LegacyWordRun(string text) => _text = text;
+    internal string Text => _builder?.ToString() ?? _text;
+    internal void AppendText(string text) { _builder ??= new System.Text.StringBuilder(_text); _builder.Append(text); }
     internal bool Bold { get; set; }
     internal bool Italic { get; set; }
     internal bool Strike { get; set; }
@@ -69,12 +73,23 @@ internal sealed class LegacyWordRun {
     internal double? FontSizePoints { get; set; }
     internal string? FontFamily { get; set; }
     internal string? ColorHex { get; set; }
+    internal int? NoteIndex { get; set; }
+    internal LegacyWordImage? Image { get; set; }
+}
+
+internal sealed class LegacyWordImage {
+    internal byte[] SourceBytes { get; set; } = System.Array.Empty<byte>();
+    internal byte[] PngBytes { get; set; } = System.Array.Empty<byte>();
+    internal double WidthPoints { get; set; }
+    internal double HeightPoints { get; set; }
 }
 
 internal sealed class LegacyWordNote {
     internal LegacyWordNote(LegacyWordNoteKind kind, string text) { Kind = kind; Text = text; }
     internal LegacyWordNoteKind Kind { get; }
     internal string Text { get; }
+    internal List<LegacyWordParagraph> Paragraphs { get; } = new();
+    internal bool IsAnchored { get; set; }
 }
 
 internal sealed class LegacyWordResource {

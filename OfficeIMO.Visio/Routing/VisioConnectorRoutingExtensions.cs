@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -8,7 +9,7 @@ namespace OfficeIMO.Visio {
     /// </summary>
     public static partial class VisioConnectorRoutingExtensions {
         /// <summary>
-        /// Replaces connector geometry with explicit page-coordinate waypoints.
+        /// Replaces connector geometry with finite page-coordinate waypoints after validating the entire input.
         /// </summary>
         /// <param name="connector">Connector to route.</param>
         /// <param name="waypoints">Absolute page coordinates between start and end.</param>
@@ -21,7 +22,8 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Replaces connector geometry with explicit page-coordinate waypoints.
+        /// Replaces connector geometry with finite page-coordinate waypoints after validating the entire input.
+        /// Invalid entries or a failed enumeration leave the previous route intact.
         /// </summary>
         /// <param name="connector">Connector to route.</param>
         /// <param name="waypoints">Absolute page coordinates between start and end.</param>
@@ -34,15 +36,21 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(waypoints));
             }
 
-            connector.Waypoints.Clear();
+            var replacement = new List<VisioConnectorWaypoint>();
             foreach (VisioConnectorWaypoint waypoint in waypoints) {
                 if (waypoint == null) {
                     throw new ArgumentException("Route waypoints cannot contain null entries.", nameof(waypoints));
                 }
 
-                connector.Waypoints.Add(new VisioConnectorWaypoint(waypoint.X, waypoint.Y));
+                double x = waypoint.X, y = waypoint.Y;
+                if (double.IsNaN(x) || double.IsInfinity(x) || double.IsNaN(y) || double.IsInfinity(y)) {
+                    throw new ArgumentException("Route waypoint coordinates must be finite.", nameof(waypoints));
+                }
+                replacement.Add(new VisioConnectorWaypoint(x, y));
             }
 
+            connector.Waypoints.Clear();
+            foreach (VisioConnectorWaypoint waypoint in replacement) connector.Waypoints.Add(waypoint);
             connector.Kind = ConnectorKind.RightAngle;
             connector.PreservedGeometrySections.Clear();
             return connector;
@@ -59,8 +67,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(connector));
             }
 
-            ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
-            ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+            VisioConnectorEndpoints.Resolve(connector, out double startX, out double startY, out double endX, out double endY);
 
             VisioConnectorRouteStyle resolvedStyle = style == VisioConnectorRouteStyle.Auto
                 ? Math.Abs(endX - startX) >= Math.Abs(endY - startY)
@@ -68,17 +75,9 @@ namespace OfficeIMO.Visio {
                     : VisioConnectorRouteStyle.VerticalThenHorizontal
                 : style;
 
-            if (resolvedStyle == VisioConnectorRouteStyle.HorizontalThenVertical) {
-                double laneX = ((startX + endX) / 2D) + offset;
-                return connector.RouteThrough(
-                    new VisioConnectorWaypoint(laneX, startY),
-                    new VisioConnectorWaypoint(laneX, endY));
-            }
-
-            double laneY = ((startY + endY) / 2D) + offset;
-            return connector.RouteThrough(
-                new VisioConnectorWaypoint(startX, laneY),
-                new VisioConnectorWaypoint(endX, laneY));
+            OfficePoint[] points = OfficeGeometry.CreateOrthogonalConnectorRoute(new OfficePoint(startX, startY), new OfficePoint(endX, endY),
+                resolvedStyle == VisioConnectorRouteStyle.HorizontalThenVertical, offset);
+            return connector.RouteThrough(points.Skip(1).Take(2).Select(point => new VisioConnectorWaypoint(point.X, point.Y)));
         }
 
         /// <summary>Routes a connector from a shape back to itself as an external orthogonal loop.</summary>
@@ -88,7 +87,7 @@ namespace OfficeIMO.Visio {
             if (connector == null) {
                 throw new ArgumentNullException(nameof(connector));
             }
-            if (!ReferenceEquals(connector.From, connector.To)) {
+            if (connector.From == null || !ReferenceEquals(connector.From, connector.To)) {
                 throw new ArgumentException("Self-loop routing requires the same source and target shape.", nameof(connector));
             }
             if (clearance <= 0D || double.IsNaN(clearance) || double.IsInfinity(clearance)) {
@@ -151,8 +150,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentOutOfRangeException(nameof(options), "Page optimization pass count must be at least one.");
             }
 
-            ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
-            ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+            VisioConnectorEndpoints.Resolve(connector, out double startX, out double startY, out double endX, out double endY);
             IEnumerable<VisioShape> routingObstacles = options.IncludeGroupChildren
                 ? ExpandRoutingObstacles(obstacles)
                 : obstacles;

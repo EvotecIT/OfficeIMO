@@ -5,18 +5,11 @@ public sealed class OdpImage : OdpShape {
     internal OdpImage(OdpPresentation presentation, XElement element) : base(presentation, element) { }
     /// <summary>Package-relative image path.</summary>
     public string Path => (string?)Element.Element(OdfNamespaces.Draw + "image")?.Attribute(OdfNamespaces.XLink + "href") ?? string.Empty;
-    /// <summary>Image crop insets stored as <c>fo:clip</c>.</summary>
+    /// <summary>Image crop insets in intrinsic image lengths, stored as <c>fo:clip</c>.</summary>
+    /// <remarks>Negative offsets add empty space. Null removes the local override; explicit zero insets disable inherited cropping.</remarks>
     public OdfInsets? Crop {
-        get {
-            string? lexical = (string?)GetGraphicProperties()?.Attribute(OdfNamespaces.Fo + "clip");
-            if (lexical == null || !lexical.StartsWith("rect(", StringComparison.Ordinal) || !lexical.EndsWith(")", StringComparison.Ordinal)) return null;
-            string[] values = lexical.Substring(5, lexical.Length - 6).Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
-            return values.Length == 4 ? new OdfInsets(OdfLength.Parse(values[0]), OdfLength.Parse(values[1]), OdfLength.Parse(values[2]), OdfLength.Parse(values[3])) : (OdfInsets?)null;
-        }
-        set {
-            string? lexical = value.HasValue ? "rect(" + value.Value.Top + " " + value.Value.Right + " " + value.Value.Bottom + " " + value.Value.Left + ")" : null;
-            EnsureGraphicStyle().SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Fo + "clip", lexical);
-        }
+        get => ReadImageCrop();
+        set => WriteImageCrop(value);
     }
     /// <summary>Returns a defensive copy of the embedded image bytes.</summary>
     public byte[] GetImageBytes() => Presentation.GetPackageEntryBytes(Path);
@@ -27,9 +20,5 @@ public sealed class OdpImage : OdpShape {
                 new XAttribute(OdfNamespaces.XLink + "type", "simple"), new XAttribute(OdfNamespaces.XLink + "show", "embed"),
                 new XAttribute(OdfNamespaces.XLink + "actuate", "onLoad")));
         ApplyBounds(frame, bounds); return new OdpImage(presentation, frame);
-    }
-    private XElement? GetGraphicProperties() {
-        string? styleName = (string?)Element.Attribute(OdfNamespaces.Draw + "style-name");
-        return styleName == null ? null : Presentation.Styles.Find(OdfStyleFamily.Graphic, styleName)?.Element.Element(OdfNamespaces.Style + "graphic-properties");
     }
 }

@@ -1,0 +1,17 @@
+[
+  {
+    "After": "Edited paragraph layout",
+    "Before": "Native paragraph layout",
+    "Paragraph": 1
+  },
+  {
+    "After": "Start\tLeft\tCenter\tRight\t234.56",
+    "Before": "Start\tLeft\tCenter\tRight\t123.45",
+    "Paragraph": 3
+  },
+  {
+    "After": "Updated reset Native layout edit.",
+    "Before": "Default reset Native layout edit.",
+    "Paragraph": 7
+  }
+]

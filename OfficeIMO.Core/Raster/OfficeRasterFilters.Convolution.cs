@@ -6,8 +6,8 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeRasterFilters {
     /// <summary>Applies a normalized Gaussian kernel in premultiplied RGBA space; sigma is measured in pixels.</summary>
     public static OfficeRasterImage GaussianBlur(OfficeRasterImage source, double sigma = 3D, CancellationToken cancellationToken = default) {
-        ValidateAmount(sigma, nameof(sigma), .01D, 42D);
-        int radius = (int)Math.Ceiling(sigma * 3D);
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        CalculateGaussianAdditionalWorkingBytes(source.Width, source.Height, sigma, false, out int radius);
         var weights = new double[radius * 2 + 1];
         double sum = 0D;
         for (int x = -radius; x <= radius; x++) { double w = Math.Exp(-x * x / (2D * sigma * sigma)); weights[x + radius] = w; sum += w; }
@@ -19,7 +19,7 @@ public static partial class OfficeRasterFilters {
     public static OfficeRasterImage GaussianSharpen(OfficeRasterImage source, double sigma = 3D, CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         // Smooth owns float scratch as well as its output; the final color pass runs after that scratch is released.
-        ValidateSource(source, source.PixelBuffer.LongLength);
+        CalculateGaussianAdditionalWorkingBytes(source.Width, source.Height, sigma, true, out _);
         OfficeRasterImage blurred = GaussianBlur(source, sigma, cancellationToken);
         return Map(source, (c, x, y) => {
             OfficeColor soft = blurred.GetPixel(x, y);
@@ -29,7 +29,8 @@ public static partial class OfficeRasterFilters {
 
     /// <summary>Applies a square box blur with a radius in pixels and premultiplied-alpha sampling.</summary>
     public static OfficeRasterImage BoxBlur(OfficeRasterImage source, int radius = 7, CancellationToken cancellationToken = default) {
-        ValidateRadius(radius, 128, nameof(radius));
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        CalculateBoxBlurAdditionalWorkingBytes(source.Width, source.Height, radius);
         var weights = new double[radius * 2 + 1];
         for (int i = 0; i < weights.Length; i++) weights[i] = 1D / weights.Length;
         return Smooth(source, weights, cancellationToken);
@@ -46,7 +47,7 @@ public static partial class OfficeRasterFilters {
         for (int y = -radius; y <= radius; y++) for (int x = -radius; x <= radius; x++) {
             if (x * x + y * y <= radius * radius) kernel[(y + radius) * size + x + radius] = 1D;
         }
-        return ConvolveCore(source, kernel, size, size, true, gamma, cancellationToken);
+        return ConvolveCore(source, kernel, size, size, true, gamma, cancellationToken, cloneKernel: false);
     }
 
     /// <summary>Applies an odd-sized row-major convolution kernel with clamped boundary samples and premultiplied alpha.</summary>
@@ -57,14 +58,14 @@ public static partial class OfficeRasterFilters {
         ConvolveCore(source, kernel, kernelWidth, kernelHeight, normalize, 1D, cancellationToken);
 
     private static OfficeRasterImage ConvolveCore(OfficeRasterImage source, double[] kernel, int kernelWidth, int kernelHeight,
-        bool normalize, double gamma, CancellationToken cancellationToken) {
+        bool normalize, double gamma, CancellationToken cancellationToken, bool cloneKernel = true) {
         cancellationToken.ThrowIfCancellationRequested();
         if (kernel == null) throw new ArgumentNullException(nameof(kernel));
         if (kernelWidth <= 0 || kernelWidth > 65 || (kernelWidth & 1) == 0) throw new ArgumentOutOfRangeException(nameof(kernelWidth));
         if (kernelHeight <= 0 || kernelHeight > 65 || (kernelHeight & 1) == 0) throw new ArgumentOutOfRangeException(nameof(kernelHeight));
         if (kernel.Length != kernelWidth * kernelHeight) throw new ArgumentException("Kernel dimensions do not match its coefficient count.", nameof(kernel));
         double sum = 0D;
-        var weights = (double[])kernel.Clone();
+        var weights = cloneKernel ? (double[])kernel.Clone() : kernel;
         foreach (double weight in weights) { ValidateAmount(weight, nameof(kernel), -1_000_000D, 1_000_000D); sum += weight; }
         if (normalize && sum <= 1E-12D) throw new ArgumentException("A normalized kernel must have a positive coefficient sum.", nameof(kernel));
         if (normalize) for (int i = 0; i < weights.Length; i++) weights[i] /= sum;
@@ -99,7 +100,7 @@ public static partial class OfficeRasterFilters {
     private static OfficeRasterImage Smooth(OfficeRasterImage source, double[] weights, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         if (source == null) throw new ArgumentNullException(nameof(source));
-        ValidateSource(source, source.PixelBuffer.LongLength * sizeof(float), weights.Length * 2L);
+        CalculateSmoothingAdditionalWorkingBytes(source.Width, source.Height, weights.Length, false);
         float[] intermediate = new float[source.PixelBuffer.Length];
         var result = new OfficeRasterImage(source.Width, source.Height);
         byte[] input = source.PixelBuffer, output = result.PixelBuffer;

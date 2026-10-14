@@ -1,77 +1,14 @@
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Base class for an XML-backed ODP drawing shape.</summary>
-public abstract class OdpShape {
-    internal OdpShape(OdpPresentation presentation, XElement element) { Presentation = presentation; Element = element; }
-    /// <summary>Shape name.</summary>
-    public string Name {
-        get => (string?)Element.Attribute(OdfNamespaces.Draw + "name") ?? string.Empty;
-        set { Element.SetAttributeValue(OdfNamespaces.Draw + "name", value); Dirty(); }
-    }
-    /// <summary>XML identifier used by animation and cross-reference targets.</summary>
-    public string? XmlId {
-        get => (string?)Element.Attribute(XNamespace.Xml + "id");
-        set {
-            if (value != null) {
-                XmlConvert.VerifyNCName(value);
-                bool duplicate = Presentation.Slides
-                    .SelectMany(slide => slide.Element.DescendantsAndSelf())
-                    .Any(element => !ReferenceEquals(element, Element) &&
-                        string.Equals((string?)element.Attribute(XNamespace.Xml + "id"), value, StringComparison.Ordinal));
-                if (duplicate) throw new ArgumentException("Shape XML identifiers must be unique within the presentation.", nameof(value));
-            }
-            Element.SetAttributeValue(XNamespace.Xml + "id", value);
-            Dirty();
-        }
-    }
+public abstract class OdpShape : OdfShape {
+    internal OdpShape(OdpPresentation presentation, XElement element) : base(presentation, element) { Presentation = presentation; }
+    internal OdpPresentation Presentation { get; }
     /// <summary>Whether the shape is hidden from the normal presentation view.</summary>
     public bool Hidden {
         get => (string?)Element.Attribute(OdfNamespaces.Presentation + "visibility") == "hidden";
         set { Element.SetAttributeValue(OdfNamespaces.Presentation + "visibility", value ? "hidden" : null); Dirty(); }
     }
-    /// <summary>Raw ODF/SVG transform expression.</summary>
-    public string? Transform {
-        get => (string?)Element.Attribute(OdfNamespaces.Draw + "transform");
-        set { Element.SetAttributeValue(OdfNamespaces.Draw + "transform", value); Dirty(); }
-    }
-    /// <summary>Solid shape fill color.</summary>
-    public OdfColor? FillColor {
-        get => ReadGraphicColor(OdfNamespaces.Draw + "fill", OdfNamespaces.Draw + "fill-color");
-        set {
-            OdfStyle style = EnsureGraphicStyle();
-            style.SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Draw + "fill", value.HasValue ? "solid" : "none");
-            style.SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Draw + "fill-color", value?.ToString());
-        }
-    }
-    /// <summary>Solid shape stroke color.</summary>
-    public OdfColor? StrokeColor {
-        get => ReadGraphicColor(OdfNamespaces.Draw + "stroke", OdfNamespaces.Svg + "stroke-color");
-        set {
-            OdfStyle style = EnsureGraphicStyle();
-            style.SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Draw + "stroke", value.HasValue ? "solid" : "none");
-            style.SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Svg + "stroke-color", value?.ToString());
-        }
-    }
-    /// <summary>Shape stroke width.</summary>
-    public OdfLength? StrokeWidth {
-        get {
-            OdfStyle? style = GetGraphicStyle();
-            string? value = style == null ? null : Presentation.Styles.Resolve(style)
-                .Select(candidate => (string?)candidate.Element
-                    .Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(OdfNamespaces.Svg + "stroke-width"))
-                .FirstOrDefault(width => width != null);
-            value ??= (string?)GetDefaultGraphicProperties()?.Attribute(OdfNamespaces.Svg + "stroke-width");
-            return value == null ? (OdfLength?)null : OdfLength.Parse(value);
-        }
-        set => EnsureGraphicStyle().SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Svg + "stroke-width", value?.ToString());
-    }
-    /// <summary>Position and size for shapes exposing SVG bounds.</summary>
-    public virtual OdfRect Bounds {
-        get => new OdfRect(ReadLength("x"), ReadLength("y"), ReadLength("width"), ReadLength("height"));
-        set { ApplyBounds(Element, value); Dirty(); }
-    }
-    internal OdpPresentation Presentation { get; }
-    internal XElement Element { get; }
     internal static OdpShape? Wrap(OdpPresentation presentation, XElement element) {
         if (element.Name == OdfNamespaces.Draw + "frame") {
             if (element.Element(OdfNamespaces.Draw + "text-box") != null) return new OdpTextBox(presentation, element);
@@ -84,46 +21,6 @@ public abstract class OdpShape {
         if (element.Name == OdfNamespaces.Draw + "g") return new OdpGroup(presentation, element);
         return null;
     }
-    internal static void ApplyBounds(XElement element, OdfRect bounds) {
-        element.SetAttributeValue(OdfNamespaces.Svg + "x", bounds.X.ToString());
-        element.SetAttributeValue(OdfNamespaces.Svg + "y", bounds.Y.ToString());
-        element.SetAttributeValue(OdfNamespaces.Svg + "width", bounds.Width.ToString());
-        element.SetAttributeValue(OdfNamespaces.Svg + "height", bounds.Height.ToString());
-    }
-    internal void Dirty() => Presentation.MarkPartDirty("content.xml");
-    internal OdfStyle EnsureGraphicStyle() => Presentation.Styles.EnsureAutomaticStyle(Element, OdfNamespaces.Draw + "style-name", OdfStyleFamily.Graphic, "ofGr");
-    internal string EnsureXmlId() {
-        if (!string.IsNullOrWhiteSpace(XmlId)) return XmlId!;
-        var ids = new HashSet<string>(Presentation.Slides
-            .SelectMany(slide => slide.Element.DescendantsAndSelf())
-            .Select(element => (string?)element.Attribute(XNamespace.Xml + "id"))
-            .Where(value => !string.IsNullOrWhiteSpace(value))!, StringComparer.Ordinal);
-        int index = 1; string id;
-        do { id = "shape" + index++.ToString(CultureInfo.InvariantCulture); } while (ids.Contains(id));
-        XmlId = id; return id;
-    }
-    private OdfStyle? GetGraphicStyle() {
-        string? name = (string?)Element.Attribute(OdfNamespaces.Draw + "style-name");
-        return name == null ? null : Presentation.Styles.Find(OdfStyleFamily.Graphic, name);
-    }
-    private OdfColor? ReadGraphicColor(XName modeName, XName colorName) {
-        OdfStyle? style = GetGraphicStyle();
-        IReadOnlyList<OdfStyle> chain = style == null ? Array.Empty<OdfStyle>() : Presentation.Styles.Resolve(style);
-        string? mode = chain.Select(candidate => (string?)candidate.Element
-            .Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(modeName))
-            .FirstOrDefault(value => value != null);
-        XElement? defaults = GetDefaultGraphicProperties();
-        mode ??= (string?)defaults?.Attribute(modeName);
-        if (mode != null && !string.Equals(mode, "solid", StringComparison.Ordinal)) return null;
-        string? value = chain.Select(candidate => (string?)candidate.Element
-            .Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(colorName))
-            .FirstOrDefault(color => color != null);
-        value ??= (string?)defaults?.Attribute(colorName);
-        return value == null ? (OdfColor?)null : OdfColor.Parse(value);
-    }
-    private XElement? GetDefaultGraphicProperties() => Presentation.Styles.FindDefaultProperties(
-        OdfStyleFamily.Graphic, OdfNamespaces.Style + "graphic-properties");
-    private OdfLength ReadLength(string localName) => OdfLength.Parse((string?)Element.Attribute(OdfNamespaces.Svg + localName) ?? "0cm");
 }
 
 /// <summary>An ODP rectangle.</summary>

@@ -24,6 +24,7 @@ public static class OdfMediaTypes {
             case OdfDocumentKind.Text: return Text;
             case OdfDocumentKind.Spreadsheet: return Spreadsheet;
             case OdfDocumentKind.Presentation: return Presentation;
+            case OdfDocumentKind.Graphics: return Graphics;
             default: throw new ArgumentOutOfRangeException(nameof(kind));
         }
     }
@@ -32,6 +33,7 @@ public static class OdfMediaTypes {
         if (string.Equals(mediaType, Text, StringComparison.Ordinal)) { kind = OdfDocumentKind.Text; return true; }
         if (string.Equals(mediaType, Spreadsheet, StringComparison.Ordinal)) { kind = OdfDocumentKind.Spreadsheet; return true; }
         if (string.Equals(mediaType, Presentation, StringComparison.Ordinal)) { kind = OdfDocumentKind.Presentation; return true; }
+        if (string.Equals(mediaType, Graphics, StringComparison.Ordinal)) { kind = OdfDocumentKind.Graphics; return true; }
         kind = OdfDocumentKind.Text;
         return false;
     }

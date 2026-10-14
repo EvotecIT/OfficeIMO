@@ -162,25 +162,22 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
     }
 
     [Fact]
-    public void FlatXmlPartitionsReverseOrderedStyleDependencyChainsInLinearPasses() {
+    public void FlatXmlPartitionsReverseOrderedFieldDataStylesThroughTypedReferences() {
         const int styleCount = 3_000;
-        XDocument flat = OdtDocument.Create().ToFlatXml();
+        var source = OdtDocument.Create();
+        XElement header = source.PageLayout.Header.AddParagraph().Element;
+        for (int index = 0; index < styleCount; index++) header.Add(new XElement(OdfNamespaces.Text + "date",
+            new XAttribute(OdfNamespaces.Style + "data-style-name", "format-" + index), "cache"));
+        XDocument flat = source.ToFlatXml();
         XElement automatic = flat.Root!.Element(OdfNamespaces.Office + "automatic-styles")!;
         for (int index = styleCount - 1; index >= 0; index--) {
-            var style = new XElement(
-                OdfNamespaces.Style + "style",
-                new XAttribute(OdfNamespaces.Style + "name", "chain-" + index),
-                new XAttribute(OdfNamespaces.Style + "family", "paragraph"));
-            if (index + 1 < styleCount) {
-                style.SetAttributeValue(OdfNamespaces.Style + "parent-style-name", "chain-" + (index + 1));
-            }
+            var style = new XElement(OdfNamespaces.Number + "date-style",
+                new XAttribute(OdfNamespaces.Style + "name", "format-" + index),
+                new XElement(OdfNamespaces.Number + "year"));
             automatic.Add(style);
         }
-        flat.Root.Element(OdfNamespaces.Office + "master-styles")!.Add(
-            new XElement(
-                OdfNamespaces.Style + "master-page",
-                new XAttribute(OdfNamespaces.Style + "name", "ChainMaster"),
-                new XAttribute(OdfNamespaces.Style + "page-layout-name", "chain-0")));
+        // Native field bindings may reference automatic data styles. Conditional
+        // map targets and parent style bindings must instead reference common styles.
         using var stream = new MemoryStream();
         flat.Save(stream, SaveOptions.DisableFormatting);
         stream.Position = 0;
@@ -189,8 +186,8 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
 
         XElement stylesAutomatic = reopened.Package.GetXml("styles.xml").Root!
             .Element(OdfNamespaces.Office + "automatic-styles")!;
-        Assert.Equal(styleCount, stylesAutomatic.Elements(OdfNamespaces.Style + "style")
-            .Count(style => ((string?)style.Attribute(OdfNamespaces.Style + "name"))?.StartsWith("chain-", StringComparison.Ordinal) == true));
+        Assert.Equal(styleCount, stylesAutomatic.Elements(OdfNamespaces.Number + "date-style")
+            .Count(style => ((string?)style.Attribute(OdfNamespaces.Style + "name"))?.StartsWith("format-", StringComparison.Ordinal) == true));
     }
 
     [Fact]

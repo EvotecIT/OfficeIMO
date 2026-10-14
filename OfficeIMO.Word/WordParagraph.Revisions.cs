@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Adds revision-related utilities.
-    /// </summary>
+    // Adds revision-related utilities.
     public partial class WordParagraph {
         /// <summary>
         /// Inserts revision text marked as added.

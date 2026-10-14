@@ -15,24 +15,38 @@ namespace OfficeIMO.Visio {
         private const double ConnectorLineClearance = 0.03D;
 
         private readonly VisioPage _page;
+        private readonly VisioRenderProjection _projection;
         private readonly IReadOnlyList<VisioShape> _shapes;
         private readonly IReadOnlyDictionary<VisioShape, VisioShapeBounds> _shapeBounds;
         private readonly IReadOnlyDictionary<VisioConnector, List<(double X, double Y)>> _connectorPaths;
         private readonly List<VisioShapeBounds> _placedLabels = new();
 
-        private VisioRenderLabelLayout(VisioPage page) {
+        private VisioRenderLabelLayout(VisioPage page, VisioRenderLayerVisibility layerVisibility, VisioRenderProjection projection) {
             _page = page;
-            _shapes = page.AllShapes();
-            _shapeBounds = _shapes.ToDictionary(shape => shape, GetPageShapeBounds);
-            _connectorPaths = page.Connectors.ToDictionary(connector => connector, GetConnectorPoints);
+            _projection = projection;
+            var shapes = new List<VisioShape>();
+            var bounds = new Dictionary<VisioShape, VisioShapeBounds>();
+            foreach (VisioShape shape in page.AllShapes().Where(layerVisibility.IsVisible)) {
+                try {
+                    bounds.Add(shape, ToPhysicalBounds(GetPageShapeBounds(shape)));
+                    shapes.Add(shape);
+                } catch (Exception exception) when (exception is ArgumentException || exception is System.IO.InvalidDataException) {
+                    // The renderer reports and omits invalid cached transforms. An
+                    // omitted shape must not obstruct optional connector label layout.
+                }
+            }
+            _shapes = shapes;
+            _shapeBounds = bounds;
+            _connectorPaths = page.Connectors.Where(connector => layerVisibility.IsVisible(connector) && VisioConnectorGeometry.HasVisibleLine(connector))
+                .ToDictionary(connector => connector, connector => ToPhysicalPath(GetConnectorPoints(connector)));
         }
 
-        internal static VisioRenderLabelLayout Create(VisioPage page) {
+        internal static VisioRenderLabelLayout Create(VisioPage page, VisioRenderLayerVisibility layerVisibility) {
             if (page == null) {
                 throw new ArgumentNullException(nameof(page));
             }
 
-            return new VisioRenderLabelLayout(page);
+            return new VisioRenderLabelLayout(page, layerVisibility, VisioRenderProjection.Create(page));
         }
 
         internal VisioRenderConnectorLabelPlacement Resolve(VisioConnector connector, IReadOnlyList<(double X, double Y)> path) {
@@ -44,12 +58,16 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(path));
             }
 
+            // Collision distances, clearances and scores share physical inches; callers retain drawing units.
+            path = ToPhysicalPath(path);
             LabelPlacementSeed seed = CreateSeed(connector, path);
             LabelCandidate best = new LabelCandidate(seed.X, seed.Y, 0D, 0D);
             VisioShapeBounds bestBounds = GetBounds(best.X, best.Y, seed.Width, seed.Height, seed.LocPinX, seed.LocPinY);
             LabelScore bestScore = Score(connector, bestBounds, 0D, 0D);
-            bool absolute = connector.LabelPlacement?.AbsolutePinX.HasValue == true &&
-                            connector.LabelPlacement.AbsolutePinY.HasValue;
+            // A loaded native file supplies a stored position. Preview must not implicitly
+            // run collision cleanup again; restored path intent still resolves endpoint edits.
+            VisioConnectorLabelPlacement? stored = connector.LabelPlacement;
+            bool absolute = stored?.AbsolutePinX.HasValue == true && stored.AbsolutePinY.HasValue;
 
             if (!absolute) {
                 foreach (LabelCandidate candidate in EnumerateCandidates(seed, path)) {
@@ -69,33 +87,68 @@ namespace OfficeIMO.Visio {
 
             _placedLabels.Add(bestBounds);
             bool adjusted = Math.Abs(best.X - seed.X) > 1e-9 || Math.Abs(best.Y - seed.Y) > 1e-9;
-            return new VisioRenderConnectorLabelPlacement(best.X, best.Y, seed.Width, seed.Height, adjusted);
+            double ratio = _projection.DrawingToPhysical;
+            return new VisioRenderConnectorLabelPlacement(best.X / ratio, best.Y / ratio, seed.Width / ratio, seed.Height / ratio, adjusted);
         }
 
+        /// <summary>Resolves native label anchors and physical fitting defaults without collision adjustment.</summary>
+        internal static VisioRenderConnectorLabelPlacement ResolveUnadjusted(VisioConnector connector,
+            IReadOnlyList<(double X, double Y)> path, VisioRenderProjection projection) {
+            VisioConnectorLabelPlacement? placement = VisioConnectorLabelFrame.ResolvePlacement(connector);
+            double x, y;
+            if (placement?.AbsolutePinX.HasValue == true && placement.AbsolutePinY.HasValue) {
+                x = placement.AbsolutePinX.Value; y = placement.AbsolutePinY.Value;
+            } else {
+                (x, y) = OfficeGeometry.InterpolatePolyline(path, VisioConnectorLabelPlacement.ClampPosition(placement?.Position ?? 0.5D));
+                x += placement?.OffsetX ?? 0D; y += placement?.OffsetY ?? 0D;
+            }
+            (double width, double height) = GetLabelDimensions(connector, projection);
+            return new VisioRenderConnectorLabelPlacement(x, y, width, height, adjusted: false);
+        }
+
+        private static (double Width, double Height) GetLabelDimensions(VisioConnector connector, VisioRenderProjection projection) {
+            double ratio = projection.DrawingToPhysical;
+            double? width = connector.TextStyle?.TextWidth ?? VisioConnectorLabelFrame.ResolvePlacement(connector)?.Width;
+            double? height = connector.TextStyle?.TextHeight ?? VisioConnectorLabelFrame.ResolvePlacement(connector)?.Height;
+            // Authored/native boxes are drawing units. Only renderer fallbacks and fitting floors are physical inches.
+            return (Math.Max(0.6D, width.HasValue ? width.Value * ratio : 1.35D) / ratio,
+                Math.Max(0.18D, height.HasValue ? height.Value * ratio : 0.34D) / ratio);
+        }
+
+        private List<(double X, double Y)> ToPhysicalPath(IReadOnlyList<(double X, double Y)> path) =>
+            path.Select(point => (point.X * _projection.DrawingToPhysical, point.Y * _projection.DrawingToPhysical)).ToList();
+
+        private VisioShapeBounds ToPhysicalBounds(VisioShapeBounds bounds) =>
+            new(bounds.Left * _projection.DrawingToPhysical, bounds.Bottom * _projection.DrawingToPhysical,
+                bounds.Right * _projection.DrawingToPhysical, bounds.Top * _projection.DrawingToPhysical);
+
         private LabelPlacementSeed CreateSeed(VisioConnector connector, IReadOnlyList<(double X, double Y)> path) {
-            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
-            double width = Math.Max(0.6D, connector.TextStyle?.TextWidth ?? placement?.Width ?? 1.35D);
-            double height = Math.Max(0.18D, connector.TextStyle?.TextHeight ?? placement?.Height ?? 0.34D);
-            double locPinX = placement?.GetLocPinX() ?? width / 2D;
-            double locPinY = placement?.GetLocPinY() ?? height / 2D;
+            VisioConnectorLabelPlacement? placement = VisioConnectorLabelFrame.ResolvePlacement(connector);
+            (double drawingWidth, double drawingHeight) = GetLabelDimensions(connector, _projection);
+            double ratio = _projection.DrawingToPhysical;
+            double width = drawingWidth * ratio, height = drawingHeight * ratio;
+            (double centerOffsetX, double centerOffsetY) = VisioConnectorGeometry.GetLabelCenter(connector, 0D, 0D, drawingWidth, drawingHeight);
+            centerOffsetX *= ratio; centerOffsetY *= ratio;
+            double locPinX = width / 2D - centerOffsetX;
+            double locPinY = height / 2D - centerOffsetY;
 
             if (placement?.AbsolutePinX.HasValue == true && placement.AbsolutePinY.HasValue) {
                 return new LabelPlacementSeed(
-                    placement.AbsolutePinX.Value,
-                    placement.AbsolutePinY.Value,
+                    placement.AbsolutePinX.Value * ratio,
+                    placement.AbsolutePinY.Value * ratio,
                     VisioConnectorLabelPlacement.ClampPosition(placement.Position),
                     width,
                     height,
                     locPinX,
                     locPinY,
-                    placement.OffsetX,
-                    placement.OffsetY);
+                    placement.OffsetX * ratio,
+                    placement.OffsetY * ratio);
             }
 
             double position = VisioConnectorLabelPlacement.ClampPosition(placement?.Position ?? 0.5D);
             (double x, double y) = OfficeGeometry.InterpolatePolyline(path, position);
-            double offsetX = placement?.OffsetX ?? 0D;
-            double offsetY = placement?.OffsetY ?? 0D;
+            double offsetX = (placement?.OffsetX ?? 0D) * ratio;
+            double offsetY = (placement?.OffsetY ?? 0D) * ratio;
             return new LabelPlacementSeed(x + offsetX, y + offsetY, position, width, height, locPinX, locPinY, offsetX, offsetY);
         }
 
@@ -160,7 +213,7 @@ namespace OfficeIMO.Visio {
 
             double connectorOverlap = 0D;
             foreach (VisioConnector otherConnector in _page.Connectors) {
-                if (ReferenceEquals(otherConnector, connector) || !HasVisibleConnectorLine(otherConnector)) {
+                if (ReferenceEquals(otherConnector, connector)) {
                     continue;
                 }
 
@@ -187,8 +240,8 @@ namespace OfficeIMO.Visio {
 
             double left = Math.Max(0D, -bounds.Left);
             double bottom = Math.Max(0D, -bounds.Bottom);
-            double right = Math.Max(0D, bounds.Right - _page.Width);
-            double top = Math.Max(0D, bounds.Top - _page.Height);
+            double right = Math.Max(0D, bounds.Right - _projection.WidthInches);
+            double top = Math.Max(0D, bounds.Top - _projection.HeightInches);
             return left + bottom + right + top;
         }
 
@@ -212,48 +265,14 @@ namespace OfficeIMO.Visio {
                 bounds.Top);
         }
 
-        private static bool HasVisibleConnectorLine(VisioConnector connector) =>
-            connector.LinePattern != 0 && connector.LineWeight > 0D && connector.LineColor.A > 0;
-
         private static List<(double X, double Y)> GetConnectorPoints(VisioConnector connector) {
-            ComputeConnectorEndpoints(connector, out double startX, out double startY, out double endX, out double endY);
-            List<(double X, double Y)> waypoints = new(connector.Waypoints.Count);
-            if (connector.Waypoints.Count > 0) {
-                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    waypoints.Add((waypoint.X, waypoint.Y));
-                }
-            }
-
-            return OfficeGeometry.BuildConnectorPolyline(
-                (startX, startY),
-                (endX, endY),
-                waypoints,
-                connector.Kind == ConnectorKind.RightAngle);
+            return VisioConnectorGeometry.GetPoints(connector);
         }
 
-        private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {
-            if (connector.FromConnectionPoint != null) {
-                (startX, startY) = GetPagePoint(connector.From, connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);
-            } else {
-                (double fromLeft, double fromBottom, double fromRight, double fromTop) = GetPageBounds(connector.From);
-                (double toLeft, double toBottom, double toRight, double toTop) = GetPageBounds(connector.To);
-                ResolveFallbackEndpoint(fromLeft, fromBottom, fromRight, fromTop, toLeft, toBottom, toRight, toTop, out startX, out startY);
-            }
-
-            if (connector.ToConnectionPoint != null) {
-                (endX, endY) = GetPagePoint(connector.To, connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y);
-            } else {
-                (double toLeft, double toBottom, double toRight, double toTop) = GetPageBounds(connector.To);
-                (double fromLeft, double fromBottom, double fromRight, double fromTop) = GetPageBounds(connector.From);
-                ResolveFallbackEndpoint(toLeft, toBottom, toRight, toTop, fromLeft, fromBottom, fromRight, fromTop, out endX, out endY);
-            }
-        }
 
         private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
-            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
-            return shape.Parent != null
-                ? GetPagePoint(shape.Parent, absX, absY)
-                : (absX, absY);
+            OfficePoint point = VisioNativeShapeTransform.Create(shape).PagePoint(x, y);
+            return (point.X, point.Y);
         }
 
         private static (double Left, double Bottom, double Right, double Top) GetPageBounds(VisioShape shape) {

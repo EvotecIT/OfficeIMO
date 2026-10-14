@@ -1,0 +1,41 @@
+{
+  "source": "pages-created-layout-edited-v15.4.pages",
+  "output": "pages-preserved-paragraphs-v15.4.pages",
+  "sourceSha256": "b35ae67bf8e043f4019d3fc0d0f7190d2ae5b7818a0cb24b78cd4311e2f33b22",
+  "outputSha256": "87d6bb6fc288c3fa892553a49049da0911efa7add00fffc88612591dd046b4d0",
+  "fileEntries": 13,
+  "recordsIncludingAuxiliary": 93,
+  "bodyRecordId": 3,
+  "paragraphs": [
+    {
+      "paragraph": 1,
+      "payloadByteOffset": 9,
+      "bytes": 23,
+      "before": "Native paragraph layout",
+      "after": "Edited paragraph layout"
+    },
+    {
+      "paragraph": 3,
+      "payloadByteOffset": 230,
+      "bytes": 30,
+      "before": "Start\tLeft\tCenter\tRight\t123.45",
+      "after": "Start\tLeft\tCenter\tRight\t234.56"
+    },
+    {
+      "paragraph": 7,
+      "payloadByteOffset": 468,
+      "bytes": 33,
+      "before": "Default reset Native layout edit.",
+      "after": "Updated reset Native layout edit."
+    }
+  ],
+  "changedEntries": [
+    "Index/Document.iwa"
+  ],
+  "onlyDeclaredUtf8RangesDiffer": true,
+  "rawHeadersSiblingsAndOtherBytesIdentical": true,
+  "nativeStoragePropertiesIdenticalExceptText": true,
+  "numbersParser": "4.19.0",
+  "protobuf": "7.36.2",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176"
+}

@@ -65,20 +65,25 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
             offset = AppendUInt32(buffer, offset, 0U);
             offset = AppendUInt32(buffer, offset, checked((uint)value.Length));
-            for (int index = 0; index < value.Length; index++) {
-                ushort character = value[index];
-                buffer[offset++] = (byte)character;
-                buffer[offset++] = (byte)(character >> 8);
-            }
+            _position = AppendWideCharacters(buffer, offset, value, 0, value.Length);
+        }
+
+        internal void WriteSharedStringCell(int recordType, int zeroBasedColumn, int index) {
+            byte[] buffer = EnsureAvailable(18);
+            int offset = _position;
+            offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 12, buffer, offset);
+            offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
+            offset = AppendUInt32(buffer, offset, 0U);
+            offset = AppendUInt32(buffer, offset, checked((uint)index));
             _position = offset;
         }
 
-        internal void WriteNumberCell(int recordType, int zeroBasedColumn, double value) {
+        internal void WriteNumberCell(int recordType, int zeroBasedColumn, double value, uint styleIndex = 0U) {
             byte[] buffer = EnsureAvailable(22);
             int offset = _position;
             offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 16, buffer, offset);
             offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
-            offset = AppendUInt32(buffer, offset, 0U);
+            offset = AppendUInt32(buffer, offset, styleIndex);
             ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
             offset = AppendUInt64(buffer, offset, bits);
             _position = offset;
@@ -99,7 +104,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             _position = AppendUInt32(buffer, _position, value);
         }
 
-        private void WriteWideString(string value) {
+        internal void WriteByte(byte value) {
+            byte[] buffer = EnsureAvailable(1);
+            buffer[_position++] = value;
+        }
+
+        internal void WriteWideString(string value) {
             if (value == null) throw new ArgumentNullException(nameof(value));
             WriteUInt32(checked((uint)value.Length));
 
@@ -109,14 +119,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 int characterCount = Math.Min(charsPerChunk, value.Length - offset);
                 int byteCount = checked(characterCount * 2);
                 buffer = EnsureAvailable(byteCount);
-                int targetOffset = _position;
-                for (int index = 0; index < characterCount; index++) {
-                    ushort character = value[offset + index];
-                    int byteOffset = targetOffset + (index * 2);
-                    buffer[byteOffset] = (byte)character;
-                    buffer[byteOffset + 1] = (byte)(character >> 8);
-                }
-                _position += byteCount;
+                _position = AppendWideCharacters(buffer, _position, value, offset, characterCount);
             }
         }
 
@@ -144,12 +147,34 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal void Flush() {
             if (_position == 0) return;
-            _stream.Write(GetBuffer(), 0, _position);
-            _position = 0;
+            try {
+                _stream.Write(GetBuffer(), 0, _position);
+            } finally {
+                // A destination may accept a prefix before failing. Disposal must
+                // never replay that pending record or replace its write exception.
+                _position = 0;
+            }
         }
 
         private byte[] GetBuffer() =>
             _buffer ?? throw new ObjectDisposedException(nameof(XlsbDirectRecordWriter));
+
+        /// <summary>Copies UTF16 code units verbatim, including isolated surrogates, in BIFF12 byte order.</summary>
+        private static int AppendWideCharacters(byte[] buffer, int offset, string value, int sourceOffset, int characterCount) {
+#if NET8_0_OR_GREATER
+            if (BitConverter.IsLittleEndian) {
+                System.Runtime.InteropServices.MemoryMarshal.AsBytes(value.AsSpan(sourceOffset, characterCount))
+                    .CopyTo(buffer.AsSpan(offset, checked(characterCount * 2)));
+                return offset + characterCount * 2;
+            }
+#endif
+            for (int index = 0; index < characterCount; index++) {
+                ushort character = value[sourceOffset + index];
+                buffer[offset++] = (byte)character;
+                buffer[offset++] = (byte)(character >> 8);
+            }
+            return offset;
+        }
 
         private static int AppendUInt32(byte[] buffer, int offset, uint value) {
             buffer[offset++] = (byte)value;

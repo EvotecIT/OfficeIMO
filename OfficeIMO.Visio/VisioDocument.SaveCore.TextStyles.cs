@@ -12,7 +12,7 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
 
-        private static void WriteTextBlockCells(XmlWriter writer, string ns, VisioTextStyle? textStyle, bool includeTextTransform = true) {
+        private void WriteTextBlockCells(XmlWriter writer, string ns, VisioTextStyle? textStyle, bool includeTextTransform = true) {
             if (textStyle == null) {
                 return;
             }
@@ -37,13 +37,8 @@ namespace OfficeIMO.Visio {
                 WriteCell(writer, ns, "VerticalAlign", (int)textStyle.VerticalAlignment.Value);
             }
 
-            if (textStyle.BackgroundColor.HasValue) {
-                WriteCellValue(writer, ns, "TextBkgnd", textStyle.BackgroundColor.Value.ToVisioHex());
-            }
-
-            if (textStyle.BackgroundTransparency.HasValue) {
-                WriteCell(writer, ns, "TextBkgndTrans", textStyle.BackgroundTransparency.Value);
-            }
+            WriteTextBackgroundColorCell(writer, ns, textStyle);
+            WriteTextBackgroundTransparencyCell(writer, ns, textStyle);
 
             if (!includeTextTransform) {
                 return;
@@ -78,12 +73,22 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static void WriteTextStyleSections(XmlWriter writer, string ns, VisioTextStyle? textStyle) {
-            WriteCharSection(writer, ns, textStyle);
-            WriteParaSection(writer, ns, textStyle);
+        private static void WriteTextStyleSections(XmlWriter writer, string ns, VisioTextStyle? textStyle,
+            VisioTextSectionSource? character = null, VisioTextSectionSource? paragraph = null,
+            IEnumerable<XElement>? nativeSections = null) {
+            WriteCharSection(writer, ns, textStyle, character, nativeSections);
+            WriteParaSection(writer, ns, textStyle, paragraph, nativeSections);
         }
 
-        private static void WriteCharSection(XmlWriter writer, string ns, VisioTextStyle? textStyle) {
+        private static void WriteCharSection(XmlWriter writer, string ns, VisioTextStyle? textStyle,
+            VisioTextSectionSource? source = null, IEnumerable<XElement>? nativeSections = null) {
+            // A complex native row set owns its formatting. A separate typed row
+            // would duplicate row identities and corrupt the saved document.
+            if (nativeSections?.Any(section => IsCharacterSection((string?)section.Attribute("N"))) == true) return;
+            if (source != null) {
+                WriteTextSectionSource(writer, ns, textStyle, source, character: true);
+                return;
+            }
             if (!HasCharFormatting(textStyle)) {
                 return;
             }
@@ -130,7 +135,13 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WriteParaSection(XmlWriter writer, string ns, VisioTextStyle? textStyle) {
+        private static void WriteParaSection(XmlWriter writer, string ns, VisioTextStyle? textStyle,
+            VisioTextSectionSource? source = null, IEnumerable<XElement>? nativeSections = null) {
+            if (nativeSections?.Any(section => IsParagraphSection((string?)section.Attribute("N"))) == true) return;
+            if (source != null) {
+                WriteTextSectionSource(writer, ns, textStyle, source, character: false);
+                return;
+            }
             if (textStyle?.HorizontalAlignment == null) {
                 return;
             }

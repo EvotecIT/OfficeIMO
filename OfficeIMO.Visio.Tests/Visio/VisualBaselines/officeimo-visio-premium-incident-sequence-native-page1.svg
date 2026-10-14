@@ -132,16 +132,16 @@
     </g>
     <g data-visio-shape-id="recovery-fragment-label" data-visio-nameu="Text Box">
       <path d="M 152.16 394.522 L 278.88 394.522 L 278.88 365.722 L 152.16 365.722 Z" data-officeimo-preserved-geometry="true" fill="#111827" stroke="none" />
-      <rect data-officeimo-text-background="true" x="153.96" y="369.988" width="81.048" height="20.267" fill="#111827" />
-      <text x="156.96" y="378.788" font-family="Aptos" font-size="13.333" text-anchor="start" dominant-baseline="middle" fill="#F1F5F9" font-weight="700">
-        <tspan x="156.96" dy="0">alt recovery</tspan>
+      <rect data-officeimo-text-background="true" x="154.92" y="369.988" width="81.048" height="20.267" fill="#111827" />
+      <text x="157.92" y="378.788" font-family="Aptos" font-size="13.333" text-anchor="start" dominant-baseline="middle" fill="#F1F5F9" font-weight="700">
+        <tspan x="157.92" dy="0">alt recovery</tspan>
       </text>
     </g>
     <g data-visio-shape-id="latency-guard-label" data-visio-nameu="Text Box">
       <path d="M 156 419.482 L 291.36 419.482 L 291.36 396.442 L 156 396.442 Z" data-officeimo-preserved-geometry="true" fill="#111827" stroke="none" />
-      <rect data-officeimo-text-background="true" x="157.8" y="399.562" width="93.787" height="16.8" fill="#111827" />
-      <text x="160.8" y="406.895" font-family="Aptos" font-size="10.667" text-anchor="start" dominant-baseline="middle" fill="#F1F5F9">
-        <tspan x="160.8" dy="0">[timeout elevated]</tspan>
+      <rect data-officeimo-text-background="true" x="158.76" y="399.562" width="93.787" height="16.8" fill="#111827" />
+      <text x="161.76" y="406.895" font-family="Aptos" font-size="10.667" text-anchor="start" dominant-baseline="middle" fill="#F1F5F9">
+        <tspan x="161.76" dy="0">[timeout elevated]</tspan>
       </text>
     </g>
     <g data-visio-shape-id="settlement-partition-from" data-visio-nameu="Circle">
@@ -152,9 +152,9 @@
     </g>
     <g data-visio-shape-id="settlement-partition-label" data-visio-nameu="Text Box">
       <path d="M 156 625.882 L 312.48 625.882 L 312.48 602.842 L 156 602.842 Z" data-officeimo-preserved-geometry="true" fill="#111827" stroke="none" />
-      <rect data-officeimo-text-background="true" x="157.8" y="605.962" width="114.373" height="16.8" fill="#111827" />
-      <text x="160.8" y="613.295" font-family="Aptos" font-size="10.667" text-anchor="start" dominant-baseline="middle" fill="#F1F5F9">
-        <tspan x="160.8" dy="0">[settlement confirmed]</tspan>
+      <rect data-officeimo-text-background="true" x="158.76" y="605.962" width="114.373" height="16.8" fill="#111827" />
+      <text x="161.76" y="613.295" font-family="Aptos" font-size="10.667" text-anchor="start" dominant-baseline="middle" fill="#F1F5F9">
+        <tspan x="161.76" dy="0">[settlement confirmed]</tspan>
       </text>
     </g>
     <g data-visio-shape-id="runbook-note" data-visio-nameu="Rectangle">

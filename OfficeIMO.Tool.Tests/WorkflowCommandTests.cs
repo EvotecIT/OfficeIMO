@@ -6,6 +6,26 @@ using Xunit;
 namespace OfficeIMO.Tool.Tests;
 
 public sealed class WorkflowCommandTests {
+    [Theory]
+    [InlineData(".odg")]
+    [InlineData(".fodg")]
+    public async Task DrawBatchUsesTheCanonicalPageConverter(string extension) {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "drawing" + extension), output = Path.Combine(scope.Path, "PDF");
+        var drawing = OfficeIMO.OpenDocument.OdgDocument.Create();
+        drawing.AddPage("Caption", OfficeIMO.OpenDocument.OdfLength.Points(360), OfficeIMO.OpenDocument.OdfLength.Points(220))
+            .Shapes.AddTextBox(OfficeIMO.OpenDocument.OdfRect.FromCentimeters(1, 1, 5, 2), "ToolCaption");
+        drawing.AddPage("Blank", OfficeIMO.OpenDocument.OdfLength.Points(180), OfficeIMO.OpenDocument.OdfLength.Points(120));
+        if (extension == ".fodg") drawing.SaveFlatXml(input); else drawing.Save(input);
+        ToolResult result = await RunAsync(["workflow", "batch", input, "--output", output, "--target", "pdf"]);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, result.ExitCode);
+        string pdfPath = Assert.Single(Directory.GetFiles(output, "*.pdf"));
+        var pdf = PdfReadDocument.Open(File.ReadAllBytes(pdfPath));
+        Assert.Equal(2, pdf.Pages.Count);
+        Assert.Equal((180D, 120D), pdf.Pages[1].GetPageSize());
+        Assert.Contains("ToolCaption", pdf.ExtractText());
+    }
+
     [Fact]
     public async Task WordImagesCommandPublishesSeparateWordAndPdfCopiesAndReportsAnalysis() {
         using var scope = new TestDirectory();
@@ -94,6 +114,32 @@ public sealed class WorkflowCommandTests {
         Assert.Contains("Sheets: 2", result.Output, StringComparison.Ordinal);
         Assert.Contains("Sheet 1: 792 x 612 pt; pages 4,2", result.Output, StringComparison.Ordinal);
         Assert.Equal(string.Empty, result.Error);
+    }
+
+    [Fact]
+    public async Task ExtendedPrintPlanOptionsReachTheCanonicalPlanner() {
+        var output = new StringWriter();
+        var error = new StringWriter();
+        PdfPrintPlanRequest? captured = null;
+        int exit = await WorkflowCommand.RunAsync([
+            "print-plan", "source.pdf", "--pages", "9,8,7,6,5,4,3,2,1", "--pages-per-sheet", "6",
+            "--scale", "custom", "--custom-scale", "25", "--alignment", "bottom-right", "--page-subset", "odd",
+            "--margin", "12", "--margin-left", "20", "--margin-top", "30", "--margin-right", "40", "--margin-bottom", "50", "--color", "grayscale"
+        ], output, error, CancellationToken.None, printPlanner: (request, token) => {
+            captured = request;
+            PdfDocument document = PdfDocument.Create(c => { for (int i = 0; i < 9; i++) c.Page(p => p.Size(100, 120).Margin(0)); });
+            return Task.FromResult(PdfPrintPlanner.Create(document, request, token));
+        });
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exit);
+        Assert.NotNull(captured);
+        Assert.Equal(PdfPrintScaleMode.Custom, captured.ScaleMode);
+        Assert.Equal(25, captured.CustomScalePercent);
+        Assert.Equal(PdfPrintAlignment.BottomRight, captured.Alignment);
+        Assert.Equal(20, captured.MarginLeft); Assert.Equal(30, captured.MarginTop);
+        Assert.Equal(40, captured.MarginRight); Assert.Equal(50, captured.MarginBottom);
+        Assert.Contains("Selected pages: 9,7,5,3,1", output.ToString());
+        Assert.Contains("Color: Grayscale", output.ToString());
+        Assert.Empty(error.ToString());
     }
 
     [Fact]

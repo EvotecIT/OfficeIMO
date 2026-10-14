@@ -45,7 +45,8 @@ public sealed class OfficeRasterFrameInfo {
         OfficeRasterFrameBlend blend,
         bool isDefaultImage,
         double? dpiX = null,
-        double? dpiY = null) {
+        double? dpiY = null,
+        OfficeImageOrientation orientation = OfficeImageOrientation.Normal) {
         Index = index;
         Kind = kind;
         Width = width;
@@ -58,6 +59,7 @@ public sealed class OfficeRasterFrameInfo {
         IsDefaultImage = isDefaultImage;
         DpiX = dpiX;
         DpiY = dpiY;
+        Orientation = orientation;
     }
 
     /// <summary>Zero-based display or page index.</summary>
@@ -84,6 +86,8 @@ public sealed class OfficeRasterFrameInfo {
     public double? DpiX { get; }
     /// <summary>Selected frame or page vertical physical resolution when independently available.</summary>
     public double? DpiY { get; }
+    /// <summary>Stored orientation before decoder normalization. Descriptors remain source evidence after pixel edits.</summary>
+    public OfficeImageOrientation Orientation { get; }
 }
 
 /// <summary>Bounded format-neutral inventory of the images, frames, or pages in a raster container.</summary>

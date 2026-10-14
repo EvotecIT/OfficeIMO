@@ -27,11 +27,13 @@ public sealed partial class MainWindowViewModel {
 
     private void NotifyFormDraftState() {
         _assistant?.CheckSource();
+        NotifyFormOcrState();
         OnPropertyChanged(nameof(CanEditFormDefinition));
         OnPropertyChanged(nameof(CanSetFormTabOrder));
         OnPropertyChanged(nameof(CanMoveFormWidget));
         OnPropertyChanged(nameof(CanSetFormDefault));
         OnPropertyChanged(nameof(HasFormDrafts));
+        OnPropertyChanged(nameof(CanExportComparisonReport));
         OnPropertyChanged(nameof(HasUnassignedFormDrafts));
         OnPropertyChanged(nameof(CanApplyFormDrafts));
         OnPropertyChanged(nameof(IsDirty));

@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
             if (tokens.Count != 2 || !TryGetWholeNumberArgument(tokens[1], out int rank)
                 || !TryResolveFormulaArguments(tokens[0], out var values)
                 || values.Any(value => value.IsUnresolvedFormula || value.IsError)) return false;
+            if (_formulaReferenceError.IsError) return true;
             var sorted = values.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value)
                 .OrderBy(value => value).ToList();
             if (rank < 1 || rank > sorted.Count) return false;
@@ -28,14 +29,15 @@ namespace OfficeIMO.Excel {
 
             if (function == "PERCENTILE.INC" || function == "PERCENTILE.EXC") {
                 if (tokens.Count != 2
-                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var values)
-                    || values.Count == 0
                     || !TryEvaluateFormulaOrNumeric(tokens[1], out double percentile)
                     || percentile < 0d
                     || percentile > 1d
-                    || (function == "PERCENTILE.EXC" && (percentile <= 0d || percentile >= 1d))) {
+                    || (function == "PERCENTILE.EXC" && (percentile <= 0d || percentile >= 1d))
+                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var values)) {
                     return false;
                 }
+                if (_formulaReferenceError.IsError) return true;
+                if (values.Count == 0) return false;
 
                 if (function == "PERCENTILE.EXC") {
                     return TryCalculatePercentileExclusive(values, percentile, out result);
@@ -47,14 +49,15 @@ namespace OfficeIMO.Excel {
 
             if (function == "QUARTILE.INC" || function == "QUARTILE.EXC") {
                 if (tokens.Count != 2
-                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var values)
-                    || values.Count == 0
                     || !TryGetWholeNumberArgument(tokens[1], out int quartile)
                     || quartile < 0
                     || quartile > 4
-                    || (function == "QUARTILE.EXC" && (quartile < 1 || quartile > 3))) {
+                    || (function == "QUARTILE.EXC" && (quartile < 1 || quartile > 3))
+                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var values)) {
                     return false;
                 }
+                if (_formulaReferenceError.IsError) return true;
+                if (values.Count == 0) return false;
 
                 if (function == "QUARTILE.EXC") {
                     return TryCalculatePercentileExclusive(values, quartile / 4d, out result);
@@ -67,8 +70,6 @@ namespace OfficeIMO.Excel {
             if (function == "PERCENTRANK.INC" || function == "PERCENTRANK.EXC") {
                 if (tokens.Count < 2
                     || tokens.Count > 3
-                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var values)
-                    || values.Count < 2
                     || !TryEvaluateFormulaOrNumeric(tokens[1], out double number)) {
                     return false;
                 }
@@ -81,6 +82,9 @@ namespace OfficeIMO.Excel {
 
                     significance = digits;
                 }
+                if (!TryResolveFormulaArgumentNumbers(tokens[0], out var values)) return false;
+                if (_formulaReferenceError.IsError) return true;
+                if (values.Count < 2) return false;
 
                 return function == "PERCENTRANK.EXC"
                     ? TryEvaluatePercentRankExclusive(values, number, significance, out result)
@@ -90,9 +94,7 @@ namespace OfficeIMO.Excel {
             if (function == "RANK.EQ" || function == "RANK.AVG") {
                 if (tokens.Count < 2
                     || tokens.Count > 3
-                    || !TryEvaluateFormulaOrNumeric(tokens[0], out double number)
-                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var values)
-                    || values.Count == 0) {
+                    || !TryEvaluateFormulaOrNumeric(tokens[0], out double number)) {
                     return false;
                 }
 
@@ -100,6 +102,9 @@ namespace OfficeIMO.Excel {
                 if (tokens.Count == 3 && !TryGetWholeNumberArgument(tokens[2], out order)) {
                     return false;
                 }
+                if (!TryResolveFormulaArgumentNumbers(tokens[1], out var values)) return false;
+                if (_formulaReferenceError.IsError) return true;
+                if (values.Count == 0) return false;
 
                 if (!values.Any(value => AreFormulaNumbersEqual(value, number))) {
                     return false;
@@ -121,10 +126,11 @@ namespace OfficeIMO.Excel {
                 int remainingCellBudget = MaxResolvedFormulaRangeCells;
                 if (tokens.Count != 2
                     || !TryResolveFormulaArgumentNumbers(tokens[0], out var leftValues, ref remainingCellBudget)
-                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var rightValues, ref remainingCellBudget)
-                    || !TryCalculateCovariance(leftValues, rightValues, sample: function == "COVARIANCE.S", out result)) {
+                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var rightValues, ref remainingCellBudget)) {
                     return false;
                 }
+                if (_formulaReferenceError.IsError) return true;
+                if (!TryCalculateCovariance(leftValues, rightValues, sample: function == "COVARIANCE.S", out result)) return false;
 
                 return IsFinite(result);
             }
@@ -133,10 +139,11 @@ namespace OfficeIMO.Excel {
                 int remainingCellBudget = MaxResolvedFormulaRangeCells;
                 if (tokens.Count != 2
                     || !TryResolveFormulaArgumentNumbers(tokens[0], out var knownY, ref remainingCellBudget)
-                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var knownX, ref remainingCellBudget)
-                    || !TryCalculateLinearRegression(knownX, knownY, out double slope, out double intercept, out double correlation)) {
+                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var knownX, ref remainingCellBudget)) {
                     return false;
                 }
+                if (_formulaReferenceError.IsError) return true;
+                if (!TryCalculateLinearRegression(knownX, knownY, out double slope, out double intercept, out double correlation)) return false;
 
                 if (function == "CORREL") {
                     result = correlation;
@@ -156,10 +163,11 @@ namespace OfficeIMO.Excel {
                 if (tokens.Count != 3
                     || !TryEvaluateFormulaOrNumeric(tokens[0], out double x)
                     || !TryResolveFormulaArgumentNumbers(tokens[1], out var knownY, ref remainingCellBudget)
-                    || !TryResolveFormulaArgumentNumbers(tokens[2], out var knownX, ref remainingCellBudget)
-                    || !TryCalculateLinearRegression(knownX, knownY, out double slope, out double intercept, out _)) {
+                    || !TryResolveFormulaArgumentNumbers(tokens[2], out var knownX, ref remainingCellBudget)) {
                     return false;
                 }
+                if (_formulaReferenceError.IsError) return true;
+                if (!TryCalculateLinearRegression(knownX, knownY, out double slope, out double intercept, out _)) return false;
 
                 result = intercept + slope * x;
                 return IsFinite(result);
@@ -169,11 +177,11 @@ namespace OfficeIMO.Excel {
                 int remainingCellBudget = MaxResolvedFormulaRangeCells;
                 if (tokens.Count != 2
                     || !TryResolveFormulaArgumentNumbers(tokens[0], out var leftValues, ref remainingCellBudget)
-                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var rightValues, ref remainingCellBudget)
-                    || leftValues.Count == 0
-                    || leftValues.Count != rightValues.Count) {
+                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var rightValues, ref remainingCellBudget)) {
                     return false;
                 }
+                if (_formulaReferenceError.IsError) return true;
+                if (leftValues.Count == 0 || leftValues.Count != rightValues.Count) return false;
 
                 result = 0;
                 for (int index = 0; index < leftValues.Count; index++) {
@@ -195,6 +203,7 @@ namespace OfficeIMO.Excel {
             if (!TryResolveFormulaArguments(args, out var arguments) || arguments.Any(value => value.IsUnresolvedFormula)) {
                 return false;
             }
+            if (_formulaReferenceError.IsError) return true;
 
             var numbers = arguments.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "AVEDEV" || function == "DEVSQ") {

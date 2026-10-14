@@ -14,7 +14,7 @@ Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` wi
 
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, XPS and OpenXPS. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, Publisher PUB, XPS, OpenXPS, DjVu and CHM. CHM also exports linked Markdown and reflowable EPUB through its owning adapters. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -41,7 +41,25 @@ var html = await OfficeWorkflow.ConvertFiles("report.pdf", "appendix.pdf")
     .RunAsync(runner, cancellationToken: cancellationToken);
 ```
 
-`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf`, `PlainText` and `Xps` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf`, `Draw`, `Visio`, `PlainText` and `Xps` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+
+Draw conversion uses original page sizes and print-visible layers, including blank pages. `ConversionOptions.Draw` accepts the [owning converter settings](../OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `ConversionOptions.RequireNoLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
+
+VSDX, VDX and VTX inputs select `visio-pdf` and produce one physical PDF page per source page, including blank pages. The route uses cached diagram geometry and printable layers by default. `ConversionOptions.Visio` accepts [VisioToPdfOptions](../OfficeIMO.Visio.Pdf/README.md) with `Mode = VisioPdfProjectionMode.DiagramPages`; the direct adapter also offers a semantic report, which is outside the workflow's diagram-page contract. Legacy XML import, drawing projection and PDF serialization losses remain in `ConversionEvidence`. `RequireNoLoss` rejects losses across all three stages before replacing a destination. Cached formula results and successful publication do not establish native Visio appearance or formula recalculation.
+
+```csharp
+using OfficeIMO.Visio.Pdf;
+using OfficeIMO.Workflows;
+
+var diagram = await OfficeWorkflow.Convert("drawing.vdx")
+    .To("drawing.pdf")
+    .WithConversionOptions(new OfficeWorkflowConversionOptions {
+        Visio = new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }
+    })
+    .RunAsync();
+```
+
+`OfficeWorkflowLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeConversionBatchRequest` exposes the same setting per document; both APIs capture it before asynchronous source access.
 
 Both `.xps` and `.oxps` select `xps-pdf`, using the native fixed-page reader and
 PDF bridge. Single conversion, batches, PDF assembly and document preview share
@@ -1514,7 +1532,7 @@ HTML and enabled local Markdown resources are conservatively fingerprinted withi
 
 Per-document defaults are 64 MiB input and 256 MiB output; concurrency accepts 1–32. `MaximumFiles` bounds discovered files, including skipped files, and defaults to one million. Discovery beyond this bound stops the run while preserving completed output. These are configurable resource bounds, not throughput guarantees. TXT defaults to strict BOM-aware decoding, literal markup, tab expansion and bounded wrapping; `PlainText` carries its encoding and layout limits. Legacy DOC import loss blocks output unless `LegacyDocLossPolicy = OfficeConversionLossPolicy.Allow` accepts reported reductions.
 
-`IProgress<OfficeConversionBatchItemResult>` callbacks can arrive concurrently; consume or stream them without retaining a whole inventory. The result contains bounded counts. Checkpoints retain up to 32 non-information diagnostics and report truncation. A host can supply `publicationGuard` to protect output and checkpoint destinations. Conversion completion retains each adapter's fidelity limits and does not prove exact Microsoft Office pagination.
+`IProgress<OfficeConversionBatchItemResult>` callbacks can arrive concurrently; consume or stream them without retaining a whole inventory. The result contains bounded counts. Checkpoints retain up to 32 non-information diagnostics, including source, loss kind and location, and report truncation. Changing the XML-part budget invalidates reuse for routes governed by that budget; existing artifacts remain protected. A host can supply `publicationGuard` to protect output and checkpoint destinations. Conversion completion retains each adapter's fidelity limits and does not prove exact Microsoft Office pagination.
 
 Studio exposes **Convert → Batch PDF export**. The CLI uses `officeimo workflow batch`; PSWriteOffice uses `Export-OfficeDocumentPdf -InputDirectory ... -OutputDirectory ...` or selected file pipelines on PowerShell 7.4 or newer.
 
@@ -1896,9 +1914,33 @@ is a review aid; inspect the full saved document for whole-document fidelity.
 
 `RunAsync` also exposes PDF inspection, comparison, optimization, repair planning, repair, and sanitization through typed operations. `ExportPdfPagesAsync` exports selected PDF pages as images, `AssemblePdfAsync` combines supported PDFs, images, documents, folders, and ZIP archives, and `PdfPrintPlanner.Create` produces deterministic print-sheet placement plans.
 
-Every workflow request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
+Compare selected rendered sequences and save the standalone report:
+
+```csharp
+OfficeWorkflowResult review = await OfficeWorkflow.Compare("current.pdf", "revised.pdf")
+    .ComparePages(PdfPageSelector.Parse("120-124,last"),
+        PdfPageSelector.Parse("121-125,last"))
+    .To("review.html")
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+The request properties are `ComparisonExpectedPages` and
+`ComparisonActualPages`. Null selects all pages on that side. At most 100 selected
+pages per side are admitted, including repeats, with existing pixel and output
+budgets. Pages are paired by selection position; extra selected pages are
+unmatched. The health metrics distinguish total pages, selected source page
+numbers, paired pages and unmatched source pages. The report identifies both
+compared snapshots by SHA-256. It reports ordinal rendered appearance rather than
+semantic or moved-page changes. Neither input is rewritten; the output must be a
+separate HTML destination.
+
+Every workflow request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Single-artifact `OfficeWorkflowResult.OutputBytes` and `OutputSha256`, when available, describe the captured published bytes without reopening the final destination. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
 
 `PdfPrintRenderer.Prepare(document, request)` turns an authenticated `PdfDocument` snapshot and its `PdfPrintPlanRequest` into immutable PNG sheets. Display `prepared.Sheets[i].GetPng()` for review, then pass that same `PdfPreparedPrintDocument` to `IPdfPrinterService.SubmitAsync` with `PdfPrintDeliveryOptions`. Delivery does not reopen the source. `PdfPrinterService.GetPrintersAsync` lists installed queues; Windows uses GDI and macOS/Linux use the installed CUPS `lpstat`, `lpoptions`, and `lp` tools. Copies are collated, and duplex defaults to the printer's setting.
+
+`PdfPrintPlanRequest.PagesPerSheet` accepts 1, 2, 4, 6, or 9 pages in row-major order. Six-up uses two columns on portrait paper and three on landscape paper; nine-up uses three columns and rows. `PageSubset` filters odd or even original source-page numbers after `Pages` is resolved, retaining that selection's order. `Margin` sets the default edge margin in points; nullable `MarginLeft`, `MarginTop`, `MarginRight`, and `MarginBottom` override individual edges. Margins must leave a positive sheet area.
+
+`ScaleMode = PdfPrintScaleMode.Custom` uses `CustomScalePercent` (1–1000, default 100) of each source page's physical size. `Alignment` anchors the page in its slot; custom-size and fill overflow is clipped at that slot. `ColorMode = PdfPrintColorMode.Grayscale` converts prepared sheet pixels, so review and delivery use the same grayscale image without changing the source PDF or requiring a color-capable driver. Color mode retains source colors; actual device output depends on the printer.
 
 `GetPaperSourcesAsync(printerName)` lists the queue's reported paper sources. Set `PdfPrintDeliveryOptions.PaperSourceId` to one of those identifiers, or leave it null to retain the printer default. Identifiers belong to the queried queue; delivery rechecks an explicit selection before submitting. Windows reads driver bins and checks that the driver accepts the selected bin. CUPS discovers `InputSlot` or `media-source` choices exposed by `lpoptions -l`. Queues that expose no choices retain their default source.
 
@@ -1940,7 +1982,21 @@ OfficeWorkflowResult result = await OfficeWorkflow.ExtractPages("report.pdf", 5,
 
 The equivalent typed request uses `Operation = OfficeWorkflowOperation.ExtractPages` and `PageNumbers = [5, 1, 2, 5]`. Page numbers are one-based; order and intentional repeats are preserved, up to 100,000 selected pages. Extraction uses the PDF engine's page-preservation policy and supports only the `Faithful` profile. It creates a separate PDF and does not permit replacing the source.
 
+For document-relative pages, set `PageSelector = PdfPageSelector.Parse("last,1-2")`
+instead of `PageNumbers`. `MaximumExtractedPages` limits the resolved selection,
+including repeated pages, before extraction. The selector is resolved against
+the captured source, so the host does not need a separate pre-read.
+`PdfSearchableWorkflowRequest.PageSelector` and `OfficeScanCleanupOptions.PageSelector`
+provide the same captured-source selection for OCR and raster copies; they cannot
+be combined with an absolute `ReadOptions.PageSelection`.
+
 The runner snapshots local and provider inputs, checks for source changes before publication, bounds output serialization, and reopens the generated PDF before publishing. `InputStream`, `OutputStream`, `PublicationGuard`, and the result's publication and recovery states follow the same contracts as other single-output workflows. Cancellation is observed before and after synchronous page extraction and during serialization; it cannot interrupt the PDF engine while that synchronous step is running.
+
+Hosts that restrict writable roots can implement `IOfficeWorkflowStagingGuard`
+alongside `IOfficeWorkflowPublicationGuard`. The runner checks local destination
+directories before and after creation, then checks the final publication path.
+These are point-in-time checks; they do not lock filesystem identities against
+concurrent changes.
 
 ## Save a certificate-signed PDF copy
 
@@ -2021,6 +2077,30 @@ The runner validates the complete artifact and retains a verified local copy bef
 
 The store defaults to a 1 GiB aggregate admission limit and at most 100 records. `GetRecoveries()` restores available records after restart, `VerifyAsync()` checks a copy before use, and `Discard()` removes a copy after explicit user action. Active publications are excluded from discovery. Successful or safely rejected writes remove their copies; cleanup failures are reported and can leave a recovery record. Before admitting another output, the store removes recognized incomplete records left before metadata publication, while preserving active leases and unfamiliar contents. Retained recovery copies do not expire automatically. Keep them outside normal output locations and require Save As when opening them for editing. Provider writes cannot guarantee atomic replacement, rollback, or exclusion of concurrent writers.
 
+## Review values in existing PDF form fields
+
+`PreparePdfFormOcrAsync` captures an in-memory document and returns the shared
+`PdfFormOcrReview`. It applies workflow input limits and the canonical OCR page,
+provider, rendering and evidence budgets. Preparation does not accept values or
+save a file:
+
+```csharp
+PdfDocument source = PdfDocument.Load("scanned-form.pdf");
+var review = await new OfficeWorkflowRunner().PreparePdfFormOcrAsync(source, engine,
+    new OfficeIMO.Pdf.Ocr.PdfOcrMergeOptions { Language = "eng", MaxPages = 20 },
+    cancellationToken: cancellationToken);
+// Present review.Proposals and RenderPage to the reviewer, then capture decisions.
+var accepted = new Dictionary<OfficeIMO.Pdf.Ocr.PdfFormOcrProposal, PdfFormFieldValue>();
+// Add only explicitly accepted, corrected values from this review.
+PdfDocument filled = review.Apply(source, accepted, cancellationToken);
+```
+
+The host owns undo and publication. A changed source, invalid value, unsupported
+script constraint or cancellation prevents application. Existing fields and
+choice export/display mappings use the PDF owner's validation and appearances;
+this workflow does not create fields. See [the form review contract](../OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
+for supported constraints and qualification limits.
+
 ## Review and apply PDF redactions
 
 Searchable PDF generation uses `OfficeWorkflowRunner.MakePdfSearchableAsync` with a `PdfSearchableWorkflowRequest` and a caller-owned `IOcrEngine`:
@@ -2034,7 +2114,7 @@ var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
 }, engine, cancellationToken);
 ```
 
-The runner captures a bounded input snapshot, adds searchable text through `OfficeIMO.Pdf.Ocr`, and reopens the staged PDF before publication. It verifies source contents and local physical identity after recognition, then applies `PublicationGuard` and the selected conflict policy. The request also accepts `InputStream` and `OutputStream` with the same provider consent and recovery requirements described above. Inspect `Status`, `OutputPath`, and `Recovery` before opening or retrying an output. The engine remains owned by the caller.
+The runner captures a bounded input snapshot, adds searchable text through `OfficeIMO.Pdf.Ocr`, and reopens the staged PDF before publication. It verifies source contents and local physical identity after recognition, then applies `PublicationGuard` and the selected conflict policy. The request also accepts `InputStream` and `OutputStream` with the same provider consent and recovery requirements described above. Inspect `Status`, `OutputPath`, and `Recovery` before opening or retrying an output. `OutputBytes` retains the captured published size. The engine remains owned by the caller.
 
 Set `ReviewAsync` to pause before creating the text layer. The callback receives a `PdfSearchableOcrReview` and returns eligible word instances selected from that review. The shared PDF owner rejects foreign, duplicate, and policy-rejected selections. The destination remains untouched while review is pending, cancellation prevents publication, and source identity is checked again after the decision. Without a callback, the runner uses all eligible words.
 
@@ -2156,6 +2236,8 @@ OfficeProvenanceWorkflowResult removal = await runner.RunProvenanceAsync(
 Removal is strict by default. It removes only selected, structurally valid carriers and blocks a package-signature-invalidating save unless the caller explicitly selects `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures`. The output is written to a sibling staging file, reopened through the same format owner, checked against the removal report, and only then published under the requested conflict policy. Generic ZIP packages and renamed package subtypes are rejected because the workflow has no matching registered format owner for them.
 
 `OfficeProvenanceReportSerializer.Serialize(result)` produces the same `officeimo.provenance.result.v2` document used by the CLI, Studio report export, and browser provenance download. `SerializeBatch(results)` uses `officeimo.provenance.batch.v2`. Reports retain structured evidence and diagnostics, string enum values, coverage notes, input/output SHA-256 hashes, and explicit check states. Assessment reports distinguish disabled or unsupported Unicode inspection from a completed empty report and distinguish an absent provider from verification that ran.
+
+Each evidence item can include an optional `manifest` with the decoded active claim's generator, title, format, recorded actions, ingredients, certificate subject and issuer, AI source declaration, and total manifest count. The summary includes only assertions referenced by that claim and is bounded to 64 actions and 32 ingredients. Inspection, assessment, before/after removal and batch reports use the same projection, including credentials in supported package entries. Recorded certificate names and declarations remain separate from cryptographic verification and trust checks; earlier manifests are counted but not expanded.
 
 Pass `ExpectedInputSha256` from a reviewed result when a later action must use the same source bytes. The runner compares the immutable input snapshot before any mutation. `PublicationGuard` applies the host's live ownership check to each final destination; Fail/Replace reject an owned path and Rename skips it.
 

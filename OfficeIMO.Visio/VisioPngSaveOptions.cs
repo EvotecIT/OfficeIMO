@@ -13,7 +13,7 @@ namespace OfficeIMO.Visio {
         public int PageIndex { get; set; }
 
         /// <summary>
-        /// Number of output pixels used per Visio inch. Defaults to 96.
+        /// Number of output pixels used per physical page inch after applying the page's drawing scale. Defaults to 96.
         /// </summary>
         public double PixelsPerInch { get; set; } = 96D;
 
@@ -26,6 +26,9 @@ namespace OfficeIMO.Visio {
         /// Gets or sets whether shape text is rendered.
         /// </summary>
         public bool RenderText { get; set; } = true;
+
+        /// <summary>Layer selection for the preview. Defaults to visible screen layers.</summary>
+        public VisioLayerRenderMode LayerMode { get; set; } = VisioLayerRenderMode.Visible;
 
         /// <summary>
         /// Optional TrueType/OpenType font file used for native PNG text outlines. When unset or unreadable, the renderer uses the built-in managed fallback discovery path.

@@ -38,7 +38,7 @@ public static partial class OfficeTextLayoutEngine {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                run.ParagraphIndent) { LinkUri = run.LinkUri });
+                run.ParagraphIndent) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
             remainingCharacters -= Math.Min(remainingCharacters, run.Text?.Length ?? 0);
             processedRuns = i + 1;
         }
@@ -70,7 +70,7 @@ public static partial class OfficeTextLayoutEngine {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                factor > 0D ? run.ParagraphIndent?.Scale(factor) : null) { LinkUri = run.LinkUri });
+                factor > 0D ? run.ParagraphIndent?.Scale(factor) : null) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
         }
 
         return scaled;
@@ -130,58 +130,99 @@ public static partial class OfficeTextLayoutEngine {
 
     private static IEnumerable<RichTextToken> CreateRichTextTokens(
         IReadOnlyList<OfficeRichTextRun> runs,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool preserveTabs = false) {
+        int sourceOffset = 0;
+        bool skipLeadingLineFeed = false;
         for (int i = 0; i < runs.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeRichTextRun run = runs[i];
-            string normalized = ExpandTabs(run.Text.Replace("\r\n", "\n").Replace('\r', '\n'));
+            string normalized = run.Text;
             cancellationToken.ThrowIfCancellationRequested();
             var word = new StringBuilder();
+            int wordStart = sourceOffset, column = 0;
             for (int c = 0; c < normalized.Length; c++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 char value = normalized[c];
+                if (skipLeadingLineFeed && c == 0 && value == '\n') {
+                    skipLeadingLineFeed = false;
+                    continue;
+                }
+                skipLeadingLineFeed = false;
+                bool consumesNextLineFeed = false;
+                if (value == '\r') {
+                    if (c + 1 < normalized.Length && normalized[c + 1] == '\n') c++;
+                    else if (c + 1 == normalized.Length)
+                        consumesNextLineFeed = NextRichTextRunStartsWithLineFeed(runs, i, cancellationToken);
+                    skipLeadingLineFeed = consumesNextLineFeed;
+                    value = '\n';
+                }
+                if (value == '\t') {
+                    foreach (RichTextToken token in FlushRichTextWord(run, word, wordStart)) yield return token;
+                    int spaces = DefaultTabSize - column % DefaultTabSize;
+                    if (preserveTabs) yield return RichTextToken.CreateText(run, "\t", false, sourceOffset + c, sourceOffset + c + 1);
+                    else for (int space = 0; space < spaces; space++)
+                        yield return RichTextToken.CreateText(run, " ", true, sourceOffset + c, sourceOffset + c + 1);
+                    column += spaces;
+                    continue;
+                }
                 if (value == '\n') {
-                    foreach (RichTextToken token in FlushRichTextWord(run, word)) {
+                    foreach (RichTextToken token in FlushRichTextWord(run, word, wordStart)) {
                         yield return token;
                     }
 
-                    yield return RichTextToken.CreateHardBreak(run);
+                    // A CRLF split by a style boundary is one break with both source characters consumed.
+                    yield return RichTextToken.CreateHardBreak(run, sourceOffset + c + 1 + (consumesNextLineFeed ? 1 : 0));
+                    column = 0;
                     continue;
                 }
 
                 if (char.IsWhiteSpace(value)) {
-                    foreach (RichTextToken token in FlushRichTextWord(run, word)) {
+                    foreach (RichTextToken token in FlushRichTextWord(run, word, wordStart)) {
                         yield return token;
                     }
 
-                    yield return RichTextToken.CreateText(run, " ", isWhitespace: true);
+                    yield return RichTextToken.CreateText(run, " ", true, sourceOffset + c, sourceOffset + c + 1);
+                    column++;
                     continue;
                 }
 
-                word.Append(value);
+                if (word.Length == 0) wordStart = sourceOffset + c;
+                word.Append(value); column++;
             }
 
-            foreach (RichTextToken token in FlushRichTextWord(run, word)) {
+            foreach (RichTextToken token in FlushRichTextWord(run, word, wordStart)) {
                 yield return token;
             }
+            sourceOffset += normalized.Length;
         }
     }
 
-    private static IEnumerable<RichTextToken> FlushRichTextWord(OfficeRichTextRun run, StringBuilder word) {
+    private static bool NextRichTextRunStartsWithLineFeed(IReadOnlyList<OfficeRichTextRun> runs, int current,
+        CancellationToken cancellationToken) {
+        for (int next = current + 1; next < runs.Count; next++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string text = runs[next].Text;
+            if (text.Length != 0) return text[0] == '\n';
+        }
+        return false;
+    }
+
+    private static IEnumerable<RichTextToken> FlushRichTextWord(OfficeRichTextRun run, StringBuilder word, int start) {
         if (word.Length == 0) {
             yield break;
         }
 
-        yield return RichTextToken.CreateText(run, word.ToString(), isWhitespace: false);
+        yield return RichTextToken.CreateText(run, word.ToString(), false, start, start + word.Length);
         word.Clear();
     }
 
     private readonly struct RichTextToken {
-        private RichTextToken(OfficeRichTextRun run, string text, bool hardBreak, bool isWhitespace) {
+        private RichTextToken(OfficeRichTextRun run, string text, bool hardBreak, bool isWhitespace, int sourceStart, int sourceEnd) {
             Run = run;
             Text = text;
             HardBreak = hardBreak;
             IsWhitespace = isWhitespace;
+            SourceStart = sourceStart; SourceEnd = sourceEnd;
         }
 
         internal OfficeRichTextRun Run { get; }
@@ -191,12 +232,15 @@ public static partial class OfficeTextLayoutEngine {
         internal bool HardBreak { get; }
 
         internal bool IsWhitespace { get; }
+        internal int SourceStart { get; }
+        internal int SourceEnd { get; }
+        internal bool IsTab => Text == "\t";
 
-        internal static RichTextToken CreateText(OfficeRichTextRun run, string text, bool isWhitespace) =>
-            new RichTextToken(run, text, hardBreak: false, isWhitespace);
+        internal static RichTextToken CreateText(OfficeRichTextRun run, string text, bool isWhitespace, int sourceStart, int sourceEnd) =>
+            new RichTextToken(run, text, false, isWhitespace, sourceStart, sourceEnd);
 
-        internal static RichTextToken CreateHardBreak(OfficeRichTextRun run) =>
-            new RichTextToken(run, string.Empty, hardBreak: true, isWhitespace: false);
+        internal static RichTextToken CreateHardBreak(OfficeRichTextRun run, int sourceEnd) =>
+            new RichTextToken(run, string.Empty, true, false, sourceEnd - 1, sourceEnd);
     }
 
     private sealed class RichTextLineBuilder {
@@ -212,6 +256,7 @@ public static partial class OfficeTextLayoutEngine {
         internal double Width { get; private set; }
 
         internal double OffsetX { get; private set; }
+        internal int SourceTextEnd { get; set; }
 
         internal void SetOffset(double offsetX) {
             if (IsEmpty) {
@@ -246,16 +291,42 @@ public static partial class OfficeTextLayoutEngine {
             Width += measured;
         }
 
+        internal void AddAdvance(OfficeRichTextRun run, double width) {
+            // A separate empty segment advances every renderer without painting a tab glyph,
+            // and prevents kerning or run merging across the tab boundary.
+            _segments.Add(new OfficeRichTextSegment(string.Empty, width, run.FontSize, run.Color, false, false, false,
+                run.FontFamily, baseline: run.Baseline));
+            Width += width;
+        }
+
+        internal bool AddTabAdvance(OfficeRichTextRun run, double width, OfficeTextTabStop? stop, OfficeTextTabLeaderLayout.Budget budget, CancellationToken cancellationToken) {
+            string? leaderText = stop?.LeaderText;
+            OfficeRichTextRun? leaderRun = stop?.LeaderStyle?.Resolve(run, leaderText ?? string.Empty) ?? (stop?.LeaderStyle == null ? run : null);
+            OfficeTextTabLeaderLayout.Paint paint = leaderText == null ? default : OfficeTextTabLeaderLayout.Create(leaderText, width, budget.Remaining,
+                text => leaderRun == null ? double.NaN : Measure(text, leaderRun.EffectiveFontSize, leaderRun.FontFamily, leaderRun.FontStyle, _measure), cancellationToken);
+            if (!string.IsNullOrEmpty(paint.Text)) {
+                _segments.Add(CreateSegment(leaderRun!, paint.Text!, paint.Width));
+                Width += paint.Width; budget.Remaining -= paint.Text!.Length;
+            }
+            // Retain an explicit tab boundary even when the glyphs fill the gap.
+            AddAdvance(run, Math.Max(0, width - paint.Width));
+            bool lineLimited = false;
+            if (leaderText == null) _segments[_segments.Count - 1].TabLinePaint = OfficeTextTabLineLeaderLayout.Create(stop?.LineLeader,
+                width, run.EffectiveFontSize, run.Color, budget, cancellationToken, out lineLimited);
+            return paint.Limited || lineLimited;
+        }
+
         internal OfficeRichTextLine ToLine() =>
-            new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX);
+            new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX) { SourceTextEnd = SourceTextEnd };
 
         internal void Clear() {
             _segments.Clear();
             Width = 0D;
         }
 
-        private static bool CanMerge(OfficeRichTextSegment segment, OfficeRichTextRun run) =>
-            segment.LinkUri == run.LinkUri &&
+        internal static bool CanMerge(OfficeRichTextSegment segment, OfficeRichTextRun run) =>
+            segment.Text.Length > 0 && segment.LinkUri == run.LinkUri &&
+            segment.LinkDestinationName == run.LinkDestinationName &&
             segment.FontSize == run.FontSize &&
             segment.Color.Equals(run.Color) &&
             segment.Bold == run.Bold &&
@@ -268,7 +339,7 @@ public static partial class OfficeTextLayoutEngine {
             Nullable.Equals(segment.BackgroundColor, run.BackgroundColor) &&
             string.Equals(segment.FontFamily, run.FontFamily, StringComparison.Ordinal);
 
-        private static OfficeRichTextSegment CreateSegment(OfficeRichTextRun run, string text, double width) =>
-            new OfficeRichTextSegment(text, width, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { LinkUri = run.LinkUri };
+        internal static OfficeRichTextSegment CreateSegment(OfficeRichTextRun run, string text, double width) =>
+            new OfficeRichTextSegment(text, width, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
     }
 }

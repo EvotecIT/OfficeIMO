@@ -136,6 +136,19 @@ including inside columns, table cells and canvas text boxes.
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.
 
+## Decimal tab alignment
+
+An explicit decimal tab can select its decimal separator independently of grouping punctuation:
+
+```csharp
+var style = new PdfParagraphStyle();
+style.AddTabStop(180, PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
+var pdf = PdfDocument.Create(new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve })
+    .Paragraph(p => p.Text("Total\t1,234.56"), style: style);
+```
+
+This aligns the period at 180 points from the paragraph frame. A value without the selected separator is right-aligned at that stop. Leaving `DecimalSeparator` unset retains the first-period-or-comma behavior. The setting survives paragraph-style copies and table layout.
+
 ## Glyph width and character spacing
 
 Run width and tracking adjust horizontal advances without changing font height:
@@ -250,8 +263,19 @@ broader scripts or reproducible font selection.
 
 Drawing text preserves numeric font descriptors when the matching faces are registered in
 `PdfOptions.UseRenderingProfile(...)`. Measurement and embedded PDF text use the same selected
-font program. Drawing strokes support native linear and radial gradient shading through their
+font program. Foreground text and inherited underline/strikethrough paint use `OfficeColor.A`;
+an explicit decoration color uses its own alpha. Foreground transparency preserves logical text,
+placement and run backgrounds. Fully transparent glyphs remain searchable in the PDF.
+
+Drawing strokes support native linear and radial gradient shading through their
 shared outlines, including caps, joins, dashes, opacity, clipping, and affine transforms.
+Line and open-path end markers retain their stroke brush, opacity, transform and
+clip. Triangle, stealth, diamond and oval ends paint filled geometry; open-arrow
+ends paint an outline.
+Running headers and footers report `HeaderFooterPageBoundsClipped` when shape or
+marker paint extends beyond the physical page after applying the actual clip.
+`HeaderFooterPaintBoundsUnmeasured` records unassessed page clipping when contour
+inspection exceeds its work limit.
 Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
 field without adding sampled color stops. Explicit print-condition conversion
 uses the existing bounded CMYK sampling path with the gradient's interpolation
@@ -606,6 +630,11 @@ The unified API intentionally narrows the public surface around the fluent
 - Keep one opened `PdfDocument` and reuse it for `Read`, `Inspect`, `Preflight`,
   `Analyze`, compliance, and manipulation work. The source snapshot and canonical
   parse are cached for that document.
+- Typed reading rejects input with no readable indirect objects. Lenient parsing
+  reports `PdfParseException.Code == "NoIndirectObjects"` for empty, plain-text,
+  or unrecoverable header-only input. `Load` retains its lazy snapshot behavior;
+  `Preflight` and artifact snapshots still retain diagnostic and source-identity
+  evidence. Zero-page catalogs and recoverable object fragments remain readable.
 - Use `PdfDocument.Analyze(...)` when a workflow needs the combined health,
   rewrite-safety, diagnostics, optimization, signature, repair, and compliance
   view.
@@ -828,6 +857,16 @@ These recipes compose normal flow, table, and panel primitives. `IPdfContextComp
 uses the existing deferred replay path when content must react to the live page number;
 it does not introduce another layout engine.
 
+### Fit text within one table cell
+
+Use `PdfTableCell.WithShrinkTextToFit()` to reduce a cell's text size within its available width without reducing its neighbors. Combine it with `WithNoWrap()` to keep each source line together. `PdfTableStyle.MinimumShrinkFontSize` sets the font-size floor, with six points as the default. `PdfTableStyle.ShrinkTextToFit` retains its separate behavior of fitting the whole row.
+
+```csharp
+var account = PdfTableCell.TextCell("A long account identifier")
+    .WithNoWrap()
+    .WithShrinkTextToFit();
+```
+
 ### Clipped table-cell fragments
 
 Use `PdfTableCell.WithViewport` when a cell is represented by a fragment of a larger cell. The viewport describes the full box, the visible fragment and its offset in one coordinate system. Text wraps and aligns in the full box; the renderer clips it to the fragment. Diagonal borders use the full box too, while ordinary edge borders follow the fragment's configured border style.
@@ -853,6 +892,8 @@ PdfDocument.Create().Compose(document => document.Page(page =>
 The viewport scales with the rendered cell dimensions and preserves cell links and named destinations. Images, data bars and icons retain their full-cell geometry too and clip to each visible fragment. Rotated and cropped images remain visible when their drawn content crosses the fragment, and their links stay inside it. It works in normal flow, column flow and canvas tables. A viewport's complete visible row span must fit on one page; split larger cells into explicit fragments before rendering. A cell with check boxes or form fields rejects a viewport; place interactive fields separately. Pass `null` to `WithViewport` to return a copy with ordinary cell layout. `PdfCellIcon.HorizontalAlignment` can position an icon independently of the cell text.
 
 ### Floating tables
+
+Set `PdfTableStyle.HorizontalOffset` to translate a table after alignment or floating placement. The value is measured in points: positive values move right and negative values move left. Translation preserves the available table width, column widths and vertical flow, including page continuations and tables inside rows or section columns.
 
 Set `PdfTableStyle.Position` to a `PdfTablePosition` to place a table relative to the current text flow, page margins, or page edges. Offsets and text clearances are measured in points; positive vertical offsets move down the page. Paragraphs wrap beside the table and regain their full width below it. Wide inline objects move below the table when the side interval is too narrow. Headings, lists, images, and other structured blocks use space below intersecting floating tables.
 
@@ -926,6 +967,47 @@ the optional stream-parameter dictionary; catalog associations in PDF 2.0 also
 require a MIME type. Explicit profile checks include structure-file dates and
 the selected output version. This API does not request or prove a
 compliance profile.
+
+### Attachment authoring limits
+
+Catalog authoring accepts up to 128 MiB per file through
+`PdfOptions.MaxEmbeddedFileBytes` and 256 MiB across the catalog through
+`MaxTotalEmbeddedFileBytes` by default. `AddEmbeddedFile` checks these limits
+before copying payload bytes into the collection. A rejected add or limit
+reduction throws `InvalidDataException` and leaves existing files and settings
+unchanged. `ClearEmbeddedFiles()` restores the collection's available capacity.
+
+Structure attachments have the same defaults through
+`PdfCanvasStructureOptions.MaxAssociatedFileBytes` and
+`MaxTotalAssociatedFileBytes`. Each structure collection enforces its own
+admission limits. At save, the document options also apply to every emitted
+attachment and to their combined payload total. Catalog files count once each;
+identical structure associations that share one emitted file specification count
+once across pages. Different files count separately even when their bytes match.
+
+Set explicit larger limits before adding trusted larger inputs. For example,
+these settings accept a file up to 256 MiB and a collection up to 512 MiB:
+
+```csharp
+var attachmentOptions = new PdfOptions {
+    MaxEmbeddedFileBytes = 256L * 1024 * 1024,
+    MaxTotalEmbeddedFileBytes = 512L * 1024 * 1024
+};
+
+var structureOptions = new PdfCanvasStructureOptions {
+    MaxAssociatedFileBytes = 256L * 1024 * 1024,
+    MaxTotalAssociatedFileBytes = 512L * 1024 * 1024
+};
+```
+
+All four limits must be positive. Standalone `PdfEmbeddedFile` descriptions keep
+their existing construction behavior; collection admission applies the selected
+limits. A combined-limit failure occurs before output bytes are written, so it
+preserves an existing destination file or stream. These limits bound admitted
+and emitted payload bytes, not defensive snapshot multiplicity or peak process
+memory. Use `MaxGeneratedOutputBytes` separately to bound the serialized PDF.
+Attachment reading and editing use `PdfLoadOptions.Limits.MaxTotalAttachmentBytes`
+as described below.
 
 ### Sections, generated navigation, and bounded stream output
 
@@ -1040,6 +1122,15 @@ When the application needs only one embedded file, select its metadata from
 This bounds the selected decoded payload and avoids decoding the other files.
 `pdf.Attachments.Remove(selected)` removes the matching file specification when
 more than one attachment uses the same display name.
+
+Attachment edits apply `PdfLoadOptions.Limits.MaxTotalAttachmentBytes` to the
+aggregate payload of the target collection. `Add` and `Replace` reject an
+oversized target with `PdfReadLimitException` before cloning the new payload or
+rewriting the PDF. A rejected operation leaves the edit session unchanged, so
+the callback can remove another attachment or choose a smaller replacement.
+Load the source with an explicit larger limit when the intended collection
+exceeds the default 256 MiB. This payload limit does not represent peak process
+memory; defensive snapshots and rewrite validation can retain additional copies.
 
 `PdfDocument.Read(...)` is the only semantic reconstruction entry point. Both
 profiles return `PdfDocumentReadResult`; they do not maintain separate logical
@@ -1158,12 +1249,26 @@ bounded by `MaxFormResourceTraversals`.
 For image paint inspection, `AuthoredBlendMode` is null when the normal PDF default
 was not declared and retains an explicit or inherited authored `Normal` value.
 
-Named composite font encodings such as `UniJIS-UCS2-H` require a usable `ToUnicode`
-map covering the shown character codes for text extraction and redaction search.
-If shown text lacks that mapping,
+The predefined horizontal composite encodings `UniJIS-UCS2-H`, `UniGB-UCS2-H`,
+`UniCNS-UCS2-H` and `UniKS-UCS2-H` use bundled Adobe character maps for text
+extraction and redaction search when the font has no `ToUnicode` map. The font's
+Adobe character collection must match the encoding. Widths are read by the mapped
+CID, so precise removal preserves neighboring text positions. Mapping data is
+loaded locally and lazily; no external executable or download is required. See
+[third-party notices](THIRD-PARTY-NOTICES.md) for source and license information.
+
+Managed previews of unembedded Adobe CJK faces use installed script-capable
+substitutes when available. No replacement fonts are bundled. Rendering retains
+the font-substitution diagnostic: readable text does not establish identical
+outlines, regional glyph forms or appearance. Supply matching fonts during
+`ToDrawing()` projection when a controlled rendering profile is required.
+
+An explicit `ToUnicode` map takes precedence and must cover every shown code;
+an incomplete advertised map is refused. Other named encodings, including vertical
+and half-width variants, require a usable `ToUnicode` map. If shown text lacks a supported mapping,
 extraction throws `NotSupportedException` and redaction planning reports an error
 instead of interpreting the character codes as WinAnsi text. Supply a PDF with
-an explicit Unicode map before using those text operations. Logical extraction
+a supported encoding or an explicit Unicode map before using those text operations. Logical extraction
 still uses explicit `ActualText` and excludes artifacts by default. Redaction
 review requires mappings for painted text even under `ActualText` or artifacts.
 Area-based redaction and image removal also reject a blocked inspection plan,
@@ -1272,6 +1377,12 @@ selectedRanges[0].Save("packet-front.pdf");
 selectedRanges[1].Save("packet-evidence.pdf");
 ```
 
+For document-relative expressions such as `last,1,last`, resolve the immutable
+`PdfPageSelector` against the inspected source page count. The overload
+`selector.Resolve(pageCount, maximumPages: 100)` rejects a selection before
+retaining more than 100 output pages, including repeats. Host workflows use this
+bound before extraction or OCR and keep the source separate from the output.
+
 To place source pages on printable sheets, use the same page import engine for
 N-up or duplex booklet output:
 
@@ -1331,6 +1442,38 @@ contains that element; a mask over part of a line leaves its text change for
 review. When setting a custom render scale or background, use the same values
 for `PageAlignment` and `Visual` so exact-page alignment remains valid review
 evidence.
+
+### Compare selected rendered page sequences
+
+Use independent page selectors to review short ranges from long PDFs without
+extracting temporary documents:
+
+```csharp
+PdfVisualComparisonReport report = source.Proof.CompareVisual(revised,
+    cancellationToken, options: new PdfVisualComparisonOptions {
+        ExpectedPages = PdfPageSelector.Parse("120-124,last"),
+        ActualPages = PdfPageSelector.Parse("121-125,last"),
+        MaxPages = 100
+    });
+string html = report.ToHtmlGallery("Section review", 96L * 1024 * 1024,
+    cancellationToken);
+```
+
+Selectors retain caller order and repeated pages. Their first entries form the
+first pair, their second entries form the second pair, and any remaining entries
+are unmatched. Null selects every page on that side. `ExpectedPageCount` and
+`ActualPageCount` are document totals; `ExpectedPageNumbers` and
+`ActualPageNumbers` contain the selected source pages. Each paired result retains
+both original page numbers. `UnmatchedExpectedPageNumbers` and
+`UnmatchedActualPageNumbers` describe selected entries without a partner.
+
+The standalone HTML gallery includes selected scope, totals, pair links, render
+limitations and SHA-256 identities of the compared snapshots. This comparison
+checks rendered appearances in the supplied order. It does not infer semantic
+changes or moved-page alignment; use the separate review APIs above when that
+analysis is needed. Selected-page, pixel, retained-image and HTML byte limits
+remain enforced. The legacy shared `selection` argument cannot be combined with
+independent selectors.
 
 ### Merge, reorder, delete, duplicate, move, and rotate
 
@@ -1510,6 +1653,43 @@ certification permissions, and usage rights are not silently removed by the
 repair workflow.
 
 ### Annotation review threads
+
+Batch annotation edits use `document.Annotations.MoveMany`, `CopyMany`, `RemoveMany`,
+and `Arrange`. Pass the indirect object numbers from the current
+`document.Annotations.GetForEditing()` metadata or an authorized inspection snapshot.
+Each operation expands standard group members and returns one mutation result, with
+the same encryption, signature, and object-number mapping rules as individual edits.
+Selections can span pages. `MoveMany` and `CopyMany` use PDF default user-space offsets;
+`MoveManyVisual` and `CopyManyVisual` use top-left visual offsets and map each page's
+crop origin, rotation, and user-unit scale independently in the same mutation.
+`Arrange` accepts `Raise`, `Lower`, `BringToFront`, or `SendToBack` from
+`PdfAnnotationOrderChange` and preserves the selected annotations' relative order.
+
+`Annotations.GetForEditing()` returns annotation metadata, excluding form widgets,
+when annotation mutation is permitted by encryption and certification policy.
+`GetEditingInteractions(pageNumber)` supplies annotation-only visual hit regions
+without extracted text, link targets, images, or form fields. Both support annotation
+editing when copying page content is restricted; `Inspect()` and `Read()` retain
+their content-extraction permission checks.
+
+`document.Annotations.Group(objectNumbers)` groups at least two editable markup
+annotations on one page using standard `/IRT` and `/RT /Group` relationships.
+Grouping requires PDF 1.6; older ordinary documents receive a catalog version
+upgrade. Certified and usage-rights documents that would require that upgrade are
+rejected because it changes the catalog beyond an annotation edit.
+`Ungroup(objectNumbers)` removes those relationships from the complete selected
+groups. `PdfAnnotationGrouping.GetMembers(info.Annotations, objectNumber)` resolves
+a saved group without including conversational replies. Links, redaction marks,
+and reply annotations cannot become group members. Locked and read-only annotations
+are rejected by batch edits. Multi-selection geometry edits move annotations;
+resize each annotation separately. Free-text callout transforms remain unsupported.
+
+Copies stay on the source pages, retain supported appearances and styles, and receive
+unique `/NM` names. They preserve the copied groups and linked popups, without copying
+conversational replies or prior review decisions. Removal retains replies to a removed
+parent as standalone comments. Append-only removal needs explicit
+`allowResidualDataInAppendOnly: true` because older revisions retain removed data;
+it is not a sanitization operation.
 
 Read reply relationships as threads, add a reply, and record a standard review
 state through the same annotation mutation policy used by lower-level edits:
@@ -2019,7 +2199,12 @@ PdfDocument.Load("application-form.pdf")
 For an interactive editor, `PdfFormFieldValueAssessment.Assess(field, value)` checks
 the proposed value against declared field metadata before applying it. It reports
 read-only fields, scalar/multiple-value conflicts, text length, radio clearing,
-and non-editable choices. Empty required fields produce warnings so an unfinished
+and non-editable choices, including ambiguous display labels. It also assesses a
+bounded inert numeric helper profile from field/widget actions: separator notation,
+review precision and literal range. Unsupported or extra script code produces an error.
+This policy requires a corrected value rather than simulating Acrobat formatting.
+`PdfFormField.Actions` exposes actions on separate field dictionaries; widget actions
+remain on `PdfFormWidget.Actions`. Empty required fields produce warnings so an unfinished
 form can still be saved. Text limits count Unicode scalar values. Assessment does
 not run JavaScript or replace document permissions, appearance generation, or
 validation of the saved result; Unicode appearances still need suitable fonts.
@@ -2176,6 +2361,8 @@ result.Save("proposal.pdf");
 The Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters use one `PdfResourcePolicy`; semantic-projection adapters expose it through their nested Markdown PDF options. The balanced default enables installed fonts and bounded data URI/package resources for document fidelity while denying arbitrary local files and remote resolver calls. Use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion, and `CreateTrustedHost()` only when both source and host are trusted. Profiles never grant resource access.
 
 The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for CJK, Arabic, and other non-Latin family candidates; OneNote adds that candidate group unless fallbacks are `None`. Candidate selection does not read installed fonts unless the resource policy allows it.
+
+On Windows, local font discovery includes fonts Office has already cached in its cloud-font folders. Numeric filenames are resolved through family folders and font metadata. The selected fonts follow the same resource and embedding rules.
 
 `PdfOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. Named fallback families use their own registrations. `PdfEmbeddedFontFallbackSet.RegisterFonts` explicitly installs the supplied slot mapping. Coverage scans inspect candidates in priority order; later candidates remain unparsed when an earlier candidate covers the text. A candidate that must be inspected still needs valid font data.
 
@@ -2403,6 +2590,9 @@ The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-s
 
 - `OfficeIMO.Pdf` provides first-party PDF parsing, layout, writing, rendering, password security, and signature structure. Optional CMS, DER, and X.509 services come from an explicitly supplied `OfficeIMO.Security` provider.
 - Source-format adapters map their document models onto the neutral `OfficeDocumentModel`; PDF projection remains owned by this package.
+- Explicit `Location.LogicalOrder` takes precedence over local paragraph indexes. With `PdfProjectionPagePolicy.ContinuousFlow`, it also takes precedence over physical page order. Automatic page headings are omitted with `MODEL_SOURCE_PAGE_LABELS_OMITTED` when they would interrupt that order.
+- Page and document table views are reconciled by source scope and occurrence count. Distinct equal tables remain in the output. An unlocated aggregate that matches several page scopes is retained with `MODEL_TABLE_CORRELATION_UNASSESSED` rather than assigned to an inferred page.
+- Neutral-model raster assets retain their aspect ratio and scale down to the configured page content area. Source diagnostics keep their severity and an explicit `lossKind` attribute (`None`, `Approximation`, `Omission` or `Failure`) in the PDF report; absent or invalid categories use the severity default, and errors remain failures.
 - See the [PDF current-state guide](../Docs/officeimo.pdf.current-state.md) for the detailed capability inventory and known limits.
 
 ## Repository validation

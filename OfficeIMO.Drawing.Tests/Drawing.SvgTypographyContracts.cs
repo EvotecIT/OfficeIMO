@@ -117,7 +117,7 @@ public partial class DrawingTests {
         OfficeDrawingText text = Assert.Single(SvgTestScene.Content(imported!).Elements.OfType<OfficeDrawingText>());
 
         Assert.Equal(OfficeTextDirection.RightToLeft, text.TextDirection);
-        XElement exported = Assert.Single(XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(imported))
+        XElement exported = Assert.Single(XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(imported!))
             .Descendants(), element => element.Name.LocalName == "text");
         Assert.Equal("rtl", exported.Attribute("direction")?.Value);
         Assert.Null(exported.Attribute("unicode-bidi"));

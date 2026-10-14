@@ -19,6 +19,8 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfColor? BackgroundColor) {
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeTextSpacing ListMarkerTextSpacing { get; init; }
+            public double EffectiveFontSize { get; init; }
+            public PdfCore.PdfTextRun ApplyTo(PdfCore.PdfTextRun run) => TextSpacing.ApplyTo(run, EffectiveFontSize);
             internal bool Underline => UnderlineStyle != OfficeTextDecorationStyle.None;
             internal bool Strike => StrikeStyle != OfficeTextDecorationStyle.None;
         }
@@ -47,6 +49,7 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, NativeResolvedTextStyle style) {
             builder.HorizontalTextScaling(style.TextSpacing.WidthPercentage ?? 100D);
             builder.CharacterSpacing(style.TextSpacing.CharacterSpacing ?? 0D);
+            builder.FeatureSettings(style.TextSpacing.ResolveFeatureSettings(style.EffectiveFontSize));
             builder.Bold(style.Bold);
             builder.Italic(style.Italic);
             builder.Underline(style.UnderlineStyle);
@@ -109,8 +112,9 @@ namespace OfficeIMO.Word.Pdf {
                 ? paragraph.FontSizePoints.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
             fontSize = ResolveNativeComplexScriptFontSize(fontSize, runProperties, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
-            PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
-            string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
+            // The paragraph wrapper's first run supplies no formatting inheritance to sibling runs.
+            PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
+            string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
 
             PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
                 ? directColor
@@ -120,17 +124,19 @@ namespace OfficeIMO.Word.Pdf {
                 : MapNativeHighlight(characterStyleDefaults.Highlight) ?? MapNativeHighlight(styleDefaults.Highlight) ?? MapNativeHighlight(tableRunStyleDefaults.Highlight);
 
             return new NativeResolvedTextStyle(bold, underlineStyle, italic, strikeStyle, allCaps, baseline, fontSize, font, fontFamily, color, background) {
+                EffectiveFontSize = fontSize ?? nativeFontMap?.DefaultFontSize ?? resolvedNativeDefaults.FontSize,
                 TextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
-                    .Merge(styleDefaults.TextSpacing).Merge(characterStyleDefaults.TextSpacing).Merge(runProperties).Resolve(),
+                    .Merge(styleDefaults.TextSpacing).Merge(characterStyleDefaults.TextSpacing).Merge(runProperties).Resolve(resolvedNativeDefaults.OpenTypeFeaturesEnabled),
                 // Numbering uses the paragraph mark, independently of the first body run.
                 ListMarkerTextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
-                    .Merge(styleDefaults.TextSpacing).Merge(markerCharacterStyle.TextSpacing).Merge(markerProperties).Resolve()
+                    .Merge(styleDefaults.TextSpacing).Merge(markerCharacterStyle.TextSpacing).Merge(markerProperties).Resolve(resolvedNativeDefaults.OpenTypeFeaturesEnabled)
             };
         }
 
         private static void ResetNativeTextStyle(PdfCore.PdfParagraphBuilder builder) {
             builder.HorizontalTextScaling(100D)
                 .CharacterSpacing(0D)
+                .ResetFeatureSettings()
                 .Bold(false)
                 .Italic(false)
                 .Underline(false)

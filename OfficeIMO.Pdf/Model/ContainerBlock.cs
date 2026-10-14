@@ -14,15 +14,18 @@ internal sealed class ContainerBlock : IPdfBlock {
 
     internal TableBlock? FrameTable { get; }
     internal double FrameTableIndent { get; }
+    internal double FrameTableHorizontalOffset { get; }
     internal PdfCellBorder? FrameTableBorder { get; }
     internal double FrameTableBorderInset { get; }
     internal double FrameTableContinuationBottomPadding { get; }
+    internal IReadOnlyList<double>? FrameTableTopOutsets { get; }
 
     /// <summary>Uses ordinary container pagination while sizing the perimeter from the enclosed grid.</summary>
     internal ContainerBlock(TableBlock table) {
         PdfTableStyle source = table.Style!;
         PdfTableBorderFrame frame = source.BorderFrame!;
         FrameTableIndent = source.LeftIndent;
+        FrameTableHorizontalOffset = source.HorizontalOffset;
         FrameTableBorder = frame.Border?.Clone();
         FrameTableBorderInset = frame.HorizontalInset;
         FrameTableContinuationBottomPadding = frame.Spacing / 2D +
@@ -42,9 +45,22 @@ internal sealed class ContainerBlock : IPdfBlock {
             SpacingBefore = source.SpacingBefore, SpacingAfter = source.SpacingAfter,
             KeepTogether = source.KeepTogether, KeepWithNext = source.KeepWithNext
         };
+        if (frame.ReserveCellBorderOutsets) {
+            var outsets = PdfWriter.MeasureTableCellBorderFlowOutsets(table);
+            FrameTableTopOutsets = outsets.Tops;
+            double first = outsets.Tops.Length == 0 ? 0D : outsets.Tops[0];
+            double last = outsets.Bottoms.Length == 0 ? 0D : outsets.Bottoms[outsets.Bottoms.Length - 1];
+            double bottomReservation = outsets.Bottoms.Length == 0 ? 0D : outsets.Bottoms.Max();
+            Style.PaddingTopOverride = first;
+            Style.ContinuationPaddingTopOverride = first;
+            Style.PaddingBottomOverride = last;
+            Style.FragmentBottomInset = bottomReservation;
+            FrameTableContinuationBottomPadding = bottomReservation;
+        }
         PdfTableStyle innerStyle = source.Clone();
         innerStyle.BorderFrame = null;
         innerStyle.LeftIndent = 0D;
+        innerStyle.HorizontalOffset = 0D;
         innerStyle.SpacingBefore = innerStyle.SpacingAfter = 0D;
         innerStyle.KeepTogether = innerStyle.KeepWithNext = false;
         FrameTable = new TableBlock(table.Cells.Select(row => row.ToArray()), table.Align, innerStyle);

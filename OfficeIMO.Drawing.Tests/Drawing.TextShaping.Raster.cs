@@ -300,7 +300,7 @@ public partial class DrawingTests {
             ManagedTextShapingTestAssets.CreateFont(0x2764));
         var canvas = new OfficeRasterCanvas(
             new OfficeRasterImage(120, 40, OfficeColor.White),
-            font: null,
+            font: OfficeTrueTypeFont.TryLoad(ManagedTextShapingTestAssets.CreateFont('A')),
             fonts: fonts,
             diagnosticSink: diagnostics,
             diagnosticSource: "variation-selector test");

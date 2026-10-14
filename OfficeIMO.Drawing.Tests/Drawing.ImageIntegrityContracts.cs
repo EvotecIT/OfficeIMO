@@ -489,7 +489,7 @@ public partial class DrawingTests {
         byte[] valid = OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(1, 1, OfficeColor.White),
             OfficeImageExportFormat.Webp,
-            new OfficeRasterEncodingOptions { DpiX = 144D, DpiY = 120D });
+            new OfficeRasterEncodingOptions { Resolution = new OfficeImageResolution(144D, 120D )});
         int exifOffset = FindWebpChunk(valid, "EXIF");
         byte[] malformed = (byte[])valid.Clone();
         malformed[exifOffset + 8] = (byte)'X';
@@ -1080,7 +1080,7 @@ public partial class DrawingTests {
         Assert.False(OfficeRasterImageDecoder.TryDecode(
             apng,
             new OfficeRasterDecodeOptions {
-                AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame,
+                FrameLossPolicy = OfficeRasterFrameLossPolicy.UseSelectedFrame,
                 FrameIndex = 1
             },
             out _,
@@ -1171,7 +1171,7 @@ public partial class DrawingTests {
         WritePngChunkCrc(png, 8, 13);
         byte[] apng = CreateTwoFrameApng(png);
         var options = new OfficeRasterDecodeOptions {
-            AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame,
+            FrameLossPolicy = OfficeRasterFrameLossPolicy.UseSelectedFrame,
             FrameIndex = 1
         };
 
@@ -1240,7 +1240,7 @@ public partial class DrawingTests {
         Assert.True(OfficePngReader.TryValidateDecodedPayload(apng));
 
         var options = new OfficeRasterDecodeOptions {
-            AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame
+            FrameLossPolicy = OfficeRasterFrameLossPolicy.UseSelectedFrame
         };
         Assert.True(OfficeRasterImageDecoder.TryDecode(apng, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));
         Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
@@ -1250,7 +1250,7 @@ public partial class DrawingTests {
         Assert.NotNull(info.Diagnostic);
 
         var reject = new OfficeRasterDecodeOptions {
-            AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+            FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
         };
         Assert.False(OfficeRasterImageDecoder.TryDecode(apng, reject, out _, out _));
     }

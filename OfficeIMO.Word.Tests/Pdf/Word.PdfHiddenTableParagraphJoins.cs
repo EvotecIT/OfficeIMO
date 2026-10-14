@@ -103,7 +103,9 @@ public partial class Word {
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         using var pdf = OpenJoinedParagraphPdf(document);
-        Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, 77.3D, 77.5D);
+        Assert.Equal(5.4D, CreateNativeTableStyleForTest(document.Tables[0]).CellPaddingLeft);
+        double expectedX = nativeDoc ? 72D : 77.4D;
+        Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, expectedX - .1D, expectedX + .1D);
     }
 
     [Theory]
@@ -144,18 +146,24 @@ public partial class Word {
         Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, 91.9D, 92.1D);
     }
 
-    [Fact]
-    public void SaveAsPdf_HiddenTableJoinPreservesUnresolvedConfiguredTypographyWithDiagnostic() {
+    [Theory]
+    [InlineData("body")]
+    [InlineData("header")]
+    [InlineData("footer")]
+    public void SaveAsPdf_HiddenTableJoinPreservesUnresolvedConfiguredTypographyWithDiagnostic(string story) {
         using WordDocument document = CreateJoinedParagraphDocument();
         W.Style normal = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
         normal.StyleRunProperties = null;
-        WordTable table = document.AddTable(1, 1); table._tableProperties!.TableStyle = null;
+        WordTable table = story == "body" ? document.AddTable(1, 1)
+            : (story == "header" ? (WordHeaderFooter)document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate).AddTable(1, 1);
+        table._tableProperties!.TableStyle = null;
         WordParagraph alpha = table.Rows[0].Cells[0].AddParagraph("ALPHA", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         table.Rows[0].Cells[0].AddParagraph("BETA");
         var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
             PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { FontSize = 18D } } });
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.Equal(18D, pdf.GetPage(1).Letters.First(letter => letter.Value == "A").FontSize, 3);
         Assert.Equal(18D, Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "B").FontSize, 3);
@@ -229,9 +237,11 @@ public partial class Word {
         if (configuredPdf) options.PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
         var margin = pdf.GetPage(1).Letters.First(letter => letter.Value == "M");
-        Assert.InRange(margin.StartBaseLine.X, configuredPdf ? 91.9D : 77.3D, configuredPdf ? 92.1D : 77.5D);
+        double expectedX = configuredPdf ? 92D : nativeDoc ? 72D : 77.4D;
+        Assert.InRange(margin.StartBaseLine.X, expectedX - .1D, expectedX + .1D);
         // Per-cell zero overrides both Word's missing-side defaults and the configured PDF padding.
-        Assert.InRange(pdf.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.X, 305.9D, 306.1D);
+        double expectedZeroX = nativeDoc && !configuredPdf ? 300.6D : 306D;
+        Assert.InRange(pdf.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.X, expectedZeroX - .1D, expectedZeroX + .1D);
     }
 
     [Theory]
@@ -261,6 +271,7 @@ public partial class Word {
         var options = new WordToPdfOptions { IncludePageNumbers = false };
         if (configuredPdf) options.PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
-        Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, 83.9D, 84.1D);
+        double expectedX = nativeDoc && !configuredPdf ? 72D : 84D;
+        Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, expectedX - .1D, expectedX + .1D);
     }
 }

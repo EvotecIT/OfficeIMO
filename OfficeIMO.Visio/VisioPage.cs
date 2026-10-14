@@ -513,6 +513,8 @@ namespace OfficeIMO.Visio {
         internal int? BackgroundPageId { get; private set; }
 
         internal IList<XElement> PreservedPageSheetCells { get; } = new List<XElement>();
+        internal VisioNativeCellMetadata? NativePageSheetMetadata { get; set; }
+        internal VisioPageSheetLengthCells? PageSheetLengthCells { get; set; }
 
         internal IList<XElement> PreservedPageSheetSections { get; } = new List<XElement>();
 

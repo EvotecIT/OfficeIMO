@@ -17,38 +17,36 @@ using OfficeIMO.Xps;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
-    private const long MaximumOpenXmlPartCharacters = 10L * 1024L * 1024L;
-
     private static OfficePackageSecurityOptions CreateOpenXmlPackageSecurity(OfficeWorkflowLimits limits) {
         OfficePackageSecurityOptions security = OfficePackageSecurityOptions.SecureDefaults;
         security.MaxPackageBytes = limits.MaximumInputBytes;
-        security.MaxXmlCharactersInPart = MaximumOpenXmlPartCharacters;
+        security.MaxXmlCharactersInPart = limits.MaximumXmlCharactersInPart;
         return security;
     }
 
-    private static OfficeOpenXmlLoadSettings CreateOpenXmlLoadSettings() => new() {
-        MaxCharactersInPart = MaximumOpenXmlPartCharacters
+    private static OfficeOpenXmlLoadSettings CreateOpenXmlLoadSettings(OfficeWorkflowLimits limits) => new() {
+        MaxCharactersInPart = limits.MaximumXmlCharactersInPart
     };
 
     private static WordLoadOptions CreateWordLoadOptions(OfficeWorkflowLimits limits) => new() {
         AccessMode = DocumentAccessMode.ReadOnly,
         MaxInputBytes = limits.MaximumInputBytes,
         PackageSecurity = CreateOpenXmlPackageSecurity(limits),
-        OpenSettings = CreateOpenXmlLoadSettings()
+        OpenSettings = CreateOpenXmlLoadSettings(limits)
     };
 
     private static ExcelLoadOptions CreateExcelLoadOptions(OfficeWorkflowLimits limits) => new() {
         AccessMode = DocumentAccessMode.ReadOnly,
         MaxInputBytes = limits.MaximumInputBytes,
         PackageSecurity = CreateOpenXmlPackageSecurity(limits),
-        OpenSettings = CreateOpenXmlLoadSettings()
+        OpenSettings = CreateOpenXmlLoadSettings(limits)
     };
 
     private static PowerPointLoadOptions CreatePowerPointLoadOptions(OfficeWorkflowLimits limits) => new() {
         AccessMode = DocumentAccessMode.ReadOnly,
         MaxInputBytes = limits.MaximumInputBytes,
         PackageSecurity = CreateOpenXmlPackageSecurity(limits),
-        OpenSettings = CreateOpenXmlLoadSettings()
+        OpenSettings = CreateOpenXmlLoadSettings(limits)
     };
 
     private static OperationArtifact Convert(
@@ -85,7 +83,36 @@ public sealed partial class OfficeWorkflowRunner {
         long maximumOutputBytes = request.Limits.MaximumOutputBytes;
         byte[] bytes;
         bool hasLoss = false;
+        OfficeWorkflowConversionEvidence? evidence = null;
+        HashSet<string>? importDiagnosticSources = null;
         switch (route.Id) {
+            case "publisher-pdf": {
+                (bytes, evidence) = ConvertPublisher(request, input, settings, cancellationToken);
+                hasLoss = evidence.HasLoss;
+                break;
+            }
+            case "chm-pdf":
+            case "chm-markdown":
+            case "chm-epub": {
+                (bytes, evidence) = ConvertChm(request, input, settings, cancellationToken, emitHtmlTaggedStructure);
+                hasLoss = evidence.HasLoss;
+                break;
+            }
+            case "visio-pdf": {
+                (bytes, evidence) = ConvertVisio(request, input, settings, cancellationToken);
+                hasLoss = evidence.HasLoss;
+                break;
+            }
+            case "odg-pdf": {
+                (bytes, evidence) = ConvertDraw(request, input, settings, cancellationToken);
+                hasLoss = evidence.HasLoss;
+                break;
+            }
+            case "djvu-pdf": {
+                (bytes, evidence) = ConvertDjVu(request, input, settings, cancellationToken);
+                hasLoss = evidence.HasLoss;
+                break;
+            }
             case "xps-pdf": {
                 var limits = new XpsReadOptions();
                 limits.MaximumInputBytes = (int)Math.Min(limits.MaximumInputBytes, request.Limits.MaximumInputBytes);
@@ -101,26 +128,28 @@ public sealed partial class OfficeWorkflowRunner {
             }
             case "doc-pdf": {
                 using var source = new MemoryStream(input, writable: false);
-                PdfDocumentConversionResult conversion = LegacyDocPdfConverter.ToPdfDocumentResult(source,
-                    pdfOptions: settings.Word,
-                    importOptions: new OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions {
-                        MaxInputBytes = (int)Math.Min(int.MaxValue, request.Limits.MaximumInputBytes)
-                    }, lossPolicy: settings.LegacyDocLossPolicy, cancellationToken: cancellationToken);
-                bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                PdfDocumentConversionResult conversion;
+                try {
+                    conversion = LegacyDocPdfConverter.ToPdfDocumentResult(source,
+                        pdfOptions: settings.Word,
+                        importOptions: new OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions {
+                            MaxInputBytes = (int)Math.Min(int.MaxValue, request.Limits.MaximumInputBytes)
+                        }, lossPolicy: settings.LegacyDocLossPolicy, cancellationToken: cancellationToken);
+                } catch (OfficeConversionException exception) {
+                    var rejected = new OfficeWorkflowConversionEvidence(exception.Report);
+                    var sources = new HashSet<string>(rejected.FidelityDiagnostics.Select(finding => finding.Source), StringComparer.Ordinal);
+                    throw new WorkflowConversionFailureException(exception.InnerException ?? exception, rejected, importDiagnosticSources: sources);
+                }
+                importDiagnosticSources = new HashSet<string>(conversion.SourceConversionReports
+                    .SelectMany(report => report.FidelityDiagnostics).Select(finding => finding.Source), StringComparer.Ordinal);
+                (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken, importDiagnosticSources: importDiagnosticSources);
                 hasLoss = conversion.HasLoss;
-                AddPdfWarnings(conversion.Warnings, diagnostics);
-                foreach (IOfficeConversionReport report in conversion.SourceConversionReports)
-                    foreach (OfficeConversionFidelityDiagnostic finding in report.FidelityDiagnostics)
-                        diagnostics.Add(new OfficeWorkflowDiagnostic(finding.Code, finding.Message,
-                            finding.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
-                            "import", new Dictionary<string, string> { ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString() }));
                 break;
             }
             case "txt-pdf": {
                 PdfDocumentConversionResult conversion = PdfPlainTextConverter.ToPdfDocumentResult(input, settings.PlainText, cancellationToken);
-                bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss;
-                AddPdfWarnings(conversion.Warnings, diagnostics);
                 break;
             }
             case "docx-pdf":
@@ -131,9 +160,8 @@ public sealed partial class OfficeWorkflowRunner {
                     cancellationToken.ThrowIfCancellationRequested();
                     var options = settings.Word ?? new WordToPdfOptions().UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
-                    bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                    (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
-                    AddPdfWarnings(conversion.Warnings, diagnostics);
                 }
                 break;
             case "xlsx-pdf":
@@ -144,9 +172,8 @@ public sealed partial class OfficeWorkflowRunner {
                     var options = settings.Excel ?? new ExcelToPdfOptions().UseProfile(ToPdfExportProfile(request.OutputProfile));
                     if (settings.WorksheetLayout.HasValue) options.WorksheetLayout = settings.WorksheetLayout.Value;
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
-                    bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                    (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
-                    AddPdfWarnings(conversion.Warnings, diagnostics);
                 }
                 break;
             case "pptx-pdf":
@@ -156,9 +183,8 @@ public sealed partial class OfficeWorkflowRunner {
                     : PowerPointPresentation.LoadEncryptedAsync(source, settings.SourcePassword, CreatePowerPointLoadOptions(request.Limits), cancellationToken)).GetAwaiter().GetResult()) {
                     var options = settings.PowerPoint ?? new PowerPointToPdfOptions().UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
-                    bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                    (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
-                    AddPdfWarnings(conversion.Warnings, diagnostics);
                 }
                 break;
             case "html-pdf": {
@@ -174,9 +200,8 @@ public sealed partial class OfficeWorkflowRunner {
                     .ToPdfDocumentResultAsync(options, cancellationToken)
                     .GetAwaiter()
                     .GetResult();
-                bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss;
-                AddPdfWarnings(conversion.Warnings, diagnostics);
                 break;
             }
             case "markdown-pdf": {
@@ -185,9 +210,8 @@ public sealed partial class OfficeWorkflowRunner {
                 using var source = new MemoryStream(input, writable: false);
                 PdfDocumentConversionResult conversion = MarkdownDoc.Load(source)
                     .ToPdfDocumentResult(options, cancellationToken);
-                bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss;
-                AddPdfWarnings(conversion.Warnings, diagnostics);
                 break;
             }
             case "rtf-pdf": {
@@ -199,9 +223,8 @@ public sealed partial class OfficeWorkflowRunner {
                 if (imported.Diagnostics.Any(finding => finding.Severity == OfficeIMO.Rtf.Diagnostics.RtfDiagnosticSeverity.Error))
                     throw new InvalidDataException("RTF import reported invalid or unsupported content that prevents conversion.");
                 PdfDocumentConversionResult conversion = imported.Document.ToPdfDocumentResult(settings.Rtf, cancellationToken);
-                bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss || imported.Diagnostics.Any(finding => finding.Severity != OfficeIMO.Rtf.Diagnostics.RtfDiagnosticSeverity.Info);
-                AddPdfWarnings(conversion.Warnings, diagnostics);
                 break;
             }
             case "pdf-docx": {
@@ -212,30 +235,18 @@ public sealed partial class OfficeWorkflowRunner {
                     MaxTotalOutputBytes = maximumOutputBytes, MaxOutputBytesPerPage = Math.Min(64L * 1024L * 1024L, maximumOutputBytes)
                 }, cancellationToken);
                 using WordDocument document = conversion.Value;
-                using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
-                    document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
-                    bytes = stream.ToArray();
-                }
+                (bytes, evidence) = SerializeEditableConversion(conversion.Report,
+                    stream => document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult(), maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss;
-                AddMessages(conversion.Report.Warnings.Select(static warning => warning.ToString()), hasLoss, diagnostics);
                 break;
             }
             case "pdf-xlsx": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
                 PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions { ReadOptions = readOptions }, cancellationToken);
                 using ExcelDocument document = conversion.Value;
-                using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
-                    document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
-                    bytes = stream.ToArray();
-                }
+                (bytes, evidence) = SerializeEditableConversion(conversion.Report,
+                    stream => document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult(), maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss || conversion.HasOmittedPageContent;
-                if (conversion.HasOmittedPageContent) {
-                    diagnostics.Add(new OfficeWorkflowDiagnostic(
-                        "PdfTablesOnly",
-                        "Excel conversion reconstructs detected tables; other fixed-layout page content is outside this route.",
-                        OfficeWorkflowDiagnosticSeverity.Warning,
-                        "convert"));
-                }
                 break;
             }
             case "pdf-pptx": {
@@ -247,12 +258,9 @@ public sealed partial class OfficeWorkflowRunner {
                         MaxTotalOutputBytes = maximumOutputBytes, MaxOutputBytesPerPage = Math.Min(64L * 1024L * 1024L, maximumOutputBytes)
                     }, cancellationToken);
                 using PowerPointPresentation document = conversion.Value;
-                using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
-                    document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
-                    bytes = stream.ToArray();
-                }
+                (bytes, evidence) = SerializeEditableConversion(conversion.Report,
+                    stream => document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult(), maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss || conversion.HasOmittedPageContent;
-                AddMessages(conversion.Warnings.Select(static warning => warning.ToString()), hasLoss, diagnostics);
                 break;
             }
             case "pdf-html": {
@@ -266,51 +274,103 @@ public sealed partial class OfficeWorkflowRunner {
                     MaximumOutputCharacters = maximumOutputCharacters,
                     MaxEmbeddedImageBytes = Math.Min(10L * 1024L * 1024L, maximumOutputBytes - maximumOutputBytes / 4L),
                 }, cancellationToken);
-                bytes = EncodeUtf8Bounded(conversion.Value, maximumOutputBytes);
+                (bytes, evidence) = SerializeReportedConversion(conversion.Report,
+                    () => EncodeUtf8Bounded(conversion.Value, maximumOutputBytes), cancellationToken);
                 hasLoss = conversion.HasLoss;
-                AddMessages(conversion.Report.Warnings.Select(static warning => warning.ToString()), hasLoss, diagnostics);
                 break;
             }
             default:
                 throw new NotSupportedException("The conversion route '" + route.Id + "' is not implemented by the local runner.");
         }
 
-        if (settings.CompressPdfOutput) {
-            PdfOptimizationOptions compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
-            compression.KeepOriginalWhenNotSmaller = true;
-            compression.CancellationToken = cancellationToken;
-            compression.MaximumOutputBytes = maximumOutputBytes;
-            PdfOptimizationActionResult optimized = PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Optimization.Apply(compression);
-            if (!optimized.PreservationReport.IsPreserved) throw new InvalidOperationException("PDF compression did not preserve the converted document.");
-            bytes = optimized.Bytes;
-            diagnostics.Add(new OfficeWorkflowDiagnostic("PdfOutputCompression", "Verified lossless PDF compression completed; saved " + optimized.SavedBytes + " bytes.",
-                OfficeWorkflowDiagnosticSeverity.Information, "convert"));
-        }
-        if (deferredEncryption != null) {
-            PdfSecurityMutationResult encrypted = PdfSecurityEditor.Encrypt(bytes, deferredEncryption,
-                maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
-            if (!encrypted.PreservationReport.IsPreserved)
-                throw new InvalidOperationException("PDF encryption did not preserve the converted document.");
-            bytes = encrypted.Pdf;
+        try {
+            if (evidence != null) {
+                AddConversionDiagnostics(evidence, diagnostics, importDiagnosticSources);
+                hasLoss |= evidence.HasLoss;
+            }
+            if (settings.CompressPdfOutput) {
+                bytes = CompressConvertedPdfOutput(bytes, request, diagnostics, cancellationToken);
+            }
+            if (deferredEncryption != null) {
+                PdfSecurityMutationResult encrypted = PdfSecurityEditor.Encrypt(bytes, deferredEncryption,
+                    maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
+                if (!encrypted.PreservationReport.IsPreserved)
+                    throw new InvalidOperationException("PDF encryption did not preserve the converted document.");
+                bytes = encrypted.Pdf;
+            }
+            diagnostics.Add(new OfficeWorkflowDiagnostic(
+                "RouteContract",
+                route.Description,
+                OfficeWorkflowDiagnosticSeverity.Information,
+                "convert",
+                new Dictionary<string, string>(StringComparer.Ordinal) {
+                    ["route"] = route.Id,
+                    ["engine"] = route.Engine,
+                    ["fidelity"] = route.Fidelity,
+                    ["supportLevel"] = route.SupportLevel,
+                    ["knownLimitations"] = route.KnownLimitations
+                }));
+            cancellationToken.ThrowIfCancellationRequested();
+            string summary = hasLoss
+                ? route.Label + " completed with fidelity warnings; review the structured diagnostics."
+                : route.Label + " completed and the output reopened successfully.";
+            return new OperationArtifact(bytes, summary, null, ConversionEvidence: evidence);
+        } catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested && evidence != null
+            && exception is not WorkflowConversionCancellationException) {
+            throw new WorkflowConversionCancellationException(exception, evidence, diagnosticsAdded: true, importDiagnosticSources: importDiagnosticSources);
+        } catch (Exception exception) when (evidence != null && exception is not WorkflowConversionFailureException and not OperationCanceledException
+            and not OutOfMemoryException and not StackOverflowException) {
+            throw new WorkflowConversionFailureException(exception, evidence, diagnosticsAdded: true, importDiagnosticSources: importDiagnosticSources);
         }
 
-        diagnostics.Add(new OfficeWorkflowDiagnostic(
-            "RouteContract",
-            route.Description,
-            OfficeWorkflowDiagnosticSeverity.Information,
-            "convert",
-            new Dictionary<string, string>(StringComparer.Ordinal) {
-                ["route"] = route.Id,
-                ["engine"] = route.Engine,
-                ["fidelity"] = route.Fidelity,
-                ["supportLevel"] = route.SupportLevel,
-                ["knownLimitations"] = route.KnownLimitations
-            }));
-        cancellationToken.ThrowIfCancellationRequested();
-        string summary = hasLoss
-            ? route.Label + " completed with fidelity warnings; review the structured diagnostics."
-            : route.Label + " completed and the output reopened successfully.";
-        return new OperationArtifact(bytes, summary, null);
+    }
+
+    private static void AddConversionDiagnostics(OfficeWorkflowConversionEvidence evidence, List<OfficeWorkflowDiagnostic> diagnostics,
+        ISet<string>? importDiagnosticSources = null) {
+        foreach (OfficeConversionFidelityDiagnostic finding in evidence.FidelityDiagnostics) {
+            var details = new Dictionary<string, string> { ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString() };
+            if (finding.Location != null) details["location"] = finding.Location;
+            diagnostics.Add(new OfficeWorkflowDiagnostic(finding.Code, finding.Message,
+                finding.LossKind == OfficeConversionLossKind.Failure ? OfficeWorkflowDiagnosticSeverity.Error
+                    : finding.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
+                importDiagnosticSources?.Contains(finding.Source) == true ? "import" : "convert", details));
+        }
+    }
+
+    private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) SerializePdfConversion(PdfDocumentConversionResult conversion, long maximumOutputBytes,
+        CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? facts = null, ISet<string>? importDiagnosticSources = null) {
+        using var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
+        PdfSaveResult? saved = null;
+        try {
+            saved = conversion.SaveResultAsync(stream, cancellationToken).GetAwaiter().GetResult();
+            if (saved.Exception is OutOfMemoryException or StackOverflowException)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(saved.Exception).Throw();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!saved.Succeeded) {
+                throw new WorkflowConversionFailureException(saved.Exception!,
+                    new OfficeWorkflowConversionEvidence(saved.ConversionReports, facts ?? new Dictionary<string, string>()), importDiagnosticSources: importDiagnosticSources);
+            }
+            return (stream.ToArray(), new OfficeWorkflowConversionEvidence(saved.ConversionReports,
+                facts ?? new Dictionary<string, string>()));
+        } catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested) {
+            throw new WorkflowConversionCancellationException(exception,
+                new OfficeWorkflowConversionEvidence(saved?.ConversionReports ?? conversion.ConversionReports,
+                    facts ?? new Dictionary<string, string>()), importDiagnosticSources: importDiagnosticSources);
+        }
+    }
+
+    private static byte[] CompressConvertedPdfOutput(byte[] bytes, ValidatedRequest request,
+        List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken cancellationToken) {
+        PdfOptimizationOptions compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
+        compression.KeepOriginalWhenNotSmaller = true;
+        compression.CancellationToken = cancellationToken;
+        compression.MaximumOutputBytes = request.Limits.MaximumOutputBytes;
+        PdfOptimizationActionResult optimized = PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Optimization.Apply(compression);
+        if (!optimized.PreservationReport.IsPreserved)
+            throw new InvalidOperationException("PDF compression did not preserve the converted document.");
+        diagnostics.Add(new OfficeWorkflowDiagnostic("PdfOutputCompression", "Verified lossless PDF compression completed; saved " + optimized.SavedBytes + " bytes.",
+            OfficeWorkflowDiagnosticSeverity.Information, "convert"));
+        return optimized.Bytes;
     }
 
     private static string DecodeHtmlInput(byte[] input, CancellationToken cancellationToken) {

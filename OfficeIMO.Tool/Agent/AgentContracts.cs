@@ -175,7 +175,7 @@ public sealed class AgentConversionCapabilitySummary {
     public bool BrowserAvailable { get; set; }
 }
 
-/// <summary>Result of materializing one OfficeIMO Reader representation.</summary>
+/// <summary>Result of materializing a Reader representation or running an iWork conversion.</summary>
 public sealed class AgentConvertResult {
     public string SourceId { get; set; } = string.Empty;
     public string SourcePath { get; set; } = string.Empty;
@@ -184,4 +184,8 @@ public sealed class AgentConvertResult {
     public long LengthBytes { get; set; }
     public string Sha256 { get; set; } = string.Empty;
     public int DiagnosticCount { get; set; }
+    /// <summary>SHA-256 of the captured iWork source bytes, independent of the registry id.</summary>
+    public string? SourceSha256 { get; set; }
+    /// <summary>Shared conversion status, source snapshot, output verification and fidelity evidence.</summary>
+    public OfficeIMO.Workflows.OfficeWorkflowResult? Workflow { get; set; }
 }

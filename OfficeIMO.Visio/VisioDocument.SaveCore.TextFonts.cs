@@ -13,7 +13,9 @@ namespace OfficeIMO.Visio {
     public partial class VisioDocument {
 
         private void PrepareTextFontFaceNames(IEnumerable<VisioPage> pagesToSave) {
+            ImportRegisteredMasterFonts(pagesToSave);
             Dictionary<string, int> faceIdsByName = new(StringComparer.OrdinalIgnoreCase);
+            Dictionary<int, string> faceNamesById = new();
             HashSet<int> usedIds = new();
             XNamespace ns = VisioNamespace;
 
@@ -24,15 +26,23 @@ namespace OfficeIMO.Visio {
                     if (!string.IsNullOrWhiteSpace(name) && !faceIdsByName.ContainsKey(name!)) {
                         faceIdsByName[name!] = id;
                     }
+                    if (!string.IsNullOrWhiteSpace(name)) faceNamesById[id] = name!;
                 }
             }
 
-            foreach (VisioTextStyle textStyle in EnumerateTextStyles(pagesToSave)) {
+            VisioPage[] pages = pagesToSave.ToArray();
+            var masters = _registeredMasters.Concat(pages.SelectMany(page => BuildEffectiveShapeMasterMap(page).Values)).Distinct();
+            foreach (VisioTextStyle textStyle in EnumerateTextStyles(pages).Concat(masters.SelectMany(master => EnumerateTextStyles(master.Shape)))) {
                 string? fontFamily = textStyle.FontFamily?.Trim();
                 if (string.IsNullOrWhiteSpace(fontFamily)) {
                     textStyle.FontFaceId = null;
                     continue;
                 }
+
+                // Equal family names can have distinct native charset metadata. Keep a loaded
+                // identifier when it still names the requested family.
+                if (textStyle.FontFaceId is int existingId && faceNamesById.TryGetValue(existingId, out string? existingName) &&
+                    string.Equals(existingName, fontFamily, StringComparison.OrdinalIgnoreCase)) continue;
 
                 if (!faceIdsByName.TryGetValue(fontFamily!, out int faceId)) {
                     faceId = NextFaceNameId(usedIds);
@@ -45,7 +55,7 @@ namespace OfficeIMO.Visio {
                         new XAttribute("CharSets", "0")));
                 }
 
-                textStyle.FontFamily = fontFamily;
+                if (!string.Equals(textStyle.FontFamily, fontFamily, StringComparison.Ordinal)) textStyle.FontFamily = fontFamily;
                 textStyle.FontFaceId = faceId;
             }
         }
@@ -67,7 +77,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static IEnumerable<VisioTextStyle> EnumerateTextStyles(VisioShape shape) {
-            if (shape.TextStyle != null) {
+            if (shape.TextStyle != null && shape.NativeFontScope == null) {
                 yield return shape.TextStyle;
             }
 

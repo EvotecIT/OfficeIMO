@@ -9,6 +9,8 @@ internal static class VisioDrawingTextAlignment {
                 return OfficeTextAlignment.Left;
             case VisioTextHorizontalAlignment.Right:
                 return OfficeTextAlignment.Right;
+            case VisioTextHorizontalAlignment.Justify:
+                return OfficeTextAlignment.Justify;
             default:
                 return OfficeTextAlignment.Center;
         }

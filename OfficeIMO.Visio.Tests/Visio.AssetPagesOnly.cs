@@ -9,7 +9,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class VisioAssetPagesOnly {
-        private static string AssetsPath => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets"));
+        private static string AssetsPath => Path.Combine(RepositoryTestPaths.Find(), "Assets");
 
         private static XDocument LoadEntry(ZipArchive zip, string entryPath) {
             var e = zip.GetEntry(entryPath);
@@ -40,9 +40,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("4.133858091015", (string?)aPage.Attribute("ViewCenterY"));
             var aCells = aPage.Element(v + "PageSheet")!.Elements(v + "Cell").ToDictionary(c => (string)c.Attribute("N")!, c => (val: (string?)c.Attribute("V"), unit: (string?)c.Attribute("U")));
             Assert.Equal("CM", aCells["PageWidth"].unit);
-            Assert.Equal(29.7d, XmlConvert.ToDouble(aCells["PageWidth"].val!), 12);
+            Assert.Equal(29.7d.ToInches(VisioMeasurementUnit.Centimeters), XmlConvert.ToDouble(aCells["PageWidth"].val!), 12);
             Assert.Equal("CM", aCells["PageHeight"].unit);
-            Assert.Equal(21d, XmlConvert.ToDouble(aCells["PageHeight"].val!), 12);
+            Assert.Equal(21d.ToInches(VisioMeasurementUnit.Centimeters), XmlConvert.ToDouble(aCells["PageHeight"].val!), 12);
             Assert.Equal((XmlConvert.ToString(0.1181102362204724d), "MM"), aCells["ShdwOffsetX"]);
             Assert.Equal((XmlConvert.ToString(-0.1181102362204724d), "MM"), aCells["ShdwOffsetY"]);
             Assert.Equal(("60", null), aCells["ColorSchemeIndex"]);

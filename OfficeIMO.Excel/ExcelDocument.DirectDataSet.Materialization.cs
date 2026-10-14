@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct,
             out IReadOnlyList<ExcelDataSetImportResult> results) {
             results = Array.Empty<ExcelDataSetImportResult>();
-            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+            if (!TryBeginDeferredDirectSaveCandidateRegistration(cancellationToken: ct)) {
                 return false;
             }
 
@@ -60,11 +60,12 @@ namespace OfficeIMO.Excel {
             candidate.Dispose();
         }
 
-        private bool TryBeginDeferredDirectSaveCandidateRegistration(bool replacingPendingDirectCellValues = false) {
+        private bool TryBeginDeferredDirectSaveCandidateRegistration(bool replacingPendingDirectCellValues = false, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var candidate = _directDataSetSaveCandidate;
             if (candidate != null) {
                 if (candidate.IsDeferred && candidate.IsValid) {
-                    MaterializeDeferredDataSetImport();
+                    MaterializeDeferredDataSetImport(cancellationToken);
                     return false;
                 } else {
                     ClearDirectDataSetSaveCandidate();
@@ -72,7 +73,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (_pendingDirectCellValueSheet != null && !replacingPendingDirectCellValues) {
-                MaterializePendingDirectCellValueSheetIfNeeded();
+                MaterializePendingDirectCellValueSheetIfNeeded(cancellationToken);
                 return false;
             }
 
@@ -249,7 +250,8 @@ namespace OfficeIMO.Excel {
                         tableRange = sheet.TryInsertTabularRowSourceForDeferredMaterialization(
                             sheetModel.Table,
                             includeHeaders: sheetModel.IncludeHeaders,
-                            ct: cancellationToken)
+                            ct: cancellationToken,
+                            preserveMissingValues: sheetModel.OmitBlankCells)
                             ? sheetModel.Range
                             : string.Empty;
                     } else {
@@ -259,12 +261,13 @@ namespace OfficeIMO.Excel {
                             tableName: sheetModel.TableName,
                             style: sheetModel.TableStyle,
                             includeAutoFilter: sheetModel.IncludeAutoFilter,
-                            ct: cancellationToken);
+                            ct: cancellationToken,
+                            preserveMissingValues: sheetModel.OmitBlankCells);
                     }
 
                     if (tableRange.Length == 0) {
                         tableRange = sheet.InsertDataTableAsTable(
-                            sheetModel.Table.ToDataTable(),
+                            sheetModel.Table.ToDataTable(preserveMissingValues: sheetModel.OmitBlankCells),
                             includeHeaders: sheetModel.IncludeHeaders,
                             tableName: sheetModel.TableName,
                             style: sheetModel.TableStyle,
@@ -285,9 +288,10 @@ namespace OfficeIMO.Excel {
                     if (!sheet.TryInsertTabularRowSourceForDeferredMaterialization(
                         sheetModel.Table,
                         includeHeaders: sheetModel.IncludeHeaders,
-                        ct: cancellationToken)) {
+                        ct: cancellationToken,
+                        preserveMissingValues: sheetModel.OmitBlankCells)) {
                         sheet.InsertDataTable(
-                            sheetModel.Table.ToDataTable(),
+                            sheetModel.Table.ToDataTable(preserveMissingValues: sheetModel.OmitBlankCells),
                             includeHeaders: sheetModel.IncludeHeaders,
                             ct: cancellationToken);
                     }

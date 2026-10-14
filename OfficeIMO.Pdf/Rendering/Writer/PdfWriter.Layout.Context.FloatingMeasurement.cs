@@ -30,7 +30,7 @@ internal static partial class PdfWriter {
             double tableWidth = ResolveTableColumnLayout(table, currentOpts, style, count, frameWidth,
                 GetTableBodyFontSize(style, fontSize), style.HeaderRowCount, table.Rows.Count - style.FooterRowCount).Width;
             double flowY = y;
-            double left = PositionTableX(position, tableWidth);
+            double left = PositionTableX(position, tableWidth) + style.HorizontalOffset;
             y = PositionTableY(position, height);
             AvoidFloatingTable(position, left, tableWidth, height);
             bottom = y - height;
@@ -48,6 +48,7 @@ internal static partial class PdfWriter {
             double spacing = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var textFrame = GetParagraphTextFrame(style, frameX, frameWidth);
             double start = y - spacing;
+            double firstLineGap = 0D;
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize,
                 ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth,
                 textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(style), currentOpts,
@@ -55,9 +56,12 @@ internal static partial class PdfWriter {
                     double left = index == 0 ? textFrame.FirstLineX : textFrame.X;
                     double available = index == 0 ? textFrame.FirstLineWidth : textFrame.Width;
                     var frame = GetFloatingTextFrame(left, available, start - completedHeight, requiredHeight, minimumWidth);
+                    if (index == 0) firstLineGap = frame.Gap;
                     return (frame.Width, frame.X - textFrame.X, frame.Gap);
                 }, lineSpacing: style?.LineSpacing);
-            return spacing + (firstVisualOnly ? wrapped.LineHeights.FirstOrDefault() : wrapped.LineHeights.Sum() + GetParagraphSpacingAfter(style, leading));
+            return spacing + (firstVisualOnly ? wrapped.Lines.Count == 0 ? 0D
+                : GetRichLineFrameFitHeight(wrapped.Lines[0], wrapped.LineHeights[0], firstLineGap)
+                : wrapped.LineHeights.Sum() + GetParagraphSpacingAfter(style, leading));
         }
     }
 }

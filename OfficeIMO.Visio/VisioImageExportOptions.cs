@@ -13,6 +13,9 @@ public sealed class VisioImageExportOptions : OfficeImageExportOptions {
     /// <summary>Whether shape and connector text is rendered.</summary>
     public bool RenderText { get; set; } = true;
 
+    /// <summary>Layer selection for SVG and raster output. Defaults to visible screen layers.</summary>
+    public VisioLayerRenderMode LayerMode { get; set; } = VisioLayerRenderMode.Visible;
+
     /// <summary>Optional TrueType/OpenType font file used for native raster text outlines.</summary>
     public string? FontFilePath { get; set; }
 
@@ -42,6 +45,7 @@ public sealed class VisioImageExportOptions : OfficeImageExportOptions {
         clone.PageIndex = PageIndex;
         clone.PageCount = PageCount;
         clone.RenderText = RenderText;
+        clone.LayerMode = LayerMode;
         clone.FontFilePath = FontFilePath;
         clone.FontFaceName = FontFaceName;
         clone.FontCollectionIndex = FontCollectionIndex;
@@ -55,6 +59,7 @@ public sealed class VisioImageExportOptions : OfficeImageExportOptions {
 
     internal void Validate() {
         ValidateImageExportOptions();
+        if (!Enum.IsDefined(typeof(VisioLayerRenderMode), LayerMode)) throw new ArgumentOutOfRangeException(nameof(LayerMode));
         if (PageIndex < 0) throw new ArgumentOutOfRangeException(nameof(PageIndex));
         if (PageCount.HasValue && PageCount.Value < 1) throw new ArgumentOutOfRangeException(nameof(PageCount));
         if (Supersampling < 1 || Supersampling > 4) {

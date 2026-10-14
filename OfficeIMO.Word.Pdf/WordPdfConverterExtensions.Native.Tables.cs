@@ -49,6 +49,12 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     int columnSpan = GetNativeCellColumnSpan(cell);
+                    // Vertical continuations still contribute margins to the physical row box,
+                    // even though their text/content is rendered by the spanning anchor.
+                    PdfCore.PdfCellPadding? padding = CreateNativeTableCellPadding(cell);
+                    if (padding != null) {
+                        cellPaddings[(rowIndex, logicalColumnIndex)] = padding;
+                    }
                     if (IsNativeVerticalMergeContinuation(cell)) {
                         logicalColumnIndex += columnSpan;
                         continue;
@@ -89,7 +95,7 @@ namespace OfficeIMO.Word.Pdf {
                         embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
                         // Word no-wrap changes automatic sizing. Fixed-layout tables and
                         // cells with absolute preferred widths still wrap their content.
-                        noWrap: usesAutoFitLayout && cell.WidthType != WordTableWidthUnit.Dxa && !cell.WrapText,
+                        noWrap: usesAutoFitLayout && TablePreferredWidth.CanDisableCellWrapping(cell) && !cell.WrapText,
                         textRotation: GetNativeCellTextRotation(cell.TextDirection)) {
                         OrientedRowTextHeight = GetNativeOrientedCellMarkHeight(cell, cellText.Runs, embeddedContent,
                             nativeDefaults, cellStyleDefaults, nativeFontMap)
@@ -104,11 +110,6 @@ namespace OfficeIMO.Word.Pdf {
 
                     if (HasNativeDirectCellBorder(cell.Borders)) {
                         directCellBorders[(rowIndex, logicalColumnIndex)] = cell.Borders;
-                    }
-
-                    PdfCore.PdfCellPadding? padding = CreateNativeTableCellPadding(cell);
-                    if (padding != null) {
-                        cellPaddings[(rowIndex, logicalColumnIndex)] = padding;
                     }
 
                     PdfCore.PdfColumnAlign cellAlignment = GetNativeCellHorizontalAlignment(cell);
@@ -167,7 +168,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ApplyNativeDirectCellBorders(style, layout, directCellBorders);
-            if (style.CellBorders != null && style.CellSpacing <= 0D) {
+            if (style.CellBorders != null && !UsesNativeSeparateTableCellBorders(table, style, tableStyleDefaults)) {
                 ReconcileNativeHiddenSharedBorders(table, layout, tableStyleDefaults, style.HeaderRowCount, style.CellBorders, directCellBorders);
             }
 
@@ -203,8 +204,17 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            ApplyNativeFixedTablePercentageWidth(table, layout, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableBorderFrame(table, layout, style, tableStyleDefaults);
             ApplyNativeUnspacedTableRowMargins(table, layout, style);
+            // An explicit PDF table style retains its presentation placement.
+            // Source compatibility geometry applies to the Word-owned style path.
+            if (!hasExplicitDefaultTableStyle || ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle) != null)
+                ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults);
+            ApplyNativeFixedTableMinimumWidths(layout, style);
+            ApplyNativeZeroSpacingCellMargins(layout, style);
+            ApplyNativeFixedPercentageColumnPreferences(layout, style);
+            ApplyNativeAutomaticTableFrameWidth(layout, style, contentWidth);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {
@@ -300,6 +310,13 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableConditionalPaddings(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, layout, style, contentWidth, tableStyleDefaults);
             style.CellVerticalPaddingFromBorderInterior = !usesConfiguredDefaultStyle && style.CellSpacing <= 0D;
+            if (style.CellVerticalPaddingFromBorderInterior && style.Position == null && style.ConsumesVerticalFlow &&
+                nativeDefaults.RunningContentContext == null) {
+                style.BorderFrame = new PdfCore.PdfTableBorderFrame { ReserveCellBorderOutsets = true };
+                // Container continuation already reserves the border's actual
+                // outward paint and repeats source headers without a synthetic gap.
+                style.PageContinuationSpacingBefore = 0D;
+            }
             ApplyNativeTableRowOptions(table, style);
             SuppressNativeTableRoleBoundariesCrossedByRowSpans(style, layout);
             return style;
@@ -585,8 +602,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.Enabled.HasValue &&
-                !conditionalStyle.TextSpacing.WidthPercentage.HasValue &&
-                !conditionalStyle.TextSpacing.CharacterSpacing.HasValue &&
+                conditionalStyle.TextSpacing == default &&
                 string.IsNullOrWhiteSpace(conditionalStyle.FontFamily) &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&
@@ -600,6 +616,8 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.ParagraphLineSpacingPoints.HasValue &&
                 !conditionalStyle.ParagraphLineSpacingRule.HasValue &&
                 !conditionalStyle.LineSpacing.Value.HasValue && !conditionalStyle.LineSpacing.Rule.HasValue &&
+                !conditionalStyle.LineSpacing.FontAlignment.HasValue &&
+                conditionalStyle.ParagraphSpacing == default &&
                 !conditionalStyle.ParagraphSpacingBefore.HasValue &&
                 !conditionalStyle.ParagraphSpacingAfter.HasValue &&
                 !conditionalStyle.ParagraphAlignment.HasValue &&
@@ -611,6 +629,7 @@ namespace OfficeIMO.Word.Pdf {
 
             NativeTableRunStyleDefaults runStyle = tableStyleDefaults.RunStyle;
             return tableStyleDefaults with {
+                ParagraphSpacing = conditionalStyle.ParagraphSpacing.Inherit(tableStyleDefaults.ParagraphSpacing),
                 CellFill = conditionalStyle.CellFill ?? tableStyleDefaults.CellFill,
                 CellVerticalAlignment = conditionalStyle.CellVerticalAlignment ?? tableStyleDefaults.CellVerticalAlignment,
                 ParagraphLineHeight = conditionalStyle.ParagraphLineHeight ?? tableStyleDefaults.ParagraphLineHeight,

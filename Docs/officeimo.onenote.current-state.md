@@ -17,6 +17,8 @@ The two `.one` encodings share one semantic model. Conversion and Reader package
 
 Loaded `.one` and `.onetoc2` artifacts preserve their desktop or FSSHTTP physical encoding by default. `OneNoteWriterOptions.StorageFormat` can select either encoding explicitly; new native artifacts default to the desktop revision store. `.onepkg` remains a separate Cabinet container created through `OneNotePackageWriter`.
 
+The shared `OfficeIMO.Core` Cabinet reader handles uncompressed, MSZIP, and LZX folders with checksum and expansion-limit validation. `.onepkg` writing uses uncompressed folders. Cabinet sets, split data blocks, and Quantum compression are outside the supported package profile.
+
 ## Content fidelity
 
 | Content | Read | New write/edit | Preservation behavior |

@@ -1,0 +1,137 @@
+{
+  "producer": {
+    "reportlab": "4.4.9",
+    "pypdf": "6.10.0",
+    "rendering": "pdftoppm version 26.09.0"
+  },
+  "sourceScript": "producer.py",
+  "files": [
+    {
+      "path": "reportlab-scanned-form.pdf",
+      "logicalBytes": 101883,
+      "sha256": "b2b09b2604fdff87a678d2c0af80cdc16fcbc957e181c536622cf306352b9aa6",
+      "pageCount": 2,
+      "fieldCount": 7,
+      "widgetCount": 7
+    },
+    {
+      "path": "reportlab-rotated-form.pdf",
+      "logicalBytes": 98681,
+      "sha256": "1fdb67fa87049598c80e227460c5db3e18cbb96930644f538a37499634830307",
+      "pageCount": 2,
+      "fieldCount": 7,
+      "widgetCount": 7
+    },
+    {
+      "path": "reportlab-certified-form.pdf",
+      "logicalBytes": 10407,
+      "sha256": "a98395019597f00af2506ebf51e46215c9025dc765add5bbee5f70876a503ace",
+      "pageCount": 2,
+      "fieldCount": 8,
+      "widgetCount": 8,
+      "qualification": "Original ReportLab appearances with synthetic DocMDP P2 metadata; not a cryptographically valid signature."
+    }
+  ],
+  "expected": [
+    {
+      "name": "FullName",
+      "page": 1,
+      "x": 110,
+      "y": 652,
+      "w": 330,
+      "h": 28,
+      "value": "Alex Morgan",
+      "maxlen": 40,
+      "label": "Full name",
+      "kind": "text"
+    },
+    {
+      "name": "SerialCode",
+      "page": 1,
+      "x": 110,
+      "y": 570,
+      "w": 216,
+      "h": 28,
+      "value": "A1B2C3",
+      "maxlen": 6,
+      "label": "Six-character code",
+      "kind": "comb"
+    },
+    {
+      "name": "Country",
+      "page": 1,
+      "x": 110,
+      "y": 488,
+      "w": 230,
+      "h": 28,
+      "value": "PL",
+      "display": "Poland",
+      "label": "Country",
+      "kind": "choice"
+    },
+    {
+      "name": "Amount",
+      "page": 1,
+      "x": 110,
+      "y": 406,
+      "w": 230,
+      "h": 28,
+      "value": "123.45",
+      "maxlen": 12,
+      "label": "Amount (0 to 1000, two decimals)",
+      "kind": "number"
+    },
+    {
+      "name": "Reference",
+      "page": 2,
+      "x": 110,
+      "y": 652,
+      "w": 330,
+      "h": 28,
+      "value": "INV-2048",
+      "maxlen": 16,
+      "label": "Reference",
+      "kind": "text"
+    },
+    {
+      "name": "ReadOnly",
+      "page": 2,
+      "x": 110,
+      "y": 570,
+      "w": 230,
+      "h": 28,
+      "value": "KEEP",
+      "maxlen": 16,
+      "label": "Read-only value",
+      "kind": "readonly"
+    },
+    {
+      "name": "CustomRule",
+      "page": 2,
+      "x": 110,
+      "y": 488,
+      "w": 230,
+      "h": 28,
+      "value": "77",
+      "maxlen": 16,
+      "label": "Unsupported custom rule",
+      "kind": "unsupported"
+    }
+  ],
+  "constraints": {
+    "Amount": {
+      "decimalPlaces": 2,
+      "minimum": 0,
+      "maximum": 1000,
+      "actionsLocation": "parent field /AA, separated from widget"
+    },
+    "CustomRule": "unsupported inert validation script, proposals must be rejected",
+    "ReadOnly": "must retain canonical KEEP value"
+  },
+  "qualification": "Independent producer/parser/raster evidence; synthetic form content, no claim of Adobe/native application or general OCR accuracy.",
+  "sourceVisualInspection": "Scanned and rotated pages inspected; label/footer collision corrected before fixture freeze. Original ReportLab certified appearance and regenerated page 1 independently rendered and inspected for append-only persistence qualification.",
+  "constraintsApplyTo": [
+    "reportlab-scanned-form.pdf",
+    "reportlab-rotated-form.pdf"
+  ]
+}

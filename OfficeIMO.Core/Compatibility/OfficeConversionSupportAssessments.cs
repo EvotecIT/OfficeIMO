@@ -9,6 +9,13 @@ internal sealed record OfficeConversionSupportAssessment(
 
 internal static class OfficeConversionSupportAssessments {
     internal static OfficeConversionSupportAssessment Get(string routeId) {
+        if (routeId is "pages-pdf" or "numbers-pdf" or "keynote-pdf") return Targeted(
+            "Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
+            "Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific.");
+        if (routeId is "visio-binary-vsdx" or "visio-binary-vssx" or "visio-binary-vstx" or "visio-binary-svg" or "visio-binary-pdf")
+            return Targeted(
+                "Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+                "Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.");
         if (IsImageRoute(routeId, out string source)) return Image(source);
         if (routeId.StartsWith("email-", StringComparison.Ordinal)) {
             return Established(
@@ -26,6 +33,9 @@ internal static class OfficeConversionSupportAssessments {
                 "Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.");
         }
         return routeId switch {
+        "chm-pdf" or "chm-markdown" or "chm-epub" => Targeted(
+            "A Microsoft-compiled book matches an independent decoder byte-for-byte across every entry. Contract fixtures cover contents, index, encodings, bounded reads, topic links, rich Reader results and reopened PDF/EPUB output.",
+            "ITSF 2/3 with uncompressed or standard LZX storage. ActiveX, scripts, merged-help books, the compiled search engine and Windows viewer behavior are not reproduced. Reflow can change CSS scope; multi-topic PDF is untagged and does not rebuild cross-topic links or the keyword index. See OfficeIMO.Chm/SUPPORT.md."),
         "book-project-epub" => Targeted(
             "Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
             "Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate."),
@@ -38,6 +48,9 @@ internal static class OfficeConversionSupportAssessments {
         "txt-pdf" => Targeted(
             "Literal text conversion uses the canonical PDF flow engine, strict decoding, source whitespace and bounded pagination.",
             "Long lines wrap to page width. Unicode appearance depends on supplied fonts; no Markdown, HTML or ANSI interpretation occurs."),
+        "djvu-pdf" => Targeted(
+            "Archival text and geometry, independent scanned-page comparisons, bounded malformed-input tests, and searchable PDF/OCR artifacts qualify the managed profile.",
+            "JB2, MMR, IW44 1.2, palettes and managed JPEG profiles only. Annotations are reported without active rendering; indirect components require an explicit native resolver. OCR is caller-supplied and absent/empty-text-only. See OfficeIMO.DjVu/SUPPORT.md."),
         "xps-pdf" => Targeted(
             "Native package, drawing and PDF contracts cover both dialects, positioned Unicode, navigation and authored logical structure; representative artifacts are checked by independent PDF readers and renderers.",
             "Strict export rejects unsupported paint and semantic reconstruction. Search requires literal UnicodeString; glyph IDs, figure descriptions and PDF/UA conformance are not inferred. Native print tickets, metadata and signatures are not PDF preservation contracts."),
@@ -130,9 +143,15 @@ internal static class OfficeConversionSupportAssessments {
         "mhtml-pdf" => Targeted(
             "Bounded archive fixtures verify MIME resource resolution, safe HTML projection, PDF output, and deterministic diagnostics.",
             "Scripts, remote execution, browser-only layout, malformed multipart edge cases, and advanced CSS are not a full browser/MHTML engine."),
+        "odg-pdf" => Targeted(
+            "Draw scene fixtures verify page dimensions, order, layer selection, searchable text, and page-qualified source and PDF diagnostics.",
+            "Uses the supported Draw-to-Drawing profile. Master artwork, page backgrounds, advanced graphic styles, embedded objects, metadata and exact native typography remain incomplete."),
         "visio-pdf" => Targeted(
-            "Typed drawing fixtures verify supported pages, shapes, connectors, text, geometry, and fixed-layout diagnostics.",
-            "Advanced masters, data graphics, themes, layers, embedded objects, and exact Visio rendering remain incomplete."),
+            "Typed drawing and legacy XML fixtures verify semantic reports and cached diagram pages, source dimensions, searchable text, layer selection, and source/PDF loss diagnostics.",
+            "Diagram pages use the cached Visio-to-Drawing profile. Arbitrary formula recalculation, broad native appearance and exact native typography remain unqualified; workflow defaults select diagram pages while the direct adapter defaults to a semantic report."),
+        "publisher-pdf" => Targeted(
+            "Native Contents/Quill/OfficeArt fixtures verify physical pages, searchable styled text, linked frames, native tables, embedded images and carried source/PDF diagnostics.",
+            "Publisher 2002-and-later recovery uses the bounded shared drawing profile. Earlier generations, unsupported graphics, exact native text breaks and native Publisher pixel comparisons remain unqualified."),
         "docx-google-docs" or "google-docs-docx" => Established(
             "Native request/import fixtures verify run typography, paragraphs, tables, tabs, remote operation policies, and Drive fallback behavior without requiring live credentials.",
             "Google Docs supports single underline and strike rather than Word decoration variants; all-caps is materialized and unsupported Word-only layout uses explicit diagnostics or Drive fallback."),
@@ -151,6 +170,9 @@ internal static class OfficeConversionSupportAssessments {
         "csv-xlsx" or "xlsx-csv" => Established(
             "Delimited-data fixtures cover streams, files, delimiter detection, typed cell import, worksheet-range export, reopen behavior, and cancellation.",
             "CSV and TSV have no font, rich-text, formula, multi-sheet, drawing, or layout model; those workbook semantics are intentionally absent from CSV output."),
+        "dbf-csv" or "dbf-xlsx" => Targeted(
+            "Independent Python-produced dBASE III, FoxPro 2 and Visual FoxPro fixtures exercise typed rows, deleted-row filtering, DBT/FPT memos, binary Base64, CSV reopen, and streaming/buffered XLSX reopen and Open XML validation.",
+            "Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits."),
         "officemarkup-docx" or "officemarkup-xlsx" or "officemarkup-pptx" => Established(
             "Typed profile fixtures verify parser diagnostics, editable destination artifacts, font family/size/color, bold, italic, underline variants, strike, scripts, case transforms, small caps where native, and target-specific layout.",
             "OfficeIMO Markup is a directed authoring format rather than a lossless Office round trip; unsupported blocks and destination-only effects are diagnosed, simplified, or omitted according to exporter options."),

@@ -7,26 +7,54 @@ internal static class VisioImageExportFontDiagnostics {
         VisioPage page,
         OfficeFontFaceCollection fonts,
         ICollection<OfficeImageExportDiagnostic> diagnostics,
-        string source) {
+        string source,
+        bool renderText,
+        bool renderConnectorLabels,
+        VisioRenderLayerVisibility layerVisibility,
+        System.Threading.CancellationToken cancellationToken = default) {
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (VisioShape shape in page.Shapes) {
-            AppendShape(shape, fonts, diagnostics, seen, source);
+        var textStyles = new VisioNativeTextStyleResolver(page.OwnerDocument, cancellationToken, diagnostics, source);
+        if (renderText) {
+            foreach (VisioShape shape in page.Shapes) {
+                AppendShape(page, shape, fonts, diagnostics, seen, source, cancellationToken, textStyles, layerVisibility);
+            }
         }
-        foreach (VisioConnector connector in page.Connectors) {
-            AppendText(connector.Label, connector.TextStyle, fonts, diagnostics, seen, source);
+        if (renderConnectorLabels) {
+            foreach (VisioConnector connector in page.Connectors) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!layerVisibility.IsVisible(connector)) continue;
+                if (!AppendRuns(VisioRichTextProjection.Create(page, connector, 72D, cancellationToken, textStyles), fonts, diagnostics, seen, source))
+                    AppendText(connector.Label, connector.TextStyle, fonts, diagnostics, seen, source);
+            }
         }
     }
 
     private static void AppendShape(
+        VisioPage page,
         VisioShape shape,
         OfficeFontFaceCollection fonts,
         ICollection<OfficeImageExportDiagnostic> diagnostics,
         HashSet<string> seen,
-        string source) {
-        AppendText(shape.Text, shape.TextStyle, fonts, diagnostics, seen, source);
+        string source,
+        System.Threading.CancellationToken cancellationToken, VisioNativeTextStyleResolver textStyles, VisioRenderLayerVisibility layerVisibility) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (layerVisibility.IsVisible(shape) && !AppendRuns(VisioRichTextProjection.Create(page, shape, 72D, cancellationToken, textStyles), fonts, diagnostics, seen, source))
+            AppendText(shape.Text, shape.TextStyle, fonts, diagnostics, seen, source);
         foreach (VisioShape child in shape.Children) {
-            AppendShape(child, fonts, diagnostics, seen, source);
+            AppendShape(page, child, fonts, diagnostics, seen, source, cancellationToken, textStyles, layerVisibility);
         }
+    }
+
+    private static bool AppendRuns(VisioRichTextProjection? projection, OfficeFontFaceCollection fonts,
+        ICollection<OfficeImageExportDiagnostic> diagnostics, HashSet<string> seen, string source) {
+        if (projection == null) return false;
+        foreach (OfficeRichTextRun run in projection.Runs) {
+            OfficeImageExportDiagnostic? diagnostic = fonts.CreateSubstitutionDiagnostic(run.Text, run.FontFamily,
+                (run.Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) |
+                (run.Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular), source);
+            if (diagnostic != null && seen.Add(diagnostic.Code + "\n" + diagnostic.Message)) diagnostics.Add(diagnostic);
+        }
+        return true;
     }
 
     private static void AppendText(

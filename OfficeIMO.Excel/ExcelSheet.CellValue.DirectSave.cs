@@ -26,10 +26,17 @@ namespace OfficeIMO.Excel {
 
             internal int CellCount => _filledCounts.Count == 0 ? 0 : ((_rows.Count - 1) * _columnCount) + _filledCounts[_filledCounts.Count - 1];
 
+            internal bool CanAdd(int row, int column) {
+                if (row <= 0 || column <= 0) return false;
+                if (_rows.Count == 0) return row == 1 && column == 1;
+                if (row == _lastRow && column == _lastColumn + 1)
+                    return _lockedColumnCount == 0 || column <= _lockedColumnCount;
+                return row == _lastRow + 1 && column == 1
+                    && (_lockedColumnCount == 0 || _lastColumn == _lockedColumnCount);
+            }
+
             internal bool TryAdd(int row, int column, object? value) {
-                if (row <= 0 || column <= 0) {
-                    return false;
-                }
+                if (!CanAdd(row, column)) return false;
 
                 if (_rows.Count == 0) {
                     if (row != 1 || column != 1) {
@@ -159,18 +166,20 @@ namespace OfficeIMO.Excel {
 
         private bool TrySetPendingDirectCellValueLocked(int row, int column, object? value) {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
+            object? directValue = value;
+            bool prepareDateTimeOffset = value is DateTimeOffset;
             if (!EnablePendingDirectCellValueBuffer
                 || _materializingPendingCellValueDirectSaveBuffer
                 || _disablePendingCellValueDirectSaveBuffer
                 || _excelDocument.HasDeferredDirectDataSetImport
                 || _excelDocument.HasDirectDataSetFastSaveState
-                || !TryPreparePendingDirectCellValue(value, out object? directValue)
                 || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
-                || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))) {
+                || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))
+                || (!prepareDateTimeOffset && !TryPreparePendingDirectCellValue(value, out directValue))) {
                 return false;
             }
 
-            return TrySetPendingDirectCellValueCore(row, column, directValue);
+            return TrySetPendingDirectCellValueCore(row, column, directValue, prepareDateTimeOffset);
         }
 
         private bool TrySetPendingDirectCellFormula(int row, int column, string formula) {
@@ -202,7 +211,7 @@ namespace OfficeIMO.Excel {
             return TrySetPendingDirectCellValueCore(row, column, directValue);
         }
 
-        private bool TrySetPendingDirectCellValueCore(int row, int column, object? value) {
+        private bool TrySetPendingDirectCellValueCore(int row, int column, object? value, bool prepareDateTimeOffset = false) {
             EnsureDynamicArrayCellWritable(row, column);
             if (!_excelDocument.TryReservePendingDirectCellValueSheet(this)) {
                 return false;
@@ -218,6 +227,21 @@ namespace OfficeIMO.Excel {
             }
 
             var buffer = _pendingCellValueDirectSaveBuffer ??= new CellValueDirectSaveBuffer();
+            // Establish coordinate, sequence and thread admission before a
+            // user conversion callback. A rejected buffer write uses the DOM
+            // path, which must invoke that callback only once.
+            if (!buffer.CanAdd(row, column)) {
+                MaterializePendingDirectCellValues();
+                return false;
+            }
+            if (prepareDateTimeOffset && value is DateTimeOffset dateTimeOffset) {
+                if (!TryPrepareDateTimeOffsetPendingDirectCellValue(dateTimeOffset, out DateTime converted)) {
+                    MaterializePendingDirectCellValues();
+                    CellDateTimeOffsetValueCore(row, column, dateTimeOffset, converted);
+                    return true;
+                }
+                value = converted;
+            }
             if (!buffer.TryAdd(row, column, value)) {
                 MaterializePendingDirectCellValues();
                 return false;
@@ -274,14 +298,6 @@ namespace OfficeIMO.Excel {
                     _ = dateTime.ToOADate();
                     directValue = dateTime;
                     return true;
-                case DateTimeOffset dateTimeOffset:
-                    if (TryPrepareDateTimeOffsetPendingDirectCellValue(dateTimeOffset, out DateTime convertedDateTime)) {
-                        directValue = convertedDateTime;
-                        return true;
-                    }
-
-                    directValue = value;
-                    return false;
                 case TimeSpan:
                     directValue = value;
                     return true;
@@ -301,11 +317,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryPrepareDateTimeOffsetPendingDirectCellValue(DateTimeOffset value, out DateTime converted) {
-            try {
-                converted = _excelDocument.DateTimeOffsetWriteStrategy(value);
-            } catch (Exception ex) {
-                throw new InvalidOperationException("The configured DateTimeOffset write strategy threw an exception.", ex);
-            }
+            converted = ConvertDateTimeOffsetForCell(value);
 
             if (value.UtcDateTime < CellValueExcelMinimumSupportedDate) {
                 return false;
@@ -374,7 +386,8 @@ namespace OfficeIMO.Excel {
                 includeHeaders: false,
                 range,
                 useCellValueNumberFormats: true,
-                replacingPendingDirectCellValues: true);
+                replacingPendingDirectCellValues: true,
+                preserveMissingValues: false);
             if (registered) {
                 _pendingCellValueDirectSaveBuffer = null;
                 _excelDocument.ClearPendingDirectCellValueSheet(this);

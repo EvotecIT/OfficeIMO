@@ -53,12 +53,14 @@ public sealed class PdfSearchableWorkflowTests {
             if (mode == "success") {
                 Assert.Equal(OfficeWorkflowStatus.Completed, result.Status);
                 Assert.Equal(output, result.OutputPath);
+                Assert.Equal(new FileInfo(output).Length, result.OutputBytes);
                 Assert.Equal(1, result.AddedWordCount);
                 Assert.Equal("Recognized", PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Single().ExtractText().Trim());
                 Assert.True(guardCalled);
             } else {
                 Assert.Equal(mode == "cancelled" ? OfficeWorkflowStatus.Cancelled : OfficeWorkflowStatus.Failed, result.Status);
                 Assert.Null(result.OutputPath);
+                Assert.Equal(0, result.OutputBytes);
                 Assert.Equal(previous, File.ReadAllBytes(output));
             }
             if (mode != "source-changed") Assert.Equal(original, File.ReadAllBytes(source));
@@ -119,6 +121,7 @@ public sealed class PdfSearchableWorkflowTests {
             Assert.Equal(failWrite ? OfficeWorkflowStatus.Unconfirmed : OfficeWorkflowStatus.Completed, result.Status);
             if (failWrite) {
                 Assert.Null(result.OutputPath);
+                Assert.Equal(0, result.OutputBytes);
                 Assert.NotNull(result.Recovery);
                 var retained = Assert.Single(recoveryStore.GetRecoveries());
                 await recoveryStore.VerifyAsync(retained);

@@ -1,0 +1,116 @@
+{
+  "fixtures": [
+    {
+      "file": "libreoffice-list-alignment.fodp",
+      "source": "https://github.com/LibreOffice/core/blob/ca2645b7078cb269e6982cbb14a021241a23592b/sd/qa/unit/data/odp/para-align-start-end.fodp",
+      "license": "MPL-2.0",
+      "sha256": "a18baebd8bf57d7f0cb445c5b7767af6209f48128153af9ab5e3e1380ba21a77"
+    },
+    {
+      "file": "libreoffice-objectwithtext.fodg",
+      "source": "https://github.com/LibreOffice/core/blob/b3cfb849b19dc1e40c12586bebd2b76fc41007fa/sd/qa/unit/data/objectwithtext.fodg",
+      "license": "MPL-2.0",
+      "sha256": "45118e7425da1fc9f6e4dc9f7c498d53e8e3853fba3db7276e7805689fcace1a"
+    },
+    {
+      "file": "libreoffice-transparent-text.fodg",
+      "source": "https://github.com/LibreOffice/core/blob/4dbb33a1c21948bebcf890c2f8ceb56b15a87936/sd/qa/unit/data/transparent-text.fodg",
+      "license": "MPL-2.0",
+      "sha256": "7547f2834cd6d46a86f2f05584429c60a07a5634dd53bbef2217efd16c164956"
+    },
+    {
+      "file": "libreoffice-layers.odg",
+      "source": "https://github.com/LibreOffice/core/blob/d52c8fd4cc025ca9da474a20aa0f5514032273e2/sd/qa/unit/data/tdf119392_InsertLayer.odg",
+      "license": "MPL-2.0",
+      "sha256": "21aa0ddea43b00b1ab8fc03d47fc93805bf5244af9c42f93279eddbcac79e06a"
+    },
+    {
+      "file": "libreoffice-sheared-geometry.odg",
+      "source": "https://github.com/LibreOffice/core/blob/f38bf2917bf534c8319eff028bd617ac88d84e2f/svx/qa/unit/data/tdf98584_ShearVertical.odg",
+      "license": "MPL-2.0",
+      "sha256": "6ac02e014ce1771a20915b4b57814ea2baa556ed0b7de55bc0c4b4741035096e"
+    },
+    {
+      "file": "libreoffice-routed-glue.odg",
+      "source": "https://github.com/LibreOffice/core/blob/f38bf2917bf534c8319eff028bd617ac88d84e2f/sd/qa/unit/data/odg/ooo124143-1.odg",
+      "license": "MPL-2.0",
+      "sha256": "4a6e4a3838b04506b8d9d9ae86f70b2950b051da546d728f36fb18c2132e529e"
+    },
+    {
+      "file": "libreoffice-network-connectors.odg",
+      "source": "https://github.com/LibreOffice/core/blob/f38bf2917bf534c8319eff028bd617ac88d84e2f/sd/qa/unit/data/odg/rhbz1870501.odg",
+      "license": "MPL-2.0",
+      "sha256": "46530e653ca424fd5b985813cdeeceb9f4b99589c45d8bdeb1b1256badad133f"
+    },
+    {
+      "file": "libreoffice-tab-stops.fodg",
+      "source": "OfficeIMO-authored tab-stop probe exported to FODG by LibreOfficeDev 26.8.0.0.alpha0",
+      "license": "MIT",
+      "sha256": "d41f3819729b2027e82bf51e832e84074e51f40a71e1597a8d1835dabfd4a628",
+      "qualification": "Native producer export of an authored probe; not an independently authored diagram corpus."
+    },
+    {
+      "file": "libreoffice-master-artwork.odg",
+      "source": "https://github.com/LibreOffice/core/blob/f38bf2917bf534c8319eff028bd617ac88d84e2f/sd/qa/unit/data/odg/tdf151746.odg",
+      "license": "MPL-2.0",
+      "sha256": "cb5e24c6396a371e89569ba8c3d181f500342c335b3529d70008ea245ba4ab6a",
+      "qualification": "Unmodified independently authored Draw input with master text, custom shapes and bitmap page background; artwork text projection is qualified separately from preserved unsupported geometry and backgrounds."
+    },
+    {
+      "file": "libreoffice-partial-line-master-start.odg",
+      "source": "OfficeIMO-authored partially attached straight connector resized, cloned and materialized with SetConnectorRoute; resaved by LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+      "license": "MIT",
+      "sha256": "33ec89cd3e2e97bccb6536f20b3b46131dbf00621eb294b82a97357c6b8f6b41",
+      "qualification": "Unmodified native resave of a controlled authored probe; two independently edited pages/masters with explicit custom glue and a free endpoint. Not an independently authored diagram corpus."
+    },
+    {
+      "file": "libreoffice-partial-line-master-end.odg",
+      "source": "OfficeIMO-authored partially attached straight connector resized, cloned and materialized with SetConnectorRoute; resaved by LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+      "license": "MIT",
+      "sha256": "7102e6fd46a46d366f5d79b8542fae82de7c132a6e8a5a7633a4588ed6e64182",
+      "qualification": "Unmodified native resave of a controlled authored probe; two independently edited pages/masters with explicit custom glue and a free endpoint. Not an independently authored diagram corpus."
+    },
+    {
+      "file": "libreoffice-partial-line-page-start.odg",
+      "source": "OfficeIMO-authored partially attached straight connector resized, cloned and materialized with SetConnectorRoute; resaved by LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+      "license": "MIT",
+      "sha256": "9844af25cca88cbbf6471b2f391038bccbd79a6225dcd69de0071421b21406e1",
+      "qualification": "Unmodified native resave of a controlled authored probe; two independently edited pages/masters with explicit custom glue and a free endpoint. Not an independently authored diagram corpus."
+    },
+    {
+      "file": "libreoffice-partial-line-page-end.odg",
+      "source": "OfficeIMO-authored partially attached straight connector resized, cloned and materialized with SetConnectorRoute; resaved by LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+      "license": "MIT",
+      "sha256": "09505b81556cee853e105189efd4037e1ac808bb3ff73db70fab744647424ebc",
+      "qualification": "Unmodified native resave of a controlled authored probe; two independently edited pages/masters with explicit custom glue and a free endpoint. Not an independently authored diagram corpus."
+    },
+    {
+      "file": "libreoffice-master-fields.odg",
+      "source": "OfficeIMO-authored ODF field controls resaved by LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+      "license": "MIT",
+      "sha256": "7221b19a609ee4db597913ac2b5c06526da0ef30f67e736cd606278d83e95b9d",
+      "qualification": "Unmodified native resave of a controlled master-field probe. Page placeholders, page counts and fixed date/time display caches are qualified separately from native formatting, offsets, automatic foreground opacity and exact typography. Not an independently authored drawing corpus."
+    },
+    {
+      "file": "libreoffice-tab-leaders.fodg",
+      "source": "OfficeIMO-authored textual tab-leader probe exported to FODG by LibreOfficeDev 26.8.0.0.alpha0",
+      "license": "MIT",
+      "sha256": "7f39ded9b5bcc21de3d7cb74e74f9c2a99a1d1f0fc56359301f874fd9cc266a0",
+      "qualification": "Unmodified native export of an authored probe, separate from independently authored corpus; textual leader bindings and source preservation are covered, full native extension/opacity/typography support is not."
+    },
+    {
+      "file": "libreoffice-graphic-text-defaults.source.fodg",
+      "source": "OfficeIMO-authored controlled six-family qualification matrix, all-defaults case",
+      "license": "MIT",
+      "sha256": "fd4b76d56bcbae62bc00f52256e0be631dd8ac1dcf98031e8fbb3e041663d6b8",
+      "qualification": "Standard-only ODF1.4 controlled source, separate from independent producer corpus. Eight frames exercise graphic/paragraph/text defaults, direct graphic text, common graphic parent inheritance, draw:text-style-name, explicit paragraph text, percentage inline size and bold-only paragraph/span styles."
+    },
+    {
+      "file": "libreoffice-graphic-text-defaults.fodg",
+      "source": "Unmodified native FODG resave of libreoffice-graphic-text-defaults.source.fodg by LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+      "license": "MIT",
+      "sha256": "fb02d87768c50b8636e5dda06d6089b75ab30c51130ec66df833195acbc7e194",
+      "qualification": "Controlled OfficeIMO-authored probe/native resave, separate from independent authorship. Native binding materialization and OfficeIMO source preservation are covered; window foregrounds, graphic/text family defaults and exact native font/size/color appearance remain unqualified."
+    }
+  ]
+}

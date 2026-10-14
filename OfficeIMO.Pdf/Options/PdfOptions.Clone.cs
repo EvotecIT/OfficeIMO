@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfOptions {
     /// <summary>Creates a deep copy of the options.</summary>
     public PdfOptions Clone() {
+        ValidateEmbeddedFileLimits();
         var clone = new PdfOptions {
             PageWidth = PageWidth,
             PageHeight = PageHeight,
@@ -27,6 +28,7 @@ public sealed partial class PdfOptions {
             MarginBottom = MarginBottom,
             DefaultFont = DefaultFont,
             DefaultFontSize = DefaultFontSize,
+            UseFontUnitTextLayout = UseFontUnitTextLayout,
             _textWhitespaceMode = _textWhitespaceMode,
             _hasExplicitTextWhitespaceConfiguration = _hasExplicitTextWhitespaceConfiguration,
             ObjectSerializationMode = ObjectSerializationMode,
@@ -34,6 +36,9 @@ public sealed partial class PdfOptions {
             PageContentMemoryLimitBytes = PageContentMemoryLimitBytes,
             MaxGeneratedPages = MaxGeneratedPages,
             MaxGeneratedOutputBytes = MaxGeneratedOutputBytes,
+            MaxEmbeddedFileBytes = MaxEmbeddedFileBytes,
+            MaxTotalEmbeddedFileBytes = MaxTotalEmbeddedFileBytes,
+            _totalEmbeddedFileBytes = _totalEmbeddedFileBytes,
             IncludeStandardFontToUnicodeMaps = IncludeStandardFontToUnicodeMaps,
             CompressEmbeddedFonts = CompressEmbeddedFonts,
             IncludeXmpMetadata = IncludeXmpMetadata,
@@ -81,6 +86,7 @@ public sealed partial class PdfOptions {
             TextLineBreakCallback = _textLineBreakCallback,
             TextHyphenationCallback = _textHyphenationCallback,
             TextShapingMode = TextShapingMode,
+            DefaultTextFeatureSettings = DefaultTextFeatureSettings,
             TextShapingProvider = TextShapingProvider,
             _diagnosticsReport = _diagnosticsReport,
             _diagnosticsConverter = _diagnosticsConverter,

@@ -28,6 +28,14 @@ public sealed partial class OfficeRasterCanvas {
         return largest * Math.Sqrt((x / largest) * (x / largest) + (y / largest) * (y / largest));
     }
 
+    // Actual source-space filtered texel dimensions used by DrawAffineImage.
+    internal static (double X, double Y) AffineImageSamplingStep(int width, int height, OfficeTransform transform) {
+        if (!transform.TryInvert(out OfficeTransform inverse)) return (1D, 1D);
+        int filteredWidth = ReducedSamplingDimension(width, SamplingAxisLength(inverse.M11, inverse.M21));
+        int filteredHeight = ReducedSamplingDimension(height, SamplingAxisLength(inverse.M12, inverse.M22));
+        return (width / (double)filteredWidth, height / (double)filteredHeight);
+    }
+
     private OfficeRasterImage PrefilterAffineImage(OfficeRasterImage image, ref OfficeTransform inverse) {
         OfficeRasterImage filtered = PrefilterImage(image, SamplingAxisLength(inverse.M11, inverse.M21), SamplingAxisLength(inverse.M12, inverse.M22));
         if (!ReferenceEquals(filtered, image)) inverse = inverse.Then(OfficeTransform.Scale(filtered.Width / (double)image.Width, filtered.Height / (double)image.Height));

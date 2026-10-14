@@ -71,9 +71,6 @@ internal abstract class PdfListBlock : IPdfBlock {
     internal string GetMarker(int itemIndex) =>
         RichItems[itemIndex].Marker ?? GetDefaultMarker(itemIndex);
 
-    internal string GetWidestDefaultMarker() =>
-        GetDefaultMarker(System.Math.Max(0, RichItems.Count - 1));
-
     internal PdfAlign GetMarkerAlign(PdfListStyle? style) =>
         style?.MarkerAlign ?? (IsNumbered ? PdfAlign.Right : PdfAlign.Left);
 

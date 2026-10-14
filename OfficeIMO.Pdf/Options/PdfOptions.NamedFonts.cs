@@ -111,8 +111,9 @@ public sealed partial class PdfOptions {
         return this;
     }
 
-    internal bool TryResolveNamedFontFace(string? familyName, bool bold, bool italic, out PdfNamedFontFace face) {
-        if (!TryGetNamedFontFamily(familyName, out PdfEmbeddedFontFamily? family) || family == null) {
+    internal bool TryResolveNamedFontFace(string? familyName, bool bold, bool italic, out PdfNamedFontFace face,
+        bool allowSubstitution = true) {
+        if (!TryGetNamedFontFamily(familyName, out PdfEmbeddedFontFamily? family, allowSubstitution) || family == null) {
             face = default;
             return false;
         }
@@ -261,7 +262,8 @@ public sealed partial class PdfOptions {
         }
     }
 
-    private bool TryGetNamedFontFamily(string? familyName, out PdfEmbeddedFontFamily? family) {
+    private bool TryGetNamedFontFamily(string? familyName, out PdfEmbeddedFontFamily? family,
+        bool allowSubstitution = true) {
         family = null;
         if (string.IsNullOrWhiteSpace(familyName) || _namedFontFamilies == null) {
             return false;
@@ -272,7 +274,7 @@ public sealed partial class PdfOptions {
                 && TryGetNamedFontFamilyDirect(candidate, out family)) {
                 return true;
             }
-            if (TryGetFontFamilySubstitution(candidate, out PdfFontFamilySubstitution? substitution) &&
+            if (allowSubstitution && TryGetFontFamilySubstitution(candidate, out PdfFontFamilySubstitution? substitution) &&
                 substitution != null &&
                 TryGetNamedFontFamilyDirect(substitution.TargetFontFamily, out family)) {
                 return true;

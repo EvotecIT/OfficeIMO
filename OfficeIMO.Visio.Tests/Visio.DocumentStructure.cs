@@ -9,7 +9,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class VisioDocumentStructure {
         [Fact]
-        public void VisioDocumentIncludesRequiredChildren() {
+        public void VisioDocumentIncludesDefaultSettingsColorsAndStyles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
@@ -22,7 +22,6 @@ namespace OfficeIMO.Tests {
 
             Assert.NotNull(xml.Root?.Element(ns + "DocumentSettings"));
             Assert.NotNull(xml.Root?.Element(ns + "Colors"));
-            Assert.NotNull(xml.Root?.Element(ns + "FaceNames"));
             Assert.NotNull(xml.Root?.Element(ns + "StyleSheets"));
         }
 
@@ -43,9 +42,7 @@ namespace OfficeIMO.Tests {
             Assert.Collection(children,
                 e => Assert.Equal(ns + "DocumentSettings", e.Name),
                 e => Assert.Equal(ns + "Colors", e.Name),
-                e => Assert.Equal(ns + "FaceNames", e.Name),
                 e => Assert.Equal(ns + "StyleSheets", e.Name));
         }
     }
 }
-

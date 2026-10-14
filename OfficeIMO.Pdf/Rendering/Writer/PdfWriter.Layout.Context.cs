@@ -37,7 +37,29 @@ internal static partial class PdfWriter {
         private double width;
         private double yStart;
         private double y;
-        private bool pageDirty;
+        private bool pageHasContent;
+        private bool pageHasBodyContent;
+        private int runningNonContentObjectCount;
+        private int? currentRunningSectionId;
+        // Body emission records logical ownership at the same point as page
+        // dirtiness, after any paragraph/table pagination has taken place.
+        private bool pageDirty {
+            get => pageHasContent;
+            set {
+                pageHasContent = value;
+                if (value && !isRunningContent) pageHasBodyContent = true;
+                if (value) RecordRunningContentSection();
+            }
+        }
+
+        // Blank body flow can occupy a source section's page without painting it.
+        // Track that ownership separately from whether the page must be emitted.
+        private void RecordRunningContentSection() {
+            if (!isRunningContent && currentPage != null && currentRunningSectionId is int sectionId) {
+                currentPage.RunningContentSectionId ??= sectionId;
+                (currentPage.RunningContentSections ??= new HashSet<int>()).Add(sectionId);
+            }
+        }
         private bool usedBold;
         private bool usedItalic;
         private bool usedBoldItalic;
@@ -134,11 +156,19 @@ internal static partial class PdfWriter {
             width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             yStart = currentOpts.PageHeight - currentOpts.MarginTop;
             y = yStart;
-            currentPage = new LayoutResult.Page { Options = currentOpts, PageGroupId = currentPageGroupId };
+            currentPage = new LayoutResult.Page {
+                Options = currentOpts, PageGroupId = currentPageGroupId,
+                // The section at the page start owns its running fields even
+                // when it is empty and a continuous successor supplies the body.
+                RunningContentSectionId = currentRunningSectionId,
+                RunningContentSections = currentRunningSectionId is int sectionId ? new HashSet<int> { sectionId } : null
+            };
             sb.Clear();
             behindTextCanvases.Clear();
             pageDirty = false;
+            pageHasBodyContent = false;
             PrepareAndRenderRunningContents();
+            runningNonContentObjectCount = CountCurrentPageNonContentObjects();
             for (int i = 0; i < activeLayers.Count; i++) {
                 BeginLayerContent(activeLayers[i]);
             }
@@ -168,17 +198,15 @@ internal static partial class PdfWriter {
             FlushPage(force: true);
         }
 
-        private bool HasCurrentPageNonContentObjects() =>
-            currentPage != null &&
-            (currentPage.Images.Count > 0 ||
-            currentPage.Annotations.Count > 0 ||
-            currentPage.TextAnnotations.Count > 0 ||
-            currentPage.FreeTextAnnotations.Count > 0 ||
-            currentPage.HighlightAnnotations.Count > 0 ||
-            currentPage.FormFields.Count > 0 ||
-            currentPage.GraphicsStates.Count > 0 ||
-            currentPage.Shadings.Count > 0 ||
-            currentPage.NamedDestinations.Count > 0);
+        private int CountCurrentPageNonContentObjects() => currentPage == null ? 0 :
+            currentPage.Images.Count + currentPage.Annotations.Count + currentPage.TextAnnotations.Count +
+            currentPage.FreeTextAnnotations.Count + currentPage.HighlightAnnotations.Count + currentPage.FormFields.Count +
+            currentPage.GraphicsStates.Count + currentPage.Shadings.Count + currentPage.NamedDestinations.Count;
+
+        private bool HasCurrentPageNonContentObjects() => CountCurrentPageNonContentObjects() > 0;
+
+        private bool HasCurrentPageBodyContent() => pageHasBodyContent || y < yStart - .001D ||
+            CountCurrentPageNonContentObjects() > runningNonContentObjectCount;
 
         private void FlushPage(bool force = false) {
             if (currentPage == null) return;
@@ -210,17 +238,31 @@ internal static partial class PdfWriter {
             pageDirty = false;
         }
 
-        private void NewPage(bool preserveEmptyPage = false) {
+        private void NewPage(bool preserveEmptyPage = false, bool forcePhysicalPage = false, double? firstBodyHeight = null,
+            bool firstBodyAllowsFooterOverlap = false, bool firstBodyAllowsExactOverflow = false) {
             cancellationToken.ThrowIfCancellationRequested();
             if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
-            if (activeColumnFlow != null) {
-                AdvanceColumnFrame(forcePhysicalPage: false, preserveEmptyPage);
-                return;
+            double? previousBodyHeight = runningFirstBodyHeight;
+            bool previousFooterOverlap = runningFirstBodyAllowsFooterOverlap;
+            bool previousExactOverflow = runningFirstBodyAllowsExactOverflow;
+            runningFirstBodyHeight = firstBodyHeight;
+            runningFirstBodyAllowsFooterOverlap = firstBodyAllowsFooterOverlap;
+            runningFirstBodyAllowsExactOverflow = firstBodyAllowsExactOverflow;
+            try {
+                if (activeColumnFlow != null) {
+                    AdvanceColumnFrame(forcePhysicalPage, preserveEmptyPage);
+                    return;
+                }
+                PrepareActiveContainerScopesForPageBreak();
+                if (preserveEmptyPage) RecordRunningContentSection();
+                FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
+                StartPage(currentPageBaseOptions);
+                ResumeActiveContainerScopesOnNewPage();
+            } finally {
+                runningFirstBodyHeight = previousBodyHeight;
+                runningFirstBodyAllowsFooterOverlap = previousFooterOverlap;
+                runningFirstBodyAllowsExactOverflow = previousExactOverflow;
             }
-            PrepareActiveContainerScopesForPageBreak();
-            FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
-            StartPage(currentPageBaseOptions);
-            ResumeActiveContainerScopesOnNewPage();
         }
 
         private double ResolveTopLevelSpacingBefore(double spacingBefore) {

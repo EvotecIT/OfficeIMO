@@ -372,7 +372,8 @@ public class PdfDocumentCanvasTests {
     public void CanvasNamedDestinationsPreserveUnicodeKeysAndByteOrdering() {
         const string name = "Earth’s\u00A0€";
         byte[] bytes = PdfDocument.Create()
-            .Canvas(canvas => canvas.NamedDestination("ÿ", 10, 10)
+            .Canvas(canvas => canvas.NamedDestination("Z", 10, 5)
+                .NamedDestination("ÿ", 10, 10)
                 .NamedDestination("’", 10, 20)
                 .NamedDestination(name, 10, 30)
                 .LinkToNamedDestination(name, 10, 40, 80, 20, "Jump"))
@@ -380,8 +381,15 @@ public class PdfDocumentCanvasTests {
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         Assert.Contains(name, info.NamedDestinationNames);
         Assert.Contains(name, info.LinkDestinationNames);
-        string raw = PdfEncoding.Latin1GetString(bytes);
-        Assert.True(raw.IndexOf("(\u0090) [", StringComparison.Ordinal) < raw.IndexOf("(\u00FF) [", StringComparison.Ordinal));
+        var nameTree = Assert.Single(PdfSyntax.ParseObjects(bytes).Map.Values
+            .Select(value => value.Value).OfType<PdfDictionary>(),
+            dictionary => dictionary.Items.TryGetValue("Names", out var names) && names is PdfArray);
+        var entries = Assert.IsType<PdfArray>(nameTree.Items["Names"]);
+        var keys = entries.Items.OfType<PdfStringObj>().ToArray();
+        Assert.Equal(new[] { "Z", name, "ÿ", "’" }, keys.Select(key => key.Value));
+        Assert.Equal(new byte[] { 0x5A }, keys[0].RawBytes);
+        Assert.Equal(new byte[] { 0xFE, 0xFF, 0x00, 0xFF }, keys[2].RawBytes);
+        Assert.Equal(new byte[] { 0xFE, 0xFF, 0x20, 0x19 }, keys[3].RawBytes);
     }
 
     [Fact]

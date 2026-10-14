@@ -126,6 +126,7 @@ namespace OfficeIMO.Visio {
             EnsureConnectorBelongsToPage(connector);
             EnsureShapeBelongsToPage(newFrom, "The source shape is not part of this page.");
 
+            connector.ClearEndpointPreservation(true);
             connector.From = newFrom;
             connector.FromConnectionPoint = ResolveConnectionPoint(newFrom, side);
             connector.PreservedFromConnectionCell = null;
@@ -148,6 +149,7 @@ namespace OfficeIMO.Visio {
             EnsureConnectorBelongsToPage(connector);
             EnsureShapeBelongsToPage(newTo, "The target shape is not part of this page.");
 
+            connector.ClearEndpointPreservation(false);
             connector.To = newTo;
             connector.ToConnectionPoint = ResolveConnectionPoint(newTo, side);
             connector.PreservedToConnectionCell = null;
@@ -175,7 +177,9 @@ namespace OfficeIMO.Visio {
             EnsureShapeBelongsToPage(newFrom, "The source shape is not part of this page.");
             EnsureShapeBelongsToPage(newTo, "The target shape is not part of this page.");
 
+            connector.ClearEndpointPreservation(true);
             connector.From = newFrom;
+            connector.ClearEndpointPreservation(false);
             connector.To = newTo;
             connector.FromConnectionPoint = ResolveConnectionPoint(newFrom, fromSide);
             connector.ToConnectionPoint = ResolveConnectionPoint(newTo, toSide);

@@ -25,7 +25,7 @@ public sealed class OfficeImoToolAppTests {
         Assert.Contains("officeimo markup", help, StringComparison.Ordinal);
         Assert.Contains("officeimo tabular", help, StringComparison.Ordinal);
         Assert.Contains("officeimo workflow", help, StringComparison.Ordinal);
-        Assert.Contains("officeimo pdf redact", help, StringComparison.Ordinal);
+        Assert.Contains("officeimo pdf <command>", help, StringComparison.Ordinal);
         Assert.Contains("officeimo provenance", help, StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
@@ -36,7 +36,7 @@ public sealed class OfficeImoToolAppTests {
         await using var output = new MemoryStream();
         using var error = new StringWriter();
 
-        int exitCode = await OfficeImoToolApp.RunAsync(["pdf", "--help"], input, output, error);
+        int exitCode = await OfficeImoToolApp.RunAsync(["pdf", "redact", "--help"], input, output, error);
         string help = Encoding.UTF8.GetString(output.ToArray());
 
         Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);

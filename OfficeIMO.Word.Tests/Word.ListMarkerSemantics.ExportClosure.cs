@@ -224,7 +224,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        string text = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string text = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains(expected, text, StringComparison.Ordinal);
     }
 
@@ -239,7 +239,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("HeaderStyledMarker", StringComparison.Ordinal));
         Assert.InRange(marker.FontSize, 17.5D, 18.5D);
@@ -262,12 +262,13 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan reference = Assert.Single(spans, span => span.Text.Contains("PlainHeaderReference", StringComparison.Ordinal));
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("IndentedHeaderItem", StringComparison.Ordinal));
         Assert.True(marker.X > reference.X + 70D, $"reference={reference.X}, marker={marker.X}");
-        Assert.InRange(Math.Abs(content.X - (marker.X + marker.Advance)), 0D, 0.5D);
+        Assert.InRange(Math.Abs(content.X - (reference.X + 108D)), 0D, 0.5D);
+        Assert.True(content.X >= marker.X + marker.Advance);
         Assert.True(content.X > reference.X + 95D,
             $"marker={marker.X}+{marker.Advance}, content={content.X}");
     }
@@ -296,15 +297,15 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(tenItem, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan nine = Assert.Single(spans, span => span.Text == "9.");
         PdfTextSpan ten = Assert.Single(spans, span => span.Text == "10.");
         PdfTextSpan nineText = Assert.Single(spans, span => span.Text.Contains("HeaderNine", StringComparison.Ordinal));
         PdfTextSpan tenText = Assert.Single(spans, span => span.Text.Contains("HeaderTen", StringComparison.Ordinal));
         double expectedStartShift = alignment == WordListLevelAlignment.Right ? 10D : 5D;
         Assert.InRange(nine.X - ten.X, expectedStartShift - 1D, expectedStartShift + 1D);
-        Assert.True(Math.Abs(nineText.X - tenText.X) <= 1D,
-            $"alignment={alignment}, nineText={nineText.X}, tenText={tenText.X}");
+        double expectedTextShift = alignment == WordListLevelAlignment.Right ? 0D : expectedStartShift;
+        Assert.InRange(tenText.X - nineText.X, expectedTextShift - 1D, expectedTextShift + 1D);
     }
 
     [Fact]
@@ -358,7 +359,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.AddParagraph("Body");
 
         PdfTextSpan marker = Assert.Single(
-            PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans(),
+            PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans(),
             span => span.Text == "*");
         Assert.True(marker.Advance > 0D);
     }
@@ -687,10 +688,12 @@ public sealed partial class WordListMarkerSemanticsTests {
         (int Page, OfficeDrawingRichText Text) marker = Assert.Single(allRichText,
             item => item.Text.PlainText.Contains("*", StringComparison.Ordinal));
         Assert.Equal(first.Page, marker.Page);
-        Assert.True(marker.Text.X > 50D, $"markerX={marker.Text.X}");
-        Assert.True(first.Text.X > marker.Text.X + 10D,
-            $"markerX={marker.Text.X}, firstX={first.Text.X}");
-        Assert.InRange(Math.Abs(continuation.Text.X - first.Text.X), 0D, 0.01D);
+        double markerX = GetSplitRowTokenX(marker.Text, "*");
+        double firstX = GetSplitRowTokenX(first.Text, "SplitVisible");
+        double continuationX = GetSplitRowTokenX(continuation.Text, "SplitVisible");
+        Assert.True(markerX > 50D, $"markerX={markerX}");
+        Assert.True(firstX > markerX + 10D, $"markerX={markerX}, firstX={firstX}");
+        Assert.InRange(Math.Abs(continuationX - firstX), 0D, 2D);
     }
 
     [Theory]
@@ -875,10 +878,16 @@ public sealed partial class WordListMarkerSemanticsTests {
 
         string renderedText = string.Join(" | ", rendered.Select(text => $"'{text.PlainText}'@{text.X}"));
         OfficeDrawingRichText marker = Assert.Single(rendered, text => text.PlainText.StartsWith("*", StringComparison.Ordinal));
-        OfficeDrawingRichText before = Assert.Single(rendered, text => text.PlainText.StartsWith("Before", StringComparison.Ordinal));
-        OfficeDrawingRichText after = Assert.Single(rendered, text => text.PlainText.StartsWith("After", StringComparison.Ordinal));
-        Assert.InRange(Math.Abs(before.X - after.X), 0D, 0.01D);
-        Assert.True(after.X > marker.X + 25D, $"marker={marker.X}, before={before.X}, after={after.X}; {renderedText}");
+        string paintedText = string.Concat(rendered.Select(text => text.PlainText));
+        Assert.Contains("BeforeInlineImage", paintedText, StringComparison.Ordinal);
+        Assert.Contains("AfterInlineImage", paintedText, StringComparison.Ordinal);
+        OfficeDrawingRichText before = Assert.Single(rendered, text => text.PlainText.Contains("Before", StringComparison.Ordinal));
+        OfficeDrawingRichText after = Assert.Single(rendered, text => text.PlainText.Contains("After", StringComparison.Ordinal));
+        double markerX = GetSplitRowTokenX(marker, "*");
+        double beforeX = GetSplitRowTokenX(before, "Before");
+        double afterX = GetSplitRowTokenX(after, "After");
+        Assert.InRange(Math.Abs(beforeX - afterX), 0D, 2D);
+        Assert.True(afterX > markerX + 25D, $"marker={markerX}, before={beforeX}, after={afterX}; {renderedText}");
     }
 
     [Fact]

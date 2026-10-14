@@ -2,8 +2,38 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Workflows;
 
+// Carries an owning converter's evidence across the runner's structured failure boundary.
+internal sealed class WorkflowConversionFailureException : InvalidOperationException {
+    internal WorkflowConversionFailureException(Exception cause, OfficeWorkflowConversionEvidence evidence, bool diagnosticsAdded = false,
+        ISet<string>? importDiagnosticSources = null)
+        : base(cause.Message, cause) {
+        Evidence = evidence;
+        DiagnosticsAdded = diagnosticsAdded;
+        ImportDiagnosticSources = importDiagnosticSources == null ? null : new HashSet<string>(importDiagnosticSources, StringComparer.Ordinal);
+    }
+
+    internal OfficeWorkflowConversionEvidence Evidence { get; }
+    internal bool DiagnosticsAdded { get; }
+    internal ISet<string>? ImportDiagnosticSources { get; }
+}
+
+// Retains available reports while preserving the runner's cancellation classification.
+internal sealed class WorkflowConversionCancellationException : OperationCanceledException {
+    internal WorkflowConversionCancellationException(OperationCanceledException cause, OfficeWorkflowConversionEvidence evidence,
+        bool diagnosticsAdded = false, ISet<string>? importDiagnosticSources = null) : base(cause.Message, cause, cause.CancellationToken) {
+        Evidence = evidence;
+        DiagnosticsAdded = diagnosticsAdded;
+        ImportDiagnosticSources = importDiagnosticSources == null ? null : new HashSet<string>(importDiagnosticSources, StringComparer.Ordinal);
+    }
+    internal OfficeWorkflowConversionEvidence Evidence { get; }
+    internal bool DiagnosticsAdded { get; }
+    internal ISet<string>? ImportDiagnosticSources { get; }
+}
+
 /// <summary>Converts a captured input into a bounded output stream. Streams remain owned by the runner.</summary>
-/// <remarks>The delegate must honor cancellation and leave both streams open. Publication and output reopen validation belong to the runner.</remarks>
+/// <remarks>The delegate must honor cancellation and leave both streams open. Publication and output reopen validation belong to the runner.
+/// Throw <see cref="OfficeConversionException"/> with the available report to retain evidence when output serialization fails.
+/// An <see cref="OfficeWorkflowConversionEvidence"/> report also retains its compact facts; an inner cancellation exception preserves cancellation classification.</remarks>
 public delegate OfficeWorkflowConversionEvidence OfficeWorkflowConverter(
     Stream input, Stream output, OfficeWorkflowLimits limits, CancellationToken cancellationToken);
 
@@ -20,8 +50,8 @@ public sealed class OfficeWorkflowConversionRegistration {
         OfficeWorkflowRoute route = OfficeWorkflowCatalog.Find(routeId)
             ?? throw new ArgumentException("Choose an existing canonical conversion route.", nameof(routeId));
         if (route.CanExecute) throw new ArgumentException("Built-in conversion routes cannot be replaced.", nameof(routeId));
-        if (route.TargetExtension.TrimStart('.').ToLowerInvariant() is not ("docx" or "xlsx" or "pptx"))
-            throw new NotSupportedException("Opt-in workflow conversion currently supports DOCX, XLSX, and PPTX destinations.");
+        if (route.TargetExtension.TrimStart('.').ToLowerInvariant() is not ("docx" or "xlsx" or "pptx" or "pdf"))
+            throw new NotSupportedException("Opt-in workflow conversion supports DOCX, XLSX, PPTX, and PDF destinations.");
         RouteId = route.Id;
         Converter = converter;
         _acceptsSettings = acceptsSettings;
@@ -76,6 +106,14 @@ public sealed class OfficeWorkflowConversionEvidence : IOfficeConversionReport {
         ArgumentNullException.ThrowIfNull(report);
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten([report]);
         Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts ?? new Dictionary<string, string>(), StringComparer.Ordinal));
+    }
+
+    /// <summary>Copies evidence from ordered conversion stages after their output operations have completed.</summary>
+    public OfficeWorkflowConversionEvidence(IReadOnlyList<IOfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
+        ArgumentNullException.ThrowIfNull(reports);
+        ArgumentNullException.ThrowIfNull(facts);
+        FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten(reports);
+        Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts, StringComparer.Ordinal));
     }
 
     /// <inheritdoc />
