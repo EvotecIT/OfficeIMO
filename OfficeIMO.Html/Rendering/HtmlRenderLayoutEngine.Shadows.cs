@@ -50,6 +50,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlResolvedBorderRadii radii,
         IElement source,
         string sourceDescription) {
+        if (width <= 0.0001D || height <= 0.0001D) return;
         if (!ValidateBoxShadows(style, source, sourceDescription)) return;
 
         for (int index = style.BoxShadows.Count - 1; index >= 0; index--) {
