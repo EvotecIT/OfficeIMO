@@ -58,6 +58,32 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("alpha-beta/gamma", string.Concat(text.Select(run => run.Text)));
     }
 
+    [Theory]
+    [InlineData("\u2003", "")]
+    [InlineData("\u2003", "word-break:keep-all")]
+    [InlineData("\u3000", "")]
+    public void HtmlTextFlow_UnicodeBreakSpaceRetainsItsGlyphAndMinContentAdvance(string separator, string additionalStyle) {
+        const string wrapper = "<style>#box{margin:0;display:inline-block;width:min-content;background:yellow}</style>";
+        string actual = wrapper + "<p id='box' style='" + additionalStyle + "'>alpha" + separator + "beta</p><span>after</span>";
+        string control = wrapper + "<p id='box' style='white-space:nowrap'>alpha" + separator + "<br>beta</p><span>after</span>";
+        HtmlRenderDocument rendered = RenderFirstLetter(actual);
+        HtmlRenderVisual[] actualVisuals = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene).ToArray();
+        HtmlRenderVisual[] controlVisuals = EnumerateTextOverflowVisuals(RenderFirstLetter(control).Pages[0].Scene).ToArray();
+        HtmlRenderShape actualBox = Assert.Single(actualVisuals.OfType<HtmlRenderShape>(), item => item.Source == "p#box");
+        HtmlRenderShape controlBox = Assert.Single(controlVisuals.OfType<HtmlRenderShape>(), item => item.Source == "p#box");
+        HtmlRenderText[] actualText = actualVisuals.OfType<HtmlRenderText>().Where(item => item.Text != "after").ToArray();
+        HtmlRenderText following = Assert.Single(actualVisuals.OfType<HtmlRenderText>(), item => item.Text == "after");
+        HtmlRenderText controlFollowing = Assert.Single(controlVisuals.OfType<HtmlRenderText>(), item => item.Text == "after");
+
+        Assert.Equal("alpha" + separator + "beta", string.Concat(actualText.Select(item => item.Text)));
+        Assert.Equal(2, actualText.Select(item => item.Y).Distinct().Count());
+        Assert.Equal(controlBox.Width, actualBox.Width, 6);
+        Assert.Equal(controlBox.Height, actualBox.Height, 6);
+        Assert.Equal(controlFollowing.X, following.X, 6);
+        Assert.Equal(controlFollowing.Y, following.Y, 6);
+        rendered.RequireNoLoss();
+    }
+
     private static HtmlRenderText[] RenderParagraph(string style, HtmlRenderOptions options, string text = "日本語文書作成") {
         string html = "<p style='margin:0;font-family:Arial;font-size:12px;line-height:14px;" + style + "'>" + text + "</p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);

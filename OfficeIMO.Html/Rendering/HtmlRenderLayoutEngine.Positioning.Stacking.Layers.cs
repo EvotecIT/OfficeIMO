@@ -53,7 +53,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             };
             // Keep each ancestor's clip and semantic identity around its promoted
             // layer; only the external paint ordering changes.
-            yield return layer.CopyStackingContextTo(envelope).IdentifyPaintProjection(projectionIdentity);
+            layer.CopyStackingContextTo(envelope);
+            if (layer.StackingContext == null
+                && visual.PaintPhase is HtmlRenderPaintPhase.Atomic or HtmlRenderPaintPhase.Float) {
+                // A normal descendant still paints within its float/BFC owner's
+                // phase. Only an actual stacking context is promoted out of it.
+                envelope.PaintPhase = visual.PaintPhase;
+            }
+            yield return envelope.IdentifyPaintProjection(projectionIdentity);
             ownsLogicalText = false;
         }
     }

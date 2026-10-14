@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Html.Css;
 
 /// <summary>Resolves owned CSS length expressions when the consuming layout context is available.</summary>
-public static class HtmlCssMathResolver {
+public static partial class HtmlCssMathResolver {
     private const double CssPixelsPerInch = 96D;
 
     /// <summary>

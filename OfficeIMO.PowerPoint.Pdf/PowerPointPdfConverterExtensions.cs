@@ -33,7 +33,8 @@ public static partial class PowerPointPdfConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfOptions pdfOptions = CreatePdfOptions(presentation, options);
         options.NativeTextMeasure = PdfCore.PdfWriter.CreateDrawingTextMeasure(pdfOptions);
-        options.NativeTextDefaultFontFamily = string.IsNullOrWhiteSpace(options.FontFamily) ? null
+        bool hasExplicitDefaultFont = options.HasExplicitPdfFontConfiguration && options.PdfOptions?.HasExplicitDefaultFont == true;
+        options.NativeTextDefaultFontFamily = string.IsNullOrWhiteSpace(options.FontFamily) && !hasExplicitDefaultFont ? null
             : PdfCore.PdfFontNames.ToBaseFontName(PdfCore.PdfStandardFontMapper.GetStyledFont(pdfOptions.DefaultFont, false, false));
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ReportOmittedSpeakerNotes(presentation, options);

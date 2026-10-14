@@ -75,7 +75,7 @@ jobs:
       packages: read
       pages: write
       id-token: write
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@bdec4ac6ace22190a9aa5c434b17aeaf8fdcb742
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@b53912c9f79e3b53b938a9ca8e94290461002a1b
     with:
       website_root: Website
       source_ref: ${{ github.sha }}

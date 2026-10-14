@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   website-build:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@720a4ed99ab6887abc97a5f1fd69c3a8b7dc0b1d
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@b53912c9f79e3b53b938a9ca8e94290461002a1b
     with:
       website_root: Website
       authenticate_public_github_data: true

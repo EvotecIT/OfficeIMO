@@ -13,6 +13,45 @@ using Xunit;
 namespace OfficeIMO.Tool.Tests;
 
 public sealed class HtmlCommandTests {
+    [Theory]
+    [InlineData("convert", false, "html")]
+    [InlineData("render", false, "html")]
+    [InlineData("convert", true, "html")]
+    [InlineData("render", true, "html")]
+    [InlineData("convert", false, "mhtml")]
+    [InlineData("render", false, "mhtml")]
+    [InlineData("convert", false, "site-bundle")]
+    [InlineData("render", false, "site-bundle")]
+    public async Task HtmlTool_PreservesUntrustedComplexityLimitsWhenSettingInputByteLimit(string command, bool stylesheet, string format) {
+        string html = stylesheet
+            ? "<style>" + string.Concat(Enumerable.Repeat("p{color:red}", 10_001)) + "</style><p>Bounded input</p>"
+            : string.Concat(Enumerable.Repeat("<div>", 300)) + "Deep input" + string.Concat(Enumerable.Repeat("</div>", 300));
+        byte[] source = Encoding.UTF8.GetBytes(html);
+        if (format == "mhtml") {
+            source = Encoding.UTF8.GetBytes("MIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=bounded\r\n\r\n"
+                + "--bounded\r\nContent-Type: text/html; charset=utf-8\r\nContent-Location: https://example.test/index.html\r\n\r\n"
+                + html + "\r\n--bounded--\r\n");
+        } else if (format == "site-bundle") {
+            using var bundle = new MemoryStream();
+            using (var archive = new ZipArchive(bundle, ZipArchiveMode.Create, leaveOpen: true)) {
+                using Stream entry = archive.CreateEntry("index.html").Open();
+                await entry.WriteAsync(source);
+            }
+            source = bundle.ToArray();
+        }
+        await using var input = new MemoryStream(source);
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await HtmlCommand.RunAsync(
+            new[] { command, "-", "--input-format", format, "--output", "-", "--max-input-bytes", "1048576" },
+            input, output, error);
+
+        Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, exitCode);
+        Assert.Contains("HtmlDomLimitException", error.ToString(), StringComparison.Ordinal);
+        Assert.Equal(0, output.Length);
+    }
+
     [Fact]
     public async Task HtmlTool_RendersStandardInputToDeterministicSvgArchive() {
         const string html = "<html><body><h1>Archive</h1><p>Retained pages</p></body></html>";

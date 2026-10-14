@@ -31,9 +31,16 @@ public static partial class OfficeDrawingRasterRenderer {
             throw new OfficeImageExportLimitException(layerScale, long.MaxValue, maximumRasterPixels,
                 OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
         }
+        bool bounded = TryResolveFilledPrimitiveEffectPixelBounds(canvas, effectGroup, layerPlan, pixelTransform,
+            width, height, cancellationToken, out int boundedWidth, out int boundedHeight);
+        if (bounded) { width = boundedWidth; height = boundedHeight; }
         canvas.ChargeIntermediateSurfacePixels((long)width * (long)height, maximumRasterPixels);
+        OfficeRasterExportPlan? allocationPlan = bounded
+            ? OfficeRasterExportPlanner.Resolve(width, height, OfficeImageExportFormat.Png, new OfficeImageExportOptions {
+                Scale = 1D, MaximumRasterPixels = maximumRasterPixels, RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
+            }) : null;
         OfficeRasterImage layer = RenderEffectLayer(layerPlan.Drawing, canvas, scaleX, scaleY,
-            imageCodec, maximumRasterPixels, cancellationToken);
+            imageCodec, maximumRasterPixels, cancellationToken, allocationPlan);
         if (effectGroup.SoftMask != null) {
             layer = ApplySoftMask(
                 layer,
@@ -55,7 +62,7 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static OfficeRasterImage RenderEffectLayer(OfficeDrawing drawing, OfficeRasterCanvas canvas,
         double scaleX, double scaleY, IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels,
-        System.Threading.CancellationToken cancellationToken) =>
+        System.Threading.CancellationToken cancellationToken, OfficeRasterExportPlan? allocationPlan = null) =>
         RenderCore(drawing, new OfficeDrawingRasterRenderOptions {
             Scale = System.Math.Max(scaleX, scaleY),
             ImageCodec = imageCodec,
@@ -67,7 +74,7 @@ public static partial class OfficeDrawingRasterRenderer {
             ImageCache = canvas.ImageCache,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
-        }, scaleX, scaleY, fonts: canvas.Fonts);
+        }, scaleX, scaleY, allocationPlan, canvas.Fonts);
 
     private static (double X, double Y) GetEffectAxisScales(OfficeTransform transform, double parentX, double parentY) {
         double a = transform.M11 * parentX, b = transform.M12 * parentY;

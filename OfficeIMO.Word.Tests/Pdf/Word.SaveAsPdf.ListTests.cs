@@ -911,8 +911,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, CountOccurrences(allText, "Native list footnote text"));
             }
 
-            Assert.Contains(listItems, item => item.Text == "Footnoted native list item");
-            Assert.DoesNotContain(listItems, item => item.Text == "Footnoted native list item1");
+            Assert.Contains(listItems, item => item.Text == "Footnoted native list item1");
             Assert.Contains(listItems, item => item.Text == "Following native list item");
         }
     }

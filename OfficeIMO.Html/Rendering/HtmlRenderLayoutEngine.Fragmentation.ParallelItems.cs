@@ -5,7 +5,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock item,
         double offset,
         IDictionary<HtmlRenderFlowBlock, double> atomicVisualBottoms,
-        IDictionary<HtmlRenderFlowBlock, IReadOnlyList<(double Top, double Bottom)>> atomicVisualRanges) {
+        IDictionary<HtmlRenderFlowBlock, IReadOnlyList<(double Top, double Bottom)>> atomicVisualRanges,
+        double fullPageHeight = 0D) {
         if (offset <= 0.0001D || offset >= item.PagedPaintExtent - 0.0001D) return true;
         int precedingBreakIndex = UpperBound(item.BreakOffsets, offset + 0.0001D) - 1;
         if (precedingBreakIndex >= 0 && Math.Abs(item.BreakOffsets[precedingBreakIndex] - offset) <= 0.0001D) return true;
@@ -21,8 +22,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // sibling's legal break can also split this item in its unpainted space
         // between line boxes or child blocks, provided its own break constraints
         // and atomic visuals remain intact.
-        if (item.AvoidBreakInside || item.AvoidBreakRanges.Any(range =>
-                offset > range.Start + 0.0001D && offset < range.End - 0.0001D)) return false;
+        if ((item.AvoidBreakInside && (fullPageHeight <= 0D || item.PagedPaintExtent <= fullPageHeight + 0.0001D))
+            || item.AvoidBreakRanges.Any(range =>
+                offset > range.Start + 0.0001D && offset < range.End - 0.0001D
+                && (fullPageHeight <= 0D || range.End - range.Start <= fullPageHeight + 0.0001D))) return false;
         if (!atomicVisualRanges.TryGetValue(item, out IReadOnlyList<(double Top, double Bottom)>? ranges)) {
             ranges = CollectAtomicParallelVisualRanges(item.Visuals);
             atomicVisualRanges[item] = ranges;

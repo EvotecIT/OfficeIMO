@@ -147,9 +147,7 @@ internal static partial class HtmlPdfRenderedConverter {
             OfficeFontFallbackRun? fallback = webFonts.Faces.PlanFallbackRuns(
                 glyph, visual.Font.FamilyName, style).FirstOrDefault();
             string family = fallback?.FamilyName ?? visual.Font.FamilyName;
-            if (webFonts.AllowInstalledFontFaces
-                && !webFonts.Slots.ContainsKey(family)
-                && EnumerateBoundedSystemFamilies(family).Any(candidate =>
+            if (EnumerateBoundedSystemFamilies(family).Any(candidate =>
                     NamedFontCoversTextWithStyleFallback(webFonts.Options, candidate, glyph,
                         visual.Font.IsBold, visual.Font.IsItalic))) {
                 webFonts.PrivateUsePaintability[key] = true;
