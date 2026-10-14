@@ -1,0 +1,157 @@
+{
+  "title": "Template-free native Pages body-document creation",
+  "recordedUtc": "2026-10-09T23:22:39.316819+00:00",
+  "license": "Newly authored OfficeIMO documents and evidence use the repository MIT license. No seed package or standalone font files are distributed.",
+  "producer": {
+    "application": "Pages Creator Studio",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "operatingSystem": "27.0.1",
+    "architecture": "arm64"
+  },
+  "creation": {
+    "pagePoints": [
+      612,
+      792
+    ],
+    "bodyMarginsPoints": [
+      72,
+      72,
+      72,
+      72
+    ],
+    "paragraphs": 83,
+    "textRuns": 85,
+    "layout": "One body section, left-aligned single-spaced paragraphs; one blank paragraph and 80 flowing paragraphs; hidden empty header/footer positions are complete native objects.",
+    "fonts": [
+      "Arial",
+      "Times New Roman"
+    ],
+    "fontSizesPoints": [
+      12,
+      14,
+      16,
+      24
+    ],
+    "decorations": [
+      "bold",
+      "italic",
+      "single underline",
+      "single strikethrough"
+    ],
+    "text": "Latin, Polish, accented text and a non-BMP emoji"
+  },
+  "files": [
+    {
+      "path": "native-exports/pages-created-v15.4.pages",
+      "sha256": "c6822fd3c93e1d9d87ce11270573aec07ac5af5167aefda1c5c25a8fa683ad53",
+      "bytes": 47534,
+      "role": "OfficeIMO deterministic creation; frozen bytes, not the native working copy"
+    },
+    {
+      "path": "native-exports/pages-created-edited-v15.4.pages",
+      "sha256": "dc07fa4028ac9f261fdb7cb23f8b409cd80e092cdf8a8ed938adc420b37ad6b4",
+      "bytes": 298435,
+      "role": "Pages native edit/save/close/reopen"
+    },
+    {
+      "path": "native-exports/pages-created-v15.4.pdf",
+      "sha256": "aabd3a2c95d892c90a15356ada4079cf1fe2d998329287baa0939c8b44c6fe6c",
+      "bytes": 91992,
+      "role": "Pages best-quality PDF after the native edit; both pages"
+    },
+    {
+      "path": "native-exports/pages-created-v15.4.docx",
+      "sha256": "fceeedc2d05a3002ac92a569390c2b60d59331b54da6d2ba1c1665ab48ca5d8a",
+      "bytes": 9396,
+      "role": "Pages DOCX after the native edit; complete content and page reference, font/decorations limitation recorded"
+    },
+    {
+      "path": "native-exports/pages-created-v15.4-page1.png",
+      "sha256": "adfe93866dd87a6e48d5802d09e0b1aa7e2f98e1b3b2d7e727c8896d0a6a66cf",
+      "bytes": 225894,
+      "role": "Inspected native PDF first page rendered by Poppler at 1000 pixels"
+    },
+    {
+      "path": "native-exports/pages-created-v15.4-page2.png",
+      "sha256": "86a508477edc19fc3fbb5793f4edd4f1d3c6d8c8595b3507941882cabba554f1",
+      "bytes": 202826,
+      "role": "Inspected native PDF second page rendered by Poppler at 1000 pixels"
+    },
+    {
+      "path": "native-exports/pages-created-graph-v15.4.json",
+      "sha256": "79f4dab130ca32eed8856a7ff9778bfe23db0016a4c93155eb42f652b6089c96",
+      "bytes": 50546,
+      "role": "Independent pinned-schema object graph, UTF-16 offsets and character properties"
+    },
+    {
+      "path": "native-exports/pages-created-landscape-v15.4.pages",
+      "sha256": "7aa23866d9e69a960024fd370d3528f6cae4d1829b13882066fae07c3f1f181d",
+      "bytes": 5258,
+      "role": "OfficeIMO custom landscape creation, opened in Pages without repair"
+    },
+    {
+      "path": "native-exports/pages-created-landscape-v15.4.pdf",
+      "sha256": "b4baf2477e7958683b33df4671dd9e161f37c674bb7a743ae11f8ab462366444",
+      "bytes": 13599,
+      "role": "Pages best-quality one-page PDF with custom page geometry and margins"
+    },
+    {
+      "path": "native-exports/pages-created-landscape-graph-v15.4.json",
+      "sha256": "7e0fb83c5da5758f4a70b6560a01b2a32bb130940ef9e823c7eaff31e986a8d9",
+      "bytes": 3461,
+      "role": "Independent pinned-schema decoding of the 23-object landscape creation"
+    }
+  ],
+  "independentDecode": {
+    "schemaSource": "https://github.com/orcastor/iwork-converter",
+    "schemaCommit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schemaLicense": "MIT, Steve Dunham",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+    "numbersParserVersion": "4.19.0",
+    "records": 189,
+    "requiredFieldsComplete": true,
+    "referencesComplete": true,
+    "utf16CharacterRangesComplete": true,
+    "explicitDecorationResets": true,
+    "hiddenHeaderFooterStoragesComplete": true
+  },
+  "nativeAcceptance": {
+    "openedWithoutRepair": true,
+    "nativeEdit": "plain reset changed to plain edited in the rich second paragraph",
+    "savedClosedReopened": true,
+    "nativeFormattingRetained": true,
+    "PDFPages": 2,
+    "allPDFPagesVisuallyInspected": true,
+    "DOCXParagraphs": 83,
+    "DOCXTextAndPageSettingsAgree": true,
+    "ownedApplicationQuitAndVerified": true,
+    "landscape": {
+      "openedWithoutRepair": true,
+      "PDFPages": 1,
+      "pagePoints": [
+        792,
+        612
+      ],
+      "bodyMarginsPoints": [
+        36,
+        54,
+        45,
+        63
+      ],
+      "PDFTextBoundsPoints": {
+        "left": 36,
+        "firstGlyphTop": 45.4089
+      },
+      "independentRecords": 23
+    },
+    "appleDOCXReimportInspected": true
+  },
+  "fontProvenance": "Installed macOS and Microsoft fonts. Native PDF embeds subsets of ArialMT, Arial-BoldItalicMT, TimesNewRomanPS-ItalicMT and AppleColorEmoji. This recorded font environment is qualified.",
+  "reproduction": "Generate IWorkPagesWritingTests.Example(), independently decode with Build/IWork/verify-pages-creation.py using the pinned descriptor, then open a working copy in Pages 15.4. Change reset to edited, save, close and reopen. Export best-quality PDF and Word with password/comment options off. Inspect both PDF pages and compare complete DOCX body text and page settings.",
+  "boundaries": [
+    "The native Pages graph, edit/reopen and PDF retain the requested character formatting. Apple DOCX export assigns Arial Unicode MS to selected runs and writes false bold/italic overrides over styled character properties; its typography is not qualified as equivalent.",
+    "OfficeIMO strict saved/reopened DOCX retains the source text, paragraph/run order, sizes, colors and explicit character decorations. A final empty source paragraph comes from the terminating LF; Apple exports only the 83 authored paragraphs.",
+    "The writer does not measure pagination or embed fonts. Other producer versions, font environments, scripts, lists, tables, images, custom headers/footers, section layouts and loaded-source save-back remain outside this profile."
+  ]
+}

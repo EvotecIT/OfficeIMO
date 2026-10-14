@@ -1,0 +1,1766 @@
+{
+  "schemaVersion": 1,
+  "profile": "Mixed character font families at one whole-point size in non-tiered decimal items, levels 0..8",
+  "producer": {
+    "application": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "os": "macOS27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "license": "MIT; OfficeIMO-authored input and derived native/managed evidence; embedded installed fonts retain their own licenses",
+  "sourceProvenance": "OfficeIMO template-free authored; Apple saved/edited, not arbitrary independent-producer coverage.",
+  "fonts": {
+    "families": [
+      "Arial",
+      "Times New Roman",
+      "Courier New"
+    ],
+    "sizePoints": 12,
+    "metadata": "pages-mixed-font-local-font-inputs.json",
+    "provenance": "Installed native font files, OS/2 fsType 8 editable embedding; no standalone font files copied. Caller-font PDFs embed source fonts; portable PDFs declare standard-family substitution."
+  },
+  "artifacts": {
+    "pages-mixed-font-all-pages-1.png": {
+      "bytes": 150428,
+      "sha256": "76da854c58ceed9c21a525c9db573896a853ae80b9609a23270b74511b51351a"
+    },
+    "pages-mixed-font-all-pages-2.png": {
+      "bytes": 157984,
+      "sha256": "763e31b9547eb6c2bd0fa75634ec842818c92c17c257e4f51880563cec4ef52e"
+    },
+    "pages-mixed-font-all-pages-3.png": {
+      "bytes": 92636,
+      "sha256": "ecb6328dc98a2318a47a0a8a6280427505e6665cae349ca2512d286d3850c7fe"
+    },
+    "pages-mixed-font-all-pages-4.png": {
+      "bytes": 150761,
+      "sha256": "0281aa9b6670a2441c580f6c800dc9a57849268b17ed2bcf65d1a0f006a6230c"
+    },
+    "pages-mixed-font-all-pages-5.png": {
+      "bytes": 81049,
+      "sha256": "acc5ff56b2c088c9e829c39745decda6d2fb9d9350c681944d7290560f7a51f7"
+    },
+    "pages-mixed-font-created-caller-fonts.pdf": {
+      "bytes": 182825,
+      "sha256": "42be849a70269350ed250d25fa252c23c873291190a979a337f145fae04a5c81"
+    },
+    "pages-mixed-font-created-decode.json": {
+      "bytes": 112468,
+      "sha256": "586e3fa8154e226e88396cabee0eb2b7b441de47d7dfb20c896a4ea20453f41b"
+    },
+    "pages-mixed-font-created-officeimo.docx": {
+      "bytes": 21205,
+      "sha256": "a00b5f06ec540b6db69d893677d36358bbbde6c1d23d9f8ec6a82005cae2c53a"
+    },
+    "pages-mixed-font-created-officeimo.pdf": {
+      "bytes": 2142,
+      "sha256": "42edaf698d40bc7b1e8e0d7c0f314f4355683f663d7115c96de1e45ebcaaa1f2"
+    },
+    "pages-mixed-font-created-open.png": {
+      "bytes": 90774,
+      "sha256": "310f2061cc4ee4d5d7fb49d2432de9304397b8e22a945b9586b67bc54fe77c73"
+    },
+    "pages-mixed-font-created.pages": {
+      "bytes": 20753,
+      "sha256": "00269240af28ce46529de9e4c3c8456efe6fc96a367d3ec7d0fa898415996332"
+    },
+    "pages-mixed-font-edited-v15.4-caller-fonts.pdf": {
+      "bytes": 183733,
+      "sha256": "5ec2f0260dc63d70e4a7907196be2bab8105ca109ea55fb2f4923d959fb2dcc7"
+    },
+    "pages-mixed-font-edited-v15.4-decode.json": {
+      "bytes": 85936,
+      "sha256": "90fde2ca1ba4f28291d2372198f3e167673cf92d0583b4b9488528c66f57b9e7"
+    },
+    "pages-mixed-font-edited-v15.4-officeimo.docx": {
+      "bytes": 21284,
+      "sha256": "e1780d2617b2e7d6a60abad210d1542d53f1ab8f3bb65dd9efd2f3986292d28a"
+    },
+    "pages-mixed-font-edited-v15.4-officeimo.pdf": {
+      "bytes": 2168,
+      "sha256": "52c8bb926d94d88272f193a81be52f727bb9cc1e0935c3b8deef0f8ae6cb26fd"
+    },
+    "pages-mixed-font-edited-v15.4.docx": {
+      "bytes": 10343,
+      "sha256": "4916af7cf9bd7128e9f0dcf742910de9943c36856ae8c2c73642e115832c24b0"
+    },
+    "pages-mixed-font-edited-v15.4.pages": {
+      "bytes": 91054,
+      "sha256": "9a566e15f005b20d018b0771ff6aa5459891a286eb3cc71498a8b554737eef90"
+    },
+    "pages-mixed-font-edited-v15.4.pdf": {
+      "bytes": 65496,
+      "sha256": "d220deee37323c6ca4aeaa2b2ba6836b6437ed5a5cb01a1825a67c823fda243c"
+    },
+    "pages-mixed-font-independent-verification.json": {
+      "bytes": 37190,
+      "sha256": "da1dd5a0881862bef9cefc94d70b38eb65d117634acc17b45fb4155d028c872e"
+    },
+    "pages-mixed-font-local-font-inputs.json": {
+      "bytes": 4643,
+      "sha256": "ceb4ecf945edcdfb02e019de089d8bb07632e1c3dbb9465cdcae2e44afff40a5"
+    },
+    "pages-mixed-font-officeimo-docx-open.ax.txt": {
+      "bytes": 6929,
+      "sha256": "fb771d425c4a67da3a9e813b56ca503f3211cdc3dcb69a2f58b766c845236804"
+    },
+    "pages-mixed-font-officeimo-docx-open.png": {
+      "bytes": 93526,
+      "sha256": "620905a2bfbc2b2489c4724fb54920924876bcf6a79715dc9566df4aed2898d1"
+    },
+    "pages-mixed-font-officeimo-docx-v15.4.pdf": {
+      "bytes": 64333,
+      "sha256": "f0fa39a81f26784494dca892815f181f7e5ae57a86b523f2d7548cd7bf9a2d18"
+    },
+    "pages-mixed-font-reopened.ax.txt": {
+      "bytes": 15228,
+      "sha256": "6d8b6c7a5434ad25107f4ec28695dd63d55d3ceada21cc179171b907d2760689"
+    },
+    "pages-mixed-font-reopened.png": {
+      "bytes": 136571,
+      "sha256": "2a6f22dde7b1ce0ce2997d1a209a9c2bd7d71d6a04458bd9b6d244b39672d8d8"
+    },
+    "pages-mixed-font-saved-v15.4-caller-fonts.pdf": {
+      "bytes": 182825,
+      "sha256": "42be849a70269350ed250d25fa252c23c873291190a979a337f145fae04a5c81"
+    },
+    "pages-mixed-font-saved-v15.4-decode.json": {
+      "bytes": 85223,
+      "sha256": "9c5f74836da5a704b0da36582b40e8bc7ff7ec3d57520a954ce58d31e334e29a"
+    },
+    "pages-mixed-font-saved-v15.4-officeimo.docx": {
+      "bytes": 21258,
+      "sha256": "d1d6bacb3b39216ac18c294297a1eb3572e3acf0aa143ece638ff04433a83592"
+    },
+    "pages-mixed-font-saved-v15.4-officeimo.pdf": {
+      "bytes": 2142,
+      "sha256": "42edaf698d40bc7b1e8e0d7c0f314f4355683f663d7115c96de1e45ebcaaa1f2"
+    },
+    "pages-mixed-font-saved-v15.4.docx": {
+      "bytes": 10279,
+      "sha256": "279e9f56ee768fed27e38ee2a96a825e8504b9201e4500889de699d79da3c05e"
+    },
+    "pages-mixed-font-saved-v15.4.pages": {
+      "bytes": 88461,
+      "sha256": "7e9e9a9c7454619ade26c4f8263156c7d84136677d26d5aa442128128ccd4053"
+    },
+    "pages-mixed-font-saved-v15.4.pdf": {
+      "bytes": 64196,
+      "sha256": "ae2aac6c2ac4998475695f5b3982513b44f7d20c9a5cd782afae0eecb4a1fd1d"
+    }
+  },
+  "cases": [
+    {
+      "source": "pages-mixed-font-created.pages",
+      "strictDocx": "pages-mixed-font-created-officeimo.docx",
+      "portablePdf": "pages-mixed-font-created-officeimo.pdf",
+      "callerFontsPdf": "pages-mixed-font-created-caller-fonts.pdf",
+      "nativePdf": null,
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root seven serif mono plain",
+          "marker": "7.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Root seven serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 1 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 2 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 3 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 4 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 5 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 6 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 7 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Depth 8 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 8 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Deep two serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Root eight serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Child one serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)",
+          "markerFont": "Times New Roman",
+          "runs": [
+            {
+              "text": "Serif marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)",
+          "markerFont": "Times New Roman",
+          "runs": [
+            {
+              "text": "Serif child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)",
+          "markerFont": "Courier New",
+          "runs": [
+            {
+              "text": "Mono marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)",
+          "markerFont": "Courier New",
+          "runs": [
+            {
+              "text": "Mono child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Resumed child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed family decimal items",
+        "Plain gap retains counters"
+      ]
+    },
+    {
+      "source": "pages-mixed-font-saved-v15.4.pages",
+      "strictDocx": "pages-mixed-font-saved-v15.4-officeimo.docx",
+      "portablePdf": "pages-mixed-font-saved-v15.4-officeimo.pdf",
+      "callerFontsPdf": "pages-mixed-font-saved-v15.4-caller-fonts.pdf",
+      "nativePdf": "pages-mixed-font-saved-v15.4.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root seven serif mono plain",
+          "marker": "7.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Root seven serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 1 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 2 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 3 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 4 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 5 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 6 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 7 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Depth 8 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 8 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Deep two serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Root eight serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Child one serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)",
+          "markerFont": "Times New Roman",
+          "runs": [
+            {
+              "text": "Serif marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)",
+          "markerFont": "Times New Roman",
+          "runs": [
+            {
+              "text": "Serif child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)",
+          "markerFont": "Courier New",
+          "runs": [
+            {
+              "text": "Mono marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)",
+          "markerFont": "Courier New",
+          "runs": [
+            {
+              "text": "Mono child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Resumed child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed family decimal items",
+        "Plain gap retains counters"
+      ]
+    },
+    {
+      "source": "pages-mixed-font-edited-v15.4.pages",
+      "strictDocx": "pages-mixed-font-edited-v15.4-officeimo.docx",
+      "portablePdf": "pages-mixed-font-edited-v15.4-officeimo.pdf",
+      "callerFontsPdf": "pages-mixed-font-edited-v15.4-caller-fonts.pdf",
+      "nativePdf": "pages-mixed-font-edited-v15.4.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Root native serif mono plain",
+          "marker": "7.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Root native serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Depth 1 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 1 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Depth 2 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 2 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "number": 1,
+          "text": "Depth 3 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 3 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "number": 1,
+          "text": "Depth 4 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 4 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "number": 1,
+          "text": "Depth 5 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 5 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "number": 1,
+          "text": "Depth 6 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 6 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 7,
+          "number": 1,
+          "text": "Depth 7 serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Depth 7 serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 1,
+          "text": "Deep native serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Deep native serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "number": 2,
+          "text": "Deep two serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Deep two serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Root eight serif mono plain",
+          "marker": "8.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Root eight serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child one serif mono plain",
+          "marker": "1.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Child one serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Serif marker serif mono plain",
+          "marker": "(3)",
+          "markerFont": "Times New Roman",
+          "runs": [
+            {
+              "text": "Serif marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Serif child serif mono plain",
+          "marker": "(1)",
+          "markerFont": "Times New Roman",
+          "runs": [
+            {
+              "text": "Serif child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 0,
+          "number": 5,
+          "text": "Mono marker serif mono plain",
+          "marker": "5)",
+          "markerFont": "Courier New",
+          "runs": [
+            {
+              "text": "Mono marker serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Mono child serif mono plain",
+          "marker": "1)",
+          "markerFont": "Courier New",
+          "runs": [
+            {
+              "text": "Mono child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Resumed child serif mono plain",
+          "marker": "2.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Resumed child serif",
+              "family": "Times New Roman",
+              "bold": true,
+              "italic": false,
+              "color": "003366"
+            },
+            {
+              "text": " mono",
+              "family": "Courier New",
+              "bold": false,
+              "italic": true,
+              "color": "008000"
+            },
+            {
+              "text": " plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "number": 3,
+          "text": "Native child plain",
+          "marker": "3.",
+          "markerFont": "Arial",
+          "runs": [
+            {
+              "text": "Native child plain",
+              "family": "Arial",
+              "bold": false,
+              "italic": false,
+              "color": "000000"
+            }
+          ]
+        }
+      ],
+      "expectedPlainParagraphs": [
+        "Mixed family decimal items",
+        "Plain gap retains counters"
+      ]
+    }
+  ],
+  "receivingDocxPdf": "pages-mixed-font-officeimo-docx-v15.4.pdf",
+  "independentVerification": "pages-mixed-font-independent-verification.json",
+  "visualInspection": {
+    "pages": 9,
+    "contactSheets": [
+      "pages-mixed-font-all-pages-1.png",
+      "pages-mixed-font-all-pages-2.png",
+      "pages-mixed-font-all-pages-3.png",
+      "pages-mixed-font-all-pages-4.png",
+      "pages-mixed-font-all-pages-5.png"
+    ],
+    "result": "Every current page inspected: complete ordered text and counters, independent plain markers, serif/mono/sans run separation, no clipping. Exact caller fonts preserve emphasis; portable standard-family substitution changes appearance.",
+    "recordedUtc": "2026-10-11T08:00:09.690956+00:00",
+    "remediatedSourceIdentityVerified": true
+  },
+  "nativeInteraction": {
+    "created": "Revised deterministic identity opened without repair; native Save As and DOCX/PDF export repeated.",
+    "edited": "Revised-source root and deepest text edits plus Return-inserted child counter 3 survived save, close and reopen. Strict DOCX reimport rendered without repair; task-owned Pages process quit and absence verified."
+  },
+  "limits": [
+    "One-page Pages 15.4 body profile with Arial, Times New Roman and Courier New at 12 points.",
+    "Native DOCX export substitutes Arial Unicode MS and clears selected bold/italic; differences recorded separately.",
+    "Receiving OfficeIMO DOCX matches all 110 native word bounds, maximum delta 0 points, in this font environment.",
+    "Mixed sizes, bullets, tiered numbering, rich loaded-source edits, other producers/versions/scripts/containers and broader pagination remain unqualified.",
+    "Source package records and native visual caches retain their existing separate assessment limits."
+  ]
+}

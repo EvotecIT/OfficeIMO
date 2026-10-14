@@ -1,0 +1,380 @@
+{
+  "schemaVersion": 1,
+  "producer": "Numbers 14.5 (7045.0.17)",
+  "decoder": "numbers-parser 4.19.0",
+  "source": "numbers-integer-references-v14.5.numbers",
+  "nativeXlsx": "numbers-integer-references-v14.5.xlsx",
+  "rows": 18,
+  "columns": 8,
+  "formulaCells": 70,
+  "qualifiedReferenceCalls": 14,
+  "cells": [
+    {
+      "address": "G2",
+      "row": 2,
+      "column": 7,
+      "formula": "GCD(B2,C2,D2)",
+      "nativeValue": 6.0,
+      "independentIntegerValue": 6,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "GCD(B2,C2,D2)",
+        "value": "6"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        36,
+        16
+      ],
+      "functions": [
+        {
+          "index": 58,
+          "arguments": 3
+        }
+      ]
+    },
+    {
+      "address": "H2",
+      "row": 2,
+      "column": 8,
+      "formula": "LCM($B$2,$C$2:$D$2,1)",
+      "nativeValue": 180.0,
+      "independentIntegerValue": 180,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "LCM($B$2,$C$2:$D$2,1)",
+        "value": "180"
+      },
+      "nodeTypes": [
+        36,
+        67,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 75,
+          "arguments": 3
+        }
+      ]
+    },
+    {
+      "address": "E2",
+      "row": 2,
+      "column": 5,
+      "formula": "GCD(B2:D2)",
+      "nativeValue": 6.0,
+      "independentIntegerValue": 6,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "GCD(B2:D2)",
+        "value": "6"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 58,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "F2",
+      "row": 2,
+      "column": 6,
+      "formula": "LCM(B2:D2)",
+      "nativeValue": 180.0,
+      "independentIntegerValue": 180,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "LCM(B2:D2)",
+        "value": "180"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 75,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "E4",
+      "row": 4,
+      "column": 5,
+      "formula": "GCD(B4:D4)",
+      "nativeValue": 0.0,
+      "independentIntegerValue": 0,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "GCD(B4:D4)",
+        "value": "0"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 58,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "F4",
+      "row": 4,
+      "column": 6,
+      "formula": "LCM(B4:D4)",
+      "nativeValue": 0.0,
+      "independentIntegerValue": 0,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "LCM(B4:D4)",
+        "value": "0"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 75,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "E5",
+      "row": 5,
+      "column": 5,
+      "formula": "GCD(B5:D5)",
+      "nativeValue": 6.0,
+      "independentIntegerValue": 6,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "GCD(B5:D5)",
+        "value": "6"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 58,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "F5",
+      "row": 5,
+      "column": 6,
+      "formula": "LCM(B5:D5)",
+      "nativeValue": 0.0,
+      "independentIntegerValue": 0,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "LCM(B5:D5)",
+        "value": "0"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 75,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "E6",
+      "row": 6,
+      "column": 5,
+      "formula": "GCD(B6:D6)",
+      "nativeValue": 12.0,
+      "independentIntegerValue": 12,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "GCD(B6:D6)",
+        "value": "12"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 58,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "F6",
+      "row": 6,
+      "column": 6,
+      "formula": "LCM(B6:D6)",
+      "nativeValue": 360.0,
+      "independentIntegerValue": 360,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "LCM(B6:D6)",
+        "value": "360"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 75,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "E17",
+      "row": 17,
+      "column": 5,
+      "formula": "GCD(B17:D17)",
+      "nativeValue": 1.0,
+      "independentIntegerValue": 1,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "GCD(B17:D17)",
+        "value": "1"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 58,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "F17",
+      "row": 17,
+      "column": 6,
+      "formula": "LCM(B17:D17)",
+      "nativeValue": 0.0,
+      "independentIntegerValue": 0,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "LCM(B17:D17)",
+        "value": "0"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 75,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "E18",
+      "row": 18,
+      "column": 5,
+      "formula": "GCD(B18:D18)",
+      "nativeValue": 1.0,
+      "independentIntegerValue": 1,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "GCD(B18:D18)",
+        "value": "1"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 58,
+          "arguments": 1
+        }
+      ]
+    },
+    {
+      "address": "F18",
+      "row": 18,
+      "column": 6,
+      "formula": "LCM(B18:D18)",
+      "nativeValue": 0.0,
+      "independentIntegerValue": 0,
+      "nativeXlsx": {
+        "kind": "n",
+        "formula": "LCM(B18:D18)",
+        "value": "0"
+      },
+      "nodeTypes": [
+        36,
+        36,
+        29,
+        16
+      ],
+      "functions": [
+        {
+          "index": 75,
+          "arguments": 1
+        }
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "path": "numbers-integer-references-v14.5.numbers",
+      "bytes": 684776,
+      "sha256": "a09e06af365cfbe210df7c1f5dc781630061df61c0e74ed2571a9e0c834b4970"
+    },
+    {
+      "path": "numbers-integer-references-v14.5.xlsx",
+      "bytes": 7816,
+      "sha256": "6b979f93943bd3b34082689eeb50c29ad2e7c5f021f5a259cd1aec5306bc34b5"
+    }
+  ],
+  "limits": [
+    "Controlled local reference profile, saved/reopened in the recorded Numbers version.",
+    "Numeric-text LCM remains cached zero and is not a qualified expression.",
+    "No coercion, blank, formula-dependency, merge, whole-axis or general appearance qualification."
+  ]
+}

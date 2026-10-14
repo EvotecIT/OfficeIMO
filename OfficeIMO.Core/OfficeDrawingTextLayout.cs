@@ -139,7 +139,7 @@ internal static partial class OfficeDrawingTextLayout {
                 run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough,
                 run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline,
                 run.ParagraphIndent?.Scale(scale)) {
-                LinkUri = run.LinkUri
+                LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName
             });
         }
         if (maxFontSize <= 0D) maxFontSize = 10D * scale;

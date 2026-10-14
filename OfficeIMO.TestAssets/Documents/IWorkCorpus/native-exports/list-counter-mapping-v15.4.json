@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 1,
+  "capturedUtc": "2026-10-10T05:30:23.418426+00:00",
+  "scope": "Saved DOCX/PPTX counter acceptance for qualified decimal levels 0/1; synthetic parser fixtures converted with explicit partial acceptance. The PPTX table frame is resized to expose all paragraphs. Full layout and source-document reconstruction are not qualified by these cases.",
+  "recipe": "OfficeIMO.IWork.Tests/IWorkListCounterMappingTests.cs: ChildResetMappingPackage; counter-only scratch runner invokes this existing test fixture without a production hook.",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "pagesVersion": "15.4",
+  "keynoteVersion": "15.4",
+  "nativeApplications": {
+    "Pages": {
+      "ownedInstanceQuit": true,
+      "repairWarningObserved": false,
+      "fontWarningObserved": false
+    },
+    "Keynote": {
+      "ownedDocumentsClosed": true,
+      "preexistingAppPreserved": true,
+      "repairWarningObserved": false,
+      "fontWarningObservedInExplicitCase": true,
+      "missingFontName": "not independently identified"
+    }
+  },
+  "cases": [
+    {
+      "case": "explicit",
+      "expectedParagraphs": [
+        {
+          "Text": "Value",
+          "ListLevel": 0,
+          "ListNumber": 7
+        },
+        {
+          "Text": "Child five",
+          "ListLevel": 1,
+          "ListNumber": 5
+        },
+        {
+          "Text": "Parent eight",
+          "ListLevel": 0,
+          "ListNumber": 8
+        },
+        {
+          "Text": "Child reset",
+          "ListLevel": 1,
+          "ListNumber": 1
+        },
+        {
+          "Text": "Child second",
+          "ListLevel": 1,
+          "ListNumber": 2
+        }
+      ],
+      "schemaErrors": {
+        "docx": 0,
+        "pptx": 0
+      },
+      "nativePdfChecks": {
+        "-pages.pdf": {
+          "pages": 1,
+          "counters": [
+            7,
+            5,
+            8,
+            1,
+            2
+          ],
+          "allParagraphsAndOrderRetained": true,
+          "allPagesVisuallyInspected": true,
+          "fontNames": [
+            "AAAAAC+Calibri",
+            "AAAAAD+ArialMT"
+          ]
+        },
+        "-keynote.pdf": {
+          "pages": 1,
+          "counters": [
+            7,
+            5,
+            8,
+            1,
+            2
+          ],
+          "allParagraphsAndOrderRetained": true,
+          "allPagesVisuallyInspected": true,
+          "fontNames": [
+            "AAAAAB+ArialMT"
+          ]
+        },
+        "-composed.pdf": {
+          "pages": 1,
+          "counters": [
+            7,
+            5,
+            8,
+            1,
+            2
+          ],
+          "allParagraphsAndOrderRetained": true,
+          "allPagesVisuallyInspected": true,
+          "fontNames": [
+            "Helvetica"
+          ]
+        }
+      }
+    },
+    {
+      "case": "plain-gap",
+      "expectedParagraphs": [
+        {
+          "Text": "Value",
+          "ListLevel": 0,
+          "ListNumber": 7
+        },
+        {
+          "Text": "Child one",
+          "ListLevel": 1,
+          "ListNumber": 1
+        },
+        {
+          "Text": "Gap",
+          "ListLevel": -1,
+          "ListNumber": null
+        },
+        {
+          "Text": "Child continued",
+          "ListLevel": 1,
+          "ListNumber": 2
+        },
+        {
+          "Text": "Parent eight",
+          "ListLevel": 0,
+          "ListNumber": 8
+        },
+        {
+          "Text": "Child reset",
+          "ListLevel": 1,
+          "ListNumber": 1
+        }
+      ],
+      "schemaErrors": {
+        "docx": 0,
+        "pptx": 0
+      },
+      "nativePdfChecks": {
+        "-pages.pdf": {
+          "pages": 1,
+          "counters": [
+            7,
+            1,
+            2,
+            8,
+            1
+          ],
+          "allParagraphsAndOrderRetained": true,
+          "allPagesVisuallyInspected": true,
+          "fontNames": [
+            "AAAAAC+Calibri",
+            "AAAAAD+ArialMT"
+          ]
+        },
+        "-keynote.pdf": {
+          "pages": 1,
+          "counters": [
+            7,
+            1,
+            2,
+            8,
+            1
+          ],
+          "allParagraphsAndOrderRetained": true,
+          "allPagesVisuallyInspected": true,
+          "fontNames": [
+            "AAAAAB+ArialMT"
+          ]
+        },
+        "-composed.pdf": {
+          "pages": 1,
+          "counters": [
+            7,
+            1,
+            2,
+            8,
+            1
+          ],
+          "allParagraphsAndOrderRetained": true,
+          "allPagesVisuallyInspected": true,
+          "fontNames": [
+            "Helvetica"
+          ]
+        }
+      }
+    },
+    {
+      "case": "marker-font",
+      "expectedParagraphs": [
+        {
+          "Text": "Value",
+          "ListLevel": 0,
+          "ListNumber": 7
+        },
+        {
+          "Text": "Child one",
+          "ListLevel": 1,
+          "ListNumber": 1
+        },
+        {
+          "Text": "Child continued",
+          "ListLevel": 1,
+          "ListNumber": 2
+        },
+        {
+          "Text": "Parent eight",
+          "ListLevel": 0,
+          "ListNumber": 8
+        },
+        {
+          "Text": "Child reset",
+          "ListLevel": 1,
+          "ListNumber": 1
+        }
+      ],
+      "schemaErrors": {
+        "docx": 0,
+        "pptx": 0
+      },
+      "nativePdfChecks": {
+        "-pages.pdf": {
+          "pages": 1,
+          "counters": [
+            7,
+            1,
+            2,
+            8,
+            1
+          ],
+          "allParagraphsAndOrderRetained": true,
+          "allPagesVisuallyInspected": true,
+          "fontNames": [
+            "AAAAAC+Calibri",
+            "AAAAAD+ArialMT",
+            "AAAAAE+TimesNewRomanPSMT"
+          ]
+        },
+        "-keynote.pdf": {
+          "pages": 1,
+          "counters": [
+            7,
+            1,
+            2,
+            8,
+            1
+          ],
+          "allParagraphsAndOrderRetained": true,
+          "allPagesVisuallyInspected": true,
+          "fontNames": [
+            "AAAAAB+ArialMT"
+          ]
+        },
+        "-composed.pdf": {
+          "pages": 1,
+          "counters": [
+            7,
+            1,
+            2,
+            8,
+            1
+          ],
+          "allParagraphsAndOrderRetained": true,
+          "allPagesVisuallyInspected": true,
+          "fontNames": [
+            "Helvetica",
+            "Times-Roman"
+          ]
+        }
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "native-exports/list-counter-explicit-v15.4.docx",
+      "bytes": 19694,
+      "sha256": "11a96bb0bc140d3e523ea274a66038d500c930dcca0ddcf9d58ebcad797e7697"
+    },
+    {
+      "path": "native-exports/list-counter-explicit-v15.4.pptx",
+      "bytes": 24865,
+      "sha256": "787fe35c1b2cd455b209ffec809c52614bd87d6cea23e7e7f93eb01820858aef"
+    },
+    {
+      "path": "native-exports/list-counter-explicit-v15.4-pages.pdf",
+      "bytes": 29043,
+      "sha256": "c40f579f817d44433d5d80373d02bfca26971bf838742faef7cbb604267acb5f"
+    },
+    {
+      "path": "native-exports/list-counter-explicit-v15.4-pages.png",
+      "bytes": 16919,
+      "sha256": "45bc789051ef6e0ffd299dfff30ac55069841674a5c6ed37005cd77f2b7304fc"
+    },
+    {
+      "path": "native-exports/list-counter-explicit-v15.4-keynote.pdf",
+      "bytes": 18559,
+      "sha256": "75602a6491361b1634cf58765b943e880d2231d7284fc145dd5c6065a0d38d1c"
+    },
+    {
+      "path": "native-exports/list-counter-explicit-v15.4-keynote.png",
+      "bytes": 14824,
+      "sha256": "c293d3a1d7dd1fc874128dd415e46e3dbd1f1e46d57ad95bcba682bbac4bf963"
+    },
+    {
+      "path": "native-exports/list-counter-explicit-v15.4-composed.pdf",
+      "bytes": 1218,
+      "sha256": "1d47b59d90f3fd19ab551665b31d9590c8a3dbbd42ec4877912fe15ea90b04ec"
+    },
+    {
+      "path": "native-exports/list-counter-explicit-v15.4-composed.png",
+      "bytes": 14150,
+      "sha256": "875843835b4ddd612421d2a5984625ff82b347e23418752394d121924be29e82"
+    },
+    {
+      "path": "native-exports/list-counter-plain-gap-v15.4.docx",
+      "bytes": 19713,
+      "sha256": "d98bec724210d5654c676fb37e78125dca8c8676cd22d227b994eb9840209f59"
+    },
+    {
+      "path": "native-exports/list-counter-plain-gap-v15.4.pptx",
+      "bytes": 24883,
+      "sha256": "104ac1a73b0028f42034a50386587d76a49112a9789f79e5cbeb458100be3f66"
+    },
+    {
+      "path": "native-exports/list-counter-plain-gap-v15.4-pages.pdf",
+      "bytes": 29073,
+      "sha256": "4188dea8b0b5581b3f1d05f2e74e7c5809f905084f97383b6710a035bdf9cbfd"
+    },
+    {
+      "path": "native-exports/list-counter-plain-gap-v15.4-pages.png",
+      "bytes": 18204,
+      "sha256": "c1f0a3c03c7da1353cc40f2db7ccc66b9c62f1d7230076dcd66dd7775e9b4a59"
+    },
+    {
+      "path": "native-exports/list-counter-plain-gap-v15.4-keynote.pdf",
+      "bytes": 18305,
+      "sha256": "5115a558ccba265202fdc1daad30bc24dfd1ba5fa97273dd0bc6a425fe044944"
+    },
+    {
+      "path": "native-exports/list-counter-plain-gap-v15.4-keynote.png",
+      "bytes": 15798,
+      "sha256": "ad03863a840da927a3fc0b02ccbdd812cbd86dd00bd0b848330546b63217de79"
+    },
+    {
+      "path": "native-exports/list-counter-plain-gap-v15.4-composed.pdf",
+      "bytes": 1234,
+      "sha256": "88f4de39950d404fa5c650908f814826aa4324c8be8a4e554b768461beed3fed"
+    },
+    {
+      "path": "native-exports/list-counter-plain-gap-v15.4-composed.png",
+      "bytes": 15449,
+      "sha256": "da1f123140f0ab1eb959deb9c1e88af2b8061d76df7a0d8f6e67acd42900be23"
+    },
+    {
+      "path": "native-exports/list-counter-marker-font-v15.4.docx",
+      "bytes": 19757,
+      "sha256": "e8954c02f251ed9fbad4652ad1b9f2dc17a67739bea79b7bbcf924c7df98fa8d"
+    },
+    {
+      "path": "native-exports/list-counter-marker-font-v15.4.pptx",
+      "bytes": 24884,
+      "sha256": "7b267365b73d4c3ced2604030c06b307b9020d5d992e9e1feb3cdbd7e9e15291"
+    },
+    {
+      "path": "native-exports/list-counter-marker-font-v15.4-pages.pdf",
+      "bytes": 34811,
+      "sha256": "1a6c61d94a27fdbe04c612a6b25a6efe0d06f886cc90f8519a4f97debc269193"
+    },
+    {
+      "path": "native-exports/list-counter-marker-font-v15.4-pages.png",
+      "bytes": 17110,
+      "sha256": "97f8b4847fb53c9dafea5822e24d4ce23090d1030016e3843b6ffe952044d3c6"
+    },
+    {
+      "path": "native-exports/list-counter-marker-font-v15.4-keynote.pdf",
+      "bytes": 17533,
+      "sha256": "9e6ba066ec08ffd7a59ec02c100cc3b43640ac4530e2ad349e7bfafe5e6066b2"
+    },
+    {
+      "path": "native-exports/list-counter-marker-font-v15.4-keynote.png",
+      "bytes": 14718,
+      "sha256": "4c1576556543b18bc30124d269482a8f20020f031b16eabf2fa58f14bd1d1dd8"
+    },
+    {
+      "path": "native-exports/list-counter-marker-font-v15.4-composed.pdf",
+      "bytes": 1354,
+      "sha256": "ef941af21d0e96645475bc4ae02ecb56877b965c906bb4850b5cd479efa50f23"
+    },
+    {
+      "path": "native-exports/list-counter-marker-font-v15.4-composed.png",
+      "bytes": 14181,
+      "sha256": "01be089cc80379da64b9d81bcd240ce09c504c563f59d0319372ce66f171fcf8"
+    }
+  ],
+  "limits": [
+    "Native PDF content and counter order are qualified; exact layout and glyph equivalence are separate.",
+    "PDF table markers use inline layout and report table-list-layout-approximation.",
+    "The full Pages reference retains its declared 11-point versus native-reimport 12-point marker limit."
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "source": "native-exports/pages-paragraph-list-v15.4.pages",
+  "sourceSha256": "2c03d6f4051fc49cece557163ef496599ab9ac8563d6782d894b0b060af1df5d",
+  "derivedFrom": "nim-iwork/simple.pages",
+  "derivedFromSha256": "5aee6d03277d2db2104f593e64afe081dec539f0117b97124b6f99158124c93e",
+  "producer": "Apple Pages",
+  "producerVersion": "15.4",
+  "producerBuild": "7051.0.79",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "capturedUtc": "2026-10-09T12:55:31.434187+00:00",
+  "sourceModified": true,
+  "sourceModificationScope": "A copy of the licensed simple Pages fixture was edited in native Pages. Default paragraph style uses 1.5 relative line spacing and a 180-point left tab. The next paragraph overrides both with 2.0 spacing and a 216-point tab; the third explicitly resets spacing to 1.0 and clears custom tabs. A level-zero, non-tiered decimal list starts at 7, continues at 8, restarts at 3 and continues at 4.",
+  "artifacts": [
+    {
+      "path": "native-exports/pages-paragraph-list-v15.4.pages",
+      "sha256": "2c03d6f4051fc49cece557163ef496599ab9ac8563d6782d894b0b060af1df5d",
+      "bytes": 104507
+    },
+    {
+      "path": "native-exports/pages-paragraph-list-v15.4.docx",
+      "sha256": "4c4dd6f04e59527c494aaa84b09791fcaf8a45c0c39c3d9c63a4496f81a53159",
+      "bytes": 8427
+    },
+    {
+      "path": "native-exports/pages-paragraph-list-v15.4.pdf",
+      "sha256": "19102ccab35e18dc5f17e349dc70d935b5b6166c4de2172e4fb474be277198a8",
+      "bytes": 17768
+    },
+    {
+      "path": "native-exports/pages-paragraph-list-native-v15.4.png",
+      "sha256": "c293b634a9cbc2d365453592c7de50d30249c3f44d082bbf2487aa04fdcec649",
+      "bytes": 52653
+    },
+    {
+      "path": "native-exports/pages-paragraph-list-officeimo-v15.4.docx",
+      "sha256": "e91863c6211cb6cbb92a69a72696bc6bcadaf02351b2dae693874c51a63198b5",
+      "bytes": 20167
+    },
+    {
+      "path": "native-exports/pages-paragraph-list-officeimo-native-v15.4.png",
+      "sha256": "564b32db2a121c9ef40213e3c7a84b9291200916bd26118e4e5bbaa07aa1712e",
+      "bytes": 50692
+    },
+    {
+      "path": "native-exports/pages-paragraph-list-officeimo-native-v15.4.pdf",
+      "sha256": "ae0addedd5e5d5f259bac9d76f7cfac7dc15024c1394936bf55acb5a34b47619",
+      "bytes": 17867
+    },
+    {
+      "path": "native-exports/pages-paragraph-list-apple-docx-roundtrip-v15.4.pdf",
+      "sha256": "74040b0e64028bf50bcdd78b1e6afd6a2d85ffd7a595e301be228a4775e245e9",
+      "bytes": 17776
+    }
+  ],
+  "exportOptions": {
+    "office": "DOCX, no password.",
+    "pdf": "Best image quality, comments, annotations and password disabled."
+  },
+  "license": "Derivative of the nim-iwork MIT fixture, copyright Alfred. Original attribution is retained in IWorkCorpus/README.md.",
+  "fontProvenance": "Installed macOS Times 12-point text. The source PostScript name is Times-Roman. Native DOCX lists use the exporter fallback Arial Unicode MS; no standalone font files are distributed.",
+  "independentDecode": {
+    "tool": "numbers-parser 4.19.0 / protobuf 7.36.2, test-only",
+    "bodyRecordIdentifier": 1732536,
+    "counterFieldPath": "14",
+    "counterDeclarations": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        70,
+        7,
+        0
+      ],
+      [
+        81,
+        0,
+        0
+      ],
+      [
+        93,
+        3,
+        0
+      ],
+      [
+        106,
+        0,
+        0
+      ]
+    ],
+    "parentParagraphStyle": 1731465,
+    "overrideParagraphStyle": 1735599,
+    "resetParagraphStyle": 1735777,
+    "counterLabels": [
+      "7.",
+      "8.",
+      "3.",
+      "4."
+    ]
+  },
+  "qualification": [
+    "Native saved source and independent DOCX/PDF exports pin positive inherited/overriding relative spacing and custom tabs, explicit empty resets, and level-zero non-tiered decimal starts/restarts with contiguous continuation. The native screenshot and complete one-page PDF were inspected.",
+    "Strict saved/reopened DOCX checks compare all paragraph text in order, effective line spacing and tab stops, native start overrides 7 and 3, and the 393-twip paragraph and numbering-level hanging offset. Reader blocks and Markdown retain all four decimal counters.",
+    "Pages 15.4 reopens the OfficeIMO DOCX without repair or font warnings. Its complete one-page PDF and screenshot were inspected. All 24 extracted word bounds match Apple DOCX reimport exactly, and differ from the original native PDF by at most 0.01364 points, reflecting twentieth-point quantization. This qualifies the selected paragraph/list fixture, fonts and renderer.",
+    "Other levels, tiered counters, numbering scripts, continuation across non-list text, mixed marker font sizes and interacting indents remain unqualified. Full document appearance, other containers and other producer versions require their own native evidence."
+  ],
+  "renderedComparison": {
+    "tool": "pdftotext -bbox",
+    "nativeSourcePDF": "native-exports/pages-paragraph-list-v15.4.pdf",
+    "appleDocxReimportPDF": "native-exports/pages-paragraph-list-apple-docx-roundtrip-v15.4.pdf",
+    "officeimoDocxReimportPDF": "native-exports/pages-paragraph-list-officeimo-native-v15.4.pdf",
+    "pages": 1,
+    "sameExtractedWordSequence": true,
+    "words": 24,
+    "maximumWordBoundsDifferencePointsFromAppleDocx": 0,
+    "maximumWordBoundsDifferencePointsFromSource": 0.01364,
+    "inspected": true
+  }
+}

@@ -1,6 +1,11 @@
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkTableReader {
+    private static bool HasUnsupportedTileRowStride(IWorkWireMessage storage) =>
+        storage.FieldCount(2) > 1
+        || storage.HasUnexpectedWireKind(2, IWorkWireKind.Varint)
+        || storage.HasField(2) && storage.GetUnsigned(2) != TileRowStride;
+
     private static bool HasUnsupportedTileMetadata(IWorkWireMessage message, int metadataFieldCount) {
         int recognized = 0;
         foreach (int field in new[] { 1, 2, 3, 4, 6, 7, 8 }) {

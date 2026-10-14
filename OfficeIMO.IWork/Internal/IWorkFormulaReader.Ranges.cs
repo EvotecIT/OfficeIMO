@@ -3,7 +3,9 @@ namespace OfficeIMO.IWork.Internal;
 internal static partial class IWorkFormulaReader {
     private static string RenderColonTract(IWorkWireMessage node, int row, int column, int maximumCharacters,
         IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers, IWorkFormulaTableBinding? owningTable,
-        ref bool complete, ref bool boundedBodyRanges, ref bool needsLocalBodyBinding) {
+        ref bool complete, ref bool boundedBodyRanges, ref bool needsLocalBodyBinding,
+        out IntegerReference? integerReference) {
+        integerReference = null;
         IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(node, 40, out bool malformedTract);
         if (malformedTract || tract == null) { complete = false; return "#REF!"; }
         int? firstColumn, lastColumn, firstRow, lastRow;
@@ -29,7 +31,7 @@ internal static partial class IWorkFormulaReader {
         if (!firstColumn.HasValue || !firstRow.HasValue) needsLocalBodyBinding = true;
         return BindTableReference(node, firstColumn, lastColumn, firstRow, lastRow,
             firstColumnAbsolute, lastColumnAbsolute, firstRowAbsolute, lastRowAbsolute, maximumCharacters,
-            tableQualifiers, owningTable, ref complete, ref boundedBodyRanges);
+            tableQualifiers, owningTable, ref complete, ref boundedBodyRanges, out integerReference);
     }
 
     private static bool TrySticky(IWorkWireMessage sticky, int field, out bool absolute) {

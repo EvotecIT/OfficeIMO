@@ -7,7 +7,7 @@ namespace OfficeIMO.Tool.Tests;
 public sealed class IWorkConvertCommandTests {
     [Theory]
     [InlineData("nim-iwork/simple.pages", "docx")]
-    [InlineData("nim-iwork/simple.numbers", "xlsx")]
+    [InlineData("synthetic/numbers-unpadded-scalar.numbers", "xlsx")]
     public async Task Complete_Apple_conversion_publishes_default_OOXML_destination_with_typed_fidelity(string fixture, string target) {
         using var files = new Files(fixture);
         var result = await RunAsync("convert", files.Input);
@@ -32,10 +32,38 @@ public sealed class IWorkConvertCommandTests {
         } else {
             using var document = OfficeIMO.Excel.ExcelDocument.Load(destination);
             var sheet = Assert.Single(document.Sheets);
-            Assert.Equal("a", sheet.CellAt(1, 1).GetValue<string>());
-            Assert.Equal(2d, sheet.CellAt(2, 2).GetValue<double>());
-            Assert.Equal("Z", sheet.CellAt(3, 3).GetValue<string>());
+            Assert.Equal(42d, sheet.CellAt(1, 1).GetValue<double>());
         }
+    }
+
+    [Fact]
+    public async Task Native_Numbers_padding_requires_partial_acceptance_and_preserves_existing_output_on_rejection() {
+        using var files = new Files("nim-iwork/simple.numbers");
+        byte[] source = File.ReadAllBytes(files.Input);
+        string destination = Path.ChangeExtension(files.Input, ".xlsx");
+        File.WriteAllText(destination, "keep existing");
+
+        var rejected = await RunAsync("convert", files.Input, destination, "--iwork-mode", "editable", "--force");
+        Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, rejected.Code);
+        Assert.Equal("keep existing", File.ReadAllText(destination));
+        Assert.Equal(source, File.ReadAllBytes(files.Input));
+
+        var accepted = await RunAsync("convert", files.Input, destination, "--iwork-mode", "editable", "--force", "--allow-partial");
+        Assert.Equal(0, accepted.Code);
+        using JsonDocument json = JsonDocument.Parse(accepted.Output);
+        JsonElement evidence = json.RootElement.GetProperty("conversionEvidence");
+        Assert.Equal("True", evidence.GetProperty("facts").GetProperty("partialEditableReconstruction").GetString());
+        Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(), diagnostic =>
+            diagnostic.GetProperty("code").GetString() == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
+            && diagnostic.GetProperty("lossKind").GetString() == "Omission");
+        Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), diagnostic =>
+            diagnostic.GetProperty("code").GetString() == "OutputReopened");
+        using var reopened = OfficeIMO.Excel.ExcelDocument.Load(destination);
+        var sheet = Assert.Single(reopened.Sheets);
+        Assert.Equal("a", sheet.CellAt(1, 1).GetValue<string>());
+        Assert.Equal(2d, sheet.CellAt(2, 2).GetValue<double>());
+        Assert.Equal("Z", sheet.CellAt(3, 3).GetValue<string>());
+        Assert.Equal(source, File.ReadAllBytes(files.Input));
     }
 
     [Fact]
@@ -77,7 +105,7 @@ public sealed class IWorkConvertCommandTests {
 
     [Fact]
     public async Task Apple_conflicts_require_force_and_replacement_passes_reopen_validation() {
-        using var files = new Files("nim-iwork/simple.numbers");
+        using var files = new Files("synthetic/numbers-unpadded-scalar.numbers");
         string destination = Path.ChangeExtension(files.Input, ".xlsx");
         File.WriteAllText(destination, "keep me");
         Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, (await RunAsync("convert", files.Input, destination)).Code);
@@ -124,7 +152,7 @@ public sealed class IWorkConvertCommandTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public async Task Directory_bundle_uses_the_same_CLI_route_and_reports_transport_identity(bool trailingSeparator, bool explicitDestination) {
-        using var files = new Files("nim-iwork/simple.numbers");
+        using var files = new Files("synthetic/numbers-unpadded-scalar.numbers");
         string archive = files.Input + ".zip";
         File.Move(files.Input, archive);
         ZipFile.ExtractToDirectory(archive, files.Input);

@@ -1,0 +1,3155 @@
+{
+  "source": "pages-decimal-closing-preserved.pages",
+  "sha256": "213672cfd210690ea9749c5135a2d64017e2cff901c1e7d6baa689bccefb5f99",
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "offsetUnit": "UTF-16 code units",
+  "bodyIdentifier": 3,
+  "primaryRecordCount": 121,
+  "records": [
+    {
+      "identifier": 3,
+      "entry": "Index/Document.iwa",
+      "type": 2001,
+      "declaration": {
+        "kind": "BODY",
+        "style_sheet": {
+          "identifier": "117"
+        },
+        "text": [
+          "Nine decimal levels\nROOT SEVEN\nLEVEL ONE\nLEVEL TWO\nLEVEL THREE\nLEVEL FOUR\nLEVEL FIVE\nLEVEL SIX\nLEVEL SEVEN\nLEVEL EIGHT\nDeep continued two\nPlain gap\nDeep after gap three\nMiddle restart four\nReset level 5\nReset level 6\nReset level 7\nReset level 8\nDeep restart nine\nOther root three\nResumed deep ten\nRoot eight\nRoot reset level 1\nRoot reset level 2\nRoot reset level 3\nRoot reset level 4\nRoot reset level 5\nRoot reset level 6\nRoot reset level 7\nRoot reset level 8\nRoot restart four\nRestart level 1\nRestart level 2\nRestart level 3\nRestart level 4\nRestart level 5\nRestart level 6\nRestart level 7\nRestart level 8\nEnd nine-level profile\n"
+        ],
+        "table_para_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "134"
+              }
+            },
+            {
+              "character_index": 20,
+              "object": {
+                "identifier": "231"
+              }
+            },
+            {
+              "character_index": 31
+            },
+            {
+              "character_index": 41
+            },
+            {
+              "character_index": 51
+            },
+            {
+              "character_index": 63
+            },
+            {
+              "character_index": 74
+            },
+            {
+              "character_index": 85
+            },
+            {
+              "character_index": 95
+            },
+            {
+              "character_index": 107
+            },
+            {
+              "character_index": 119
+            },
+            {
+              "character_index": 138,
+              "object": {
+                "identifier": "134"
+              }
+            },
+            {
+              "character_index": 148,
+              "object": {
+                "identifier": "231"
+              }
+            },
+            {
+              "character_index": 169
+            },
+            {
+              "character_index": 189
+            },
+            {
+              "character_index": 203
+            },
+            {
+              "character_index": 217
+            },
+            {
+              "character_index": 231
+            },
+            {
+              "character_index": 245
+            },
+            {
+              "character_index": 263,
+              "object": {
+                "identifier": "232"
+              }
+            },
+            {
+              "character_index": 280,
+              "object": {
+                "identifier": "231"
+              }
+            },
+            {
+              "character_index": 297
+            },
+            {
+              "character_index": 308
+            },
+            {
+              "character_index": 327
+            },
+            {
+              "character_index": 346
+            },
+            {
+              "character_index": 365
+            },
+            {
+              "character_index": 384
+            },
+            {
+              "character_index": 403
+            },
+            {
+              "character_index": 422
+            },
+            {
+              "character_index": 441
+            },
+            {
+              "character_index": 460
+            },
+            {
+              "character_index": 478
+            },
+            {
+              "character_index": 494
+            },
+            {
+              "character_index": 510
+            },
+            {
+              "character_index": 526
+            },
+            {
+              "character_index": 542
+            },
+            {
+              "character_index": 558
+            },
+            {
+              "character_index": 574
+            },
+            {
+              "character_index": 590
+            },
+            {
+              "character_index": 606,
+              "object": {
+                "identifier": "134"
+              }
+            },
+            {
+              "character_index": 629
+            }
+          ]
+        },
+        "table_para_data": {
+          "entries": [
+            {
+              "character_index": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 20,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 31,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "character_index": 41,
+              "first": 2,
+              "second": 0
+            },
+            {
+              "character_index": 51,
+              "first": 3,
+              "second": 0
+            },
+            {
+              "character_index": 63,
+              "first": 4,
+              "second": 0
+            },
+            {
+              "character_index": 74,
+              "first": 5,
+              "second": 0
+            },
+            {
+              "character_index": 85,
+              "first": 6,
+              "second": 0
+            },
+            {
+              "character_index": 95,
+              "first": 7,
+              "second": 0
+            },
+            {
+              "character_index": 107,
+              "first": 8,
+              "second": 0
+            },
+            {
+              "character_index": 119,
+              "first": 8,
+              "second": 0
+            },
+            {
+              "character_index": 138,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 148,
+              "first": 8,
+              "second": 0
+            },
+            {
+              "character_index": 169,
+              "first": 4,
+              "second": 1
+            },
+            {
+              "character_index": 189,
+              "first": 5,
+              "second": 0
+            },
+            {
+              "character_index": 203,
+              "first": 6,
+              "second": 0
+            },
+            {
+              "character_index": 217,
+              "first": 7,
+              "second": 0
+            },
+            {
+              "character_index": 231,
+              "first": 8,
+              "second": 0
+            },
+            {
+              "character_index": 245,
+              "first": 8,
+              "second": 1
+            },
+            {
+              "character_index": 263,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 280,
+              "first": 8,
+              "second": 1
+            },
+            {
+              "character_index": 297,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 308,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "character_index": 327,
+              "first": 2,
+              "second": 0
+            },
+            {
+              "character_index": 346,
+              "first": 3,
+              "second": 0
+            },
+            {
+              "character_index": 365,
+              "first": 4,
+              "second": 0
+            },
+            {
+              "character_index": 384,
+              "first": 5,
+              "second": 0
+            },
+            {
+              "character_index": 403,
+              "first": 6,
+              "second": 0
+            },
+            {
+              "character_index": 422,
+              "first": 7,
+              "second": 0
+            },
+            {
+              "character_index": 441,
+              "first": 8,
+              "second": 0
+            },
+            {
+              "character_index": 460,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "character_index": 478,
+              "first": 1,
+              "second": 0
+            },
+            {
+              "character_index": 494,
+              "first": 2,
+              "second": 0
+            },
+            {
+              "character_index": 510,
+              "first": 3,
+              "second": 0
+            },
+            {
+              "character_index": 526,
+              "first": 4,
+              "second": 0
+            },
+            {
+              "character_index": 542,
+              "first": 5,
+              "second": 0
+            },
+            {
+              "character_index": 558,
+              "first": 6,
+              "second": 0
+            },
+            {
+              "character_index": 574,
+              "first": 7,
+              "second": 0
+            },
+            {
+              "character_index": 590,
+              "first": 8,
+              "second": 0
+            },
+            {
+              "character_index": 606,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 629,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        },
+        "table_list_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "122"
+              }
+            },
+            {
+              "character_index": 20,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 31,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 41,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 51,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 63,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 74,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 85,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 95,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 107,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 119,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 138,
+              "object": {
+                "identifier": "122"
+              }
+            },
+            {
+              "character_index": 148,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 169,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 189,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 203,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 217,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 231,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 245,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 263,
+              "object": {
+                "identifier": "174"
+              }
+            },
+            {
+              "character_index": 280,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 297,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 308,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 327,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 346,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 365,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 384,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 403,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 422,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 441,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 460,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 478,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 494,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 510,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 526,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 542,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 558,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 574,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 590,
+              "object": {
+                "identifier": "137"
+              }
+            },
+            {
+              "character_index": 606,
+              "object": {
+                "identifier": "122"
+              }
+            },
+            {
+              "character_index": 629,
+              "object": {
+                "identifier": "122"
+              }
+            }
+          ]
+        },
+        "table_char_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "136"
+              }
+            },
+            {
+              "character_index": 20,
+              "object": {
+                "identifier": "139"
+              }
+            },
+            {
+              "character_index": 31,
+              "object": {
+                "identifier": "141"
+              }
+            },
+            {
+              "character_index": 41,
+              "object": {
+                "identifier": "143"
+              }
+            },
+            {
+              "character_index": 51,
+              "object": {
+                "identifier": "145"
+              }
+            },
+            {
+              "character_index": 63,
+              "object": {
+                "identifier": "147"
+              }
+            },
+            {
+              "character_index": 74,
+              "object": {
+                "identifier": "149"
+              }
+            },
+            {
+              "character_index": 85,
+              "object": {
+                "identifier": "151"
+              }
+            },
+            {
+              "character_index": 95,
+              "object": {
+                "identifier": "153"
+              }
+            },
+            {
+              "character_index": 107,
+              "object": {
+                "identifier": "155"
+              }
+            },
+            {
+              "character_index": 119,
+              "object": {
+                "identifier": "157"
+              }
+            },
+            {
+              "character_index": 138,
+              "object": {
+                "identifier": "159"
+              }
+            },
+            {
+              "character_index": 148,
+              "object": {
+                "identifier": "161"
+              }
+            },
+            {
+              "character_index": 169,
+              "object": {
+                "identifier": "163"
+              }
+            },
+            {
+              "character_index": 189,
+              "object": {
+                "identifier": "165"
+              }
+            },
+            {
+              "character_index": 203,
+              "object": {
+                "identifier": "167"
+              }
+            },
+            {
+              "character_index": 217,
+              "object": {
+                "identifier": "169"
+              }
+            },
+            {
+              "character_index": 231,
+              "object": {
+                "identifier": "171"
+              }
+            },
+            {
+              "character_index": 245,
+              "object": {
+                "identifier": "173"
+              }
+            },
+            {
+              "character_index": 263,
+              "object": {
+                "identifier": "176"
+              }
+            },
+            {
+              "character_index": 280,
+              "object": {
+                "identifier": "178"
+              }
+            },
+            {
+              "character_index": 297,
+              "object": {
+                "identifier": "180"
+              }
+            },
+            {
+              "character_index": 308,
+              "object": {
+                "identifier": "182"
+              }
+            },
+            {
+              "character_index": 327,
+              "object": {
+                "identifier": "184"
+              }
+            },
+            {
+              "character_index": 346,
+              "object": {
+                "identifier": "186"
+              }
+            },
+            {
+              "character_index": 365,
+              "object": {
+                "identifier": "188"
+              }
+            },
+            {
+              "character_index": 384,
+              "object": {
+                "identifier": "190"
+              }
+            },
+            {
+              "character_index": 403,
+              "object": {
+                "identifier": "192"
+              }
+            },
+            {
+              "character_index": 422,
+              "object": {
+                "identifier": "194"
+              }
+            },
+            {
+              "character_index": 441,
+              "object": {
+                "identifier": "196"
+              }
+            },
+            {
+              "character_index": 460,
+              "object": {
+                "identifier": "198"
+              }
+            },
+            {
+              "character_index": 478,
+              "object": {
+                "identifier": "200"
+              }
+            },
+            {
+              "character_index": 494,
+              "object": {
+                "identifier": "101"
+              }
+            },
+            {
+              "character_index": 510,
+              "object": {
+                "identifier": "103"
+              }
+            },
+            {
+              "character_index": 526,
+              "object": {
+                "identifier": "105"
+              }
+            },
+            {
+              "character_index": 542,
+              "object": {
+                "identifier": "107"
+              }
+            },
+            {
+              "character_index": 558,
+              "object": {
+                "identifier": "109"
+              }
+            },
+            {
+              "character_index": 574,
+              "object": {
+                "identifier": "111"
+              }
+            },
+            {
+              "character_index": 590,
+              "object": {
+                "identifier": "113"
+              }
+            },
+            {
+              "character_index": 606,
+              "object": {
+                "identifier": "115"
+              }
+            }
+          ]
+        },
+        "in_document": true,
+        "table_layout_style": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "121"
+              }
+            }
+          ]
+        },
+        "table_para_starts": {
+          "entries": [
+            {
+              "character_index": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 20,
+              "first": 7,
+              "second": 0
+            },
+            {
+              "character_index": 31,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 41,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 51,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 63,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 74,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 85,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 95,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 107,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 119,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 138,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 148,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 169,
+              "first": 4,
+              "second": 0
+            },
+            {
+              "character_index": 189,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 203,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 217,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 231,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 245,
+              "first": 9,
+              "second": 0
+            },
+            {
+              "character_index": 263,
+              "first": 3,
+              "second": 0
+            },
+            {
+              "character_index": 280,
+              "first": 10,
+              "second": 0
+            },
+            {
+              "character_index": 297,
+              "first": 8,
+              "second": 0
+            },
+            {
+              "character_index": 308,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 327,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 346,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 365,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 384,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 403,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 422,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 441,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 460,
+              "first": 4,
+              "second": 0
+            },
+            {
+              "character_index": 478,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 494,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 510,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 526,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 542,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 558,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 574,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 590,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 606,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "character_index": 629,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        },
+        "table_section": {
+          "entries": [
+            {
+              "character_index": 0,
+              "object": {
+                "identifier": "119"
+              }
+            }
+          ]
+        },
+        "table_para_bidi": {
+          "entries": [
+            {
+              "character_index": 0,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        },
+        "table_drop_cap_style": {
+          "entries": [
+            {
+              "character_index": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "identifier": 101,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-101",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 103,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-103",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 105,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-105",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 107,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-107",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 109,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-109",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 111,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-111",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 113,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-113",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 115,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-115",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 122,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "None",
+          "style_identifier": "officeimo-style-10",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 3,
+        "label_types": [
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone"
+        ],
+        "text_indents": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "indents": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "identifier": 134,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Body",
+          "style_identifier": "paragraph-style-default",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 19,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        },
+        "para_properties": {
+          "alignment": "TATvalue0",
+          "decimal_tab": ".",
+          "default_tab_stops": 36.0,
+          "first_line_indent": 0.0,
+          "left_indent": 0.0,
+          "line_spacing": {},
+          "right_indent": 0.0,
+          "space_after": 0.0,
+          "space_before": 0.0,
+          "tabs": {},
+          "list_style": {
+            "identifier": "122"
+          },
+          "show_in_bookmarks_list": false
+        }
+      }
+    },
+    {
+      "identifier": 136,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-33",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 137,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Decimal List",
+          "style_identifier": "officeimo-style-34",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber",
+          "kNumber"
+        ],
+        "text_indents": [
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5,
+          1.5
+        ],
+        "indents": [
+          0.0,
+          18.0,
+          36.0,
+          54.0,
+          72.0,
+          90.0,
+          108.0,
+          126.0,
+          144.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericRightParen",
+          "kNumericRightParen",
+          "kNumericRightParen",
+          "kNumericRightParen",
+          "kNumericRightParen",
+          "kNumericRightParen",
+          "kNumericRightParen",
+          "kNumericRightParen",
+          "kNumericRightParen"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name": "Arial",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 139,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-36",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 141,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-38",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 143,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-40",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 145,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-42",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 147,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-44",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 149,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-46",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 151,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-48",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 153,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-50",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 155,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-52",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 157,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-54",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 159,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-56",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 161,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-58",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 163,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-60",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 165,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-62",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 167,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-64",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 169,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-66",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 171,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-68",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 173,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-70",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 174,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2023,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Decimal List",
+          "style_identifier": "officeimo-style-73",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 9,
+        "label_types": [
+          "kNumber",
+          "kNumber",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone",
+          "kNone"
+        ],
+        "text_indents": [
+          1.5,
+          1.5,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "indents": [
+          0.0,
+          18.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "geometries": [
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          },
+          {
+            "scale": 1.0,
+            "baseline_offset": 0.0,
+            "scale_with_text": true
+          }
+        ],
+        "number_types": [
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal",
+          "kNumericDecimal"
+        ],
+        "shadow_null": true,
+        "font_color_null": true,
+        "font_name": "Arial",
+        "tiered_numbers": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "identifier": 176,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-75",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 178,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-77",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 180,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-79",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 182,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-81",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 184,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-83",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 186,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-85",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 188,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-87",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 190,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-89",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 192,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-91",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 194,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-93",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 196,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-95",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 198,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-97",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 200,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2021,
+      "declaration": {
+        "super": {
+          "name": "OfficeIMO Text",
+          "style_identifier": "officeimo-style-99",
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 7,
+        "char_properties": {
+          "bold": false,
+          "italic": false,
+          "font_size": 12.0,
+          "font_name": "Arial",
+          "font_color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0,
+            "rgbspace": "srgb"
+          },
+          "underline": "kNoUnderline",
+          "strikethru": "kNoStrikethru",
+          "tsd_fill": {
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0,
+              "rgbspace": "srgb"
+            }
+          }
+        }
+      }
+    },
+    {
+      "identifier": 231,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "134"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 1,
+        "char_properties": {},
+        "para_properties": {
+          "list_style": {
+            "identifier": "137"
+          }
+        }
+      }
+    },
+    {
+      "identifier": 232,
+      "entry": "Index/DocumentStylesheet.iwa",
+      "type": 2022,
+      "declaration": {
+        "super": {
+          "parent": {
+            "identifier": "134"
+          },
+          "is_variation": true,
+          "stylesheet": {
+            "identifier": "117"
+          }
+        },
+        "override_count": 1,
+        "char_properties": {},
+        "para_properties": {
+          "list_style": {
+            "identifier": "174"
+          }
+        }
+      }
+    }
+  ],
+  "scope": "Selected native body and style declarations. Counter values and appearance require paired Apple exports."
+}

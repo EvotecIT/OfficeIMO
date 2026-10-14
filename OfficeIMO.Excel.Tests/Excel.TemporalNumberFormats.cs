@@ -115,6 +115,36 @@ public class ExcelTemporalNumberFormatTests {
         AssertSavedDisplay(value, format, expected);
     }
 
+    [Theory]
+    [InlineData(11d, "[s]\"s\"", "11s")]
+    [InlineData(-11d, "[s]\"s\"", "-11s")]
+    [InlineData(11d, "[s].0000000", "11.0000000")]
+    [InlineData(780d, "[m]:ss", "13:00")]
+    [InlineData(46800d, "[h]:mm:ss", "13:00:00")]
+    [InlineData(-46800d, "[h]:mm:ss;([h]:mm:ss)", "(13:00:00)")]
+    [InlineData(93600d, "[h]\"h\" m\"m\"", "26h 0m")]
+    [InlineData(3661.75d, "[h]:mm:ss", "1:01:01")]
+    public void Saved_elapsed_serials_preserve_integral_unit_boundaries_without_rounding_fractional_seconds(
+        double seconds, string format, string expected) {
+        AssertSavedDisplay(seconds / 86400d, format, expected);
+    }
+
+    [Fact]
+    public void Pdf_elapsed_display_preserves_integral_seconds_in_both_worksheet_layouts() {
+        using var workbook = ExcelDocument.Create();
+        var sheet = workbook.AddWorksheet("Elapsed boundary");
+        sheet.CellAt(1, 1).SetValue(11d / 86400d).SetNumberFormat("[s]\"s\"");
+        sheet.SetColumnWidth(1, 20);
+        using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
+        using var reopened = ExcelDocument.Load(saved);
+        foreach (var layout in new[] { ExcelPdfWorksheetLayoutMode.WorksheetCanvas, ExcelPdfWorksheetLayoutMode.FlowTable }) {
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdfBytes(new ExcelToPdfOptions {
+                IncludeSheetHeadings = false, WorksheetLayout = layout
+            }));
+            Assert.Contains("11s", string.Concat(pdf.GetPages().Select(page => page.Text)));
+        }
+    }
+
     [Fact]
     public void Native_Numbers_export_retains_cached_date_and_elapsed_display_after_save() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports", "numbers-formulas-v14.5.xlsx");

@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(6, ListLevelEntry(0, 1, 1)));
         var projection = IWorkSourceDocument.Open(package).ReadNumbers();
         Assert.Contains(projection.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 15
-            && issue.FieldPath == "6/1[1]/3" && issue.Kind == IWorkSourceDeclarationIssueKind.UnsupportedField);
+            && issue.FieldPath == "6/1[1]/3" && issue.Kind == IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
         Assert.False(Assert.Single(Assert.Single(projection.Sheets).Tables).Cells[0].RichText!.IsFormattingComplete);
     }
 

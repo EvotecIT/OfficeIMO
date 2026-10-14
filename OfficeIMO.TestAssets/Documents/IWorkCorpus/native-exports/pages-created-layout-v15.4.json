@@ -1,0 +1,240 @@
+{
+  "title": "Native Pages paragraph spacing and custom tab creation",
+  "recordedUtc": "2026-10-10T02:53:22.246593+00:00",
+  "license": "Newly authored fixtures and evidence use the repository MIT license. Embedded composed-PDF fallback fonts retain the SIL OFL 1.1 licenses recorded in the shared font profile. No seed package or standalone fonts are distributed.",
+  "producer": {
+    "application": "Pages Creator Studio",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "operatingSystem": "27.0.1",
+    "architecture": "arm64"
+  },
+  "creation": {
+    "paragraphs": 7,
+    "projectedParagraphs": 8,
+    "pagePoints": [
+      612,
+      792
+    ],
+    "bodyMarginsPoints": [
+      72,
+      72,
+      72,
+      72
+    ],
+    "relativeLineSpacing": [
+      1,
+      1.5,
+      1,
+      2,
+      1.5,
+      1.25,
+      1
+    ],
+    "spaceBeforePoints": [
+      0,
+      6,
+      0,
+      12,
+      6,
+      0,
+      0
+    ],
+    "spaceAfterPoints": [
+      0,
+      9,
+      0,
+      18,
+      6,
+      6,
+      0
+    ],
+    "customTabs": [
+      {
+        "positionPoints": 90,
+        "alignment": "left"
+      },
+      {
+        "positionPoints": 180,
+        "alignment": "center"
+      },
+      {
+        "positionPoints": 270,
+        "alignment": "right"
+      },
+      {
+        "positionPoints": 360,
+        "alignment": "decimal"
+      }
+    ],
+    "decimalTabSymbol": ".",
+    "fonts": [
+      "Arial"
+    ],
+    "text": "Latin, Polish and non-BMP emoji; TABs and an editable blank paragraph; mixed 14-point bold and 12-point plain runs."
+  },
+  "files": [
+    {
+      "path": "native-exports/pages-created-layout-v15.4.pages",
+      "sha256": "689b9a9a31704d48e8092e189f46928f11b30f783cf87f92d7220edf33fbebfd",
+      "bytes": 8450,
+      "role": "Deterministic owned input opened by Pages"
+    },
+    {
+      "path": "native-exports/pages-created-layout-edited-v15.4.pages",
+      "sha256": "b35ae67bf8e043f4019d3fc0d0f7190d2ae5b7818a0cb24b78cd4311e2f33b22",
+      "bytes": 82692,
+      "role": "Native Pages edit, save, close and reopen"
+    },
+    {
+      "path": "native-exports/pages-created-layout-v15.4.docx",
+      "sha256": "5b0a6ad32a7ca9a8681e999fc11b721d2ac03b083aba509bea4267483e83db67",
+      "bytes": 8301,
+      "role": "Apple Word export of the edited source"
+    },
+    {
+      "path": "native-exports/pages-created-layout-v15.4.pdf",
+      "sha256": "184afba6f3e8decfd7c0738218ad91dab10e01650d6be94fb56650784944e77f",
+      "bytes": 77511,
+      "role": "Native best-quality PDF of the edited source"
+    },
+    {
+      "path": "native-exports/pages-created-layout-v15.4-page1.png",
+      "sha256": "56f47869e10fdedcd8b0b2aa16a1ba0cde9c251927ce91e8723758d744a49cb0",
+      "bytes": 60837,
+      "role": "Inspected complete native PDF page rendered at 1200 pixels"
+    },
+    {
+      "path": "native-exports/pages-created-layout-graph-v15.4.json",
+      "sha256": "ba6c5f41c57b9df4d60186a31ce1e8c4195111755cc62f33303d19a3bb71a447",
+      "bytes": 9082,
+      "role": "Pinned-schema decoding of the complete owned 37-object graph"
+    },
+    {
+      "path": "native-exports/pages-created-layout-native-v15.4.json",
+      "sha256": "f77560664be6422ffc387956431d83a529456f18907d758905ba3dc3ab74a3a4",
+      "bytes": 3290,
+      "role": "Independent selected Apple-saved body/style decoding and Word export comparison"
+    },
+    {
+      "path": "native-exports/pages-created-layout-docx-pages-v15.4.pdf",
+      "sha256": "acb94351f1384705fea098a28b0dd98b7dc3bee0023f4af72ab0f3710dc6be45",
+      "bytes": 77508,
+      "role": "Pages rendering of strict OfficeIMO DOCX with an explicit period decimalSymbol"
+    },
+    {
+      "path": "native-exports/pages-created-layout-docx-pages-v15.4-page1.png",
+      "sha256": "91e5a40f0a7d76eb09cdbbad4cedaaa528d91a82d004d77001f805d477cca9a5",
+      "bytes": 60836,
+      "role": "Inspected complete DOCX reimport PDF page rendered at 1200 pixels"
+    },
+    {
+      "path": "native-exports/pages-created-layout-composed-v15.4.pdf",
+      "sha256": "2b0b9e7742820059ecb6837b40d3d3d414345226f26ccfaf1dc184bcf023524d",
+      "bytes": 24049,
+      "role": "Complete composed PDF through the public pages-pdf workflow and portable rendering profile"
+    },
+    {
+      "path": "native-exports/pages-created-layout-composed-v15.4-page1.png",
+      "sha256": "c68a4e9da4e912218af8486b2bbe0755facbe19fa1bcba96f245093c97273731",
+      "bytes": 61059,
+      "role": "Inspected complete composed PDF page rendered at 1200 pixels"
+    },
+    {
+      "path": "native-exports/pages-created-layout-composed-v15.4.json",
+      "sha256": "4437b405650affde6a2c5f686cd038f5505d98a27fd28dc43c5e65ead8861eba",
+      "bytes": 7880,
+      "role": "Public workflow result, all stage diagnostics and selected-content accounting"
+    }
+  ],
+  "independentDecode": {
+    "schemaSource": "https://github.com/orcastor/iwork-converter",
+    "schemaCommit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schemaLicense": "MIT, Steve Dunham",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+    "numbersParserVersion": "4.19.0",
+    "ownedRecords": 37,
+    "requiredFieldsAndReferencesComplete": true,
+    "utf16RangesComplete": true,
+    "nativeParagraphVariations": true,
+    "paragraphAttributeNullEndMarker": true,
+    "AppleSavedScope": "Selected body paragraph styles and parent chains. Native auxiliary messages and other features are outside this decoder."
+  },
+  "nativeAcceptance": {
+    "openedWithoutRepair": true,
+    "nativeEdit": "Default reset paragraph. changed to Default reset Native layout edit.",
+    "savedClosedReopened": true,
+    "relativeSpacingAndTabsRetained": true,
+    "blankParagraphMetricsAndMixedRunResetsRetained": true,
+    "PDFPages": 1,
+    "allPDFPagesInspected": true,
+    "nativeWordParagraphMetricsAndTabsAgree": true,
+    "strictOfficeimoDOCXComplete": true,
+    "ownedApplicationQuitAndVerified": true
+  },
+  "destinationRendering": {
+    "renderer": "Pages 15.4 import and best-quality PDF export of strict OfficeIMO DOCX",
+    "allPagesInspected": true,
+    "PDFPages": 1,
+    "completeExtractedWordCount": 75,
+    "completeExtractedTextAgrees": true,
+    "matchingWordBounds": 74,
+    "differingWord": "123.45",
+    "horizontalShiftPoints": -15.0146,
+    "explicitWordDecimalSymbol": ".",
+    "scope": "Spacing, line wrapping, other tab placements, rich reset and blank-paragraph height agree in this font environment. Pages DOCX decimal-tab rendering equivalence is unqualified."
+  },
+  "fontProvenance": "Installed Arial and Apple Color Emoji. Native PDF contains font subsets; this does not qualify other installations or scripts.",
+  "reproduction": "Generate IWorkPagesParagraphWritingTests.Example(); decode with verify-pages-creation.py and the pinned descriptor. Open a working copy in Pages, change the final paragraph, save, close/reopen and export PDF/Word. Run extract-pages-native-layout.py against the Apple-saved source and Word export. Convert the saved source through WordIWorkConverter in EditableOnly mode, save/reopen DOCX, then import that DOCX in Pages and compare every PDF word bound.",
+  "boundaries": [
+    "The creation profile remains left-aligned with zero indents, a 36-point default tab interval and no leaders. Public rich-run constructors reject TAB; the plain layout overload authors TAB text.",
+    "Custom native layout uses a period decimal symbol. The reader retains explicit period/comma values. Uniform active DOCX decimal symbols map to one document setting; heterogeneous specified/unspecified symbols require fallback. PPTX separator metadata requires explicit partial acceptance.",
+    "The writer does not measure pagination or embed fonts. Additional producers, fonts, scripts, paragraph locales, lists, tables, images, headers/footers, section layouts and loaded-source semantic editing require their own qualification.",
+    "The final LF projects an extra empty paragraph; Apple Word exports the seven authored paragraphs.",
+    "Pages 15.4 DOCX import does not produce equivalent decimal-tab placement for this fixture despite an explicit period setting; the discrepancy remains recorded in the product roadmap."
+  ],
+  "composedRendering": {
+    "route": "pages-pdf",
+    "runtime": ".NET 10.0.12",
+    "nativeAot": false,
+    "fontProfileReference": "native-exports/iwork-composed-pdf-portable.json#/fontProfile",
+    "resourcePolicy": "PdfResourcePolicy.CreatePortableDeterministic()",
+    "PDFPages": 1,
+    "allPagesInspected": true,
+    "completeExtractedWordCount": 75,
+    "allOrderedExtractedWordsAgreeWithNative": true,
+    "sourceUnitCount": 8,
+    "reconstructedSourceUnitCount": 8,
+    "omittedSourceUnitCount": 0,
+    "unassessedSourceUnitCount": 0,
+    "unassessedRecordCount": 93,
+    "fidelityDiagnostics": [
+      {
+        "Code": "IWORK_SOURCE_READ",
+        "Message": "Read 93 IWA payload records from 13 package entries.",
+        "LossKind": 0,
+        "Source": "OfficeIMO.IWork",
+        "Location": null
+      },
+      {
+        "Code": "IWORK_RECORD_FIDELITY_UNASSESSED",
+        "Message": "93 source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content.",
+        "LossKind": 4,
+        "Source": "OfficeIMO.IWork",
+        "Location": null
+      },
+      {
+        "Code": "NativeFontFamilySubstituted",
+        "Message": "The source font family 'Arial' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Noto Emoji', 'Noto JP Common', 'Carlito'.",
+        "LossKind": 1,
+        "Source": "OfficeIMO.Word.Pdf",
+        "Location": "word:font[Arial]"
+      }
+    ],
+    "richTextFontChecks": {
+      "Rich layout": "Helvetica-Bold, 14 points",
+      "plain": "Helvetica, 12 points"
+    },
+    "scope": "Complete selected content, spacing, custom tab placements, blank paragraph height and rich/default resets are visible. Portable font substitution changes metrics and monochrome emoji appearance; native typography and pagination equivalence are unqualified."
+  }
+}

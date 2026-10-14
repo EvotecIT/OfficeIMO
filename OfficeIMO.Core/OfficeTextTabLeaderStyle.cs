@@ -74,7 +74,7 @@ public sealed class OfficeTextTabLeaderStyle {
         return new OfficeRichTextRun(glyph, size, color, Bold ?? active.Bold, Italic ?? active.Italic,
             fontFamily: FontFamily ?? active.FontFamily, backgroundColor: BackgroundColor ?? active.BackgroundColor,
             underlineStyle: UnderlineStyle ?? active.UnderlineStyle, strikethroughStyle: StrikethroughStyle ?? active.StrikethroughStyle,
-            baseline: Baseline ?? active.Baseline) { LinkUri = active.LinkUri };
+            baseline: Baseline ?? active.Baseline) { LinkUri = active.LinkUri, LinkDestinationName = active.LinkDestinationName };
     }
     private static bool PositiveFinite(double value) => value > 0 && !double.IsNaN(value) && !double.IsInfinity(value);
 }

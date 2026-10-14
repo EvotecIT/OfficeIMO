@@ -1,0 +1,51 @@
+{
+  "tool": "pypdf",
+  "version": "6.10.0",
+  "scope": "Text order and bold font selection, not geometry or font appearance equivalence",
+  "artifacts": [
+    {
+      "file": "pages-table-borders-v15.4.pdf",
+      "sha256": "f1a172da06024bbea6365363feb36155753e967527a0ca766f0d34a9f63bef2b",
+      "pages": 1,
+      "visibleNonWhitespaceCharacters": 76,
+      "textAndBoldSelectionMatch": true,
+      "fontResources": [
+        "/AAAAAB+Arial-BoldMT",
+        "/AAAAAC+ArialMT"
+      ]
+    },
+    {
+      "file": "pages-table-borders-officeimo-rendered.pdf",
+      "sha256": "e347743806d0e7d9f315a0718ff9da0f9cabd379bf9951f61524b68352415485",
+      "pages": 1,
+      "visibleNonWhitespaceCharacters": 76,
+      "textAndBoldSelectionMatch": true,
+      "fontResources": [
+        "/Helvetica",
+        "/Helvetica-Bold"
+      ]
+    },
+    {
+      "file": "pages-table-borders-native-docx-rendered.pdf",
+      "sha256": "1dc0c549e86266069dbcfe23d38545b2859d039a0f50ee07cc5a5a64d636c599",
+      "pages": 1,
+      "visibleNonWhitespaceCharacters": 76,
+      "textAndBoldSelectionMatch": true,
+      "fontResources": [
+        "/Helvetica",
+        "/Helvetica-Bold"
+      ]
+    },
+    {
+      "file": "pages-table-borders-officeimo-reimport.pdf",
+      "sha256": "675d4120ac74ebe6c15a1a6aee444fd7ecabcae1c9c08f5c3bf8375fe9032592",
+      "pages": 1,
+      "visibleNonWhitespaceCharacters": 76,
+      "textAndBoldSelectionMatch": true,
+      "fontResources": [
+        "/AAAAAB+Arial-BoldMT",
+        "/AAAAAC+ArialMT"
+      ]
+    }
+  ]
+}

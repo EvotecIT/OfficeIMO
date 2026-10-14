@@ -134,7 +134,7 @@ internal sealed partial class IWorkReadProjection {
             });
         }
         bool hasFormula = false;
-        bool hasUnrepresentedStyle = source.FillStyles.Body != null || source.FillStyles.HeaderRow != null
+        bool hasUnrepresentedStyle = source.CellPaddings.Any() || source.HasDefaultVerticalAlignment || source.HasBorderDeclarations || source.FillStyles.Body != null || source.FillStyles.HeaderRow != null
             || source.FillStyles.HeaderColumn != null || source.FillStyles.FooterRow != null || source.FillStyles.BandedBody != null || new[] { source.TextStyles.Body, source.TextStyles.HeaderRow,
             source.TextStyles.HeaderColumn, source.TextStyles.FooterRow }.Any(style => style != null);
         foreach (IWorkTableCell cell in source.Cells) {
@@ -174,7 +174,7 @@ internal sealed partial class IWorkReadProjection {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
                 Code = "IWORK_READER_TABLE_STYLE_PARTIAL",
-                Message = $"Table '{source.Name}' is projected as plain Reader table text; source cell fills, padding, alignment, fonts or rich-text formatting are unresolved or cannot be represented in Reader output.",
+                Message = $"Table '{source.Name}' is projected as plain Reader table text; source cell fills, borders, padding, alignment, fonts or rich-text formatting are unresolved or cannot be represented in Reader output.",
                 Source = "OfficeIMO.Reader.IWork",
                 Location = location
             });
@@ -344,15 +344,24 @@ internal sealed partial class IWorkReadProjection {
         }
         if (offset == 0 && paragraph.ListLevel >= 0) {
             string marker = paragraph.ListMarkerKind == IWorkListMarkerKind.Number
-                ? MarkdownListMarker(paragraph.ListLabel) : "-";
+                && !(paragraph.ListNumber > MaximumMarkdownListCounter)
+                ? MarkdownListMarker(ReaderListLabel(paragraph)) : "-";
             return new string(' ', Math.Min(paragraph.ListLevel, MaximumMarkdownListLevel) * 2)
                 + marker + " " + builder;
         }
         return builder.ToString();
     }
 
+    private static string? ReaderListLabel(IWorkTextParagraph paragraph) =>
+        paragraph.ListNumber is int number
+            && IWorkDecimalListProfile.TryGetMarkerStyle(paragraph.ListLabel, out var style)
+            ? IWorkDecimalListProfile.FormatMarker(number, style)
+            : paragraph.ListLabel;
+
     private static string MarkdownListMarker(string? sourceLabel) {
         string label = sourceLabel?.Trim() ?? string.Empty;
+        if (label.Length >= 3 && label[0] == '(' && label[label.Length - 1] == ')')
+            label = label.Substring(1, label.Length - 2) + ".";
         int digits = 0;
         while (digits < label.Length && label[digits] >= '0' && label[digits] <= '9') digits++;
         return digits > 0 && digits == label.Length - 1

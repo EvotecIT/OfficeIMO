@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
@@ -12,15 +13,18 @@ namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
         private const int EmusPerPoint = 12700;
 
-        internal PowerPointShape(OpenXmlElement element) {
+        internal PowerPointShape(OpenXmlElement element, OpenXmlPartContainer? ownerPart = null) {
             Element = element;
+            RelationshipOwnerPart = ownerPart as OpenXmlPart;
         }
 
         internal OpenXmlElement Element { get; }
         internal PowerPointSlide? OwnerSlide { get; private set; }
+        internal OpenXmlPart? RelationshipOwnerPart { get; private set; }
 
-        internal PowerPointShape AttachTo(PowerPointSlide slide) {
+        internal PowerPointShape AttachTo(PowerPointSlide slide, OpenXmlPartContainer? ownerPart = null) {
             OwnerSlide = slide;
+            RelationshipOwnerPart = ownerPart as OpenXmlPart ?? RelationshipOwnerPart ?? slide.SlidePart;
             return this;
         }
 
@@ -77,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
             get {
                 if (OwnerSlide == null) return null;
                 return PowerPointHyperlinkResolver.Resolve(
-                    OwnerSlide.SlidePart, OwnerSlide.SlidePart,
+                    RelationshipOwnerPart ?? OwnerSlide.SlidePart, OwnerSlide.SlidePart,
                     GetNonVisualDrawingProperties(create: false)?
                         .GetFirstChild<A.HyperlinkOnClick>());
             }

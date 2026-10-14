@@ -1524,6 +1524,20 @@
       ]
     },
     {
+      "id": "keynote-pdf",
+      "source": "Keynote",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows.IWork",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "IWorkWorkflow.CreateRunner().RunAsync(request)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
       "id": "keynote-pptx",
       "source": "Keynote",
       "target": "PPTX",
@@ -1710,6 +1724,20 @@
       "api": "MhtmlDocument.Load(stream, options).ToPdfDocumentResult(pdfOptions)",
       "surfaces": [
         "dotnet"
+      ]
+    },
+    {
+      "id": "numbers-pdf",
+      "source": "Numbers",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows.IWork",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "IWorkWorkflow.CreateRunner().RunAsync(request)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -2161,6 +2189,20 @@
       ],
       "cmdlet": "ConvertFrom-OfficeIWork",
       "example": "ConvertFrom-OfficeIWork -Path ./in.pages -OutputPath ./out.docx"
+    },
+    {
+      "id": "pages-pdf",
+      "source": "Pages",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows.IWork",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "IWorkWorkflow.CreateRunner().RunAsync(request)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
     },
     {
       "id": "pdf-docx",

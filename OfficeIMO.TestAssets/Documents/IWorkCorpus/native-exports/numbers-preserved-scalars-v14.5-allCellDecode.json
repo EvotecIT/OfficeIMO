@@ -1,0 +1,126 @@
+[
+  [
+    {
+      "sheet": "Budget",
+      "table": "Data",
+      "rows": [
+        [
+          "Item",
+          "Value",
+          "Flag",
+          "Notes"
+        ],
+        [
+          "Apples",
+          42.125,
+          false,
+          "Zażółć 😀"
+        ],
+        [
+          "Negative",
+          -7.5,
+          true,
+          "=literal"
+        ],
+        [
+          "Line1\nLine2",
+          12345.6789,
+          true,
+          null
+        ]
+      ]
+    },
+    {
+      "sheet": "Budget",
+      "table": "Totals",
+      "rows": [
+        [
+          "Totals",
+          123.75
+        ],
+        [
+          true,
+          null
+        ]
+      ]
+    },
+    {
+      "sheet": "Empty grid",
+      "table": "Empty",
+      "rows": [
+        [
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null
+        ]
+      ]
+    }
+  ],
+  [
+    {
+      "sheet": "Budget",
+      "table": "Data",
+      "rows": [
+        [
+          "Item",
+          "Value",
+          "Flag",
+          "Notes"
+        ],
+        [
+          "Apples",
+          43.125,
+          false,
+          "Zażółć 😀"
+        ],
+        [
+          "Negative",
+          -7.5,
+          true,
+          "=literal"
+        ],
+        [
+          "Line1\nLine2",
+          12345.6789,
+          true,
+          null
+        ]
+      ]
+    },
+    {
+      "sheet": "Budget",
+      "table": "Totals",
+      "rows": [
+        [
+          "Totals",
+          123.75
+        ],
+        [
+          true,
+          null
+        ]
+      ]
+    },
+    {
+      "sheet": "Empty grid",
+      "table": "Empty",
+      "rows": [
+        [
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null
+        ]
+      ]
+    }
+  ]
+]

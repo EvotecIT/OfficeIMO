@@ -13,7 +13,7 @@ using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Tests;
 
-public sealed class StudioIWorkConversionTests {
+public sealed partial class StudioIWorkConversionTests {
     [Theory]
     [InlineData("simple.pages", "pages-docx", false)]
     [InlineData("simple.pages", "pages-docx", true)]
@@ -38,14 +38,15 @@ public sealed class StudioIWorkConversionTests {
             Assert.False(job.AllowIncompleteVisualPreview);
             Assert.False(job.AllowPartialEditableReconstruction);
             await queue.RunQueueCommand.ExecuteAsync(null);
-            if (route == "keynote-pptx") {
-                // This table deck includes pagination that requires explicit partial acceptance.
+            if (route is "keynote-pptx" or "numbers-xlsx") {
+                // These native fixtures contain formatting that requires explicit partial acceptance.
                 Assert.Equal(ConversionJobState.Failed, job.State);
                 Assert.False(job.HasOutput);
                 job.AllowPartialEditableReconstruction = true;
                 await queue.RetryFailedCommand.ExecuteAsync(null);
                 Assert.Contains(job.ConversionEvidence!.FidelityDiagnostics,
-                    diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
+                    diagnostic => diagnostic.Code == (route == "keynote-pptx"
+                        ? "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED" : "IWORK_NUMBERS_CELL_PADDING_OMITTED"));
             }
             Assert.Equal(ConversionJobState.Completed, job.State);
             Assert.True(job.HasOutput, job.Summary);
@@ -68,8 +69,8 @@ public sealed class StudioIWorkConversionTests {
             Assert.True(job.HasConversionEvidence);
             var facts = job.ConversionEvidence!.Facts;
             Assert.Equal("EditableReconstruction", facts["projectionKind"]);
-            Assert.Equal((route == "keynote-pptx").ToString(), facts["partialEditableReconstruction"]);
-            if (route != "keynote-pptx") {
+            Assert.Equal((route != "pages-docx").ToString(), facts["partialEditableReconstruction"]);
+            if (route == "pages-docx") {
                 Assert.False(job.AllowPartialEditableReconstruction);
                 Assert.Equal("0", facts["omittedSourceUnitCount"]);
                 Assert.Equal("0", facts["unassessedSourceUnitCount"]);

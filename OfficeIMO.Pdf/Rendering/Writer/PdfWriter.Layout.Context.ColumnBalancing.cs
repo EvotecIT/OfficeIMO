@@ -2,16 +2,17 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void QueueColumnBalanceRemainder(IPdfBlock remainder, IList<IPdfBlock> blocks, int blockIndex) {
-            if (!CanQueueColumnBalanceRemainder(blocks)) return;
+        private void QueueColumnBalanceRemainder(IPdfBlock remainder, IList<IPdfBlock> blocks, int blockIndex,
+            bool forcePhysicalPage = false) {
+            if (!CanQueueColumnBalanceRemainder(blocks, forcePhysicalPage)) return;
             var remaining = new List<IPdfBlock> { remainder };
             for (int index = blockIndex + 1; index < blocks.Count; index++) remaining.Add(blocks[index]);
             activeColumnFlow!.PendingBalanceContent = IncludeColumnBalanceAncestors(new ColumnBalanceContent(remaining), blocks);
         }
 
-        private bool CanQueueColumnBalanceRemainder(IList<IPdfBlock> blocks) =>
+        private bool CanQueueColumnBalanceRemainder(IList<IPdfBlock> blocks, bool forcePhysicalPage = false) =>
             activeColumnFlow is { } scope && scope.Options.BalanceLastPage &&
-            scope.ColumnIndex + 1 == scope.Widths.Length &&
+            (forcePhysicalPage || scope.RequiresPhysicalContinuation || scope.ColumnIndex + 1 == scope.Widths.Length) &&
             HasColumnBalanceSequencePath(blocks, scope) && scope.Widths.All(value => Math.Abs(value - scope.Widths[0]) <= 0.001D);
 
         private void QueueColumnBalanceRemainder(List<ColumnBalanceUnit>? units, IPdfBlock continuingBlock,

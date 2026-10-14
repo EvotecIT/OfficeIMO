@@ -6,6 +6,39 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Theory]
+    [InlineData(1f, 14.5f)]
+    [InlineData(1.2f, 8f)]
+    public void Unqualified_mixed_decimal_sizes_keep_the_strict_conversion_boundary(float scale, float secondSize) {
+        using var package = DecimalMixedSizeLayoutPackage(scale, secondSize);
+        using var strict = WordIWorkConverter.ConvertPagesToWordResult(package,
+            conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        Assert.True(strict.IsVisualFallback);
+        package.Position = 0;
+        using var partial = WordIWorkConverter.ConvertPagesToWordResult(package,
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+                AllowPartialEditableReconstruction = true });
+        Assert.False(partial.IsVisualFallback);
+        Assert.Contains(partial.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_LIST_LAYOUT_APPROXIMATED");
+        Assert.Throws<InvalidOperationException>(() => partial.RequireCompleteEditableReconstruction());
+    }
+
+    private static MemoryStream DecimalMixedSizeLayoutPackage(float scale, float secondSize) {
+        byte[] records = Message(
+            ArchiveRecord(1, 10000, Message(ReferenceField(4, 6))),
+            ArchiveRecord(6, 2001, Message(StringField(3, "Mixed"),
+                AttributeTable(7, AttributeEntry(0, ReferenceField(2, 7))),
+                AttributeTable(5, AttributeEntry(0, ReferenceField(2, 8))),
+                AttributeTable(8, AttributeEntry(0, ReferenceField(2, 10)), AttributeEntry(2, ReferenceField(2, 9))))),
+            ArchiveRecord(7, 2023, Message(VarintField(11, 3), FloatField(12, 1.5f), FloatField(13, 0),
+                BytesField(14, Message(FloatField(1, scale), FloatField(2, 0), VarintField(3, 1))),
+                VarintField(15, 0), StringField(23, "Arial"))),
+            ArchiveRecord(8, 2022, BytesField(11, FloatField(3, 12))),
+            ArchiveRecord(9, 2021, BytesField(11, FloatField(3, secondSize))),
+            ArchiveRecord(10, 2021, BytesField(11, FloatField(3, 18))));
+        return CreatePackage(("Index/Document.iwa", FrameIwa(records)), ("preview.png", ValidPreviewPng()));
+    }
+
+    [Theory]
     [InlineData(1.235f, false, 0f)]
     [InlineData(1.23f, true, 0f)]
     [InlineData(1.23f, false, 18f)]

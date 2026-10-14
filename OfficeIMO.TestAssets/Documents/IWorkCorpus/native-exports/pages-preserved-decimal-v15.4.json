@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 1,
+  "profile": "Fixed-length uniform Pages decimal-item text replacement at non-tiered levels0,1,2",
+  "license": "MIT; newly OfficeIMO-authored source and derived validation artifacts",
+  "application": {
+    "name": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "pathName": "Pages Creator Studio.app"
+  },
+  "host": {
+    "os": "macOS27.0.1",
+    "build": "26A434",
+    "architecture": "arm64"
+  },
+  "candidateBase": "a5679dd5d3cd016e706888bea75691bef8294f6d",
+  "artifacts": {
+    "pages-preserved-decimal-edited-v15.4-decode.json": {
+      "path": "pages-preserved-decimal-edited-v15.4-decode.json",
+      "bytes": 42603,
+      "sha256": "d7460651ef6e48d3b0ed9e7835b4c81566e2a859f2047b7b2bfee261042bc5c0"
+    },
+    "pages-preserved-decimal-edited-v15.4-officeimo.docx": {
+      "path": "pages-preserved-decimal-edited-v15.4-officeimo.docx",
+      "bytes": 21132,
+      "sha256": "17401f872272ea86d158a1f8159cdf1e734647e7b58e98cdec688ac277cefeb3"
+    },
+    "pages-preserved-decimal-edited-v15.4-officeimo.pdf": {
+      "path": "pages-preserved-decimal-edited-v15.4-officeimo.pdf",
+      "bytes": 1345,
+      "sha256": "aa9a698421cf77e3d652cf59b8fc673e7358eba452618d3e077cdc6d0dd04097"
+    },
+    "pages-preserved-decimal-edited-v15.4.docx": {
+      "path": "pages-preserved-decimal-edited-v15.4.docx",
+      "bytes": 9136,
+      "sha256": "c723e29a101f2ba771a5eec3d532e2cbf62656aca3fcc70d8146df1199fd3206"
+    },
+    "pages-preserved-decimal-edited-v15.4.pages": {
+      "path": "pages-preserved-decimal-edited-v15.4.pages",
+      "bytes": 75668,
+      "sha256": "4e9be6834d5544dec4605da1027cf7e448974657bb66e4f15afdd2798a58501f"
+    },
+    "pages-preserved-decimal-edited-v15.4.pdf": {
+      "path": "pages-preserved-decimal-edited-v15.4.pdf",
+      "bytes": 29080,
+      "sha256": "8ff368bcc6381383f3823886a0a6e245b213e7acfce8e64dfc8b30cf6cac8907"
+    },
+    "pages-preserved-decimal-independent-verification.json": {
+      "path": "pages-preserved-decimal-independent-verification.json",
+      "bytes": 2904,
+      "sha256": "a08ea09de76f4b19e11641ccc6019446e5e805d8198acea4efa4fba60832e594"
+    },
+    "pages-preserved-decimal-native-edit-v15.4.png": {
+      "path": "pages-preserved-decimal-native-edit-v15.4.png",
+      "bytes": 125267,
+      "sha256": "34d519e0dc480209a4a1564e54c4b778e084d50b7541441ec9291be3e339e8b6"
+    },
+    "pages-preserved-decimal-officeimo-docx-v15.4.pdf": {
+      "path": "pages-preserved-decimal-officeimo-docx-v15.4.pdf",
+      "bytes": 28904,
+      "sha256": "e40c027e201a13ef025ca0768a9bbdeb118362a47cf801653ca1ec5db930a559"
+    },
+    "pages-preserved-decimal-officeimo-docx-v15.4.png": {
+      "path": "pages-preserved-decimal-officeimo-docx-v15.4.png",
+      "bytes": 84528,
+      "sha256": "dab8915f46d75b867c74b01aae43794ff2bd029d4d55f63abdc2d0211e22d719"
+    },
+    "pages-preserved-decimal-open-v15.4.png": {
+      "path": "pages-preserved-decimal-open-v15.4.png",
+      "bytes": 84189,
+      "sha256": "002528755ee06278fb5b9efec69045369e333c157b1b388df970e02aff6d2591"
+    },
+    "pages-preserved-decimal-receiving-geometry-comparison.json": {
+      "path": "pages-preserved-decimal-receiving-geometry-comparison.json",
+      "bytes": 265,
+      "sha256": "1e48cda702694f30f864c33ae6e225822c37b841de54b11210051df878f9f5c0"
+    },
+    "pages-preserved-decimal-reopened-v15.4.png": {
+      "path": "pages-preserved-decimal-reopened-v15.4.png",
+      "bytes": 125412,
+      "sha256": "5744e38d173d2c31754f72e514d85fec25fe67f8928844b2de1c00598ad796a4"
+    },
+    "pages-preserved-decimal-v15.4-decode.json": {
+      "path": "pages-preserved-decimal-v15.4-decode.json",
+      "bytes": 42298,
+      "sha256": "5931d31a30f1b089d3bb8c374bb21ac541f4279fb89b8287036080540c31be35"
+    },
+    "pages-preserved-decimal-v15.4-officeimo.docx": {
+      "path": "pages-preserved-decimal-v15.4-officeimo.docx",
+      "bytes": 21123,
+      "sha256": "bf0f66eccd079e0b70dfd3cbf43a6185eb81b4809ee54f87a4ee2ccd4eb501d8"
+    },
+    "pages-preserved-decimal-v15.4-officeimo.pdf": {
+      "path": "pages-preserved-decimal-v15.4-officeimo.pdf",
+      "bytes": 1340,
+      "sha256": "de8a0fda1315484438d2a6f7f8ccebd7a9970a4cfb0b9eaabeee62a2a90e378e"
+    },
+    "pages-preserved-decimal-v15.4.docx": {
+      "path": "pages-preserved-decimal-v15.4.docx",
+      "bytes": 9125,
+      "sha256": "2ece62891435b409a1852540b3750b73b174314aacb419f6c06e6ee10c668e00"
+    },
+    "pages-preserved-decimal-v15.4.pages": {
+      "path": "pages-preserved-decimal-v15.4.pages",
+      "bytes": 78124,
+      "sha256": "8e20d81e90f339ce7e7acbc63d89a76f9b17cb8b656d9433f656865be3d76ab7"
+    },
+    "pages-preserved-decimal-v15.4.pdf": {
+      "path": "pages-preserved-decimal-v15.4.pdf",
+      "bytes": 28789,
+      "sha256": "5de444ba3f0f37adbdb16d6c65f91a9b139e1b0eed9d20aa42e99b9cd0cf129f"
+    },
+    "pages-third-level-saved-v15.4.pages": {
+      "path": "pages-third-level-saved-v15.4.pages",
+      "bytes": 75513,
+      "sha256": "7e4c273343e1c34a5752f07bb4369c9ec9a052a240cb62fadade43315f5900e2"
+    }
+  },
+  "cases": [
+    {
+      "source": "pages-preserved-decimal-v15.4.pages",
+      "nativeDocx": "pages-preserved-decimal-v15.4.docx",
+      "nativePdf": "pages-preserved-decimal-v15.4.pdf",
+      "officeimoDocx": "pages-preserved-decimal-v15.4-officeimo.docx",
+      "officeimoPdf": "pages-preserved-decimal-v15.4-officeimo.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Edited seven"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child two"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild six"
+        },
+        {
+          "level": 2,
+          "number": 2,
+          "text": "Grandchild two"
+        },
+        {
+          "level": 2,
+          "number": 3,
+          "text": "Grandchild continued three"
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Child two resets grandchild"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset one"
+        },
+        {
+          "level": 2,
+          "number": 5,
+          "text": "Grandchild restart five"
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Separate root three"
+        },
+        {
+          "level": 2,
+          "number": 6,
+          "text": "Updated grandchild six"
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Parent eight resets descendants"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child reset one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset after root one"
+        },
+        {
+          "level": 0,
+          "number": 4,
+          "text": "Parent restart four"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child after restart one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild after restart one"
+        }
+      ],
+      "expectedParagraphs": [
+        "Three decimal levels",
+        "Edited seven",
+        "Child two",
+        "Grandchild six",
+        "Grandchild two",
+        "Plain gap",
+        "Grandchild continued three",
+        "Child two resets grandchild",
+        "Grandchild reset one",
+        "Grandchild restart five",
+        "Separate root three",
+        "Updated grandchild six",
+        "Parent eight resets descendants",
+        "Child reset one",
+        "Grandchild reset after root one",
+        "Parent restart four",
+        "Child after restart one",
+        "Grandchild after restart one",
+        "End third-level profile",
+        ""
+      ]
+    },
+    {
+      "source": "pages-preserved-decimal-edited-v15.4.pages",
+      "nativeDocx": "pages-preserved-decimal-edited-v15.4.docx",
+      "nativePdf": "pages-preserved-decimal-edited-v15.4.pdf",
+      "officeimoDocx": "pages-preserved-decimal-edited-v15.4-officeimo.docx",
+      "officeimoPdf": "pages-preserved-decimal-edited-v15.4-officeimo.pdf",
+      "expectedItems": [
+        {
+          "level": 0,
+          "number": 7,
+          "text": "Native seven"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child two"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild six"
+        },
+        {
+          "level": 2,
+          "number": 2,
+          "text": "Grandchild two"
+        },
+        {
+          "level": 2,
+          "number": 3,
+          "text": "Grandchild continued three"
+        },
+        {
+          "level": 1,
+          "number": 2,
+          "text": "Child two resets grandchild"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset one"
+        },
+        {
+          "level": 2,
+          "number": 5,
+          "text": "Grandchild restart five"
+        },
+        {
+          "level": 0,
+          "number": 3,
+          "text": "Separate root three"
+        },
+        {
+          "level": 2,
+          "number": 6,
+          "text": "Updated grandchild six"
+        },
+        {
+          "level": 0,
+          "number": 8,
+          "text": "Parent eight resets descendants"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child reset one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild reset after root one"
+        },
+        {
+          "level": 0,
+          "number": 4,
+          "text": "Parent restart four"
+        },
+        {
+          "level": 1,
+          "number": 1,
+          "text": "Child after restart one"
+        },
+        {
+          "level": 2,
+          "number": 1,
+          "text": "Grandchild after restart one"
+        }
+      ],
+      "expectedParagraphs": [
+        "Three decimal levels",
+        "Native seven",
+        "Child two",
+        "Grandchild six",
+        "Grandchild two",
+        "Plain gap",
+        "Grandchild continued three",
+        "Child two resets grandchild",
+        "Grandchild reset one",
+        "Grandchild restart five",
+        "Separate root three",
+        "Updated grandchild six",
+        "Parent eight resets descendants",
+        "Child reset one",
+        "Grandchild reset after root one",
+        "Parent restart four",
+        "Child after restart one",
+        "Grandchild after restart one",
+        "End third-level profile",
+        ""
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "paragraph": 2,
+      "payloadByteOffset": 30,
+      "bytes": 12,
+      "before": "Parent seven",
+      "after": "Edited seven",
+      "storageRecordId": 3
+    },
+    {
+      "paragraph": 3,
+      "payloadByteOffset": 43,
+      "bytes": 9,
+      "before": "Child one",
+      "after": "Child two",
+      "storageRecordId": 3
+    },
+    {
+      "paragraph": 4,
+      "payloadByteOffset": 53,
+      "bytes": 14,
+      "before": "Grandchild one",
+      "after": "Grandchild six",
+      "storageRecordId": 3
+    },
+    {
+      "paragraph": 12,
+      "payloadByteOffset": 213,
+      "bytes": 22,
+      "before": "Resumed grandchild six",
+      "after": "Updated grandchild six",
+      "storageRecordId": 3
+    }
+  ],
+  "independent": {
+    "tool": "Build/IWork/verify-pages-decimal-editing.py",
+    "decoder": "numbers-parser4.19.0/protobuf7.36.2; no OfficeIMO assembly",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+    "rawPreservationOwner": "Build/IWork/verify-native-text-preservation.py",
+    "fileEntries": 13,
+    "iwaMessages": 98,
+    "changedEntries": [
+      "Index/Document.iwa"
+    ],
+    "bodyRecord": 3,
+    "rawHeadersSiblingsAndOtherBytesIdentical": true
+  },
+  "nativeAcceptance": [
+    "Pages initially stopped; agent-owned validation session only.",
+    "Opened the preserved edit without repair; counters/indentation visibly retained.",
+    "Native copy changes Edited seven to Native seven; save/close/reopen retains all four OfficeIMO edits and native replacement.",
+    "Native DOCX and best-quality PDF exports before and after native edit.",
+    "OfficeIMO DOCX opens without repair; its Pages PDF retains identical word bounds for all74words.",
+    "All five complete native/composed/receiving PDF pages inspected; app and documents released."
+  ],
+  "rendering": {
+    "font": "Arial",
+    "fontSizePoints": 12,
+    "pages": 1,
+    "receivingApplicationWordBounds": {
+      "native": "pages-preserved-decimal-v15.4.pdf",
+      "receivingDocxPdf": "pages-preserved-decimal-officeimo-docx-v15.4.pdf",
+      "words": 74,
+      "sameTextAndOrder": true,
+      "maximumBoundsDifferencePoints": 0.0,
+      "profile": "Pages15.4 Arial12 one-page decimal body"
+    },
+    "composedPdf": "Complete source-unit reconstruction with explicit Arial-to-Helvetica portable substitution; record-level fidelity remains unassessed."
+  },
+  "limits": [
+    "Same UTF-16 and UTF-8 lengths, complete single-section body-only content, uniform run without links or inline objects.",
+    "List counters/styles are preserved; no renumbering, run/structural or length changes.",
+    "Literal/image/bullet, higher/tiered, mixed-run and Keynote list editing remain outside this profile.",
+    "Native appearance covers Pages15.4 Arial12 one-page body; wider typography, pagination, producer versions and native cache regeneration remain open."
+  ]
+}

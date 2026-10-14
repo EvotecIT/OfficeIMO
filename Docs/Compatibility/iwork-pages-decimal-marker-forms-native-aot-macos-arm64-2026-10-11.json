@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "host": {
+    "os": "macOS27.0.1 (26A434)",
+    "architecture": "arm64",
+    "model": "Mac16,10 AppleM4",
+    "dotnetSdk": "10.0.112"
+  },
+  "project": "OfficeIMO.IWork.AotSmoke",
+  "recordedUtc": "2026-10-11T06:59:39.398121+00:00",
+  "sourceRevision": "6cbf038e50b8d2025976a88c0807239451f1f8ce",
+  "sourceOnly": true,
+  "buildCheckoutNote": "Native executables compile the frozen reviewed source candidate. Managed assemblies compile the same runtime source; owner hashes bind each run. The subsequent qualification documentation commit changes no runtime source.",
+  "executions": [
+    {
+      "targetFramework": "net8.0",
+      "runtimeVersion": "8.0.31",
+      "runtimeIdentifier": "osx-arm64",
+      "fileKind": "Mach-O 64-bit executable arm64",
+      "executableSha256": "39716B2641240A91CE8C923B503EABE1D212EED7AB8AD03FDA3B6C60B5A49A36",
+      "executableBytes": 97881848,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 45,
+      "profiles": [
+        "simple.pages",
+        "simple.numbers",
+        "simple.key",
+        "formulas.numbers",
+        "bounded iWork NativeAOT destination conversions",
+        "native Keynote creation",
+        "native Keynote rich runs",
+        "native Keynote images",
+        "native Keynote tables",
+        "native Keynote table borders",
+        "native Pages body creation",
+        "native Pages header/footer creation",
+        "native Pages paragraph layout",
+        "native Pages inline scalar-table creation",
+        "native Pages saved inline table edit",
+        "native Pages inline PNG/JPEG creation",
+        "native Pages resized inline images",
+        "native Pages decimal-list creation",
+        "native Pages edited decimal lists",
+        "native Pages rich decimal-list creation",
+        "native Pages decimal levels and continuation",
+        "native Pages table borders",
+        "native Numbers fixed second ranges",
+        "native Numbers fixed millisecond ranges",
+        "native Numbers integer functions",
+        "native Numbers integer references",
+        "native Numbers cross-table integer calls",
+        "native Numbers integer-text references",
+        "native Numbers blank integer references",
+        "native Pages third decimal level",
+        "native Pages decimal-item editing",
+        "native Pages nine decimal levels",
+        "native Pages decimal marker forms",
+        "native Numbers table borders",
+        "native Numbers scalar creation",
+        "native explicit numeric format creation",
+        "native unchanged Pages save",
+        "native unchanged Numbers save",
+        "native unchanged Keynote save",
+        "native Keynote image translation",
+        "native preservation tight source bounds",
+        "native Keynote image resizing",
+        "native Numbers scalar editing",
+        "native Pages paragraph editing",
+        "native Keynote paragraph editing"
+      ],
+      "publishLogSha256": "2DECA0C30A474F5682C1869BBB7CDB926EC5C4C7D29720ADE19A571DC39DD704",
+      "nativeRunLogSha256": "AD4BD0E8D779E852BA1244DADB9BDC22EA863730A68A0FCAF8F2514A45EB2CF8",
+      "declaredFixtureCount": 54,
+      "fixturesSha256": "1A5FBD6EDD84239E53DAB878968C6DEF834CE9502455E97FB0110193CB1540E3",
+      "linkerWarnings": [
+        "  ld: warning: -ld_classic is no longer supported and will be ignored"
+      ]
+    },
+    {
+      "targetFramework": "net10.0",
+      "runtimeVersion": "10.0.12",
+      "runtimeIdentifier": "osx-arm64",
+      "fileKind": "Mach-O 64-bit executable arm64",
+      "executableSha256": "B5F464A667F2103BD42355ABC62FA77CBE0FE63BF3525F272899427F51185545",
+      "executableBytes": 53770120,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 45,
+      "profiles": [
+        "simple.pages",
+        "simple.numbers",
+        "simple.key",
+        "formulas.numbers",
+        "bounded iWork NativeAOT destination conversions",
+        "native Keynote creation",
+        "native Keynote rich runs",
+        "native Keynote images",
+        "native Keynote tables",
+        "native Keynote table borders",
+        "native Pages body creation",
+        "native Pages header/footer creation",
+        "native Pages paragraph layout",
+        "native Pages inline scalar-table creation",
+        "native Pages saved inline table edit",
+        "native Pages inline PNG/JPEG creation",
+        "native Pages resized inline images",
+        "native Pages decimal-list creation",
+        "native Pages edited decimal lists",
+        "native Pages rich decimal-list creation",
+        "native Pages decimal levels and continuation",
+        "native Pages table borders",
+        "native Numbers fixed second ranges",
+        "native Numbers fixed millisecond ranges",
+        "native Numbers integer functions",
+        "native Numbers integer references",
+        "native Numbers cross-table integer calls",
+        "native Numbers integer-text references",
+        "native Numbers blank integer references",
+        "native Pages third decimal level",
+        "native Pages decimal-item editing",
+        "native Pages nine decimal levels",
+        "native Pages decimal marker forms",
+        "native Numbers table borders",
+        "native Numbers scalar creation",
+        "native explicit numeric format creation",
+        "native unchanged Pages save",
+        "native unchanged Numbers save",
+        "native unchanged Keynote save",
+        "native Keynote image translation",
+        "native preservation tight source bounds",
+        "native Keynote image resizing",
+        "native Numbers scalar editing",
+        "native Pages paragraph editing",
+        "native Keynote paragraph editing"
+      ],
+      "publishLogSha256": "50F2E955EC57B5803D30A1E05A9057F757D223CFECDD19D77C1FBFBD91027F92",
+      "nativeRunLogSha256": "4620F736D01E8FF755A30E5A93195243FB09C75C81DA8F51A8CBB64037DE3076",
+      "declaredFixtureCount": 54,
+      "fixturesSha256": "1A5FBD6EDD84239E53DAB878968C6DEF834CE9502455E97FB0110193CB1540E3",
+      "linkerWarnings": []
+    }
+  ],
+  "managedValidation": {
+    "OfficeIMO.IWork.Tests/net8.0": {
+      "total": 3009,
+      "passed": 3009,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "1F3A318FAAF91026ADB86B48C134949218E70BF0F400E593A6E25FB6E18BF50A",
+      "loadedOwners": {
+        "OfficeIMO.IWork": "EF19F32413C1D255445407B73F0A77DC70D18D915C5EDA35EBCF5B6CD7CD8B4A",
+        "OfficeIMO.Reader.IWork": "3A89DA3D420DF57049DDDE9358E4F55060E567DC0BDD974DC8387D2F7A2B52EF"
+      }
+    },
+    "OfficeIMO.Workflows.IWork.Tests/net8.0": {
+      "total": 133,
+      "passed": 133,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "417A2DBD9506DB928A03A95310919461BDA27077C997F0F05B6D5C3C30354FEF",
+      "loadedOwners": {
+        "OfficeIMO.IWork": "7602C518F857200BAFA0D97D7654D2EFC71557F395D8554EE1BA609536A4E0AB",
+        "OfficeIMO.Workflows.IWork": "4E9D24787199FA70089F9EBF946960C1A6A2112C5618B35E89F8ED74E43A8F8B"
+      }
+    },
+    "OfficeIMO.IWork.Tests/net10.0": {
+      "total": 3009,
+      "passed": 3009,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "E87E89981FF3AA77387C7C0267E5A302997762D215FFB0BB3F41A4B7F5A5D6EA",
+      "loadedOwners": {
+        "OfficeIMO.IWork": "6798A3A86C45F577377F748773BB1EAE91F0F2BDBA78B3FF72DC9056FD2C1138",
+        "OfficeIMO.Reader.IWork": "846B68A8462D2FB4C1B5444A7EAF67A9BFE50FBC15FCA7CDB2BDE1F08C2AA993"
+      }
+    },
+    "OfficeIMO.Workflows.IWork.Tests/net10.0": {
+      "total": 133,
+      "passed": 133,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "46DD2BFF52B2C366948F5492A0119469BDB30199595B7624D7E28BFFC992EA91",
+      "loadedOwners": {
+        "OfficeIMO.IWork": "10D8CA4D86149B86ABF042EDB8E63CDB60668A993FF936B1B6373ADD618A7108",
+        "OfficeIMO.Workflows.IWork": "A1D14B06422E8EE0AC6E994D874C5F87BC0888104A9F08AB9BE574ED834530FD"
+      }
+    }
+  },
+  "ownerBuilds": [
+    {
+      "owner": "OfficeIMO.IWork",
+      "targetFramework": "netstandard2.0",
+      "exitCode": 0,
+      "warnings": 0,
+      "logSha256": "8C0828C337CEE0C94C59EA629472D255B5B2839F05B57C8CA6190473FBAAF58B"
+    },
+    {
+      "owner": "OfficeIMO.Reader.IWork",
+      "targetFramework": "netstandard2.0",
+      "exitCode": 0,
+      "warnings": 0,
+      "logSha256": "8D39C261648FA6E68F1460B9F6BC3CBC3E9EE2F0B3DF468F3E437797E2918ECB"
+    }
+  ],
+  "nativeReference": {
+    "producer": "Pages 15.4 (7051.0.79)",
+    "profile": "OfficeIMO-authored, Apple-saved one-page Arial 12 body; two non-tiered decimal parenthesis forms; nine levels and retained scope/restart behavior",
+    "manifest": "../../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-decimal-marker-forms-v15.4.json",
+    "manifestSha256": "B734F9C74E2E22D0925ADC9975829A8E3418946C35D42983826CF217AE8B8F48",
+    "artifactCount": 61,
+    "artifactBytes": 2950030,
+    "sourceStates": 8,
+    "rawTextPatches": 2,
+    "renderedPdfPagesInspected": 16,
+    "receivingDocxGeometry": [
+      {
+        "form": "parentheses",
+        "wordBounds": 154,
+        "maximumDeltaPoints": 0.0
+      },
+      {
+        "form": "closing",
+        "wordBounds": 154,
+        "maximumDeltaPoints": 0.0
+      }
+    ],
+    "independentVerifierReceiptSha256": "E1FA11A116707B84EC9A34FEF91008BB7C3B783D2BD1EBEEC891FC3557381C5E"
+  },
+  "review": {
+    "candidate": "6cbf038e50b8d2025976a88c0807239451f1f8ce",
+    "mode": "One fresh strictly read-only full pass",
+    "productDisposition": "accept as shaped",
+    "actionableTechnicalFindings": 0,
+    "visualEvidence": "All sixteen PDF pages and four native reopen/receiving screenshots inspected; all manifest hashes and sizes checked",
+    "confirmationUsed": false
+  },
+  "limits": [
+    "Qualification covers the recorded Pages 15.4 body-list profile; arbitrary producer sources, other containers, pagination contexts and typography remain separate gates.",
+    "Non-tiered parenthesis marker forms must be uniform within each selected ancestor chain. Tiered, Roman/letter/script and broader bullet profiles remain incomplete.",
+    "Composed PDF uses explicitly substituted Helvetica; source-font appearance equivalence is not claimed. Preservation retains unassessed native visual caches.",
+    "Numbers/Keynote marker decoding and saved PPTX schemes have synthetic contract evidence; this slice does not add native Keynote producer evidence.",
+    "Actual NativeAOT qualifies macOS arm64 only; PDF NativeAOT, other architectures, signed sandbox and physical-device acceptance remain separate.",
+    "No push, PR, merge, package publication or deployment."
+  ],
+  "commands": [
+    "dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj -c Release -f <net8.0|net10.0> --artifacts-path <warm-artifacts> --no-restore --filter Category!=Performance",
+    "dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj -c Release -f <net8.0|net10.0> --artifacts-path <warm-artifacts> --no-restore --filter Category!=Performance",
+    "dotnet build OfficeIMO.<IWork|Reader.IWork>/OfficeIMO.<IWork|Reader.IWork>.csproj -c Release -f netstandard2.0 --artifacts-path <warm-artifacts> --no-restore",
+    "dotnet publish OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj -c Release -f <net8.0|net10.0> -r osx-arm64 --artifacts-path <warm-aot-artifacts> --no-restore -o <publish-directory>",
+    "<publish-directory>/OfficeIMO.IWork.AotSmoke",
+    "python Build/IWork/verify-pages-decimal-marker-forms.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports --descriptor <pinned-pages-descriptor.pb> --out <independent-receipt.json>"
+  ]
+}

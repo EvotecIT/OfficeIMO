@@ -1,0 +1,544 @@
+{
+  "schemaVersion": 1,
+  "profile": "native Pages rich two-level decimal body-list creation",
+  "license": "MIT; newly authored OfficeIMO fixtures and derived evidence",
+  "application": {
+    "name": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79"
+  },
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "candidateBase": "60a75ab854ba6cb6605dc06fa78775d64210f3c8",
+  "artifacts": {
+    "created": {
+      "path": "pages-created-rich-numbering-v15.4.pages",
+      "bytes": 11282,
+      "sha256": "9aab5aa4c78f2f0a427255d8126c6ca80d44ccffb9e23e51854e10e862ac898a"
+    },
+    "nativeEdited": {
+      "path": "pages-created-rich-numbering-edited-v15.4.pages",
+      "bytes": 58335,
+      "sha256": "817abbee08e66209c4282ec04d2a2dcf35f9cc2f4ca0d89f8d1b2b49adedb880"
+    },
+    "nativeEditedDocx": {
+      "path": "pages-created-rich-numbering-edited-v15.4.docx",
+      "bytes": 9300,
+      "sha256": "e9f4bab124bbe0ede4a92f68da86e71d352dec401cc846f9856f1583945298a6"
+    },
+    "nativeEditedPdf": {
+      "path": "pages-created-rich-numbering-edited-v15.4.pdf",
+      "bytes": 93381,
+      "sha256": "7a6c1fe0b898c8a655370b379b54e7fe28ca158ab415d9d0d470a063b56ba451"
+    },
+    "officeimoDocx": {
+      "path": "pages-created-rich-numbering-officeimo-v15.4.docx",
+      "bytes": 20925,
+      "sha256": "1d4f6367d9049feec79e15df1af5f501a55aeb4827107039bfd6f22c19ff94c1"
+    },
+    "officeimoEditedDocx": {
+      "path": "pages-created-rich-numbering-edited-officeimo-v15.4.docx",
+      "bytes": 20986,
+      "sha256": "4bef1cd4d6325b1aa7d92dd763adb2cb2397f4b1c7f1d8bf9d77128b38cb46b5"
+    },
+    "officeimoPdf": {
+      "path": "pages-created-rich-numbering-officeimo-v15.4.pdf",
+      "bytes": 32492,
+      "sha256": "520a67a3e3674ada4e40f1012afd561f48742e12b9f16f3cd9d67d8c404bf180"
+    },
+    "officeimoEditedPdf": {
+      "path": "pages-created-rich-numbering-edited-officeimo-v15.4.pdf",
+      "bytes": 32505,
+      "sha256": "e4bf624953f8d9b5ef4eeed1c874961d47b42fbb95ab3bb7ecb0499147524d69"
+    },
+    "nativeOpen": {
+      "path": "pages-created-rich-numbering-v15.4-open.png",
+      "bytes": 68632,
+      "sha256": "dc1769aaca865de43bbbe80a6d00a43fb1193b31f023915945562a7fca381fab"
+    },
+    "nativeReopened": {
+      "path": "pages-created-rich-numbering-v15.4-reopened.png",
+      "bytes": 110693,
+      "sha256": "e73892c48db241fd32bbbae6fd21ea87516472e1df658ac48efbc068f2982390"
+    },
+    "nativeEditedRaster": {
+      "path": "pages-created-rich-numbering-edited-v15.4-native.png",
+      "bytes": 49821,
+      "sha256": "064846cc5cf7a6c5d5cdac2768296ac111a1b85854e080711d54db21bf60b874"
+    },
+    "officeimoRaster": {
+      "path": "pages-created-rich-numbering-officeimo-v15.4.png",
+      "bytes": 45282,
+      "sha256": "9bd351905af123f0785c34eafe9bd90a583fef692c752e323e94c2807ab1b89a"
+    },
+    "officeimoEditedRaster": {
+      "path": "pages-created-rich-numbering-edited-officeimo-v15.4.png",
+      "bytes": 46706,
+      "sha256": "8d975dc3cef3c25cd4b6586d474cae4a4a1a9b3bbe48adc6bd64d9d40cf2a8bb"
+    },
+    "independentCreated": {
+      "path": "pages-created-rich-numbering-v15.4-decode.json",
+      "bytes": 13636,
+      "sha256": "4780976221fcad8075cdd2da2e1bc2ed70dc03a6132326966c45ef828ec3361b"
+    },
+    "independentCreatedStyles": {
+      "path": "pages-created-rich-numbering-v15.4-styles.json",
+      "bytes": 49913,
+      "sha256": "f0670b7cc9fa79feb03b138c98e00f1893f00502fdcbab4fbc95adb472045b1a"
+    },
+    "independentEditedStyles": {
+      "path": "pages-created-rich-numbering-edited-v15.4-styles.json",
+      "bytes": 35792,
+      "sha256": "d751251297a8fbe4411c9085bd0a1a3ebefb8187e9cf95017447bfa8911b76b3"
+    },
+    "independentPdf": {
+      "path": "pages-created-rich-numbering-v15.4-pdf-decode.json",
+      "bytes": 14145,
+      "sha256": "aef69fd18809fb847dc00a0c5134494b868ab8aecbb85e2dd4ac08981ae77cae"
+    },
+    "independentDocx": {
+      "path": "pages-created-rich-numbering-v15.4-docx-decode.json",
+      "bytes": 77425,
+      "sha256": "e077b419dee42d3dbf44263d7b6ebe9f1615164d759f48d557985c9ba9d57961"
+    }
+  },
+  "cases": [
+    {
+      "case": "created",
+      "source": "created",
+      "officeimoPdf": "officeimoPdf",
+      "expectedItems": [
+        {
+          "number": 7,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Bold first 😀",
+              "color": "003366",
+              "bold": true,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            },
+            {
+              "text": " plain reset",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Bold first 😀 plain reset"
+        },
+        {
+          "number": 1,
+          "level": 1,
+          "runs": [
+            {
+              "text": "Child italic",
+              "color": "008000",
+              "bold": false,
+              "italic": true,
+              "underline": false,
+              "strikethrough": false
+            },
+            {
+              "text": ", underline",
+              "color": "003366",
+              "bold": false,
+              "italic": false,
+              "underline": true,
+              "strikethrough": false
+            },
+            {
+              "text": ", strike",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": true
+            }
+          ],
+          "text": "Child italic, underline, strike"
+        },
+        {
+          "number": 5,
+          "level": 1,
+          "runs": [
+            {
+              "text": "Combined decoration",
+              "color": "660066",
+              "bold": true,
+              "italic": true,
+              "underline": true,
+              "strikethrough": true
+            },
+            {
+              "text": " reset",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Combined decoration reset"
+        },
+        {
+          "number": 8,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Colored first",
+              "color": "CC0000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            },
+            {
+              "text": " parent eight",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Colored first parent eight"
+        },
+        {
+          "number": 1,
+          "level": 1,
+          "runs": [
+            {
+              "text": "Underlined child",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": true,
+              "strikethrough": false
+            },
+            {
+              "text": " reset",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Underlined child reset"
+        },
+        {
+          "number": 9,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Plain parent nine",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Plain parent nine"
+        },
+        {
+          "number": 3,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Separate Zażółć café",
+              "color": "000000",
+              "bold": false,
+              "italic": true,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Separate Zażółć café"
+        },
+        {
+          "number": 10,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Resumed",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": true,
+              "strikethrough": false
+            },
+            {
+              "text": " parent ten",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Resumed parent ten"
+        }
+      ]
+    },
+    {
+      "case": "nativeEdited",
+      "source": "nativeEdited",
+      "nativePdf": "nativeEditedPdf",
+      "officeimoPdf": "officeimoEditedPdf",
+      "expectedItems": [
+        {
+          "number": 7,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Bold first 😀",
+              "color": "003366",
+              "bold": true,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            },
+            {
+              "text": " plain reset",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Bold first 😀 plain reset"
+        },
+        {
+          "number": 1,
+          "level": 1,
+          "runs": [
+            {
+              "text": "Child italic",
+              "color": "008000",
+              "bold": false,
+              "italic": true,
+              "underline": false,
+              "strikethrough": false
+            },
+            {
+              "text": ", underline",
+              "color": "003366",
+              "bold": false,
+              "italic": false,
+              "underline": true,
+              "strikethrough": false
+            },
+            {
+              "text": ", strike",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": true
+            }
+          ],
+          "text": "Child italic, underline, strike"
+        },
+        {
+          "number": 5,
+          "level": 1,
+          "runs": [
+            {
+              "text": "Combined decoration",
+              "color": "660066",
+              "bold": true,
+              "italic": true,
+              "underline": true,
+              "strikethrough": true
+            },
+            {
+              "text": " reset",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Combined decoration reset"
+        },
+        {
+          "number": 8,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Colored first",
+              "color": "CC0000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            },
+            {
+              "text": " parent eight",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Colored first parent eight"
+        },
+        {
+          "number": 1,
+          "level": 1,
+          "runs": [
+            {
+              "text": "Underlined child",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": true,
+              "strikethrough": false
+            },
+            {
+              "text": " reset",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Underlined child reset"
+        },
+        {
+          "number": 9,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Plain parent nine",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Plain parent nine"
+        },
+        {
+          "number": 3,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Separate Zażółć café",
+              "color": "000000",
+              "bold": false,
+              "italic": true,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Separate Zażółć café"
+        },
+        {
+          "number": 10,
+          "level": 0,
+          "runs": [
+            {
+              "text": "Resumed",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": true,
+              "strikethrough": false
+            },
+            {
+              "text": " parent ten native edit",
+              "color": "000000",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false
+            }
+          ],
+          "text": "Resumed parent ten native edit"
+        }
+      ]
+    }
+  ],
+  "acceptance": {
+    "createdRecords": 51,
+    "bodyParagraphs": 10,
+    "nativeOpensWithoutRepair": true,
+    "nativeEdit": "Append native edit to the final plain run; save, close/reopen, then export DOCX and best-quality PDF.",
+    "nativeTextAndMarkerFont": "Arial, 12 points; plain black markers independent of first-run color/decoration",
+    "independentCharacterRanges": "UTF-16 ranges, explicit resets, all four decorations and opaque colors agree before and after the native edit.",
+    "strictSavedOfficeimoDocx": true,
+    "allNativeAndComposedPagesInspected": true,
+    "nativeSessionClosed": true
+  },
+  "independentDecoder": {
+    "provider": "numbers-parser",
+    "providerVersion": "4.19.0",
+    "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+    "createdCommand": "python Build/IWork/verify-pages-creation.py <created.pages> --descriptor <descriptor.pb> --out <graph.json>",
+    "selectedStylesCommand": "python Build/IWork/extract-pages-list-profile.py <source.pages> --descriptor <descriptor.pb> --out <styles.json>"
+  },
+  "composedPdf": {
+    "created": {
+      "pages": 1,
+      "sourceUnits": 8,
+      "reconstructedSourceUnits": 8,
+      "omittedSourceUnits": 0,
+      "unassessedSourceUnits": 0
+    },
+    "nativeEdited": {
+      "pages": 1,
+      "sourceUnits": 8,
+      "reconstructedSourceUnits": 8,
+      "omittedSourceUnits": 0,
+      "unassessedSourceUnits": 0
+    },
+    "resourcePolicy": "PortableDeterministic",
+    "fontInputs": [
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf",
+        "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-BoldItalic.ttf",
+        "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Italic.ttf",
+        "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+        "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/TestAssets/NotoEmoji-VariableFont_wght.ttf",
+        "sha256": "dbd8394b0ee513b356b5a101fb0f64628ce9508294523e051a0efb1679bb34e3"
+      }
+    ],
+    "fontDiagnostic": "NativeFontFamilySubstituted: Arial to Helvetica; caller Carlito and Noto Emoji fallbacks",
+    "recordFidelity": "Native records remain captured but unassessed; zero omitted/unassessed selected content units does not mean no loss."
+  },
+  "limits": [
+    "All visible runs use the owning list font and whole-point size. Mixed fonts/sizes, bullets, tiered/deeper numbering and additional containers remain unqualified.",
+    "Native DOCX retains text/counters/indents but uses Arial Unicode MS and clears selected bold/italic run overrides; typography equivalence of the native DOCX export is not qualified. Native Pages and PDF retain rich appearance.",
+    "Native and composed fonts, emoji appearance, vertical spacing, exact pagination and receiving-application appearance of OfficeIMO DOCX remain unqualified.",
+    "Returning to an earlier group restores explicit starts; edits before another group do not propagate through these restored starts.",
+    "Pages accessibility text enumerates ordinal positions that differ from visible counters; screenshots and PDF provide counter evidence.",
+    "Apple PDF has zero-offset xref entries for objects 8,21,22 repaired by independent readers.",
+    "Additional application versions, architectures, native sandbox and physical-device execution retain separate gates."
+  ]
+}

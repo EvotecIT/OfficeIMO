@@ -1,0 +1,205 @@
+{
+  "license": "MIT",
+  "origin": "OfficeIMO owned creator fixtures resaved by Apple, then preservation-aware save and qualified Keynote image translation",
+  "macos": {
+    "version": "27.0.1",
+    "build": "26A434",
+    "architecture": "arm64"
+  },
+  "applications": {
+    "Pages": {
+      "version": "15.4",
+      "build": "7051.0.79"
+    },
+    "Keynote": {
+      "version": "15.4",
+      "build": "7051.0.79"
+    },
+    "Numbers": {
+      "version": "14.5",
+      "build": "7045.0.17"
+    }
+  },
+  "qualification_date": "2026-10-10",
+  "unchanged_saves": [
+    {
+      "source": "pages-created-edited-v15.4.pages",
+      "output": "preserved.pages",
+      "source_sha256": "dc07fa4028ac9f261fdb7cb23f8b409cd80e092cdf8a8ed938adc420b37ad6b4",
+      "output_sha256": "45ffed0ebbfe1460841193fbb7af95d7a415b5b1e3d873f337812e3de0eb45cf",
+      "file_entries": 13,
+      "records_including_auxiliary": 248,
+      "changed_entries": [],
+      "edited_images": [],
+      "untouched_file_entries_identical": true,
+      "raw_headers_and_sibling_payloads_identical": true,
+      "numbers_parser": "4.19.0",
+      "protobuf": "7.36.2",
+      "descriptor_sha256": null,
+      "native_opened": true
+    },
+    {
+      "source": "numbers-created-edited-v14.5.numbers",
+      "output": "preserved.numbers",
+      "source_sha256": "c907c567584786ce9c5183a376f61d813f3bf56757de531cbdbfb1fefb4fcfd6",
+      "output_sha256": "9111cc98573720a0d94ee569b53016d523b7a3cc4f7201ebcb3098f96f0a6e63",
+      "file_entries": 103,
+      "records_including_auxiliary": 316,
+      "changed_entries": [],
+      "edited_images": [],
+      "untouched_file_entries_identical": true,
+      "raw_headers_and_sibling_payloads_identical": true,
+      "numbers_parser": "4.19.0",
+      "protobuf": "7.36.2",
+      "descriptor_sha256": null,
+      "native_opened": true
+    },
+    {
+      "source": "keynote-created-images-edited-v15.4.key",
+      "output": "preserved.key",
+      "source_sha256": "c0bc70026c2c977fde0879f37849c14cd819dc055a3cd7f95e97cac789828a17",
+      "output_sha256": "1d7b11e23cbb16b52853ab20fa481350b6b4f202ab11e96de4c3a7b81d655c6d",
+      "file_entries": 24,
+      "records_including_auxiliary": 205,
+      "changed_entries": [],
+      "edited_images": [],
+      "untouched_file_entries_identical": true,
+      "raw_headers_and_sibling_payloads_identical": true,
+      "numbers_parser": "4.19.0",
+      "protobuf": "7.36.2",
+      "descriptor_sha256": null,
+      "native_opened": true
+    }
+  ],
+  "translation": {
+    "image": 154,
+    "before": [
+      80,
+      120
+    ],
+    "after": [
+      100,
+      130
+    ],
+    "bytes": 96452,
+    "sha256": "D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F",
+    "originalContentHash": "005d9745c750c882055f8737bfa5d74e204d091b49d8a139c87a1dc077347e8c",
+    "editedContentHash": "d35e3687d17ce827de21d96446201b4a51c39685c983964bc96eef515027393d",
+    "records": 205,
+    "entries": 24,
+    "changedEntries": [
+      "Index/Slide-146-2.iwa"
+    ],
+    "diagnostics": [
+      {
+        "Code": "IWORK_NATIVE_CARRIER_REWRITTEN",
+        "Message": "Captured file-entry payloads are preserved. ZIP compression, timestamps, extra fields, comments, directory entries and filesystem metadata are not preserved.",
+        "LossKind": 0
+      },
+      {
+        "Code": "IWORK_NATIVE_VISUAL_CACHES_UNASSESSED",
+        "Message": "Image positions were changed while native previews and other visual caches were retained without refresh. Native rendering/cache regeneration and wider application metadata are unassessed.",
+        "LossKind": 4
+      }
+    ]
+  },
+  "independent_translation": {
+    "source": "keynote-created-images-edited-v15.4.key",
+    "output": "translated.key",
+    "source_sha256": "c0bc70026c2c977fde0879f37849c14cd819dc055a3cd7f95e97cac789828a17",
+    "output_sha256": "d9f69dd9c3511cc34aa9b9766061308f29dc7871db8f8f1fa23036a8122a800f",
+    "file_entries": 24,
+    "records_including_auxiliary": 205,
+    "changed_entries": [
+      "Index/Slide-146-2.iwa"
+    ],
+    "edited_images": [
+      {
+        "entry": "Index/Slide-146-2.iwa",
+        "id": 154,
+        "position": [
+          100.0,
+          130.0
+        ]
+      }
+    ],
+    "untouched_file_entries_identical": true,
+    "raw_headers_and_sibling_payloads_identical": true,
+    "numbers_parser": "4.19.0",
+    "protobuf": "7.36.2",
+    "descriptor_sha256": "d5e97836e04ffffe2145b6bd93aa01a0c3fa4af420a0f82ae9d3c8019844d45e"
+  },
+  "native_readback": [
+    {
+      "id": 125,
+      "media": "image/png",
+      "left": 60,
+      "top": 110,
+      "width": 480,
+      "height": 320,
+      "imageHash": "BF73F362A623CC7177E6E7CED0F063DE2927F9C4B7F917BA07F891EAF18A5F05"
+    },
+    {
+      "id": 139,
+      "media": "image/png",
+      "left": 60,
+      "top": 120,
+      "width": 480,
+      "height": 320,
+      "imageHash": "9194F8BFABAC27A556C56C6E48FEF6772E388F912A319B6B5EF52D7768A7AEC5"
+    },
+    {
+      "id": 154,
+      "media": "image/jpeg",
+      "left": 101,
+      "top": 130,
+      "width": 600,
+      "height": 240,
+      "imageHash": "1CA2456AA1AB1722C1DDA972586B6DF41EFFFA39C534788E04015F739DA7404C"
+    }
+  ],
+  "files": {
+    "keynote-preserved-translated-v15.4.key": {
+      "bytes": 96452,
+      "sha256": "d9f69dd9c3511cc34aa9b9766061308f29dc7871db8f8f1fa23036a8122a800f"
+    },
+    "keynote-preserved-translated-edited-v15.4.key": {
+      "bytes": 95429,
+      "sha256": "64ceb4e1c151e31022a99eca613f2361429e50fcd9040bfb72c5d340e6296d86"
+    },
+    "keynote-preserved-translated-v15.4.pdf": {
+      "bytes": 51546,
+      "sha256": "45e6b38e0b861fd69513bc30bdcbac44b71ec1c6b6be1e461e7a795a4eb18db4"
+    },
+    "keynote-preserved-translated-v15.4-page1.png": {
+      "bytes": 13067,
+      "sha256": "0403bf148f405469657974e6779b33863fcf99e650f12ac10eb551526f2d6264"
+    },
+    "keynote-preserved-translated-v15.4-page2.png": {
+      "bytes": 14751,
+      "sha256": "d23d814cf7cb802124ea54da6c44192faf5fab31621b9fb9d59fe7cf2102a796"
+    },
+    "keynote-preserved-translated-v15.4-page3.png": {
+      "bytes": 12027,
+      "sha256": "5b5019cccc9158c369de04ea42e9a5b99ec2e9b631ea38e95c159574d282807a"
+    }
+  },
+  "native_observations": {
+    "unchanged_open": "Pages two-page body inspected through paragraph 80; Numbers two sheets and three tables with B2 20.75; Keynote three slides and original JPEG position 80,120",
+    "translation": "Keynote opens without repair, reports X100 Y130 W600 H240; native Right-key edit gives X101 Y130; save, close and reopen preserve it; all three exported PDF pages inspected",
+    "pdf_image_bounds": [
+      101,
+      130,
+      600,
+      240
+    ],
+    "keynote_unchanged_working_copy": "Keynote updates application state on open; independent preservation receipts describe the encoded package before Apple opens it",
+    "ui_cleanup": "Owned Pages/Numbers apps and Finder window closed; owned Keynote documents closed and pre-existing app retained"
+  },
+  "boundaries": [
+    "Native previews and visual caches are retained without refresh; explicit AllowUnassessedVisualCaches is required for edits",
+    "Only fixture-specific native acceptance, not general application-version or full visual-cache qualification",
+    "ZIP compression, timestamps, extra fields, comments, directory entries and filesystem metadata are not preserved",
+    "Only direct unlocked unrotated unmasked Keynote images within the canvas; nested Index.zip mutations unsupported"
+  ]
+}

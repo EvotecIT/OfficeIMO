@@ -216,6 +216,7 @@ internal static class OfficeExifProfileCodec {
         cancellationToken.ThrowIfCancellationRequested();
         if (type == OfficeExifDataType.Ascii) return Encoding.ASCII.GetString(bytes, offset, count).TrimEnd('\0');
         if (type == OfficeExifDataType.Byte || type == OfficeExifDataType.Undefined) { var copied = new byte[count]; Buffer.BlockCopy(bytes, offset, copied, 0, count); return count == 1 && type == OfficeExifDataType.Byte ? (object)copied[0] : copied; }
+        // Statically known arrays keep every supported field type available in NativeAOT.
         Array values = type switch {
             OfficeExifDataType.SignedByte => new sbyte[count],
             OfficeExifDataType.Short => new ushort[count],

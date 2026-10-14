@@ -30,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            var numberingState = new Dictionary<int, int>();
+            var numberingState = new PowerPointParagraphNumberingState();
             List<PowerPointParagraphDrawing> paragraphDrawings = CreateTableCellParagraphDrawings(cell, paragraphs, numberingState, textWidth, mapping, colorScheme, OfficeDrawingTextLayout.CreateMetrics(drawing).MeasureText);
             double flowHeight = paragraphDrawings.Sum(paragraph => paragraph.TotalHeight);
             double currentY = cellTop + marginTop + ResolveTextBoxVerticalOffset(cell.VerticalAlignment, textHeight, flowHeight);
@@ -44,6 +44,10 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < paragraphDrawings.Count; i++) {
                 PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
                 currentY += paragraph.SpaceBefore;
+                if (!paragraph.HasContent) {
+                    currentY += paragraph.Height + paragraph.SpaceAfter;
+                    continue;
+                }
                 // Keep the cell as the clipping boundary while paragraph leading controls flow.
                 double visibleHeight = Math.Max(0D, contentBottom - currentY);
                 bool clipped = visibleHeight + 0.001D < Math.Max(paragraph.Height, paragraph.PaintedHeight);
@@ -104,14 +108,14 @@ namespace OfficeIMO.PowerPoint {
         private static List<PowerPointParagraphDrawing> CreateTableCellParagraphDrawings(
             PowerPointTableCell cell,
             IReadOnlyList<PowerPointParagraph> paragraphs,
-            Dictionary<int, int> numberingState,
+            PowerPointParagraphNumberingState numberingState,
             double textWidth,
             PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure) {
             var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
             for (int i = 0; i < paragraphs.Count; i++) {
                 PowerPointParagraph paragraph = paragraphs[i];
-                string? marker = CreateParagraphMarker(paragraph, numberingState);
+                string? marker = numberingState.CreateMarker(paragraph);
                 OfficeTextParagraphIndent indent = CreateTableCellParagraphIndent(paragraph, mapping);
                 OfficeTextAlignment alignment = MapTextAlignment(paragraph.Alignment ?? cell.HorizontalAlignment);
                 List<OfficeRichTextRun> richRuns = CreateTableCellParagraphRichTextRuns(cell, paragraph, marker, colorScheme, mapping);

@@ -1,0 +1,91 @@
+{
+  "xlsx": [
+    {
+      "case": "officeimo",
+      "file": "numbers-preserved-scalars.xlsx",
+      "sheets": [
+        {
+          "table": "Data",
+          "rows": 4,
+          "columns": 4,
+          "typedCellsMatchIndependentNumbers": true
+        },
+        {
+          "table": "Totals",
+          "rows": 2,
+          "columns": 2,
+          "typedCellsMatchIndependentNumbers": true
+        },
+        {
+          "table": "Empty",
+          "rows": 2,
+          "columns": 3,
+          "typedCellsMatchIndependentNumbers": true
+        }
+      ]
+    },
+    {
+      "case": "native",
+      "file": "numbers-preserved-scalars-edited-native.xlsx",
+      "sheets": [
+        {
+          "table": "Data",
+          "rows": 4,
+          "columns": 4,
+          "typedCellsMatchIndependentNumbers": true
+        },
+        {
+          "table": "Totals",
+          "rows": 2,
+          "columns": 2,
+          "typedCellsMatchIndependentNumbers": true
+        },
+        {
+          "table": "Empty",
+          "rows": 2,
+          "columns": 3,
+          "typedCellsMatchIndependentNumbers": true
+        }
+      ]
+    },
+    {
+      "case": "nativeEditedOfficeimo",
+      "file": "numbers-preserved-scalars-edited-officeimo.xlsx",
+      "sheets": [
+        {
+          "table": "Data",
+          "rows": 4,
+          "columns": 4,
+          "typedCellsMatchIndependentNumbers": true
+        },
+        {
+          "table": "Totals",
+          "rows": 2,
+          "columns": 2,
+          "typedCellsMatchIndependentNumbers": true
+        },
+        {
+          "table": "Empty",
+          "rows": 2,
+          "columns": 3,
+          "typedCellsMatchIndependentNumbers": true
+        }
+      ]
+    }
+  ],
+  "nativePdf": {
+    "pages": 2,
+    "allPagesRenderedAndInspected": true,
+    "text": "Item Value Flag Notes\nApples 43,125 FAŁSZ Zażółć \n😀\nNegative -7,5 PRAWDA =literal\nLine1 \nLine2\n12345,6789 PRAWDA\nTotals 123,75\nPRAWDA",
+    "fonts": [
+      "/AAAAAB+ArialMT",
+      "/AAAAAC+ArialMT",
+      "/AAAAAE+AppleColorEmoji"
+    ]
+  },
+  "limits": [
+    "Native PDF displays Polish decimal separators and booleans and color emoji.",
+    "XLSX typed content agrees; inherited source padding remains an explicit OfficeIMO conversion loss.",
+    "Complete composed Numbers PDF remains rejected under the existing padding contract."
+  ]
+}

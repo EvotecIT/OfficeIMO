@@ -289,15 +289,7 @@ public sealed partial class OfficeWorkflowRunner {
                 hasLoss |= evidence.HasLoss;
             }
             if (settings.CompressPdfOutput) {
-                PdfOptimizationOptions compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
-                compression.KeepOriginalWhenNotSmaller = true;
-                compression.CancellationToken = cancellationToken;
-                compression.MaximumOutputBytes = maximumOutputBytes;
-                PdfOptimizationActionResult optimized = PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Optimization.Apply(compression);
-                if (!optimized.PreservationReport.IsPreserved) throw new InvalidOperationException("PDF compression did not preserve the converted document.");
-                bytes = optimized.Bytes;
-                diagnostics.Add(new OfficeWorkflowDiagnostic("PdfOutputCompression", "Verified lossless PDF compression completed; saved " + optimized.SavedBytes + " bytes.",
-                    OfficeWorkflowDiagnosticSeverity.Information, "convert"));
+                bytes = CompressConvertedPdfOutput(bytes, request, diagnostics, cancellationToken);
             }
             if (deferredEncryption != null) {
                 PdfSecurityMutationResult encrypted = PdfSecurityEditor.Encrypt(bytes, deferredEncryption,
@@ -365,6 +357,20 @@ public sealed partial class OfficeWorkflowRunner {
                 new OfficeWorkflowConversionEvidence(saved?.ConversionReports ?? conversion.ConversionReports,
                     facts ?? new Dictionary<string, string>()), importDiagnosticSources: importDiagnosticSources);
         }
+    }
+
+    private static byte[] CompressConvertedPdfOutput(byte[] bytes, ValidatedRequest request,
+        List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken cancellationToken) {
+        PdfOptimizationOptions compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
+        compression.KeepOriginalWhenNotSmaller = true;
+        compression.CancellationToken = cancellationToken;
+        compression.MaximumOutputBytes = request.Limits.MaximumOutputBytes;
+        PdfOptimizationActionResult optimized = PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Optimization.Apply(compression);
+        if (!optimized.PreservationReport.IsPreserved)
+            throw new InvalidOperationException("PDF compression did not preserve the converted document.");
+        diagnostics.Add(new OfficeWorkflowDiagnostic("PdfOutputCompression", "Verified lossless PDF compression completed; saved " + optimized.SavedBytes + " bytes.",
+            OfficeWorkflowDiagnosticSeverity.Information, "convert"));
+        return optimized.Bytes;
     }
 
     private static string DecodeHtmlInput(byte[] input, CancellationToken cancellationToken) {

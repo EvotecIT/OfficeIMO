@@ -1,0 +1,46 @@
+{
+  "source": "native-exports/numbers-formula-formatting-v14.5.numbers",
+  "sourceSha256": "ae9d0560075470c1461c935572d47a273a882e9e0196dafb129dab36e5c34abe",
+  "derivedFrom": "numbers-parser/cross-table-formulas.numbers",
+  "derivedFromSha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
+  "producer": "Apple Numbers",
+  "producerVersion": "14.5",
+  "producerBuild": "7045.0.17",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "capturedUtc": "2026-10-09T12:04:19.099791+00:00",
+  "sourceModified": true,
+  "sourceModificationScope": "On a copy of the licensed workbook, native Numbers applied 18-point bold/italic/underline/right alignment to Formula Tests A9, and 14-point strikethrough/center alignment to A10. No formulas or values were edited. Numbers saved the copy before export.",
+  "artifacts": [
+    {
+      "path": "native-exports/numbers-formula-formatting-v14.5.numbers",
+      "sha256": "ae9d0560075470c1461c935572d47a273a882e9e0196dafb129dab36e5c34abe",
+      "bytes": 335099
+    },
+    {
+      "path": "native-exports/numbers-formula-formatting-v14.5.xlsx",
+      "sha256": "73f40f7478a7564804c777b0c440fa5c368867e03e62ae368dfcedd83907d6a0",
+      "bytes": 23756
+    },
+    {
+      "path": "native-exports/numbers-formula-formatting-v14.5.pdf",
+      "sha256": "252de6ab525a346ab9785af51f659eeac37c6e561053684edea4c4a527ba3845",
+      "bytes": 188318
+    },
+    {
+      "path": "native-exports/numbers-formula-formatting-officeimo-native-v14.5.png",
+      "sha256": "9ae06d8372284d282cea1ef5e00b01955cb4bec4d8c1a0013fa0ed3713980054",
+      "bytes": 255780
+    }
+  ],
+  "exportOptions": {
+    "office": "XLSX, one worksheet per table, no summary worksheet or password.",
+    "pdf": "Best quality, fit each entire source sheet onto one page, no comments or password."
+  },
+  "license": "Derivative of the numbers-parser MIT fixture. Original attribution is retained in IWorkCorpus/README.md.",
+  "fontProvenance": "Installed macOS Helvetica Neue; source PostScript name HelveticaNeue and XLSX family name Helvetica Neue. PDF font subsets only; no standalone font files distributed.",
+  "qualification": [
+    "The two formula text results preserve their source expression and complete cached text after XLSX save/reopen. Font size, bold, italic, underline, strikethrough, opaque black foreground and horizontal alignment match the Apple XLSX reference after its extra title row is accounted for.",
+    "The original Numbers PDF and native import of OfficeIMO XLSX were visually inspected for both styled cells. The XLSX opens without a repair or font warning; its wider reconstructed columns display A9 on one line rather than the source\u2019s two. This qualifies the selected formula fonts/alignment, not equivalent wrapping, complete workbook appearance, recalculation, rich result spans or other producer versions.",
+    "Other workbook losses, including native cell padding, still require explicit partial acceptance. Uniform formula formatting does not remove these independent losses."
+  ]
+}

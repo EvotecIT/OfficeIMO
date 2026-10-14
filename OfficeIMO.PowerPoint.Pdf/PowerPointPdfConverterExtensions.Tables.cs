@@ -11,13 +11,15 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderTable(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTable table, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options) {
         if (table.Rows == 0 || table.Columns == 0) {
-            AddWarning(options, slideNumber, "empty-table", "Skipped an empty PowerPoint table.");
+            AddWarning(options, slideNumber, "empty-table", "Skipped an empty PowerPoint table.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
         string? fallbackFontFamily = string.IsNullOrWhiteSpace(options.FontFamily)
             ? PptCore.PowerPointTextDefaults.ResolveBodyLatinFont(table.OwnerSlide)
             : null;
+        PdfCore.PdfTableStyle style = CreateTableStyle(table, options);
+        double bodyFontSize = style.FontSize ?? (options.PdfOptions ?? new PdfCore.PdfOptions()).DefaultFontSize;
         var rows = new List<PdfCore.PdfTableCell[]>();
         for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
             var pdfCells = new List<PdfCore.PdfTableCell>();
@@ -27,13 +29,14 @@ public static partial class PowerPointPdfConverterExtensions {
                     continue;
                 }
 
-                pdfCells.Add(CreatePdfTableCell(cell, fallbackFontFamily, slideNumber, options));
+                double fallbackFontSize = rowIndex < style.HeaderRowCount ? style.HeaderFontSize ?? bodyFontSize
+                    : rowIndex >= table.Rows - style.FooterRowCount ? style.FooterFontSize ?? bodyFontSize : bodyFontSize;
+                pdfCells.Add(CreatePdfTableCell(cell, fallbackFontFamily, fallbackFontSize, slideNumber, options));
             }
 
             rows.Add(pdfCells.ToArray());
         }
 
-        PdfCore.PdfTableStyle style = CreateTableStyle(table, options);
         bool reportedCellOverflow = false;
         try {
             canvas.Table(rows, x, y, width, height, style, table.Rotation ?? 0D, diagnostic => {
@@ -75,11 +78,12 @@ public static partial class PowerPointPdfConverterExtensions {
     private static PdfCore.PdfTableCell CreatePdfTableCell(
         PptCore.PowerPointTableCell cell,
         string? fallbackFontFamily,
+        double fallbackFontSize,
         int slideNumber,
         PowerPointToPdfOptions options) {
         (int rowSpan, int columnSpan) = cell.Merge;
         return PdfCore.PdfTableCell.Merge(
-            CreatePdfTableCellRuns(cell, fallbackFontFamily, slideNumber, options),
+            CreatePdfTableCellRuns(cell, fallbackFontFamily, fallbackFontSize, slideNumber, options),
             Math.Max(1, columnSpan),
             Math.Max(1, rowSpan));
     }
@@ -87,17 +91,30 @@ public static partial class PowerPointPdfConverterExtensions {
     private static IReadOnlyList<PdfCore.PdfTextRun> CreatePdfTableCellRuns(
         PptCore.PowerPointTableCell cell,
         string? fallbackFontFamily,
+        double fallbackFontSize,
         int slideNumber,
         PowerPointToPdfOptions options) {
         var runs = new List<PdfCore.PdfTextRun>();
         A.TextBody? textBody = cell.Cell.TextBody;
         if (textBody != null) {
             bool hasParagraph = false;
+            bool reportedListLayout = false;
+            var numbering = new PptCore.PowerPointParagraphNumberingState();
             foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
                 if (hasParagraph) {
                     runs.Add(PdfCore.PdfTextRun.LineBreak());
                 }
 
+                var wrapped = new PptCore.PowerPointParagraph(paragraph, cell.SlidePart);
+                if (numbering.CreateMarker(wrapped) is string marker) {
+                    runs.Add(CreatePdfTableCellListMarker(cell, wrapped, marker,
+                        fallbackFontFamily, fallbackFontSize, slideNumber, options));
+                    if (!reportedListLayout) {
+                        AddWarning(options, slideNumber, "table-list-layout-approximation",
+                            "PowerPoint table list markers and counters are retained as inline text. Paragraph indents, marker positioning and spacing are approximated.");
+                        reportedListLayout = true;
+                    }
+                }
                 AppendPdfTableCellParagraphRuns(runs, paragraph, cell, fallbackFontFamily, slideNumber, options);
                 hasParagraph = true;
             }
@@ -199,6 +216,9 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         PdfCore.PdfTableStyle style = PdfCore.TableStyles.Light().Clone();
+        // Every anchor cell receives its resolved presentation borders. A PDF
+        // preset grid would paint over them and restore explicitly hidden edges.
+        style.BorderColor = null;
         style.FontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
         style.HeaderFontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
         style.CellPaddingX = 3.6D;

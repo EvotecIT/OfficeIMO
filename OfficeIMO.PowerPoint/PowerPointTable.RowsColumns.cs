@@ -102,7 +102,7 @@ namespace OfficeIMO.PowerPoint {
             string[] discardedSoundIds = PowerPointEmbeddedSound
                 .GetRelationshipIds(row);
             row.Remove();
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);
         }
 
@@ -197,7 +197,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (A.TableCell cell in discardedCells) {
                 cell.Remove();
             }
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);
         }
     }

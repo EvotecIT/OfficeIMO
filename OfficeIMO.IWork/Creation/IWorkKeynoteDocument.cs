@@ -4,14 +4,14 @@ using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>Creates native Keynote presentations containing positioned, uniformly styled text boxes.</summary>
+/// <summary>Creates native Keynote presentations containing positioned text, PNG/JPEG images and scalar tables.</summary>
 /// <remarks>This creation model does not modify loaded iWork packages. Instances are not thread safe.</remarks>
 public sealed class IWorkKeynoteDocument {
     private readonly List<IWorkKeynoteSlideBuilder> _slides = new();
 
     private IWorkKeynoteDocument(float widthPoints, float heightPoints) {
-        IWorkKeynoteTextBox.ValidatePositive(widthPoints, nameof(widthPoints));
-        IWorkKeynoteTextBox.ValidatePositive(heightPoints, nameof(heightPoints));
+        IWorkCreationValidation.ValidatePositive(widthPoints, nameof(widthPoints));
+        IWorkCreationValidation.ValidatePositive(heightPoints, nameof(heightPoints));
         SlideSize = new IWorkCanvasSize(widthPoints, heightPoints);
         Slides = _slides.AsReadOnly();
     }
@@ -27,7 +27,7 @@ public sealed class IWorkKeynoteDocument {
 
     /// <summary>Adds a blank slide with an opaque six-digit sRGB background color.</summary>
     public IWorkKeynoteSlideBuilder AddSlide(string backgroundColor = "FFFFFF") {
-        var slide = new IWorkKeynoteSlideBuilder(SlideSize, IWorkKeynoteTextBox.ParseColor(backgroundColor));
+        var slide = new IWorkKeynoteSlideBuilder(SlideSize, IWorkCreationValidation.ParseColor(backgroundColor));
         _slides.Add(slide);
         return slide;
     }
@@ -43,7 +43,7 @@ public sealed class IWorkKeynoteDocument {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
         byte[] bytes = SaveBytes(options, cancellationToken);
-        Copy(bytes, destination, cancellationToken);
+        IWorkNativePackageWriter.Copy(bytes, destination, cancellationToken);
     }
 
     /// <summary>Atomically saves a native Keynote package, rejecting an existing path unless overwrite is enabled.</summary>
@@ -53,17 +53,8 @@ public sealed class IWorkKeynoteDocument {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
         byte[] bytes = SaveBytes(options, cancellationToken);
-        OfficeFileCommit.WriteAtomically(path, stream => Copy(bytes, stream, cancellationToken), cancellationToken,
+        OfficeFileCommit.WriteAtomically(path, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken), cancellationToken,
             overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
     }
 
-    private static void Copy(byte[] bytes, Stream destination, CancellationToken cancellationToken) {
-        for (int offset = 0; offset < bytes.Length;) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int count = Math.Min(64 * 1024, bytes.Length - offset);
-            destination.Write(bytes, offset, count);
-            offset += count;
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-    }
 }
