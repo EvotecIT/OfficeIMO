@@ -8,8 +8,8 @@ using Jint.Runtime.Interop;
 namespace OfficeIMO.Html.Runtime.Worker;
 
 // Keep browser property writes on native option state so automation and capture observe
-// the same values. The retained select interface exposes selectedIndex as read-only and
-// its value setter compares without case sensitivity and selects every duplicate value.
+// the same values. The retained select interface exposes selectedIndex as read-only;
+// its options collection owns the writable index and option dirtiness rules.
 internal static class RuntimeSelectBindings {
     internal static void Install(Engine engine) {
         var selectPrototype = engine.Global.Get("HTMLSelectElement").AsObject().Get("prototype").AsObject();
@@ -27,14 +27,7 @@ internal static class RuntimeSelectBindings {
         selectPrototype.FastSetProperty("value", new GetSetPropertyDescriptor(
             new ClrFunction(engine, "get value", (receiver, _) => Select(receiver).Value ?? string.Empty),
             new ClrFunction(engine, "set value", (receiver, args) => {
-                IHtmlSelectElement select = Select(receiver);
-                string value = TypeConverter.ToString(args.ElementAtOrDefault(0) ?? JsValue.Undefined);
-                bool found = false;
-                foreach (IHtmlOptionElement option in select.Options) {
-                    bool selected = !found && string.Equals(option.Value, value, StringComparison.Ordinal);
-                    option.IsSelected = selected;
-                    found |= selected;
-                }
+                Select(receiver).Value = TypeConverter.ToString(args.ElementAtOrDefault(0) ?? JsValue.Undefined);
                 return JsValue.Undefined;
             }), true, true));
         selectPrototype.FastSetProperty("selectedIndex", IndexAccessors(engine, receiver => Select(receiver).Options));
@@ -55,19 +48,9 @@ internal static class RuntimeSelectBindings {
     }
 
     private static GetSetPropertyDescriptor IndexAccessors(Engine engine, Func<JsValue, IHtmlOptionsCollection> options) => new(
-        new ClrFunction(engine, "get selectedIndex", (receiver, _) => {
-            int index = 0;
-            foreach (var option in options(receiver)) {
-                if (option.IsSelected) return index;
-                index++;
-            }
-            return -1;
-        }),
+        new ClrFunction(engine, "get selectedIndex", (receiver, _) => options(receiver).SelectedIndex),
         new ClrFunction(engine, "set selectedIndex", (receiver, args) => {
-            var collection = options(receiver);
-            int selectedIndex = TypeConverter.ToInt32(args.ElementAtOrDefault(0) ?? JsValue.Undefined);
-            int index = 0;
-            foreach (var option in collection) option.IsSelected = index++ == selectedIndex;
+            options(receiver).SelectedIndex = TypeConverter.ToInt32(args.ElementAtOrDefault(0) ?? JsValue.Undefined);
             return JsValue.Undefined;
         }), true, true);
 
