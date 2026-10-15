@@ -209,7 +209,7 @@ public sealed partial class PdfReadPage {
 
     private static string? GetOperatorCapabilityId(string op) {
         switch (op) {
-            case "M": return PdfRenderCapabilities.MiterLimitId;
+            case "M": return null;
             case "ri": return null;
             case "i": return PdfRenderCapabilities.FlatnessId;
             case "MP":

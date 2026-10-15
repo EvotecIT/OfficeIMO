@@ -65,7 +65,7 @@ public static partial class OfficeDrawingRasterRenderer {
         if (fillRadialGradient != null || fillGradient != null)
             FillShapeGradientContours(canvas, drawingShape.Shape, drawingShape.X, drawingShape.Y, scale,
                 new[] { (IReadOnlyList<OfficePoint>)points }, fillGradient, fillRadialGradient, drawingShape.Shape.FillRule);
-        else if (fill.HasValue) canvas.FillPolygon(points, fill.Value);
+        else if (fill.HasValue) canvas.FillPolygon(SnapRectangleContour(canvas, points), fill.Value);
         StrokeTransformedPathContours(canvas, drawingShape, new[] { new OfficeFlattenedPathContour(contour, true) }, scale, stroke, strokeGradient, strokeRadialGradient);
     }
 
@@ -86,6 +86,7 @@ public static partial class OfficeDrawingRasterRenderer {
                     FillShapeGradientContours(canvas, shape, drawingShape.X, drawingShape.Y, scale,
                         closedContours, fillGradient, fillRadialGradient, shape.FillRule);
                 } else {
+                    if (closedContours.Count == 1) closedContours[0] = SnapRectangleContour(canvas, closedContours[0]);
                     FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
                 }
             }
@@ -140,7 +141,8 @@ public static partial class OfficeDrawingRasterRenderer {
         }
         canvas.StrokeContours(contours, width, cap ?? shape.StrokeLineCap ?? OfficeStrokeLineCap.Round,
             shape.StrokeLineJoin ?? OfficeStrokeLineJoin.Round, shape.StrokeMiterLimit, pattern, shape.StrokeDashOffset * strokeScale,
-            (px, py) => SampleStrokeGradient(linear, radial, x, y, w, h, px, py) ?? stroke ?? OfficeColor.Transparent);
+            (px, py) => SampleStrokeGradient(linear, radial, x, y, w, h, px, py) ?? stroke ?? OfficeColor.Transparent,
+            hairline: shape.StrokeHairline);
     }
     private static OfficeColor? GetGradientFallbackStroke(OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient) {
         if (strokeGradient?.Stops.Count > 0) {
@@ -239,6 +241,7 @@ public static partial class OfficeDrawingRasterRenderer {
                     FillShapeGradientContours(canvas, shape, x / scale, y / scale, scale,
                         closedContours, fillGradient, fillRadialGradient, shape.FillRule);
                 } else {
+                    if (closedContours.Count == 1) closedContours[0] = SnapRectangleContour(canvas, closedContours[0]);
                     FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
                 }
             }
@@ -252,6 +255,24 @@ public static partial class OfficeDrawingRasterRenderer {
                 OfficeTransform.Translate(-x, -y).Then(OfficeTransform.Scale(1D / scale, 1D / scale)),
                 OfficeTransform.Scale(scale, scale).Then(OfficeTransform.Translate(x, y)));
         }
+    }
+
+    // Stroke adjustment snaps a filled single axis-aligned rectangle, as PDF viewers do for thin rules.
+    private static IReadOnlyList<OfficePoint> SnapRectangleContour(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points) {
+        if (!canvas.StrokeAdjustment) return points;
+        int count = points.Count;
+        if (count == 5 && points[0].X == points[4].X && points[0].Y == points[4].Y) count = 4;
+        if (count != 4) return points;
+        double left = points[0].X, right = left, top = points[0].Y, bottom = top;
+        for (int i = 0; i < 4; i++) {
+            OfficePoint current = points[i], next = points[(i + 1) % 4];
+            if (current.X != next.X && current.Y != next.Y) return points;
+            left = Math.Min(left, current.X); right = Math.Max(right, current.X);
+            top = Math.Min(top, current.Y); bottom = Math.Max(bottom, current.Y);
+        }
+        double width = right - left, height = bottom - top;
+        if (!canvas.TrySnapRectangle(ref left, ref top, ref width, ref height)) return points;
+        return CreateRectangleContour(left, top, width, height);
     }
 
     private static IReadOnlyList<OfficePoint> CloseContour(IReadOnlyList<OfficePoint> points) {

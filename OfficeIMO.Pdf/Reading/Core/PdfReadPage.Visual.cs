@@ -662,6 +662,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        ApplyStrokeStyle(shape, primitive);
         shape.FillOpacity = primitive.FillOpacity;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;
@@ -673,6 +674,12 @@ public sealed partial class PdfReadPage {
         if (HasPositiveArea(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
             drawing.AddShape(shape, primitive.X, primitive.Y);
         }
+    }
+
+    private static void ApplyStrokeStyle(OfficeShape shape, PdfPageVisualPrimitive primitive) {
+        double miterLimit = primitive.StrokeMiterLimit;
+        if (miterLimit >= 1D && !double.IsInfinity(miterLimit)) shape.StrokeMiterLimit = miterLimit;
+        shape.StrokeHairline = primitive.IsHairlineStroke;
     }
 
     private static void AddLine(OfficeDrawing drawing, PdfPageVisualPrimitive primitive, bool allowRedundantPageClipRemoval = true) {
@@ -695,6 +702,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        ApplyStrokeStyle(shape, primitive);
         shape.StrokeOpacity = primitive.StrokeOpacity;
         PdfPageClipPath? clipPath = GetEffectivePageClip(primitive.ClipPath, left - strokeHalf, top - strokeHalf, right - left + (strokeHalf * 2D), bottom - top + (strokeHalf * 2D), drawing.Width, drawing.Height);
         if (TryAddClippedShape(drawing, shape, left, top, clipPath, allowRedundantPageClipRemoval)) {
@@ -723,6 +731,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        ApplyStrokeStyle(shape, primitive);
         shape.FillOpacity = primitive.FillOpacity;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;
@@ -2130,7 +2139,7 @@ public sealed partial class PdfReadPage {
             bool hasUnsupportedType = state.Items.TryGetValue("Type", out PdfObject? typeObject) &&
                 ResolveEffectObject(typeObject) is not PdfNull and not PdfName { Name: "ExtGState" };
             bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (
-                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask" or "RI" or "Font")) ||
+                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "ML" or "BM" or "SMask" or "RI" or "Font")) ||
                 hasUnsupportedType ||
                 hasInvalidRenderingIntent ||
                 hasInvalidFont ||
@@ -2139,6 +2148,7 @@ public sealed partial class PdfReadPage {
                 HasInvalidStrictNumber(state, "LW", static value => value >= 0D) ||
                 HasInvalidStrictInteger(state, "LC", 0, 2) ||
                 HasInvalidStrictInteger(state, "LJ", 0, 2) ||
+                HasInvalidStrictNumber(state, "ML", static value => value >= 1D) ||
                 !HasExactlyRepresentableStrokeDash(state);
             bool? softMaskEnabled = ReadSoftMaskEnabled(state);
             PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
@@ -2163,7 +2173,8 @@ public sealed partial class PdfReadPage {
                 strokeDashPattern: strokeDashPattern,
                 fontResource: fontResource,
                 fontSize: fontSize,
-                imagePaintEffectOverrides: imagePaintEffectOverrides);
+                imagePaintEffectOverrides: imagePaintEffectOverrides,
+                strokeMiterLimit: ReadStrokeMiterLimit(state));
         }
 
         return result;
@@ -2700,6 +2711,12 @@ public sealed partial class PdfReadPage {
                 return null;
         }
     }
+
+    private double? ReadStrokeMiterLimit(PdfDictionary dictionary) =>
+        dictionary.Items.TryGetValue("ML", out PdfObject? value) &&
+        ResolveEffectObject(value) is PdfNumber number && IsFinite(number.Value) && number.Value >= 1D
+            ? number.Value
+            : null;
 
     private OfficeStrokeLineJoin? ReadStrokeLineJoin(PdfDictionary dictionary) {
         int? lineJoin = TryReadInteger(dictionary.Items.TryGetValue("LJ", out PdfObject? value) ? value : null);

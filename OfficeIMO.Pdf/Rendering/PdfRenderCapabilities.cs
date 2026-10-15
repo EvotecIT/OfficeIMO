@@ -124,7 +124,6 @@ public static class PdfRenderCapabilities {
             !diagnostic.IsStandardFontSubstitution);
 
     internal const string UnknownOperatorId = "render.operator.unsupported";
-    internal const string MiterLimitId = "render.operator.miter-limit-simplified";
     internal const string RenderingIntentId = "render.operator.rendering-intent";
     internal const string FlatnessId = "render.operator.flatness-simplified";
     internal const string MarkedPointId = "render.operator.marked-point-simplified";
@@ -176,7 +175,6 @@ public static class PdfRenderCapabilities {
             Entry("render.content.path", "operator", "Path construction, painting, clipping, and graphics-state operators", PdfRenderSupportLevel.Supported, "Core path and graphics-state operators are projected."),
             Entry(FlatnessId, "operator", "i flatness operator", PdfRenderSupportLevel.Simplified, "The flatness value is accepted but the shared Drawing renderer selects its own curve tolerance."),
             Entry(MarkedPointId, "operator", "MP and DP marked-point operators", PdfRenderSupportLevel.Simplified, "Marked-point metadata has no visual projection and is ignored."),
-            Entry(MiterLimitId, "operator", "M miter-limit operator", PdfRenderSupportLevel.Simplified, "The miter limit is accepted but the shared Drawing renderer uses its own miter behavior."),
             Entry(RenderingIntentId, "operator", "ri and image rendering intents", PdfRenderSupportLevel.Supported, "Perceptual, relative colorimetric, saturation, and absolute colorimetric intents select authored ICC transforms and propagate through graphics state, nested forms, text, color-managed DCT/JPEG and other normalized images, indexed palettes, output-intent soft proofing, shadings, tiling patterns, and soft-mask groups."),
             Entry(Type3MetricsId, "operator", "d0 and d1 Type 3 glyph metric operators", PdfRenderSupportLevel.Simplified, "Type 3 glyph metric operators are accepted inside bounded glyph programs; text advances use the font Widths contract."),
             Entry(UnknownOperatorId, "operator", "Unknown content-stream operator", PdfRenderSupportLevel.Unsupported, "The content-stream operator is not recognized by the managed renderer and is skipped."),

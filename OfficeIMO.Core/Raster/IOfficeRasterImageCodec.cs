@@ -28,5 +28,10 @@ public sealed class OfficeDrawingRasterRenderOptions {
     public long MaximumRasterPixels { get; set; } = OfficeImageExportOptions.DefaultMaximumRasterPixels;
     /// <summary>Cancellation observed between drawing elements and nested render stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
+    /// <summary>
+    /// Applies PDF-style stroke adjustment: axis-aligned strokes and rectangle fills snap to whole device pixels,
+    /// and every stroke paints at least one device pixel. Defaults to false.
+    /// </summary>
+    public bool StrokeAdjustment { get; set; }
     internal OfficeRasterTransformedTextBudget? TransformedTextBudget { get; set; }
 }

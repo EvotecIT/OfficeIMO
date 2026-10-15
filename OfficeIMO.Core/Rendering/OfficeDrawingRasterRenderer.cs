@@ -61,6 +61,7 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
         canvas.FontMetricScale = scale;
+        canvas.StrokeAdjustment = options.StrokeAdjustment;
         canvas.SetCoordinateScale(scaleX / scale, scaleY / scale);
         if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
@@ -218,7 +219,9 @@ public static partial class OfficeDrawingRasterRenderer {
                 } else if (linearGradient != null) {
                     canvas.FillLinearGradientRectangle(x, y, width, height, linearGradient);
                 } else if (fill.HasValue) {
-                    canvas.FillRectangle(x, y, width, height, fill.Value);
+                    double fillX = x, fillY = y, fillWidth = width, fillHeight = height;
+                    canvas.TrySnapRectangle(ref fillX, ref fillY, ref fillWidth, ref fillHeight);
+                    canvas.FillRectangle(fillX, fillY, fillWidth, fillHeight, fill.Value);
                 }
 
                 if ((stroke.HasValue || strokeLinearGradient != null || strokeRadialGradient != null) && strokeWidth > 0D) {
