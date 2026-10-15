@@ -2559,7 +2559,7 @@ public class PdfIccColorRenderingTests {
     [InlineData(2)]
     [InlineData(4)]
     [InlineData(16)]
-    public void RenderPage_ReportsCalibratedImageDepthsOutsideManagedProjection(int bitsPerComponent) {
+    public void RenderPage_ProjectsCalibratedImagesAtEveryBitDepth(int bitsPerComponent) {
         byte[] pdf = BuildIccImagePdf(
             PdfIccProfiles.SrgbIec6196621,
             new byte[] { 0, 0 },
@@ -2569,7 +2569,11 @@ public class PdfIccColorRenderingTests {
 
         OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png);
 
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+        Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? raster));
+        double scale = raster!.Width / 240D;
+        OfficeColor center = raster.GetPixel((int)(60 * scale), (int)(100 * scale));
+        Assert.True(center.R < 16 && center.G < 16 && center.B < 16, "Expected the black calibrated sample, got " + center);
     }
 
     [Fact]

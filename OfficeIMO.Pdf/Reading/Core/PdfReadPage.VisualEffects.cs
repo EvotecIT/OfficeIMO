@@ -54,8 +54,10 @@ public sealed partial class PdfReadPage {
             !HasOrdinaryTransparencyGroupDeclaration(transparency) ||
             ResolveEffectObject(mask.Items.TryGetValue("S", out PdfObject? modeObject) ? modeObject : null) is not PdfName modeName ||
             (modeName.Name != "Alpha" && modeName.Name != "Luminosity")) return null;
+        byte[]? transferTable = null;
         if (mask.Items.TryGetValue("TR", out PdfObject? transferObject) &&
-            ResolveEffectObject(transferObject) is not PdfName { Name: "Identity" } and not PdfNull) return null;
+            ResolveEffectObject(transferObject) is not PdfName { Name: "Identity" } and not PdfNull &&
+            !TryCreateSoftMaskTransferTable(transferObject, out transferTable)) return null;
         bool isIsolated = transparency.Items.TryGetValue("I", out PdfObject? isolatedObject) &&
             ResolveEffectObject(isolatedObject) is PdfBoolean { Value: true };
         if (transparency.Items.TryGetValue("I", out isolatedObject) &&
@@ -93,7 +95,23 @@ public sealed partial class PdfReadPage {
                     : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
             }
         }
-        return new PdfPageSoftMaskResource(group, mode, backdrop, hasByteExactBackdrop, isIsolated, hasExplicitGroupColorSpace, parentResources);
+        return new PdfPageSoftMaskResource(group, mode, backdrop, hasByteExactBackdrop, isIsolated, hasExplicitGroupColorSpace, parentResources, transferTable);
+    }
+
+    // The transfer function maps each computed mask value; one-in, one-out functions are sampled once per mask level.
+    private bool TryCreateSoftMaskTransferTable(PdfObject transferObject, out byte[]? table) {
+        table = null;
+        if (!PdfColorSpaceFunctionResolver.TryCreateFunction(transferObject, 1, 1, _objects, _limits.MaxDecodedStreamBytes, out PdfColorFunction function)) return false;
+        var samples = new byte[256];
+        var input = new double[1];
+        var output = new double[1];
+        for (int index = 0; index < samples.Length; index++) {
+            input[0] = index / 255D;
+            if (!function.TryEvaluate(input, output) || double.IsNaN(output[0])) return false;
+            samples[index] = (byte)Math.Round(Math.Max(0D, Math.Min(1D, output[0])) * 255D);
+        }
+        table = samples;
+        return true;
     }
 
     private bool HasOrdinaryTransparencyGroupDeclaration(PdfDictionary group) {
@@ -1002,14 +1020,15 @@ public sealed partial class PdfReadPage {
         PdfTextClippingBudget patternTextClippingBudget,
         CancellationToken cancellationToken) {
         var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height, renderingIntent);
-        if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing;
+        // Cached masks are shared without their transfer table, which is applied per graphics state.
+        if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing.WithTransferTable(resource.TransferTable);
         if (!active.Add(resource.Group)) {
             return OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 new OfficeDrawing(width, height),
                 OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
                 mode: resource.Mode,
                 backdropColor: resource.BackdropColor,
-                transform: null);
+                transform: null).WithTransferTable(resource.TransferTable);
         }
         try {
             OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, renderingIntent, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken: cancellationToken);
@@ -1020,7 +1039,7 @@ public sealed partial class PdfReadPage {
                 backdropColor: resource.BackdropColor,
                 transform: null);
             cache[cacheKey] = mask;
-            return mask;
+            return mask.WithTransferTable(resource.TransferTable);
         } finally {
             active.Remove(resource.Group);
         }

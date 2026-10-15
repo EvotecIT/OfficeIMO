@@ -1398,6 +1398,10 @@ public sealed partial class PdfReadPage {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.XObjectId, entry.Key + ":" + (subtype ?? "unknown"));
                 continue;
             }
+            if (ResolveObject(stream.Dictionary.Items.TryGetValue("Group", out PdfObject? groupObject) ? groupObject : null) is PdfDictionary group &&
+                ResolveObject(group.Items.TryGetValue("K", out PdfObject? knockoutObject) ? knockoutObject : null) is PdfBoolean { Value: true }) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.KnockoutGroupId, entry.Key);
+            }
 
             if (!statesByName.TryGetValue(invokedName, out List<PdfPageXObjectInvocation>? states)) {
                 states = new List<PdfPageXObjectInvocation>();

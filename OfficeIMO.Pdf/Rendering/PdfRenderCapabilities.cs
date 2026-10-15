@@ -143,6 +143,7 @@ public static class PdfRenderCapabilities {
     internal const string UnsupportedShadingId = "render.resource.shading-unsupported";
     internal const string UnsupportedBlendModeId = "render.resource.blend-mode-unsupported";
     internal const string UnsupportedSoftMaskId = "render.resource.soft-mask-unsupported";
+    internal const string KnockoutGroupId = "render.resource.knockout-group-simplified";
     internal const string XObjectId = "render.resource.xobject-unsupported";
     internal const string SynthesizedAnnotationAppearanceId = "render.annotation.appearance-synthesized";
     internal const string AnnotationAppearanceId = "render.resource.annotation-appearance-missing";
@@ -188,6 +189,7 @@ public static class PdfRenderCapabilities {
             Entry(FontSubstitutionId, "resource", "Missing or unsupported PDF font programs", PdfRenderSupportLevel.Simplified, "Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no readable embedded TrueType, CFF, or Type 1 program is available."),
             Entry(Type3FontSubstitutionId, "resource", "Malformed or unsupported Type 3 font glyph programs", PdfRenderSupportLevel.Simplified, "Text is decoded and positioned through a mapped system font when the Type 3 font dictionary or requested glyph program cannot be projected safely."),
             Entry(SoftMaskId, "resource", "ExtGState soft masks", PdfRenderSupportLevel.Supported, "Alpha and luminosity Form XObject soft masks are projected through shared Drawing vector masks."),
+            Entry(KnockoutGroupId, "resource", "Knockout transparency groups", PdfRenderSupportLevel.Simplified, "Knockout groups (/K true) are composited as ordinary groups: each element blends with the elements painted before it instead of only with the group's initial backdrop."),
             Entry(UnsupportedSoftMaskId, "resource", "Unsupported ExtGState soft mask", PdfRenderSupportLevel.Unsupported, "The soft mask does not contain a usable transparency-group Form XObject."),
             Entry("render.resource.form-xobject", "resource", "Form XObjects", PdfRenderSupportLevel.Supported, "Form XObjects are recursively projected with bounded nesting."),
             Entry("render.resource.image-xobject", "resource", "Image XObjects and inline images", PdfRenderSupportLevel.Supported, "Decoded image resources are projected through shared Drawing image elements."),

@@ -60,6 +60,37 @@ public sealed class PdfRendererFidelityTests {
         AssertColor(image, 50, 50, expected, expected, expected);
     }
 
+    [Theory]
+    [InlineData("/TR 6 0 R", 255, 64, 64)]
+    [InlineData("/TR /Identity", 255, 191, 191)]
+    public void SoftMaskTransferFunctionsMapMaskValues(string transfer, int r, int g, int b) {
+        // A luminosity mask of 0.25; the transfer function 1 - x turns it into 0.75 coverage of red over white.
+        byte[] group = Encoding.ASCII.GetBytes("0.25 g 0 0 100 100 re f");
+        var objects = new List<(string, byte[])> {
+            ("<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency /CS /DeviceRGB >> /Length " +
+             group.Length.ToString(CultureInfo.InvariantCulture) + " >>", group),
+            ("<< /FunctionType 2 /Domain [0 1] /C0 [1] /C1 [0] /N 1 >>", Array.Empty<byte>())
+        };
+        byte[] pdf = BuildPdf("/G1 gs 1 0 0 rg 10 10 80 80 re f",
+            "<< /ExtGState << /G1 << /SMask << /Type /Mask /S /Luminosity /G 5 0 R " + transfer + " >> >> >> >>", objects: objects);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf, options: new PdfPageRenderOptions { Dpi = 72D }));
+        Assert.DoesNotContain(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedSoftMaskId);
+        AssertColor(PdfRendererQualitySupport.Decode(result.Bytes!), 50, 50, r, g, b, tolerance: 3);
+    }
+
+    [Fact]
+    public void KnockoutGroupsReportTheirOrdinaryCompositing() {
+        byte[] form = Encoding.ASCII.GetBytes("0 0 1 rg 10 10 50 50 re f 1 0 0 rg 30 30 50 50 re f");
+        var objects = new List<(string, byte[])> {
+            ("<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency /I true /K true >> /Length " +
+             form.Length.ToString(CultureInfo.InvariantCulture) + " >>", form)
+        };
+        byte[] pdf = BuildPdf("/Fm1 Do", "<< /XObject << /Fm1 5 0 R >> >>", objects: objects);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf, options: new PdfPageRenderOptions { Dpi = 72D }));
+        Assert.Contains(result.CapabilityDiagnostics, static diagnostic =>
+            diagnostic.Code == PdfRenderCapabilities.KnockoutGroupId && diagnostic.Subject == "Fm1");
+    }
+
     [Fact]
     public void StrokesDefaultToButtCapsAndMiterJoins() {
         OfficeRasterImage image = RenderPage("10 w 20 50 m 80 50 l S 10 w 20 20 m 50 20 l 50 5 l S");
