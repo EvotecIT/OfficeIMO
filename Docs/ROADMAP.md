@@ -408,7 +408,7 @@ Keep the frozen archives and predeclared held-out pages. Pages used to guide fix
 
 ## HTML, RTF, and lightweight markup
 
-- [ ] Close the HTML rendering gaps exposed by the feature showcases: preserve spaces across mixed inline emphasis, render CSS two-position gradient stops and preserve repeated hard-stop order, avoid visible seams between conic-gradient segments, align inline MathML fractions and roots with adjacent text, and fill implicitly closed SVG paths. Add small reproducible fixtures and inspect PDF, SVG, and raster output at normal reading size.
+- [ ] Close the HTML rendering gaps exposed by the feature showcases: preserve spaces across mixed inline emphasis, avoid visible seams between conic-gradient segments independently of the [qualified repeating-stop ordering](../Build/Project/Evidence/2026-09-30/html-master-convergence/repeating-gradient-hard-stops-qualification-20261016.json), align inline MathML fractions and roots with adjacent text, and fill implicitly closed SVG paths. Add small reproducible fixtures and inspect PDF, SVG, and raster output at normal reading size.
 
 ### Report export fidelity (H3-H4)
 
