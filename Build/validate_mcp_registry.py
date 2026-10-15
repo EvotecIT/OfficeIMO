@@ -36,7 +36,14 @@ def validate_marker(readme, server):
         raise ValueError(f"README must contain exactly one ownership marker: {marker}")
 
 
-def validate_package(package, server):
+def validate_launcher_version(mcp, plugin_version):
+    arguments = mcp["mcpServers"]["officeimo"]["args"]
+    pins = [argument for argument in arguments if argument.startswith("OfficeIMO.Tool@")]
+    if pins != [f"OfficeIMO.Tool@{plugin_version}"]:
+        raise ValueError("MCP launcher version must match the plugin")
+
+
+def validate_package(package, server, expected_version=None):
     with ZipFile(package) as archive:
         nuspecs = [name for name in archive.namelist() if name.endswith(".nuspec")]
         if len(nuspecs) != 1:
@@ -45,6 +52,8 @@ def validate_package(package, server):
         metadata = manifest.find("{*}metadata")
         if metadata is None or metadata.findtext("{*}id") != "OfficeIMO.Tool":
             raise ValueError("Expected the OfficeIMO.Tool package")
+        if expected_version is not None and metadata.findtext("{*}version") != expected_version:
+            raise ValueError("Published NuGet package version must match the plugin")
         readme_path = metadata.findtext("{*}readme")
         if not readme_path:
             raise ValueError("The NuGet package must declare a README")
@@ -55,12 +64,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("metadata", "package"))
     parser.add_argument("package", nargs="?")
+    parser.add_argument("--expected-version")
     args = parser.parse_args()
     server = json.loads((ROOT / "OfficeIMO.Tool/server.json").read_text())
     if args.mode == "package":
         if not args.package:
             parser.error("package mode requires a .nupkg path")
-        validate_package(args.package, server)
+        validate_package(args.package, server, args.expected_version)
     else:
         if server.get("$schema") != SCHEMA_URL:
             raise ValueError("Registry metadata must use the pinned official schema")
@@ -69,6 +79,8 @@ def main():
         validate_metadata(server, schema)
         plugin = json.loads((ROOT / ".agents/plugins/officeimo-document-tools/plugin.json").read_text())
         validate_release_versions(server, plugin["version"])
+        mcp = json.loads((ROOT / ".agents/plugins/officeimo-document-tools/mcp.json").read_text())
+        validate_launcher_version(mcp, plugin["version"])
         validate_marker((ROOT / "OfficeIMO.Tool/README.md").read_text(), server)
 
 

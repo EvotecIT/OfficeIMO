@@ -6,8 +6,10 @@ using Xunit;
 namespace OfficeIMO.Tool.Tests;
 
 public sealed class McpProtocolTests {
-    [Fact]
-    public async Task StdioServerEnforcesConfiguredFilesystemRoot() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StdioServerEnforcesConfiguredFilesystemRoot(bool acceptDownload) {
         string testRoot = Path.Combine(
             Path.GetTempPath(),
             "officeimo-mcp-root-" + Guid.NewGuid().ToString("N"));
@@ -29,12 +31,14 @@ public sealed class McpProtocolTests {
             string? packagedToolPath = Environment.GetEnvironmentVariable(
                 "OFFICEIMO_PACKAGED_TOOL_PATH");
             bool usePackagedTool = !string.IsNullOrWhiteSpace(packagedToolPath);
+            var arguments = new List<string>();
+            if (!usePackagedTool) arguments.Add(assemblyPath);
+            arguments.AddRange(["mcp", "serve", "--stdio"]);
+            if (acceptDownload) arguments.Add("--yes");
             var transport = new StdioClientTransport(new StdioClientTransportOptions {
                 Name = "officeimo-root-test",
                 Command = usePackagedTool ? packagedToolPath! : Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
-                Arguments = usePackagedTool
-                    ? ["mcp", "serve", "--stdio"]
-                    : [assemblyPath, "mcp", "serve", "--stdio"],
+                Arguments = arguments,
                 WorkingDirectory = allowedRoot,
                 EnvironmentVariables = new Dictionary<string, string?> {
                     [AgentPathPolicy.AllowedRootsEnvironmentVariable] = allowedRoot

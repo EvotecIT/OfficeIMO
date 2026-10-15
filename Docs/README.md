@@ -8,6 +8,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Migration guide](../MIGRATION.md) — version-to-version package, API, and behavior changes.
 - [Examples](../OfficeIMO.Examples/README.md) — runnable examples across the package family.
 - [Agent plugin](../.agents/plugins/officeimo-document-tools/README.md) — local MCP and portable skills, Codex and Claude installation, authorized file access, and supported operations.
+- [Agent distribution](officeimo.agent-distribution.md) — release qualification, MCP Registry publication, and OpenAI, Claude and Cursor directory submissions.
 - [Roadmap](ROADMAP.md) — the single backlog for open cross-package and product work.
 - [Apple iWork delivery plan](ROADMAP.md#apple-iwork) — package consumers, document fidelity, shared workflows, runtime acceptance and native creation/lifecycle milestones.
 - [Microsoft Project milestones](ROADMAP.md#microsoft-project-document-library) — planned XML/MPP/MPX lifecycle, scheduling, conversions, and acceptance evidence.

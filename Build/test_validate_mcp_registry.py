@@ -7,7 +7,7 @@ from zipfile import ZipFile
 from jsonschema import ValidationError
 
 from validate_mcp_registry import (
-    SCHEMA_URL, validate_marker, validate_metadata, validate_package, validate_release_versions,
+    SCHEMA_URL, validate_launcher_version, validate_marker, validate_metadata, validate_package, validate_release_versions,
 )
 
 
@@ -41,6 +41,14 @@ class RegistryValidationTests(unittest.TestCase):
             with self.subTest(readme=readme), self.assertRaises(ValueError):
                 validate_marker(readme, self.server)
 
+    def test_launcher_must_pin_the_exact_plugin_version_once(self):
+        def config(pins):
+            return {"mcpServers": {"officeimo": {"args": ["dnx", *pins, "mcp", "serve", "--stdio", "--yes"]}}}
+        validate_launcher_version(config(["OfficeIMO.Tool@3.5.0"]), "3.5.0")
+        for pins in ([], ["OfficeIMO.Tool@3.5.1"], ["OfficeIMO.Tool@3.5.0", "OfficeIMO.Tool@3.5.0"]):
+            with self.subTest(pins=pins), self.assertRaisesRegex(ValueError, "launcher version must match"):
+                validate_launcher_version(config(pins), "3.5.0")
+
     def package(self, readme_element, readme):
         package = io.BytesIO()
         with ZipFile(package, "w") as archive:
@@ -62,6 +70,12 @@ class RegistryValidationTests(unittest.TestCase):
     def test_package_requires_a_readme_declaration(self):
         with self.assertRaisesRegex(ValueError, "declare a README"):
             validate_package(self.package("", self.marker), self.server)
+
+    def test_public_package_must_match_the_launcher_version(self):
+        manifest = "<version>3.5.0</version><readme>docs/package-readme.md</readme>"
+        validate_package(self.package(manifest, self.marker), self.server, "3.5.0")
+        with self.assertRaisesRegex(ValueError, "version must match"):
+            validate_package(self.package(manifest, self.marker), self.server, "3.5.1")
 
 
 if __name__ == "__main__":
