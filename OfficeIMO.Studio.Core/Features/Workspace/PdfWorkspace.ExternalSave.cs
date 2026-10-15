@@ -1,7 +1,8 @@
 namespace OfficeIMO.Studio.Features.Workspace;
 
 internal sealed partial class PdfWorkspace {
-    private sealed record ExternalSavePreparation(long Revision, long Order);
+    // Repeated bytes retain a conservative interval, without allocating one record per duplicate preparation.
+    private sealed record ExternalSavePreparation(long Revision, long FirstPossibleOrder, long LastOrder);
     private readonly Dictionary<string, ExternalSavePreparation> _preparedExternalSaves = new(StringComparer.OrdinalIgnoreCase);
     private long _externalSavePreparationOrder;
     private string? _externalBaseFingerprint;
@@ -19,7 +20,8 @@ internal sealed partial class PdfWorkspace {
             byte[] snapshot = (byte[])_bytes.Clone();
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(snapshot);
             bool existed = _preparedExternalSaves.TryGetValue(fingerprint, out var previousPreparation);
-            _preparedExternalSaves[fingerprint] = new(_revision, checked(++_externalSavePreparationOrder));
+            long order = checked(++_externalSavePreparationOrder);
+            _preparedExternalSaves[fingerprint] = new(_revision, previousPreparation?.FirstPossibleOrder ?? order, order);
             try {
                 // A crash after the host publishes, but before it acknowledges, must still match the saved snapshot.
                 await WriteRecoveryAsync(_bytes, _revision, token).ConfigureAwait(false);
@@ -35,7 +37,8 @@ internal sealed partial class PdfWorkspace {
 
     /// <summary>Acknowledges bytes the host has actually observed at its original document, including an older in-flight save.</summary>
     /// <param name="supersedesEarlierPreparations">Use only when the host serializes publication and the observed
-    /// snapshot supersedes all earlier preparations. General hosts may still publish older in-flight snapshots.</param>
+    /// snapshot supersedes earlier preparations. Identical-byte ambiguity retains recovery until distinct readback.
+    /// General hosts may still publish older in-flight snapshots.</param>
     internal async Task AcknowledgeExternalSaveAsync(string fingerprint, CancellationToken token, string? recoveryIdentity = null,
         bool supersedesEarlierPreparations = false) {
         await _operationGate.WaitAsync(token).ConfigureAwait(false);
@@ -44,9 +47,16 @@ internal sealed partial class PdfWorkspace {
             if (recoveryIdentity is not null && OfficeIMO.Internal.OfficeStorageIdentity.Normalize(recoveryIdentity) != RecoveryIdentity) return;
             if (!_preparedExternalSaves.TryGetValue(fingerprint, out var observed)) return;
             long savedRevision = observed.Revision;
-            var remaining = _preparedExternalSaves.Where(pair => supersedesEarlierPreparations
-                ? pair.Value.Order > observed.Order
-                : !string.Equals(pair.Key, fingerprint, StringComparison.OrdinalIgnoreCase)).ToArray();
+            bool hasOtherBytes = _preparedExternalSaves.Keys.Any(key => !string.Equals(key, fingerprint, StringComparison.OrdinalIgnoreCase));
+            // Readback cannot distinguish A1 from identical A3, nor a duplicate notification from a new publication.
+            // Retain ambiguous in-flight bytes until a distinct observation advances the publication frontier.
+            if (supersedesEarlierPreparations && hasOtherBytes &&
+                string.Equals(fingerprint, RecoveryBaseFingerprint, StringComparison.OrdinalIgnoreCase)) return;
+            var remaining = supersedesEarlierPreparations
+                ? (hasOtherBytes ? _preparedExternalSaves.Where(pair => pair.Value.LastOrder > observed.FirstPossibleOrder)
+                    .Select(pair => new KeyValuePair<string, ExternalSavePreparation>(pair.Key,
+                        pair.Value with { FirstPossibleOrder = Math.Max(pair.Value.FirstPossibleOrder, observed.FirstPossibleOrder + 1) })).ToArray() : [])
+                : _preparedExternalSaves.Where(pair => !string.Equals(pair.Key, fingerprint, StringComparison.OrdinalIgnoreCase)).ToArray();
             if (_revision != savedRevision || remaining.Length > 0) {
                 await _recoveryStore.WriteAsync(RecoveryIdentity, fingerprint, _bytes, _revision, token,
                     remaining.Select(pair => pair.Key).ToArray()).ConfigureAwait(false);
@@ -57,9 +67,8 @@ internal sealed partial class PdfWorkspace {
             }
             _externalBaseFingerprint = fingerprint;
             _savedRevision = savedRevision;
-            var retained = remaining.Select(pair => pair.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            foreach (string retired in _preparedExternalSaves.Keys.Where(key => !retained.Contains(key)).ToArray())
-                _preparedExternalSaves.Remove(retired);
+            _preparedExternalSaves.Clear();
+            foreach (var retained in remaining) _preparedExternalSaves.Add(retained.Key, retained.Value);
             RecoveryPath = null;
             Changed?.Invoke(this, EventArgs.Empty);
         } finally { _operationGate.Release(); }

@@ -135,6 +135,46 @@ public sealed class StudioPublicationResourceTests : IDisposable {
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Repeated_bytes_keep_intervening_publications_recoverable_until_distinct_readback(bool completes, bool observedBeforeNewPreparations) {
+        byte[] middle, newest;
+        using (var document = await StudioNativeDocument.OpenAsync(Source(), null, default, Identity)) {
+            await document.RotatePagesAsync([1], 90, default);
+            byte[] first = await document.PrepareSaveAsync(default);
+            if (observedBeforeNewPreparations)
+                await document.AcknowledgeSaveAsync(Fingerprint(first), default, Identity, supersedesEarlierPreparations: true);
+            await document.RotatePagesAsync([1], 90, default);
+            middle = await document.PrepareSaveAsync(default);
+            await document.UndoAsync(default);
+            newest = await document.PrepareSaveAsync(default);
+            Assert.Equal(first, newest);
+            await document.AcknowledgeSaveAsync(Fingerprint(first), default, Identity, supersedesEarlierPreparations: true);
+            Assert.True(StudioNativeEngine.CreateRecoveryStore().HasSnapshotFiles(Identity));
+            // Coalesced duplicate callbacks still cannot identify the later occurrence of these same bytes.
+            await document.AcknowledgeSaveAsync(Fingerprint(first), default, Identity, supersedesEarlierPreparations: true);
+            Assert.Equal(newest, StudioNativeEngine.CreateRecoveryStore().ReadVerifiedSnapshot(Identity, Fingerprint(middle)));
+            if (completes) {
+                await document.AcknowledgeSaveAsync(Fingerprint(middle), default, Identity, supersedesEarlierPreparations: true);
+                await document.AcknowledgeSaveAsync(Fingerprint(newest), default, Identity, supersedesEarlierPreparations: true);
+                Assert.False((await document.GetInfoAsync(default)).IsDirty);
+                Assert.False(StudioNativeEngine.CreateRecoveryStore().HasSnapshotFiles(Identity));
+                return;
+            }
+        }
+        // B publishes, then the later A fails or the process exits before its publication.
+        string published = Path.Combine(_root, "published.pdf");
+        File.WriteAllBytes(published, middle);
+        using var reopened = await StudioNativeDocument.OpenAsync(published, null, default, Identity);
+        Assert.True((await reopened.GetInfoAsync(default)).HasRecovery);
+        await reopened.RestoreRecoveryAsync(default);
+        Assert.Equal(90, (await reopened.GetInfoAsync(default)).Pages[0].Rotation);
+        Assert.Equal(newest, await reopened.PrepareSaveAsync(default));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Split_preserves_occupied_files_or_directories_and_uses_next_name(bool directory) {

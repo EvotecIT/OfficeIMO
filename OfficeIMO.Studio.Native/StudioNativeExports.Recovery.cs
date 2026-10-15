@@ -21,7 +21,7 @@ internal static unsafe partial class StudioNativeExports {
         return AcknowledgeSave(document, fingerprint, identity, cancellation, error, supersedesEarlierPreparations: false);
     }
 
-    /// <summary>Acknowledges an observed publication that supersedes all earlier prepared snapshots.</summary>
+    /// <summary>Acknowledges ordered publication, retaining recovery when identical bytes leave its occurrence ambiguous.</summary>
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_acknowledge_ordered_save")]
     internal static int DocumentAcknowledgeOrderedSave(nint document, byte* fingerprint, byte* identity, nint cancellation, byte** error) =>
         AcknowledgeSave(document, fingerprint, identity, cancellation, error, supersedesEarlierPreparations: true);

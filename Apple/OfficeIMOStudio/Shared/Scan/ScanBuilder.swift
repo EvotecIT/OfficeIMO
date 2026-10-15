@@ -56,6 +56,7 @@ enum ScanBuilder {
         try Task.checkCancellation()
         let output = folder.appending(path: "\(name).pdf")
         _ = try await Engine.createPDFFromScan(ScanRequest(pages: pages), at: output)
+        try Task.checkCancellation()
         for page in pages { try? FileManager.default.removeItem(atPath: page.image) }
         completed = true
         return output
