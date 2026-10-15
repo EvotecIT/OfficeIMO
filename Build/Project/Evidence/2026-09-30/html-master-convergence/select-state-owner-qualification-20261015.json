@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "qualifiedAtUtc": "2026-10-15T12:47:52.337058+00:00",
+  "qualifiedCommit": "51b76206c39ae9d780ec9f76107bdd2c6d2cea1e",
+  "scope": "PR1384 live-parent selection ownership and shallow-first cloning; no public API or dependency change",
+  "tests": {
+    "review-red": {
+      "counters": {
+        "total": "3",
+        "executed": "3",
+        "passed": "0",
+        "failed": "3",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "sha256": "dc0026f2ef88429da07d234e6f68602b1eb4ab2d67f8e8fd47654bb5cf94c51c"
+    },
+    "full-normal": {
+      "counters": {
+        "total": "4299",
+        "executed": "4292",
+        "passed": "4292",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "sha256": "2d147c84b83fd81a680adf1ff764937eb57cf5093ebb0b7724922edd2fcaf012",
+      "actualOutcomes": {
+        "Passed": 4292,
+        "NotExecuted": 7
+      }
+    },
+    "full-prefetched": {
+      "counters": {
+        "total": "4299",
+        "executed": "4289",
+        "passed": "4289",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "sha256": "012e0528ee3e479d7f0cc7e13e4b4e0b1b06a82a43cdb28dd46d5f30fed99616",
+      "actualOutcomes": {
+        "Passed": 4289,
+        "NotExecuted": 10
+      }
+    }
+  },
+  "builds": {
+    "net10.0": {
+      "assemblySha256": "d226178de1953c6ae35eabad5b63d5fe2460a50a547ac88ea708346b4eda092a",
+      "bytes": 1089024
+    },
+    "net8.0": {
+      "assemblySha256": "d6f1c57efc2a619ce26408232c5d31ad329baf781b498d57220370edcc7d58c4",
+      "bytes": 1086464
+    },
+    "netstandard2.0": {
+      "assemblySha256": "6e868b6c666f284bef5e931add6d9f3ae6c5bc581897cf3a1505df80f9aba531",
+      "bytes": 1086976
+    }
+  },
+  "review": {
+    "full": "/root/select_simplification_review",
+    "targetedConfirmationUsed": true,
+    "confirmedFingerprint": "5a6de9be96010c61fc946d0d7915ea7ab34942d3",
+    "findings": [
+      {
+        "class": "remediation-introduced parser observation delay",
+        "priority": "P2",
+        "redCases": 2,
+        "state": "fixed and confirmed"
+      },
+      {
+        "class": "remediation-introduced multiple-clone retained group",
+        "priority": "P2",
+        "redCases": 1,
+        "state": "fixed and confirmed"
+      }
+    ]
+  },
+  "limits": [
+    "Local macOS provider proof; native Windows CI remains separate",
+    "No new timing or benchmark claim",
+    "Runtime fork adoption not performed; Windows profiling deferred"
+  ],
+  "pr": "https://github.com/AngleSharp/AngleSharp/pull/1384",
+  "reply": "https://github.com/AngleSharp/AngleSharp/pull/1384#issuecomment-6192449949",
+  "bodyAndReplyReadbackVerified": true,
+  "consumerBoundary": "Upstream provider candidate only. OfficeIMO External/AngleSharp stays353ad27c; no worker or public-package adoption is claimed.",
+  "disabledOnlyDropdownObservation": {
+    "kind": "Pre-existing quadratic fallback work also present in official1.8.4",
+    "candidateHead": "51b76206c39ae9d780ec9f76107bdd2c6d2cea1e",
+    "equivalence": "30 measured parses match count, every disabled/unselected option/value, select state and serialized DOM hashes",
+    "host": "PowerShell7.5.4/.NET9.0.10, normal macOS host under high load",
+    "limit": "No isolated relative-performance or new complexity-class regression claim",
+    "scopeDisposition": "Separate provider performance follow-up; excluded from cloning revision"
+  },
+  "currentHeadCi": {
+    "checkedUtc": "2026-10-15T13:07:51.515726+00:00",
+    "pr": "https://github.com/AngleSharp/AngleSharp/pull/1384",
+    "head": "51b76206c39ae9d780ec9f76107bdd2c6d2cea1e",
+    "state": "OPEN",
+    "mergeable": "MERGEABLE",
+    "mergeStateStatus": "CLEAN",
+    "checks": {
+      "linux": "SUCCESS",
+      "windows": "SUCCESS",
+      "can_document": "SUCCESS",
+      "license/cla": "SUCCESS",
+      "documentation": "SKIPPED"
+    },
+    "workflowRun": "https://github.com/AngleSharp/AngleSharp/actions/runs/38737587514",
+    "reviewThreads": 0,
+    "reviewThreadPaginationComplete": true,
+    "newReviews": 0,
+    "maintainerReviewStillAwaited": true,
+    "unchangedReviewerRechecks": 2,
+    "manualHostedReviewRequested": false,
+    "reviewerOnlyHeartbeatScheduled": false,
+    "reason": "Independent HTML work remains available; no further scheduling solely for unchanged maintainer review."
+  }
+}

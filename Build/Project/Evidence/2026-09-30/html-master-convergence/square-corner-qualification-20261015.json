@@ -1,0 +1,359 @@
+{
+  "schemaVersion": 1,
+  "qualifiedAtUtc": "2026-10-15T13:17:54.614923+00:00",
+  "purpose": "Square corners remain square when CSS outlines and zero-blur box shadows expand their paint outside the layout box.",
+  "source": {
+    "commit": "d65f1fd94d7304eb976e32790081bdbfe536c26d",
+    "tree": "e00cd0f77dcfec4f51916bed451176f691fe5e4e",
+    "base": "1e33db67867fb8f78321b1e8df624dbb36a2dca3",
+    "compilerSdk": "10.0.303",
+    "host": "macOS arm64",
+    "files": [
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlResolvedBorderRadii.cs",
+        "bytes": 5471,
+        "sha256": "04a8b78d27bdf6f94ddbf2e8882406851959065be0fea3e12a89f9c5def7afff"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Borders.cs",
+        "bytes": 21220,
+        "sha256": "d3c69de722b506011f4c7a5e931e641c442b3cefb7b776e5874164a50d21d9e8"
+      },
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.ExpandedCorners.cs",
+        "bytes": 3825,
+        "sha256": "05837ac04c9039b3b79227554fd0a3a4f14af3df8c638d9d44f0067eac07738c"
+      }
+    ]
+  },
+  "contracts": [
+    "Preserve each zero radius axis through expansion and proportional normalization. Keep the prior positive-radius arithmetic.",
+    "Use miter joins for expanded outline strokes consistently across direct raster, SVG and PDF.",
+    "Do not advance following normal-flow content for outline/shadow paint, including zero-height boxes.",
+    "Keep mixed, rounded, signed-spread and zero-axis control cases."
+  ],
+  "validation": {
+    "testProject": "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+    "ordinaryFilter": "Category!=Performance",
+    "gates": {
+      "red-final": {
+        "exitCode": 1,
+        "framework": "net10.0",
+        "counts": {
+          "total": 13,
+          "passed": 3,
+          "failed": 10,
+          "notExecuted": 0
+        },
+        "commandRecordSha256": "4ba37387d2630162b7fdd46e68cc711ec6b79e7d676eba09abe0d5edba22ab32",
+        "trxSha256": "058dcd312074c5db0b8c5284aa60d4de4a47c5f090c0c3864c22196b08524777",
+        "sourceUnchangedDuringRun": true
+      },
+      "focused": {
+        "exitCode": 0,
+        "framework": "net10.0",
+        "counts": {
+          "total": 129,
+          "passed": 129,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "commandRecordSha256": "3167975ea5f7fe25cdf1f956a68315c6c0b281d8ff3fb3a91ef8c8396a0ce673",
+        "trxSha256": "74dc8b38de96aa26e78db7cb752147c48da7259d0f59bc44c1aaee1e54e1d1e9",
+        "sourceUnchangedDuringRun": true
+      },
+      "full-net10": {
+        "exitCode": 0,
+        "framework": "net10.0",
+        "counts": {
+          "total": 6274,
+          "passed": 6274,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "commandRecordSha256": "2f44ae4c0f3169d044191f647e6664c37b2f935185b86ad2f2fa4888fbaa8fd2",
+        "trxSha256": "c83a262c8b6dc9bc3b9936a59c2cd9d3a8ea1c60dddb2c3d7c1697b060f378a7",
+        "sourceUnchangedDuringRun": true
+      },
+      "full-net8": {
+        "exitCode": 0,
+        "framework": "net8.0",
+        "counts": {
+          "total": 6274,
+          "passed": 6274,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "commandRecordSha256": "2fdc6c71d7b92432be61bb6222abfc3c6b255b37a73039a7c235cfabef8e96e7",
+        "trxSha256": "6a745f3d4e0517f2b1e8eb7ddc66c2a0c946364aef8aa77e93ec857bb934edd3",
+        "sourceUnchangedDuringRun": true
+      },
+      "compat-netstandard2": {
+        "exitCode": 0,
+        "framework": "netstandard2.0",
+        "counts": {},
+        "commandRecordSha256": "6c42688d023c4d814edacb2f4558378d92302a8a2d9cf3690e4c494c3c8e4403",
+        "trxSha256": null,
+        "sourceUnchangedDuringRun": true
+      }
+    },
+    "redMeaning": "Identical 13-case public-render regressions on baseline production: 10 fail; 3 rounded/negative-spread controls pass.",
+    "focusedFilter": "FullyQualifiedName~HtmlExpandedCornerTests|FullyQualifiedName~HtmlShadows|FullyQualifiedName~HtmlBorders|FullyQualifiedName~HtmlZeroHeightBoxTests|FullyQualifiedName~HtmlOutlinePaintTests",
+    "compatibility": "OfficeIMO.Html builds for netstandard2.0 without warnings or errors. No package/platform/AOT claim is inferred.",
+    "commands": "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net8.0 (and net10.0) --filter Category!=Performance; dotnet build OfficeIMO.Html/OfficeIMO.Html.csproj -c Release -f netstandard2.0. Full argv, output paths and environment are retained in the named task evidence."
+  },
+  "savedRendering": {
+    "profiles": 28,
+    "fixtures": 14,
+    "media": [
+      "print",
+      "screen"
+    ],
+    "cornerSamples": 328,
+    "maximumChannelError": 0,
+    "comparison": "Selected corner coverage matches the native browser in direct raster, managed PDF raster, native PDF raster and browser-rendered SVG. This does not assert whole-image pixel identity.",
+    "baselineSource": "6889762429f53f952599086f4718d8def03023c9",
+    "baselineBoundary": "Baseline production equals the parent feature source; only evidence/docs differ.",
+    "nativeOwner": "HtmlTinkerX3.0.5 source366cbd06949dc1c00162a280a290e2c130ca0bea",
+    "browser": "Google Chrome for Testing 153.0.8010.12",
+    "browserOwnerDllSha256": "ee53fda581e93771540b7572948f329e7947d15ea22c712535e6720a8d4518f5",
+    "renderQualificationSha256": "8172f54ca7118e1d15d28e9f4246bedcea4e2bbc63f11fcb3ae93b399fac166e",
+    "fixturesAndReports": [
+      {
+        "case": "outline-mixed",
+        "media": "print",
+        "inputSha256": "9da0b10133fdf6e614f5ebf0d1adb432771130f58b0d147ef6c95a27bc0a59df",
+        "outputPdfSha256": "181feba0a0687da2a0b66f0d350e28aa8fb9a0b2402c15dca07158d00d8e10e8",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-mixed",
+        "media": "screen",
+        "inputSha256": "9da0b10133fdf6e614f5ebf0d1adb432771130f58b0d147ef6c95a27bc0a59df",
+        "outputPdfSha256": "181feba0a0687da2a0b66f0d350e28aa8fb9a0b2402c15dca07158d00d8e10e8",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-rounded",
+        "media": "print",
+        "inputSha256": "28b1397cc501f37ded4e4147367f8e8bf22ca0a4a2df2c44222f15360d96230f",
+        "outputPdfSha256": "c2c4e93d34b66d0625d7f49c1aa7f2bf2bcfcc1724b09392bcba2ee1f1b072e1",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-rounded",
+        "media": "screen",
+        "inputSha256": "28b1397cc501f37ded4e4147367f8e8bf22ca0a4a2df2c44222f15360d96230f",
+        "outputPdfSha256": "c2c4e93d34b66d0625d7f49c1aa7f2bf2bcfcc1724b09392bcba2ee1f1b072e1",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-square-0",
+        "media": "print",
+        "inputSha256": "e959b5e8e49f7cd3630356941db79c39126b6cb47e6a7c7ad60c5b7b6b0c5160",
+        "outputPdfSha256": "fe036eac3c03ab686107ead52ea975b548f4c5967da657875504e4fe456f0a7a",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-square-0",
+        "media": "screen",
+        "inputSha256": "e959b5e8e49f7cd3630356941db79c39126b6cb47e6a7c7ad60c5b7b6b0c5160",
+        "outputPdfSha256": "fe036eac3c03ab686107ead52ea975b548f4c5967da657875504e4fe456f0a7a",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-square-20",
+        "media": "print",
+        "inputSha256": "f1af1f0ad40da0959272debdb4744ddd2a85a01fcd4436cc9c809cb05e01b218",
+        "outputPdfSha256": "f83df3018dc8fc63cdc881ef732692f23c4a5ff4db93aa323040d8461aa65cd2",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-square-20",
+        "media": "screen",
+        "inputSha256": "f1af1f0ad40da0959272debdb4744ddd2a85a01fcd4436cc9c809cb05e01b218",
+        "outputPdfSha256": "f83df3018dc8fc63cdc881ef732692f23c4a5ff4db93aa323040d8461aa65cd2",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-zero-axis-y",
+        "media": "print",
+        "inputSha256": "6276832ca80924ca68f8ec1343a6ed686364b858eb167b72928b14ecf50b340f",
+        "outputPdfSha256": "9449abc8a5093d9d37735f8d5b8119d2a7e7c6bdcc19c289dc792c3e0197129a",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-zero-axis-y",
+        "media": "screen",
+        "inputSha256": "6276832ca80924ca68f8ec1343a6ed686364b858eb167b72928b14ecf50b340f",
+        "outputPdfSha256": "9449abc8a5093d9d37735f8d5b8119d2a7e7c6bdcc19c289dc792c3e0197129a",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-zero-axis",
+        "media": "print",
+        "inputSha256": "92b40d4505cfa43aaa7b076f03845417ed95eb22a3d63c671ebb374746067d3a",
+        "outputPdfSha256": "7222a63d8d3bc674a4d61794845882d974e6ffc38dacfbac471624c073a84bef",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "outline-zero-axis",
+        "media": "screen",
+        "inputSha256": "92b40d4505cfa43aaa7b076f03845417ed95eb22a3d63c671ebb374746067d3a",
+        "outputPdfSha256": "7222a63d8d3bc674a4d61794845882d974e6ffc38dacfbac471624c073a84bef",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-mixed",
+        "media": "print",
+        "inputSha256": "805f46636989597e7c2c3605edf8bc8ea5737bc8fc1dcb4f65fb5cfa91b4b4d3",
+        "outputPdfSha256": "593a4fc69e9e8daa69145b71a5efcac2e35d235fff16173e245ccc01d5092d41",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-mixed",
+        "media": "screen",
+        "inputSha256": "805f46636989597e7c2c3605edf8bc8ea5737bc8fc1dcb4f65fb5cfa91b4b4d3",
+        "outputPdfSha256": "593a4fc69e9e8daa69145b71a5efcac2e35d235fff16173e245ccc01d5092d41",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-negative",
+        "media": "print",
+        "inputSha256": "9c5f7e424430788053fe98d52e37e11b24eacfb58baa4236345a7b8df75da601",
+        "outputPdfSha256": "e23fbb9db7868b2a364ba6b90007ccc5d481222e38d352cfe08a57da9a6d1c4a",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-negative",
+        "media": "screen",
+        "inputSha256": "9c5f7e424430788053fe98d52e37e11b24eacfb58baa4236345a7b8df75da601",
+        "outputPdfSha256": "e23fbb9db7868b2a364ba6b90007ccc5d481222e38d352cfe08a57da9a6d1c4a",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-rounded",
+        "media": "print",
+        "inputSha256": "02762ca46b3710160815f252d6337cda3857bb902fea105fadc43c2a692d6cdb",
+        "outputPdfSha256": "1c9d97ca6222a9dcd24bae7628d161408845b36a0fbd396972d97f5cdb86b0b7",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-rounded",
+        "media": "screen",
+        "inputSha256": "02762ca46b3710160815f252d6337cda3857bb902fea105fadc43c2a692d6cdb",
+        "outputPdfSha256": "1c9d97ca6222a9dcd24bae7628d161408845b36a0fbd396972d97f5cdb86b0b7",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-square-0",
+        "media": "print",
+        "inputSha256": "8eb3e63b2e01204035e8bd36a91874156627fb48582661a49fbe55be01992fa8",
+        "outputPdfSha256": "0ec56d1d63dcfcc02708f0ad5873336c8f0b67c2871ec1162b4ccba36faa6724",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-square-0",
+        "media": "screen",
+        "inputSha256": "8eb3e63b2e01204035e8bd36a91874156627fb48582661a49fbe55be01992fa8",
+        "outputPdfSha256": "0ec56d1d63dcfcc02708f0ad5873336c8f0b67c2871ec1162b4ccba36faa6724",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-square-20",
+        "media": "print",
+        "inputSha256": "c6e46b08fb77d1f4b2374f7e07e4d5765c295e3137b78a03a91a711bb19360e6",
+        "outputPdfSha256": "0c11d9cee1927b1a756910f01d0e45a028105b48fe157554c33d8555b0cf812c",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-square-20",
+        "media": "screen",
+        "inputSha256": "c6e46b08fb77d1f4b2374f7e07e4d5765c295e3137b78a03a91a711bb19360e6",
+        "outputPdfSha256": "0c11d9cee1927b1a756910f01d0e45a028105b48fe157554c33d8555b0cf812c",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-zero-axis-y",
+        "media": "print",
+        "inputSha256": "e90ae3dd3f67fafbc7562c5aa852eca3f7486f12616ea2c4a42fd81f7a430f66",
+        "outputPdfSha256": "fd051738e5faf7f5e62548ad9225c13a9a3e89d72e8e6097c975f85c59a50416",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-zero-axis-y",
+        "media": "screen",
+        "inputSha256": "e90ae3dd3f67fafbc7562c5aa852eca3f7486f12616ea2c4a42fd81f7a430f66",
+        "outputPdfSha256": "fd051738e5faf7f5e62548ad9225c13a9a3e89d72e8e6097c975f85c59a50416",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-zero-axis",
+        "media": "print",
+        "inputSha256": "985b615d7128403ea38ca3fbc8fe178b03c0e2c30b0b1e4ece36db064c7b01ff",
+        "outputPdfSha256": "8f29ad05d07c9f8c20ac5c09b72664f9a6e1c853954b6a7ced32dec5972a7f10",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "shadow-zero-axis",
+        "media": "screen",
+        "inputSha256": "985b615d7128403ea38ca3fbc8fe178b03c0e2c30b0b1e4ece36db064c7b01ff",
+        "outputPdfSha256": "8f29ad05d07c9f8c20ac5c09b72664f9a6e1c853954b6a7ced32dec5972a7f10",
+        "diagnosticCodes": []
+      },
+      {
+        "case": "zero-height-four-owners",
+        "media": "print",
+        "inputSha256": "05e5a7d3edeb1ffd255e0ef0bfa6e2109445044b74b0bf2366b4573e9ae7c624",
+        "outputPdfSha256": "cb85a9d2b9566ff94d9bd4a66afa53d5bd7d97a4f44e8b275b32515ddee13cc3",
+        "diagnosticCodes": [
+          "HtmlRenderEmptyTable"
+        ]
+      },
+      {
+        "case": "zero-height-four-owners",
+        "media": "screen",
+        "inputSha256": "05e5a7d3edeb1ffd255e0ef0bfa6e2109445044b74b0bf2366b4573e9ae7c624",
+        "outputPdfSha256": "cb85a9d2b9566ff94d9bd4a66afa53d5bd7d97a4f44e8b275b32515ddee13cc3",
+        "diagnosticCodes": [
+          "HtmlRenderEmptyTable"
+        ]
+      }
+    ],
+    "rootVisualInspection": [
+      "square-corner-comparison.png",
+      "four-owner-corner-comparison.png"
+    ],
+    "browserSessionsAndServersClosed": true
+  },
+  "providers": {
+    "staticCss": "AngleSharp.Css 1.1.2 unchanged",
+    "cssDllSha256": "b1e9ff7d55daf35c2605dbc7add1b8d5440631184a1d51fad75dee2faeaa23a5",
+    "sourceProviderSubstitution": false,
+    "productionDependencyChanges": false,
+    "workerPinsChanged": false
+  },
+  "review": {
+    "kind": "Fresh independent read-only review of frozen source, test contracts, native/render evidence and ownership",
+    "agent": "html_square_corner_review",
+    "actionableFindings": 0,
+    "sourceFilesMatchSeal": true,
+    "limits": [
+      "Broader three-dimensional outline styles do not have new native corner witnesses.",
+      "Existing positive-radius spread approximation remains unchanged."
+    ]
+  },
+  "storage": {
+    "taskOutput": "outline-square-corners",
+    "logicalBytesRemoved": 1387723059,
+    "retainedLogicalBytes": 36545901,
+    "retainedReason": "Compact source seals, input fixtures, TRX, logs, native/managed renders and verified compressed candidate runtime for reproducibility; expanded build graph retired.",
+    "expandedGraphRetired": true,
+    "runtimeArchiveSha256": "c552c8a274bc18ae296bf200980be7a1d9fa82ba67b9a105ed59360789a3e832"
+  },
+  "limits": [
+    "Windows profiling remains deferred.",
+    "No whole-page H10, accessibility, public-package, browser-runtime or cross-platform timing qualification.",
+    "Broader nested stacking contexts, antialiasing and small positive-radius cubic spread adjustment remain open."
+  ]
+}
