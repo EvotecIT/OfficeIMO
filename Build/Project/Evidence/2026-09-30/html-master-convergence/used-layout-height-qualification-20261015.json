@@ -1,0 +1,874 @@
+{
+  "schemaVersion": 1,
+  "qualifiedAtUtc": "2026-10-15T00:13:49.669836+00:00",
+  "purpose": "Qualify consistent HTML used heights, zero-height box flow/paint, table minima and external SVG concrete viewports while preserving existing text and resource contracts.",
+  "source": {
+    "commit": "8e8c183de34656348acee8d65539bce154203d5b",
+    "tree": "5cce742e8bf8a434969262a5be392312671c7e13",
+    "base": "905a799b199a50507c579b1629c1db274c06444f",
+    "compilerSdk": "10.0.303",
+    "host": "macOS arm64",
+    "files": [
+      {
+        "path": "OfficeIMO.Core/OfficeImageInfo.cs",
+        "bytes": 10799,
+        "sha256": "1ba0bba56fab4c888dd0e2f8127106ed22fc4ad8f0fb27a2eb10abcbf2caa19e"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeImageReader.cs",
+        "bytes": 31013,
+        "sha256": "c63762dc29367610c857ab1effc86a48965da57e036b60acb93a6bf3de9ab813"
+      },
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.ImageLineMetrics.cs",
+        "bytes": 6221,
+        "sha256": "1513480361c42b0adfc9dd0f8a4f7f3162cc55164af560841c31cb76e9473a01"
+      },
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.Images.cs",
+        "bytes": 89602,
+        "sha256": "cc66a32754b8b6b71d70a8140f73bf8ff462bad0eede888323ec3d88200aa9d3"
+      },
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.SvgImageViewport.cs",
+        "bytes": 6237,
+        "sha256": "c191fcbdaee435f337e4c750ee49595e5017ab1c767be0feee46fc57c0011039"
+      },
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.UsedLayoutHeights.cs",
+        "bytes": 11173,
+        "sha256": "d33e8dadeb80bc9820443479529fbd6c2442dbbc2df2f6b7178d6eb00f615b4b"
+      },
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.ZeroHeightBoxes.cs",
+        "bytes": 4217,
+        "sha256": "b03ee6116d9f22d4687ecde6859140632f237e2a3dd4eab217b1e9882b360fa8"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderCssValues.cs",
+        "bytes": 19337,
+        "sha256": "c2e03f9267ecc3ea014e99188c3369760c51c162fc47d2a43b76ae8e8853aa0e"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs",
+        "bytes": 36344,
+        "sha256": "206360823a4e6bccbcd0174a11cf813dfb12b99d2c5ba348c4585d45a1daa1df"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.cs",
+        "bytes": 55403,
+        "sha256": "64e7357086e5517c1bb891a6e0570555a92f8b10d4aab2e0b43a6254f52208ab"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Borders.cs",
+        "bytes": 20604,
+        "sha256": "98c19022eb993e02eaa599cf39235ebd03830a49248fd3136ea8233a5640e1b0"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.FloatContext.cs",
+        "bytes": 8635,
+        "sha256": "6c89f52b982cb9fab17b59e9acc7fd3da880f1130c2dbbea01f8139a2a2cb4e8"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Floats.cs",
+        "bytes": 31878,
+        "sha256": "153c195b05642f271935f508765950eab9855b8599af36801e8fe72827441eae"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Images.cs",
+        "bytes": 31789,
+        "sha256": "d2441cfd83b87d7c88a1177c44348d3406045361cce75a41b1e50731fd3c19f2"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Math.cs",
+        "bytes": 13013,
+        "sha256": "6f27460ee7b7d848233240fabfa416d41243ae9330fb51192cd3d25899200905"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.ReplacedElements.cs",
+        "bytes": 15607,
+        "sha256": "058bd2fc138095e3b41b8b3ea9f51e5cb0fbe310b8a9525b1611a63a723fbb44"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Shadows.cs",
+        "bytes": 9261,
+        "sha256": "3f73d62c7b0e4c7c4ba8027731fe161682fa6740dd9e8360e2af045918f77bd2"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Tables.Captions.cs",
+        "bytes": 2625,
+        "sha256": "be9ee8dea8de1909eb061605ad7c4599700443aaca0a35594700e4e932a92468"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Tables.PercentageHeights.cs",
+        "bytes": 5838,
+        "sha256": "60b274aed33e7a9f58261345e5790f629c79ac78a93e7883babb4654a3c19068"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Tables.Sizing.cs",
+        "bytes": 3667,
+        "sha256": "e03ede6ee7e635e8f9513fd7ce4251243b7d35d98aa757f4e57d22c4a3ac1609"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Tables.cs",
+        "bytes": 36501,
+        "sha256": "cb06052effa5e9d4835ace9f4f84bedfe9a94f7168b6c90ac44c95380e868543"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.LineExtents.cs",
+        "bytes": 4801,
+        "sha256": "25686e6c821448ba9c082f667e5c2dfd7870acbbc52c1bbde368e80ed8466ed1"
+      }
+    ],
+    "publicApiOrDependencyDeclarationChanges": false
+  },
+  "contracts": [
+    "Use the selected-face used line-height pair for ordinary and float fitting/flow; preserve CSS normal/DefaultLineHeight, short-line, leader and forced-break behavior.",
+    "Empty ordinary boxes, captions and table rows add no invented text line; positive shadows/outlines retain paint without flow advance. Authored all-zero percentage rows share table surplus; mixed/positive allocation remains intact.",
+    "Resolve image/frame used dimensions before the auto-axis ratio without overflow. Preserve raw MathML canvas/baseline and Core/Drawing/PDF geometry.",
+    "External SVG with a valid viewBox fits the final image/background tile viewport. SVG without a viewBox retains intrinsic-scene projection; inline SVG raster safety and external caller-codec policy remain distinct."
+  ],
+  "validation": [
+    {
+      "run": "layout-focused-net10-qualified",
+      "passed": 733,
+      "failed": 0,
+      "trxSha256": "41cf880006783781eb3ac28e6c26145eb1bcbf915beb8e4ad6709a756668add2",
+      "commandSha256": "133aa143e91f56df8f67f33b0cab3e0f9b8da1279d5803ea7feec68bb4288ff9"
+    },
+    {
+      "run": "layout-full-net10-qualified",
+      "passed": 6255,
+      "failed": 0,
+      "trxSha256": "3ab30c8bc15887401b155b650afe523a66901a946e768b3d659914fa5d5527ee",
+      "commandSha256": "95f21bcd586e66867606ba40c6cf7fae03853a8c3b8c7f36de35d0bcd8924b7c"
+    },
+    {
+      "run": "layout-full-net8-qualified",
+      "passed": 6255,
+      "failed": 0,
+      "trxSha256": "9d9530a79b3f6648f4631606625cd8fa76d25b9d9f96094955a08452d7855195",
+      "commandSha256": "6f83c71f2b6e860c4b9d16981ac9b82ef60c583e754b18c5d153a7591b4f74aa"
+    },
+    {
+      "run": "core-svg-metadata-net10",
+      "passed": 182,
+      "failed": 0,
+      "trxSha256": "5e81307337b05f3d1383f964fcda6905c94eb998dbf913b707a1a7fb9725201d",
+      "commandSha256": "5ba344c20c28c1c39cd362e0eb388215f0983110aa879b48f16d41aebe88e845"
+    }
+  ],
+  "coreRunBoundary": "The Core SVG metadata/reader inputs are unchanged by the final zero-height paint/table remediation; its preceding 182-check proof is retained.",
+  "savedRendering": {
+    "fixtures": 24,
+    "media": [
+      "print",
+      "screen"
+    ],
+    "pdfSvgExports": 96,
+    "priorFixtures": 19,
+    "priorPdfSvgExports": 76,
+    "priorExportsByteIdentical": 44,
+    "textPageLinkUriContractsPreserved": true,
+    "all21PreRemediationRendersBytePreserved": true,
+    "comparisonSha256": "ce63c9eb924c168a2b03f58c7ae083a8353221c3e656ced974732d457e155849",
+    "renderManifestSha256": "de535b4e8eac166765142943f5316a38793568c29ceddbbaeeca3b3c553c5049",
+    "cases": [
+      {
+        "id": "forced-break-unmarked",
+        "inputSha256": "9646fe6e98015e777f8214d65270228e873b2655f5bc89a9355f8e25726c2000",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "00ba990c1af5e5e29bbff69441e1cf273a34fe34b383c377be0084e05414c57c"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "ab73797b84ef1a549ae7d826cfca908edad035182a9d55418963981b67f15d80"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "00ba990c1af5e5e29bbff69441e1cf273a34fe34b383c377be0084e05414c57c"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "ab73797b84ef1a549ae7d826cfca908edad035182a9d55418963981b67f15d80"
+          }
+        ]
+      },
+      {
+        "id": "forced-break-edges",
+        "inputSha256": "94880b031a2bd1c32602a9889d1ac6d6eba76c0771dbab7e241d3e4738f855cc",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "5f7c9f12f961ea722ef46c8bc4ebf9aa132d4743b798bcc17c1fae51f9886a22"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "5262e3d9ba530c56f9a9e5bd94d7f90d01b095d6a2dc227af4b117f27261a44b"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "5f7c9f12f961ea722ef46c8bc4ebf9aa132d4743b798bcc17c1fae51f9886a22"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "5262e3d9ba530c56f9a9e5bd94d7f90d01b095d6a2dc227af4b117f27261a44b"
+          }
+        ]
+      },
+      {
+        "id": "mission-unmarked",
+        "inputSha256": "7dc9f018115acdf97ff7a760f58acee01c98223f62d5ccb57c3f3da445e247a7",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "142b09c17c5b36f1163a169332872fa5ce12a77386c321827599674ac7dba49a"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "65dc15eb6c82a369f98294e50103360576d60e82957c1c9b51105a7de34328af"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "142b09c17c5b36f1163a169332872fa5ce12a77386c321827599674ac7dba49a"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "65dc15eb6c82a369f98294e50103360576d60e82957c1c9b51105a7de34328af"
+          }
+        ]
+      },
+      {
+        "id": "siblings-unmarked",
+        "inputSha256": "b234a23a149722cd43fa623cbe1166efa01f82b9217b0b55fa305a16f6d78095",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "2f893cc1db1b2f45e7a289e35d59ed02946beb802a827ae183aa0ead6cbbc39d"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "8160d09a2c5b4085b52846253ed81fd66e326dcaecb2bedabf70c0d8a1e69350"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "2f893cc1db1b2f45e7a289e35d59ed02946beb802a827ae183aa0ead6cbbc39d"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "8160d09a2c5b4085b52846253ed81fd66e326dcaecb2bedabf70c0d8a1e69350"
+          }
+        ]
+      },
+      {
+        "id": "grid-unmarked",
+        "inputSha256": "a59a678ec42270c425d3fbdf3e1bdf3da76073b16f2a30147d934ac078026e88",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "ab3e1fd6eecaeda591551604cf86f67dbf1b654c0c49f017a9744a5e9be164ee"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "a0199f6b2bf5f86bfb9232ca18f6fe635c59fe43692f2258e2f3e4c4203bfdb0"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "ab3e1fd6eecaeda591551604cf86f67dbf1b654c0c49f017a9744a5e9be164ee"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "a0199f6b2bf5f86bfb9232ca18f6fe635c59fe43692f2258e2f3e4c4203bfdb0"
+          }
+        ]
+      },
+      {
+        "id": "h10-authored",
+        "inputSha256": "c52249a5ba6423995628192151f894e10d7c46108edf53c1145dfa3244ea7584",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "f526ebaf13503a517897d299a664c2d70c5f69dc5ad4775194224a26ed294500"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "e2e6f3cc7fc12db8f9c98f2907bdfb34f956a20a0ac6c58e207149d0a587fa27"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "f526ebaf13503a517897d299a664c2d70c5f69dc5ad4775194224a26ed294500"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "e2e6f3cc7fc12db8f9c98f2907bdfb34f956a20a0ac6c58e207149d0a587fa27"
+          }
+        ]
+      },
+      {
+        "id": "image-controls",
+        "inputSha256": "6b8a5013f03dc834912ae3eca41223cef0ba27dab9b732d43183b21bc268bcd1",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "4cb9dbc86f10a10ba29477b00f87024522d197bbb776bd367c0544b0e7bacb8a"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "b71ddff7befb1dc544a1d18e337110b286002d9259dd2ab6e35addc4471779e8"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "4cb9dbc86f10a10ba29477b00f87024522d197bbb776bd367c0544b0e7bacb8a"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "b71ddff7befb1dc544a1d18e337110b286002d9259dd2ab6e35addc4471779e8"
+          }
+        ]
+      },
+      {
+        "id": "short-line-legacy",
+        "inputSha256": "86e6c381c32273f170b7999b674fc525f9823a9fbc1f00b1e6ede1a41aa5c382",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "8e690b27b510cccf7c29ba48da55e0f5e5155d2225286db9e0bbdc0d2ac25558"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "1a39cf2e5e995efa376826a60351da81d56853327111351b0796494eadaa19d5"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "8e690b27b510cccf7c29ba48da55e0f5e5155d2225286db9e0bbdc0d2ac25558"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "1a39cf2e5e995efa376826a60351da81d56853327111351b0796494eadaa19d5"
+          }
+        ]
+      },
+      {
+        "id": "consequences-unmarked",
+        "inputSha256": "4dc03497be4e2c88bc6f81d8b74f6562275a6f881949239800d8c79d6d0834ac",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "6a47a07b42d8aa3ac7a2766472af6982eaf2b520b52b13eb95095ef2c26909de"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "3c41546530269003f296c9e05c13a4443625b51fa100c598974adee99e9d8140"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "6a47a07b42d8aa3ac7a2766472af6982eaf2b520b52b13eb95095ef2c26909de"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "3c41546530269003f296c9e05c13a4443625b51fa100c598974adee99e9d8140"
+          }
+        ]
+      },
+      {
+        "id": "script-wrap-unmarked",
+        "inputSha256": "c43f7ca29a3cfb95b705d4398a73696f742aa22eae7da01242d99b25d85a4ae2",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "58f0414a1224ea45913389abb64385b89e2ffd2d4f44dbba1bbed6f7abbbe032"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "27b4efa446f2148ddfb68acd4708bfb9897f959ef76c9810f642ac44fe194383"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "58f0414a1224ea45913389abb64385b89e2ffd2d4f44dbba1bbed6f7abbbe032"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "27b4efa446f2148ddfb68acd4708bfb9897f959ef76c9810f642ac44fe194383"
+          }
+        ]
+      },
+      {
+        "id": "premium-card-unmarked",
+        "inputSha256": "af930657d69797f0fdf23e99c96a57829bc6b8516d01b4b98654b47b19416a13",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "c00fcecccbb2198b2c7a59cee814958301ae3ef220d66179ebbb43d14afe4bd2"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "fa75210e447895f99f7f7017216d06185d174d16c67bd5d437d74238f3256137"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "c00fcecccbb2198b2c7a59cee814958301ae3ef220d66179ebbb43d14afe4bd2"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "fa75210e447895f99f7f7017216d06185d174d16c67bd5d437d74238f3256137"
+          }
+        ]
+      },
+      {
+        "id": "premium-email-unmarked",
+        "inputSha256": "ccf076474fbef4aec104503972c2fd76a2409f07a43ebd45ba7e7e1a52a6dd67",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "06d1f7999456dbb8639e932c5aed3d7b7f9a49f892c2f6abad27f8822e513340"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "94a05a8957d539919d9af8d71152e8391f2ce06c22c45a6400faac1c57c654e4"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "06d1f7999456dbb8639e932c5aed3d7b7f9a49f892c2f6abad27f8822e513340"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "94a05a8957d539919d9af8d71152e8391f2ce06c22c45a6400faac1c57c654e4"
+          }
+        ]
+      },
+      {
+        "id": "premium-epub-unmarked",
+        "inputSha256": "03f2ee8aef9896913e7dca52588881fa6ac0d3e9709e59eb42c69cd79a3b5893",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "7344e6dc7637c15fa4407d4821a29ace70e167eed5376e5094e167ad445da8bb"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "733f0d0ed3e75029a0c04a4b11350bc5fae164ba6fc0a4f083807e43d07f1917"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "7344e6dc7637c15fa4407d4821a29ace70e167eed5376e5094e167ad445da8bb"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "733f0d0ed3e75029a0c04a4b11350bc5fae164ba6fc0a4f083807e43d07f1917"
+          }
+        ]
+      },
+      {
+        "id": "premium-used-height-unmarked",
+        "inputSha256": "591c12d203121c91f3f95ba985eda122ddd169ef12cd0ad939d9d51d31945c4b",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "0964b21b00d2372e2c6128ed48b28f3dfef8acc2ce75850e109769c338b6e205"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "a643cfc8a13b2716a8414b85c6ed2ec41fe67eb8ab4ca19832fa67572184e705"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "0964b21b00d2372e2c6128ed48b28f3dfef8acc2ce75850e109769c338b6e205"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "a643cfc8a13b2716a8414b85c6ed2ec41fe67eb8ab4ca19832fa67572184e705"
+          }
+        ]
+      },
+      {
+        "id": "carrier-ordinary",
+        "inputSha256": "10d86229420fda7cc8881f83cc86d4a04da1e6cc6ae0248422898fcca06b94e1",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "ecdf09033d2b9221feeb70d991a84aa2a6e0a04b3e223a2c31bd45edf290aaa4"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "cea3b84bcd1af242c8d8f55045ed5c751412c1cf949a17f0d8ac5a6e93f34beb"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "ecdf09033d2b9221feeb70d991a84aa2a6e0a04b3e223a2c31bd45edf290aaa4"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "cea3b84bcd1af242c8d8f55045ed5c751412c1cf949a17f0d8ac5a6e93f34beb"
+          }
+        ]
+      },
+      {
+        "id": "carrier-zero-image",
+        "inputSha256": "17a78c0dff25c44ca1403e93fafb37e6fa826771c9b553a3ebc86cda7157ab6b",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "dcde031f1cdc91bdd952f9f67a98e0c5d54d7fc1a4140deb5811440d419afca4"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "c6a6a96681101b1a946e54f1d8c3b6cfcfdf5ea46c243488712ea236b34fe3f1"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "dcde031f1cdc91bdd952f9f67a98e0c5d54d7fc1a4140deb5811440d419afca4"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "c6a6a96681101b1a946e54f1d8c3b6cfcfdf5ea46c243488712ea236b34fe3f1"
+          }
+        ]
+      },
+      {
+        "id": "carrier-relative",
+        "inputSha256": "0889ac50f69aec3bc66d44506deab6f9630578d2ec63f8704ee62cb69de0feff",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "ae86d5ab71ab19f0defd6b44af3ec88f7f7a4824fc8e8afda3e315acb99c160b"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "eb0af930a5ca13f68e8b8b6630047c50a9a4d5b537a3c8e151f70cf3db169d89"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "ae86d5ab71ab19f0defd6b44af3ec88f7f7a4824fc8e8afda3e315acb99c160b"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "eb0af930a5ca13f68e8b8b6630047c50a9a4d5b537a3c8e151f70cf3db169d89"
+          }
+        ]
+      },
+      {
+        "id": "carrier-script",
+        "inputSha256": "a9047cd3e07cdfcc4b31af89ae8d7686f8583e5ee72532dd7d0285d2cda70fc8",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "d0f670be9472e42cf8542ca6ec39bede4ab7aab4201d9372b79ae020af45143a"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "3373f4010dbd32f7c6b86f0ce35da0f09545fa98f5cfdc9316463de2e55e3f46"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "d0f670be9472e42cf8542ca6ec39bede4ab7aab4201d9372b79ae020af45143a"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "3373f4010dbd32f7c6b86f0ce35da0f09545fa98f5cfdc9316463de2e55e3f46"
+          }
+        ]
+      },
+      {
+        "id": "carrier-leader",
+        "inputSha256": "8f8726f9e126a97be078c3351638193ef82a7ca3c487894b107bd064e6a1b378",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "269ad0277890d6f868e93ab32da64094ee2442a65b6abf6f85c9d837f7b4a659"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "95f12344deff61760b9d9f72026cb9747a05e14d317e2c80d51b8d8c58a1a57b"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "269ad0277890d6f868e93ab32da64094ee2442a65b6abf6f85c9d837f7b4a659"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "95f12344deff61760b9d9f72026cb9747a05e14d317e2c80d51b8d8c58a1a57b"
+          }
+        ]
+      },
+      {
+        "id": "used-heights",
+        "inputSha256": "09c4fa2ee1fd8f2b3733acffa69e9947bbdca161c9bf46a116a1cf34d55f15cc",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "30b14bcb6d92c76214881ae8bb0816a278dc084cc846049d12b5108e664a610c"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "a00f64f96c0a71ddf8f9e24668398a206c5ec2133de8ecaede5e344345a02036"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "30b14bcb6d92c76214881ae8bb0816a278dc084cc846049d12b5108e664a610c"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "a00f64f96c0a71ddf8f9e24668398a206c5ec2133de8ecaede5e344345a02036"
+          }
+        ]
+      },
+      {
+        "id": "svg-viewport",
+        "inputSha256": "a30a061da1e7e4059c6d9e10de558b0292a8aa00ab1cd58f8486903b9f7e0b29",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "ef5d9a7802ed4411f4cf1180e76f5f3cc56be2b4d31680d28d46c0fa174943f4"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "3e06a8a4c48b731022382f477d356ae83a45182e753e5a18b95a0061df42d4bd"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "ef5d9a7802ed4411f4cf1180e76f5f3cc56be2b4d31680d28d46c0fa174943f4"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "3e06a8a4c48b731022382f477d356ae83a45182e753e5a18b95a0061df42d4bd"
+          }
+        ]
+      },
+      {
+        "id": "svg-without-viewbox-siblings",
+        "inputSha256": "90f73488c5d4aecc8ac393843f890e1f131a4aa48972329265187fa7361e43fa",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "cb94a2cd69654a0f61d452f485ba8123c70bc3d32dbd2c297f70d027808efd6b"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "691e806b333b80308dc5e4b95ae7d26083d92cf8d7cf846cc0e0773588a9ea6d"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "cb94a2cd69654a0f61d452f485ba8123c70bc3d32dbd2c297f70d027808efd6b"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "691e806b333b80308dc5e4b95ae7d26083d92cf8d7cf846cc0e0773588a9ea6d"
+          }
+        ]
+      },
+      {
+        "id": "zero-flow-positive-paint-blur",
+        "inputSha256": "05e5a7d3edeb1ffd255e0ef0bfa6e2109445044b74b0bf2366b4573e9ae7c624",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "da0c4f6581874ea71f0213e4754387fd629e196c8460169e648e4bc61ba5ef14"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "3a46ab7c884f3b4f72b763dcb180da639aeb3b9d13b4fc205068caa14a4d379b"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "da0c4f6581874ea71f0213e4754387fd629e196c8460169e648e4bc61ba5ef14"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "3a46ab7c884f3b4f72b763dcb180da639aeb3b9d13b4fc205068caa14a4d379b"
+          }
+        ]
+      },
+      {
+        "id": "zero-percentage-row-minimum",
+        "inputSha256": "1447b37ed21c7f01f3e485a458c844a3c1e51c8bd1bf8316e6821efdefa0f71a",
+        "outputs": [
+          {
+            "name": "office-print.pdf",
+            "sha256": "8d9b9e9ac3f303231fbceedb6d10f8834af3e26030643ebac2c4e76ab37198d6"
+          },
+          {
+            "name": "office-print.svg",
+            "sha256": "7a0e213adbe69b22c034da8ae37b00d1fb5b9b03bf9ec9184352c436137899a1"
+          },
+          {
+            "name": "office-screen.pdf",
+            "sha256": "8d9b9e9ac3f303231fbceedb6d10f8834af3e26030643ebac2c4e76ab37198d6"
+          },
+          {
+            "name": "office-screen.svg",
+            "sha256": "7a0e213adbe69b22c034da8ae37b00d1fb5b9b03bf9ec9184352c436137899a1"
+          }
+        ]
+      }
+    ]
+  },
+  "nativeGeometry": {
+    "browserVersion": "153.0.8010.12",
+    "footer": {
+      "inputSha256": "c52249a5ba6423995628192151f894e10d7c46108edf53c1145dfa3244ea7584",
+      "checks": {
+        "logoHeight": {
+          "native": 53.9375,
+          "owned": 53.9375
+        },
+        "headingTop": {
+          "native": 148.125,
+          "owned": 148.125
+        },
+        "descriptionTop": {
+          "native": 211.125,
+          "owned": 211.125
+        },
+        "descriptionThreeLineAdvance": {
+          "native": 69.28125,
+          "owned": 69.28125
+        },
+        "missionLayoutTop": {
+          "native": 302.40625,
+          "owned": 302.40625
+        },
+        "missionBaseline": {
+          "native": 316.40625,
+          "owned": 316.40625
+        },
+        "footerHeight": {
+          "native": 383.6875,
+          "owned": 383.6875
+        }
+      },
+      "comparisonSha256": "168a5754699bc24004d07e000db8c2cfc4abb6aaf9d87ea660fe44c0a68e6718",
+      "nativeReferenceSha256": "8286b6cc917cf7718a4f2ff291cbb6ccfdef5d483f6190ccfbde9bacece499ae",
+      "boundary": "Named authored-font/replacement-color logo geometry control; original captured variable-font ink and whole-page appearance remain open."
+    },
+    "svg": "Defaultmeet/none4bands and all32 no-viewBox img/background native interior samples equal",
+    "zeroHeightOutsets": [
+      {
+        "id": "zero-block",
+        "zeroNativeFlowHeight": 0,
+        "nonOverlappingShadowOutlineTailSamplesEqual": true
+      },
+      {
+        "id": "zero-table",
+        "zeroNativeFlowHeight": 0,
+        "nonOverlappingShadowOutlineTailSamplesEqual": true
+      },
+      {
+        "id": "zero-caption",
+        "zeroNativeFlowHeight": 0,
+        "nonOverlappingShadowOutlineTailSamplesEqual": true
+      },
+      {
+        "id": "zero-cell",
+        "zeroNativeFlowHeight": 0,
+        "nonOverlappingShadowOutlineTailSamplesEqual": true
+      }
+    ],
+    "authoredTableMinimum": "one0%row100,two0%rows50/50,mixed0%+auto0/100;followingmarkers116/234/352matchnative"
+  },
+  "conversionReports": {
+    "cases": 2,
+    "pages": 3,
+    "passed": true,
+    "imageFormats": [
+      "PNG",
+      "SVG",
+      "JPEG",
+      "TIFF",
+      "WebP"
+    ],
+    "browserVersion": "153.0.8010.12",
+    "svgBrowserVersion": "153.0.8010.12",
+    "fontSha256": "f5f41dd4cd8281cf151091cef9e9add0cda9b6ccd1db2010f72c3f056f0775fb",
+    "resultSha256": "f3607219e65eb650d33dfb1e1fa53a34136bf9ef1372728cfa819c91d57064bd",
+    "bundleSha256": "a050129698c90c672fc69b4af054753a0f4f3d45a322f7f94f8da260567bde01",
+    "suiteSha256": "c76f0ac23e1ffb5f0412c002f4ac3084870ca8c710a367519dcac1411ddb3f1b",
+    "expectationsAndTolerancesUnchanged": true,
+    "rootVisualInspectionSha256": "b29d039331524166c1ec3fb253e24d49a135dbcb57120569c183ccae8ad34afd",
+    "browserOwner": {
+      "repository": "https://github.com/EvotecIT/HtmlTinkerX",
+      "commit": "5031eb16bb252501d384602d788b590b6ce70600",
+      "route": "Supported HtmlTinkerXProjectPath test-only source qualification; public package pin remains 3.0.1. No package publication or public-package qualification."
+    }
+  },
+  "nativeAot": {
+    "runtime": "native osx-arm64",
+    "executionExitCode": 0,
+    "stdout": "OfficeIMO HTML NativeAOT smoke passed.",
+    "binarySha256": "93857254ef954b48a2622ac9f2f1dcfca25d9ba76bd92011effcdc1a0d94583b",
+    "publishCommandSha256": "644b1828ea1d357a0e2255de9240fea449c5620f9fb76aae5faff60aced08075",
+    "limits": "Focused HTML/CSS/rendering/metadata smoke only; no whole-library AOT, other-platform or WASM qualification."
+  },
+  "review": {
+    "fullPassSource": "ac32b8cae9f766806334626e6409067dcdd3f0ae",
+    "fullPassFindings": "Two P2 regressions reproduced and fixed together: all-zero percentage-row allocation and zero-height positive paint.",
+    "targetedConfirmationSource": "8e8c183de34656348acee8d65539bce154203d5b",
+    "targetedConfirmation": "No additional actionable findings; accept as shaped, no new public API or dependency roles.",
+    "targetedReceiptSha256": "68afbaf87702f9be4380685cfc65acaca1a1c02718968ee8b27e4c8e0641031b",
+    "ledgerSha256": "cf75a16c1cabc79812a1bd2b3bb7c0f0f841cf4022ee7595a8fea0bef7271b8c"
+  },
+  "openProviderDefect": {
+    "owner": "AngleSharp.Css 1.1.2",
+    "upstreamCommit": "c5ddd09b54605551583d058bf37a31b82c8932f4",
+    "standaloneReproduction": [
+      {
+        "authored": "0 0 0 5px red",
+        "serialized": "0 0 5px rgba(255, 0, 0, 1)",
+        "reparsed": "0 0 5px rgba(255, 0, 0, 1)"
+      },
+      {
+        "authored": "0 0 0 -5px red",
+        "serialized": "0 0 -5px rgba(255, 0, 0, 1)",
+        "reparsed": "0 0 -5px rgba(255, 0, 0, 1)"
+      },
+      {
+        "authored": "0 0 1px 5px red",
+        "serialized": "0 0 1px 5px rgba(255, 0, 0, 1)",
+        "reparsed": "0 0 1px 5px rgba(255, 0, 0, 1)"
+      }
+    ],
+    "reproductionSha256": "0586b3113892e1a553c817c42688e3c720a619c3905fd33eeff605301d8cb55c",
+    "state": "Pre-existing zero-blur/nonzero-spread serialization defect remains unfixed. Controlled 1px blur/5px spread isolates the owned zero-height paint contract."
+  },
+  "storage": {
+    "logicalBytesRemoved": 3826164051,
+    "archives": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/used-layout-height/qualified-graph-proof.zip",
+        "bytes": 69944922,
+        "sha256": "442256e6cf91c551598bbe199705ef01051efc22587ceba00a44fe544e6d6b37",
+        "allEntriesReadBack": true
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/used-layout-height/report-phase-proof.zip",
+        "bytes": 7507419,
+        "sha256": "9aafcd5f4820a7eb6d315e0222c33402dcf98b64469ea7a10b610dbf666fd033",
+        "allEntriesReadBack": true
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/used-layout-height/aot-phase-proof.zip",
+        "bytes": 29469315,
+        "sha256": "4aa48da6f29c319dc90e187cfb225869bc35a33e5e9bf1192b7fe2fa68643381",
+        "allEntriesReadBack": true
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/used-layout-height/completed-framework-test-proof.zip",
+        "bytes": 56658460,
+        "sha256": "6f75a036379f853d4fe19ebc546456c4dff11ec170bd988f8a02d07a0940872e",
+        "allEntriesReadBack": true
+      }
+    ],
+    "retainedPurpose": "Source/compiler/test/native-render/report/AOT evidence and unresolved provider reproduction; completed build graphs, native publish copies, temporary CLI/TMP and superseded raw renders removed.",
+    "nextColdReview": "2026-10-22"
+  },
+  "limits": [
+    "CSS normal geometry, raw link-box height and mixed-font decoration height remain separate qualification work.",
+    "Original captured fonts, glyph ink/weight, all-page H10 appearance and manual accessibility remain open.",
+    "Existing outline overlap with following siblings and corner antialiasing differ from the native witness; only non-overlapping zero-height positive paint is qualified.",
+    "Existing atomic-float deferral differs from browser float fragmentation; established specialized carriers and pagination policy are preserved.",
+    "Report table-column widths and some intervening line placement differ within declared checks; no whole-page interchangeability claim.",
+    "Current-source cross-platform timing/memory/package budgets and broader AOT/WASM remain open. Windows profiling stays deferred.",
+    "This is a qualified source checkpoint; no merge, package release, deployment or whole-platform CI qualification is claimed."
+  ]
+}
