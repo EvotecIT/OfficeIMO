@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 
-namespace OfficeIMO.Zip.Benchmarks;
+namespace OfficeIMO.Archives.Benchmarks;
 
 /// <summary>Measures guarded OfficeIMO ZIP traversal against an equivalent raw metadata projection.</summary>
 [MemoryDiagnoser]
@@ -24,7 +24,7 @@ public class ZipTraversalComparisonBenchmarks {
 
     /// <summary>Traverses metadata with OfficeIMO path and expansion-safety policy.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
-    public ZipTraversalResult OfficeIMO() => ZipComparisonWorkflows.TraverseOffice(_input);
+    public ArchiveTraversalResult OfficeIMO() => ZipComparisonWorkflows.TraverseOffice(_input);
 
     /// <summary>Traverses the same safe archive through raw platform metadata projection.</summary>
     [Benchmark(Description = "System.IO.Compression")]

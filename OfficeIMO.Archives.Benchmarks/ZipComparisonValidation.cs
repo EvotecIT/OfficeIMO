@@ -1,4 +1,4 @@
-namespace OfficeIMO.Zip.Benchmarks;
+namespace OfficeIMO.Archives.Benchmarks;
 
 internal static class ZipComparisonValidation {
     internal static IReadOnlyList<ZipComparisonReport> ValidateAll() =>
@@ -10,7 +10,7 @@ internal static class ZipComparisonValidation {
     }
 
     internal static ZipComparisonReport Validate(ZipBenchmarkScale scale, byte[] input) {
-        ZipTraversalResult office = ZipComparisonWorkflows.TraverseOffice(input);
+        ArchiveTraversalResult office = ZipComparisonWorkflows.TraverseOffice(input);
         IReadOnlyList<ZipProjectionDescriptor> platform = ZipComparisonWorkflows.TraversePlatform(input);
         if (office.Warnings.Count != 0) {
             throw new InvalidOperationException($"{scale.Name} OfficeIMO traversal produced unexpected warnings.");

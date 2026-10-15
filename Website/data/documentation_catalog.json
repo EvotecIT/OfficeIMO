@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 307,
-    "productionComponentCount": 153,
+    "projectCount": 306,
+    "productionComponentCount": 152,
     "testProjectCount": 60,
     "benchmarkProjectCount": 36,
     "validationProjectCount": 59,
     "apiReferenceCount": 122,
     "conceptualPageCount": 129,
-    "conceptualWordCount": 58531
+    "conceptualWordCount": 58505
   },
   "categories": [
     {
@@ -86,7 +86,7 @@
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 15,
+      "componentCount": 14,
       "componentIndexes": [
         1,
         5,
@@ -101,8 +101,7 @@
         71,
         72,
         93,
-        133,
-        152
+        133
       ]
     },
     {
@@ -284,13 +283,13 @@
       "name": "OfficeIMO.Archives",
       "packageId": "OfficeIMO.Archives",
       "category": "Foundations and integrations",
-      "description": "Managed, bounded ZIP extraction and Cabinet/Windows Installer inspection, member reads and payload extraction.",
+      "description": "Bounded ZIP reading and traversal, Cabinet and Windows Installer inspection and member reads, and managed payload extraction.",
       "kind": "package",
       "projectPath": "OfficeIMO.Archives/OfficeIMO.Archives.csproj",
-      "sourceFileCount": 23,
-      "referencingTestProjectCount": 1,
+      "sourceFileCount": 33,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/archives/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Archives"
     },
     {
@@ -2190,19 +2189,6 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Xps.Pdf"
-    },
-    {
-      "name": "OfficeIMO.Zip",
-      "packageId": "OfficeIMO.Zip",
-      "category": "Foundations and integrations",
-      "description": "Safe ZIP traversal primitives for modular OfficeIMO ingestion pipelines.",
-      "kind": "package",
-      "projectPath": "OfficeIMO.Zip/OfficeIMO.Zip.csproj",
-      "sourceFileCount": 6,
-      "referencingTestProjectCount": 2,
-      "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": "/api/zip/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Zip"
     }
   ]
 }

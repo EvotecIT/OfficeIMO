@@ -1,9 +1,11 @@
-namespace OfficeIMO.Zip;
+using System;
+using System.Collections.Generic;
+namespace OfficeIMO.Archives;
 
 /// <summary>
 /// Describes a warning produced while traversing ZIP entries.
 /// </summary>
-public sealed class ZipTraversalWarning {
+public sealed class ArchiveTraversalWarning {
     /// <summary>
     /// Entry path related to the warning, when available.
     /// </summary>

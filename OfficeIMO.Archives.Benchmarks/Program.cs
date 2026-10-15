@@ -1,6 +1,6 @@
 using System.Text.Json;
 using BenchmarkDotNet.Running;
-using OfficeIMO.Zip.Benchmarks;
+using OfficeIMO.Archives.Benchmarks;
 
 if (args.Length > 0 && string.Equals(args[0], "validate", StringComparison.OrdinalIgnoreCase)) {
     IReadOnlyList<ZipComparisonReport> reports = ZipComparisonValidation.ValidateAll();

@@ -1,7 +1,7 @@
 {
-  "generatedAtUtc": "2026-10-12T03:02:30.7262341Z",
-  "sourceCount": 122,
-  "referenceCount": 105759,
+  "generatedAtUtc": "2026-10-14T14:39:35.9270951Z",
+  "sourceCount": 4,
+  "referenceCount": 105836,
   "duplicateCount": 0,
   "references": [
     {
@@ -3008,6 +3008,33 @@
       "aliases": [
         "global::OfficeIMO.AI.OfficeAiSynthesisStatus.NotRequired",
         "OfficeIMO.AI.OfficeAiSynthesisStatus.NotRequired"
+      ]
+    },
+    {
+      "uid": "F:OfficeIMO.Archives.ArchiveFormat.Cab",
+      "name": "ArchiveFormat.Cab",
+      "href": "/api/archives/officeimo-archives-archiveformat/#field-cab",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.Cab",
+        "OfficeIMO.Archives.ArchiveFormat.Cab"
+      ]
+    },
+    {
+      "uid": "F:OfficeIMO.Archives.ArchiveFormat.Msi",
+      "name": "ArchiveFormat.Msi",
+      "href": "/api/archives/officeimo-archives-archiveformat/#field-msi",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.Msi",
+        "OfficeIMO.Archives.ArchiveFormat.Msi"
+      ]
+    },
+    {
+      "uid": "F:OfficeIMO.Archives.ArchiveFormat.Zip",
+      "name": "ArchiveFormat.Zip",
+      "href": "/api/archives/officeimo-archives-archiveformat/#field-zip",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.Zip",
+        "OfficeIMO.Archives.ArchiveFormat.Zip"
       ]
     },
     {
@@ -99412,6 +99439,673 @@
       "aliases": [
         "global::OfficeIMO.AI.OfficeAiTable.ToString",
         "OfficeIMO.AI.OfficeAiTable.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveEntryData.Equals(System.Object)",
+      "name": "ArchiveEntryData.Equals",
+      "href": "/api/archives/officeimo-archives-archiveentrydata/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryData.Equals",
+        "OfficeIMO.Archives.ArchiveEntryData.Equals",
+        "OfficeIMO.Archives.ArchiveEntryData.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveEntryData.GetHashCode",
+      "name": "ArchiveEntryData.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archiveentrydata/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryData.GetHashCode",
+        "OfficeIMO.Archives.ArchiveEntryData.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveEntryData.GetType",
+      "name": "ArchiveEntryData.GetType",
+      "href": "/api/archives/officeimo-archives-archiveentrydata/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryData.GetType",
+        "OfficeIMO.Archives.ArchiveEntryData.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveEntryData.ToString",
+      "name": "ArchiveEntryData.ToString",
+      "href": "/api/archives/officeimo-archives-archiveentrydata/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryData.ToString",
+        "OfficeIMO.Archives.ArchiveEntryData.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveEntryDescriptor.#ctor",
+      "name": "ArchiveEntryDescriptor.ArchiveEntryDescriptor",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#constructor-ctor",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.#ctor",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.#ctor"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveEntryDescriptor.Equals(System.Object)",
+      "name": "ArchiveEntryDescriptor.Equals",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.Equals",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.Equals",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveEntryDescriptor.GetHashCode",
+      "name": "ArchiveEntryDescriptor.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.GetHashCode",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveEntryDescriptor.GetType",
+      "name": "ArchiveEntryDescriptor.GetType",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.GetType",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveEntryDescriptor.ToString",
+      "name": "ArchiveEntryDescriptor.ToString",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.ToString",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractionOptions.#ctor",
+      "name": "ArchiveExtractionOptions.ArchiveExtractionOptions",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#constructor-ctor",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.#ctor",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.#ctor"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractionOptions.Equals(System.Object)",
+      "name": "ArchiveExtractionOptions.Equals",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.Equals",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.Equals",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractionOptions.GetHashCode",
+      "name": "ArchiveExtractionOptions.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.GetHashCode",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractionOptions.GetType",
+      "name": "ArchiveExtractionOptions.GetType",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.GetType",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractionOptions.ToString",
+      "name": "ArchiveExtractionOptions.ToString",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.ToString",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractionResult.Equals(System.Object)",
+      "name": "ArchiveExtractionResult.Equals",
+      "href": "/api/archives/officeimo-archives-archiveextractionresult/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionResult.Equals",
+        "OfficeIMO.Archives.ArchiveExtractionResult.Equals",
+        "OfficeIMO.Archives.ArchiveExtractionResult.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractionResult.GetHashCode",
+      "name": "ArchiveExtractionResult.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archiveextractionresult/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionResult.GetHashCode",
+        "OfficeIMO.Archives.ArchiveExtractionResult.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractionResult.GetType",
+      "name": "ArchiveExtractionResult.GetType",
+      "href": "/api/archives/officeimo-archives-archiveextractionresult/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionResult.GetType",
+        "OfficeIMO.Archives.ArchiveExtractionResult.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractionResult.ToString",
+      "name": "ArchiveExtractionResult.ToString",
+      "href": "/api/archives/officeimo-archives-archiveextractionresult/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionResult.ToString",
+        "OfficeIMO.Archives.ArchiveExtractionResult.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractor.Equals(System.Object)",
+      "name": "ArchiveExtractor.Equals",
+      "href": "/api/archives/officeimo-archives-archiveextractor/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractor.Equals",
+        "OfficeIMO.Archives.ArchiveExtractor.Equals",
+        "OfficeIMO.Archives.ArchiveExtractor.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractor.Extract(System.String,System.String,OfficeIMO.Archives.ArchiveExtractionOptions,System.Threading.CancellationToken)",
+      "name": "ArchiveExtractor.Extract",
+      "href": "/api/archives/officeimo-archives-archiveextractor/#method-extract-string-string-officeimo-archives-archiveextractionoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractor.Extract",
+        "OfficeIMO.Archives.ArchiveExtractor.Extract",
+        "OfficeIMO.Archives.ArchiveExtractor.Extract(System.String,System.String,OfficeIMO.Archives.ArchiveExtractionOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractor.GetHashCode",
+      "name": "ArchiveExtractor.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archiveextractor/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractor.GetHashCode",
+        "OfficeIMO.Archives.ArchiveExtractor.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractor.GetType",
+      "name": "ArchiveExtractor.GetType",
+      "href": "/api/archives/officeimo-archives-archiveextractor/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractor.GetType",
+        "OfficeIMO.Archives.ArchiveExtractor.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveExtractor.ToString",
+      "name": "ArchiveExtractor.ToString",
+      "href": "/api/archives/officeimo-archives-archiveextractor/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractor.ToString",
+        "OfficeIMO.Archives.ArchiveExtractor.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.CompareTo(System.Object)",
+      "name": "ArchiveFormat.CompareTo",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-compareto-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.CompareTo",
+        "OfficeIMO.Archives.ArchiveFormat.CompareTo",
+        "OfficeIMO.Archives.ArchiveFormat.CompareTo(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.Equals(System.Object)",
+      "name": "ArchiveFormat.Equals",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.Equals",
+        "OfficeIMO.Archives.ArchiveFormat.Equals",
+        "OfficeIMO.Archives.ArchiveFormat.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.GetHashCode",
+      "name": "ArchiveFormat.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.GetHashCode",
+        "OfficeIMO.Archives.ArchiveFormat.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.GetType",
+      "name": "ArchiveFormat.GetType",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.GetType",
+        "OfficeIMO.Archives.ArchiveFormat.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.GetTypeCode",
+      "name": "ArchiveFormat.GetTypeCode",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-gettypecode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.GetTypeCode",
+        "OfficeIMO.Archives.ArchiveFormat.GetTypeCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.HasFlag(Enum)",
+      "name": "ArchiveFormat.HasFlag",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-hasflag-enum",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.HasFlag",
+        "OfficeIMO.Archives.ArchiveFormat.HasFlag",
+        "OfficeIMO.Archives.ArchiveFormat.HasFlag(Enum)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.ToString",
+      "name": "ArchiveFormat.ToString",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.ToString",
+        "OfficeIMO.Archives.ArchiveFormat.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.ToString(IFormatProvider)",
+      "name": "ArchiveFormat.ToString",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-tostring-iformatprovider",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.ToString",
+        "OfficeIMO.Archives.ArchiveFormat.ToString",
+        "OfficeIMO.Archives.ArchiveFormat.ToString(IFormatProvider)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.ToString(System.String)",
+      "name": "ArchiveFormat.ToString",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-tostring-string",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.ToString",
+        "OfficeIMO.Archives.ArchiveFormat.ToString",
+        "OfficeIMO.Archives.ArchiveFormat.ToString(System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveFormat.ToString(System.String,IFormatProvider)",
+      "name": "ArchiveFormat.ToString",
+      "href": "/api/archives/officeimo-archives-archiveformat/#method-tostring-string-iformatprovider",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveFormat.ToString",
+        "OfficeIMO.Archives.ArchiveFormat.ToString",
+        "OfficeIMO.Archives.ArchiveFormat.ToString(System.String,IFormatProvider)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.EnumerateZip(System.IO.Stream,OfficeIMO.Archives.ArchiveTraversalOptions)",
+      "name": "ArchiveReader.EnumerateZip",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-enumeratezip-io-stream-officeimo-archives-archivetraversaloptions",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.EnumerateZip",
+        "OfficeIMO.Archives.ArchiveReader.EnumerateZip",
+        "OfficeIMO.Archives.ArchiveReader.EnumerateZip(System.IO.Stream,OfficeIMO.Archives.ArchiveTraversalOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.EnumerateZip(System.String,OfficeIMO.Archives.ArchiveTraversalOptions)",
+      "name": "ArchiveReader.EnumerateZip",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-enumeratezip-string-officeimo-archives-archivetraversaloptions",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.EnumerateZip",
+        "OfficeIMO.Archives.ArchiveReader.EnumerateZip",
+        "OfficeIMO.Archives.ArchiveReader.EnumerateZip(System.String,OfficeIMO.Archives.ArchiveTraversalOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.Equals(System.Object)",
+      "name": "ArchiveReader.Equals",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.Equals",
+        "OfficeIMO.Archives.ArchiveReader.Equals",
+        "OfficeIMO.Archives.ArchiveReader.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.GetHashCode",
+      "name": "ArchiveReader.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.GetHashCode",
+        "OfficeIMO.Archives.ArchiveReader.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.GetType",
+      "name": "ArchiveReader.GetType",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.GetType",
+        "OfficeIMO.Archives.ArchiveReader.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.ReadZip(System.Byte[],OfficeIMO.Archives.ArchiveReadOptions,System.Threading.CancellationToken)",
+      "name": "ArchiveReader.ReadZip",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-readzip-byte-officeimo-archives-archivereadoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.ReadZip",
+        "OfficeIMO.Archives.ArchiveReader.ReadZip",
+        "OfficeIMO.Archives.ArchiveReader.ReadZip(System.Byte[],OfficeIMO.Archives.ArchiveReadOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.ReadZip(System.IO.Stream,OfficeIMO.Archives.ArchiveReadOptions,System.Threading.CancellationToken)",
+      "name": "ArchiveReader.ReadZip",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-readzip-io-stream-officeimo-archives-archivereadoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.ReadZip",
+        "OfficeIMO.Archives.ArchiveReader.ReadZip",
+        "OfficeIMO.Archives.ArchiveReader.ReadZip(System.IO.Stream,OfficeIMO.Archives.ArchiveReadOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.ToString",
+      "name": "ArchiveReader.ToString",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.ToString",
+        "OfficeIMO.Archives.ArchiveReader.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.TraverseZip(System.IO.Compression.ZipArchive,OfficeIMO.Archives.ArchiveTraversalOptions)",
+      "name": "ArchiveReader.TraverseZip",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-traversezip-io-compression-ziparchive-officeimo-archives-archivetraversaloptions",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip(System.IO.Compression.ZipArchive,OfficeIMO.Archives.ArchiveTraversalOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.TraverseZip(System.IO.Compression.ZipArchive,OfficeIMO.Archives.ArchiveTraversalOptions,System.Threading.CancellationToken)",
+      "name": "ArchiveReader.TraverseZip",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-traversezip-io-compression-ziparchive-officeimo-archives-archivetraversaloptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip(System.IO.Compression.ZipArchive,OfficeIMO.Archives.ArchiveTraversalOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.TraverseZip(System.IO.Stream,OfficeIMO.Archives.ArchiveTraversalOptions)",
+      "name": "ArchiveReader.TraverseZip",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-traversezip-io-stream-officeimo-archives-archivetraversaloptions",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip(System.IO.Stream,OfficeIMO.Archives.ArchiveTraversalOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.TraverseZip(System.IO.Stream,OfficeIMO.Archives.ArchiveTraversalOptions,System.Threading.CancellationToken)",
+      "name": "ArchiveReader.TraverseZip",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-traversezip-io-stream-officeimo-archives-archivetraversaloptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip(System.IO.Stream,OfficeIMO.Archives.ArchiveTraversalOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.TraverseZip(System.String,OfficeIMO.Archives.ArchiveTraversalOptions)",
+      "name": "ArchiveReader.TraverseZip",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-traversezip-string-officeimo-archives-archivetraversaloptions",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip",
+        "OfficeIMO.Archives.ArchiveReader.TraverseZip(System.String,OfficeIMO.Archives.ArchiveTraversalOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReader.ValidateZipSource(System.IO.Stream,OfficeIMO.Archives.ArchiveTraversalOptions,System.Threading.CancellationToken)",
+      "name": "ArchiveReader.ValidateZipSource",
+      "href": "/api/archives/officeimo-archives-archivereader/#method-validatezipsource-io-stream-officeimo-archives-archivetraversaloptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReader.ValidateZipSource",
+        "OfficeIMO.Archives.ArchiveReader.ValidateZipSource",
+        "OfficeIMO.Archives.ArchiveReader.ValidateZipSource(System.IO.Stream,OfficeIMO.Archives.ArchiveTraversalOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReadOptions.#ctor",
+      "name": "ArchiveReadOptions.ArchiveReadOptions",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#constructor-ctor",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.#ctor",
+        "OfficeIMO.Archives.ArchiveReadOptions.#ctor"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReadOptions.Equals(System.Object)",
+      "name": "ArchiveReadOptions.Equals",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.Equals",
+        "OfficeIMO.Archives.ArchiveReadOptions.Equals",
+        "OfficeIMO.Archives.ArchiveReadOptions.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReadOptions.GetHashCode",
+      "name": "ArchiveReadOptions.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.GetHashCode",
+        "OfficeIMO.Archives.ArchiveReadOptions.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReadOptions.GetType",
+      "name": "ArchiveReadOptions.GetType",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.GetType",
+        "OfficeIMO.Archives.ArchiveReadOptions.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveReadOptions.ToString",
+      "name": "ArchiveReadOptions.ToString",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.ToString",
+        "OfficeIMO.Archives.ArchiveReadOptions.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalOptions.#ctor",
+      "name": "ArchiveTraversalOptions.ArchiveTraversalOptions",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#constructor-ctor",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.#ctor",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.#ctor"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalOptions.Equals(System.Object)",
+      "name": "ArchiveTraversalOptions.Equals",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.Equals",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.Equals",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalOptions.GetHashCode",
+      "name": "ArchiveTraversalOptions.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.GetHashCode",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalOptions.GetType",
+      "name": "ArchiveTraversalOptions.GetType",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.GetType",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalOptions.ToString",
+      "name": "ArchiveTraversalOptions.ToString",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.ToString",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalResult.#ctor",
+      "name": "ArchiveTraversalResult.ArchiveTraversalResult",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/#constructor-ctor",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalResult.#ctor",
+        "OfficeIMO.Archives.ArchiveTraversalResult.#ctor"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalResult.Equals(System.Object)",
+      "name": "ArchiveTraversalResult.Equals",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalResult.Equals",
+        "OfficeIMO.Archives.ArchiveTraversalResult.Equals",
+        "OfficeIMO.Archives.ArchiveTraversalResult.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalResult.GetHashCode",
+      "name": "ArchiveTraversalResult.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalResult.GetHashCode",
+        "OfficeIMO.Archives.ArchiveTraversalResult.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalResult.GetType",
+      "name": "ArchiveTraversalResult.GetType",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalResult.GetType",
+        "OfficeIMO.Archives.ArchiveTraversalResult.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalResult.ToString",
+      "name": "ArchiveTraversalResult.ToString",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalResult.ToString",
+        "OfficeIMO.Archives.ArchiveTraversalResult.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalWarning.#ctor",
+      "name": "ArchiveTraversalWarning.ArchiveTraversalWarning",
+      "href": "/api/archives/officeimo-archives-archivetraversalwarning/#constructor-ctor",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalWarning.#ctor",
+        "OfficeIMO.Archives.ArchiveTraversalWarning.#ctor"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalWarning.Equals(System.Object)",
+      "name": "ArchiveTraversalWarning.Equals",
+      "href": "/api/archives/officeimo-archives-archivetraversalwarning/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalWarning.Equals",
+        "OfficeIMO.Archives.ArchiveTraversalWarning.Equals",
+        "OfficeIMO.Archives.ArchiveTraversalWarning.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalWarning.GetHashCode",
+      "name": "ArchiveTraversalWarning.GetHashCode",
+      "href": "/api/archives/officeimo-archives-archivetraversalwarning/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalWarning.GetHashCode",
+        "OfficeIMO.Archives.ArchiveTraversalWarning.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalWarning.GetType",
+      "name": "ArchiveTraversalWarning.GetType",
+      "href": "/api/archives/officeimo-archives-archivetraversalwarning/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalWarning.GetType",
+        "OfficeIMO.Archives.ArchiveTraversalWarning.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ArchiveTraversalWarning.ToString",
+      "name": "ArchiveTraversalWarning.ToString",
+      "href": "/api/archives/officeimo-archives-archivetraversalwarning/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalWarning.ToString",
+        "OfficeIMO.Archives.ArchiveTraversalWarning.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ExtractedArchiveFile.Equals(System.Object)",
+      "name": "ExtractedArchiveFile.Equals",
+      "href": "/api/archives/officeimo-archives-extractedarchivefile/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Archives.ExtractedArchiveFile.Equals",
+        "OfficeIMO.Archives.ExtractedArchiveFile.Equals",
+        "OfficeIMO.Archives.ExtractedArchiveFile.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ExtractedArchiveFile.GetHashCode",
+      "name": "ExtractedArchiveFile.GetHashCode",
+      "href": "/api/archives/officeimo-archives-extractedarchivefile/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Archives.ExtractedArchiveFile.GetHashCode",
+        "OfficeIMO.Archives.ExtractedArchiveFile.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ExtractedArchiveFile.GetType",
+      "name": "ExtractedArchiveFile.GetType",
+      "href": "/api/archives/officeimo-archives-extractedarchivefile/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Archives.ExtractedArchiveFile.GetType",
+        "OfficeIMO.Archives.ExtractedArchiveFile.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Archives.ExtractedArchiveFile.ToString",
+      "name": "ExtractedArchiveFile.ToString",
+      "href": "/api/archives/officeimo-archives-extractedarchivefile/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Archives.ExtractedArchiveFile.ToString",
+        "OfficeIMO.Archives.ExtractedArchiveFile.ToString"
       ]
     },
     {
@@ -465841,13 +466535,13 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.Reader.Zip.OfficeDocumentReaderBuilderZipExtensions.AddZipHandler(OfficeIMO.Reader.OfficeDocumentReaderBuilder,OfficeIMO.Zip.ZipTraversalOptions,OfficeIMO.Reader.Zip.ReaderZipOptions,System.Boolean)",
+      "uid": "M:OfficeIMO.Reader.Zip.OfficeDocumentReaderBuilderZipExtensions.AddZipHandler(OfficeIMO.Reader.OfficeDocumentReaderBuilder,OfficeIMO.Archives.ArchiveTraversalOptions,OfficeIMO.Reader.Zip.ReaderZipOptions,System.Boolean)",
       "name": "OfficeDocumentReaderBuilderZipExtensions.AddZipHandler",
-      "href": "/api/reader-zip/officeimo-reader-zip-officedocumentreaderbuilderzipextensions/#method-addziphandler-officeimo-reader-officedocumentreaderbuilder-officeimo-zip-ziptraversaloptions-officeimo-reader-zip-readerzipoptions-boolean",
+      "href": "/api/reader-zip/officeimo-reader-zip-officedocumentreaderbuilderzipextensions/#method-addziphandler-officeimo-reader-officedocumentreaderbuilder-officeimo-archives-archivetraversaloptions-officeimo-reader-zip-readerzipoptions-boolean",
       "aliases": [
         "global::OfficeIMO.Reader.Zip.OfficeDocumentReaderBuilderZipExtensions.AddZipHandler",
         "OfficeIMO.Reader.Zip.OfficeDocumentReaderBuilderZipExtensions.AddZipHandler",
-        "OfficeIMO.Reader.Zip.OfficeDocumentReaderBuilderZipExtensions.AddZipHandler(OfficeIMO.Reader.OfficeDocumentReaderBuilder,OfficeIMO.Zip.ZipTraversalOptions,OfficeIMO.Reader.Zip.ReaderZipOptions,System.Boolean)"
+        "OfficeIMO.Reader.Zip.OfficeDocumentReaderBuilderZipExtensions.AddZipHandler(OfficeIMO.Reader.OfficeDocumentReaderBuilder,OfficeIMO.Archives.ArchiveTraversalOptions,OfficeIMO.Reader.Zip.ReaderZipOptions,System.Boolean)"
       ]
     },
     {
@@ -578027,307 +578721,6 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.Zip.ZipEntryDescriptor.#ctor",
-      "name": "ZipEntryDescriptor.ZipEntryDescriptor",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#constructor-ctor",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.#ctor",
-        "OfficeIMO.Zip.ZipEntryDescriptor.#ctor"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipEntryDescriptor.Equals(System.Object)",
-      "name": "ZipEntryDescriptor.Equals",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.Equals",
-        "OfficeIMO.Zip.ZipEntryDescriptor.Equals",
-        "OfficeIMO.Zip.ZipEntryDescriptor.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipEntryDescriptor.GetHashCode",
-      "name": "ZipEntryDescriptor.GetHashCode",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.GetHashCode",
-        "OfficeIMO.Zip.ZipEntryDescriptor.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipEntryDescriptor.GetType",
-      "name": "ZipEntryDescriptor.GetType",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.GetType",
-        "OfficeIMO.Zip.ZipEntryDescriptor.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipEntryDescriptor.ToString",
-      "name": "ZipEntryDescriptor.ToString",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.ToString",
-        "OfficeIMO.Zip.ZipEntryDescriptor.ToString"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.Enumerate(System.IO.Stream,OfficeIMO.Zip.ZipTraversalOptions)",
-      "name": "ZipTraversal.Enumerate",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-enumerate-io-stream-officeimo-zip-ziptraversaloptions",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.Enumerate",
-        "OfficeIMO.Zip.ZipTraversal.Enumerate",
-        "OfficeIMO.Zip.ZipTraversal.Enumerate(System.IO.Stream,OfficeIMO.Zip.ZipTraversalOptions)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.Enumerate(System.String,OfficeIMO.Zip.ZipTraversalOptions)",
-      "name": "ZipTraversal.Enumerate",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-enumerate-string-officeimo-zip-ziptraversaloptions",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.Enumerate",
-        "OfficeIMO.Zip.ZipTraversal.Enumerate",
-        "OfficeIMO.Zip.ZipTraversal.Enumerate(System.String,OfficeIMO.Zip.ZipTraversalOptions)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.Equals(System.Object)",
-      "name": "ZipTraversal.Equals",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.Equals",
-        "OfficeIMO.Zip.ZipTraversal.Equals",
-        "OfficeIMO.Zip.ZipTraversal.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.GetHashCode",
-      "name": "ZipTraversal.GetHashCode",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.GetHashCode",
-        "OfficeIMO.Zip.ZipTraversal.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.GetType",
-      "name": "ZipTraversal.GetType",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.GetType",
-        "OfficeIMO.Zip.ZipTraversal.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.ToString",
-      "name": "ZipTraversal.ToString",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.ToString",
-        "OfficeIMO.Zip.ZipTraversal.ToString"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.Traverse(System.IO.Compression.ZipArchive,OfficeIMO.Zip.ZipTraversalOptions)",
-      "name": "ZipTraversal.Traverse",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-traverse-io-compression-ziparchive-officeimo-zip-ziptraversaloptions",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse(System.IO.Compression.ZipArchive,OfficeIMO.Zip.ZipTraversalOptions)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.Traverse(System.IO.Compression.ZipArchive,OfficeIMO.Zip.ZipTraversalOptions,System.Threading.CancellationToken)",
-      "name": "ZipTraversal.Traverse",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-traverse-io-compression-ziparchive-officeimo-zip-ziptraversaloptions-threading-cancellationtoken",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse(System.IO.Compression.ZipArchive,OfficeIMO.Zip.ZipTraversalOptions,System.Threading.CancellationToken)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.Traverse(System.IO.Stream,OfficeIMO.Zip.ZipTraversalOptions)",
-      "name": "ZipTraversal.Traverse",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-traverse-io-stream-officeimo-zip-ziptraversaloptions",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse(System.IO.Stream,OfficeIMO.Zip.ZipTraversalOptions)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.Traverse(System.IO.Stream,OfficeIMO.Zip.ZipTraversalOptions,System.Threading.CancellationToken)",
-      "name": "ZipTraversal.Traverse",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-traverse-io-stream-officeimo-zip-ziptraversaloptions-threading-cancellationtoken",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse(System.IO.Stream,OfficeIMO.Zip.ZipTraversalOptions,System.Threading.CancellationToken)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.Traverse(System.String,OfficeIMO.Zip.ZipTraversalOptions)",
-      "name": "ZipTraversal.Traverse",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-traverse-string-officeimo-zip-ziptraversaloptions",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse",
-        "OfficeIMO.Zip.ZipTraversal.Traverse(System.String,OfficeIMO.Zip.ZipTraversalOptions)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversal.ValidateSource(System.IO.Stream,OfficeIMO.Zip.ZipTraversalOptions,System.Threading.CancellationToken)",
-      "name": "ZipTraversal.ValidateSource",
-      "href": "/api/zip/officeimo-zip-ziptraversal/#method-validatesource-io-stream-officeimo-zip-ziptraversaloptions-threading-cancellationtoken",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal.ValidateSource",
-        "OfficeIMO.Zip.ZipTraversal.ValidateSource",
-        "OfficeIMO.Zip.ZipTraversal.ValidateSource(System.IO.Stream,OfficeIMO.Zip.ZipTraversalOptions,System.Threading.CancellationToken)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalOptions.#ctor",
-      "name": "ZipTraversalOptions.ZipTraversalOptions",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#constructor-ctor",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.#ctor",
-        "OfficeIMO.Zip.ZipTraversalOptions.#ctor"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalOptions.Equals(System.Object)",
-      "name": "ZipTraversalOptions.Equals",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.Equals",
-        "OfficeIMO.Zip.ZipTraversalOptions.Equals",
-        "OfficeIMO.Zip.ZipTraversalOptions.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalOptions.GetHashCode",
-      "name": "ZipTraversalOptions.GetHashCode",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.GetHashCode",
-        "OfficeIMO.Zip.ZipTraversalOptions.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalOptions.GetType",
-      "name": "ZipTraversalOptions.GetType",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.GetType",
-        "OfficeIMO.Zip.ZipTraversalOptions.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalOptions.ToString",
-      "name": "ZipTraversalOptions.ToString",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.ToString",
-        "OfficeIMO.Zip.ZipTraversalOptions.ToString"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalResult.#ctor",
-      "name": "ZipTraversalResult.ZipTraversalResult",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/#constructor-ctor",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult.#ctor",
-        "OfficeIMO.Zip.ZipTraversalResult.#ctor"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalResult.Equals(System.Object)",
-      "name": "ZipTraversalResult.Equals",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult.Equals",
-        "OfficeIMO.Zip.ZipTraversalResult.Equals",
-        "OfficeIMO.Zip.ZipTraversalResult.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalResult.GetHashCode",
-      "name": "ZipTraversalResult.GetHashCode",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult.GetHashCode",
-        "OfficeIMO.Zip.ZipTraversalResult.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalResult.GetType",
-      "name": "ZipTraversalResult.GetType",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult.GetType",
-        "OfficeIMO.Zip.ZipTraversalResult.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalResult.ToString",
-      "name": "ZipTraversalResult.ToString",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult.ToString",
-        "OfficeIMO.Zip.ZipTraversalResult.ToString"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalWarning.#ctor",
-      "name": "ZipTraversalWarning.ZipTraversalWarning",
-      "href": "/api/zip/officeimo-zip-ziptraversalwarning/#constructor-ctor",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalWarning.#ctor",
-        "OfficeIMO.Zip.ZipTraversalWarning.#ctor"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalWarning.Equals(System.Object)",
-      "name": "ZipTraversalWarning.Equals",
-      "href": "/api/zip/officeimo-zip-ziptraversalwarning/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalWarning.Equals",
-        "OfficeIMO.Zip.ZipTraversalWarning.Equals",
-        "OfficeIMO.Zip.ZipTraversalWarning.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalWarning.GetHashCode",
-      "name": "ZipTraversalWarning.GetHashCode",
-      "href": "/api/zip/officeimo-zip-ziptraversalwarning/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalWarning.GetHashCode",
-        "OfficeIMO.Zip.ZipTraversalWarning.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalWarning.GetType",
-      "name": "ZipTraversalWarning.GetType",
-      "href": "/api/zip/officeimo-zip-ziptraversalwarning/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalWarning.GetType",
-        "OfficeIMO.Zip.ZipTraversalWarning.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Zip.ZipTraversalWarning.ToString",
-      "name": "ZipTraversalWarning.ToString",
-      "href": "/api/zip/officeimo-zip-ziptraversalwarning/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalWarning.ToString",
-        "OfficeIMO.Zip.ZipTraversalWarning.ToString"
-      ]
-    },
-    {
       "uid": "Move-OfficeExcelSheet",
       "name": "Move-OfficeExcelSheet",
       "href": "/api/powershell/move-officeexcelsheet/",
@@ -579427,6 +579820,126 @@
         "global::OfficeIMO.AI.OfficeAiTable",
         "OfficeAiTable",
         "T:OfficeIMO.AI.OfficeAiTable"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveEntryData",
+      "name": "ArchiveEntryData",
+      "href": "/api/archives/officeimo-archives-archiveentrydata/",
+      "aliases": [
+        "ArchiveEntryData",
+        "global::OfficeIMO.Archives.ArchiveEntryData",
+        "T:OfficeIMO.Archives.ArchiveEntryData"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveEntryDescriptor",
+      "name": "ArchiveEntryDescriptor",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/",
+      "aliases": [
+        "ArchiveEntryDescriptor",
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor",
+        "T:OfficeIMO.Archives.ArchiveEntryDescriptor"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveExtractionOptions",
+      "name": "ArchiveExtractionOptions",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/",
+      "aliases": [
+        "ArchiveExtractionOptions",
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions",
+        "T:OfficeIMO.Archives.ArchiveExtractionOptions"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveExtractionResult",
+      "name": "ArchiveExtractionResult",
+      "href": "/api/archives/officeimo-archives-archiveextractionresult/",
+      "aliases": [
+        "ArchiveExtractionResult",
+        "global::OfficeIMO.Archives.ArchiveExtractionResult",
+        "T:OfficeIMO.Archives.ArchiveExtractionResult"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveExtractor",
+      "name": "ArchiveExtractor",
+      "href": "/api/archives/officeimo-archives-archiveextractor/",
+      "aliases": [
+        "ArchiveExtractor",
+        "global::OfficeIMO.Archives.ArchiveExtractor",
+        "T:OfficeIMO.Archives.ArchiveExtractor"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveFormat",
+      "name": "ArchiveFormat",
+      "href": "/api/archives/officeimo-archives-archiveformat/",
+      "aliases": [
+        "ArchiveFormat",
+        "global::OfficeIMO.Archives.ArchiveFormat",
+        "T:OfficeIMO.Archives.ArchiveFormat"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveReader",
+      "name": "ArchiveReader",
+      "href": "/api/archives/officeimo-archives-archivereader/",
+      "aliases": [
+        "ArchiveReader",
+        "global::OfficeIMO.Archives.ArchiveReader",
+        "T:OfficeIMO.Archives.ArchiveReader"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveReadOptions",
+      "name": "ArchiveReadOptions",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/",
+      "aliases": [
+        "ArchiveReadOptions",
+        "global::OfficeIMO.Archives.ArchiveReadOptions",
+        "T:OfficeIMO.Archives.ArchiveReadOptions"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveTraversalOptions",
+      "name": "ArchiveTraversalOptions",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/",
+      "aliases": [
+        "ArchiveTraversalOptions",
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions",
+        "T:OfficeIMO.Archives.ArchiveTraversalOptions"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveTraversalResult",
+      "name": "ArchiveTraversalResult",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/",
+      "aliases": [
+        "ArchiveTraversalResult",
+        "global::OfficeIMO.Archives.ArchiveTraversalResult",
+        "T:OfficeIMO.Archives.ArchiveTraversalResult"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ArchiveTraversalWarning",
+      "name": "ArchiveTraversalWarning",
+      "href": "/api/archives/officeimo-archives-archivetraversalwarning/",
+      "aliases": [
+        "ArchiveTraversalWarning",
+        "global::OfficeIMO.Archives.ArchiveTraversalWarning",
+        "T:OfficeIMO.Archives.ArchiveTraversalWarning"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Archives.ExtractedArchiveFile",
+      "name": "ExtractedArchiveFile",
+      "href": "/api/archives/officeimo-archives-extractedarchivefile/",
+      "aliases": [
+        "ExtractedArchiveFile",
+        "global::OfficeIMO.Archives.ExtractedArchiveFile",
+        "T:OfficeIMO.Archives.ExtractedArchiveFile"
       ]
     },
     {
@@ -640178,56 +640691,6 @@
       ]
     },
     {
-      "uid": "OfficeIMO.Zip.ZipEntryDescriptor",
-      "name": "ZipEntryDescriptor",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor",
-        "T:OfficeIMO.Zip.ZipEntryDescriptor",
-        "ZipEntryDescriptor"
-      ]
-    },
-    {
-      "uid": "OfficeIMO.Zip.ZipTraversal",
-      "name": "ZipTraversal",
-      "href": "/api/zip/officeimo-zip-ziptraversal/",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversal",
-        "T:OfficeIMO.Zip.ZipTraversal",
-        "ZipTraversal"
-      ]
-    },
-    {
-      "uid": "OfficeIMO.Zip.ZipTraversalOptions",
-      "name": "ZipTraversalOptions",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions",
-        "T:OfficeIMO.Zip.ZipTraversalOptions",
-        "ZipTraversalOptions"
-      ]
-    },
-    {
-      "uid": "OfficeIMO.Zip.ZipTraversalResult",
-      "name": "ZipTraversalResult",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult",
-        "T:OfficeIMO.Zip.ZipTraversalResult",
-        "ZipTraversalResult"
-      ]
-    },
-    {
-      "uid": "OfficeIMO.Zip.ZipTraversalWarning",
-      "name": "ZipTraversalWarning",
-      "href": "/api/zip/officeimo-zip-ziptraversalwarning/",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalWarning",
-        "T:OfficeIMO.Zip.ZipTraversalWarning",
-        "ZipTraversalWarning"
-      ]
-    },
-    {
       "uid": "P:OfficeIMO.Adf.AdfConversionDiagnostic.Code",
       "name": "AdfConversionDiagnostic.Code",
       "href": "/api/adf/officeimo-adf-adfconversiondiagnostic/#property-code",
@@ -642295,6 +642758,474 @@
       "aliases": [
         "global::OfficeIMO.AI.OfficeAiTable.Table",
         "OfficeIMO.AI.OfficeAiTable.Table"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryData.Data",
+      "name": "ArchiveEntryData.Data",
+      "href": "/api/archives/officeimo-archives-archiveentrydata/#property-data",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryData.Data",
+        "OfficeIMO.Archives.ArchiveEntryData.Data"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryData.Length",
+      "name": "ArchiveEntryData.Length",
+      "href": "/api/archives/officeimo-archives-archiveentrydata/#property-length",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryData.Length",
+        "OfficeIMO.Archives.ArchiveEntryData.Length"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryData.RelativePath",
+      "name": "ArchiveEntryData.RelativePath",
+      "href": "/api/archives/officeimo-archives-archiveentrydata/#property-relativepath",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryData.RelativePath",
+        "OfficeIMO.Archives.ArchiveEntryData.RelativePath"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryDescriptor.Depth",
+      "name": "ArchiveEntryDescriptor.Depth",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#property-depth",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.Depth",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.Depth"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryDescriptor.EntryIndex",
+      "name": "ArchiveEntryDescriptor.EntryIndex",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#property-entryindex",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.EntryIndex",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.EntryIndex"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryDescriptor.FullName",
+      "name": "ArchiveEntryDescriptor.FullName",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#property-fullname",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.FullName",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.FullName"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryDescriptor.IsDirectory",
+      "name": "ArchiveEntryDescriptor.IsDirectory",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#property-isdirectory",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.IsDirectory",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.IsDirectory"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryDescriptor.LastWriteUtc",
+      "name": "ArchiveEntryDescriptor.LastWriteUtc",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#property-lastwriteutc",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.LastWriteUtc",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.LastWriteUtc"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryDescriptor.Name",
+      "name": "ArchiveEntryDescriptor.Name",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#property-name",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.Name",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.Name"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryDescriptor.RawFullName",
+      "name": "ArchiveEntryDescriptor.RawFullName",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#property-rawfullname",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.RawFullName",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.RawFullName"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveEntryDescriptor.UncompressedLength",
+      "name": "ArchiveEntryDescriptor.UncompressedLength",
+      "href": "/api/archives/officeimo-archives-archiveentrydescriptor/#property-uncompressedlength",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveEntryDescriptor.UncompressedLength",
+        "OfficeIMO.Archives.ArchiveEntryDescriptor.UncompressedLength"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.AllowedFormats",
+      "name": "ArchiveExtractionOptions.AllowedFormats",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-allowedformats",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.AllowedFormats",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.AllowedFormats"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.IncludeFile",
+      "name": "ArchiveExtractionOptions.IncludeFile",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-includefile",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.IncludeFile",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.IncludeFile"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxCabinetCount",
+      "name": "ArchiveExtractionOptions.MaxCabinetCount",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxcabinetcount",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxCabinetCount",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxCabinetCount"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxDecompressionWorkBytes",
+      "name": "ArchiveExtractionOptions.MaxDecompressionWorkBytes",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxdecompressionworkbytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxDecompressionWorkBytes",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxDecompressionWorkBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxEntryBytes",
+      "name": "ArchiveExtractionOptions.MaxEntryBytes",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxentrybytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxEntryBytes",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxEntryBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxEntryCount",
+      "name": "ArchiveExtractionOptions.MaxEntryCount",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxentrycount",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxEntryCount",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxEntryCount"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxExpandedBytes",
+      "name": "ArchiveExtractionOptions.MaxExpandedBytes",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxexpandedbytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxExpandedBytes",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxExpandedBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxInputBytes",
+      "name": "ArchiveExtractionOptions.MaxInputBytes",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxinputbytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxInputBytes",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxInputBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxMetadataBytes",
+      "name": "ArchiveExtractionOptions.MaxMetadataBytes",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxmetadatabytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxMetadataBytes",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxMetadataBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxPathDepth",
+      "name": "ArchiveExtractionOptions.MaxPathDepth",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxpathdepth",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxPathDepth",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxPathDepth"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxPathLength",
+      "name": "ArchiveExtractionOptions.MaxPathLength",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxpathlength",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxPathLength",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxPathLength"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxStringPoolEntries",
+      "name": "ArchiveExtractionOptions.MaxStringPoolEntries",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxstringpoolentries",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxStringPoolEntries",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxStringPoolEntries"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionOptions.MaxTableRows",
+      "name": "ArchiveExtractionOptions.MaxTableRows",
+      "href": "/api/archives/officeimo-archives-archiveextractionoptions/#property-maxtablerows",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionOptions.MaxTableRows",
+        "OfficeIMO.Archives.ArchiveExtractionOptions.MaxTableRows"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionResult.Files",
+      "name": "ArchiveExtractionResult.Files",
+      "href": "/api/archives/officeimo-archives-archiveextractionresult/#property-files",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionResult.Files",
+        "OfficeIMO.Archives.ArchiveExtractionResult.Files"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionResult.Format",
+      "name": "ArchiveExtractionResult.Format",
+      "href": "/api/archives/officeimo-archives-archiveextractionresult/#property-format",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionResult.Format",
+        "OfficeIMO.Archives.ArchiveExtractionResult.Format"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveExtractionResult.TotalBytes",
+      "name": "ArchiveExtractionResult.TotalBytes",
+      "href": "/api/archives/officeimo-archives-archiveextractionresult/#property-totalbytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveExtractionResult.TotalBytes",
+        "OfficeIMO.Archives.ArchiveExtractionResult.TotalBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveReadOptions.IncludeFile",
+      "name": "ArchiveReadOptions.IncludeFile",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#property-includefile",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.IncludeFile",
+        "OfficeIMO.Archives.ArchiveReadOptions.IncludeFile"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveReadOptions.MaxEntryBytes",
+      "name": "ArchiveReadOptions.MaxEntryBytes",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#property-maxentrybytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.MaxEntryBytes",
+        "OfficeIMO.Archives.ArchiveReadOptions.MaxEntryBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveReadOptions.MaxEntryCount",
+      "name": "ArchiveReadOptions.MaxEntryCount",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#property-maxentrycount",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.MaxEntryCount",
+        "OfficeIMO.Archives.ArchiveReadOptions.MaxEntryCount"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveReadOptions.MaxExpandedBytes",
+      "name": "ArchiveReadOptions.MaxExpandedBytes",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#property-maxexpandedbytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.MaxExpandedBytes",
+        "OfficeIMO.Archives.ArchiveReadOptions.MaxExpandedBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveReadOptions.MaxInputBytes",
+      "name": "ArchiveReadOptions.MaxInputBytes",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#property-maxinputbytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.MaxInputBytes",
+        "OfficeIMO.Archives.ArchiveReadOptions.MaxInputBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveReadOptions.MaxPathDepth",
+      "name": "ArchiveReadOptions.MaxPathDepth",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#property-maxpathdepth",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.MaxPathDepth",
+        "OfficeIMO.Archives.ArchiveReadOptions.MaxPathDepth"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveReadOptions.MaxPathLength",
+      "name": "ArchiveReadOptions.MaxPathLength",
+      "href": "/api/archives/officeimo-archives-archivereadoptions/#property-maxpathlength",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveReadOptions.MaxPathLength",
+        "OfficeIMO.Archives.ArchiveReadOptions.MaxPathLength"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.DeterministicOrder",
+      "name": "ArchiveTraversalOptions.DeterministicOrder",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-deterministicorder",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.DeterministicOrder",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.DeterministicOrder"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.IncludeDirectoryEntries",
+      "name": "ArchiveTraversalOptions.IncludeDirectoryEntries",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-includedirectoryentries",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.IncludeDirectoryEntries",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.IncludeDirectoryEntries"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.MaxArchiveBytes",
+      "name": "ArchiveTraversalOptions.MaxArchiveBytes",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-maxarchivebytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.MaxArchiveBytes",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.MaxArchiveBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.MaxCompressionRatio",
+      "name": "ArchiveTraversalOptions.MaxCompressionRatio",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-maxcompressionratio",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.MaxCompressionRatio",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.MaxCompressionRatio"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.MaxDepth",
+      "name": "ArchiveTraversalOptions.MaxDepth",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-maxdepth",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.MaxDepth",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.MaxDepth"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.MaxEntries",
+      "name": "ArchiveTraversalOptions.MaxEntries",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-maxentries",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.MaxEntries",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.MaxEntries"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.MaxEntryUncompressedBytes",
+      "name": "ArchiveTraversalOptions.MaxEntryUncompressedBytes",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-maxentryuncompressedbytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.MaxEntryUncompressedBytes",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.MaxEntryUncompressedBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.MaxPhysicalEntries",
+      "name": "ArchiveTraversalOptions.MaxPhysicalEntries",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-maxphysicalentries",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.MaxPhysicalEntries",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.MaxPhysicalEntries"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.MaxTotalUncompressedBytes",
+      "name": "ArchiveTraversalOptions.MaxTotalUncompressedBytes",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-maxtotaluncompressedbytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.MaxTotalUncompressedBytes",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.MaxTotalUncompressedBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalOptions.MaxWarnings",
+      "name": "ArchiveTraversalOptions.MaxWarnings",
+      "href": "/api/archives/officeimo-archives-archivetraversaloptions/#property-maxwarnings",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalOptions.MaxWarnings",
+        "OfficeIMO.Archives.ArchiveTraversalOptions.MaxWarnings"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalResult.Entries",
+      "name": "ArchiveTraversalResult.Entries",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/#property-entries",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalResult.Entries",
+        "OfficeIMO.Archives.ArchiveTraversalResult.Entries"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalResult.EntriesVisited",
+      "name": "ArchiveTraversalResult.EntriesVisited",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/#property-entriesvisited",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalResult.EntriesVisited",
+        "OfficeIMO.Archives.ArchiveTraversalResult.EntriesVisited"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalResult.TotalUncompressedBytes",
+      "name": "ArchiveTraversalResult.TotalUncompressedBytes",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/#property-totaluncompressedbytes",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalResult.TotalUncompressedBytes",
+        "OfficeIMO.Archives.ArchiveTraversalResult.TotalUncompressedBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalResult.Warnings",
+      "name": "ArchiveTraversalResult.Warnings",
+      "href": "/api/archives/officeimo-archives-archivetraversalresult/#property-warnings",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalResult.Warnings",
+        "OfficeIMO.Archives.ArchiveTraversalResult.Warnings"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalWarning.EntryPath",
+      "name": "ArchiveTraversalWarning.EntryPath",
+      "href": "/api/archives/officeimo-archives-archivetraversalwarning/#property-entrypath",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalWarning.EntryPath",
+        "OfficeIMO.Archives.ArchiveTraversalWarning.EntryPath"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ArchiveTraversalWarning.Warning",
+      "name": "ArchiveTraversalWarning.Warning",
+      "href": "/api/archives/officeimo-archives-archivetraversalwarning/#property-warning",
+      "aliases": [
+        "global::OfficeIMO.Archives.ArchiveTraversalWarning.Warning",
+        "OfficeIMO.Archives.ArchiveTraversalWarning.Warning"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ExtractedArchiveFile.Length",
+      "name": "ExtractedArchiveFile.Length",
+      "href": "/api/archives/officeimo-archives-extractedarchivefile/#property-length",
+      "aliases": [
+        "global::OfficeIMO.Archives.ExtractedArchiveFile.Length",
+        "OfficeIMO.Archives.ExtractedArchiveFile.Length"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Archives.ExtractedArchiveFile.RelativePath",
+      "name": "ExtractedArchiveFile.RelativePath",
+      "href": "/api/archives/officeimo-archives-extractedarchivefile/#property-relativepath",
+      "aliases": [
+        "global::OfficeIMO.Archives.ExtractedArchiveFile.RelativePath",
+        "OfficeIMO.Archives.ExtractedArchiveFile.RelativePath"
       ]
     },
     {
@@ -940342,222 +941273,6 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.Zip.ZipEntryDescriptor.Depth",
-      "name": "ZipEntryDescriptor.Depth",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#property-depth",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.Depth",
-        "OfficeIMO.Zip.ZipEntryDescriptor.Depth"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipEntryDescriptor.EntryIndex",
-      "name": "ZipEntryDescriptor.EntryIndex",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#property-entryindex",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.EntryIndex",
-        "OfficeIMO.Zip.ZipEntryDescriptor.EntryIndex"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipEntryDescriptor.FullName",
-      "name": "ZipEntryDescriptor.FullName",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#property-fullname",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.FullName",
-        "OfficeIMO.Zip.ZipEntryDescriptor.FullName"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipEntryDescriptor.IsDirectory",
-      "name": "ZipEntryDescriptor.IsDirectory",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#property-isdirectory",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.IsDirectory",
-        "OfficeIMO.Zip.ZipEntryDescriptor.IsDirectory"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipEntryDescriptor.LastWriteUtc",
-      "name": "ZipEntryDescriptor.LastWriteUtc",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#property-lastwriteutc",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.LastWriteUtc",
-        "OfficeIMO.Zip.ZipEntryDescriptor.LastWriteUtc"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipEntryDescriptor.Name",
-      "name": "ZipEntryDescriptor.Name",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#property-name",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.Name",
-        "OfficeIMO.Zip.ZipEntryDescriptor.Name"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipEntryDescriptor.RawFullName",
-      "name": "ZipEntryDescriptor.RawFullName",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#property-rawfullname",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.RawFullName",
-        "OfficeIMO.Zip.ZipEntryDescriptor.RawFullName"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipEntryDescriptor.UncompressedLength",
-      "name": "ZipEntryDescriptor.UncompressedLength",
-      "href": "/api/zip/officeimo-zip-zipentrydescriptor/#property-uncompressedlength",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipEntryDescriptor.UncompressedLength",
-        "OfficeIMO.Zip.ZipEntryDescriptor.UncompressedLength"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.DeterministicOrder",
-      "name": "ZipTraversalOptions.DeterministicOrder",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-deterministicorder",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.DeterministicOrder",
-        "OfficeIMO.Zip.ZipTraversalOptions.DeterministicOrder"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.IncludeDirectoryEntries",
-      "name": "ZipTraversalOptions.IncludeDirectoryEntries",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-includedirectoryentries",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.IncludeDirectoryEntries",
-        "OfficeIMO.Zip.ZipTraversalOptions.IncludeDirectoryEntries"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.MaxArchiveBytes",
-      "name": "ZipTraversalOptions.MaxArchiveBytes",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-maxarchivebytes",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.MaxArchiveBytes",
-        "OfficeIMO.Zip.ZipTraversalOptions.MaxArchiveBytes"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.MaxCompressionRatio",
-      "name": "ZipTraversalOptions.MaxCompressionRatio",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-maxcompressionratio",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.MaxCompressionRatio",
-        "OfficeIMO.Zip.ZipTraversalOptions.MaxCompressionRatio"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.MaxDepth",
-      "name": "ZipTraversalOptions.MaxDepth",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-maxdepth",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.MaxDepth",
-        "OfficeIMO.Zip.ZipTraversalOptions.MaxDepth"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.MaxEntries",
-      "name": "ZipTraversalOptions.MaxEntries",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-maxentries",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.MaxEntries",
-        "OfficeIMO.Zip.ZipTraversalOptions.MaxEntries"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.MaxEntryUncompressedBytes",
-      "name": "ZipTraversalOptions.MaxEntryUncompressedBytes",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-maxentryuncompressedbytes",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.MaxEntryUncompressedBytes",
-        "OfficeIMO.Zip.ZipTraversalOptions.MaxEntryUncompressedBytes"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.MaxPhysicalEntries",
-      "name": "ZipTraversalOptions.MaxPhysicalEntries",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-maxphysicalentries",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.MaxPhysicalEntries",
-        "OfficeIMO.Zip.ZipTraversalOptions.MaxPhysicalEntries"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.MaxTotalUncompressedBytes",
-      "name": "ZipTraversalOptions.MaxTotalUncompressedBytes",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-maxtotaluncompressedbytes",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.MaxTotalUncompressedBytes",
-        "OfficeIMO.Zip.ZipTraversalOptions.MaxTotalUncompressedBytes"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalOptions.MaxWarnings",
-      "name": "ZipTraversalOptions.MaxWarnings",
-      "href": "/api/zip/officeimo-zip-ziptraversaloptions/#property-maxwarnings",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalOptions.MaxWarnings",
-        "OfficeIMO.Zip.ZipTraversalOptions.MaxWarnings"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalResult.Entries",
-      "name": "ZipTraversalResult.Entries",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/#property-entries",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult.Entries",
-        "OfficeIMO.Zip.ZipTraversalResult.Entries"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalResult.EntriesVisited",
-      "name": "ZipTraversalResult.EntriesVisited",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/#property-entriesvisited",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult.EntriesVisited",
-        "OfficeIMO.Zip.ZipTraversalResult.EntriesVisited"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalResult.TotalUncompressedBytes",
-      "name": "ZipTraversalResult.TotalUncompressedBytes",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/#property-totaluncompressedbytes",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult.TotalUncompressedBytes",
-        "OfficeIMO.Zip.ZipTraversalResult.TotalUncompressedBytes"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalResult.Warnings",
-      "name": "ZipTraversalResult.Warnings",
-      "href": "/api/zip/officeimo-zip-ziptraversalresult/#property-warnings",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalResult.Warnings",
-        "OfficeIMO.Zip.ZipTraversalResult.Warnings"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalWarning.EntryPath",
-      "name": "ZipTraversalWarning.EntryPath",
-      "href": "/api/zip/officeimo-zip-ziptraversalwarning/#property-entrypath",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalWarning.EntryPath",
-        "OfficeIMO.Zip.ZipTraversalWarning.EntryPath"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Zip.ZipTraversalWarning.Warning",
-      "name": "ZipTraversalWarning.Warning",
-      "href": "/api/zip/officeimo-zip-ziptraversalwarning/#property-warning",
-      "aliases": [
-        "global::OfficeIMO.Zip.ZipTraversalWarning.Warning",
-        "OfficeIMO.Zip.ZipTraversalWarning.Warning"
-      ]
-    },
-    {
       "uid": "parameter:Add-OfficeExcelAutoFilter.Criteria",
       "name": "Add-OfficeExcelAutoFilter -Criteria",
       "href": "/api/powershell/add-officeexcelautofilter/#method-add-officeexcelautofilter-hashtable-exceldocument-switchparameter-string-string-int32",
@@ -1015191,5 +1015906,8 @@
         "PSWriteOffice\\Update-OfficeWordText"
       ]
     }
-  ]
+  ],
+  "previousReferenceCount": 105836,
+  "referenceDeltaCount": 0,
+  "referenceDeltaPercent": 0
 }

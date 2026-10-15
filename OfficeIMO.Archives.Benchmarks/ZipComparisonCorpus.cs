@@ -1,6 +1,6 @@
 using System.IO.Compression;
 
-namespace OfficeIMO.Zip.Benchmarks;
+namespace OfficeIMO.Archives.Benchmarks;
 
 internal static class ZipComparisonCorpus {
     internal static readonly ZipBenchmarkScale[] Scales = {

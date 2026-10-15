@@ -16,10 +16,10 @@ dotnet add package OfficeIMO.Reader.Zip
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Zip;
-using OfficeIMO.Zip;
+using OfficeIMO.Archives;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddZipHandler(new ZipTraversalOptions {
+    .AddZipHandler(new ArchiveTraversalOptions {
         MaxEntries = 1000,
         MaxPhysicalEntries = 5000,
         MaxDepth = 8,
@@ -37,13 +37,13 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Zip;
-using OfficeIMO.Zip;
+using OfficeIMO.Archives;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddCsvHandler()
     .AddJsonHandler()
     .AddZipHandler(
-        zipOptions: new ZipTraversalOptions {
+        zipOptions: new ArchiveTraversalOptions {
         MaxEntries = 500,
         MaxTotalUncompressedBytes = 200L * 1024L * 1024L
         },
@@ -66,11 +66,11 @@ foreach (var chunk in reader.Read("evidence.zip", new ReaderOptions {
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Zip;
-using OfficeIMO.Zip;
+using OfficeIMO.Archives;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddZipHandler(
-        zipOptions: new ZipTraversalOptions {
+        zipOptions: new ArchiveTraversalOptions {
         MaxEntries = 100,
         MaxCompressionRatio = 50,
         MaxEntryUncompressedBytes = 10L * 1024L * 1024L
@@ -88,18 +88,18 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 
 ## What it emits
 
-- Safe entry enumeration through `OfficeIMO.Zip`.
+- Safe entry enumeration through `OfficeIMO.Archives`.
 - Best-effort entry extraction into `ReaderChunk`.
 - Warning chunks for skipped or failed entries.
 - Bounded nested ZIP traversal with `ReaderZipOptions`.
 - Path and stream dispatch, including non-seekable stream support.
 
-The adapter checks compressed size and every physical ZIP entry before opening top-level or nested archives. Path and stream inputs are copied into bounded private snapshots so validation and parsing see the same bytes. Its default source limit is 512 MiB and its default physical entry limit is 10,000. `ReaderOptions.MaxInputBytes` can lower the source limit; raise `ZipTraversalOptions.MaxArchiveBytes` or `MaxPhysicalEntries` deliberately for larger trusted archives. A top-level archive above either limit fails before metadata loading; a nested archive is skipped with a warning.
+The adapter checks compressed size and every physical ZIP entry before opening top-level or nested archives. Path and stream inputs are copied into bounded private snapshots so validation and parsing see the same bytes. Its default source limit is 512 MiB and its default physical entry limit is 10,000. `ReaderOptions.MaxInputBytes` can lower the source limit; raise `ArchiveTraversalOptions.MaxArchiveBytes` or `MaxPhysicalEntries` deliberately for larger trusted archives. A top-level archive above either limit fails before metadata loading; a nested archive is skipped with a warning.
 
 ## Boundaries
 
 - Reader adapter configuration belongs here.
-- ZIP traversal policy belongs in `OfficeIMO.Zip`.
+- ZIP traversal policy belongs in `OfficeIMO.Archives`.
 - Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license
@@ -110,6 +110,6 @@ The adapter checks compressed size and every physical ZIP entry before opening t
 ## Dependency footprint
 
 - **External:** None beyond platform compression APIs.
-- **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Zip` own safe traversal, nested-archive limits, extraction projection, and warnings.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Archives` own safe traversal, nested-archive limits, extraction projection, and warnings.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

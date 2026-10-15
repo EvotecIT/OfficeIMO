@@ -7,7 +7,7 @@ using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Zip;
 using OfficeIMO.Epub;
-using OfficeIMO.Zip;
+using OfficeIMO.Archives;
 using System.Globalization;
 using System.IO.Compression;
 using Xunit;
@@ -74,7 +74,7 @@ public sealed class ReaderGoldenFixtureTests {
             .AddCsvHandler(new CsvReadOptions { ChunkRows = 2, IncludeMarkdown = true })
             .AddMarkdownHandler()
             .AddZipHandler(
-                new ZipTraversalOptions { DeterministicOrder = true },
+                new ArchiveTraversalOptions { DeterministicOrder = true },
                 new ReaderZipOptions { ReadNestedZipEntries = false })
             .Build();
         var chunks = reader.Read(
