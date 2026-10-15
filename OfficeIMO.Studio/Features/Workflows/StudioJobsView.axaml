@@ -4,25 +4,30 @@
              xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows" xmlns:coreworkflow="clr-namespace:OfficeIMO.Workflows;assembly=OfficeIMO.Workflows"
              x:Class="OfficeIMO.Studio.Features.Workflows.StudioJobsView"
              x:DataType="workflow:StudioJobsViewModel">
-  <Grid RowDefinitions="Auto,Auto,*" Margin="36,28,36,20" MaxWidth="1180">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,0,12">
-      <StackPanel Spacing="4">
+  <Grid RowDefinitions="Auto,Auto,*" Classes="pageContent" MaxWidth="1180">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}" Margin="0,0,0,12">
+      <StackPanel Classes="pageHeading">
         <TextBlock Classes="pageTitle" Text="{loc:Loc Jobs.Title}" />
         <TextBlock Classes="muted" Text="{Binding History.Summary}" TextWrapping="Wrap" />
         <TextBlock Classes="muted" Text="{loc:Loc Jobs.SessionNote}" TextWrapping="Wrap" />
-        <TextBlock Text="{Binding History.RecoveryError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
+        <TextBlock Text="{Binding History.RecoveryError}" IsVisible="{Binding History.RecoveryError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
       </StackPanel>
       <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Jobs.ClearFinished}" IsVisible="{Binding History.HasEntries}"
               Command="{Binding ClearFinishedCommand}" VerticalAlignment="Top" />
     </Grid>
-    <TextBlock Grid.Row="1" Text="{Binding ActionError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" Margin="0,0,0,8" />
+    <TextBlock Grid.Row="1" Text="{Binding ActionError}" IsVisible="{Binding ActionError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" Margin="0,0,0,8" />
     <Grid Grid.Row="2">
-      <StackPanel IsVisible="{Binding !History.HasEntries}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="420">
+      <StackPanel IsVisible="{Binding !History.HasEntries}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="{StaticResource StudioSpaceM}" MaxWidth="420">
         <Border Width="64" Height="64" CornerRadius="16" Background="{DynamicResource StudioAccentSoftBrush}" HorizontalAlignment="Center">
           <PathIcon Data="{StaticResource IconJobs}" Width="28" Height="28" Foreground="{DynamicResource StudioAccentBrush}" />
         </Border>
-        <TextBlock Text="{loc:Loc Jobs.EmptyTitle}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+        <TextBlock Text="{loc:Loc Jobs.EmptyTitle}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
         <TextBlock Text="{loc:Loc Jobs.Empty}" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" />
+        <!-- An empty list points to the work that fills it. -->
+        <StackPanel x:Name="EmptyActions" Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}" HorizontalAlignment="Center" Margin="0,4,0,0">
+          <Button Classes="primary" Content="{loc:Loc Commands.Convert.Title}" Command="{ReflectionBinding $parent[Window].DataContext.ShowConversionWorkbenchCommand}" />
+          <Button Classes="tool" Content="{loc:Loc Commands.Ocr.Title}" Command="{ReflectionBinding $parent[Window].DataContext.ShowOcrCommand}" />
+        </StackPanel>
       </StackPanel>
       <ListBox ItemsSource="{Binding History.Entries}" SelectedItem="{Binding SelectedJob, Mode=TwoWay}"
                IsVisible="{Binding History.HasEntries}" Background="Transparent" BorderThickness="0"
@@ -35,15 +40,15 @@
         </ListBox.ItemContainerTheme>
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="workflow:StudioJobRecord">
-            <Border Classes="card" Padding="16" Margin="0,0,0,10">
-              <StackPanel Spacing="7">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Border Classes="card" Padding="16" Margin="0,0,0,12">
+              <StackPanel Spacing="{StaticResource StudioSpaceS}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
                   <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
                   <TextBlock Grid.Column="1" Text="{Binding StartedLabel}" Classes="muted" />
                 </Grid>
                 <TextBlock Text="{Binding InputLabel}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Classes="muted" ToolTip.Tip="{Binding InputLabel}" />
                 <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
-                <StackPanel IsVisible="{Binding HasRecovery}" Spacing="8">
+                <StackPanel IsVisible="{Binding HasRecovery}" Spacing="{StaticResource StudioSpaceS}">
                   <TextBlock Text="{loc:Loc Jobs.RecoveryNote}" TextWrapping="Wrap" />
                   <TextBlock Text="{Binding Recovery.Name}" TextWrapping="Wrap" />
                   <ComboBox ItemsSource="{Binding Recoveries}" SelectedItem="{Binding Recovery, Mode=TwoWay}"
@@ -57,7 +62,7 @@
                     <Button Classes="tool" Content="{loc:Loc Jobs.DiscardRecovery}" IsVisible="{Binding !RecoveryDiscardRequested}" Margin="0,0,0,8"
                             Command="{ReflectionBinding $parent[UserControl].DataContext.RequestDiscardRecoveryCommand}" CommandParameter="{Binding}" />
                   </WrapPanel>
-                  <StackPanel IsVisible="{Binding RecoveryDiscardRequested}" Spacing="8">
+                  <StackPanel IsVisible="{Binding RecoveryDiscardRequested}" Spacing="{StaticResource StudioSpaceS}">
                     <TextBlock Text="{loc:Loc Jobs.DiscardRecoveryNote}" TextWrapping="Wrap" />
                     <WrapPanel>
                       <Button Classes="tool" Content="{loc:Loc Jobs.ConfirmDiscardRecovery}" Margin="0,0,8,8"
@@ -67,17 +72,17 @@
                     </WrapPanel>
                   </StackPanel>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasOutput}" ToolTip.Tip="{Binding OutputPath}">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding HasOutput}" ToolTip.Tip="{Binding OutputPath}">
                   <PathIcon Data="{StaticResource IconDocument}" Width="12" Height="12" Foreground="{DynamicResource StudioMutedTextBrush}" />
                   <TextBlock Text="{Binding OutputName}" TextTrimming="CharacterEllipsis" FontWeight="Medium" />
                 </StackPanel>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                  <StackPanel Spacing="6" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceL}">
+                  <StackPanel Spacing="{StaticResource StudioSpaceSM}" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Classes="outcome" Classes.success="{Binding IsSucceeded}" Classes.notes="{Binding HasNotes}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" Classes.attention="{Binding NeedsChecking}" />
                     <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" MinWidth="0"
-                                 Classes.success="{Binding IsSucceeded}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" />
+                                 Classes.success="{Binding IsSucceeded}" Classes.notes="{Binding HasNotes}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" Classes.attention="{Binding NeedsChecking}" />
                   </StackPanel>
-                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}">
                     <Button Classes="tool" IsVisible="{Binding IsActive}" Content="{Binding CancelLabel}" Command="{Binding CancelCommand}" />
                     <Panel IsVisible="{ReflectionBinding $parent[UserControl].DataContext.SupportsFolderNavigation}">
                       <Button Classes="tool" IsVisible="{Binding HasOutput}" Content="{loc:Loc Jobs.ShowInFolder}"

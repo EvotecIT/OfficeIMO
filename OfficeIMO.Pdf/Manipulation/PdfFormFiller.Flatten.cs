@@ -153,14 +153,16 @@ internal static partial class PdfFormFiller {
         for (int i = 0; i < widgets.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             FlattenWidgetState widget = widgets[i];
-            string xObjectName = CreateUniqueXObjectName(xObjects, cancellationToken);
-            xObjects.Items[xObjectName] = new PdfReference(widget.AppearanceObjectNumber, 0);
-            builder.Append("q\n");
             if (!objects.TryGetValue(widget.AppearanceObjectNumber, out var appearanceObject) ||
                 appearanceObject.Value is not PdfStream appearanceStream)
                 throw new InvalidOperationException("The form appearance stream is missing.");
-            Matrix2D placement = PdfAppearancePlacement.Read(appearanceStream.Dictionary,
-                value => ResolveObject(objects, value), widget.X, widget.Y, widget.Width, widget.Height, out _);
+            // An appearance that encloses no area paints nothing, so the flattened page draws nothing for it.
+            if (!PdfAppearancePlacement.TryRead(appearanceStream.Dictionary,
+                    value => ResolveObject(objects, value), widget.X, widget.Y, widget.Width, widget.Height, out Matrix2D placement, out _))
+                continue;
+            string xObjectName = CreateUniqueXObjectName(xObjects, cancellationToken);
+            xObjects.Items[xObjectName] = new PdfReference(widget.AppearanceObjectNumber, 0);
+            builder.Append("q\n");
             builder.Append(PdfSyntaxEscaper.Number(placement.A)).Append(" 0 0 ").Append(PdfSyntaxEscaper.Number(placement.D)).Append(' ')
                 .Append(PdfSyntaxEscaper.Number(placement.E)).Append(' ').Append(PdfSyntaxEscaper.Number(placement.F)).Append(" cm\n");
             builder.Append('/').Append(xObjectName).Append(" Do\n");

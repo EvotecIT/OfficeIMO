@@ -37,13 +37,30 @@ public sealed partial class OcrSessionItem : ObservableObject {
     [ObservableProperty] private string? _summary;
     [ObservableProperty] private OfficeWorkflowOutputRecovery? _recovery;
     public bool CanRetry => Status is OfficeWorkflowStatus.Failed or OfficeWorkflowStatus.Cancelled;
+    /// <summary>The finished state shared with Convert and Jobs.</summary>
+    internal Infrastructure.StudioOutcome Outcome => IsRunning ? Infrastructure.StudioOutcome.None
+        : Status == OfficeWorkflowStatus.Completed && _hasWarningDiagnostics ? Infrastructure.StudioOutcome.CompletedWithNotes
+        : Infrastructure.StudioOutcomes.From(Status);
+    private bool _hasWarningDiagnostics;
+    public bool HasNotes => Outcome == Infrastructure.StudioOutcome.CompletedWithNotes;
+    public bool IsSucceeded => Outcome == Infrastructure.StudioOutcome.Succeeded;
+    public bool IsFailed => Outcome == Infrastructure.StudioOutcome.Failed;
+    public bool IsCancelled => Outcome == Infrastructure.StudioOutcome.Cancelled;
+    public bool NeedsChecking => Outcome == Infrastructure.StudioOutcome.NeedsChecking;
+    partial void OnStatusChanged(OfficeWorkflowStatus? value) => NotifyOutcome();
+    partial void OnIsRunningChanged(bool value) => NotifyOutcome();
+    private void NotifyOutcome() {
+        foreach (string name in new[] { nameof(IsSucceeded), nameof(HasNotes), nameof(IsFailed), nameof(IsCancelled), nameof(NeedsChecking) }) OnPropertyChanged(name);
+    }
     public bool HasOutput => Status == OfficeWorkflowStatus.Completed && OutputPath is not null;
     public string StatusLabel => IsRunning ? _localizer.GetOrDefault("Jobs.Running", "Running")
         : Status is null ? _localizer.GetOrDefault("Jobs.Queued", "Queued")
         : Status == OfficeWorkflowStatus.Unconfirmed ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
         : _localizer.GetOrDefault("Workflow.Status." + Status, Status.ToString()!);
-    internal void ResetAttempt() { Status = null; IsRunning = false; OutputPath = null; Summary = null; Recovery = null; }
+    internal void ResetAttempt() { _hasWarningDiagnostics = false; Status = null; IsRunning = false; OutputPath = null; Summary = null; Recovery = null; NotifyOutcome(); }
     internal void Apply(OfficeOcrSessionResult result) {
+        _hasWarningDiagnostics = result.Diagnostics.Any(item => item.Severity == OfficeWorkflowDiagnosticSeverity.Warning);
         IsRunning = false; Status = result.Status; OutputPath = result.OutputPath; Summary = result.Summary; Recovery = result.Recovery;
+        NotifyOutcome();
     }
 }

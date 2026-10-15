@@ -42,6 +42,8 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasDiagnostics))]
+    [NotifyPropertyChangedFor(nameof(DiagnosticsExplanation))]
+    [NotifyPropertyChangedFor(nameof(HasDiagnosticsExplanation))]
     private string? _diagnosticsSummary;
 
     [ObservableProperty]
@@ -78,6 +80,9 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     private IReadOnlyList<Rect> _pendingRedactionAreas = Array.Empty<Rect>();
 
     [ObservableProperty]
+    private Rect? _pendingObjectPreview;
+
+    [ObservableProperty]
     private bool _isNightMode;
 
     [ObservableProperty]
@@ -104,12 +109,12 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
         OfficeIMO.Pdf.PdfPageGeometry? geometry = null) {
         PageNumber = pageNumber;
         bool swapsAxes = Math.Abs(rotationDegrees) % 180 == 90;
-        _pageWidth = Math.Max(1D, swapsAxes ? height : width);
-        _pageHeight = Math.Max(1D, swapsAxes ? width : height);
         double visualWidth = (geometry?.EffectiveBox?.Width ?? width) * (geometry?.UserUnit ?? 1);
         double visualHeight = (geometry?.EffectiveBox?.Height ?? height) * (geometry?.UserUnit ?? 1);
         _visualWidth = Math.Max(1, swapsAxes ? visualHeight : visualWidth);
         _visualHeight = Math.Max(1, swapsAxes ? visualWidth : visualHeight);
+        _pageWidth = _visualWidth;
+        _pageHeight = _visualHeight;
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;
         _localizer = localizer ?? new StudioLocalizer(System.Globalization.CultureInfo.GetCultureInfo("en"));
@@ -129,6 +134,15 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     public bool HasRenderError => !string.IsNullOrWhiteSpace(RenderError);
 
     public bool HasDiagnostics => !string.IsNullOrWhiteSpace(DiagnosticsSummary);
+
+    /// <summary>The most significant rendering note on the page, classified from the renderer's support levels.</summary>
+    public PdfPageRenderingNote RenderingNote { get; private set; }
+
+    /// <summary>What the rendering notes mean for the reader; the engine's own wording stays in the details.</summary>
+    public string? DiagnosticsExplanation =>
+        HasDiagnostics && PdfPageRenderingNotes.ExplanationKey(RenderingNote) is { } key ? _localizer.Get(key) : null;
+
+    public bool HasDiagnosticsExplanation => DiagnosticsExplanation is not null;
 
     internal event Action<string>? LinkActivated;
 
@@ -212,6 +226,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
         IsRendering = true;
         RenderError = null;
+        RenderingNote = PdfPageRenderingNote.None;
         DiagnosticsSummary = null;
         DiagnosticsDetails = null;
 
@@ -250,6 +265,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
                 Scene = scene;
                 ReplaceImage(bitmap);
                 RenderedScale = scene.RequiresRasterFallback ? requestedScale : 0D;
+                RenderingNote = PdfPageRenderingNotes.Classify(scene.Capabilities, diagnostics);
                 DiagnosticsSummary = diagnostics.Count == 0 ? null : diagnostics[0];
                 DiagnosticsDetails = diagnostics.Count == 0
                     ? null
@@ -259,7 +275,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
             // A detached page, zoom change, document close, or newer generation superseded this result.
         } catch (Exception ex) {
             await uiDispatcher.InvokeAsync(() => {
-                if (!_disposed && _isAttached && generation == _loadGeneration) RenderError = ex.Message;
+                if (!_disposed && _isAttached && generation == _loadGeneration) RenderError = Infrastructure.StudioMessages.Describe(ex);
             });
         } finally {
             if (!_disposed) {
@@ -297,8 +313,11 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     }
 
     private void UpdateDisplaySize() {
-        DisplayWidth = Math.Round(_pageWidth * _zoom, 2);
-        DisplayHeight = Math.Round(_pageHeight * _zoom, 2);
+        bool swapsAxes = _viewRotationDegrees % 180 == 90;
+        OnPropertyChanged(nameof(ContentDisplayWidth));
+        OnPropertyChanged(nameof(ContentDisplayHeight));
+        DisplayWidth = Math.Round((swapsAxes ? _pageHeight : _pageWidth) * _zoom, 2);
+        DisplayHeight = Math.Round((swapsAxes ? _pageWidth : _pageHeight) * _zoom, 2);
     }
 
     private double GetRenderScale() => GetRenderScale(Scene, _zoom, _renderScaling);

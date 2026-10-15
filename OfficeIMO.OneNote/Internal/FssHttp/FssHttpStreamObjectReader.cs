@@ -53,6 +53,41 @@ internal static class FssHttpStreamObjectReader {
         }
     }
 
+    internal static ulong ReadBinaryItemLength(Stream stream, FssHttpStreamObject item, string name) {
+        long original = stream.Position;
+        try {
+            return ReadBinaryItemLengthAt(stream, item, name);
+        } finally {
+            stream.Position = original;
+        }
+    }
+
+    internal static byte[] ReadBinaryItem(Stream stream, FssHttpStreamObject item, ulong maxBytes, string name) {
+        long original = stream.Position;
+        try {
+            ulong count = ReadBinaryItemLengthAt(stream, item, name);
+            if (count > maxBytes || count > int.MaxValue) {
+                throw new OneNoteFormatException("ONENOTE_PACKAGE_ITEM_SIZE", "The " + name + " exceeds its configured materialization limit.", item.DataOffset);
+            }
+            var bytes = new byte[(int)count];
+            ReadExactly(stream, bytes, 0, bytes.Length, stream.Position);
+            return bytes;
+        } finally {
+            stream.Position = original;
+        }
+    }
+
+    // A binary item fills its stream object: a compact uint64 length followed by exactly that many bytes.
+    private static ulong ReadBinaryItemLengthAt(Stream stream, FssHttpStreamObject item, string name) {
+        stream.Position = item.DataOffset;
+        ulong count = ReadCompactUInt64(stream, item.DataOffset);
+        ulong prefixLength = (ulong)(stream.Position - item.DataOffset);
+        if (prefixLength > item.DataLength || count != item.DataLength - prefixLength) {
+            throw new OneNoteFormatException("ONENOTE_PACKAGE_ITEM_LENGTH", "The " + name + " length does not match its stream object.", item.DataOffset);
+        }
+        return count;
+    }
+
     private sealed class ReaderState {
         private readonly Stream _stream;
         private readonly OneNoteReaderOptions _options;

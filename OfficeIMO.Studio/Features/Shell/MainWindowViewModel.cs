@@ -130,8 +130,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<Task<UnsavedChangesDecision>>? confirmBookChanges = null,
         OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null,
         bool supportsFolderNavigation = true,
-        Func<CancellationToken, Task<string?>>? pickSaveComparisonReport = null) {
+        Func<CancellationToken, Task<string?>>? pickSaveComparisonReport = null,
+        MainWindowViewModel? sharedWorkbenches = null,
+        Func<CancellationToken, Task<OfficeIMO.Ocr.IOcrEngine>>? orientationEngineFactory = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
+        _createOrientationEngine = orientationEngineFactory ?? CreateOrientationEngineAsync;
+        _hasOrientationProvider = orientationEngineFactory is not null;
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -173,67 +177,78 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 ? _openDocumentInTab(path, token)
                 : _openUri(new Uri(path));
         OutputActions = new StudioOutputActions(openWorkflowOutput, folder => _openUri(new Uri(folder)), message => ErrorMessage = message, supportsFolderNavigation);
-        Jobs = new StudioJobsViewModel(_services.Jobs, openWorkflowOutput, _services.Storage.UsesProviderPublication,
-            supportsFolderNavigation ? folder => _openUri(new Uri(folder)) : null);
-        BookWorkbench = new BookWorkbenchViewModel(() => FileDialogs, _services.Storage,
-            bookPublicationGuard == null ? publicationGuard : new StudioProtectedPublicationGuard(_services.Storage, bookPublicationGuard),
-            confirmBookChanges ?? _confirmUnsavedChanges, _localizer);
-        ConversionWorkbench = new ConversionWorkbenchViewModel(
-            pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
-            _pickOutputFolder,
-            runner: _services.ConversionRunner,
-            localizer: _localizer,
-            publicationGuard: publicationGuard,
-            jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
-            openOutput: openWorkflowOutput,
-            pickPackage: token => FileDialogs.PickFolderAsync(_localizer.GetOrDefault("Conversion.Package.Picker", "Choose an Apple document package"), token));
-        InvoiceWorkbench = new InvoiceWorkbenchViewModel(
-            token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseInput", "Choose invoice XML"),
-                new StudioFileType("Invoice XML", ["xml"], "application/xml"), token),
-            _pickOutputFolder, runner: null, localizer: _localizer, storage: _services.Storage, guard: publicationGuard,
-            jobs: _services.Jobs, recovery: _services.WorkflowRecovery,
-            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput);
-        OutputWorkbench = new OutputIntakeWorkbenchViewModel(
-            _pickPdf,
-            _pickOutputFolder,
-            pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
-            pickAssemblyFolder ?? _pickOutputFolder,
-            _pickSavePdf,
-            localizer: _localizer,
-            publicationGuard: publicationGuard,
-            jobHistory: _services.Jobs, storage: _services.Storage,
-            recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
-            readPrintSnapshot: ReadPrintSnapshotAsync, pickPrintOutput: pickPrintOutput);
-        ProvenanceWorkbench = new ProvenanceWorkbenchViewModel(pickProvenanceFile ?? _pickPdf, _pickOutputFolder, runner: null,
-            publicationGuard: publicationGuard, jobHistory: _services.Jobs);
-        DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
-            publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
-        OcrWorkbench = new SearchablePdfOcrViewModel(
-            _pickPdf,
-            _pickOutputFolder,
-            openDocumentInTab,
-            ocrService,
-            path => !_services.Storage.IsRecoveryLocation(path) && (canPublishPath ?? _canSaveAsPath)(path),
-            _localizer, jobHistory: _services.Jobs, publicationGuard: publicationGuard, storage: _services.Storage,
-            pickOutputPdf: _pickSavePdf, recoveryStore: _services.WorkflowRecovery,
-            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, textRecognition: scanTextRecognition, ocrRuntime: _services.Ocr);
-        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory,
-            token => FileDialogs.PickOpenFileAsync(_localizer.Get("OcrSetup.ChooseExecutable"), StudioFileType.Any("Tesseract"), token), _services.Ocr);
-        OcrSession = new OcrSessionViewModel(pickOcrFiles ?? pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>([])),
-            _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, _services.WorkflowRecovery,
-            publicationGuard, confirmWorkflowProviderWrite ?? _confirmProviderWrite,
-            createEngine: StudioDistributionPolicy.ExternalToolsAllowed ? _services.Ocr.CreateEngineAsync : null, openOutput: openWorkflowOutput);
+        // Desktop tabs share one set of application workbenches; a standalone document (tests, mobile) owns its own.
+        _ownsWorkbenches = sharedWorkbenches is null;
+        if (sharedWorkbenches is not null) {
+            UseSharedWorkbenches(sharedWorkbenches);
+        } else {
+            Jobs = new StudioJobsViewModel(_services.Jobs, openWorkflowOutput, _services.Storage.UsesProviderPublication,
+                supportsFolderNavigation ? folder => _openUri(new Uri(folder)) : null);
+            BookWorkbench = new BookWorkbenchViewModel(() => FileDialogs, _services.Storage,
+                bookPublicationGuard == null ? publicationGuard : new StudioProtectedPublicationGuard(_services.Storage, bookPublicationGuard),
+                confirmBookChanges ?? _confirmUnsavedChanges, _localizer);
+            ConversionWorkbench = new ConversionWorkbenchViewModel(
+                pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
+                _pickOutputFolder,
+                runner: _services.ConversionRunner,
+                localizer: _localizer,
+                publicationGuard: publicationGuard,
+                jobHistory: _services.Jobs, storage: _services.Storage,
+                openOutput: openWorkflowOutput,
+                pickPackage: token => FileDialogs.PickFolderAsync(_localizer.GetOrDefault("Conversion.Package.Picker", "Choose an Apple document package"), token));
+            InvoiceWorkbench = new InvoiceWorkbenchViewModel(
+                token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseInput", "Choose invoice XML"),
+                    new StudioFileType("Invoice XML", ["xml"], "application/xml"), token),
+                _pickOutputFolder, runner: null, localizer: _localizer, storage: _services.Storage, guard: publicationGuard,
+                jobs: _services.Jobs, openOutput: openWorkflowOutput,
+                pickFont: token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseFontTitle", "Choose a font to embed"),
+                    new StudioFileType(_localizer.GetOrDefault("Invoice.FontFiles", "Fonts"), ["ttf", "otf"], "font/ttf"), token));
+            OutputWorkbench = new OutputIntakeWorkbenchViewModel(
+                _pickPdf,
+                _pickOutputFolder,
+                pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
+                pickAssemblyFolder ?? _pickOutputFolder,
+                _pickSavePdf,
+                localizer: _localizer,
+                publicationGuard: publicationGuard,
+                jobHistory: _services.Jobs, storage: _services.Storage,
+                recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
+                readPrintSnapshot: ReadPrintSnapshotAsync, pickPrintOutput: pickPrintOutput);
+            ProvenanceWorkbench = new ProvenanceWorkbenchViewModel(pickProvenanceFile ?? _pickPdf, _pickOutputFolder, runner: null,
+                publicationGuard: publicationGuard, jobHistory: _services.Jobs);
+            DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
+                publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage);
+            OcrWorkbench = new SearchablePdfOcrViewModel(
+                _pickPdf,
+                _pickOutputFolder,
+                openDocumentInTab,
+                ocrService,
+                path => !_services.Storage.IsRecoveryLocation(path) && (canPublishPath ?? _canSaveAsPath)(path),
+                _localizer, jobHistory: _services.Jobs, publicationGuard: publicationGuard, storage: _services.Storage,
+                pickOutputPdf: _pickSavePdf, recoveryStore: _services.WorkflowRecovery,
+                confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, textRecognition: scanTextRecognition, ocrRuntime: _services.Ocr);
+            Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory,
+                token => FileDialogs.PickOpenFileAsync(_localizer.Get("OcrSetup.ChooseExecutable"), StudioFileType.Any("Tesseract"), token), _services.Ocr);
+            OcrSession = new OcrSessionViewModel(pickOcrFiles ?? pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>([])),
+                _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, publicationGuard,
+                createEngine: StudioDistributionPolicy.ExternalToolsAllowed ? _services.Ocr.CreateEngineAsync : null, openOutput: openWorkflowOutput);
+            OcrReadiness = new OcrReadinessViewModel(_services.Preferences, _localizer);
+            OcrSession.Readiness = OcrReadiness;
+            ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+            ConversionWorkbench.BatchExport.PropertyChanged += OnWorkflowPropertyChanged;
+            InvoiceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+            BookWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+            OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+            DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
+            ProvenanceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+            OcrWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+            OcrSession.PropertyChanged += OnWorkflowPropertyChanged;
+        }
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
+        OcrReadiness.PropertyChanged += OnOcrReadinessChanged;
+        _services.DocumentHistory.RecentDocumentsChanged += OnRecentDocumentsChanged;
+        _services.Preferences.Changed += OnPreferencesChanged;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
-        ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
-        ConversionWorkbench.BatchExport.PropertyChanged += OnWorkflowPropertyChanged;
-        InvoiceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
-        BookWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
-        OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
-        DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
-        ProvenanceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
-        OcrWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
-        OcrSession.PropertyChanged += OnWorkflowPropertyChanged;
         foreach (RecentDocumentViewModel document in _recentDocumentStore?.Load() ?? []) RecentDocuments.Add(document);
     }
 
@@ -243,9 +258,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public ObservableCollection<RecentDocumentViewModel> RecentDocuments { get; } = new();
 
-    internal StudioSettingsViewModel Settings { get; }
+    internal StudioSettingsViewModel Settings { get; private set; } = null!;
 
     public bool HasRecentDocuments => RecentDocuments.Count > 0;
+
+    internal bool ShowRecentPreviews => _services.Preferences.Current.ShowRecentPreviews;
 
     public bool IsEmpty => !HasDocument && !IsOpening;
 
@@ -275,6 +292,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanMutatePages => _workspace?.CanMutatePages == true;
 
+    public bool CanRotatePages => _workspace?.CanRotatePages == true;
+
+    public bool CanCropPages => _workspace?.CanCropPages == true;
+
     public bool CanExtractPages => _workspace?.CanExtractPages == true;
 
     public bool CanImportPages => _workspace?.CanImportPages == true;
@@ -284,7 +305,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ? _localizer.Get(CanSearchDocument ? "Capability.RestrictedReaderSearchHint" : "Capability.RestrictedReaderHint")
         : _localizer.Get("DocumentWorkspace.SelectTextFollowLinksSearchAndNavigateBookmarks");
 
-    public bool HasSecurityWarning => !string.IsNullOrWhiteSpace(SecurityWarning);
+    public bool HasSecurityWarning => !string.IsNullOrWhiteSpace(SecurityWarning) && !string.Equals(SecurityWarning, _dismissedSecurityWarning, StringComparison.Ordinal);
 
     public string? SecurityWarning {
         get {
@@ -297,7 +318,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             return DocumentMode switch {
                 StudioDocumentMode.Annotate when !CanEditAnnotations => _localizer.Get("Capability.AnnotationsUnavailable"),
                 StudioDocumentMode.Edit when !CanEditPageContent => _localizer.Get("Capability.ContentEditingUnavailable"),
-                StudioDocumentMode.Pages when !CanMutatePages => _localizer.Get("Capability.PageEditingUnavailable"),
+                StudioDocumentMode.Pages when !CanMutatePages && !CanRotatePages => _localizer.Get("Capability.PageEditingUnavailable"),
                 StudioDocumentMode.Forms when !CanFillForms && !CanFlattenForms && !CanAuthorForms => _localizer.Get("Capability.FormsUnavailable"),
                 StudioDocumentMode.Protect when !CanRedact && !CanChangeProtection => _localizer.Get("Capability.ProtectionUnavailable"),
                 _ => null
@@ -307,8 +328,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
-    public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || ConversionWorkbench.BatchExport.IsBusy ||
-                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || IsFormOcrBusy || InvoiceWorkbench.IsBusy || BookWorkbench.IsBusy;
+    public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || IsFormOcrBusy || (_ownsWorkbenches && AreWorkbenchesBusy);
+
+    internal bool AreWorkbenchesBusy => ConversionWorkbench.IsBusy || ConversionWorkbench.BatchExport.IsBusy ||
+                                        OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy || BookWorkbench.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
@@ -400,7 +423,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                      page.RotationDegrees,
                      candidateSceneCoordinator,
                      candidateRenderCoordinator,
-                     _localizer))
+                     _localizer, page.Geometry))
                 .ToArray();
 
             if (!ReferenceEquals(currentCancellation, _openCancellation)) return;
@@ -424,7 +447,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         } catch (Exception ex) {
             _discardOnNextTransition = false;
             if (ReferenceEquals(currentCancellation, _openCancellation)) {
-                ErrorMessage = ex.Message;
+                ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
             }
         } finally {
             if (!installed) {
@@ -477,7 +500,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     internal async Task<bool> PrepareCloseDocumentAsync() =>
-        await BookWorkbench.PrepareCloseAsync().ConfigureAwait(true) && await PrepareDocumentTransitionAsync().ConfigureAwait(true);
+        (!_ownsWorkbenches || await BookWorkbench.PrepareCloseAsync().ConfigureAwait(true)) && await PrepareDocumentTransitionAsync().ConfigureAwait(true);
 
     internal void CancelPreparedClose() => _discardOnNextTransition = false;
 
@@ -508,24 +531,73 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         if (document is null) return;
         if (document.StorageReference is { } reference) _services.Storage.Remember(reference);
         if (document.StorageReference?.Bookmark is null && OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(document.Path) is not null && !File.Exists(document.Path)) {
-            RecentDocuments.Remove(document);
-            _recentDocumentStore?.Save(RecentDocuments);
-            OnPropertyChanged(nameof(HasRecentDocuments));
-            ErrorMessage = "That recent document is no longer available.";
+            ForgetRecentDocument(document);
+            ErrorMessage = _localizer.Get("Recent.Unavailable");
             return;
         }
         await OpenRequestedDocumentAsync(document.Path, cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]
+    private void RemoveRecentDocument(RecentDocumentViewModel? document) {
+        if (document is not null) ForgetRecentDocument(document);
+    }
+
+    private void ForgetRecentDocument(RecentDocumentViewModel document) {
+        string key = OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path);
+        _recentDocumentStore?.Remove(document.Path);
+        foreach (RecentDocumentViewModel stale in RecentDocuments.Where(entry =>
+            OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(entry.Path) == key).ToArray()) {
+            stale.ClearThumbnail();
+            RecentDocuments.Remove(stale);
+        }
+        OnPropertyChanged(nameof(HasRecentDocuments));
+        _services.DocumentHistory.NotifyRecentDocumentsChanged(this);
+    }
+
+    [RelayCommand]
     private void ClearRecentDocuments() {
         try {
-            _recentDocumentStore?.Clear();
+            if (_recentDocumentStore is null) RecentDocuments.Clear();
+            else if (ReferenceEquals(_recentDocumentStore, _services.DocumentHistory.RecentDocuments)) _services.DocumentHistory.ClearRecentDocuments(this);
+            else _recentDocumentStore.Clear();
             RecentDocuments.Clear();
             OnPropertyChanged(nameof(HasRecentDocuments));
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
             ErrorMessage = _localizer.Get("Settings.HistoryClearFailed");
         }
+    }
+
+    // Every tab shows the same list. Start from the stored copy so another tab's recent changes survive this write.
+    private void UpdateRecentDocuments(Action change) {
+        ReloadRecentDocuments();
+        change();
+        try {
+            _recentDocumentStore?.Save(RecentDocuments);
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            _services.Diagnostics.Write(Infrastructure.Diagnostics.StudioDiagnosticLevel.Warning, "History", "RecentSaveFailed", error);
+        }
+        OnPropertyChanged(nameof(HasRecentDocuments));
+        _services.DocumentHistory.NotifyRecentDocumentsChanged(this);
+    }
+
+    private void ReloadRecentDocuments() {
+        if (_recentDocumentStore is null) return;
+        IReadOnlyList<RecentDocumentViewModel> stored = !_services.DocumentHistory.RememberHistory && RecentDocuments.Count > 0
+            ? _recentDocumentStore.LoadRetained() : _recentDocumentStore.Load();
+        RecentDocuments.Clear();
+        foreach (RecentDocumentViewModel document in stored) RecentDocuments.Add(document);
+        OnPropertyChanged(nameof(HasRecentDocuments));
+    }
+
+    // Turning previews off hides them at once in every window, not when Home next refreshes its previews.
+    private void OnPreferencesChanged(object? sender, EventArgs e) {
+        if (ShowRecentPreviews) return;
+        foreach (RecentDocumentViewModel document in RecentDocuments) document.ClearThumbnail();
+    }
+
+    private void OnRecentDocumentsChanged(object? writer, EventArgs e) {
+        if (!ReferenceEquals(writer, this)) ReloadRecentDocuments();
     }
 
     [RelayCommand]
@@ -599,27 +671,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.Signatures.Changed -= OnSavedSignaturesChanged;
         DisposeSavedSignaturePreviews();
         ClearTextReview();
+        ClearOrientationReview();
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
-        ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
-        ConversionWorkbench.BatchExport.PropertyChanged -= OnWorkflowPropertyChanged;
-        InvoiceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
-        BookWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
-        OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
-        DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
-        ProvenanceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
-        OcrWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
-        OcrSession.PropertyChanged -= OnWorkflowPropertyChanged;
-        ConversionWorkbench.Dispose();
-        InvoiceWorkbench.Dispose();
-        BookWorkbench.Dispose();
-        Jobs.Dispose();
-        OutputWorkbench.Dispose();
-        DocumentHealth.Dispose();
-        ProvenanceWorkbench.Dispose();
-        OcrWorkbench.Dispose();
-        OcrSession.Dispose();
-        Settings.Dispose();
+        _services.DocumentHistory.RecentDocumentsChanged -= OnRecentDocumentsChanged;
+        _services.Preferences.Changed -= OnPreferencesChanged;
+        OcrReadiness.PropertyChanged -= OnOcrReadinessChanged;
+        if (_ownsWorkbenches) DisposeWorkbenches();
+
         CancelCurrentOperation();
         if (IsWorkspaceBusy) {
             _disposeWhenIdle = true;
@@ -661,12 +720,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyCollection<int>? organizerSelection = null) {
         IsReplacingReaderPresentation = true;
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
+        ClearOrientationReview();
         ClearFormPreview();
-        if (isDocumentTransition) SaveDocumentViewState();
+        if (isDocumentTransition) {
+            SaveDocumentViewState();
+            _dismissedSecurityWarning = null;
+        }
         CancelPendingRedaction();
         LastRedactionSummary = null;
         LastRedactionCopyPath = null;
         ClearObjectSelection();
+        ResetRenderingNotices(isDocumentTransition, workspace);
         foreach (PdfPageViewModel page in Pages) page.Dispose();
         foreach (PdfOrganizerPageViewModel page in OrganizerPages) page.Dispose();
         Pages.Clear();
@@ -690,6 +754,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ApplyPresentationCachePolicy();
 
         if (isDocumentTransition) {
+            _viewRotationDegrees = 0;
+            OnPropertyChanged(nameof(ViewRotationDegrees));
             OrganizerPageRange = string.Empty;
             IsOrganizerRangeExpanded = false;
             OrganizerRangeError = null;
@@ -713,6 +779,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             page.EditorTool = ActiveEditorTool;
             page.SelectionMode = GetEditorSelectionMode();
             page.IsNightMode = IsPageNightMode;
+            page.SetViewRotation(_viewRotationDegrees);
+            TrackRenderingNotices(page);
             Pages.Add(page);
         }
         if (organizerSelection is not null) {
@@ -808,15 +876,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private void RecordRecentDocument(string path) {
         if (!_services.DocumentHistory.RememberHistory) return;
         string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
-        RecentDocumentViewModel? existing = RecentDocuments.FirstOrDefault(document =>
-            OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path) == OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(fullPath));
-        if (existing is not null) RecentDocuments.Remove(existing);
-        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow) {
-            StorageReference = _services.Storage.Describe(fullPath), LocalDocuments = _services.LocalDocuments
+        UpdateRecentDocuments(() => {
+            RecentDocumentViewModel? existing = RecentDocuments.FirstOrDefault(document =>
+                OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path) == OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(fullPath));
+            if (existing is not null) RecentDocuments.Remove(existing);
+            RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow) {
+                StorageReference = _services.Storage.Describe(fullPath), LocalDocuments = _services.LocalDocuments
+            });
+            while (RecentDocuments.Count > 12) RecentDocuments.RemoveAt(RecentDocuments.Count - 1);
         });
-        while (RecentDocuments.Count > 12) RecentDocuments.RemoveAt(RecentDocuments.Count - 1);
-        _recentDocumentStore?.Save(RecentDocuments);
-        OnPropertyChanged(nameof(HasRecentDocuments));
     }
 
     internal static StringComparison RecentDocumentPathComparison =>

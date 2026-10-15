@@ -47,7 +47,7 @@ public sealed partial class PageMovePreviewViewModel : ObservableObject {
         } catch (ArgumentException exception) {
             Plan = null;
             Rows = [];
-            ErrorMessage = exception.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(exception);
         }
         OnPropertyChanged(nameof(CanApply));
     }

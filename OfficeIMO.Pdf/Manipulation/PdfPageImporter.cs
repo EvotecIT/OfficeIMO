@@ -57,7 +57,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNull(sourcePageRanges, nameof(sourcePageRanges));
 
         byte[] importedPages = PdfPageExtractor.ExtractPageRanges(sourcePdf, sourcePageRanges);
-        return MergeBoundaryPages(targetPdf, importedPages, append: true, targetReadOptions: null);
+        return AppendPages(targetPdf, importedPages);
     }
 
     /// <summary>
@@ -70,7 +70,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNull(sourcePageRanges, nameof(sourcePageRanges));
 
         byte[] importedPages = PdfPageExtractor.ExtractPageRanges(sourcePdf, sourcePageRanges);
-        return MergeBoundaryPages(targetPdf, importedPages, append: false, targetReadOptions: null);
+        return PrependPages(targetPdf, importedPages);
     }
 
     /// <summary>
@@ -87,15 +87,7 @@ internal static partial class PdfPageImporter {
         ValidateInsertBeforePageNumber(insertBeforePageNumber, targetPageCount);
 
         byte[] inserted = PdfPageExtractor.ExtractPageRanges(sourcePdf, sourcePageRanges);
-        if (insertBeforePageNumber == targetPageCount + 1) {
-            return MergeBoundaryPages(targetPdf, inserted, append: true, targetReadOptions: null, targetDocument);
-        }
-
-        if (insertBeforePageNumber == 1) {
-            return MergeBoundaryPages(targetPdf, inserted, append: false, targetReadOptions: null, targetDocument);
-        }
-
-        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, primaryReadOptions: null, openedPrimaryDocument: targetDocument);
+        return InsertPages(targetPdf, inserted, insertBeforePageNumber);
     }
 
     /// <summary>

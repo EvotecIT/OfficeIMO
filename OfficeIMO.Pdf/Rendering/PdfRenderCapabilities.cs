@@ -57,7 +57,12 @@ public sealed class PdfRenderCapabilityDiagnostic {
     };
     /// <summary>Operator or resource name that triggered this occurrence, when available.</summary>
     public string? Subject { get; }
-    internal bool IsStandardFontSubstitution { get; }
+    /// <summary>
+    /// True when a font substitution replaces one of the 14 standard PDF fonts, which a document may legitimately leave
+    /// unembedded and every viewer draws with an installed equivalent. False for other substitutions, where the
+    /// document's own font program could not be used.
+    /// </summary>
+    public bool IsStandardFontSubstitution { get; }
     /// <summary>Human-readable diagnostic text.</summary>
     public string Message => string.IsNullOrWhiteSpace(Subject)
         ? Capability.Message

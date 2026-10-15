@@ -18,9 +18,10 @@ public sealed class StudioRecoveryManagementTests {
                 string source = Path.Combine(root, "source.pdf");
                 PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800))).Save(source);
                 byte[] original = File.ReadAllBytes(source);
+                byte[] edited = PdfDocument.Load(original).Pages.Rotate(90, 1).ToBytes();
                 var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
                 string snapshot = Assert.IsType<string>(await services.Recovery.WriteAsync(source,
-                    PdfWorkspaceRecoveryStore.Fingerprint(original), original, 1, CancellationToken.None));
+                    PdfWorkspaceRecoveryStore.Fingerprint(original), edited, 1, CancellationToken.None));
                 using var reader = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
                 await reader.OpenDocumentAsync(source);
                 Assert.True(reader.HasRecovery);

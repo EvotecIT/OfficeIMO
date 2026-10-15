@@ -1243,7 +1243,8 @@ public class PdfITextInspiredCoverageTests {
         string fieldName = "Name",
         string? fieldMdpTransformParameters = null,
         string? signatureReference = null,
-        bool includeDocMdpPermissions = true) {
+        bool includeDocMdpPermissions = true,
+        bool includeXfa = false) {
         string lockEntry = string.IsNullOrWhiteSpace(lockDictionary) ? string.Empty : " /Lock " + lockDictionary;
         string permissionsEntry = includeDocMdpPermissions ? " /Perms << /DocMDP 7 0 R >>" : string.Empty;
         string fieldMdpReference = string.IsNullOrWhiteSpace(fieldMdpTransformParameters)
@@ -1259,10 +1260,11 @@ public class PdfITextInspiredCoverageTests {
             "<< /Type /Annot /Subtype /Widget /FT /Tx /T (" + fieldName + ") /V (Ada) /Rect [50 50 180 70] /F 4 >>",
             "<< /FT /Sig /T (Approval) /V 7 0 R /Subtype /Widget /Rect [10 10 120 40]" + lockEntry + " >>",
             "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference " + effectiveSignatureReference + " >>",
-            "<< /Fields [5 0 R 6 0 R] /SigFlags 3 >>",
+            "<< /Fields [5 0 R 6 0 R] /SigFlags 3" + (includeXfa ? " /XFA 10 0 R" : string.Empty) + " >>",
             BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Signed form) Tj ET"))
         };
 
+        if (includeXfa) objects.Add(BuildStream(Encoding.ASCII.GetBytes("<xdp:xdp xmlns:xdp=\"http://ns.adobe.com/xdp/\"/>")));
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 

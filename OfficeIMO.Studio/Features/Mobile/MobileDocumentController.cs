@@ -78,7 +78,7 @@ internal sealed partial class MobileDocumentController : IDisposable {
         string location = await storage.RegisterAsync(source, token);
         string name = Path.GetFileName(source.Name);
         if (!string.Equals(Path.GetExtension(name), ".pdf", StringComparison.OrdinalIgnoreCase))
-            throw new NotSupportedException("Choose a PDF document.");
+            throw new NotSupportedException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.ChoosePdf"));
         StudioStorageSnapshot snapshot = await storage.ReadSnapshotAsync(location, token, StudioPdfSecurityPolicy.MaximumInputBytes);
         // Encrypted files defer content inspection to the shared workspace's password prompt.
         await Task.Run(() => {
@@ -120,7 +120,7 @@ internal sealed partial class MobileDocumentController : IDisposable {
             document.ErrorMessage = null;
             if (document.IsDirty) await document.SaveCommand.ExecuteAsync(null);
             if (document.IsDirty || document.HasError) return;
-            path = document.DocumentPath ?? throw new IOException("The saved document has no location to share.");
+            path = document.DocumentPath ?? throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.NothingToShare"));
             PersistSession();
             await MobileFileSharing.ShareAsync(_services, path, _share);
         } finally { _sharing = false; }
@@ -155,7 +155,7 @@ internal sealed partial class MobileDocumentController : IDisposable {
             string? active = Document.DocumentPath is { } path ? _locations.GetIdentity(path) : null;
             _services.DocumentHistory.RestartSession.Save(new(1, DateTimeOffset.UtcNow, active, states));
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
-            Document.ErrorMessage = "The reading position could not be saved: " + error.Message;
+            Document.ErrorMessage = Infrastructure.Localization.StudioLocalization.Current.Format("Mobile.ReadingPositionFailed", Infrastructure.StudioMessages.Describe(error));
         }
     }
 

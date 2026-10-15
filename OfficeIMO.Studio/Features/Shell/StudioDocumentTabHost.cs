@@ -8,8 +8,9 @@ namespace OfficeIMO.Studio.Features.Shell;
 public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposable {
     internal StudioDocumentTabs<MainWindowViewModel, StudioDocumentTabViewModel> Core { get; }
     internal StudioDocumentTabHost(Func<Func<string, CancellationToken, Task>, MainWindowViewModel> createDocument,
-        Action<MainWindowViewModel> activateDocument, Func<MainWindowViewModel, Task<bool>>? prepareActiveClose = null) {
-        Core = new(createDocument, activateDocument, (document, close) => new(document, close), prepareActiveClose);
+        Action<MainWindowViewModel> activateDocument, Func<MainWindowViewModel, Task<bool>>? prepareActiveClose = null,
+        MainWindowViewModel? applicationDocument = null) {
+        Core = new(createDocument, activateDocument, (document, close) => new(document, close), prepareActiveClose, applicationDocument);
         Panes = new(this);
         Core.PropertyChanged += (_, args) => OnPropertyChanged(args.PropertyName);
     }

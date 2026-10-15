@@ -104,11 +104,12 @@ internal static partial class OneNotePackageStoreReader {
                     "ONENOTE_PACKAGE_BLOB",
                     "An object-data BLOB element must contain exactly one BLOB payload.",
                     blobElement.Node.HeaderOffset);
-                if (blobNode.DataLength > (ulong)options.MaxAssetBytes ||
-                    graph.TotalAssetBytes > options.MaxTotalAssetBytes - (long)blobNode.DataLength) {
+                ulong blobLength = FssHttpStreamObjectReader.ReadBinaryItemLength(stream, blobNode, "object-data BLOB");
+                if (blobLength > (ulong)options.MaxAssetBytes ||
+                    graph.TotalAssetBytes > options.MaxTotalAssetBytes - (long)blobLength) {
                     throw new OneNoteFormatException("ONENOTE_ASSET_LIMIT", "An embedded OneNote asset exceeds the configured materialization limits.", blobNode.DataOffset);
                 }
-                byte[] bytes = FssHttpStreamObjectReader.ReadData(stream, blobNode, (ulong)options.MaxAssetBytes, "object-data BLOB");
+                byte[] bytes = FssHttpStreamObjectReader.ReadBinaryItem(stream, blobNode, (ulong)options.MaxAssetBytes, "object-data BLOB");
                 graph.TotalAssetBytes += bytes.LongLength;
                 graph.FileDataObjects.Add(new OneNoteFileDataStoreObject(fileDataId, OneNoteBinaryPayload.FromOwnedBytes(bytes)));
             }

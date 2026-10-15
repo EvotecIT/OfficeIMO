@@ -59,6 +59,7 @@ internal static partial class PdfSyntax {
             docMDPPermissionLevel: null,
             hasUsageRights: false,
             Array.Empty<int>(),
+            Array.Empty<string>(),
             PdfDocumentDssInfo.Empty,
             rootReference?.ObjectNumber,
             rootReference?.Generation,
@@ -133,6 +134,7 @@ internal static partial class PdfSyntax {
         int? docMDPPermissionLevel = null;
         bool hasUsageRights = false;
         var usageRightsObjectNumbers = new List<int>();
+        var usageRightsFormPermissions = new List<string>();
         PdfDocumentDssInfo documentSecurityStore = PdfDocumentDssInfo.Empty;
         KeyValuePair<int, PdfIndirectObject>[] orderedObjects = OrderSecurityObjects(objects, cancellationToken);
         bool hasParsedSignatureMarker = false;
@@ -153,6 +155,7 @@ internal static partial class PdfSyntax {
                 out docMDPPermissionLevel,
                 out hasUsageRights,
                 usageRightsObjectNumbers,
+                usageRightsFormPermissions,
                 cancellationToken);
         }
 
@@ -269,6 +272,7 @@ internal static partial class PdfSyntax {
             docMDPPermissionLevel,
             hasUsageRights,
             usageRightsObjectNumbers.Count == 0 ? Array.Empty<int>() : usageRightsObjectNumbers.AsReadOnly(),
+            usageRightsFormPermissions.Count == 0 ? Array.Empty<string>() : usageRightsFormPermissions.AsReadOnly(),
             documentSecurityStore,
             rootObjectNumber,
             rootObjectGeneration,

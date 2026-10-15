@@ -118,7 +118,7 @@ public sealed partial class MobileWorkspaceView {
             view.PagesListControl.ScrollIntoView(page);
         };
         view.OrganizerListControl.SelectionChanged += (_, e) => {
-            if (view.IsEffectivelyVisible) Document?.UpdateOrganizerSelection(
+            if (view.IsEffectivelyVisible && !view.IsOrganizerPanelChanging) Document?.UpdateOrganizerSelection(
                 e.AddedItems.OfType<Organizer.PdfOrganizerPageViewModel>(),
                 e.RemovedItems.OfType<Organizer.PdfOrganizerPageViewModel>());
         };

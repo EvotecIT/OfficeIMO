@@ -19,8 +19,8 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            8.0.418
-            10.0.112
+            8.0.426
+            10.0.113
       - name: Measure Bibliography resource amplification
         shell: pwsh
         run: |

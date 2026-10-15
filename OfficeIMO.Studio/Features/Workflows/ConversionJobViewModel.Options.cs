@@ -40,7 +40,10 @@ public sealed partial class ConversionJobViewModel {
     [ObservableProperty] private string _textEncoding = string.Empty;
     [ObservableProperty] private decimal _tabSize = 8;
 
-    partial void OnStateChanged(ConversionJobState value) => OnPropertyChanged(nameof(CanEditOptions));
+    partial void OnStateChanged(ConversionJobState value) {
+        OnPropertyChanged(nameof(CanEditOptions));
+        NotifyOutcome();
+    }
 
     internal OfficeWorkflowConversionOptions CreateConversionOptions() => new() {
         Word = Route.Route.Id is "docx-pdf" or "doc-pdf"

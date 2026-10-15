@@ -17,16 +17,24 @@ internal static partial class PdfPageExtractor {
         private readonly List<KeyValuePair<string, PdfObject>> _reverseEntries = new();
         private readonly CancellationToken _cancellationToken;
     
+        // Reads a reference to an object the source never defines as null, as ISO 32000-2 7.3.10 requires, instead of
+        // failing; such objects are listed in UndefinedObjectNumbers.
+        private readonly bool _undefinedReferencesAreNull;
+
         public ObjectCollector(
             Dictionary<int, PdfIndirectObject> sourceObjects,
             Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null,
+            bool undefinedReferencesAreNull = false,
             CancellationToken cancellationToken = default) {
+            _undefinedReferencesAreNull = undefinedReferencesAreNull;
             _sourceObjects = sourceObjects;
             _pageOverrides = pageOverrides ?? new Dictionary<int, Dictionary<string, PdfObject>>();
             _cancellationToken = cancellationToken;
         }
     
         public IReadOnlyList<int> ObjectIds => _objectIds;
+
+        public HashSet<int> UndefinedObjectNumbers { get; } = new();
     
         public HashSet<int> PageObjectIds { get; } = new();
     
@@ -64,7 +72,12 @@ internal static partial class PdfPageExtractor {
                 if (objectNumber < 0) {
                     return;
                 }
-    
+
+                if (_undefinedReferencesAreNull) {
+                    UndefinedObjectNumbers.Add(objectNumber);
+                    return;
+                }
+
                 throw new InvalidOperationException("PDF object " + objectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not found.");
             }
     

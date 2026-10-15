@@ -14,6 +14,11 @@ public sealed class PdfDocumentTextEditor {
     public IReadOnlyList<PdfTextMatch> Find(string text, PdfTextSearchOptions? options = null, PdfLoadOptions? readOptions = null) =>
         PdfTextEditor.Find(_document.GetBytesForOperation(), text, options, readOptions ?? _document.ReadOptions);
 
+    /// <summary>Finds text page by page, reporting each searched page, the number of pages and that page's matches.</summary>
+    internal IReadOnlyList<PdfTextMatch> Find(string text, PdfTextSearchOptions? options,
+        Action<int, int, IReadOnlyList<PdfTextMatch>> pageSearched, System.Threading.CancellationToken cancellationToken) =>
+        PdfTextEditor.Find(_document.GetBytesForOperation(cancellationToken), text, options, _document.ReadOptions, pageSearched, cancellationToken);
+
     /// <summary>Adds text at the top-left of a page region without removing existing content.</summary>
     public PdfTextEditResult Add(PdfPageRegion region, string text, PdfTextEditOptions? options = null, PdfLoadOptions? readOptions = null) {
         PdfLoadOptions? effectiveReadOptions = readOptions ?? _document.ReadOptions;
@@ -50,7 +55,7 @@ public sealed class PdfDocumentTextEditor {
         return Apply(input => PdfTextEditor.ReplaceAll(input, text, replacement, searchOptions, editOptions, effectiveReadOptions), effectiveReadOptions);
     }
 
-    /// <summary>Replaces selected zero-based occurrences from <see cref="Find"/> using the same search options and current document revision.</summary>
+    /// <summary>Replaces selected zero-based occurrences from <see cref="Find(string, PdfTextSearchOptions?, PdfLoadOptions?)"/> using the same search options and current document revision.</summary>
     /// <remarks>All selected occurrences are rewritten together, preserving unmatched text and local flow. Duplicate or invalid indexes are rejected.</remarks>
     public PdfTextEditResult ReplaceSelected(string text, string replacement, IReadOnlyCollection<int> occurrenceIndexes,
         PdfTextSearchOptions? searchOptions = null, PdfTextEditOptions? editOptions = null, PdfLoadOptions? readOptions = null) {

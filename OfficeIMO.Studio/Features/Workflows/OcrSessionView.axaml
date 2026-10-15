@@ -1,21 +1,22 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization" xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization" xmlns:infra="using:OfficeIMO.Studio.Infrastructure" xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
              x:Class="OfficeIMO.Studio.Features.Workflows.OcrSessionView" x:DataType="workflow:OcrSessionViewModel">
   <Grid Background="{DynamicResource StudioWindowBrush}">
-    <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" IsVisible="{Binding !HasReview}">
-      <StackPanel Spacing="4">
+    <Grid Classes="pageContent" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}" IsVisible="{Binding !HasReview}">
+      <StackPanel Classes="pageHeading">
         <TextBlock Text="{loc:Loc OcrSession.Title}" Classes="pageTitle" />
         <TextBlock Text="{loc:Loc OcrSession.Hint}" TextWrapping="Wrap" Classes="muted" />
-        <TextBlock Text="{Binding RecognitionUnavailableReason}" IsVisible="{Binding !IsRecognitionAvailable}" TextWrapping="Wrap" Foreground="{DynamicResource StudioWarningBrush}"/>
+        <infra:StudioNoticeBar Severity="Warning" IsVisible="{Binding Readiness.HasNotice, FallbackValue=False}" Message="{Binding Readiness.Notice}" Margin="0,6,0,0" CornerRadius="8"
+                               ActionText="{loc:Loc Ocr.Notice.SetUp}" ActionCommand="{Binding Readiness.SetUpCommand}" IsActionVisible="{Binding Readiness.CanSetUp, FallbackValue=False}" />
       </StackPanel>
       <ScrollViewer Grid.Row="1" MaxHeight="230" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-      <StackPanel Spacing="8" Margin="0,0,16,0" IsEnabled="{Binding !IsBusy}">
+      <StackPanel Spacing="{StaticResource StudioSpaceS}" Margin="0,0,16,0" IsEnabled="{Binding !IsBusy}">
         <WrapPanel>
           <Button Classes="tool" Content="{loc:Loc OcrSession.Add}" Command="{Binding AddFilesCommand}" Margin="0,0,8,0" />
           <Button Classes="tool" Content="{loc:Loc OcrSession.Remove}" Command="{Binding RemoveSelectedCommand}" />
         </WrapPanel>
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-          <TextBox Text="{Binding OutputFolder}" PlaceholderText="{loc:Loc OcrSession.OutputFolder}" AutomationProperties.Name="{loc:Loc OcrSession.OutputFolder}" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}">
+          <TextBox Classes="path" Text="{Binding OutputFolder}" PlaceholderText="{loc:Loc OcrSession.OutputFolder}" AutomationProperties.Name="{loc:Loc OcrSession.OutputFolder}" />
           <Button Grid.Column="1" Classes="tool" Content="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" Command="{Binding ChooseOutputFolderCommand}" />
         </Grid>
         <Expander Header="{loc:Loc SearchablePdfOcr.RecognitionLanguages}">
@@ -32,11 +33,11 @@
         </WrapPanel>
       </StackPanel>
       </ScrollViewer>
-      <Grid Grid.Row="2" RowDefinitions="*,Auto" RowSpacing="8">
+      <Grid Grid.Row="2" RowDefinitions="*,Auto" RowSpacing="{StaticResource StudioSpaceS}">
         <Border IsVisible="{Binding !HasItems}" SizeChanged="OnEmptyStateSizeChanged" Background="{DynamicResource StudioPanelBrush}"
                 BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="24">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460" Spacing="12">
+          <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460" Spacing="{StaticResource StudioSpaceM}">
             <TextBlock Text="{loc:Loc OcrSession.Empty.Title}" Classes="sectionTitle" TextAlignment="Center" TextWrapping="Wrap" />
             <TextBlock x:Name="EmptyDescription" Text="{loc:Loc OcrSession.Empty.Description}" Classes="muted" TextAlignment="Center" TextWrapping="Wrap" />
             <Button x:Name="EmptyAdd" Classes="primary" Content="{loc:Loc OcrSession.Add}" Command="{Binding AddFilesCommand}" HorizontalAlignment="Center" />
@@ -46,20 +47,21 @@
         <ListBox IsVisible="{Binding HasItems}" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" AutomationProperties.Name="{loc:Loc OcrSession.Files}">
           <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.Styles>
           <ListBox.ItemTemplate><DataTemplate x:DataType="workflow:OcrSessionItem">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="4,6">
-              <StackPanel Spacing="3"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}" Margin="4,6">
+              <StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding OutputName}" Classes="muted" TextWrapping="Wrap" />
               </StackPanel>
-              <TextBlock Grid.Column="1" Text="{Binding StatusLabel}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{Binding StatusLabel}" VerticalAlignment="Center" Classes="outcome"
+                         Classes.success="{Binding IsSucceeded}" Classes.notes="{Binding HasNotes}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" Classes.attention="{Binding NeedsChecking}" />
             </Grid>
           </DataTemplate></ListBox.ItemTemplate>
         </ListBox>
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}">
           <TextBlock Text="{Binding SelectedItem.Summary}" TextWrapping="Wrap" MaxHeight="55" />
           <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Jobs.OpenOutput}" IsVisible="{Binding HasSelectedOutput}" Command="{Binding OpenOutputCommand}" />
         </Grid>
       </Grid>
-      <StackPanel Grid.Row="3" Spacing="8">
+      <StackPanel Grid.Row="3" Spacing="{StaticResource StudioSpaceS}">
         <TextBlock Text="{Binding SetupHint}" TextWrapping="Wrap" FontWeight="SemiBold" />
         <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
         <WrapPanel>

@@ -78,15 +78,14 @@ public sealed class StudioActiveCloseTests {
     }
 
     [Fact]
-    public async Task ClosingOneBusyTabWaitsWithoutCancellingWorkInAnotherTab() {
+    public async Task ClosingATabNeitherPromptsForNorCancelsWindowWorkflows() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
-            using var firstPermit = await services.Jobs.EnterAsync(CancellationToken.None);
+            using var permit = await services.Jobs.EnterAsync(CancellationToken.None);
             using var secondPermit = await services.Jobs.EnterAsync(CancellationToken.None);
             var window = new MainWindow(services);
-            Task? firstRun = null;
-            Task? secondRun = null;
+            Task? run = null;
             try {
                 window.Show();
                 string source = Path.Combine(services.Paths.Root, "first.pdf");
@@ -97,29 +96,29 @@ public sealed class StudioActiveCloseTests {
                 var firstTab = window.TabHost.SelectedTab!;
                 await window.TabHost.OpenDocumentAsync(other);
                 var secondTab = window.TabHost.SelectedTab!;
+                // Workbenches belong to the window: every tab shows the same queue and results.
+                Assert.Same(firstTab.Document.DocumentHealth, secondTab.Document.DocumentHealth);
+                Assert.Same(firstTab.Document.ConversionWorkbench, secondTab.Document.ConversionWorkbench);
+                Assert.Same(firstTab.Document.Settings, secondTab.Document.Settings);
                 firstTab.Document.DocumentHealth.InputPath = source;
-                secondTab.Document.DocumentHealth.InputPath = other;
-                firstRun = firstTab.Document.DocumentHealth.RunCommand.ExecuteAsync(null);
-                secondRun = secondTab.Document.DocumentHealth.RunCommand.ExecuteAsync(null);
-                Assert.True(firstTab.Document.CanCancelOperation);
-                Assert.True(secondTab.Document.CanCancelOperation);
-                Task closing = window.TabHost.CloseTabAsync(firstTab);
-                var dialog = Assert.Single(window.OwnedWindows.OfType<ActiveOperationsDialog>());
-                Click(dialog, "CancelWorkAndClose");
-                await firstRun.WaitAsync(TimeSpan.FromSeconds(5));
-                await closing.WaitAsync(TimeSpan.FromSeconds(5));
+                run = firstTab.Document.DocumentHealth.RunCommand.ExecuteAsync(null);
+                Assert.True(firstTab.Document.DocumentHealth.IsBusy);
+                Assert.False(firstTab.Document.CanCancelOperation);
+                Assert.True(window.TabHost.HasBusyDocuments);
+
+                await window.TabHost.CloseTabAsync(firstTab).WaitAsync(TimeSpan.FromSeconds(5));
+                Assert.Empty(window.OwnedWindows.OfType<ActiveOperationsDialog>());
                 Assert.Same(secondTab, Assert.Single(window.TabHost.Tabs));
-                Assert.True(secondTab.Document.CanCancelOperation);
-                Assert.True(window.IsVisible);
-                firstPermit.Dispose(); secondPermit.Dispose();
-                await secondRun.WaitAsync(TimeSpan.FromSeconds(10));
-                Assert.Equal(1, services.Jobs.Entries.Count(entry => entry.Status == "Cancelled"));
+                Assert.True(secondTab.Document.DocumentHealth.IsBusy);
+
+                permit.Dispose(); secondPermit.Dispose();
+                await run.WaitAsync(TimeSpan.FromSeconds(10));
                 Assert.Equal(1, services.Jobs.Entries.Count(entry => entry.Status == "Completed"));
+                Assert.Equal(0, services.Jobs.Entries.Count(entry => entry.Status == "Cancelled"));
             } finally {
-                firstPermit.Dispose(); secondPermit.Dispose();
+                permit.Dispose(); secondPermit.Dispose();
                 window.TabHost.CancelAllOperations();
-                if (firstRun is not null) await firstRun;
-                if (secondRun is not null) await secondRun;
+                if (run is not null) await run;
                 foreach (Window dialog in window.OwnedWindows.ToArray()) dialog.Close(false);
                 window.Close();
             }

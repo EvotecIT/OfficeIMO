@@ -185,7 +185,10 @@ internal static partial class PdfAnnotationEditor {
             afterReadOptions: afterReadOptions,
             executionPreference: mutationPlan.ExecutionPreference);
         if (!proof.IsPreservedAppendOnlyMutation) {
-            throw new InvalidOperationException("Append-only annotation mutation did not preserve the input prefix, revision chain, and existing signature byte ranges.");
+            throw new InvalidOperationException("Append-only annotation mutation did not preserve the input prefix, revision chain, and existing signature byte ranges" +
+                $" (prefix {(proof.OriginalBytesArePrefix ? "kept" : "changed")}, revision chain {(proof.RevisionChainExtended ? "extended" : "not extended")}, " +
+                $"signatures {(proof.AllExistingSignaturesArePreserved ? "kept" : "changed")})" +
+                (proof.Diagnostics.Count > 0 ? ": " + string.Join(" ", proof.Diagnostics) : "."));
         }
 
         return proof;

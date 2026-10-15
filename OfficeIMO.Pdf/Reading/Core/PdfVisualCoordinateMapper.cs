@@ -30,9 +30,10 @@ internal static class PdfVisualCoordinateMapper {
     internal static Matrix2D CreateTransform(PdfPageBox pageBox, int rotationDegrees, double userUnit = 1D) {
         Matrix2D cropOrigin = Matrix2D.Translation(-pageBox.Left, -pageBox.Bottom);
         Matrix2D rotation = rotationDegrees switch {
-            90 => new Matrix2D(0D, 1D, -1D, 0D, pageBox.Height, 0D),
+            // /Rotate is clockwise. PDF user-space y points up; visual top-left conversion follows below.
+            90 => new Matrix2D(0D, -1D, 1D, 0D, 0D, pageBox.Width),
             180 => new Matrix2D(-1D, 0D, 0D, -1D, pageBox.Width, pageBox.Height),
-            270 => new Matrix2D(0D, -1D, 1D, 0D, 0D, pageBox.Width),
+            270 => new Matrix2D(0D, 1D, -1D, 0D, pageBox.Height, 0D),
             _ => Matrix2D.Identity
         };
         Matrix2D transform = Matrix2D.Multiply(rotation, cropOrigin);

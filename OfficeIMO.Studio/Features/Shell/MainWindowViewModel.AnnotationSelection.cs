@@ -61,7 +61,7 @@ public sealed partial class MainWindowViewModel {
             if (current.Count > 1) SelectedObjectSummary = HasCrossPageAnnotationSelection
                 ? UiFormat("AnnotationSelection.CrossPageCount", current.Count, current.Select(item => item.PageNumber).Distinct().Count())
                 : UiFormat("AnnotationSelection.Count", current.Count, current[0].PageNumber);
-        } catch (Exception error) { ErrorMessage = error.Message; }
+        } catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
 
     private static PdfEditorSelection BoundPageSelection(IReadOnlyList<PdfEditorSelection> members) => members[0] with {

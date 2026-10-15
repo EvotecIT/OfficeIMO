@@ -167,6 +167,7 @@ internal static partial class PdfPageExtractor {
             case PdfReference reference:
                 ValidateReferenceGeneration(reference, context);
                 if (!context.NumberMap.TryGetValue(reference.ObjectNumber, out int newObjectNumber)) {
+                    if (context.UndefinedObjectNumbers.Contains(reference.ObjectNumber)) return 4L;
                     throw new InvalidOperationException("PDF object " + reference.ObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not copied.");
                 }
                 int generation = context.PreserveReferenceGenerations && newObjectNumber == reference.ObjectNumber
@@ -351,6 +352,10 @@ internal static partial class PdfPageExtractor {
             case PdfReference reference:
                 ValidateReferenceGeneration(reference, context);
                 if (!context.NumberMap.TryGetValue(reference.ObjectNumber, out int newObjectNumber)) {
+                    if (context.UndefinedObjectNumbers.Contains(reference.ObjectNumber)) {
+                        sb.Append("null");
+                        break;
+                    }
                     throw new InvalidOperationException("PDF object " + reference.ObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not copied.");
                 }
 

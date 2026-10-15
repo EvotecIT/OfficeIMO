@@ -49,7 +49,7 @@ public sealed partial class SearchablePdfOcrViewModel {
             Status = T("Status.Cancelled", "OCR cancelled");
         } catch (Exception error) {
             Status = T("Status.Failed", "OCR could not finish");
-            ErrorMessage = error.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(error);
         } finally {
             Review?.Dispose(); Review = null;
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;

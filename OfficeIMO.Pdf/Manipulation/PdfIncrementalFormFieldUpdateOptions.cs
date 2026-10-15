@@ -7,4 +7,7 @@ public sealed class PdfIncrementalFormFieldUpdateOptions {
 
     /// <summary>Append simple widget normal appearance streams for updated text, choice, checkbox, and radio fields.</summary>
     public bool GenerateAppearanceStreams { get; set; }
+
+    /// <summary>How a hybrid AcroForm/XFA form's XFA packet is treated. The default keeps it unchanged.</summary>
+    public PdfFormXfaHandling XfaHandling { get; set; } = PdfFormXfaHandling.Preserve;
 }

@@ -5,10 +5,10 @@
              x:Class="OfficeIMO.Studio.Features.Editor.InlineTextEditorView"
              x:DataType="editor:PdfTextDraftViewModel">
   <Border Background="{DynamicResource StudioPanelBrush}" BorderBrush="{DynamicResource StudioAccentBrush}" BorderThickness="2" CornerRadius="5" Padding="6">
-    <StackPanel Spacing="5">
+    <StackPanel Spacing="{StaticResource StudioSpaceSM}">
       <TextBox x:Name="ReplacementText" Text="{Binding Text}" AcceptsReturn="True" MinHeight="44" MaxHeight="90" TextWrapping="Wrap"
                AutomationProperties.Name="{loc:Loc TextEdit.InlineText}" />
-      <StackPanel Orientation="Horizontal" Spacing="5">
+      <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}">
         <Button Content="{loc:Loc TextEdit.Preview}" Command="{Binding PreviewCommand}" IsEnabled="{Binding IsReady}" />
         <Button Content="{loc:Loc DocumentWorkspace.Cancel}" Command="{Binding CancelCommand}" />
       </StackPanel>

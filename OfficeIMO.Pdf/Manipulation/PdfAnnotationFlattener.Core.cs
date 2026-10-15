@@ -26,6 +26,7 @@ internal static partial class PdfAnnotationFlattener {
             var pageAnnotations = new List<FlattenVisualAnnotationState>();
             var remainingAnnots = new PdfArray();
             var flattenedAnnotationObjectNumbers = new HashSet<int>();
+            int flattenedOnPage = 0;
             for (int i = 0; i < annots.Items.Count; i++) {
                 PdfObject annotObject = annots.Items[i];
                 PdfDictionary? annotation = ResolveDictionary(objects, annotObject);
@@ -49,15 +50,17 @@ internal static partial class PdfAnnotationFlattener {
                     appearanceReference = CreateSyntheticAppearanceReference(objects, annotation, subtype, x, y, width, height, ref nextObjectNumber);
                 }
 
-                Matrix2D placement = ReadAppearancePlacement(objects, appearanceReference!, x, y, width, height);
-                pageAnnotations.Add(new FlattenVisualAnnotationState(placement, appearanceReference!.ObjectNumber));
+                // An appearance that encloses no area is flattened without drawing anything.
+                if (TryReadAppearancePlacement(objects, appearanceReference!, x, y, width, height, out Matrix2D placement))
+                    pageAnnotations.Add(new FlattenVisualAnnotationState(placement, appearanceReference!.ObjectNumber));
+                flattenedOnPage++;
                 if (annotObject is PdfReference annotationReference) {
                     flattenedAnnotationObjectNumbers.Add(annotationReference.ObjectNumber);
                     objects.Remove(annotationReference.ObjectNumber);
                 }
             }
 
-            if (pageAnnotations.Count == 0) {
+            if (flattenedOnPage == 0) {
                 continue;
             }
 
@@ -67,6 +70,10 @@ internal static partial class PdfAnnotationFlattener {
                 page.Items.Remove("Annots");
             } else {
                 page.Items["Annots"] = remainingAnnots;
+            }
+            flattenedCount += flattenedOnPage;
+            if (pageAnnotations.Count == 0) {
+                continue;
             }
 
             string content = BuildFlattenContent(objects, page, pageAnnotations);
@@ -78,7 +85,6 @@ internal static partial class PdfAnnotationFlattener {
             totalContentOperations = totalContentOperations > int.MaxValue - addedOperations
                 ? int.MaxValue : totalContentOperations + addedOperations;
             AppendPageContent(objects, page, contentObjectNumber);
-            flattenedCount += pageAnnotations.Count;
             maximumContentBytes = Math.Max(maximumContentBytes, contentStream.Data.Length);
             totalContentBytes = totalContentBytes > long.MaxValue - contentStream.Data.LongLength
                 ? long.MaxValue
@@ -95,7 +101,7 @@ internal static partial class PdfAnnotationFlattener {
             additionalRetainedContentBytes: totalContentBytes,
             additionalContentOperations: maximumContentOperations,
             additionalContentOperands: maximumContentOperands,
-            additionalContentNestingDepth: flattenedCount == 0 ? 0 : 1,
+            additionalContentNestingDepth: addedContentContexts == 0 ? 0 : 1,
             additionalPrintProductionContexts: addedContentContexts,
             additionalPrintProductionOperations: totalContentOperations > int.MaxValue / 2
                 ? int.MaxValue : totalContentOperations * 2);

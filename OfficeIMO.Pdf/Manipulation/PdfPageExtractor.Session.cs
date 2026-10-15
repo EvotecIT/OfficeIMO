@@ -9,6 +9,8 @@ internal static partial class PdfPageExtractor {
         private PdfMetadata? _metadata;
         private readonly CatalogRewriteState _catalog;
         private readonly PdfFileVersion _fileVersion;
+        private readonly byte[] _source;
+        private readonly PdfLoadOptions? _options;
 
         private readonly CancellationToken _cancellationToken;
 
@@ -20,6 +22,8 @@ internal static partial class PdfPageExtractor {
             Guard.NotNull(pdf, nameof(pdf));
             cancellationToken.ThrowIfCancellationRequested();
             _cancellationToken = cancellationToken;
+            _source = pdf;
+            _options = options;
             (_, _document) = documentFactory == null
                 ? PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, options, cancellationToken: cancellationToken)
                 : PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, documentFactory, options, cancellationToken: cancellationToken);
@@ -34,6 +38,8 @@ internal static partial class PdfPageExtractor {
             Guard.NotNull(pageNumbers, nameof(pageNumbers));
             if (pageNumbers.Length == 0) throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
             ValidatePageNumbers(pageNumbers, PageCount, nameof(pageNumbers), _cancellationToken);
+            if (PdfTaggedPageOrganizer.IsTagged(_document))
+                return PdfTaggedPageOrganizer.Rewrite(_source, _document, pageNumbers, _options, maximumOutputBytes, token: _cancellationToken);
             var objects = new int[pageNumbers.Length];
             for (int index = 0; index < pageNumbers.Length; index++) {
                 _cancellationToken.ThrowIfCancellationRequested();

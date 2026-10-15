@@ -77,8 +77,12 @@ public sealed partial class PdfPageView : UserControl {
         if (_viewModel is null) return;
         _contextPoint = e.TryGetPosition(PageCanvas, out Point point) ? point : null;
         bool hasSelection = PageCanvas.HasTextSelection;
+        bool annotations = PageCanvas.SelectionMode == PdfEditorSelectionMode.Annotations;
         foreach (MenuItem item in PageMenu.Items.OfType<MenuItem>()) {
             if (Equals(item.Tag, "selection")) item.IsEnabled = hasSelection;
+            if (Equals(item.Tag, "annotations")) item.IsVisible = annotations;
+            // The markup names Ctrl; Apple platforms show and answer the Command key.
+            if (item.InputGesture is { KeyModifiers: KeyModifiers.Control } gesture) item.InputGesture = Shell.StudioShortcuts.Primary(gesture.Key);
         }
         SelectionActions.Hide();
         PageMenu.ShowAt(PageCanvas, showAtPointer: true);
@@ -91,6 +95,8 @@ public sealed partial class PdfPageView : UserControl {
     }
 
     private void OnSelectAllClick(object? sender, RoutedEventArgs e) => PageCanvas.SelectAllPageText();
+
+    private void OnSelectAllAnnotationsClick(object? sender, RoutedEventArgs e) => PageCanvas.SelectAllAnnotations();
 
     private void OnHighlightSelectionClick(object? sender, RoutedEventArgs e) => RequestSelectionMarkup(PdfEditorTool.Highlight);
 

@@ -28,7 +28,9 @@ public sealed class PdfRestrictedRasterGeometryTests {
             PdfDocumentSession session = PdfDocumentSession.FromWorkspace(workspace);
             PdfPageScene scene = await session.LoadPageSceneAsync(1, default);
             Assert.True(scene.RequiresRasterFallback);
-            Assert.Null(scene.Interactions);
+            PdfPageInteractionMap interactions = Assert.IsType<PdfPageInteractionMap>(scene.Interactions);
+            Assert.Empty(interactions.Regions);
+            Assert.Empty(interactions.TextRegions);
             Assert.Empty(scene.Drawing.Elements);
             double width = rotation == 90 ? 1584D : 1224D;
             double height = rotation == 90 ? 1224D : 1584D;

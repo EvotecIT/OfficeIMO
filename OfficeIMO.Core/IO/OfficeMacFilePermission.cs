@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace OfficeIMO.Core.Internal;
 
-/// <summary>Retains the resolved native URL for the exact lifetime of a macOS file permission.</summary>
+/// <summary>Retains the resolved native URL for the exact lifetime of an Apple file permission.</summary>
 internal sealed class OfficeMacFilePermission : IDisposable {
     private const string Prefix = "officeimo.mac.v1:";
     private const int MaximumBookmarkBytes = 24_000;
@@ -57,13 +57,23 @@ internal sealed class OfficeMacFilePermission : IDisposable {
         try { bytes = Convert.FromBase64String(bookmark.Substring(Prefix.Length)); }
         catch (FormatException exception) { throw new IOException("The native file permission is invalid.", exception); }
         if (bytes.Length == 0 || bytes.Length > MaximumBookmarkBytes) throw new IOException("The native file permission is empty or exceeds the supported size.");
+        return OpenBookmarkData(bytes, expectedPath);
+    }
+
+    /// <summary>Opens native bookmark data supplied by a picker, including an iOS folder grant.</summary>
+    internal static OfficeMacFilePermission OpenBookmarkData(byte[] bytes, string expectedPath) {
+        bool mac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+        if (!mac && !RuntimeInformation.IsOSPlatform(OSPlatform.Create("IOS")))
+            throw new PlatformNotSupportedException("Native file permissions require macOS or iOS.");
+        if (bytes.Length == 0 || bytes.Length > MaximumBookmarkBytes)
+            throw new IOException("The native file permission is empty or exceeds the supported size.");
         IntPtr data = CFDataCreate(IntPtr.Zero, bytes, (IntPtr)bytes.Length);
         IntPtr url = IntPtr.Zero, error = IntPtr.Zero;
         bool started = false, retained = false;
         try {
             if (data == IntPtr.Zero) throw new IOException("The native file permission could not be loaded.");
             url = CFURLCreateByResolvingBookmarkData(IntPtr.Zero, data,
-                (UIntPtr)((1u << 8) | (1u << 9) | (1u << 10)), IntPtr.Zero, IntPtr.Zero, out _, out error);
+                (UIntPtr)((1u << 8) | (mac ? (1u << 9) | (1u << 10) : 0u)), IntPtr.Zero, IntPtr.Zero, out _, out error);
             if (url == IntPtr.Zero) throw new IOException("The saved file permission is unavailable. Select the file again.");
             string resolved = CopyPath(url);
             if (!string.Equals(Path.GetFullPath(resolved), Path.GetFullPath(expectedPath), StringComparison.Ordinal))

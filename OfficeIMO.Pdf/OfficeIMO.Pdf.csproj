@@ -76,6 +76,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Chm.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO.Studio.Core" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />

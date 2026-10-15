@@ -62,12 +62,14 @@ internal static partial class PdfAnnotationFlattener {
         return width > 0D && height > 0D;
     }
 
-    private static Matrix2D ReadAppearancePlacement(Dictionary<int, PdfIndirectObject> objects, PdfReference appearanceReference, double x, double y, double width, double height) {
+    /// <summary>Returns false for an appearance that encloses no area: it paints nothing, so flattening draws nothing.</summary>
+    private static bool TryReadAppearancePlacement(Dictionary<int, PdfIndirectObject> objects, PdfReference appearanceReference, double x, double y, double width, double height,
+        out Matrix2D placement) {
         if (!PdfObjectLookup.TryGet(objects, appearanceReference, out var appearanceObject) ||
             appearanceObject.Value is not PdfStream appearanceStream)
             throw new InvalidOperationException("The annotation appearance stream is missing.");
-        return PdfAppearancePlacement.Read(appearanceStream.Dictionary, value => ResolveObject(objects, value),
-            x, y, width, height, out _);
+        return PdfAppearancePlacement.TryRead(appearanceStream.Dictionary, value => ResolveObject(objects, value),
+            x, y, width, height, out placement, out _);
     }
 
     private static bool TryReadBoxCoordinates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out double x, out double y, out double width, out double height) {

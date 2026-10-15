@@ -172,17 +172,17 @@ public sealed partial class MainWindowViewModel {
             cancellationToken).ConfigureAwait(true);
         if (!succeeded || report is null) return;
         SignatureValidationSummary = report.HasSignatures
-            ? $"{report.SignatureCount} signature(s) · {report.ProofStatus}"
-            : "No certificate signatures found";
+            ? UiFormat("Signing.Validation.Summary", report.SignatureCount, report.ProofStatus)
+            : UiText("Signing.Validation.None");
         SignatureValidationFindings.Clear();
         foreach (PdfSignatureValidationResult signature in report.Signatures) {
-            string name = signature.Signature.SignerName ?? signature.Signature.FieldName ?? "Unnamed signature";
-            SignatureValidationFindings.Add(name + " · " + (signature.IsStructurallyValid ? "structure valid" : "structural issue"));
+            string name = signature.Signature.SignerName ?? signature.Signature.FieldName ?? UiText("Signing.Validation.Unnamed");
+            SignatureValidationFindings.Add(UiFormat(signature.IsStructurallyValid ? "Signing.Validation.StructureValid" : "Signing.Validation.StructureIssue", name));
         }
         foreach (PdfSignatureValidationFinding finding in report.Findings.Where(static finding => finding.Severity != PdfDiagnosticSeverity.Info)) {
             SignatureValidationFindings.Add(finding.Severity + " · " + finding.Message);
         }
-        OperationStatus = "Signature validation complete";
+        OperationStatus = UiText("Signing.Validation.Complete");
     }
 
     private void ResetDocumentSecurityState() {

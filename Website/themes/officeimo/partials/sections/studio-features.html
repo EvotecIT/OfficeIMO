@@ -1,0 +1,67 @@
+{{~ features = data.studio_features ~}}
+{{~ if features ~}}
+{{~ state_labels = {} ~}}{{~ for state in features.states ~}}{{~ state_labels[state.id] = state ~}}{{~ end ~}}
+{{~ app_by_id = {} ~}}{{~ for studio_app in features.apps ~}}{{~ app_by_id[studio_app.id] = studio_app ~}}{{~ end ~}}
+<section class="imo-container imo-studio-features" id="features" aria-labelledby="studio-features-title">
+  <p class="imo-application-eyebrow">On each system</p>
+  <h2 id="studio-features-title">What Studio does where</h2>
+  <div class="imo-studio-features__apps">
+    {{~ for studio_app in features.apps ~}}
+    <article data-status="{{ studio_app.status }}"><p class="imo-application-eyebrow">{{ studio_app.statusLabel }}</p><h3>{{ studio_app.name }}</h3><p>{{ studio_app.detail }}</p></article>
+    {{~ end ~}}
+  </div>
+  <ul class="imo-studio-features__key" aria-label="Support states">
+    {{~ for state in features.states ~}}<li><span class="imo-studio-state" data-state="{{ state.id }}">{{ state.label }}</span> {{ state.description }}</li>{{~ end ~}}
+  </ul>
+  <div class="imo-studio-matrix" role="region" aria-labelledby="studio-features-title" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Feature</th>
+          {{~ for platform in features.platforms ~}}
+          <th scope="col">{{ platform.label }}<small>{{ app_by_id[platform.app].statusLabel }}</small></th>
+          {{~ end ~}}
+        </tr>
+      </thead>
+      {{~ for group in features.groups ~}}
+      <tbody id="features-{{ group.id }}">
+        <tr class="imo-studio-matrix__group"><th scope="colgroup" colspan="{{ features.platforms.size + 1 }}">{{ group.title }}</th></tr>
+        {{~ for feature in group.features ~}}
+        <tr id="feature-{{ feature.id }}">
+          <th scope="row"><b>{{ feature.title }}</b><small>{{ feature.detail }}</small></th>
+          {{~ for platform in features.platforms ~}}
+          {{~ state_id = feature.support[platform.id] ~}}
+          {{~ note = feature.notes ? feature.notes[platform.id] : null ~}}
+          <td data-label="{{ platform.label }}">
+            {{~ if state_id == "planned" && feature.roadmap ~}}
+            <a class="imo-studio-state" data-state="planned" href="{{ features.roadmapBase }}#{{ feature.roadmap }}">{{ state_labels[state_id].label }}<span class="imo-visually-hidden"> on the roadmap</span></a>
+            {{~ else ~}}
+            <span class="imo-studio-state" data-state="{{ state_id }}">{{ state_labels[state_id].label }}{{ if state_id == "not-applicable" }}<span class="imo-visually-hidden">Not part of the app on {{ platform.label }}</span>{{ end }}</span>
+            {{~ end ~}}
+            {{~ if note ~}}<small>{{ note }}</small>{{~ end ~}}
+          </td>
+          {{~ end ~}}
+        </tr>
+        {{~ end ~}}
+      </tbody>
+      {{~ end ~}}
+    </table>
+  </div>
+</section>
+{{~ if features.roadmap ~}}
+<section class="imo-container imo-studio-roadmap" aria-labelledby="studio-roadmap-title">
+  <p class="imo-application-eyebrow">Roadmap</p>
+  <h2 id="studio-roadmap-title">What comes next</h2>
+  <div class="imo-studio-roadmap__grid">
+    {{~ for milestone in features.roadmap ~}}
+    <article>
+      <h3>{{ milestone.title }}</h3>
+      <p>{{ milestone.detail }}</p>
+      <ul aria-label="Systems">{{~ for platform_id in milestone.platforms ~}}{{~ for platform in features.platforms ~}}{{~ if platform.id == platform_id ~}}<li>{{ platform.label }}</li>{{~ end ~}}{{~ end ~}}{{~ end ~}}</ul>
+      <a href="{{ features.roadmapBase }}#{{ milestone.anchor }}">On the roadmap →</a>
+    </article>
+    {{~ end ~}}
+  </div>
+</section>
+{{~ end ~}}
+{{~ end ~}}

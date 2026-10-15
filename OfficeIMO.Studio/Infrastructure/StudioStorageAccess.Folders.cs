@@ -9,19 +9,11 @@ internal sealed partial class StudioStorageAccess {
     private readonly Dictionary<string, IStorageFolder> _folders = new(StringComparer.Ordinal);
     private readonly HashSet<IStorageFolder> _retiredFolders = new(ReferenceEqualityComparer.Instance);
 
-    private static async Task<IStorageFile?> FindFolderFileAsync(IStorageFolder folder, string name, CancellationToken token) {
-        token.ThrowIfCancellationRequested();
-        if (!OperatingSystem.IsIOS()) return await folder.GetFileAsync(name).ConfigureAwait(false);
-        // Avalonia's iOS enumeration carries the selected folder's security-scoped URL into
-        // each child. GetFileAsync currently drops that ancestor, so its streams lose access.
-        int count = 0;
-        await foreach (IStorageItem item in folder.GetItemsAsync().WithCancellation(token).ConfigureAwait(false)) {
-            if (++count > 10_000) { item.Dispose(); throw new IOException("The selected folder exceeds the supported entry limit."); }
-            if (item is IStorageFile file && string.Equals(item.Name, name, StringComparison.Ordinal)) return file;
-            item.Dispose();
-        }
-        return null;
+    internal bool OwnsProviderItem(IStorageItem item) {
+        lock (_sync) return _files.Values.Any(file => ReferenceEquals(file, item)) || _retiredFiles.Any(file => ReferenceEquals(file, item)) ||
+            _folders.Values.Any(folder => ReferenceEquals(folder, item)) || _retiredFolders.Any(folder => ReferenceEquals(folder, item));
     }
+
 
     internal bool IsKnownLocation(string location) {
         lock (_sync) return _references.ContainsKey(OfficeStorageIdentity.Normalize(location));
@@ -29,26 +21,33 @@ internal sealed partial class StudioStorageAccess {
 
     internal bool IsFolder(string location) { lock (_sync) return _folders.ContainsKey(OfficeStorageIdentity.Normalize(location)); }
 
-    internal Task<string?> RegisterFolderAsync(IReadOnlyList<IStorageFolder> folders, CancellationToken token) {
-        if (folders.Count == 0) { token.ThrowIfCancellationRequested(); return Task.FromResult<string?>(null); }
+    internal async Task<string?> RegisterFolderAsync(IReadOnlyList<IStorageFolder> folders, CancellationToken token) {
+        if (folders.Count == 0) { token.ThrowIfCancellationRequested(); return null; }
         IStorageFolder selected = folders[0];
         foreach (var extra in folders.Skip(1).Distinct<IStorageFolder>(ReferenceEqualityComparer.Instance))
             if (!ReferenceEquals(extra, selected)) extra.Dispose();
         bool retained = false;
+        OfficeIMO.Core.Internal.OfficeMacFilePermission? permission = null;
         try {
             token.ThrowIfCancellationRequested();
             string location = Location(selected);
             if (location.Length > 4096 || string.IsNullOrWhiteSpace(selected.Name) || selected.Name.Length > 4096)
                 throw new IOException("The provider folder reference exceeds the supported size.");
+            string? bookmark = NeedsFolderPermission && OfficeStorageIdentity.GetLocalPath(location) is not null
+                ? selected.CanBookmark ? await selected.SaveBookmarkAsync().ConfigureAwait(true) : null : null;
+            if (OfficeStorageIdentity.GetLocalPath(location) is { } local) permission = OpenFolderPermission(local, bookmark);
+            token.ThrowIfCancellationRequested();
             lock (_sync) {
                 ObjectDisposedException.ThrowIf(_disposed, this);
                 if (_folders.TryGetValue(location, out var previous) && !ReferenceEquals(previous, selected)) _retiredFolders.Add(previous);
                 _folders[location] = selected;
-                _references[location] = new(location, selected.Name);
+                _references[location] = new(location, selected.Name, bookmark);
+                RetainFolderPermission(location, permission);
+                permission = null;
                 retained = true;
             }
-            return Task.FromResult<string?>(location);
-        } finally { if (!retained) selected.Dispose(); }
+            return location;
+        } finally { permission?.Dispose(); if (!retained) selected.Dispose(); }
     }
 
     internal DirectoryInputSession CreateDirectoryInputs(IEnumerable<string> locations) {

@@ -87,6 +87,7 @@ internal static partial class PdfSyntax {
         int? docMDPPermissionLevel = null;
         bool hasUsageRights = false;
         var usageRightsObjectNumbers = new List<int>();
+        var usageRightsFormPermissions = new List<string>();
         PdfDocumentDssInfo documentSecurityStore = PdfDocumentDssInfo.Empty;
 
         if (includeParsedDetails) {
@@ -150,6 +151,7 @@ internal static partial class PdfSyntax {
                         out docMDPPermissionLevel,
                         out hasUsageRights,
                         usageRightsObjectNumbers,
+                        usageRightsFormPermissions,
                         cancellationToken);
                 }
 
@@ -256,6 +258,7 @@ internal static partial class PdfSyntax {
             docMDPPermissionLevel,
             hasUsageRights,
             usageRightsObjectNumbers.Count == 0 ? Array.Empty<int>() : usageRightsObjectNumbers.AsReadOnly(),
+            usageRightsFormPermissions.Count == 0 ? Array.Empty<string>() : usageRightsFormPermissions.AsReadOnly(),
             documentSecurityStore,
             rootObjectNumber,
             rootObjectGeneration,
@@ -283,6 +286,7 @@ internal static partial class PdfSyntax {
         out int? docMDPPermissionLevel,
         out bool hasUsageRights,
         List<int> usageRightsObjectNumbers,
+        List<string> usageRightsFormPermissions,
         CancellationToken cancellationToken) {
         acroFormSignatureFlags = null;
         hasDocMDPPermissions = false;
@@ -316,6 +320,9 @@ internal static partial class PdfSyntax {
             ReadUsageRightsReference(permissions, "UR", usageRightsObjectNumbers);
             ReadUsageRightsReference(permissions, "UR3", usageRightsObjectNumbers);
             hasUsageRights = permissions.Items.ContainsKey("UR") || permissions.Items.ContainsKey("UR3");
+            // UR3 supersedes the legacy UR grant, even when it grants no form rights.
+            string effectiveUsageRightsKey = permissions.Items.ContainsKey("UR3") ? "UR3" : "UR";
+            ReadUsageRightsFormPermissions(objects, permissions, effectiveUsageRightsKey, usageRightsFormPermissions, cancellationToken);
         }
     }
 
@@ -423,6 +430,63 @@ internal static partial class PdfSyntax {
             }
 
             return;
+        }
+    }
+
+    private static void ReadUsageRightsFormPermissions(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary permissions,
+        string key,
+        List<string> formPermissions,
+        CancellationToken cancellationToken) {
+        if (!permissions.Items.TryGetValue(key, out PdfObject? signatureObject) ||
+            ResolveObject(objects, signatureObject) is not PdfDictionary signature ||
+            !signature.Items.TryGetValue("Reference", out PdfObject? referenceObject) ||
+            ResolveObject(objects, referenceObject) is not PdfArray references) {
+            return;
+        }
+
+        for (int i = 0; i < references.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (ResolveObject(objects, references.Items[i]) is not PdfDictionary reference) {
+                continue;
+            }
+
+            string? method = TryReadName(objects, reference, "TransformMethod");
+            if ((!string.Equals(method, "UR", StringComparison.Ordinal) && !string.Equals(method, "UR3", StringComparison.Ordinal)) ||
+                !reference.Items.TryGetValue("TransformParams", out PdfObject? transformParamsObject) ||
+                ResolveObject(objects, transformParamsObject) is not PdfDictionary transformParams) {
+                continue;
+            }
+
+            // ISO 32000-1 Table 255 defaults an absent V to /2.2; an unknown or
+            // incorrectly typed version enables no usage rights.
+            if (transformParams.Items.ContainsKey("V") &&
+                !string.Equals(TryReadName(objects, transformParams, "V"), "2.2", StringComparison.Ordinal)) {
+                continue;
+            }
+
+            if (!transformParams.Items.TryGetValue("Form", out PdfObject? formObject) ||
+                ResolveObject(objects, formObject) is not PdfArray formArray) {
+                continue;
+            }
+
+            // Form is an array of names, not the name-or-text shape used by signature seed values.
+            // A malformed array cannot establish a grant that permits changing signed input.
+            var granted = new List<string>();
+            for (int j = 0; j < formArray.Items.Count; j++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (ResolveObject(objects, formArray.Items[j]) is not PdfName name || string.IsNullOrEmpty(name.Name)) {
+                    granted.Clear();
+                    break;
+                }
+                granted.Add(name.Name);
+            }
+            for (int j = 0; j < granted.Count; j++) {
+                if (!formPermissions.Contains(granted[j])) {
+                    formPermissions.Add(granted[j]);
+                }
+            }
         }
     }
 
@@ -561,12 +625,14 @@ internal static partial class PdfSyntax {
         string token = "/" + key;
         int searchIndex = 0;
         while (TryFindIntegerNameValue(text, token, searchIndex, out int value, out int nextIndex, cancellationToken)) {
+            searchIndex = nextIndex;
+            // A trailer's value is a direct integer. The same key as an indirect reference, such as an outline item's
+            // /Prev 8 0 R, belongs to another dictionary and is not a revision link.
+            if (IsReferenceTail(text, nextIndex, cancellationToken)) continue;
             values.Add(value);
             if (values.Count > maxValues) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxValues, values.Count);
             }
-
-            searchIndex = nextIndex;
         }
 
         return values.Count == 0 ? Array.Empty<int>() : values.AsReadOnly();
@@ -617,6 +683,14 @@ internal static partial class PdfSyntax {
 
         return reference;
     }
+
+    /// <summary>Whether a generation number and R follow an integer, making it an indirect reference.</summary>
+    private static bool IsReferenceTail(string text, int cursor, CancellationToken cancellationToken) =>
+        TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) &&
+        TryReadNonNegativeInteger(text, ref cursor, out _, cancellationToken) &&
+        TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) &&
+        cursor < text.Length && text[cursor] == 'R' &&
+        (cursor + 1 == text.Length || !char.IsLetterOrDigit(text[cursor + 1]));
 
     private static bool TryFindIntegerNameValue(
         string text,

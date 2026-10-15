@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Settings;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Features.Workspace;
@@ -25,7 +26,8 @@ public sealed class StudioRecoveryVisualTests {
             byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf"));
             File.WriteAllBytes(source, bytes);
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(bytes);
-            await services.Recovery.WriteAsync(source, fingerprint, bytes, 1, CancellationToken.None);
+            byte[] edited = PdfDocument.Load(bytes).Pages.Rotate(90, 1).ToBytes();
+            await services.Recovery.WriteAsync(source, fingerprint, edited, 1, CancellationToken.None);
             var window = new MainWindow(services) { Width = width, Height = height };
             try {
                 window.Show();
@@ -54,7 +56,7 @@ public sealed class StudioRecoveryVisualTests {
                 Capture(window, width, dark, "history-cleared");
                 settings.RequestRecoveryClearCommand.Execute(null);
                 Layout(window, width, height);
-                var scroll = (ScrollViewer)view.Content!;
+                var scroll = view.GetVisualDescendants().OfType<ScrollViewer>().Single(viewer => viewer.Name == "SectionScroller");
                 scroll.Offset = new Vector(0, scroll.Extent.Height);
                 Layout(window, width, height);
                 var clear = view.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, settings.ClearRecoveryCommand));

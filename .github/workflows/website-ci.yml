@@ -10,6 +10,8 @@ on:
       - "Docs/Compatibility/generated/**"
       - "Build/CompatibilityCatalog/**"
       - "Build/WebsiteBrowserContract/**"
+      - ".agents/plugins/**"
+      - "Docs/ROADMAP.md"
       - ".github/workflows/website-ci.yml"
   workflow_dispatch:
 

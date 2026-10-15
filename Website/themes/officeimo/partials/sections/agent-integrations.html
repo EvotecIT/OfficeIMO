@@ -1,0 +1,93 @@
+{{~ agents = data.agent_integrations ~}}
+{{~ if agents ~}}
+{{~ version = agents.pluginVersion ~}}
+{{~ state_labels = {} ~}}{{~ for state in agents.states ~}}{{~ state_labels[state.id] = state.label ~}}{{~ end ~}}
+{{~ vscode_url = "vscode:mcp/install?" + (agents.mcpConfig | string.replace "{version}" version | html.url_encode) ~}}
+{{~ cursor_url = "cursor://anysphere.cursor-deeplink/mcp/install?name=officeimo&amp;config=" + (agents.cursorConfig | string.replace "{version}" version | string.base64_encode | html.url_encode) ~}}
+{{~ copy_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' ~}}
+<section class="imo-container imo-agents" id="install" aria-labelledby="agents-install-title">
+  <p class="imo-application-eyebrow">Install</p>
+  <h2 id="agents-install-title">Add OfficeIMO to your agent</h2>
+  <ul class="imo-studio-features__key" aria-label="Installation states">
+    {{~ for state in agents.states ~}}<li><span class="imo-studio-state" data-state="{{ state.id }}">{{ state.label }}</span> {{ state.description }}</li>{{~ end ~}}
+  </ul>
+  <div class="imo-agents__clients">
+    {{~ for client in agents.clients ~}}
+    <article id="client-{{ client.id }}" class="imo-agents__client">
+      <header>
+        <h3>{{ client.name }}</h3>
+        <span class="imo-studio-state" data-state="{{ client.state }}">{{ state_labels[client.state] }}</span>
+      </header>
+      <p class="imo-application-eyebrow">{{ client.kind }}</p>
+      <p>{{ client.detail }}</p>
+      {{~ for command in client.commands ~}}
+      {{~ line = command | string.replace "{version}" version ~}}
+      <div class="imo-agents__command"><code>{{ line }}</code><button class="imo-agents__copy" type="button" aria-label="Copy command" data-copy="{{ line }}">{{ copy_icon }}</button></div>
+      {{~ end ~}}
+      {{~ if client.link == "vscode" ~}}
+      <a class="imo-btn imo-btn-primary" href="{{ vscode_url }}">{{ client.linkLabel }}</a>
+      {{~ else if client.link == "cursor" ~}}
+      <a class="imo-btn imo-btn-primary" href="{{ cursor_url }}">{{ client.linkLabel }}</a>
+      {{~ end ~}}
+      {{~ if client.config == "claude" ~}}
+<pre class="imo-agents__config"><code>{
+  "mcpServers": {
+    "officeimo": {
+      "command": "dotnet",
+      "args": ["dnx", "OfficeIMO.Tool@{{ version }}", "mcp", "serve", "--stdio"],
+      "env": { "OFFICEIMO_MCP_ALLOWED_ROOTS": "/path/to/your/documents" }
+    }
+  }
+}</code></pre>
+      {{~ end ~}}
+    </article>
+    {{~ end ~}}
+  </div>
+  <p class="imo-agents__note">Every client needs the <a href="https://dotnet.microsoft.com/download">.NET SDK 10</a> or later. The server reads and writes only inside the folders named in <code>OFFICEIMO_MCP_ALLOWED_ROOTS</code> (separated by <code>:</code> on macOS and Linux, <code>;</code> on Windows), refuses to start without one, and runs on your computer: documents are not sent anywhere by OfficeIMO.</p>
+</section>
+
+<section class="imo-container imo-agents" id="tools" aria-labelledby="agents-tools-title">
+  <p class="imo-application-eyebrow">What the agent can do</p>
+  <h2 id="agents-tools-title">{{ agents.tools.size }} MCP tools and {{ agents.skills.size }} skills</h2>
+  <div class="imo-agents__skills">
+    {{~ for skill in agents.skills ~}}
+    <article><p class="imo-application-eyebrow">Skill</p><h3><code>{{ skill.name }}</code></h3><p>{{ skill.detail }}</p></article>
+    {{~ end ~}}
+  </div>
+  <div class="imo-studio-matrix imo-agents__tools" role="region" aria-labelledby="agents-tools-title" tabindex="0">
+    <table>
+      <thead><tr><th scope="col">Tool</th><th scope="col">What it does</th><th scope="col">Changes files</th></tr></thead>
+      <tbody>
+        {{~ for tool in agents.tools ~}}
+        <tr id="tool-{{ tool.name }}"><th scope="row"><code>{{ tool.name }}</code></th><td>{{ tool.detail }}</td><td>{{ if tool.writes }}Writes a new file you name{{ else }}Reads only{{ end }}</td></tr>
+        {{~ end ~}}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="imo-container imo-agents" id="directories" aria-labelledby="agents-directories-title">
+  <p class="imo-application-eyebrow">Directories</p>
+  <h2 id="agents-directories-title">Where agents find OfficeIMO</h2>
+  <div class="imo-studio-roadmap__grid">
+    {{~ for directory in agents.directories ~}}
+    <article id="directory-{{ directory.id }}">
+      <span class="imo-studio-state" data-state="{{ directory.state }}">{{ state_labels[directory.state] }}</span>
+      <h3>{{ directory.name }}</h3>
+      <p>{{ directory.detail }}</p>
+      {{~ if directory.url ~}}<a href="{{ directory.url }}">Open {{ directory.name }} →</a>{{~ else if directory.roadmap ~}}<a href="{{ agents.roadmapBase }}#{{ directory.roadmap }}">On the roadmap →</a>{{~ end ~}}
+    </article>
+    {{~ end ~}}
+  </div>
+</section>
+
+<section class="imo-container imo-agents" id="site-for-agents" aria-labelledby="agents-site-title">
+  <p class="imo-application-eyebrow">This website</p>
+  <h2 id="agents-site-title">Made to be read by agents too</h2>
+  <div class="imo-application-channel-grid">
+    {{~ for entry in agents.site ~}}
+    <article><h3>{{ entry.name }}</h3><p>{{ entry.detail }}</p><a href="{{ entry.url }}">{{ entry.url }} →</a></article>
+    {{~ end ~}}
+  </div>
+</section>
+{{~ end ~}}

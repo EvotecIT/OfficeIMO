@@ -4,7 +4,7 @@ using OfficeIMO.Internal;
 namespace OfficeIMO.Studio.Infrastructure;
 
 /// <summary>A durable provider reference. The bookmark grants access; the location identifies the document.</summary>
-internal sealed record StudioStorageReference(string Location, string Name, string? Bookmark = null);
+internal sealed record StudioStorageReference(string Location, string Name, string? Bookmark = null, string? PermissionFolder = null);
 
 internal sealed record StudioStorageSnapshot(byte[] Bytes, string Identity);
 internal sealed record StudioStoragePublication(string Fingerprint, string Identity);
@@ -36,6 +36,7 @@ internal class StudioDocumentStorage : IDisposable {
     }
     internal virtual Task<Stream> OpenWriteAsync(string location, CancellationToken token) =>
         throw new IOException("The storage provider is unavailable. Select the destination again.");
+
     internal virtual string OpenedIdentity(string location, Stream stream) {
         string? path = OfficeStorageIdentity.GetLocalPath(location);
         if (path is null) return OfficeStorageIdentity.Normalize(location);

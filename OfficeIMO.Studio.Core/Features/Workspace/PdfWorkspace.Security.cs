@@ -6,6 +6,16 @@ namespace OfficeIMO.Studio.Features.Workspace;
 internal sealed partial class PdfWorkspace {
     internal bool IsEncrypted => _documentInfo.Security.HasEncryption;
 
+    /// <summary>True when owner authorization is the only barrier to changing password protection.</summary>
+    internal bool RequiresOwnerPasswordForEncryption {
+        get {
+            PdfMutationPlan plan = LoadDocument(_bytes).PlanMutation(PdfMutationOperation.ChangeEncryption);
+            const string ownerRequired = "FullRewrite.Encryption.OwnerAuthorizationRequired";
+            return plan.BlockerCodes.Contains(ownerRequired, StringComparer.Ordinal) &&
+                plan.BlockerCodes.All(code => code == ownerRequired || code.StartsWith("AppendOnly.", StringComparison.Ordinal));
+        }
+    }
+
     internal OfficeIMO.Reader.Pdf.ReaderPdfOptions CreateReaderOptions(int? page = null) {
         ThrowIfDisposed();
         return new() {

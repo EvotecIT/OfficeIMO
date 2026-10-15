@@ -49,7 +49,7 @@ public sealed partial class MainWindowViewModel {
             RefreshSavedSignatures(SavedSignatures, signatures);
             RefreshSavedSignatures(SavedInitials, initials);
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
-            ErrorMessage = error.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(error);
             return;
         }
         NotifySavedSignatures();

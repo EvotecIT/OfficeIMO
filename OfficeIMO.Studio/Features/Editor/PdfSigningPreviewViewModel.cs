@@ -69,11 +69,11 @@ public sealed partial class PdfSigningPreviewViewModel : ObservableObject, IDisp
     }
     [RelayCommand] private async Task OpenOutputAsync() {
         if (!CanOpenOutput) return;
-        try { await _open(OutputPath!); } catch (Exception error) { ErrorMessage = error.Message; }
+        try { await _open(OutputPath!); } catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
     [RelayCommand] private async Task RevealOutputAsync() {
         if (!CanRevealOutput) return;
-        try { await _reveal!(OutputPath!); } catch (Exception error) { ErrorMessage = error.Message; }
+        try { await _reveal!(OutputPath!); } catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
     public void Dispose() => PreviewImage?.Dispose();
 }

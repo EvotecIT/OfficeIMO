@@ -12,14 +12,12 @@ internal static partial class PdfPageEditor {
     internal static byte[] DuplicatePagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions);
 
         if (pageNumbers.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        var document = PdfReadDocument.Open(pdf, readOptions);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers), allowDuplicates: true);
 
         var duplicateCounts = new Dictionary<int, int>();
@@ -31,20 +29,18 @@ internal static partial class PdfPageEditor {
         var ordered = new List<int>(document.Pages.Count + pageNumbers.Length);
         for (int i = 0; i < document.Pages.Count; i++) {
             int pageNumber = i + 1;
-            int pageObjectNumber = document.Pages[i].ObjectNumber;
-            ordered.Add(pageObjectNumber);
+            ordered.Add(pageNumber);
 
             if (!duplicateCounts.TryGetValue(pageNumber, out int count)) {
                 continue;
             }
 
             for (int copy = 0; copy < count; copy++) {
-                ordered.Add(pageObjectNumber);
+                ordered.Add(pageNumber);
             }
         }
 
-        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion);
+        return PdfTaggedPageOrganizer.Rewrite(pdf, document, ordered, readOptions);
     }
 
     /// <summary>

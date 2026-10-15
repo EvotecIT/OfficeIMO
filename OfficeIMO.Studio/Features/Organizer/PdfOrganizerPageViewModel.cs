@@ -39,15 +39,19 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
         int rotationDegrees,
         PageSceneCoordinator sceneCoordinator,
         PageRenderCoordinator renderCoordinator,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        OfficeIMO.Pdf.PdfPageGeometry? geometry = null) {
         PageNumber = pageNumber;
         RotationDegrees = rotationDegrees;
         bool swapsAxes = Math.Abs(rotationDegrees) % 180 == 90;
-        double visualWidth = Math.Max(1D, swapsAxes ? height : width);
-        double visualHeight = Math.Max(1D, swapsAxes ? width : height);
+        double physicalWidth = (geometry?.EffectiveBox?.Width ?? width) * (geometry?.UserUnit ?? 1D);
+        double physicalHeight = (geometry?.EffectiveBox?.Height ?? height) * (geometry?.UserUnit ?? 1D);
+        double visualWidth = Math.Max(1D, swapsAxes ? physicalHeight : physicalWidth);
+        double visualHeight = Math.Max(1D, swapsAxes ? physicalWidth : physicalHeight);
         double scale = Math.Min(112D / visualWidth, 142D / visualHeight);
         ThumbnailWidth = Math.Round(visualWidth * scale, 2);
         ThumbnailHeight = Math.Round(visualHeight * scale, 2);
+        _thumbnailScale = scale;
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;
         _localizer = localizer ?? new StudioLocalizer(System.Globalization.CultureInfo.GetCultureInfo("en"));
@@ -64,6 +68,25 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
     public double ThumbnailHeight { get; }
 
     public bool HasError => !string.IsNullOrWhiteSpace(Error);
+
+    private readonly double _thumbnailScale;
+
+    /// <summary>A crop margin being considered for this page, in points; the thumbnail outlines what would remain.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCropPreview))]
+    [NotifyPropertyChangedFor(nameof(CropPreviewInset))]
+    private double? _cropPreviewMargin;
+
+    public bool HasCropPreview => CropPreviewMargin is > 0D;
+
+    /// <summary>The pending crop margin scaled to the thumbnail, limited so the outline never inverts.</summary>
+    public Avalonia.Thickness CropPreviewInset {
+        get {
+            if (CropPreviewMargin is not double margin || margin <= 0D) return default;
+            double inset = Math.Min(margin * _thumbnailScale, Math.Min(ThumbnailWidth, ThumbnailHeight) / 2D - 1D);
+            return new Avalonia.Thickness(Math.Max(0D, inset));
+        }
+    }
 
     /// <summary>Applies the presenting display's scaling and reloads a raster thumbnail whose resolution changes.</summary>
     internal void SetRenderScaling(double renderScaling) {

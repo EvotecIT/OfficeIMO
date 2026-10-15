@@ -11,6 +11,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Asset package build/pack failed.' }
 $consumer = Join-Path $output 'consumer'
 New-Item -ItemType Directory -Path $consumer -Force | Out-Null
 $consumerProject = Join-Path $consumer 'Consumer.csproj'
+# Keep the external consumer on the repository's SDK even outside its directory tree.
+Copy-Item -LiteralPath (Join-Path $repository 'global.json') -Destination $consumer
 @"
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFrameworks>net8.0;net10.0</TargetFrameworks><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
@@ -34,8 +36,34 @@ Console.WriteLine("Packed .NET consumer verified all twelve assets and their SHA
 '@ | Set-Content -LiteralPath (Join-Path $consumer 'Program.cs') -Encoding utf8
 # A task-local packages directory ensures this tests the archive, not a cached package.
 $packageCache = Join-Path $consumer ('packages/' + [Guid]::NewGuid().ToString('N'))
-& dotnet restore $consumerProject --source $output --packages $packageCache --force --nologo
+# The asset package must come from this archive. Missing SDK reference/host packs
+# may come from NuGet; they are not product dependencies and are not always installed.
+$nugetConfig = Join-Path $consumer 'NuGet.Config'
+$escapedOutput = [Security.SecurityElement]::Escape($output)
+@"
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="local-archive" value="$escapedOutput" />
+    <add key="sdk-packs" value="https://api.nuget.org/v3/index.json" />
+  </packageSources>
+  <packageSourceMapping>
+    <packageSource key="local-archive"><package pattern="OfficeIMO.Browser" /></packageSource>
+    <packageSource key="sdk-packs">
+      <package pattern="Microsoft.NETCore.App.*" />
+      <package pattern="Microsoft.AspNetCore.App.*" />
+      <package pattern="Microsoft.WindowsDesktop.App.*" />
+    </packageSource>
+  </packageSourceMapping>
+</configuration>
+"@ | Set-Content -LiteralPath $nugetConfig -Encoding utf8
+& dotnet restore $consumerProject --configfile $nugetConfig --packages $packageCache --force --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Isolated asset package restore failed.' }
+$archive = Join-Path $output "OfficeIMO.Browser.$version.nupkg"
+$restoredArchive = Join-Path $packageCache "officeimo.browser/$version/officeimo.browser.$version.nupkg"
+if ((Get-FileHash -LiteralPath $archive).Hash -ne (Get-FileHash -LiteralPath $restoredArchive).Hash) {
+    throw 'The consumer did not restore the freshly packed local archive.'
+}
 foreach ($framework in 'net8.0','net10.0') {
     & dotnet run --project $consumerProject -c Release -f $framework --no-restore -- (Join-Path $repository 'OfficeIMO.JavaScript/bundles')
     if ($LASTEXITCODE -ne 0) { throw "Packed consumer failed: $framework" }

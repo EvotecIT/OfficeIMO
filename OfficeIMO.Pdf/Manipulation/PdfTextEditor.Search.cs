@@ -7,6 +7,7 @@ internal static partial class PdfTextEditor {
         PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget? workBudget = null,
         Func<TextSearchUnit, IEnumerable<TextSearchRange>>? findRanges = null,
         bool includeUnsafeSpans = false, int maximumHits = int.MaxValue,
+        Action<int, int, IReadOnlyList<TextSearchHit>>? pageSearched = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
@@ -29,10 +30,11 @@ internal static partial class PdfTextEditor {
             int pageNumber = pages[pageIndex];
             PdfReadPage page = document.Pages[pageNumber - 1];
             (double originX, double originY) = page.GetPageBoundaryOrigin();
+            double pageHeight = page.GetPageSize().Height;
             PdfTextSpan[] spans = (includeUnsafeSpans ? page.GetGlyphTextSpans(cancellationToken: cancellationToken) : page.GetTextSpans(cancellationToken))
                 .Where(span => includeUnsafeSpans
                     ? (span.IsVisible || span.TextRenderingMode == 3) && !string.IsNullOrEmpty(span.Text)
-                    : IsSearchSpan(span, snapshot.IncludeTextRenderingMode3))
+                    : IsFindSpan(span, snapshot.IncludeTextRenderingMode3, pageHeight))
                 .ToArray();
             workBudget?.Charge(spans.Length);
             List<TextLayoutEngine.TextLine> lines = BuildSearchLines(spans);
@@ -90,10 +92,13 @@ internal static partial class PdfTextEditor {
                     pageHits.Add((flow[touchedLines[0]], range.Start, new TextSearchHit(pageNumber, segments, hitLines, match)));
                 }
             }
-            hits.AddRange(pageHits
+            TextSearchHit[] ordered = pageHits
                 .OrderBy(static hit => hit.LineOrder)
                 .ThenBy(static hit => hit.Offset)
-                .Select(static hit => hit.Hit));
+                .Select(static hit => hit.Hit)
+                .ToArray();
+            hits.AddRange(ordered);
+            pageSearched?.Invoke(pageIndex + 1, pages.Length, ordered);
         }
         return hits;
     }

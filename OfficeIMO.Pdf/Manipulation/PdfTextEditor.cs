@@ -543,8 +543,28 @@ internal static partial class PdfTextEditor {
         !string.IsNullOrEmpty(span.Text);
 
     private static bool IsSearchSpan(PdfTextSpan span, bool includeTextRenderingMode3) =>
+        IsPaintedSearchSpan(span, includeTextRenderingMode3) && !span.ClipPath.HasValue;
+
+    /// <summary>
+    /// Text a search finds: unclipped text, and text inside a rectangular clip that contains the whole run. Many
+    /// producers, Word among them, set a page-sized clip before drawing, which hides nothing. Text a clip may cut stays
+    /// out, as it does for editing, which keeps its stricter checks.
+    /// </summary>
+    private static bool IsFindSpan(PdfTextSpan span, bool includeTextRenderingMode3, double pageHeight) {
+        if (!IsPaintedSearchSpan(span, includeTextRenderingMode3)) return false;
+        if (span.ClipPath is not { } clip) return true;
+        if (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping) return false;
+        // Span bounds are in user space from the bottom; the clip is from the page's top, like the rendered page.
+        SpanBounds bounds = GetBounds(span);
+        double top = pageHeight - (bounds.Y + bounds.Height);
+        double bottom = pageHeight - bounds.Y;
+        const double tolerance = 0.5D;
+        return bounds.X >= clip.X - tolerance && bounds.X + bounds.Width <= clip.X + clip.Width + tolerance &&
+               top >= clip.Y - tolerance && bottom <= clip.Y + clip.Height + tolerance;
+    }
+
+    private static bool IsPaintedSearchSpan(PdfTextSpan span, bool includeTextRenderingMode3) =>
         (span.IsVisible || (includeTextRenderingMode3 && span.TextRenderingMode == 3 && !span.IsType3Font)) &&
-        !span.ClipPath.HasValue &&
         (span.TextRenderingMode == 3 || !span.Color.HasValue || span.Color.Value.A > 0) &&
         !string.IsNullOrEmpty(span.Text);
 

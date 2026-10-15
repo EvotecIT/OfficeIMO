@@ -29,6 +29,26 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task ImageExportRejectsProviderFoldersWithoutChangingExistingFiles() {
+        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        document = document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document;
+        using var storage = new OfficeIMO.Studio.Infrastructure.StudioStorageAccess();
+        var source = new TestStorageFile("content://documents/images", document.ToBytes(), name: "images.pdf");
+        string location = await storage.RegisterAsync(source.Item, CancellationToken.None);
+        var folder = new StudioProviderOutputFolderTests.OutputFolder();
+        byte[] sentinel = [1, 2, 3, 4];
+        folder.Files["images-p1-1.png"] = new TestStorageFile("content://folder/selected/images-p1-1.png", sentinel, "images-p1-1.png");
+        string destination = Assert.IsType<string>(await storage.RegisterFolderAsync([folder.Item], CancellationToken.None));
+        using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(location, CancellationToken.None, storage: storage);
+
+        await Assert.ThrowsAsync<IOException>(() => workspace.ExportDocumentAsync(PdfExportKind.Images, destination, CancellationToken.None));
+        Assert.Equal(sentinel, folder.Files["images-p1-1.png"].Bytes);
+        Assert.Equal(0, folder.Creations);
+        Assert.Single(folder.Files);
+        Assert.Equal(document.ToBytes(), source.Bytes);
+    }
+
+    [Fact]
     public async Task ImageExportKeepsExistingFilesAndUsesOneNewBatchName() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-image-export-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -805,15 +825,19 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
-    public async Task TaggedPdfReportsPageMutationAsUnavailableBeforeAnEditStarts() {
+    public async Task TaggedPdfAllowsRotationAndCatalogPreservingOrganization() {
         string fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf");
         using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(fixture, CancellationToken.None);
 
-        Assert.False(workspace.CanMutatePages);
-        Assert.False(workspace.CanExtractPages);
-        Assert.False(workspace.CanImportPages);
-        Assert.NotNull(workspace.SecurityWarning);
-        Assert.Contains("tagged", workspace.SecurityWarning, StringComparison.OrdinalIgnoreCase);
+        Assert.True(workspace.CanMutatePages);
+        Assert.True(workspace.CanRotatePages);
+        Assert.True(workspace.CanExtractPages);
+        Assert.True(workspace.CanImportPages);
+        Assert.False(workspace.CanResizePages);
+        await workspace.DuplicateAsync([1], CancellationToken.None);
+        Assert.Equal(2, workspace.Pages.Count);
+        await workspace.DeleteAsync([1], CancellationToken.None);
+        Assert.Single(workspace.Pages);
     }
 
     [Fact]

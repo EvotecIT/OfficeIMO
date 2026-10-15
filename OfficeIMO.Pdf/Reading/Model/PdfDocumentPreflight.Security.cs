@@ -64,6 +64,10 @@ public sealed partial class PdfDocumentPreflight {
 
             if (security.HasUsageRights) {
                 AddDistinct(messages, "Catalog /Perms contains usage-rights entries; rewrite may invalidate viewer-extended rights.");
+                if (PdfIncrementalUpdater.AllowsUsageRightsFormFillIn(security)) {
+                    AddDistinct(messages, "The usage-rights signature grants form fill-in (/Form /FillIn) and is the only signature; form values can be appended as a new revision that keeps the signed bytes.");
+                    AddDistinct(messages, "Usage-rights signatures permit only append-only form fill-in revisions; other append-only changes would exceed the granted rights.");
+                }
             }
 
             if (security.HasDocumentSecurityStore) {
@@ -110,7 +114,10 @@ public sealed partial class PdfDocumentPreflight {
     public bool RequiresAppendOnlyMutation => Probe.Security.RequiresAppendOnlyMutation;
 
     /// <summary>True when the current OfficeIMO.Pdf writer can safely attempt append-only mutation for this input.</summary>
-    public bool CanAppendOnlyMutate => RequiresAppendOnlyMutation && AppendOnlyMutationDiagnostics.Count == 0;
+    public bool CanAppendOnlyMutate => RequiresAppendOnlyMutation && HasCompleteAppendOnlySource && AppendOnlyMutationReport.CanAppendAny;
+
+    private bool HasCompleteAppendOnlySource => CanRead && _documentInfo is not null &&
+        !HasRewriteBlocker(PdfRewriteBlockerKind.IncompleteObjectGraph);
 
     /// <summary>Append-only mutation policy derived from the same security markers used by the incremental updater.</summary>
     public PdfAppendOnlyMutationReport AppendOnlyMutationReport {
@@ -125,13 +132,13 @@ public sealed partial class PdfDocumentPreflight {
     }
 
     /// <summary>True when OfficeIMO.Pdf can append a metadata-only revision to this input.</summary>
-    public bool CanAppendMetadataRevision => _documentInfo is not null && AppendOnlyMutationReport.CanAppendMetadata;
+    public bool CanAppendMetadataRevision => HasCompleteAppendOnlySource && AppendOnlyMutationReport.CanAppendMetadata;
 
     /// <summary>True when OfficeIMO.Pdf can append simple AcroForm field-value revisions to this input.</summary>
-    public bool CanAppendFormFieldRevision => _documentInfo is not null && AppendOnlyMutationReport.CanAppendFormFields;
+    public bool CanAppendFormFieldRevision => HasCompleteAppendOnlySource && AppendOnlyMutationReport.CanAppendFormFields;
 
     /// <summary>True when OfficeIMO.Pdf can append an external-signature placeholder revision to this input.</summary>
-    public bool CanPrepareExternalSignatureRevision => _documentInfo is not null && AppendOnlyMutationReport.CanPrepareExternalSignature;
+    public bool CanPrepareExternalSignatureRevision => HasCompleteAppendOnlySource && AppendOnlyMutationReport.CanPrepareExternalSignature;
 
     /// <summary>Human-readable diagnostics explaining why append-only mutation cannot be attempted yet.</summary>
     public IReadOnlyList<string> AppendOnlyMutationDiagnostics {
@@ -142,7 +149,9 @@ public sealed partial class PdfDocumentPreflight {
 
             var messages = new List<string>();
             PdfDocumentSecurityInfo security = Probe.Security;
-            if (!security.RequiresAppendOnlyMutation) {
+            // The updater owns action availability. Informational notices and legacy format
+            // diagnostics must not contradict an append path that the same owner supports.
+            if (!security.RequiresAppendOnlyMutation || CanAppendOnlyMutate) {
                 _appendOnlyMutationDiagnostics = Array.Empty<string>();
                 return _appendOnlyMutationDiagnostics;
             }
@@ -157,19 +166,26 @@ public sealed partial class PdfDocumentPreflight {
                 }
             }
 
+            for (int i = 0; i < RewriteBlockers.Count; i++) {
+                if (RewriteBlockers[i].Kind == PdfRewriteBlockerKind.IncompleteObjectGraph) {
+                    AddDistinct(messages, RewriteBlockers[i].Message);
+                }
+            }
+
             if (security.HasEncryption) {
                 AddDistinct(messages, "Encrypted PDFs cannot be append-only mutated by OfficeIMO.Pdf yet.");
             }
 
+            bool usageRightsFormFillIn = PdfIncrementalUpdater.AllowsUsageRightsFormFillIn(security);
             if (security.HasSignatures) {
                 if (security.Signatures.Any(static signature => signature.HasFieldLock)) {
                     AddDistinct(messages, "Signature field locks restrict append-only form filling; requested fields must be checked before update.");
                 }
 
-                if (security.HasDocMDPPermissions &&
+                if (usageRightsFormFillIn || (security.HasDocMDPPermissions &&
                     security.DocMDPPermissionLevel.HasValue &&
                     security.DocMDPPermissionLevel.Value >= 2 &&
-                    security.DocMDPPermissionLevel.Value <= 3) {
+                    security.DocMDPPermissionLevel.Value <= 3)) {
                 } else {
                     AddDistinct(messages, "Append-only signature preservation is not implemented by OfficeIMO.Pdf yet.");
                 }
@@ -184,12 +200,12 @@ public sealed partial class PdfDocumentPreflight {
                 }
             }
 
-            if (security.HasUsageRights) {
+            if (security.HasUsageRights && !usageRightsFormFillIn) {
                 AddDistinct(messages, "Usage-rights entries must be preserved before append-only mutation.");
             }
 
-            if (security.HasXrefStreams) {
-                AddDistinct(messages, "Append-only mutation for xref-stream PDFs is not implemented by OfficeIMO.Pdf yet.");
+            if (messages.Count == 0 && !AppendOnlyMutationReport.CanAppendAny) {
+                AddDistinct(messages, AppendOnlyMutationReport.Summary);
             }
 
             _appendOnlyMutationDiagnostics = messages.AsReadOnly();

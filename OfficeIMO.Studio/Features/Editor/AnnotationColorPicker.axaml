@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:infra="using:OfficeIMO.Studio.Infrastructure"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             x:Class="OfficeIMO.Studio.Features.Editor.AnnotationColorPicker"
+             x:DataType="shell:MainWindowViewModel">
+  <!-- One colour picker for new and selected annotations: preset swatches plus an exact hex value. -->
+  <StackPanel Spacing="{StaticResource StudioSpaceSM}">
+    <TextBlock Text="{loc:Loc DocumentWorkspace.Color}" Classes="groupLabel" />
+    <WrapPanel ItemSpacing="{StaticResource StudioSpaceXXS}" LineSpacing="{StaticResource StudioSpaceXXS}">
+      <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#FFD83D}" Command="{Binding SetEditorColorCommand}" CommandParameter="#FFD83D" AutomationProperties.Name="{loc:Loc Color.Yellow}" ToolTip.Tip="{loc:Loc Color.Yellow}"><Border Classes="swatch" Background="#FFD83D" /></Button>
+      <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#5CCB7A}" Command="{Binding SetEditorColorCommand}" CommandParameter="#5CCB7A" AutomationProperties.Name="{loc:Loc Color.Green}" ToolTip.Tip="{loc:Loc Color.Green}"><Border Classes="swatch" Background="#5CCB7A" /></Button>
+      <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#4FA8F0}" Command="{Binding SetEditorColorCommand}" CommandParameter="#4FA8F0" AutomationProperties.Name="{loc:Loc Color.Blue}" ToolTip.Tip="{loc:Loc Color.Blue}"><Border Classes="swatch" Background="#4FA8F0" /></Button>
+      <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#F08BC5}" Command="{Binding SetEditorColorCommand}" CommandParameter="#F08BC5" AutomationProperties.Name="{loc:Loc Color.Pink}" ToolTip.Tip="{loc:Loc Color.Pink}"><Border Classes="swatch" Background="#F08BC5" /></Button>
+      <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#E5484D}" Command="{Binding SetEditorColorCommand}" CommandParameter="#E5484D" AutomationProperties.Name="{loc:Loc Color.Red}" ToolTip.Tip="{loc:Loc Color.Red}"><Border Classes="swatch" Background="#E5484D" /></Button>
+      <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#1F2937}" Command="{Binding SetEditorColorCommand}" CommandParameter="#1F2937" AutomationProperties.Name="{loc:Loc Color.Ink}" ToolTip.Tip="{loc:Loc Color.Ink}"><Border Classes="swatch" Background="#1F2937" /></Button>
+    </WrapPanel>
+    <TextBox Text="{Binding EditorColorHex}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Color}" FontFamily="{StaticResource StudioMonoFont}">
+      <TextBox.InnerLeftContent>
+        <Border Width="14" Height="14" CornerRadius="3" Margin="8,0,0,0" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
+                Background="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.HexBrush}}" />
+      </TextBox.InnerLeftContent>
+    </TextBox>
+  </StackPanel>
+</UserControl>

@@ -181,7 +181,7 @@ public class PdfPageOverlayTests {
             .Single(stream => PdfEncoding.Latin1GetString(stream.Data).Contains("/OIMOStamp", StringComparison.Ordinal));
         string content = PdfEncoding.Latin1GetString(stamp.Data);
 
-        Assert.Contains("0 -1 1 0 10 780 cm", content, StringComparison.Ordinal);
+        Assert.Contains("0 1 -1 0 610 20 cm", content, StringComparison.Ordinal);
         string extracted = PdfReadDocument.Open(result).Pages[0].ExtractText();
         Assert.Contains("Imported", extracted, StringComparison.Ordinal);
         Assert.Contains("geometry", extracted, StringComparison.Ordinal);

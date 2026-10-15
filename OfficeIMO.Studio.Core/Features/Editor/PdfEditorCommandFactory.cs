@@ -5,10 +5,14 @@ namespace OfficeIMO.Studio.Features.Editor;
 internal static class PdfEditorCommandFactory {
     internal static PdfEditorCommand Create(byte[] pdf, PdfEditorTool tool, PdfEditorGesture gesture, PdfEditorProperties properties) {
         ArgumentNullException.ThrowIfNull(pdf);
+        return Create(PdfDocument.Load(pdf), tool, gesture, properties);
+    }
+
+    internal static PdfEditorCommand Create(PdfDocument pdf, PdfEditorTool tool, PdfEditorGesture gesture, PdfEditorProperties properties) {
+        ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(gesture);
         ArgumentNullException.ThrowIfNull(properties);
-        PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
-        PdfLogicalPage page = logical.Pages.FirstOrDefault(candidate => candidate.PageNumber == gesture.PageNumber)
+        PdfPageLayoutInfo page = pdf.GetPageLayouts().FirstOrDefault(candidate => candidate.PageNumber == gesture.PageNumber)
             ?? throw new ArgumentOutOfRangeException(nameof(gesture), "The editor gesture page does not exist in the PDF.");
         PdfPageRectangle bounds = page.MapVisualRectangleToUserSpace(
             gesture.Left,

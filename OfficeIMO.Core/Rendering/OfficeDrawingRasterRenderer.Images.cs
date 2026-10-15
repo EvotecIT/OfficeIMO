@@ -29,6 +29,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 diagnosticSink ?? canvas.DiagnosticSink,
                 diagnosticSource ?? canvas.DiagnosticSource,
                 canvas.TransformedTextBudget,
+                canvas.ImageCache,
                 maximumRasterPixels,
                 cancellationToken,
                 out OfficeRasterImage? image) &&
@@ -62,6 +63,7 @@ public static partial class OfficeDrawingRasterRenderer {
         ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
         string? diagnosticSource,
         OfficeRasterTransformedTextBudget transformedTextBudget,
+        OfficeRasterImageCache? imageCache,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken,
         out OfficeRasterImage? image) {
@@ -97,16 +99,25 @@ public static partial class OfficeDrawingRasterRenderer {
         }
         bool decoded = false;
         image = null;
-        OfficeRasterDecodeInfo decodeInfo;
-        try {
-            decoded = OfficeRasterImageDecoder.TryDecode(bytes, decodeOptions, out image, out decodeInfo) && image != null;
-        } finally {
-            if (!decoded && reservedPixels > 0L) transformedTextBudget.ReleaseIntermediateSurfacePixels(reservedPixels);
+        // A cached image was decoded by the managed decoder without diagnostics, so a hit has none to report.
+        OfficeRasterDecodeInfo? decodeInfo = null;
+        if (imageCache != null && imageCache.TryGetDecoded(bytes, out OfficeRasterImage cachedImage)) {
+            image = cachedImage;
+            decoded = true;
+        } else {
+            try {
+                decoded = OfficeRasterImageDecoder.TryDecode(bytes, decodeOptions, out image, out decodeInfo) && image != null;
+            } finally {
+                if (!decoded && reservedPixels > 0L) transformedTextBudget.ReleaseIntermediateSurfacePixels(reservedPixels);
+            }
+            if (decoded && image != null && decodeInfo != null && !decodeInfo.UsedCallerCodec &&
+                !decodeInfo.AnimationDiscarded && !decodeInfo.FramesOrPagesDiscarded)
+                imageCache?.AddDecoded(bytes, image);
         }
         if (decoded && image != null) {
-            if (decodeInfo.UsedCallerCodec && imageCodec is OfficeRasterImageFallbackCodec successfulFallback)
+            if (decodeInfo != null && decodeInfo.UsedCallerCodec && imageCodec is OfficeRasterImageFallbackCodec successfulFallback)
                 successfulFallback.AddCallerCodecDiagnostic(contentType);
-            if (decodeInfo.AnimationDiscarded || decodeInfo.FramesOrPagesDiscarded) {
+            if (decodeInfo != null && (decodeInfo.AnimationDiscarded || decodeInfo.FramesOrPagesDiscarded)) {
                 diagnosticSink?.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected,
@@ -125,13 +136,15 @@ public static partial class OfficeDrawingRasterRenderer {
             }
             return true;
         }
+        // Only a decode attempt reaches this point, and it always reports its outcome.
+        OfficeRasterDecodeInfo failure = decodeInfo!;
         // A placeholder is a representation of decode failure, not decoded source
         // pixels. Generate it only after validating the managed source container.
-        if (identifiedManagedRaster && decodeInfo.Container != null && imageCodec is OfficeRasterImageFallbackCodec fallback) {
-            int width = Math.Min(32, decodeInfo.Container.CanvasWidth);
-            int height = Math.Min(32, decodeInfo.Container.CanvasHeight);
+        if (identifiedManagedRaster && failure.Container != null && imageCodec is OfficeRasterImageFallbackCodec fallback) {
+            int width = Math.Min(32, failure.Container.CanvasWidth);
+            int height = Math.Min(32, failure.Container.CanvasHeight);
             transformedTextBudget.ChargeIntermediateSurfacePixels((long)width * height, maximumRasterPixels);
-            image = fallback.CreateFallbackImage(contentType, width, height, decodeInfo.Diagnostic);
+            image = fallback.CreateFallbackImage(contentType, width, height, failure.Diagnostic);
             return true;
         }
         // Managed raster providers, including caller-decoded WebP, run inside
@@ -146,7 +159,7 @@ public static partial class OfficeDrawingRasterRenderer {
         if (identifiedManagedRaster && !callerDecodedJpeg ||
             OfficeImageReader.HasWebpSignature(bytes) || OfficeImageReader.HasAvifSignature(bytes, cancellationToken) || !callerCodecInputWithinLimit) {
             AddImageDecodeOmission(diagnosticSink, diagnosticSource,
-                decodeInfo.Diagnostic ?? "The embedded image could not be decoded within the configured limits.");
+                failure.Diagnostic ?? "The embedded image could not be decoded within the configured limits.");
             if (imageCodec is RequiredImageCodec) throw new NotSupportedException(
                 "Raster rendering cannot decode the image within the managed raster limits.");
             return false;
@@ -217,7 +230,7 @@ public static partial class OfficeDrawingRasterRenderer {
         if (jpegFallback != null) {
             int width = Math.Min(32, identified.Width), height = Math.Min(32, identified.Height);
             transformedTextBudget.ChargeIntermediateSurfacePixels((long)width * height, maximumRasterPixels);
-            image = jpegFallback.CreateFallbackImage(contentType, width, height, decodeInfo.Diagnostic);
+            image = jpegFallback.CreateFallbackImage(contentType, width, height, failure.Diagnostic);
             return true;
         }
         return false;

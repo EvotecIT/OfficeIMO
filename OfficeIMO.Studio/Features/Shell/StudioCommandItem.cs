@@ -11,8 +11,14 @@ public sealed class StudioCommandItem : ObservableObject, ICommand {
     private readonly Action? _prepare;
 
     internal StudioCommandItem(string id, string title, string description, string category,
-        string shortcut, bool isTool, ICommand operation, Func<string?> unavailable, Action? prepare = null) {
+        string shortcut, bool isTool, ICommand operation, Func<string?> unavailable, Action? prepare = null, string? categoryId = null,
+        IReadOnlyList<Avalonia.Input.KeyGesture>? gestures = null, bool runsInTextEntry = false) {
         Id = id;
+        CategoryId = categoryId ?? category;
+        Gestures = gestures ?? [];
+        RunsInTextEntry = runsInTextEntry;
+        // Real gestures describe themselves; a context hint such as "Alt+↑ (page list)" stays as written.
+        if (Gestures.Count > 0) shortcut = StudioShortcuts.Describe(Gestures[0]);
         Title = title;
         Description = description;
         Category = category;
@@ -27,7 +33,18 @@ public sealed class StudioCommandItem : ObservableObject, ICommand {
     public string Title { get; }
     public string Description { get; }
     public string Category { get; }
+    /// <summary>The untranslated category used to group and order commands.</summary>
+    public string CategoryId { get; }
     public string Shortcut { get; }
+    /// <summary>Key gestures that run this command from anywhere in the window; the first is the one shown.</summary>
+    public IReadOnlyList<Avalonia.Input.KeyGesture> Gestures { get; }
+    /// <summary>True when the gesture still runs while a text field has focus (file commands), false when the field owns it (undo, zoom).</summary>
+    public bool RunsInTextEntry { get; }
+    public Avalonia.Input.KeyGesture? Gesture => Gestures.Count > 0 ? Gestures[0] : null;
+    /// <summary>Tooltip text for toolbar buttons: the command title with its shortcut, from the same definition the key handler uses.</summary>
+    public string ToolTipText => string.IsNullOrEmpty(Shortcut) ? Title : Title + " (" + Shortcut + ")";
+    /// <summary>Toolbar tooltip that also says why the command cannot run right now.</summary>
+    public string StatusToolTip => UnavailableReason is { Length: > 0 } reason ? ToolTipText + Environment.NewLine + reason : ToolTipText;
     public bool IsTool { get; }
     public string? UnavailableReason => _unavailable();
     public bool IsAvailable => UnavailableReason is null && _operation.CanExecute(null);
@@ -51,6 +68,7 @@ public sealed class StudioCommandItem : ObservableObject, ICommand {
         OnPropertyChanged(nameof(UnavailableReason));
         OnPropertyChanged(nameof(HasUnavailableReason));
         OnPropertyChanged(nameof(IsAvailable));
+        OnPropertyChanged(nameof(StatusToolTip));
         CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
 }

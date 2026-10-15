@@ -25,14 +25,16 @@ internal sealed partial class MobileDocumentHost(
 
     public async Task<string?> PickSaveFileAsync(string title, string suggestedName, StudioFileType type, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        // UIKit's export-based save picker publishes a placeholder immediately. Select a folder
-        // and defer file creation to the shared verified publication path instead.
+        // UIKit's save picker exports an empty placeholder. Select a folder without writing;
+        // the caller's final preview, ownership checks and atomic writer decide publication.
         string? name = await ShowAsync<string>(new MobileFileNameDialogContent(title, suggestedName, type, services.Localizer));
         if (name is null) return null;
         string? folder = await PickFolderAsync(title, cancellationToken);
         if (folder is null) return null;
-        string location = await services.Storage.SelectFileDestinationAsync(folder, name, cancellationToken);
-        return await ConfirmWriteAsync(location) ? location : null;
+        string destination = services.Storage.SelectLocalFileDestination(folder, name);
+        if (File.Exists(destination) && !await ShowAsync<bool>(new MobileReplaceFileDialogContent(name, services.Localizer))) return null;
+        cancellationToken.ThrowIfCancellationRequested();
+        return destination;
     }
 
     public async Task<string?> PickFolderAsync(string title, CancellationToken cancellationToken) {
@@ -44,7 +46,7 @@ internal sealed partial class MobileDocumentHost(
     internal async Task<string?> PickWorkingCopyAsync(string title, StudioFileType type, CancellationToken token) {
         string? location = await PickOpenFileAsync(title, type, token);
         if (location is null) return null;
-        var root = services.LocalDocuments ?? throw new IOException("The mobile document folder is unavailable.");
+        var root = services.LocalDocuments ?? throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.DocumentFolderUnavailable"));
         StudioStorageSnapshot source = await services.Storage.ReadSnapshotAsync(location, token);
         return await root.WriteWorkingCopyAsync(services.Storage.Describe(location).Name, source.Bytes, token);
     }
@@ -73,12 +75,12 @@ internal sealed partial class MobileDocumentHost(
     internal async Task OpenUriAsync(Uri uri) {
         string location = uri.IsFile ? uri.LocalPath : uri.AbsoluteUri;
         if (services.Storage.IsFolder(location) || uri.IsFile && Directory.Exists(location))
-            throw new IOException("Browse the selected output folder in Files. Open an individual result to share it.");
+            throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.BrowseOutputFolder"));
         if (uri.IsFile || services.Storage.IsKnownLocation(location)) {
             await MobileFileSharing.ShareAsync(services, location, share);
             return;
         }
-        var topLevel = TopLevel.GetTopLevel(workspace) ?? throw new IOException("The application is not ready to open a link.");
+        var topLevel = TopLevel.GetTopLevel(workspace) ?? throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.NotReadyToOpenLink"));
         if (!await topLevel.Launcher.LaunchUriAsync(uri)) throw new IOException(services.Localizer.Get("Error.CouldNotOpenLink"));
     }
 

@@ -383,7 +383,7 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task ResizeSelectedPagesAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
-        if (_workspace is not { } workspace || pages.Length == 0 || !CanMutateSelection) return;
+        if (_workspace is not { } workspace || pages.Length == 0 || !CanResizeSelection) return;
         PageSizeChoice size = SelectedPageSize ??= PageSizeChoices[0];
         ResizeModeChoice mode = SelectedResizeMode ??= ResizeModeChoices[0];
         await RunMutationAsync(token => workspace.ResizePagesAsync(pages, size.Size, mode.Mode, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);

@@ -17,9 +17,7 @@ public sealed partial class DocumentWorkspaceView {
             IndependentPanes.DataContext = value;
             if (value is not null) {
                 value.PropertyChanged += OnIndependentPanesChanged;
-                IndependentPanesLabel.Text = value.SplitLabel;
-                AutomationProperties.SetName(IndependentPanesButton, value.SplitLabel);
-                Avalonia.Controls.ToolTip.SetTip(IndependentPanesButton, value.HelpLabel);
+                UpdateIndependentPanesMenuItem();
             }
             ShowContextPanes();
         }
@@ -41,7 +39,20 @@ public sealed partial class DocumentWorkspaceView {
             IndependentPanes.FocusActivePane();
         }, DispatcherPriority.Loaded);
     }
-    private void OnIndependentPanesChanged(object? sender, PropertyChangedEventArgs args) => ShowContextPanes();
+    private MenuItem? IndependentPanesMenuItem => (ViewOptionsButton.Flyout as MenuFlyout)?.Items
+        .OfType<MenuItem>().FirstOrDefault(item => Equals(item.Tag, "independentPanes"));
+    private void OnIndependentPanesChanged(object? sender, PropertyChangedEventArgs args) {
+        // Splitting or joining changes what the menu item does next, so its label follows the pane state.
+        UpdateIndependentPanesMenuItem();
+        ShowContextPanes();
+    }
+
+    private void UpdateIndependentPanesMenuItem() {
+        if (_panes is null || IndependentPanesMenuItem is not { } item) return;
+        item.Header = _panes.SplitLabel;
+        AutomationProperties.SetName(item, _panes.SplitLabel);
+        Avalonia.Controls.ToolTip.SetTip(item, _panes.HelpLabel);
+    }
     private void OnIndependentPanesClick(object? sender, RoutedEventArgs args) {
         Panes?.SplitCommand.Execute(null);
         FocusActiveIndependentPane();

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -19,7 +19,7 @@
     <value>Fügen Sie Dateien hinzu, um Wiedergabetreue, Engine-Details, Diagnosen und das bereitgestellte Ergebnis zu sehen.</value>
   </data>
   <data name="ConversionWorkbench.AddOneOrMoreMatchingFilesTheSelectedRouteProfile" xml:space="preserve">
-    <value>Fügen Sie eine oder mehrere passende Dateien hinzu. Der ausgewählte Konvertierungsweg, das Profil und die Konfliktregel gelten für die Warteschlange.</value>
+    <value>Fügen Sie Dateien hinzu oder legen Sie sie hier ab. Jede Datei erhält die Konvertierung, die ihr Format unterstützt; wählen Sie nur dann ein Ergebnis, wenn ein Format mehrere anbietet.</value>
   </data>
   <data name="ConversionWorkbench.BuildYourConversionQueue" xml:space="preserve">
     <value>Konvertierungswarteschlange zusammenstellen</value>
@@ -31,7 +31,7 @@
     <value>Ordner auswählen</value>
   </data>
   <data name="ConversionWorkbench.ChooseTheResult" xml:space="preserve">
-    <value>Ergebnis auswählen</value>
+    <value>Konvertierungsstandards</value>
   </data>
   <data name="ConversionWorkbench.Clear" xml:space="preserve">
     <value>Leeren</value>
@@ -49,7 +49,7 @@
     <value>Engine</value>
   </data>
   <data name="ConversionWorkbench.FILE" xml:space="preserve">
-    <value>DATEI</value>
+    <value>Datei</value>
   </data>
   <data name="ConversionWorkbench.IfAFileExists" xml:space="preserve">
     <value>Wenn eine Datei vorhanden ist</value>
@@ -67,7 +67,7 @@
     <value>Ausgabeprofil</value>
   </data>
   <data name="ConversionWorkbench.PROGRESS" xml:space="preserve">
-    <value>FORTSCHRITT</value>
+    <value>Fortschritt</value>
   </data>
   <data name="ConversionWorkbench.Remove" xml:space="preserve">
     <value>Entfernen</value>
@@ -136,7 +136,7 @@
     <value>AUSGEWÄHLTER AUFTRAG</value>
   </data>
   <data name="ConversionWorkbench.STATUS" xml:space="preserve">
-    <value>STATUS</value>
+    <value>Status</value>
   </data>
   <data name="ConversionWorkbench.UseEachSourceFolder" xml:space="preserve">
     <value>Jeweiligen Quellordner verwenden</value>
@@ -1177,10 +1177,7 @@
     <value>Englisch ist die neutrale Rückfallsprache. Die erweiterte Testlokalisierung en-XA ist für Prüfungen auf abgeschnittene und fest einprogrammierte Texte verfügbar.</value>
   </data>
   <data name="Settings.LocalizationContract" xml:space="preserve">
-    <value>Die Oberfläche ist auf Englisch, Polnisch, Deutsch und Französisch verfügbar. Weitere Sprachpakete werden nach Prüfung der Übersetzung freigegeben.</value>
-  </data>
-  <data name="Settings.PrivacyAndDiagnostics" xml:space="preserve">
-    <value>Datenschutz und Diagnosen</value>
+    <value>Wählen Sie die Sprache der Benutzeroberfläche in den Einstellungen. Jedes verfügbare Sprachpaket enthält vollständige, geprüfte Übersetzungen.</value>
   </data>
   <data name="Settings.DiagnosticsPrivacyNotice" xml:space="preserve">
     <value>Lokale Diagnosen erfassen Anwendungsbereiche, stabile Ereigniscodes, Laufzeitmetadaten und bereinigte Stapelüberwachungen. Dokumentinhalte, Dokumentnamen, Dokumentpfade und Ausnahmemeldungen werden ausgeschlossen.</value>
@@ -1219,7 +1216,7 @@
     <value>Schließen</value>
   </data>
   <data name="Capability.SignedDocument" xml:space="preserve">
-    <value>Diese PDF enthält Signaturen. Bleiben Sie im Modus „Ansicht“, um die signierten Bytes zu erhalten, oder bearbeiten Sie vor Änderungen eine unsignierte Kopie.</value>
+    <value>Dieses PDF enthält Signaturen. Verfügbar sind nur Aktionen, die die Signaturrichtlinien erlauben.</value>
   </data>
   <data name="Capability.EncryptedDocument" xml:space="preserve">
     <value>Diese PDF ist verschlüsselt. Geben Sie das Eigentümerkennwort unter „Schützen“ ein oder speichern Sie eine zulässige Kopie, bevor Sie den Dokumentinhalt ändern.</value>
@@ -2883,6 +2880,12 @@
   <data name="Redaction.TooManyMarks" xml:space="preserve">
     <value>Eine Prüfung kann höchstens 2.000 Markierungen enthalten. Begrenzen Sie die Suche oder entfernen Sie einige Markierungen.</value>
   </data>
+  <data name="Redaction.SearchPolicyConflict" xml:space="preserve">
+    <value>Dieser Bereich überlappt eine Markierung mit anderen Schwärzungsoptionen. Entfernen Sie die ausgewählte Markierung und fügen Sie den Bereich erneut hinzu, um die neuen Optionen zu verwenden. Prüfen Sie das Ergebnis anschließend.</value>
+  </data>
+  <data name="Redaction.SearchResult" xml:space="preserve">
+    <value>Passende Bereiche gefunden: {0:N0}. Prüfen Sie die markierten Bereiche vor dem Anwenden.</value>
+  </data>
   <data name="Redaction.MatchedTextOnly" xml:space="preserve">
     <value>Nur übereinstimmender Text</value>
   </data>
@@ -2891,12 +2894,6 @@
   </data>
   <data name="Redaction.PreciseSearchScope" xml:space="preserve">
     <value>Die Suche markiert nur den übereinstimmenden Text. Nicht unterstützte Glyphenzuordnungen werden abgelehnt. Die Optionen gelten für neue Suchmarkierungen.</value>
-  </data>
-  <data name="Redaction.SearchPolicyConflict" xml:space="preserve">
-    <value>Dieser Bereich überlappt eine Markierung mit anderen Schwärzungsoptionen. Entfernen Sie die ausgewählte Markierung und fügen Sie den Bereich erneut hinzu, um die neuen Optionen zu verwenden. Prüfen Sie das Ergebnis anschließend.</value>
-  </data>
-  <data name="Redaction.SearchResult" xml:space="preserve">
-    <value>Passende Bereiche gefunden: {0:N0}. Prüfen Sie die markierten Bereiche vor dem Anwenden.</value>
   </data>
   <data name="Redaction.PendingSummary" xml:space="preserve">
     <value>{0:N0} von {1:N0} Markierungen ausgewählt. Prüfen Sie ihre Auswirkungen vor dem Anwenden.</value>
@@ -3738,37 +3735,16 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
     <value>Befehl suchen oder ausführen</value>
   </data>
   <data name="Shell.CommandSearchTip" xml:space="preserve">
-    <value>Befehle und Werkzeuge suchen (Ctrl+K)</value>
-  </data>
-  <data name="Shell.UndoTip" xml:space="preserve">
-    <value>Rückgängig (Ctrl+Z)</value>
-  </data>
-  <data name="Shell.RedoTip" xml:space="preserve">
-    <value>Wiederholen (Ctrl+Shift+Z)</value>
+    <value>Befehle und Werkzeuge suchen ({0})</value>
   </data>
   <data name="Shell.FindTip" xml:space="preserve">
-    <value>Im Dokument suchen (Ctrl+F)</value>
-  </data>
-  <data name="Shell.SaveAsTip" xml:space="preserve">
-    <value>Kopie speichern (Ctrl+Shift+S)</value>
-  </data>
-  <data name="Shell.SaveTip" xml:space="preserve">
-    <value>Änderungen speichern (Ctrl+S)</value>
-  </data>
-  <data name="Shell.FocusTip" xml:space="preserve">
-    <value>Konzentriert lesen (F9)</value>
+    <value>Im Dokument suchen ({0})</value>
   </data>
   <data name="Shell.ExitFocus" xml:space="preserve">
     <value>Konzentriertes Lesen beenden</value>
   </data>
   <data name="Shell.NoBookmarks" xml:space="preserve">
     <value>Dieses Dokument hat keine Lesezeichen.</value>
-  </data>
-  <data name="Shell.MoveUpTip" xml:space="preserve">
-    <value>Ausgewählte Seiten nach vorne verschieben (Alt+Up)</value>
-  </data>
-  <data name="Shell.MoveDownTip" xml:space="preserve">
-    <value>Ausgewählte Seiten nach hinten verschieben (Alt+Down)</value>
   </data>
   <data name="Shell.PageNumber" xml:space="preserve">
     <value>Aktuelle Seite</value>
@@ -3868,9 +3844,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   </data>
   <data name="Tools.Stamp" xml:space="preserve">
     <value>Stempel</value>
-  </data>
-  <data name="Tools.FlattenAnnotationsTip" xml:space="preserve">
-    <value>Jede Anmerkung in dauerhaften Seiteninhalt umwandeln</value>
   </data>
   <data name="Tools.AddTextTip" xml:space="preserve">
     <value>Dauerhaften Seitentext hinzufügen (T)</value>
@@ -4277,17 +4250,14 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="FillSign.Date" xml:space="preserve">
     <value>Datum</value>
   </data>
-  <data name="FillSign.DateTip" xml:space="preserve">
-    <value>Heutiges Datum auf der Seite platzieren</value>
-  </data>
   <data name="FillSign.PlaceSignature" xml:space="preserve">
-    <value>Klicken Sie an die Position der Unterschrift oder ziehen Sie, um ihre Größe festzulegen</value>
+    <value>Klicken Sie an die Position der Unterschrift oder ziehen Sie, um ihre Größe festzulegen. Eingabe platziert sie in der Seitenmitte; Esc bricht ab.</value>
   </data>
   <data name="FillSign.PlaceInitials" xml:space="preserve">
-    <value>Klicken Sie an die Position der Initialen oder ziehen Sie, um ihre Größe festzulegen</value>
+    <value>Klicken Sie an die Position der Initialen oder ziehen Sie, um ihre Größe festzulegen. Eingabe platziert sie in der Seitenmitte; Esc bricht ab.</value>
   </data>
   <data name="FillSign.PlaceDate" xml:space="preserve">
-    <value>Klicken Sie an die Position des Datums</value>
+    <value>Klicken Sie an die Position des Datums. Eingabe platziert es in der Seitenmitte; Esc bricht ab.</value>
   </data>
   <data name="FillSign.SignaturePlaced" xml:space="preserve">
     <value>Signatur hinzugefügt</value>
@@ -5075,6 +5045,24 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Provenance.CheckProvider" xml:space="preserve">
     <value>Überprüfungswerkzeug prüfen</value>
   </data>
+  <data name="Provenance.Credentials" xml:space="preserve">
+    <value>Content Credentials</value>
+  </data>
+  <data name="Provenance.CredentialHint" xml:space="preserve">
+    <value>Dies sind in der Datei gespeicherte Angaben. Das Lesen eines Eintrags prüft weder seine Signatur noch das Vertrauen in das Zertifikat oder die Verknüpfung mit dem Inhalt. Die Ergebnisse der Verifizierung werden separat angezeigt.</value>
+  </data>
+  <data name="Provenance.Timeline" xml:space="preserve">
+    <value>Aufgezeichnete Aktionen</value>
+  </data>
+  <data name="Provenance.TimelineHint" xml:space="preserve">
+    <value>Aktionen aus der aktiven Herkunftserklärung in der aufgezeichneten Reihenfolge. Frühere Manifeste werden gezählt, hier aber nicht im Detail angezeigt; fehlende Zeitangaben bleiben unbekannt.</value>
+  </data>
+  <data name="Provenance.WatermarkHint" xml:space="preserve">
+    <value>Der Eintrag gibt an, dass dem Inhalt ein Wasserzeichen hinzugefügt wurde. Das Entfernen des Herkunftsnachweises entfernt dieses Wasserzeichen nicht.</value>
+  </data>
+  <data name="Provenance.RecordDetails" xml:space="preserve">
+    <value>Details des Eintrags</value>
+  </data>
   <data name="OcrSetup.Title" xml:space="preserve">
     <value>Texterkennung einrichten</value>
   </data>
@@ -5261,321 +5249,1938 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="AnnotationSelection.Deleted" xml:space="preserve">
     <value>Anmerkungen gelöscht</value>
   </data>
-  <data name="Commands.NoFormFields" xml:space="preserve"><value>Dieses Dokument enthält keine benannten Formularfelder.</value></data>
-  <data name="Commands.FirstFormField" xml:space="preserve"><value>Das erste Formularfeld ist ausgewählt.</value></data>
-  <data name="Commands.LastFormField" xml:space="preserve"><value>Das letzte Formularfeld ist ausgewählt.</value></data>
-  <data name="OcrSession.Ready" xml:space="preserve"><value>Fügen Sie PDFs oder Bilder hinzu. Jede Datei wird geprüft, bevor ihre Ausgabe gespeichert wird.</value></data>
-  <data name="OcrSession.Limit" xml:space="preserve"><value>Die OCR-Sitzung ist voll. Entfernen Sie abgeschlossene Einträge, bevor Sie weitere Dateien hinzufügen.</value></data>
-  <data name="OcrSession.Unsupported" xml:space="preserve"><value>Einige ausgewählte Dateien waren weder PDFs noch unterstützte Rasterbilder und wurden nicht hinzugefügt.</value></data>
-  <data name="OcrSession.Preparing" xml:space="preserve"><value>Die OCR-Laufzeit wird vorbereitet…</value></data>
-  <data name="OcrSession.Cancelled" xml:space="preserve"><value>OCR-Sitzung abgebrochen. Abgeschlossene Ausgaben bleiben erhalten.</value></data>
-  <data name="PageExport.Status.Ready" xml:space="preserve"><value>Wählen Sie eine PDF und einen Ausgabeordner.</value></data>
-  <data name="PageExport.Summary.Empty" xml:space="preserve"><value>Noch kein Export</value></data>
-  <data name="PageExport.Status.Cancelled" xml:space="preserve"><value>Seitenexport abgebrochen</value></data>
-  <data name="PageExport.Job.Title" xml:space="preserve"><value>Seitenbildexport</value></data>
-  <data name="PageExport.Status.Completed" xml:space="preserve"><value>Seitenbilder bereit</value></data>
-  <data name="Invoice.Inspect" xml:space="preserve"><value>Prüfen</value></data>
-  <data name="Invoice.Validate" xml:space="preserve"><value>Validieren</value></data>
-  <data name="Invoice.Convert" xml:space="preserve"><value>XML konvertieren</value></data>
-  <data name="Invoice.Render" xml:space="preserve"><value>PDF-Darstellung</value></data>
-  <data name="Invoice.Hybrid" xml:space="preserve"><value>Hybrid-PDF</value></data>
-  <data name="Invoice.Edit" xml:space="preserve"><value>Quellkopfdaten bearbeiten</value></data>
-  <data name="Invoice.Codes" xml:space="preserve"><value>Codes</value></data>
-  <data name="Invoice.Descriptions" xml:space="preserve"><value>Beschreibungen</value></data>
-  <data name="Invoice.CodesDescriptions" xml:space="preserve"><value>Codes und Beschreibungen</value></data>
-  <data name="Invoice.Table.Standard" xml:space="preserve"><value>Standard</value></data>
-  <data name="Invoice.Table.Units" xml:space="preserve"><value>Einheiten einbeziehen</value></data>
-  <data name="Invoice.Table.Identifiers" xml:space="preserve"><value>Positionskennungen einbeziehen</value></data>
-  <data name="Invoice.Ready" xml:space="preserve"><value>Wählen Sie eine Rechnungs-XML-Datei und einen Vorgang.</value></data>
-  <data name="Invoice.Title" xml:space="preserve"><value>Rechnungen</value></data>
-  <data name="Invoice.Description" xml:space="preserve"><value>Prüfen Sie elektronische Rechnungsdaten, validieren Sie die konkrete XML-Datei, erstellen Sie ein anderes Format oder bearbeiten Sie ausgewählte Quellkopfdaten.</value></data>
-  <data name="Invoice.EditingHint" xml:space="preserve"><value>Leere Felder behalten ihre aktuellen Werte. Ersetzungen erfordern ein vorhandenes Feld, das genau einmal vorkommt. Signiertes XML ist geschützt; zugehörige Verweise ändern sich nur, wenn sie separat angegeben werden.</value></data>
-  <data name="Invoice.StandardsHint" xml:space="preserve"><value>Standardprüfungen erfordern die festgelegten Regeldateien und eine Java/Saxon-Laufzeit. Angeforderte Prüfungen müssen bestanden werden, bevor eine Ausgabe erstellt wird.</value></data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve"><value>Externe Java/Saxon-Standardprüfungen sind in der Mac App Store-Version nicht verfügbar. XML-Prüfung, Modellprüfungen, Konvertierung und PDF-Erstellung bleiben verfügbar.</value></data>
-  <data name="Invoice.NoInput" xml:space="preserve"><value>Keine Rechnung ausgewählt</value></data>
-  <data name="Assembly.Status.Ready" xml:space="preserve"><value>Fügen Sie Dokumente, Bilder, Ordner oder ZIPs in der gewünschten Reihenfolge hinzu.</value></data>
-  <data name="Assembly.Summary.Empty" xml:space="preserve"><value>Noch keine Zusammenstellung ausgeführt</value></data>
-  <data name="Assembly.Sources.Empty" xml:space="preserve"><value>Keine Quellen</value></data>
-  <data name="Assembly.Status.Cancelled" xml:space="preserve"><value>Zusammenstellung abgebrochen</value></data>
-  <data name="Assembly.Job.Title" xml:space="preserve"><value>PDF-Zusammenstellung</value></data>
-  <data name="Assembly.Status.Completed" xml:space="preserve"><value>Zusammengestellte PDF bereit</value></data>
-  <data name="Assembly.Sources.Unavailable" xml:space="preserve"><value>Eine Quelle für die Zusammenstellung konnte nicht geprüft werden. Stellen Sie sie wieder her oder entfernen Sie sie, bevor Sie weitere Quellen hinzufügen.</value></data>
-  <data name="Ocr.Review.EmptyCorrection" xml:space="preserve"><value>Geben Sie Ersetzungstext ein oder schließen Sie das Wort aus, bevor Sie fortfahren.</value></data>
-  <data name="Ocr.Review.Eligible" xml:space="preserve"><value>Geeignet</value></data>
-  <data name="Ocr.Review.LowConfidence" xml:space="preserve"><value>Unterhalb des Konfidenzschwellenwerts; Überlappung nicht bewertet</value></data>
-  <data name="Ocr.Review.Overlap" xml:space="preserve"><value>Bereits durch nativen Text abgedeckt</value></data>
-  <data name="Ocr.Review.Unknown" xml:space="preserve"><value>Nicht angegeben</value></data>
-  <data name="Ocr.Review.NoPreview" xml:space="preserve"><value>Die OCR-Quellseite konnte nicht gerendert werden.</value></data>
-  <data name="Conversion.Job.Cancelled" xml:space="preserve"><value>Abgebrochen</value></data>
-  <data name="Conversion.Job.Unconfirmed" xml:space="preserve"><value>Ausgabe prüfen</value></data>
-  <data name="Conversion.Job.Failed" xml:space="preserve"><value>Fehlgeschlagen</value></data>
-  <data name="Conversion.Job.CompletedWithWarnings" xml:space="preserve"><value>Mit Warnungen abgeschlossen</value></data>
-  <data name="Conversion.Job.Completed" xml:space="preserve"><value>Abgeschlossen</value></data>
-  <data name="Ocr.Status.Ready" xml:space="preserve"><value>Wählen Sie eine gescannte PDF, um ihren Text durchsuchbar zu machen.</value></data>
-  <data name="Ocr.Summary.Empty" xml:space="preserve"><value>Noch keine OCR-Ausgabe</value></data>
-  <data name="Ocr.Language.None" xml:space="preserve"><value>Mindestens eine Sprache auswählen</value></data>
-  <data name="Ocr.Status.Preparing" xml:space="preserve"><value>OCR-Engine und Seitendarstellungen werden vorbereitet…</value></data>
-  <data name="Ocr.Summary.Running" xml:space="preserve"><value>OCR läuft</value></data>
-  <data name="Ocr.Error.SamePath" xml:space="preserve"><value>Wählen Sie eine OCR-Ausgabe-PDF, die sich von der Quell-PDF unterscheidet.</value></data>
-  <data name="Ocr.Error.OutputOpen" xml:space="preserve"><value>Diese PDF ist bereits in einem anderen Tab geöffnet. Schließen Sie den Tab oder wählen Sie einen anderen Ausgabedateinamen.</value></data>
-  <data name="Ocr.Status.Cancelled" xml:space="preserve"><value>OCR abgebrochen</value></data>
-  <data name="Ocr.Job.Title" xml:space="preserve"><value>OCR für durchsuchbare PDFs</value></data>
-  <data name="Ocr.Status.Failed" xml:space="preserve"><value>OCR konnte nicht abgeschlossen werden</value></data>
-  <data name="Ocr.Status.Completed" xml:space="preserve"><value>Durchsuchbare PDF erstellt</value></data>
-  <data name="Ocr.Status.NoWords" xml:space="preserve"><value>PDF erstellt; keine durchsuchbaren Wörter hinzugefügt</value></data>
-  <data name="Ocr.Summary.SourceUnchanged" xml:space="preserve"><value>Die Quell-PDF wurde nicht geändert.</value></data>
-  <data name="Health.Status.Ready" xml:space="preserve"><value>Wählen Sie eine PDF und einen Vorgang.</value></data>
-  <data name="Health.Summary.Empty" xml:space="preserve"><value>Noch kein Bericht.</value></data>
-  <data name="Health.Input.None" xml:space="preserve"><value>Keine PDF ausgewählt</value></data>
-  <data name="Health.Input.Choose" xml:space="preserve"><value>Quelldokument auswählen</value></data>
-  <data name="Health.Title.Inspect" xml:space="preserve"><value>PDF prüfen</value></data>
-  <data name="Health.Title.Compare" xml:space="preserve"><value>PDFs vergleichen</value></data>
-  <data name="Health.Title.Optimize" xml:space="preserve"><value>PDF komprimieren</value></data>
-  <data name="Health.Title.RepairPlan" xml:space="preserve"><value>PDF-Reparatur planen</value></data>
-  <data name="Health.Title.Repair" xml:space="preserve"><value>PDF reparieren</value></data>
-  <data name="Health.Title.Sanitize" xml:space="preserve"><value>PDF bereinigen</value></data>
-  <data name="Health.Title.Default" xml:space="preserve"><value>PDF-Arbeitsbereich</value></data>
-  <data name="Health.Verb.Inspect" xml:space="preserve"><value>prüfen</value></data>
-  <data name="Health.Verb.Compare" xml:space="preserve"><value>vergleichen</value></data>
-  <data name="Health.Verb.Optimize" xml:space="preserve"><value>komprimieren</value></data>
-  <data name="Health.Verb.RepairPlan" xml:space="preserve"><value>beurteilen</value></data>
-  <data name="Health.Verb.Repair" xml:space="preserve"><value>reparieren</value></data>
-  <data name="Health.Verb.Sanitize" xml:space="preserve"><value>bereinigen</value></data>
-  <data name="Health.Verb.Default" xml:space="preserve"><value>verarbeiten</value></data>
-  <data name="Health.Files.Compare" xml:space="preserve"><value>Wählen Sie die beiden PDFs aus, die OfficeIMO vergleichen soll. Beide Quelldateien bleiben unverändert.</value></data>
-  <data name="Health.Options.Optimize" xml:space="preserve"><value>Komprimierungsoptionen</value></data>
-  <data name="Health.Options.Compare" xml:space="preserve"><value>Vergleichsoptionen</value></data>
-  <data name="Health.Options.Repair" xml:space="preserve"><value>Reparaturoptionen</value></data>
-  <data name="Health.Options.Default" xml:space="preserve"><value>Vorgangsoptionen</value></data>
-  <data name="Health.Review.PrimaryFile" xml:space="preserve"><value>Hauptdatei</value></data>
-  <data name="Health.Plan.Optimize" xml:space="preserve"><value>Komprimierungsplan</value></data>
-  <data name="Health.Plan.Compare" xml:space="preserve"><value>Vergleichsplan</value></data>
-  <data name="Health.Plan.Repair" xml:space="preserve"><value>Reparaturplan</value></data>
-  <data name="Health.Plan.Default" xml:space="preserve"><value>Vorgangsplan</value></data>
-  <data name="Health.Run.Repair" xml:space="preserve"><value>Dokument wird repariert und validiert</value></data>
-  <data name="Health.Run.Optimize" xml:space="preserve"><value>Dokument wird komprimiert und validiert</value></data>
-  <data name="Health.Run.Compare" xml:space="preserve"><value>Dokumente werden verglichen</value></data>
-  <data name="Health.Run.Inspect" xml:space="preserve"><value>Dokument wird geprüft</value></data>
-  <data name="Health.Run.RepairPlan" xml:space="preserve"><value>Reparierbarkeit wird beurteilt</value></data>
-  <data name="Health.Run.Sanitize" xml:space="preserve"><value>Dokument wird bereinigt und validiert</value></data>
-  <data name="Health.Run.Default" xml:space="preserve"><value>Vorgang wird ausgeführt</value></data>
-  <data name="Health.Assurance.Repair" xml:space="preserve"><value>Die Reparatur stellt erst dann eine separate Datei bereit, wenn OfficeIMO sie erneut öffnen und validieren kann.</value></data>
-  <data name="Health.Assurance.Optimize" xml:space="preserve"><value>Die Komprimierung stellt eine separate Datei bereit und behält das Original bei, wenn es bereits kleiner ist.</value></data>
-  <data name="Health.Assurance.Compare" xml:space="preserve"><value>Der Vergleich erstellt einen separaten Nachweisbericht, ohne eine der PDFs zu ändern.</value></data>
-  <data name="Health.Assurance.Sanitize" xml:space="preserve"><value>Die Bereinigung stellt erst dann eine separate Datei bereit, wenn OfficeIMO das gespeicherte Ergebnis validiert hat.</value></data>
-  <data name="Health.Assurance.Default" xml:space="preserve"><value>Die Quell-PDF bleibt unverändert, während OfficeIMO den Vorgangsbericht erstellt.</value></data>
-  <data name="Health.Plan.Step1.Compare" xml:space="preserve"><value>Strukturvergleich</value></data>
-  <data name="Health.Plan.Step1.Default" xml:space="preserve"><value>Strukturanalyse</value></data>
-  <data name="Health.Plan.Step1Detail.Compare" xml:space="preserve"><value>Dokumentstruktur und Seitendarstellungen vergleichen</value></data>
-  <data name="Health.Plan.Step1Detail.Optimize" xml:space="preserve"><value>Objekte erfassen und deterministische verlustfreie Neuschreibvorgänge auswählen</value></data>
-  <data name="Health.Plan.Step1Detail.Repair" xml:space="preserve"><value>Tiefgehend prüfen und konkrete Strukturfehler beheben</value></data>
-  <data name="Health.Plan.Step1Detail.Default" xml:space="preserve"><value>Dokumentstruktur und unterstützte Funktionen erfassen</value></data>
-  <data name="Health.Plan.Step2.Compare" xml:space="preserve"><value>Nachweisgalerie</value></data>
-  <data name="Health.Plan.Step2.Default" xml:space="preserve"><value>Inhaltsströme</value></data>
-  <data name="Health.Plan.Step2Detail.Compare" xml:space="preserve"><value>Eine HTML-Galerie zur Prüfung erstellen</value></data>
-  <data name="Health.Plan.Step2Detail.Optimize" xml:space="preserve"><value>Inhalte erhalten und dabei unterstützten Speichermehraufwand reduzieren</value></data>
-  <data name="Health.Plan.Step2Detail.Repair" xml:space="preserve"><value>Wiederherstellbare Ströme erhalten oder sicher neu aufbauen</value></data>
-  <data name="Health.Plan.Step2Detail.Default" xml:space="preserve"><value>Unterstützte Inhalte erhalten und nicht unterstützte Verarbeitungspfade melden</value></data>
-  <data name="Health.Plan.Step3" xml:space="preserve"><value>Ausgabevalidierung</value></data>
-  <data name="Health.Plan.Step3Detail.Compare" xml:space="preserve"><value>Strukturelle und visuelle Unterschiede erfassen</value></data>
-  <data name="Health.Plan.Step3Detail.Default" xml:space="preserve"><value>Strenges erneutes Öffnen und Nachweise zum Inhaltserhalt</value></data>
-  <data name="Health.Output.ChooseInput" xml:space="preserve"><value>Wählen Sie eine PDF, um den Ausgabepfad zu ermitteln.</value></data>
-  <data name="Health.Output.NoArtifact" xml:space="preserve"><value>Es wird keine neue PDF geschrieben; Ergebnisse bleiben im Vorgangsbericht.</value></data>
-  <data name="Health.Summary.NotProduced" xml:space="preserve"><value>Es wurde kein Bericht erstellt.</value></data>
-  <data name="Health.Status.Cancelled" xml:space="preserve"><value>Vorgang vor der Bereitstellung abgebrochen.</value></data>
-  <data name="Health.Output.NotWritten" xml:space="preserve"><value>Es wurde keine Ausgabedatei geschrieben.</value></data>
-  <data name="Health.Snapshot.Encrypted" xml:space="preserve"><value>verschlüsselt</value></data>
-  <data name="Health.Snapshot.Signed" xml:space="preserve"><value>signiert</value></data>
-  <data name="Health.Snapshot.Tagged" xml:space="preserve"><value>getaggt</value></data>
-  <data name="Health.Snapshot.ActiveContent" xml:space="preserve"><value>aktive Inhalte</value></data>
-  <data name="Health.Snapshot.Attachments" xml:space="preserve"><value>Anhänge</value></data>
-  <data name="Health.Snapshot.NoMarkers" xml:space="preserve"><value>keine Sicherheits- oder Aktivinhalt-Merkmale</value></data>
-  <data name="Health.Snapshot.Page" xml:space="preserve"><value>Seite</value></data>
-  <data name="Health.Snapshot.Pages" xml:space="preserve"><value>Seiten</value></data>
-  <data name="Health.Snapshot.Yes" xml:space="preserve"><value>ja</value></data>
-  <data name="Health.Snapshot.Blocked" xml:space="preserve"><value>blockiert</value></data>
-  <data name="Conversion.Profile.Faithful.Label" xml:space="preserve"><value>Originalgetreu</value></data>
-  <data name="Conversion.Profile.Faithful.Description" xml:space="preserve"><value>Erstellte Inhalte und visuelle Merkmale erhalten, soweit das zuständige Formatmodul sie unterstützt.</value></data>
-  <data name="Conversion.Profile.Lightweight.Label" xml:space="preserve"><value>Schlank</value></data>
-  <data name="Conversion.Profile.Lightweight.Description" xml:space="preserve"><value>Kleinere, einfachere Ausgaben bevorzugen und dabei nützliche Struktur erhalten.</value></data>
-  <data name="Conversion.Profile.PrintReady.Label" xml:space="preserve"><value>Druckfertig</value></data>
-  <data name="Conversion.Profile.PrintReady.Description" xml:space="preserve"><value>Seitenaufteilung und Dokumenteinstellungen für den Druck bevorzugen.</value></data>
-  <data name="Conversion.Profile.TextOnly.Label" xml:space="preserve"><value>Textorientiert</value></data>
-  <data name="Conversion.Profile.TextOnly.Description" xml:space="preserve"><value>Text und Tabellen gegenüber dekorativen visuellen Inhalten bevorzugen.</value></data>
-  <data name="Conversion.Conflict.Rename.Label" xml:space="preserve"><value>Nummerierte Kopie erstellen</value></data>
-  <data name="Conversion.Conflict.Rename.Description" xml:space="preserve"><value>Die vorhandene Datei behalten und ein nummeriertes Suffix hinzufügen.</value></data>
-  <data name="Conversion.Conflict.Fail.Label" xml:space="preserve"><value>Diesen Auftrag stoppen</value></data>
-  <data name="Conversion.Conflict.Fail.Description" xml:space="preserve"><value>Die Namenskollision melden, ohne die vorhandene Datei zu ändern.</value></data>
-  <data name="Conversion.Conflict.Replace.Label" xml:space="preserve"><value>Nach Validierung ersetzen</value></data>
-  <data name="Conversion.Conflict.Replace.Description" xml:space="preserve"><value>Erst ersetzen, nachdem die neue Datei die Validierung beim erneuten Öffnen bestanden hat.</value></data>
-  <data name="Conversion.Queue.Empty" xml:space="preserve"><value>Keine Aufträge</value></data>
-  <data name="Conversion.Package.Unsupported" xml:space="preserve"><value>Wählen Sie ein Pages-, Numbers- oder Keynote-Verzeichnispaket.</value></data>
-  <data name="Conversion.Queue.File" xml:space="preserve"><value>Datei</value></data>
-  <data name="Conversion.Queue.Files" xml:space="preserve"><value>Dateien</value></data>
-  <data name="Conversion.Queue.Cleared" xml:space="preserve"><value>Warteschlange geleert.</value></data>
-  <data name="Conversion.Output.ProviderFolderRequired" xml:space="preserve"><value>Wählen Sie einen Ausgabeordner, bevor Sie Dokumente eines Speicheranbieters konvertieren.</value></data>
-  <data name="Conversion.Queue.Cancelled" xml:space="preserve"><value>Konvertierung vor der Bereitstellung abgebrochen.</value></data>
-  <data name="Conversion.Job.Title" xml:space="preserve"><value>Konvertierung</value></data>
-  <data name="Conversion.Job.NotStarted" xml:space="preserve"><value>Vor dem Start dieses Auftrags abgebrochen; abgeschlossene Ausgaben bleiben erhalten.</value></data>
-  <data name="Conversion.Job.NoResult" xml:space="preserve"><value>Es wurde kein Ergebnis zurückgegeben. Prüfen Sie den Ausgabeordner, bevor Sie einen weiteren Versuch starten.</value></data>
-  <data name="Conversion.Job.UnconfirmedOutput" xml:space="preserve"><value>Die Ausführung wurde ohne Ergebnis beendet. Prüfen Sie den Ausgabeordner, bevor Sie einen weiteren Versuch starten.</value></data>
-  <data name="Book.Ready" xml:space="preserve"><value>Importieren Sie ein Manuskript, öffnen Sie ein EPUB oder Buchprojekt oder beginnen Sie ein neues Buch.</value></data>
-  <data name="Book.Title" xml:space="preserve"><value>Buch veröffentlichen</value></data>
-  <data name="Book.Description" xml:space="preserve"><value>Erstellen Sie EPUB-Bücher mit anpassbarem Textfluss aus DOCX, Markdown und HTML. Prüfen Sie den Import, ordnen Sie die Kapitel und speichern Sie ein bearbeitbares Buchprojekt.</value></data>
-  <data name="Book.Cancelled" xml:space="preserve"><value>Abgebrochen. Ihr aktuelles Buch bleibt erhalten.</value></data>
-  <data name="Book.Untitled" xml:space="preserve"><value>Unbenanntes Buch</value></data>
-  <data name="Book.Applied" xml:space="preserve"><value>Buchänderungen validiert.</value></data>
-  <data name="Book.NewChapter" xml:space="preserve"><value>Neues Kapitel</value></data>
-  <data name="Health.Operation.Inspect.Label" xml:space="preserve"><value>Prüfen</value></data>
-  <data name="Health.Operation.Inspect.Description" xml:space="preserve"><value>Struktur, Sicherheit, Signaturen, Tags, aktive Inhalte und Reparaturdiagnosen lesen.</value></data>
-  <data name="Health.Operation.Compare.Label" xml:space="preserve"><value>Vergleichen</value></data>
-  <data name="Health.Operation.Compare.Description" xml:space="preserve"><value>Struktur und gerenderte Seiten vergleichen, mit einer HTML-Galerie zur Prüfung.</value></data>
-  <data name="Health.Operation.Optimize.Label" xml:space="preserve"><value>Optimieren</value></data>
-  <data name="Health.Operation.Optimize.Description" xml:space="preserve"><value>Ein deterministisches verlustfreies Profil anwenden und das Original behalten, wenn es kleiner ist.</value></data>
-  <data name="Health.Operation.RepairPlan.Label" xml:space="preserve"><value>Reparatur planen</value></data>
-  <data name="Health.Operation.RepairPlan.Description" xml:space="preserve"><value>Erkannte Defekte und Hindernisse beurteilen, ohne eine Datei zu schreiben.</value></data>
-  <data name="Health.Operation.Repair.Label" xml:space="preserve"><value>Reparaturergebnis erstellen</value></data>
-  <data name="Health.Operation.Repair.Description" xml:space="preserve"><value>Explizite Wiederherstellungen speichern, strikt erneut öffnen und den Inhaltserhalt nachweisen.</value></data>
-  <data name="Health.Operation.Sanitize.Label" xml:space="preserve"><value>Bereinigen</value></data>
-  <data name="Health.Operation.Sanitize.Description" xml:space="preserve"><value>Unzulässige Aktionen und eingebettete Daten entfernen und anschließend das gespeicherte Ergebnis erfassen.</value></data>
-  <data name="Health.Profile.Faithful.Label" xml:space="preserve"><value>Ausgewogen</value></data>
-  <data name="Health.Profile.Faithful.Description" xml:space="preserve"><value>Konservative deterministische verlustfreie Optimierung.</value></data>
-  <data name="Health.Profile.Lightweight.Label" xml:space="preserve"><value>Maximale Komprimierung</value></data>
-  <data name="Health.Profile.Lightweight.Description" xml:space="preserve"><value>Objekt- und Querverweisströme verwenden, soweit unterstützt.</value></data>
-  <data name="Health.Profile.PrintReady.Label" xml:space="preserve"><value>Archivierung</value></data>
-  <data name="Health.Profile.PrintReady.Description" xml:space="preserve"><value>Klassische Querverweise ohne Linearisierung.</value></data>
-  <data name="Health.Profile.TextOnly.Label" xml:space="preserve"><value>Web</value></data>
-  <data name="Health.Profile.TextOnly.Description" xml:space="preserve"><value>Fast Web View-Layout mit breit kompatiblen Querverweisen.</value></data>
-  <data name="Health.Files.Inspect" xml:space="preserve"><value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value></data>
-  <data name="Health.Files.Optimize" xml:space="preserve"><value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value></data>
-  <data name="Health.Files.RepairPlan" xml:space="preserve"><value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value></data>
-  <data name="Health.Files.Repair" xml:space="preserve"><value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value></data>
-  <data name="Health.Files.Sanitize" xml:space="preserve"><value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value></data>
-  <data name="Health.Review.File.Inspect" xml:space="preserve"><value>Datei für den Vorgang „{0}“</value></data>
-  <data name="Health.Review.File.Optimize" xml:space="preserve"><value>Datei für den Vorgang „{0}“</value></data>
-  <data name="Health.Review.File.RepairPlan" xml:space="preserve"><value>Datei für den Vorgang „{0}“</value></data>
-  <data name="Health.Review.File.Repair" xml:space="preserve"><value>Datei für den Vorgang „{0}“</value></data>
-  <data name="Health.Review.File.Sanitize" xml:space="preserve"><value>Datei für den Vorgang „{0}“</value></data>
-  <data name="Health.RunAction.Inspect" xml:space="preserve"><value>Vorgang „{0}“ starten</value></data>
-  <data name="Health.RunAction.Compare" xml:space="preserve"><value>Vorgang „{0}“ starten</value></data>
-  <data name="Health.RunAction.Optimize" xml:space="preserve"><value>Vorgang „{0}“ starten</value></data>
-  <data name="Health.RunAction.RepairPlan" xml:space="preserve"><value>Vorgang „{0}“ starten</value></data>
-  <data name="Health.RunAction.Repair" xml:space="preserve"><value>Vorgang „{0}“ starten</value></data>
-  <data name="Health.RunAction.Sanitize" xml:space="preserve"><value>Vorgang „{0}“ starten</value></data>
-  <data name="Health.Prepare.Empty.Inspect" xml:space="preserve"><value>Wählen Sie eine PDF für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Empty.Compare" xml:space="preserve"><value>Wählen Sie eine PDF für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Empty.Optimize" xml:space="preserve"><value>Wählen Sie eine PDF für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Empty.RepairPlan" xml:space="preserve"><value>Wählen Sie eine PDF für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Empty.Repair" xml:space="preserve"><value>Wählen Sie eine PDF für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Empty.Sanitize" xml:space="preserve"><value>Wählen Sie eine PDF für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Ready.Inspect" xml:space="preserve"><value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Ready.Compare" xml:space="preserve"><value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Ready.Optimize" xml:space="preserve"><value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Ready.RepairPlan" xml:space="preserve"><value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Ready.Repair" xml:space="preserve"><value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value></data>
-  <data name="Health.Prepare.Ready.Sanitize" xml:space="preserve"><value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value></data>
-  <data name="PrintPreview.Paper.Letter" xml:space="preserve"><value>Letter</value></data>
-  <data name="PrintPreview.Paper.Legal" xml:space="preserve"><value>Legal</value></data>
-  <data name="PrintPreview.Orientation.Automatic" xml:space="preserve"><value>Automatisch</value></data>
-  <data name="PrintPreview.Orientation.Portrait" xml:space="preserve"><value>Hochformat</value></data>
-  <data name="PrintPreview.Orientation.Landscape" xml:space="preserve"><value>Querformat</value></data>
-  <data name="PrintPreview.Scale.Fit.Label" xml:space="preserve"><value>Einpassen</value></data>
-  <data name="PrintPreview.Scale.Fit.Description" xml:space="preserve"><value>Die gesamte Seite anzeigen.</value></data>
-  <data name="PrintPreview.Scale.ActualSize.Label" xml:space="preserve"><value>Tatsächliche Größe</value></data>
-  <data name="PrintPreview.Scale.ActualSize.Description" xml:space="preserve"><value>Die physische Seitengröße beibehalten, sofern sie hineinpasst.</value></data>
-  <data name="PrintPreview.Scale.Fill.Label" xml:space="preserve"><value>Ausfüllen</value></data>
-  <data name="PrintPreview.Scale.Fill.Description" xml:space="preserve"><value>Jeden Seitenbereich ausfüllen und überstehende Inhalte abschneiden.</value></data>
-  <data name="PrintPreview.PagesPerSheet.One" xml:space="preserve"><value>1 Seite</value></data>
-  <data name="PrintPreview.PagesPerSheet.Two" xml:space="preserve"><value>2 Seiten</value></data>
-  <data name="PrintPreview.PagesPerSheet.Four" xml:space="preserve"><value>4 Seiten</value></data>
-  <data name="PrintPreview.Status.Ready" xml:space="preserve"><value>Eine PDF auswählen und ihre Druckblätter in der Vorschau prüfen.</value></data>
-  <data name="PrintPreview.Summary.Empty" xml:space="preserve"><value>Noch keine Vorschau</value></data>
-  <data name="PrintPreview.Status.Planning" xml:space="preserve"><value>Druckblätter werden geplant</value></data>
-  <data name="PrintPreview.Status.Rendering" xml:space="preserve"><value>Seitenvorschauen werden gerendert</value></data>
-  <data name="PrintPreview.Status.Completed" xml:space="preserve"><value>Druckvorschau bereit</value></data>
-  <data name="PrintPreview.Status.Cancelled" xml:space="preserve"><value>Druckvorschau abgebrochen</value></data>
-  <data name="PrintPreview.Summary.None" xml:space="preserve"><value>Keine Vorschau</value></data>
-  <data name="PrintPreview.Summary.Unavailable" xml:space="preserve"><value>Vorschau nicht verfügbar</value></data>
-  <data name="PrintPreview.Rendering.FontSubstitution" xml:space="preserve"><value>Eine Ersatzschrift wurde verwendet. Prüfen Sie die Blattvorschau vor dem Drucken.</value></data>
-  <data name="PrintPreview.Rendering.Limitation" xml:space="preserve"><value>Der Renderer hat eine Einschränkung gemeldet. Prüfen Sie die Blattvorschau vor dem Drucken.</value></data>
-  <data name="PrintPreview.Rendering.TechnicalDetails" xml:space="preserve"><value>Technische Darstellungsdetails</value></data>
-  <data name="AnnotationSelection.CrossPageCount" xml:space="preserve"><value>Ausgewählte Anmerkungen: {0} auf {1} Seiten</value></data>
-  <data name="AnnotationSelection.SamePageGroups" xml:space="preserve"><value>Gespeicherte PDF-Gruppen erfordern Anmerkungen auf derselben Seite. Verschieben, Duplizieren, Löschen und Anordnen funktionieren weiterhin über mehrere Seiten.</value></data>
-  <data name="AnnotationSelection.Instruction" xml:space="preserve"><value>Anmerkungen auswählen. Mit Shift-click über mehrere Seiten hinzufügen; einen leeren Seitenbereich ziehen, um mehrere auszuwählen.</value></data>
-  <data name="Panes.Split" xml:space="preserve"><value>Unabhängige Bereiche</value></data>
-  <data name="Panes.Help" xml:space="preserve"><value>Jeder Bereich behält seine Seite, Vergrößerung und Anordnung. Bearbeitungsbefehle gelten für den aktiven Bereich.</value></data>
-  <data name="Panes.Switch" xml:space="preserve"><value>Aktiven Bereich wechseln (F6)</value></data>
-  <data name="Panes.Close" xml:space="preserve"><value>Bereich schließen</value></data>
-  <data name="Panes.Document" xml:space="preserve"><value>Dokument in diesem Bereich</value></data>
-  <data name="Panes.Activate" xml:space="preserve"><value>Bereich aktivieren</value></data>
-  <data name="Comparison.ExpectedRange" xml:space="preserve"><value>Seiten im aktuellen Dokument</value></data>
-  <data name="Comparison.ActualRange" xml:space="preserve"><value>Seiten im Vergleichsdokument</value></data>
-  <data name="Comparison.RangeHint" xml:space="preserve"><value>Alle Seiten oder z. B. 5-8,last</value></data>
-  <data name="Comparison.RangeDescription" xml:space="preserve"><value>Bis zu 100 ausgewählte Seiten je Dokument, der Reihenfolge nach gepaart. Keine Erkennung semantischer Änderungen oder verschobener Seiten.</value></data>
-  <data name="Comparison.ExportReport" xml:space="preserve"><value>Bericht exportieren</value></data>
-  <data name="Comparison.ReportSaved" xml:space="preserve"><value>Der eigenständige Vergleichsbericht wurde gespeichert. Beide Quell-PDFs sind unverändert.</value></data>
-  <data name="Comparison.SelectedSummary" xml:space="preserve"><value>Seitenpaare: {0:N0}; abweichende Paare: {1:N0}; Seiten ohne Partner: {2:N0}. Paarung in der ausgewählten Reihenfolge.</value></data>
-  <data name="FormOcr.Title" xml:space="preserve"><value>Werte vorhandener Formularfelder erkennen</value></data>
-  <data name="FormOcr.StartHint" xml:space="preserve"><value>Erkennen Sie sichtbaren Text in vorhandenen Feldern. Wenden Sie aktuelle Entwürfe zuerst an. Die OCR-Sprachen folgen dem OCR-Arbeitsbereich; die Erkennung erstellt keine Felder und speichert das Dokument nicht.</value></data>
-  <data name="FormOcr.Recognize" xml:space="preserve"><value>Formularwerte erkennen</value></data>
-  <data name="FormOcr.Apply" xml:space="preserve"><value>Akzeptierte Werte anwenden</value></data>
-  <data name="FormOcr.Cancel" xml:space="preserve"><value>Erkennung abbrechen / Prüfung schließen</value></data>
-  <data name="FormOcr.ReviewHint" xml:space="preserve"><value>Vergleichen Sie jeden Vorschlag mit der erfassten Quelle. Korrigieren Sie den Wert und akzeptieren Sie ihn ausdrücklich. Das Anwenden ändert den aktuellen Arbeitsbereich; speichern Sie eine Kopie, um die Originaldatei zu erhalten.</value></data>
-  <data name="FormOcr.NoProposals" xml:space="preserve"><value>Kein Text wurde sichtbaren vorhandenen Formularfeldern zugeordnet. Füllen Sie die Felder manuell aus oder passen Sie die OCR-Sprache und Quelle an.</value></data>
-  <data name="FormOcr.Stale" xml:space="preserve"><value>Das Dokument hat sich nach der Erkennung geändert. Erkennen Sie es erneut, bevor Sie Werte anwenden.</value></data>
-  <data name="FormOcr.ChooseProposal" xml:space="preserve"><value>Erkanntes Feld auswählen</value></data>
-  <data name="FormOcr.CorrectedValue" xml:space="preserve"><value>Geprüfter Feldwert</value></data>
-  <data name="FormOcr.AcceptValue" xml:space="preserve"><value>Ich habe diesen Wert geprüft und akzeptiere ihn</value></data>
-  <data name="FormOcr.SourcePreview" xml:space="preserve"><value>Erfasste Quellseite</value></data>
-  <data name="FormOcr.Diagnostics" xml:space="preserve"><value>Erkennungsdiagnose</value></data>
-  <data name="FormOcr.Evidence" xml:space="preserve"><value>Seite {0} · Konfidenz {1:P0}</value></data>
-  <data name="FormOcr.Unsupported" xml:space="preserve"><value>Dieses Feld ist schreibgeschützt oder hat nicht unterstützte Einschränkungen. Füllen Sie es in einer geprüften Formularanwendung aus.</value></data>
-  <data name="FormOcr.Ambiguous" xml:space="preserve"><value>Widersprüchliche Feld- oder Widget-Zuordnungen. Korrigieren Sie den Wert vor dem Akzeptieren.</value></data>
-  <data name="FormOcr.LowConfidence" xml:space="preserve"><value>Geringe Konfidenz. Prüfen Sie die Originalseite und korrigieren Sie den Wert vor dem Akzeptieren.</value></data>
-  <data name="FormOcr.Summary" xml:space="preserve"><value>Akzeptierte Werte: {0} von {1}. Prüfen Sie jeden Wert vor dem Anwenden.</value></data>
-  <data name="FormOcr.ChooseLanguage" xml:space="preserve"><value>Wählen Sie zuerst eine OCR-Sprache im OCR-Arbeitsbereich aus.</value></data>
-  <data name="FormOcr.Constraint.ReadOnly" xml:space="preserve"><value>Dieses Feld ist schreibgeschützt.</value></data>
-  <data name="FormOcr.Constraint.UnsupportedField" xml:space="preserve"><value>Dieses Feld akzeptiert keinen interaktiven Wert.</value></data>
-  <data name="FormOcr.Constraint.MultipleValues" xml:space="preserve"><value>Dieses Feld akzeptiert einen Wert.</value></data>
-  <data name="FormOcr.Constraint.MaximumLength" xml:space="preserve"><value>Der Wert überschreitet die maximale Feldlänge.</value></data>
-  <data name="FormOcr.Constraint.RequiredValue" xml:space="preserve"><value>Dieses Pflichtfeld ist leer. Sie können es speichern und später ausfüllen.</value></data>
-  <data name="FormOcr.Constraint.NoToggleToOff" xml:space="preserve"><value>Wählen Sie eine andere Option; diese Optionsgruppe kann nicht geleert werden.</value></data>
-  <data name="FormOcr.Constraint.UnknownChoice" xml:space="preserve"><value>Wählen Sie einen angebotenen Feldwert.</value></data>
-  <data name="FormOcr.Constraint.NumericValue" xml:space="preserve"><value>Geben Sie eine Zahl mit den für das Feld festgelegten Dezimal- und Gruppentrennzeichen ein.</value></data>
-  <data name="FormOcr.Constraint.NumericPrecision" xml:space="preserve"><value>Die Zahl hat zu viele Dezimalstellen für dieses Prüfungsformat.</value></data>
-  <data name="FormOcr.Constraint.NumericRange" xml:space="preserve"><value>Die Zahl liegt außerhalb des festgelegten Feldbereichs.</value></data>
-  <data name="FormOcr.Constraint.UnsupportedScriptConstraint" xml:space="preserve"><value>Dieses Feld hat Skripteinschränkungen, die nicht sicher geprüft werden können. Verwenden Sie eine geprüfte Formularanwendung.</value></data>
-  <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>Die Anzeige entspricht mehreren Optionen. Geben Sie den genauen Exportwert ein.</value></data>
-  <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Aktuelle Auswahl ohne Partner</value></data>
-  <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Vergleichsauswahl ohne Partner</value></data>
-  <data name="Provenance.Credentials" xml:space="preserve"><value>Content Credentials</value></data>
-  <data name="Provenance.CredentialHint" xml:space="preserve"><value>Dies sind in der Datei gespeicherte Angaben. Das Lesen eines Eintrags prüft weder seine Signatur noch das Vertrauen in das Zertifikat oder die Verknüpfung mit dem Inhalt. Die Ergebnisse der Verifizierung werden separat angezeigt.</value></data>
-  <data name="Provenance.Timeline" xml:space="preserve"><value>Aufgezeichnete Aktionen</value></data>
-  <data name="Provenance.TimelineHint" xml:space="preserve"><value>Aktionen aus der aktiven Herkunftserklärung in der aufgezeichneten Reihenfolge. Frühere Manifeste werden gezählt, hier aber nicht im Detail angezeigt; fehlende Zeitangaben bleiben unbekannt.</value></data>
-  <data name="Provenance.WatermarkHint" xml:space="preserve"><value>Der Eintrag gibt an, dass dem Inhalt ein Wasserzeichen hinzugefügt wurde. Das Entfernen des Herkunftsnachweises entfernt dieses Wasserzeichen nicht.</value></data>
-  <data name="Provenance.RecordDetails" xml:space="preserve"><value>Details des Eintrags</value></data>
-  <data name="Provenance.NotRecorded" xml:space="preserve"><value>Nicht aufgezeichnet</value></data>
-  <data name="Provenance.SoftwareNotRecorded" xml:space="preserve"><value>Software nicht aufgezeichnet</value></data>
-  <data name="Provenance.TimeNotRecorded" xml:space="preserve"><value>Zeit nicht aufgezeichnet</value></data>
-  <data name="Provenance.RecordedTime" xml:space="preserve"><value>Aufgezeichnete Zeit: {0}</value></data>
-  <data name="Provenance.CertificateSubjectFormat" xml:space="preserve"><value>Zertifikatssubjekt (ungeprüft): {0}</value></data>
-  <data name="Provenance.CertificateIssuerFormat" xml:space="preserve"><value>Zertifikatsaussteller (ungeprüft): {0}</value></data>
-  <data name="Provenance.SourceAssetFormat" xml:space="preserve"><value>Quellmaterial: {0}</value></data>
-  <data name="Provenance.ManifestCountFormat" xml:space="preserve"><value>Manifeste im Speicher: {0}</value></data>
-  <data name="Provenance.ActionCreated" xml:space="preserve"><value>Erstellt</value></data>
-  <data name="Provenance.ActionOpened" xml:space="preserve"><value>Geöffnet</value></data>
-  <data name="Provenance.ActionEdited" xml:space="preserve"><value>Bearbeitet</value></data>
-  <data name="Provenance.ActionConverted" xml:space="preserve"><value>Konvertiert</value></data>
-  <data name="Provenance.ActionCropped" xml:space="preserve"><value>Zugeschnitten</value></data>
-  <data name="Provenance.ActionResized" xml:space="preserve"><value>Größe geändert</value></data>
-  <data name="Provenance.ActionPlaced" xml:space="preserve"><value>Weitere Inhalte eingefügt</value></data>
-  <data name="Provenance.ActionPublished" xml:space="preserve"><value>Veröffentlicht</value></data>
-  <data name="Provenance.ActionWatermarked" xml:space="preserve"><value>Wasserzeichen zum Inhalt hinzugefügt</value></data>
-  <data name="Provenance.SourceGenerativeAi" xml:space="preserve"><value>Generative KI angegeben</value></data>
-  <data name="Provenance.SourceCompositeAi" xml:space="preserve"><value>Mischung aus KI-generierten und anderen Inhalten angegeben</value></data>
-  <data name="Provenance.SourceAlgorithmic" xml:space="preserve"><value>Softwaregenerierte Inhalte angegeben</value></data>
-  <data name="Provenance.SourceDigitalCapture" xml:space="preserve"><value>Aufnahme mit Kamera oder Scanner angegeben</value></data>
-  <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Zusammenstellung aufgenommener Medien angegeben</value></data>
-  <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Aufgezeichneter Quelltyp: {0}</value></data>
-  <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Quelltyp nicht aufgezeichnet</value></data>
+  <data name="Commands.NoFormFields" xml:space="preserve">
+    <value>Dieses Dokument enthält keine benannten Formularfelder.</value>
+  </data>
+  <data name="Commands.FirstFormField" xml:space="preserve">
+    <value>Das erste Formularfeld ist ausgewählt.</value>
+  </data>
+  <data name="Commands.LastFormField" xml:space="preserve">
+    <value>Das letzte Formularfeld ist ausgewählt.</value>
+  </data>
+  <data name="OcrSession.Ready" xml:space="preserve">
+    <value>Fügen Sie PDFs oder Bilder hinzu. Jede Datei wird geprüft, bevor ihre Ausgabe gespeichert wird.</value>
+  </data>
+  <data name="OcrSession.Limit" xml:space="preserve">
+    <value>Die OCR-Sitzung ist voll. Entfernen Sie abgeschlossene Einträge, bevor Sie weitere Dateien hinzufügen.</value>
+  </data>
+  <data name="OcrSession.Unsupported" xml:space="preserve">
+    <value>Einige ausgewählte Dateien waren weder PDFs noch unterstützte Rasterbilder und wurden nicht hinzugefügt.</value>
+  </data>
+  <data name="OcrSession.Preparing" xml:space="preserve">
+    <value>Die OCR-Laufzeit wird vorbereitet…</value>
+  </data>
+  <data name="OcrSession.Cancelled" xml:space="preserve">
+    <value>OCR-Sitzung abgebrochen. Abgeschlossene Ausgaben bleiben erhalten.</value>
+  </data>
+  <data name="PageExport.Status.Ready" xml:space="preserve">
+    <value>Wählen Sie eine PDF und einen Ausgabeordner.</value>
+  </data>
+  <data name="PageExport.Summary.Empty" xml:space="preserve">
+    <value>Noch kein Export</value>
+  </data>
+  <data name="PageExport.Status.Cancelled" xml:space="preserve">
+    <value>Seitenexport abgebrochen</value>
+  </data>
+  <data name="PageExport.Job.Title" xml:space="preserve">
+    <value>Seitenbildexport</value>
+  </data>
+  <data name="PageExport.Status.Completed" xml:space="preserve">
+    <value>Seitenbilder bereit</value>
+  </data>
+  <data name="Invoice.Inspect" xml:space="preserve">
+    <value>Prüfen</value>
+  </data>
+  <data name="Invoice.Validate" xml:space="preserve">
+    <value>Validieren</value>
+  </data>
+  <data name="Invoice.Convert" xml:space="preserve">
+    <value>XML konvertieren</value>
+  </data>
+  <data name="Invoice.Render" xml:space="preserve">
+    <value>PDF-Darstellung</value>
+  </data>
+  <data name="Invoice.Hybrid" xml:space="preserve">
+    <value>Hybrid-PDF</value>
+  </data>
+  <data name="Invoice.Edit" xml:space="preserve">
+    <value>Quellkopfdaten bearbeiten</value>
+  </data>
+  <data name="Invoice.Codes" xml:space="preserve">
+    <value>Codes</value>
+  </data>
+  <data name="Invoice.Descriptions" xml:space="preserve">
+    <value>Beschreibungen</value>
+  </data>
+  <data name="Invoice.CodesDescriptions" xml:space="preserve">
+    <value>Codes und Beschreibungen</value>
+  </data>
+  <data name="Invoice.Table.Standard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Invoice.Table.Units" xml:space="preserve">
+    <value>Einheiten einbeziehen</value>
+  </data>
+  <data name="Invoice.Table.Identifiers" xml:space="preserve">
+    <value>Positionskennungen einbeziehen</value>
+  </data>
+  <data name="Invoice.Ready" xml:space="preserve">
+    <value>Wählen Sie eine Rechnungs-XML-Datei und einen Vorgang.</value>
+  </data>
+  <data name="Invoice.Title" xml:space="preserve">
+    <value>Rechnungen</value>
+  </data>
+  <data name="Invoice.Description" xml:space="preserve">
+    <value>Prüfen Sie elektronische Rechnungsdaten, validieren Sie die konkrete XML-Datei, erstellen Sie ein anderes Format oder bearbeiten Sie ausgewählte Quellkopfdaten.</value>
+  </data>
+  <data name="Invoice.EditingHint" xml:space="preserve">
+    <value>Leere Felder behalten ihre aktuellen Werte. Ersetzungen erfordern ein vorhandenes Feld, das genau einmal vorkommt. Signiertes XML ist geschützt; zugehörige Verweise ändern sich nur, wenn sie separat angegeben werden.</value>
+  </data>
+  <data name="Invoice.StandardsHint" xml:space="preserve">
+    <value>Standardprüfungen erfordern die festgelegten Regeldateien und eine Java/Saxon-Laufzeit. Angeforderte Prüfungen müssen bestanden werden, bevor eine Ausgabe erstellt wird.</value>
+  </data>
+  <data name="Invoice.StandardsUnavailable" xml:space="preserve">
+    <value>Externe Java/Saxon-Standardprüfungen sind in der Mac App Store-Version nicht verfügbar. XML-Prüfung, Modellprüfungen, Konvertierung und PDF-Erstellung bleiben verfügbar.</value>
+  </data>
+  <data name="Invoice.NoInput" xml:space="preserve">
+    <value>Keine Rechnung ausgewählt</value>
+  </data>
+  <data name="Assembly.Status.Ready" xml:space="preserve">
+    <value>Fügen Sie Dokumente, Bilder, Ordner oder ZIPs in der gewünschten Reihenfolge hinzu.</value>
+  </data>
+  <data name="Assembly.Summary.Empty" xml:space="preserve">
+    <value>Noch keine Zusammenstellung ausgeführt</value>
+  </data>
+  <data name="Assembly.Sources.Empty" xml:space="preserve">
+    <value>Keine Quellen</value>
+  </data>
+  <data name="Assembly.Status.Cancelled" xml:space="preserve">
+    <value>Zusammenstellung abgebrochen</value>
+  </data>
+  <data name="Assembly.Job.Title" xml:space="preserve">
+    <value>PDF-Zusammenstellung</value>
+  </data>
+  <data name="Assembly.Status.Completed" xml:space="preserve">
+    <value>Zusammengestellte PDF bereit</value>
+  </data>
+  <data name="Assembly.Sources.Unavailable" xml:space="preserve">
+    <value>Eine Quelle für die Zusammenstellung konnte nicht geprüft werden. Stellen Sie sie wieder her oder entfernen Sie sie, bevor Sie weitere Quellen hinzufügen.</value>
+  </data>
+  <data name="Ocr.Review.EmptyCorrection" xml:space="preserve">
+    <value>Geben Sie Ersetzungstext ein oder schließen Sie das Wort aus, bevor Sie fortfahren.</value>
+  </data>
+  <data name="Ocr.Review.Eligible" xml:space="preserve">
+    <value>Geeignet</value>
+  </data>
+  <data name="Ocr.Review.LowConfidence" xml:space="preserve">
+    <value>Unterhalb des Konfidenzschwellenwerts; Überlappung nicht bewertet</value>
+  </data>
+  <data name="Ocr.Review.Overlap" xml:space="preserve">
+    <value>Bereits durch nativen Text abgedeckt</value>
+  </data>
+  <data name="Ocr.Review.Unknown" xml:space="preserve">
+    <value>Nicht angegeben</value>
+  </data>
+  <data name="Ocr.Review.NoPreview" xml:space="preserve">
+    <value>Die OCR-Quellseite konnte nicht gerendert werden.</value>
+  </data>
+  <data name="Conversion.Job.Cancelled" xml:space="preserve">
+    <value>Abgebrochen</value>
+  </data>
+  <data name="Conversion.Job.Unconfirmed" xml:space="preserve">
+    <value>Ausgabe prüfen</value>
+  </data>
+  <data name="Conversion.Job.Failed" xml:space="preserve">
+    <value>Fehlgeschlagen</value>
+  </data>
+  <data name="Conversion.Job.CompletedWithWarnings" xml:space="preserve">
+    <value>Mit Warnungen abgeschlossen</value>
+  </data>
+  <data name="Conversion.Job.Completed" xml:space="preserve">
+    <value>Abgeschlossen</value>
+  </data>
+  <data name="Ocr.Status.Ready" xml:space="preserve">
+    <value>Wählen Sie eine gescannte PDF, um ihren Text durchsuchbar zu machen.</value>
+  </data>
+  <data name="Ocr.Summary.Empty" xml:space="preserve">
+    <value>Noch keine OCR-Ausgabe</value>
+  </data>
+  <data name="Ocr.Language.None" xml:space="preserve">
+    <value>Mindestens eine Sprache auswählen</value>
+  </data>
+  <data name="Ocr.Status.Preparing" xml:space="preserve">
+    <value>OCR-Engine und Seitendarstellungen werden vorbereitet…</value>
+  </data>
+  <data name="Ocr.Summary.Running" xml:space="preserve">
+    <value>OCR läuft</value>
+  </data>
+  <data name="Ocr.Error.SamePath" xml:space="preserve">
+    <value>Wählen Sie eine OCR-Ausgabe-PDF, die sich von der Quell-PDF unterscheidet.</value>
+  </data>
+  <data name="Ocr.Error.OutputOpen" xml:space="preserve">
+    <value>Diese PDF ist bereits in einem anderen Tab geöffnet. Schließen Sie den Tab oder wählen Sie einen anderen Ausgabedateinamen.</value>
+  </data>
+  <data name="Ocr.Status.Cancelled" xml:space="preserve">
+    <value>OCR abgebrochen</value>
+  </data>
+  <data name="Ocr.Job.Title" xml:space="preserve">
+    <value>OCR für durchsuchbare PDFs</value>
+  </data>
+  <data name="Ocr.Status.Failed" xml:space="preserve">
+    <value>OCR konnte nicht abgeschlossen werden</value>
+  </data>
+  <data name="Ocr.Status.Completed" xml:space="preserve">
+    <value>Durchsuchbare PDF erstellt</value>
+  </data>
+  <data name="Ocr.Status.NoWords" xml:space="preserve">
+    <value>PDF erstellt; keine durchsuchbaren Wörter hinzugefügt</value>
+  </data>
+  <data name="Ocr.Summary.SourceUnchanged" xml:space="preserve">
+    <value>Die Quell-PDF wurde nicht geändert.</value>
+  </data>
+  <data name="Health.Status.Ready" xml:space="preserve">
+    <value>Wählen Sie eine PDF und einen Vorgang.</value>
+  </data>
+  <data name="Health.Summary.Empty" xml:space="preserve">
+    <value>Noch kein Bericht.</value>
+  </data>
+  <data name="Health.Input.None" xml:space="preserve">
+    <value>Keine PDF ausgewählt</value>
+  </data>
+  <data name="Health.Input.Choose" xml:space="preserve">
+    <value>Quelldokument auswählen</value>
+  </data>
+  <data name="Health.Title.Inspect" xml:space="preserve">
+    <value>PDF prüfen</value>
+  </data>
+  <data name="Health.Title.Compare" xml:space="preserve">
+    <value>PDFs vergleichen</value>
+  </data>
+  <data name="Health.Title.Optimize" xml:space="preserve">
+    <value>PDF komprimieren</value>
+  </data>
+  <data name="Health.Title.RepairPlan" xml:space="preserve">
+    <value>PDF-Reparatur planen</value>
+  </data>
+  <data name="Health.Title.Repair" xml:space="preserve">
+    <value>PDF reparieren</value>
+  </data>
+  <data name="Health.Title.Sanitize" xml:space="preserve">
+    <value>PDF bereinigen</value>
+  </data>
+  <data name="Health.Title.Default" xml:space="preserve">
+    <value>PDF-Arbeitsbereich</value>
+  </data>
+  <data name="Health.Verb.Inspect" xml:space="preserve">
+    <value>prüfen</value>
+  </data>
+  <data name="Health.Verb.Compare" xml:space="preserve">
+    <value>vergleichen</value>
+  </data>
+  <data name="Health.Verb.Optimize" xml:space="preserve">
+    <value>komprimieren</value>
+  </data>
+  <data name="Health.Verb.RepairPlan" xml:space="preserve">
+    <value>beurteilen</value>
+  </data>
+  <data name="Health.Verb.Repair" xml:space="preserve">
+    <value>reparieren</value>
+  </data>
+  <data name="Health.Verb.Sanitize" xml:space="preserve">
+    <value>bereinigen</value>
+  </data>
+  <data name="Health.Verb.Default" xml:space="preserve">
+    <value>verarbeiten</value>
+  </data>
+  <data name="Health.Files.Compare" xml:space="preserve">
+    <value>Wählen Sie die beiden PDFs aus, die OfficeIMO vergleichen soll. Beide Quelldateien bleiben unverändert.</value>
+  </data>
+  <data name="Health.Options.Optimize" xml:space="preserve">
+    <value>Komprimierungsoptionen</value>
+  </data>
+  <data name="Health.Options.Compare" xml:space="preserve">
+    <value>Vergleichsoptionen</value>
+  </data>
+  <data name="Health.Options.Repair" xml:space="preserve">
+    <value>Reparaturoptionen</value>
+  </data>
+  <data name="Health.Options.Default" xml:space="preserve">
+    <value>Vorgangsoptionen</value>
+  </data>
+  <data name="Health.Review.PrimaryFile" xml:space="preserve">
+    <value>Hauptdatei</value>
+  </data>
+  <data name="Health.Plan.Optimize" xml:space="preserve">
+    <value>Komprimierungsplan</value>
+  </data>
+  <data name="Health.Plan.Compare" xml:space="preserve">
+    <value>Vergleichsplan</value>
+  </data>
+  <data name="Health.Plan.Repair" xml:space="preserve">
+    <value>Reparaturplan</value>
+  </data>
+  <data name="Health.Plan.Default" xml:space="preserve">
+    <value>Vorgangsplan</value>
+  </data>
+  <data name="Health.Run.Repair" xml:space="preserve">
+    <value>Dokument wird repariert und validiert</value>
+  </data>
+  <data name="Health.Run.Optimize" xml:space="preserve">
+    <value>Dokument wird komprimiert und validiert</value>
+  </data>
+  <data name="Health.Run.Compare" xml:space="preserve">
+    <value>Dokumente werden verglichen</value>
+  </data>
+  <data name="Health.Run.Inspect" xml:space="preserve">
+    <value>Dokument wird geprüft</value>
+  </data>
+  <data name="Health.Run.RepairPlan" xml:space="preserve">
+    <value>Reparierbarkeit wird beurteilt</value>
+  </data>
+  <data name="Health.Run.Sanitize" xml:space="preserve">
+    <value>Dokument wird bereinigt und validiert</value>
+  </data>
+  <data name="Health.Run.Default" xml:space="preserve">
+    <value>Vorgang wird ausgeführt</value>
+  </data>
+  <data name="Health.Assurance.Repair" xml:space="preserve">
+    <value>Die Reparatur stellt erst dann eine separate Datei bereit, wenn OfficeIMO sie erneut öffnen und validieren kann.</value>
+  </data>
+  <data name="Health.Assurance.Optimize" xml:space="preserve">
+    <value>Die Komprimierung stellt eine separate Datei bereit und behält das Original bei, wenn es bereits kleiner ist.</value>
+  </data>
+  <data name="Health.Assurance.Compare" xml:space="preserve">
+    <value>Der Vergleich erstellt einen separaten Nachweisbericht, ohne eine der PDFs zu ändern.</value>
+  </data>
+  <data name="Health.Assurance.Sanitize" xml:space="preserve">
+    <value>Die Bereinigung stellt erst dann eine separate Datei bereit, wenn OfficeIMO das gespeicherte Ergebnis validiert hat.</value>
+  </data>
+  <data name="Health.Assurance.Default" xml:space="preserve">
+    <value>Die Quell-PDF bleibt unverändert, während OfficeIMO den Vorgangsbericht erstellt.</value>
+  </data>
+  <data name="Health.Plan.Step1.Compare" xml:space="preserve">
+    <value>Strukturvergleich</value>
+  </data>
+  <data name="Health.Plan.Step1.Default" xml:space="preserve">
+    <value>Strukturanalyse</value>
+  </data>
+  <data name="Health.Plan.Step1Detail.Compare" xml:space="preserve">
+    <value>Dokumentstruktur und Seitendarstellungen vergleichen</value>
+  </data>
+  <data name="Health.Plan.Step1Detail.Optimize" xml:space="preserve">
+    <value>Objekte erfassen und deterministische verlustfreie Neuschreibvorgänge auswählen</value>
+  </data>
+  <data name="Health.Plan.Step1Detail.Repair" xml:space="preserve">
+    <value>Tiefgehend prüfen und konkrete Strukturfehler beheben</value>
+  </data>
+  <data name="Health.Plan.Step1Detail.Default" xml:space="preserve">
+    <value>Dokumentstruktur und unterstützte Funktionen erfassen</value>
+  </data>
+  <data name="Health.Plan.Step2.Compare" xml:space="preserve">
+    <value>Nachweisgalerie</value>
+  </data>
+  <data name="Health.Plan.Step2.Default" xml:space="preserve">
+    <value>Inhaltsströme</value>
+  </data>
+  <data name="Health.Plan.Step2Detail.Compare" xml:space="preserve">
+    <value>Eine HTML-Galerie zur Prüfung erstellen</value>
+  </data>
+  <data name="Health.Plan.Step2Detail.Optimize" xml:space="preserve">
+    <value>Inhalte erhalten und dabei unterstützten Speichermehraufwand reduzieren</value>
+  </data>
+  <data name="Health.Plan.Step2Detail.Repair" xml:space="preserve">
+    <value>Wiederherstellbare Ströme erhalten oder sicher neu aufbauen</value>
+  </data>
+  <data name="Health.Plan.Step2Detail.Default" xml:space="preserve">
+    <value>Unterstützte Inhalte erhalten und nicht unterstützte Verarbeitungspfade melden</value>
+  </data>
+  <data name="Health.Plan.Step3" xml:space="preserve">
+    <value>Ausgabevalidierung</value>
+  </data>
+  <data name="Health.Plan.Step3Detail.Compare" xml:space="preserve">
+    <value>Strukturelle und visuelle Unterschiede erfassen</value>
+  </data>
+  <data name="Health.Plan.Step3Detail.Default" xml:space="preserve">
+    <value>Strenges erneutes Öffnen und Nachweise zum Inhaltserhalt</value>
+  </data>
+  <data name="Health.Output.ChooseInput" xml:space="preserve">
+    <value>Wählen Sie eine PDF, um den Ausgabepfad zu ermitteln.</value>
+  </data>
+  <data name="Health.Output.NoArtifact" xml:space="preserve">
+    <value>Es wird keine neue PDF geschrieben; Ergebnisse bleiben im Vorgangsbericht.</value>
+  </data>
+  <data name="Health.Summary.NotProduced" xml:space="preserve">
+    <value>Es wurde kein Bericht erstellt.</value>
+  </data>
+  <data name="Health.Status.Cancelled" xml:space="preserve">
+    <value>Vorgang vor der Bereitstellung abgebrochen.</value>
+  </data>
+  <data name="Health.Output.NotWritten" xml:space="preserve">
+    <value>Es wurde keine Ausgabedatei geschrieben.</value>
+  </data>
+  <data name="Health.Snapshot.Encrypted" xml:space="preserve">
+    <value>verschlüsselt</value>
+  </data>
+  <data name="Health.Snapshot.Signed" xml:space="preserve">
+    <value>signiert</value>
+  </data>
+  <data name="Health.Snapshot.Tagged" xml:space="preserve">
+    <value>getaggt</value>
+  </data>
+  <data name="Health.Snapshot.ActiveContent" xml:space="preserve">
+    <value>aktive Inhalte</value>
+  </data>
+  <data name="Health.Snapshot.Attachments" xml:space="preserve">
+    <value>Anhänge</value>
+  </data>
+  <data name="Health.Snapshot.NoMarkers" xml:space="preserve">
+    <value>keine Sicherheits- oder Aktivinhalt-Merkmale</value>
+  </data>
+  <data name="Health.Snapshot.Page" xml:space="preserve">
+    <value>Seite</value>
+  </data>
+  <data name="Health.Snapshot.Pages" xml:space="preserve">
+    <value>Seiten</value>
+  </data>
+  <data name="Health.Snapshot.Yes" xml:space="preserve">
+    <value>ja</value>
+  </data>
+  <data name="Health.Snapshot.Blocked" xml:space="preserve">
+    <value>blockiert</value>
+  </data>
+  <data name="Conversion.Profile.Faithful.Label" xml:space="preserve">
+    <value>Originalgetreu</value>
+  </data>
+  <data name="Conversion.Profile.Faithful.Description" xml:space="preserve">
+    <value>Erstellte Inhalte und visuelle Merkmale erhalten, soweit das zuständige Formatmodul sie unterstützt.</value>
+  </data>
+  <data name="Conversion.Profile.Lightweight.Label" xml:space="preserve">
+    <value>Schlank</value>
+  </data>
+  <data name="Conversion.Profile.Lightweight.Description" xml:space="preserve">
+    <value>Kleinere, einfachere Ausgaben bevorzugen und dabei nützliche Struktur erhalten.</value>
+  </data>
+  <data name="Conversion.Profile.PrintReady.Label" xml:space="preserve">
+    <value>Druckfertig</value>
+  </data>
+  <data name="Conversion.Profile.PrintReady.Description" xml:space="preserve">
+    <value>Seitenaufteilung und Dokumenteinstellungen für den Druck bevorzugen.</value>
+  </data>
+  <data name="Conversion.Profile.TextOnly.Label" xml:space="preserve">
+    <value>Textorientiert</value>
+  </data>
+  <data name="Conversion.Profile.TextOnly.Description" xml:space="preserve">
+    <value>Text und Tabellen gegenüber dekorativen visuellen Inhalten bevorzugen.</value>
+  </data>
+  <data name="Conversion.Conflict.Rename.Label" xml:space="preserve">
+    <value>Nummerierte Kopie erstellen</value>
+  </data>
+  <data name="Conversion.Conflict.Rename.Description" xml:space="preserve">
+    <value>Die vorhandene Datei behalten und ein nummeriertes Suffix hinzufügen.</value>
+  </data>
+  <data name="Conversion.Conflict.Fail.Label" xml:space="preserve">
+    <value>Diesen Auftrag stoppen</value>
+  </data>
+  <data name="Conversion.Conflict.Fail.Description" xml:space="preserve">
+    <value>Die Namenskollision melden, ohne die vorhandene Datei zu ändern.</value>
+  </data>
+  <data name="Conversion.Conflict.Replace.Label" xml:space="preserve">
+    <value>Nach Validierung ersetzen</value>
+  </data>
+  <data name="Conversion.Conflict.Replace.Description" xml:space="preserve">
+    <value>Erst ersetzen, nachdem die neue Datei die Validierung beim erneuten Öffnen bestanden hat.</value>
+  </data>
+  <data name="Conversion.Queue.Empty" xml:space="preserve">
+    <value>Keine Aufträge</value>
+  </data>
+  <data name="Conversion.Package.Unsupported" xml:space="preserve">
+    <value>Wählen Sie ein Pages-, Numbers- oder Keynote-Verzeichnispaket.</value>
+  </data>
+  <data name="Conversion.Queue.File" xml:space="preserve">
+    <value>Datei</value>
+  </data>
+  <data name="Conversion.Queue.Files" xml:space="preserve">
+    <value>Dateien</value>
+  </data>
+  <data name="Conversion.Queue.Cleared" xml:space="preserve">
+    <value>Warteschlange geleert.</value>
+  </data>
+  <data name="Conversion.Output.ProviderFolderRequired" xml:space="preserve">
+    <value>Wählen Sie einen Ausgabeordner, bevor Sie Dokumente eines Speicheranbieters konvertieren.</value>
+  </data>
+  <data name="Conversion.Queue.Cancelled" xml:space="preserve">
+    <value>Konvertierung vor der Bereitstellung abgebrochen.</value>
+  </data>
+  <data name="Conversion.Job.Title" xml:space="preserve">
+    <value>Konvertierung</value>
+  </data>
+  <data name="Conversion.Job.NotStarted" xml:space="preserve">
+    <value>Vor dem Start dieses Auftrags abgebrochen; abgeschlossene Ausgaben bleiben erhalten.</value>
+  </data>
+  <data name="Conversion.Job.NoResult" xml:space="preserve">
+    <value>Es wurde kein Ergebnis zurückgegeben. Prüfen Sie den Ausgabeordner, bevor Sie einen weiteren Versuch starten.</value>
+  </data>
+  <data name="Conversion.Job.UnconfirmedOutput" xml:space="preserve">
+    <value>Die Ausführung wurde ohne Ergebnis beendet. Prüfen Sie den Ausgabeordner, bevor Sie einen weiteren Versuch starten.</value>
+  </data>
+  <data name="Book.Ready" xml:space="preserve">
+    <value>Importieren Sie ein Manuskript, öffnen Sie ein EPUB oder Buchprojekt oder beginnen Sie ein neues Buch.</value>
+  </data>
+  <data name="Book.Title" xml:space="preserve">
+    <value>Buch veröffentlichen</value>
+  </data>
+  <data name="Book.Description" xml:space="preserve">
+    <value>Erstellen Sie EPUB-Bücher mit anpassbarem Textfluss aus DOCX, Markdown und HTML. Prüfen Sie den Import, ordnen Sie die Kapitel und speichern Sie ein bearbeitbares Buchprojekt.</value>
+  </data>
+  <data name="Book.Cancelled" xml:space="preserve">
+    <value>Abgebrochen. Ihr aktuelles Buch bleibt erhalten.</value>
+  </data>
+  <data name="Book.Untitled" xml:space="preserve">
+    <value>Unbenanntes Buch</value>
+  </data>
+  <data name="Book.Applied" xml:space="preserve">
+    <value>Buchänderungen validiert.</value>
+  </data>
+  <data name="Book.NewChapter" xml:space="preserve">
+    <value>Neues Kapitel</value>
+  </data>
+  <data name="Health.Operation.Inspect.Label" xml:space="preserve">
+    <value>Prüfen</value>
+  </data>
+  <data name="Health.Operation.Inspect.Description" xml:space="preserve">
+    <value>Struktur, Sicherheit, Signaturen, Tags, aktive Inhalte und Reparaturdiagnosen lesen.</value>
+  </data>
+  <data name="Health.Operation.Compare.Label" xml:space="preserve">
+    <value>Vergleichen</value>
+  </data>
+  <data name="Health.Operation.Compare.Description" xml:space="preserve">
+    <value>Struktur und gerenderte Seiten vergleichen, mit einer HTML-Galerie zur Prüfung.</value>
+  </data>
+  <data name="Health.Operation.Optimize.Label" xml:space="preserve">
+    <value>Optimieren</value>
+  </data>
+  <data name="Health.Operation.Optimize.Description" xml:space="preserve">
+    <value>Ein deterministisches verlustfreies Profil anwenden und das Original behalten, wenn es kleiner ist.</value>
+  </data>
+  <data name="Health.Operation.RepairPlan.Label" xml:space="preserve">
+    <value>Reparatur planen</value>
+  </data>
+  <data name="Health.Operation.RepairPlan.Description" xml:space="preserve">
+    <value>Erkannte Defekte und Hindernisse beurteilen, ohne eine Datei zu schreiben.</value>
+  </data>
+  <data name="Health.Operation.Repair.Label" xml:space="preserve">
+    <value>Reparaturergebnis erstellen</value>
+  </data>
+  <data name="Health.Operation.Repair.Description" xml:space="preserve">
+    <value>Explizite Wiederherstellungen speichern, strikt erneut öffnen und den Inhaltserhalt nachweisen.</value>
+  </data>
+  <data name="Health.Operation.Sanitize.Label" xml:space="preserve">
+    <value>Bereinigen</value>
+  </data>
+  <data name="Health.Operation.Sanitize.Description" xml:space="preserve">
+    <value>Unzulässige Aktionen und eingebettete Daten entfernen und anschließend das gespeicherte Ergebnis erfassen.</value>
+  </data>
+  <data name="Health.Profile.Faithful.Label" xml:space="preserve">
+    <value>Ausgewogen</value>
+  </data>
+  <data name="Health.Profile.Faithful.Description" xml:space="preserve">
+    <value>Konservative deterministische verlustfreie Optimierung.</value>
+  </data>
+  <data name="Health.Profile.Lightweight.Label" xml:space="preserve">
+    <value>Maximale Komprimierung</value>
+  </data>
+  <data name="Health.Profile.Lightweight.Description" xml:space="preserve">
+    <value>Objekt- und Querverweisströme verwenden, soweit unterstützt.</value>
+  </data>
+  <data name="Health.Profile.PrintReady.Label" xml:space="preserve">
+    <value>Archivierung</value>
+  </data>
+  <data name="Health.Profile.PrintReady.Description" xml:space="preserve">
+    <value>Klassische Querverweise ohne Linearisierung.</value>
+  </data>
+  <data name="Health.Profile.TextOnly.Label" xml:space="preserve">
+    <value>Web</value>
+  </data>
+  <data name="Health.Profile.TextOnly.Description" xml:space="preserve">
+    <value>Fast Web View-Layout mit breit kompatiblen Querverweisen.</value>
+  </data>
+  <data name="Health.Files.Inspect" xml:space="preserve">
+    <value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value>
+  </data>
+  <data name="Health.Files.Optimize" xml:space="preserve">
+    <value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value>
+  </data>
+  <data name="Health.Files.RepairPlan" xml:space="preserve">
+    <value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value>
+  </data>
+  <data name="Health.Files.Repair" xml:space="preserve">
+    <value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value>
+  </data>
+  <data name="Health.Files.Sanitize" xml:space="preserve">
+    <value>Wählen Sie die PDF für den Vorgang „{0}“ in OfficeIMO aus. Die Quelldatei bleibt unverändert.</value>
+  </data>
+  <data name="Health.Review.File.Inspect" xml:space="preserve">
+    <value>Datei für den Vorgang „{0}“</value>
+  </data>
+  <data name="Health.Review.File.Optimize" xml:space="preserve">
+    <value>Datei für den Vorgang „{0}“</value>
+  </data>
+  <data name="Health.Review.File.RepairPlan" xml:space="preserve">
+    <value>Datei für den Vorgang „{0}“</value>
+  </data>
+  <data name="Health.Review.File.Repair" xml:space="preserve">
+    <value>Datei für den Vorgang „{0}“</value>
+  </data>
+  <data name="Health.Review.File.Sanitize" xml:space="preserve">
+    <value>Datei für den Vorgang „{0}“</value>
+  </data>
+  <data name="Health.RunAction.Inspect" xml:space="preserve">
+    <value>Vorgang „{0}“ starten</value>
+  </data>
+  <data name="Health.RunAction.Compare" xml:space="preserve">
+    <value>Vorgang „{0}“ starten</value>
+  </data>
+  <data name="Health.RunAction.Optimize" xml:space="preserve">
+    <value>Vorgang „{0}“ starten</value>
+  </data>
+  <data name="Health.RunAction.RepairPlan" xml:space="preserve">
+    <value>Vorgang „{0}“ starten</value>
+  </data>
+  <data name="Health.RunAction.Repair" xml:space="preserve">
+    <value>Vorgang „{0}“ starten</value>
+  </data>
+  <data name="Health.RunAction.Sanitize" xml:space="preserve">
+    <value>Vorgang „{0}“ starten</value>
+  </data>
+  <data name="Health.Prepare.Empty.Inspect" xml:space="preserve">
+    <value>Wählen Sie eine PDF für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Empty.Compare" xml:space="preserve">
+    <value>Wählen Sie eine PDF für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Empty.Optimize" xml:space="preserve">
+    <value>Wählen Sie eine PDF für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Empty.RepairPlan" xml:space="preserve">
+    <value>Wählen Sie eine PDF für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Empty.Repair" xml:space="preserve">
+    <value>Wählen Sie eine PDF für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Empty.Sanitize" xml:space="preserve">
+    <value>Wählen Sie eine PDF für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Ready.Inspect" xml:space="preserve">
+    <value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Ready.Compare" xml:space="preserve">
+    <value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Ready.Optimize" xml:space="preserve">
+    <value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Ready.RepairPlan" xml:space="preserve">
+    <value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Ready.Repair" xml:space="preserve">
+    <value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value>
+  </data>
+  <data name="Health.Prepare.Ready.Sanitize" xml:space="preserve">
+    <value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value>
+  </data>
+  <data name="PrintPreview.Paper.Letter" xml:space="preserve">
+    <value>Letter</value>
+  </data>
+  <data name="PrintPreview.Paper.Legal" xml:space="preserve">
+    <value>Legal</value>
+  </data>
+  <data name="PrintPreview.Orientation.Automatic" xml:space="preserve">
+    <value>Automatisch</value>
+  </data>
+  <data name="PrintPreview.Orientation.Portrait" xml:space="preserve">
+    <value>Hochformat</value>
+  </data>
+  <data name="PrintPreview.Orientation.Landscape" xml:space="preserve">
+    <value>Querformat</value>
+  </data>
+  <data name="PrintPreview.Scale.Fit.Label" xml:space="preserve">
+    <value>Einpassen</value>
+  </data>
+  <data name="PrintPreview.Scale.Fit.Description" xml:space="preserve">
+    <value>Die gesamte Seite anzeigen.</value>
+  </data>
+  <data name="PrintPreview.Scale.ActualSize.Label" xml:space="preserve">
+    <value>Tatsächliche Größe</value>
+  </data>
+  <data name="PrintPreview.Scale.ActualSize.Description" xml:space="preserve">
+    <value>Die physische Seitengröße beibehalten, sofern sie hineinpasst.</value>
+  </data>
+  <data name="PrintPreview.Scale.Fill.Label" xml:space="preserve">
+    <value>Ausfüllen</value>
+  </data>
+  <data name="PrintPreview.Scale.Fill.Description" xml:space="preserve">
+    <value>Jeden Seitenbereich ausfüllen und überstehende Inhalte abschneiden.</value>
+  </data>
+  <data name="PrintPreview.PagesPerSheet.One" xml:space="preserve">
+    <value>1 Seite</value>
+  </data>
+  <data name="PrintPreview.PagesPerSheet.Two" xml:space="preserve">
+    <value>2 Seiten</value>
+  </data>
+  <data name="PrintPreview.PagesPerSheet.Four" xml:space="preserve">
+    <value>4 Seiten</value>
+  </data>
+  <data name="PrintPreview.Status.Ready" xml:space="preserve">
+    <value>Eine PDF auswählen und ihre Druckblätter in der Vorschau prüfen.</value>
+  </data>
+  <data name="PrintPreview.Summary.Empty" xml:space="preserve">
+    <value>Noch keine Vorschau</value>
+  </data>
+  <data name="PrintPreview.Status.Planning" xml:space="preserve">
+    <value>Druckblätter werden geplant</value>
+  </data>
+  <data name="PrintPreview.Status.Rendering" xml:space="preserve">
+    <value>Seitenvorschauen werden gerendert</value>
+  </data>
+  <data name="PrintPreview.Status.Completed" xml:space="preserve">
+    <value>Druckvorschau bereit</value>
+  </data>
+  <data name="PrintPreview.Status.Cancelled" xml:space="preserve">
+    <value>Druckvorschau abgebrochen</value>
+  </data>
+  <data name="PrintPreview.Summary.None" xml:space="preserve">
+    <value>Keine Vorschau</value>
+  </data>
+  <data name="PrintPreview.Summary.Unavailable" xml:space="preserve">
+    <value>Vorschau nicht verfügbar</value>
+  </data>
+  <data name="PrintPreview.Rendering.FontSubstitution" xml:space="preserve">
+    <value>Eine Ersatzschrift wurde verwendet. Prüfen Sie die Blattvorschau vor dem Drucken.</value>
+  </data>
+  <data name="PrintPreview.Rendering.Limitation" xml:space="preserve">
+    <value>Der Renderer hat eine Einschränkung gemeldet. Prüfen Sie die Blattvorschau vor dem Drucken.</value>
+  </data>
+  <data name="PrintPreview.Rendering.TechnicalDetails" xml:space="preserve">
+    <value>Technische Darstellungsdetails</value>
+  </data>
+  <data name="AnnotationSelection.CrossPageCount" xml:space="preserve">
+    <value>Ausgewählte Anmerkungen: {0} auf {1} Seiten</value>
+  </data>
+  <data name="AnnotationSelection.SamePageGroups" xml:space="preserve">
+    <value>Gespeicherte PDF-Gruppen erfordern Anmerkungen auf derselben Seite. Verschieben, Duplizieren, Löschen und Anordnen funktionieren weiterhin über mehrere Seiten.</value>
+  </data>
+  <data name="AnnotationSelection.Instruction" xml:space="preserve">
+    <value>Anmerkungen auswählen. Mit Shift-click über mehrere Seiten hinzufügen; einen leeren Seitenbereich ziehen, um mehrere auszuwählen.</value>
+  </data>
+  <data name="Panes.Split" xml:space="preserve">
+    <value>Unabhängige Bereiche</value>
+  </data>
+  <data name="Panes.Help" xml:space="preserve">
+    <value>Jeder Bereich behält seine Seite, Vergrößerung und Anordnung. Bearbeitungsbefehle gelten für den aktiven Bereich.</value>
+  </data>
+  <data name="Panes.Switch" xml:space="preserve">
+    <value>Aktiven Bereich wechseln (F6)</value>
+  </data>
+  <data name="Panes.Close" xml:space="preserve">
+    <value>Bereich schließen</value>
+  </data>
+  <data name="Panes.Document" xml:space="preserve">
+    <value>Dokument in diesem Bereich</value>
+  </data>
+  <data name="Panes.Activate" xml:space="preserve">
+    <value>Bereich aktivieren</value>
+  </data>
+  <data name="Comparison.ExpectedRange" xml:space="preserve">
+    <value>Seiten im aktuellen Dokument</value>
+  </data>
+  <data name="Comparison.ActualRange" xml:space="preserve">
+    <value>Seiten im Vergleichsdokument</value>
+  </data>
+  <data name="Comparison.RangeHint" xml:space="preserve">
+    <value>Alle Seiten oder z. B. 5-8,last</value>
+  </data>
+  <data name="Comparison.RangeDescription" xml:space="preserve">
+    <value>Bis zu 100 ausgewählte Seiten je Dokument, der Reihenfolge nach gepaart. Keine Erkennung semantischer Änderungen oder verschobener Seiten.</value>
+  </data>
+  <data name="Comparison.ExportReport" xml:space="preserve">
+    <value>Bericht exportieren</value>
+  </data>
+  <data name="Comparison.ReportSaved" xml:space="preserve">
+    <value>Der eigenständige Vergleichsbericht wurde gespeichert. Beide Quell-PDFs sind unverändert.</value>
+  </data>
+  <data name="Comparison.SelectedSummary" xml:space="preserve">
+    <value>Seitenpaare: {0:N0}; abweichende Paare: {1:N0}; Seiten ohne Partner: {2:N0}. Paarung in der ausgewählten Reihenfolge.</value>
+  </data>
+  <data name="FormOcr.Title" xml:space="preserve">
+    <value>Werte vorhandener Formularfelder erkennen</value>
+  </data>
+  <data name="FormOcr.StartHint" xml:space="preserve">
+    <value>Erkennen Sie sichtbaren Text in vorhandenen Feldern. Wenden Sie aktuelle Entwürfe zuerst an. Die OCR-Sprachen folgen dem OCR-Arbeitsbereich; die Erkennung erstellt keine Felder und speichert das Dokument nicht.</value>
+  </data>
+  <data name="FormOcr.Recognize" xml:space="preserve">
+    <value>Formularwerte erkennen</value>
+  </data>
+  <data name="FormOcr.Apply" xml:space="preserve">
+    <value>Akzeptierte Werte anwenden</value>
+  </data>
+  <data name="FormOcr.Cancel" xml:space="preserve">
+    <value>Erkennung abbrechen / Prüfung schließen</value>
+  </data>
+  <data name="FormOcr.ReviewHint" xml:space="preserve">
+    <value>Vergleichen Sie jeden Vorschlag mit der erfassten Quelle. Korrigieren Sie den Wert und akzeptieren Sie ihn ausdrücklich. Das Anwenden ändert den aktuellen Arbeitsbereich; speichern Sie eine Kopie, um die Originaldatei zu erhalten.</value>
+  </data>
+  <data name="FormOcr.NoProposals" xml:space="preserve">
+    <value>Kein Text wurde sichtbaren vorhandenen Formularfeldern zugeordnet. Füllen Sie die Felder manuell aus oder passen Sie die OCR-Sprache und Quelle an.</value>
+  </data>
+  <data name="FormOcr.Stale" xml:space="preserve">
+    <value>Das Dokument hat sich nach der Erkennung geändert. Erkennen Sie es erneut, bevor Sie Werte anwenden.</value>
+  </data>
+  <data name="FormOcr.ChooseProposal" xml:space="preserve">
+    <value>Erkanntes Feld auswählen</value>
+  </data>
+  <data name="FormOcr.CorrectedValue" xml:space="preserve">
+    <value>Geprüfter Feldwert</value>
+  </data>
+  <data name="FormOcr.AcceptValue" xml:space="preserve">
+    <value>Ich habe diesen Wert geprüft und akzeptiere ihn</value>
+  </data>
+  <data name="FormOcr.SourcePreview" xml:space="preserve">
+    <value>Erfasste Quellseite</value>
+  </data>
+  <data name="FormOcr.Diagnostics" xml:space="preserve">
+    <value>Erkennungsdiagnose</value>
+  </data>
+  <data name="FormOcr.Evidence" xml:space="preserve">
+    <value>Seite {0} · Konfidenz {1:P0}</value>
+  </data>
+  <data name="FormOcr.Unsupported" xml:space="preserve">
+    <value>Dieses Feld ist schreibgeschützt oder hat nicht unterstützte Einschränkungen. Füllen Sie es in einer geprüften Formularanwendung aus.</value>
+  </data>
+  <data name="FormOcr.Ambiguous" xml:space="preserve">
+    <value>Widersprüchliche Feld- oder Widget-Zuordnungen. Korrigieren Sie den Wert vor dem Akzeptieren.</value>
+  </data>
+  <data name="FormOcr.LowConfidence" xml:space="preserve">
+    <value>Geringe Konfidenz. Prüfen Sie die Originalseite und korrigieren Sie den Wert vor dem Akzeptieren.</value>
+  </data>
+  <data name="FormOcr.Summary" xml:space="preserve">
+    <value>Akzeptierte Werte: {0} von {1}. Prüfen Sie jeden Wert vor dem Anwenden.</value>
+  </data>
+  <data name="FormOcr.ChooseLanguage" xml:space="preserve">
+    <value>Wählen Sie zuerst eine OCR-Sprache im OCR-Arbeitsbereich aus.</value>
+  </data>
+  <data name="FormOcr.Constraint.ReadOnly" xml:space="preserve">
+    <value>Dieses Feld ist schreibgeschützt.</value>
+  </data>
+  <data name="FormOcr.Constraint.UnsupportedField" xml:space="preserve">
+    <value>Dieses Feld akzeptiert keinen interaktiven Wert.</value>
+  </data>
+  <data name="FormOcr.Constraint.MultipleValues" xml:space="preserve">
+    <value>Dieses Feld akzeptiert einen Wert.</value>
+  </data>
+  <data name="FormOcr.Constraint.MaximumLength" xml:space="preserve">
+    <value>Der Wert überschreitet die maximale Feldlänge.</value>
+  </data>
+  <data name="FormOcr.Constraint.RequiredValue" xml:space="preserve">
+    <value>Dieses Pflichtfeld ist leer. Sie können es speichern und später ausfüllen.</value>
+  </data>
+  <data name="FormOcr.Constraint.NoToggleToOff" xml:space="preserve">
+    <value>Wählen Sie eine andere Option; diese Optionsgruppe kann nicht geleert werden.</value>
+  </data>
+  <data name="FormOcr.Constraint.UnknownChoice" xml:space="preserve">
+    <value>Wählen Sie einen angebotenen Feldwert.</value>
+  </data>
+  <data name="FormOcr.Constraint.NumericValue" xml:space="preserve">
+    <value>Geben Sie eine Zahl mit den für das Feld festgelegten Dezimal- und Gruppentrennzeichen ein.</value>
+  </data>
+  <data name="FormOcr.Constraint.NumericPrecision" xml:space="preserve">
+    <value>Die Zahl hat zu viele Dezimalstellen für dieses Prüfungsformat.</value>
+  </data>
+  <data name="FormOcr.Constraint.NumericRange" xml:space="preserve">
+    <value>Die Zahl liegt außerhalb des festgelegten Feldbereichs.</value>
+  </data>
+  <data name="FormOcr.Constraint.UnsupportedScriptConstraint" xml:space="preserve">
+    <value>Dieses Feld hat Skripteinschränkungen, die nicht sicher geprüft werden können. Verwenden Sie eine geprüfte Formularanwendung.</value>
+  </data>
+  <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve">
+    <value>Die Anzeige entspricht mehreren Optionen. Geben Sie den genauen Exportwert ein.</value>
+  </data>
+  <data name="Comparison.UnmatchedExpected" xml:space="preserve">
+    <value>Aktuelle Auswahl ohne Partner</value>
+  </data>
+  <data name="Comparison.UnmatchedActual" xml:space="preserve">
+    <value>Vergleichsauswahl ohne Partner</value>
+  </data>
+  <data name="Activation.Missing" xml:space="preserve">
+    <value>Einige Dateien wurden nicht gefunden. Prüfen Sie, ob sie noch vorhanden sind, und öffnen Sie sie erneut.</value>
+  </data>
+  <data name="Application.UnexpectedError" xml:space="preserve">
+    <value>Ein unerwarteter Fehler ist aufgetreten, Ihre geöffneten Dokumente wurden jedoch beibehalten. Speichern Sie Ihre Arbeit und starten Sie Studio neu, falls etwas nicht stimmt.</value>
+  </data>
+  <data name="Preferences.SaveFailed" xml:space="preserve">
+    <value>Ihre Einstellungen gelten für diese Sitzung, konnten aber nicht gespeichert werden. Prüfen Sie, ob der Profilordner beschreibbar ist.</value>
+  </data>
+  <data name="MainWindow.HighContrastAppearanceInSettings" xml:space="preserve">
+    <value>Hoher Kontrast ist aktiviert. Ändern Sie die Darstellung in den Einstellungen.</value>
+  </data>
+  <data name="Recent.Unavailable" xml:space="preserve">
+    <value>Dieses zuletzt verwendete Dokument ist nicht mehr verfügbar. Es wurde aus der Liste entfernt.</value>
+  </data>
+  <data name="Home.OpenRecent" xml:space="preserve">
+    <value>Öffnen</value>
+  </data>
+  <data name="Home.RemoveFromRecent" xml:space="preserve">
+    <value>Aus der Liste entfernen</value>
+  </data>
+  <data name="Picker.Unavailable" xml:space="preserve">
+    <value>Dateidialoge sind auf diesem System nicht verfügbar. Installieren Sie unter Linux xdg-desktop-portal mit einem GTK- oder KDE-Backend und starten Sie Studio neu. Sie können Dateien weiterhin in das Fenster ziehen.</value>
+  </data>
+  <data name="Menu.ApplicationMenu" xml:space="preserve">
+    <value>Anwendungsmenü</value>
+  </data>
+  <data name="Menu.ApplicationMenuTip" xml:space="preserve">
+    <value>Menü (F10)</value>
+  </data>
+  <data name="Menu.File" xml:space="preserve">
+    <value>Datei</value>
+  </data>
+  <data name="Menu.Edit" xml:space="preserve">
+    <value>Bearbeiten</value>
+  </data>
+  <data name="Menu.View" xml:space="preserve">
+    <value>Ansicht</value>
+  </data>
+  <data name="Menu.Document" xml:space="preserve">
+    <value>Dokument</value>
+  </data>
+  <data name="Menu.ToolsMenu" xml:space="preserve">
+    <value>Werkzeuge</value>
+  </data>
+  <data name="Menu.Window" xml:space="preserve">
+    <value>Fenster</value>
+  </data>
+  <data name="Menu.Help" xml:space="preserve">
+    <value>Hilfe</value>
+  </data>
+  <data name="Menu.OpenRecent" xml:space="preserve">
+    <value>Zuletzt verwendet öffnen</value>
+  </data>
+  <data name="Menu.ClearRecent" xml:space="preserve">
+    <value>Liste der zuletzt verwendeten leeren</value>
+  </data>
+  <data name="Menu.CloseTab" xml:space="preserve">
+    <value>Tab schließen</value>
+  </data>
+  <data name="Menu.ReopenTab" xml:space="preserve">
+    <value>Geschlossenen Tab erneut öffnen</value>
+  </data>
+  <data name="Menu.Exit" xml:space="preserve">
+    <value>Beenden</value>
+  </data>
+  <data name="Menu.Find" xml:space="preserve">
+    <value>Im Dokument suchen</value>
+  </data>
+  <data name="Menu.Commands" xml:space="preserve">
+    <value>Befehl suchen</value>
+  </data>
+  <data name="Menu.ToggleSidebar" xml:space="preserve">
+    <value>Dokumentbereiche ein- oder ausblenden</value>
+  </data>
+  <data name="Menu.FullScreen" xml:space="preserve">
+    <value>Vollbild</value>
+  </data>
+  <data name="Menu.LeaveFullScreen" xml:space="preserve">
+    <value>Vollbild beenden</value>
+  </data>
+  <data name="Menu.NextTab" xml:space="preserve">
+    <value>Nächster Tab</value>
+  </data>
+  <data name="Menu.PreviousTab" xml:space="preserve">
+    <value>Vorheriger Tab</value>
+  </data>
+  <data name="Menu.Minimize" xml:space="preserve">
+    <value>Minimieren</value>
+  </data>
+  <data name="Menu.KeyboardShortcuts" xml:space="preserve">
+    <value>Befehle und Tastenkombinationen</value>
+  </data>
+  <data name="Menu.Documentation" xml:space="preserve">
+    <value>Dokumentation</value>
+  </data>
+  <data name="Menu.ReportProblem" xml:space="preserve">
+    <value>Problem melden</value>
+  </data>
+  <data name="Menu.About" xml:space="preserve">
+    <value>Über OfficeIMO Studio</value>
+  </data>
+  <data name="DocumentWorkspace.ViewOptions" xml:space="preserve">
+    <value>Ansichtsoptionen</value>
+  </data>
+  <data name="Errors.AccessDenied" xml:space="preserve">
+    <value>Studio hat keine Berechtigung für diese Datei oder diesen Ordner. Wählen Sie einen anderen Speicherort oder prüfen Sie die Berechtigungen.</value>
+  </data>
+  <data name="Errors.NotFound" xml:space="preserve">
+    <value>Die Datei oder der Ordner wurde nicht mehr gefunden. Sie wurden möglicherweise verschoben, umbenannt oder gelöscht.</value>
+  </data>
+  <data name="Errors.PathTooLong" xml:space="preserve">
+    <value>Der Dateipfad ist zu lang. Wählen Sie einen kürzeren Ordner- oder Dateinamen.</value>
+  </data>
+  <data name="Errors.FileInUse" xml:space="preserve">
+    <value>Die Datei ist in einem anderen Programm geöffnet. Schließen Sie sie dort und versuchen Sie es erneut.</value>
+  </data>
+  <data name="Errors.DiskFull" xml:space="preserve">
+    <value>Es ist nicht genügend freier Speicherplatz vorhanden. Geben Sie Speicherplatz frei oder wählen Sie ein anderes Laufwerk und versuchen Sie es erneut.</value>
+  </data>
+  <data name="Commands.Watermark.Title" xml:space="preserve">
+    <value>Wasserzeichen hinzufügen</value>
+  </data>
+  <data name="Commands.Watermark.Description" xml:space="preserve">
+    <value>Text- oder Bildwasserzeichen auf ausgewählten Seiten in der Vorschau prüfen und platzieren.</value>
+  </data>
+  <data name="Commands.PageNumbers.Title" xml:space="preserve">
+    <value>Seitenzahlen hinzufügen</value>
+  </data>
+  <data name="Commands.PageNumbers.Description" xml:space="preserve">
+    <value>Alle Seiten nummerieren; Rückgängig entfernt sie bis zum Speichern.</value>
+  </data>
+  <data name="Commands.FlattenAnnotations.Title" xml:space="preserve">
+    <value>Alle Anmerkungen in Seiteninhalt umwandeln</value>
+  </data>
+  <data name="Commands.FlattenAnnotations.Description" xml:space="preserve">
+    <value>Kommentare und Markierungen in den Seiteninhalt übernehmen, sodass sie nicht mehr bearbeitet werden können.</value>
+  </data>
+  <data name="Commands.Split.Title" xml:space="preserve">
+    <value>In Dokumente aufteilen</value>
+  </data>
+  <data name="Commands.Split.Description" xml:space="preserve">
+    <value>Die Aufteilung dieser PDF in mehrere Dokumente in der Vorschau prüfen und dann speichern.</value>
+  </data>
+  <data name="Commands.CompareSideBySide.Title" xml:space="preserve">
+    <value>Nebeneinander vergleichen</value>
+  </data>
+  <data name="Commands.CompareSideBySide.Description" xml:space="preserve">
+    <value>Eine weitere PDF neben dieser mit synchronisiertem Bildlauf öffnen.</value>
+  </data>
+  <data name="Commands.ValidateSignatures.Title" xml:space="preserve">
+    <value>Signaturen prüfen</value>
+  </data>
+  <data name="Commands.ValidateSignatures.Description" xml:space="preserve">
+    <value>Die digitalen Signaturen in diesem Dokument prüfen und ihren Status melden.</value>
+  </data>
+  <data name="Commands.PageNightMode.Title" xml:space="preserve">
+    <value>Nachtmodus für Seiten</value>
+  </data>
+  <data name="Commands.PageNightMode.Description" xml:space="preserve">
+    <value>Seiten für das Lesen bei wenig Licht mit dunklem Hintergrund anzeigen; das Dokument bleibt unverändert.</value>
+  </data>
+  <data name="Commands.Assistant.Title" xml:space="preserve">
+    <value>Dokumentassistent</value>
+  </data>
+  <data name="Commands.Assistant.Description" xml:space="preserve">
+    <value>Den Assistenten ein- oder ausblenden, der Fragen zu diesem Dokument beantwortet.</value>
+  </data>
+  <data name="Notices.BackToReading" xml:space="preserve">
+    <value>Zurück zum Lesen</value>
+  </data>
+  <data name="Settings.ShowRecentPreviews" xml:space="preserve">
+    <value>Vorschauen zuletzt verwendeter Dokumente anzeigen</value>
+  </data>
+  <data name="Settings.ShowRecentPreviewsDescription" xml:space="preserve">
+    <value>Die Startseite zeigt die erste Seite zuletzt verwendeter lokaler Dokumente, nur im Speicher gerendert. Deaktivieren Sie dies vor der Arbeit mit privaten Dokumenten, damit deren Seiten nie auf der Startseite erscheinen.</value>
+  </data>
+  <data name="Conversion.DefaultsHint" xml:space="preserve">
+    <value>Gilt für Dateien, deren Format mehrere Ergebnisse anbietet, und als Ausgangsoptionen für jeden neuen Auftrag.</value>
+  </data>
+  <data name="Commands.ImportPages.Title" xml:space="preserve">
+    <value>Seiten aus PDFs hinzufügen</value>
+  </data>
+  <data name="Commands.ImportPages.Description" xml:space="preserve">
+    <value>Seiten aus anderen PDFs nach der aktuellen Seite einfügen.</value>
+  </data>
+  <data name="Commands.AnnotationTool.Description" xml:space="preserve">
+    <value>Werkzeug für Kommentare und Markierungen. Bei Auswahl wird zu Kommentieren gewechselt.</value>
+  </data>
+  <data name="Commands.EditTool.Description" xml:space="preserve">
+    <value>Werkzeug zur Inhaltsbearbeitung. Bei Auswahl wird zu Bearbeiten gewechselt.</value>
+  </data>
+  <data name="Commands.PlaceDate.Title" xml:space="preserve">
+    <value>Heutiges Datum einfügen</value>
+  </data>
+  <data name="Commands.PlaceDate.Description" xml:space="preserve">
+    <value>Das heutige Datum dort auf der Seite platzieren, wo Sie als Nächstes klicken.</value>
+  </data>
+  <data name="Commands.CreateSignature.Title" xml:space="preserve">
+    <value>Unterschrift erstellen</value>
+  </data>
+  <data name="Commands.CreateSignature.Description" xml:space="preserve">
+    <value>Eine Unterschrift zeichnen, tippen oder als Bild wählen und dann auf der Seite platzieren.</value>
+  </data>
+  <data name="Commands.CreateInitials.Title" xml:space="preserve">
+    <value>Initialen erstellen</value>
+  </data>
+  <data name="Commands.CreateInitials.Description" xml:space="preserve">
+    <value>Initialen zeichnen, tippen oder als Bild wählen und dann auf der Seite platzieren.</value>
+  </data>
+  <data name="Commands.FlattenFormField.Title" xml:space="preserve">
+    <value>Ausgewähltes Feld in Seiteninhalt umwandeln</value>
+  </data>
+  <data name="Commands.FlattenFormField.Description" xml:space="preserve">
+    <value>Das ausgewählte Formularfeld in festen Seiteninhalt umwandeln.</value>
+  </data>
+  <data name="Commands.FlattenForms.Title" xml:space="preserve">
+    <value>Alle Formularfelder in Seiteninhalt umwandeln</value>
+  </data>
+  <data name="Commands.FlattenForms.Description" xml:space="preserve">
+    <value>Alle Formularfelder in festen Seiteninhalt umwandeln, sodass Werte nicht mehr geändert werden können.</value>
+  </data>
+  <data name="Commands.BatesNumbers.Title" xml:space="preserve">
+    <value>Bates-Nummern hinzufügen</value>
+  </data>
+  <data name="Commands.BatesNumbers.Description" xml:space="preserve">
+    <value>Fortlaufende Bates-Nummern mit dem unter Schützen festgelegten Präfix, Startwert und der Position stempeln.</value>
+  </data>
+  <data name="Commands.SelectFormField" xml:space="preserve">
+    <value>Wählen Sie zuerst ein Formularfeld aus.</value>
+  </data>
+  <data name="Settings.Sections" xml:space="preserve">
+    <value>Einstellungsbereiche</value>
+  </data>
+  <data name="Settings.PrivacySection" xml:space="preserve">
+    <value>Datenschutz und Verlauf</value>
+  </data>
+  <data name="Settings.RecoverySection" xml:space="preserve">
+    <value>Wiederherstellung und Diagnose</value>
+  </data>
+  <data name="Notices.RenderingLimitation" xml:space="preserve">
+    <value>Seite {0} kann vom Original abweichen, weil Studio einige Inhalte oder Schriften nicht exakt darstellen kann. Vergleichen Sie sie mit einem anderen Viewer, bevor Sie sich auf ihr Aussehen verlassen.</value>
+  </data>
+  <data name="Notices.RenderingLimitationPages" xml:space="preserve">
+    <value>Die Seiten {0} können vom Original abweichen, weil Studio einige Inhalte oder Schriften nicht exakt darstellen kann. Vergleichen Sie sie mit einem anderen Viewer, bevor Sie sich auf ihr Aussehen verlassen.</value>
+  </data>
+  <data name="Notices.ShowPage" xml:space="preserve">
+    <value>Seite {0} anzeigen</value>
+  </data>
+  <data name="PdfPage.FontSubstitution" xml:space="preserve">
+    <value>Eine Schrift dieser Seite ist nicht in die PDF-Datei eingebettet. Wie in anderen PDF-Viewern wird stattdessen eine installierte Schrift angezeigt; Abstände können leicht abweichen.</value>
+  </data>
+  <data name="PdfPage.RenderingLimitation" xml:space="preserve">
+    <value>Studio lässt auf dieser Seite Inhalte aus, die es nicht darstellen kann. Vergleichen Sie sie mit einem anderen Viewer, bevor Sie sich auf ihr Aussehen verlassen.</value>
+  </data>
+  <data name="PdfPage.TechnicalDetails" xml:space="preserve">
+    <value>Technische Details</value>
+  </data>
+  <data name="PdfPage.RenderingSimplified" xml:space="preserve">
+    <value>Einige Details dieser Seite werden vereinfacht dargestellt. Der Unterschied ist meist kaum sichtbar.</value>
+  </data>
+  <data name="Provenance.InputHash" xml:space="preserve">
+    <value>SHA-256 der Eingabe</value>
+  </data>
+  <data name="Provenance.CopyLabel" xml:space="preserve">
+    <value>Kopie</value>
+  </data>
+  <data name="Provenance.OutputHash" xml:space="preserve">
+    <value>SHA-256 der Ausgabe</value>
+  </data>
+  <data name="Provenance.ReportLabel" xml:space="preserve">
+    <value>Bericht</value>
+  </data>
+  <data name="Provenance.NotRecorded" xml:space="preserve">
+    <value>Nicht aufgezeichnet</value>
+  </data>
+  <data name="Provenance.SoftwareNotRecorded" xml:space="preserve">
+    <value>Software nicht aufgezeichnet</value>
+  </data>
+  <data name="Provenance.TimeNotRecorded" xml:space="preserve">
+    <value>Zeit nicht aufgezeichnet</value>
+  </data>
+  <data name="Provenance.RecordedTime" xml:space="preserve">
+    <value>Aufgezeichnete Zeit: {0}</value>
+  </data>
+  <data name="Provenance.CertificateSubjectFormat" xml:space="preserve">
+    <value>Zertifikatssubjekt (ungeprüft): {0}</value>
+  </data>
+  <data name="Provenance.CertificateIssuerFormat" xml:space="preserve">
+    <value>Zertifikatsaussteller (ungeprüft): {0}</value>
+  </data>
+  <data name="Provenance.SourceAssetFormat" xml:space="preserve">
+    <value>Quellmaterial: {0}</value>
+  </data>
+  <data name="Provenance.ManifestCountFormat" xml:space="preserve">
+    <value>Manifeste im Speicher: {0}</value>
+  </data>
+  <data name="Provenance.ActionCreated" xml:space="preserve">
+    <value>Erstellt</value>
+  </data>
+  <data name="Provenance.ActionOpened" xml:space="preserve">
+    <value>Geöffnet</value>
+  </data>
+  <data name="Provenance.ActionEdited" xml:space="preserve">
+    <value>Bearbeitet</value>
+  </data>
+  <data name="Provenance.ActionConverted" xml:space="preserve">
+    <value>Konvertiert</value>
+  </data>
+  <data name="Provenance.ActionCropped" xml:space="preserve">
+    <value>Zugeschnitten</value>
+  </data>
+  <data name="Provenance.ActionResized" xml:space="preserve">
+    <value>Größe geändert</value>
+  </data>
+  <data name="Provenance.ActionPlaced" xml:space="preserve">
+    <value>Weitere Inhalte eingefügt</value>
+  </data>
+  <data name="Provenance.ActionPublished" xml:space="preserve">
+    <value>Veröffentlicht</value>
+  </data>
+  <data name="Provenance.ActionWatermarked" xml:space="preserve">
+    <value>Wasserzeichen zum Inhalt hinzugefügt</value>
+  </data>
+  <data name="Provenance.SourceGenerativeAi" xml:space="preserve">
+    <value>Generative KI angegeben</value>
+  </data>
+  <data name="Provenance.SourceCompositeAi" xml:space="preserve">
+    <value>Mischung aus KI-generierten und anderen Inhalten angegeben</value>
+  </data>
+  <data name="Provenance.SourceAlgorithmic" xml:space="preserve">
+    <value>Softwaregenerierte Inhalte angegeben</value>
+  </data>
+  <data name="Provenance.SourceDigitalCapture" xml:space="preserve">
+    <value>Aufnahme mit Kamera oder Scanner angegeben</value>
+  </data>
+  <data name="Provenance.SourceCompositeCapture" xml:space="preserve">
+    <value>Zusammenstellung aufgenommener Medien angegeben</value>
+  </data>
+  <data name="Provenance.SourceRecorded" xml:space="preserve">
+    <value>Aufgezeichneter Quelltyp: {0}</value>
+  </data>
+  <data name="Provenance.SourceNotRecorded" xml:space="preserve">
+    <value>Quelltyp nicht aufgezeichnet</value>
+  </data>
+  <data name="PdfPage.FontReplaced" xml:space="preserve">
+    <value>Eine Schrift dieser Seite fehlt in der PDF-Datei oder kann nicht dargestellt werden; stattdessen wird eine ähnliche installierte Schrift angezeigt. Buchstabenformen und Abstände können vom Original abweichen.</value>
+  </data>
+  <data name="Ocr.Notice.EngineMissing" xml:space="preserve">
+    <value>Die Texterkennung benötigt Tesseract, das auf diesem Computer nicht gefunden wurde. Installieren Sie es oder wählen Sie den Installationsort in den Einstellungen.</value>
+  </data>
+  <data name="Ocr.Notice.SetUp" xml:space="preserve">
+    <value>Texterkennung einrichten</value>
+  </data>
+  <data name="Conversion.Loss.One" xml:space="preserve">
+    <value>{0} wurde konvertiert, aber einige Inhalte wurden angenähert oder ausgelassen. Prüfen Sie die Details, bevor Sie sich auf das Ergebnis verlassen.</value>
+  </data>
+  <data name="Conversion.Loss.Many" xml:space="preserve">
+    <value>{0} Dateien wurden mit angenäherten oder fehlenden Inhalten konvertiert. Prüfen Sie die Details, bevor Sie sich auf die Ergebnisse verlassen.</value>
+  </data>
+  <data name="Conversion.Loss.Review" xml:space="preserve">
+    <value>Details prüfen</value>
+  </data>
+  <data name="Edit.AddTextHint" xml:space="preserve">
+    <value>Fügt neuen Text über der Seite hinzu. Um vorhandenen Text zu ändern, wählen Sie Auswählen und klicken Sie auf den Text.</value>
+  </data>
+  <data name="Edit.ReplaceTextTitle" xml:space="preserve">
+    <value>Text ersetzen</value>
+  </data>
+  <data name="Edit.ReplaceTextHint" xml:space="preserve">
+    <value>Ändert die ausgewählten Wörter direkt auf der Seite und behält ihre Position bei. Um separaten Text hinzuzufügen, verwenden Sie Text hinzufügen.</value>
+  </data>
+  <data name="Inspector.Cancel" xml:space="preserve">
+    <value>Abbrechen</value>
+  </data>
+  <data name="Inspector.Advanced" xml:space="preserve">
+    <value>Position und Größe</value>
+  </data>
+  <data name="Inspector.KeyboardHint" xml:space="preserve">
+    <value>{0}+Pfeiltasten verschieben die Auswahl, mit Umschalt um zehn Punkte. {0}+{1}+Pfeiltasten ändern ihre Größe.</value>
+  </data>
+  <data name="Crop.PreviewHint" xml:space="preserve">
+    <value>Der gestrichelte Umriss auf den ausgewählten Seiten zeigt, was beim Zuschneiden erhalten bleibt.</value>
+  </data>
+  <data name="Crop.Cancel" xml:space="preserve">
+    <value>Zuschneiden abbrechen</value>
+  </data>
+  <data name="ObjectEdit.ScalePreviewHint" xml:space="preserve">
+    <value>Der gestrichelte Umriss zeigt die neue Größe. Das Bild behält seinen Mittelpunkt.</value>
+  </data>
+  <data name="ObjectEdit.CancelScale" xml:space="preserve">
+    <value>Größenänderung abbrechen</value>
+  </data>
+  <data name="Forms.DiscardAll" xml:space="preserve">
+    <value>Änderungen verwerfen</value>
+  </data>
+  <data name="Errors.ReadOnly" xml:space="preserve">
+    <value>Die Zieldatei ist schreibgeschützt und wurde nicht geändert. Wählen Sie einen anderen Namen oder Ordner oder heben Sie den Schreibschutz auf.</value>
+  </data>
+  <data name="Dialog.ActiveOperations.Working" xml:space="preserve">
+    <value>In Arbeit…</value>
+  </data>
+  <data name="Mobile.ChoosePdf" xml:space="preserve">
+    <value>Wählen Sie ein PDF-Dokument.</value>
+  </data>
+  <data name="Mobile.NothingToShare" xml:space="preserve">
+    <value>Das gespeicherte Dokument hat keinen Speicherort zum Teilen.</value>
+  </data>
+  <data name="Mobile.ReadingPositionFailed" xml:space="preserve">
+    <value>Die Leseposition konnte nicht gespeichert werden: {0}</value>
+  </data>
+  <data name="Mobile.ClipboardUnavailable" xml:space="preserve">
+    <value>Die Zwischenablage ist nicht verfügbar.</value>
+  </data>
+  <data name="Mobile.AnswerSourceChanged" xml:space="preserve">
+    <value>Quelle oder Ziel hat sich geändert. Exportieren Sie die aktuelle Antwort in eine separate Datei.</value>
+  </data>
+  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve">
+    <value>Der Dokumentordner von Studio auf diesem Gerät ist nicht verfügbar.</value>
+  </data>
+  <data name="Mobile.BrowseOutputFolder" xml:space="preserve">
+    <value>Öffnen Sie den ausgewählten Ausgabeordner in der Dateien-App. Öffnen Sie ein einzelnes Ergebnis, um es zu teilen.</value>
+  </data>
+  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve">
+    <value>Studio ist noch nicht bereit, einen Link zu öffnen.</value>
+  </data>
+  <data name="Mobile.ChooseFolder" xml:space="preserve">
+    <value>Ordner wählen</value>
+  </data>
+  <data name="Mobile.UseOutputFormat" xml:space="preserve">
+    <value>Verwenden Sie das ausgewählte Ausgabeformat: {0}.</value>
+  </data>
+  <data name="Mobile.FileName" xml:space="preserve">
+    <value>Dateiname</value>
+  </data>
+  <data name="Mobile.ChooseFolderNext" xml:space="preserve">
+    <value>Wählen Sie als Nächstes einen Ordner in der Dateien-App. Das Dokument wird nach Abschluss der Prüfung geschrieben.</value>
+  </data>
+  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve">
+    <value>Anmerkungen sind für dieses Dokument nicht verfügbar.</value>
+  </data>
+  <data name="Apple.Document" xml:space="preserve">
+    <value>Dokument</value>
+  </data>
+  <data name="Apple.ToolsMenu" xml:space="preserve">
+    <value>Werkzeuge</value>
+  </data>
+  <data name="Apple.Help" xml:space="preserve">
+    <value>Hilfe</value>
+  </data>
+  <data name="Apple.OpenRecent" xml:space="preserve">
+    <value>Zuletzt verwendet öffnen</value>
+  </data>
+  <data name="Apple.ClearRecent" xml:space="preserve">
+    <value>Menü leeren</value>
+  </data>
+  <data name="Apple.CloseTab" xml:space="preserve">
+    <value>Tab schließen</value>
+  </data>
+  <data name="Apple.KeyboardShortcuts" xml:space="preserve">
+    <value>Befehle und Tastenkombinationen</value>
+  </data>
+  <data name="Apple.Documentation" xml:space="preserve">
+    <value>OfficeIMO Studio-Dokumentation</value>
+  </data>
+  <data name="Apple.ReportProblem" xml:space="preserve">
+    <value>Problem melden</value>
+  </data>
+  <data name="Apple.About" xml:space="preserve">
+    <value>Über OfficeIMO Studio</value>
+  </data>
+  <data name="Invoice.ChooseFont" xml:space="preserve">
+    <value>Schrift wählen</value>
+  </data>
+  <data name="Invoice.ChooseFontTitle" xml:space="preserve">
+    <value>Einzubettende Schrift wählen</value>
+  </data>
+  <data name="Invoice.FontFiles" xml:space="preserve">
+    <value>Schriften</value>
+  </data>
+  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve">
+    <value>Der PDF-Export ganzer Ordner benötigt dauerhaften Zugriff auf ganze Ordner, den diese Studio-Ausgabe nicht hat. Verwenden Sie „Dateien hinzufügen“ und „Ausstehende ausführen“, um mehrere Dokumente zu konvertieren.</value>
+  </data>
+  <data name="PageActions.SelectAllAnnotations" xml:space="preserve">
+    <value>Alle Anmerkungen auswählen</value>
+  </data>
+  <data name="Workflow.Status.Completed" xml:space="preserve">
+    <value>Abgeschlossen</value>
+  </data>
+  <data name="Workflow.Status.Failed" xml:space="preserve">
+    <value>Fehlgeschlagen</value>
+  </data>
+  <data name="Crop.Reset" xml:space="preserve">
+    <value>Zuschnitt zurücksetzen</value>
+  </data>
+  <data name="Crop.VisibilityHint" xml:space="preserve">
+    <value>Zuschneiden blendet die Ränder aus und behält den Seiteninhalt. Zurücksetzen zeigt wieder die ganze Seite.</value>
+  </data>
+  <data name="Commands.RotateViewLeft.Title" xml:space="preserve">
+    <value>Ansicht nach links drehen</value>
+  </data>
+  <data name="Commands.RotateViewLeft.Description" xml:space="preserve">
+    <value>Die Leseansicht nach links drehen, ohne die PDF zu ändern.</value>
+  </data>
+  <data name="Commands.RotateViewRight.Title" xml:space="preserve">
+    <value>Ansicht nach rechts drehen</value>
+  </data>
+  <data name="Commands.RotateViewRight.Description" xml:space="preserve">
+    <value>Die Leseansicht nach rechts drehen, ohne die PDF zu ändern.</value>
+  </data>
+  <data name="Commands.ResetViewRotation.Title" xml:space="preserve">
+    <value>Ansichtsdrehung zurücksetzen</value>
+  </data>
+  <data name="Commands.ResetViewRotation.Description" xml:space="preserve">
+    <value>Die Leseansicht auf die in der PDF gespeicherte Ausrichtung zurücksetzen.</value>
+  </data>
+  <data name="Commands.NormalizePageRotation.Title" xml:space="preserve">
+    <value>Gespeicherte Drehung normalisieren</value>
+  </data>
+  <data name="Commands.NormalizePageRotation.Description" xml:space="preserve">
+    <value>Das Aussehen ausgewählter Seiten beibehalten und die gespeicherte Drehung in Inhalt und Seitengeometrie übernehmen.</value>
+  </data>
+  <data name="Commands.DetectPageOrientation.Title" xml:space="preserve">
+    <value>Seitenausrichtung prüfen</value>
+  </data>
+  <data name="Commands.DetectPageOrientation.Description" xml:space="preserve">
+    <value>Vorgeschlagene Korrekturen erkennen, in der Vorschau prüfen und einzelne Seiten vor dem Drehen bestätigen.</value>
+  </data>
+  <data name="Orientation.Hint" xml:space="preserve">
+    <value>Prüfen Sie jede vorgeschlagene Korrektur vor dem Bestätigen. Die Konfidenz hängt vom Anbieter ab; keine Seite wird automatisch ausgewählt.</value>
+  </data>
+  <data name="Orientation.Page" xml:space="preserve">
+    <value>Seite {0}: {1}° im Uhrzeigersinn · Konfidenz {2}</value>
+  </data>
+  <data name="Orientation.Preview" xml:space="preserve">
+    <value>Vorschau dieser Seite</value>
+  </data>
+  <data name="Orientation.Before" xml:space="preserve">
+    <value>Original</value>
+  </data>
+  <data name="Orientation.After" xml:space="preserve">
+    <value>Vorgeschlagene Korrektur</value>
+  </data>
+  <data name="Orientation.Accept" xml:space="preserve">
+    <value>Korrektur dieser Seite bestätigen</value>
+  </data>
+  <data name="Orientation.Apply" xml:space="preserve">
+    <value>Bestätigte Korrekturen anwenden</value>
+  </data>
+  <data name="Provenance.Status.Ready" xml:space="preserve">
+    <value>Wähle eine lokale Datei und bewerte ihre unterstützten Herkunftsnachweise.</value>
+  </data>
+  <data name="Provenance.Status.ImportCancelled" xml:space="preserve">
+    <value>Import abgebrochen.</value>
+  </data>
+  <data name="Provenance.Status.SelectFile" xml:space="preserve">
+    <value>Wähle eine zugängliche lokale Datei. Speicherorte von Anbietern werden hier nicht unterstützt.</value>
+  </data>
+  <data name="Provenance.Status.ChooseOutputFolder" xml:space="preserve">
+    <value>Wähle einen vorhandenen lokalen Ordner für die separate Kopie.</value>
+  </data>
+  <data name="Provenance.Status.Copying" xml:space="preserve">
+    <value>Separate Kopie wird erstellt und erneut geprüft …</value>
+  </data>
+  <data name="Provenance.Status.Assessing" xml:space="preserve">
+    <value>Lokale Datei wird bewertet …</value>
+  </data>
+  <data name="Provenance.Status.Cancelled" xml:space="preserve">
+    <value>Abgebrochen.</value>
+  </data>
+  <data name="Provenance.Status.CancelledCheckOutput" xml:space="preserve">
+    <value>Abgebrochen. Prüfe den Ausgabeordner, bevor du es erneut versuchst.</value>
+  </data>
+  <data name="Provenance.Status.Failed" xml:space="preserve">
+    <value>Herkunftsprüfung fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Provenance.Status.ChooseReportFolder" xml:space="preserve">
+    <value>Wähle einen vorhandenen lokalen Ordner für den Bericht.</value>
+  </data>
+  <data name="Provenance.Status.Queued" xml:space="preserve">
+    <value>In Warteschlange</value>
+  </data>
+  <data name="Provenance.Status.Exporting" xml:space="preserve">
+    <value>Bericht wird exportiert …</value>
+  </data>
+  <data name="Provenance.Status.ReportExported" xml:space="preserve">
+    <value>Bericht exportiert.</value>
+  </data>
+  <data name="Provenance.Status.ReportCancelled" xml:space="preserve">
+    <value>Berichtexport abgebrochen.</value>
+  </data>
+  <data name="Provenance.Status.ReportFailed" xml:space="preserve">
+    <value>Berichtexport fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Provenance.Status.ReportProtected" xml:space="preserve">
+    <value>Das Berichtsziel ist durch die Veröffentlichungsrichtlinie des Hosts geschützt.</value>
+  </data>
+  <data name="Provenance.Job.Copy" xml:space="preserve">
+    <value>Kopie ohne Herkunftsdaten</value>
+  </data>
+  <data name="Provenance.Job.Assessment" xml:space="preserve">
+    <value>Herkunftsbewertung</value>
+  </data>
+  <data name="Provenance.Job.Report" xml:space="preserve">
+    <value>Herkunftsbericht</value>
+  </data>
+  <data name="Provenance.Checks" xml:space="preserve">
+    <value>Struktur: {0} · Textintegrität: {1} · Verifizierung: {2} · Anbieter: {3}</value>
+  </data>
+  <data name="Provenance.Evidence.Recognized" xml:space="preserve">
+    <value>{0} · {1} · Strukturell erkannt</value>
+  </data>
+  <data name="Provenance.Evidence.Malformed" xml:space="preserve">
+    <value>{0} · {1} · Fehlerhaft oder mehrdeutig</value>
+  </data>
+  <data name="Provenance.TextFinding" xml:space="preserve">
+    <value>{0} · {1} · {2} · {3} · UTF-16-Offset {4}</value>
+  </data>
+  <data name="Provenance.VerificationFinding" xml:space="preserve">
+    <value>{0} · Verifizierung: {1}</value>
+  </data>
+  <data name="Provenance.Measurement" xml:space="preserve">
+    <value>{0} · Detektor {1} · {2}: {3} · Schwelle: {4} · Tokens: {5}</value>
+  </data>
+  <data name="Provenance.Change" xml:space="preserve">
+    <value>{0} · {1} · {2} Bytes entfernt</value>
+  </data>
+  <data name="Provenance.Provider.NotConfigured" xml:space="preserve">
+    <value>Kein Prüfprogramm konfiguriert. Die Bewertung bleibt ohne es verfügbar.</value>
+  </data>
+  <data name="Provenance.Provider.Changed" xml:space="preserve">
+    <value>Konfiguration geändert. Prüfe das Programm und bewerte die Datei erneut.</value>
+  </data>
+  <data name="Provenance.Provider.EnterPath" xml:space="preserve">
+    <value>Gib den Pfad zu einem vertrauenswürdigen c2patool-Programm ein.</value>
+  </data>
+  <data name="Provenance.Provider.Checking" xml:space="preserve">
+    <value>Programm und Prozessisolierung werden geprüft …</value>
+  </data>
+  <data name="Provenance.Provider.Available" xml:space="preserve">
+    <value>Verfügbar · {0} · {1}</value>
+  </data>
+  <data name="Provenance.Provider.Unavailable" xml:space="preserve">
+    <value>Nicht verfügbar · {0} · {1}</value>
+  </data>
+  <data name="Provenance.Provider.UnknownVersion" xml:space="preserve">
+    <value>unbekannte Version</value>
+  </data>
+  <data name="Provenance.Provider.Cancelled" xml:space="preserve">
+    <value>Anbieterprüfung abgebrochen.</value>
+  </data>
+  <data name="Provenance.Provider.Failed" xml:space="preserve">
+    <value>Anbieterprüfung fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Signing.Validation.Summary" xml:space="preserve">
+    <value>{0} Signatur(en) · {1}</value>
+  </data>
+  <data name="Signing.Validation.None" xml:space="preserve">
+    <value>Keine Zertifikatssignaturen gefunden</value>
+  </data>
+  <data name="Signing.Validation.Unnamed" xml:space="preserve">
+    <value>Unbenannte Signatur</value>
+  </data>
+  <data name="Signing.Validation.StructureValid" xml:space="preserve">
+    <value>{0} · Struktur gültig</value>
+  </data>
+  <data name="Signing.Validation.StructureIssue" xml:space="preserve">
+    <value>{0} · Strukturproblem</value>
+  </data>
+  <data name="Signing.Validation.Complete" xml:space="preserve">
+    <value>Signaturprüfung abgeschlossen</value>
+  </data>
+  <data name="Signing.VisibleText" xml:space="preserve">
+    <value>Digital signiert von {0}</value>
+  </data>
+  <data name="Forms.ApplyNotPermitted" xml:space="preserve">
+    <value>Dieses Dokument erlaubt das Übernehmen von Formularwerten nicht.</value>
+  </data>
+  <data name="Editor.ObjectMoved" xml:space="preserve">
+    <value>Ausgewähltes Objekt verschoben. Sichere, wenn du fertig bist.</value>
+  </data>
+  <data name="Editor.ImageChangedDuringSelection" xml:space="preserve">
+    <value>Das Dokument hat sich während der Auswahl des Ersatzbilds geändert. Wähle das Bild erneut aus.</value>
+  </data>
+  <data name="Editor.ImageReplaced" xml:space="preserve">
+    <value>Ausgewähltes Bild ersetzt. Sichere, wenn du fertig bist.</value>
+  </data>
+  <data name="Editor.ObjectRemoved" xml:space="preserve">
+    <value>Ausgewähltes Objekt entfernt. Sichere, wenn du fertig bist.</value>
+  </data>
+  <data name="Editor.AnnotationGeometryUpdated" xml:space="preserve">
+    <value>Position der Anmerkung aktualisiert. Sichere, wenn du fertig bist.</value>
+  </data>
+  <data name="Editor.DefaultNoteText" xml:space="preserve">
+    <value>Prüfnotiz</value>
+  </data>
+  <data name="Editor.DefaultFieldOptions" xml:space="preserve">
+    <value>Option 1
+Option 2</value>
+  </data>
+  <data name="Book.CoverSelected" xml:space="preserve">
+    <value>Paketcover ausgewählt. Vorhandene Coverseiten und Ressourcen bleiben erhalten.</value>
+  </data>
+  <data name="Book.Exported" xml:space="preserve">
+    <value>EPUB exportiert und geprüft. Sichere das Buchprojekt, um Bearbeitungs- und Prüfstand zu behalten.</value>
+  </data>
+  <data name="Book.Imported" xml:space="preserve">
+    <value>Buch geöffnet. Prüfe Kapitel und Vorschau vor dem Export.</value>
+  </data>
+  <data name="Book.PreviewHint" xml:space="preserve">
+    <value>Beispielkapitel, von OfficeIMO gerendert. EPUB-Reader können das Buch anders umbrechen.</value>
+  </data>
+  <data name="Book.ProtectSource" xml:space="preserve">
+    <value>Wähle ein anderes Ziel, um die geöffnete Quelle zu erhalten.</value>
+  </data>
+  <data name="Book.Protected" xml:space="preserve">
+    <value>Das Ziel ist durch ein anderes geöffnetes Dokument oder einen Wiederherstellungsvorgang geschützt.</value>
+  </data>
+  <data name="Book.ReviewRequired" xml:space="preserve">
+    <value>Prüfe die Importbefunde. Fehlgeschlagene Abhängigkeiten erfordern eine Reparatur der Quelle und einen erneuten Import.</value>
+  </data>
+  <data name="Book.Saved" xml:space="preserve">
+    <value>Buchprojekt gesichert und geprüft.</value>
+  </data>
+  <data name="Invoice.BeforeWriteCancelled" xml:space="preserve">
+    <value>Vor dem Veröffentlichen abgebrochen.</value>
+  </data>
+  <data name="Invoice.Cancelled" xml:space="preserve">
+    <value>Rechnungsvorgang abgebrochen.</value>
+  </data>
+  <data name="Invoice.DateRequired" xml:space="preserve">
+    <value>Rechnungsdaten erfordern das Format yyyy-MM-dd.</value>
+  </data>
+  <data name="Invoice.EditRequired" xml:space="preserve">
+    <value>Gib mindestens eine Ersetzung für ein Quellfeld ein.</value>
+  </data>
+  <data name="Invoice.FontLimit" xml:space="preserve">
+    <value>Die eingebettete Schrift muss zwischen einem Byte und 16 MiB groß sein.</value>
+  </data>
+  <data name="Invoice.Mapping.Complete" xml:space="preserve">
+    <value>Vollständige semantische Zuordnung</value>
+  </data>
+  <data name="Invoice.Mapping.Partial" xml:space="preserve">
+    <value>Die Quelle enthält nicht zugeordnete Daten; prüfe die Befunde.</value>
+  </data>
+  <data name="Invoice.Model.Invalid" xml:space="preserve">
+    <value>Modellprüfungen fanden ungültige Geschäftsdaten</value>
+  </data>
+  <data name="Invoice.Model.Unavailable" xml:space="preserve">
+    <value>Modellprüfungen nicht verfügbar</value>
+  </data>
+  <data name="Invoice.Model.Valid" xml:space="preserve">
+    <value>Modellprüfungen bestanden</value>
+  </data>
+  <data name="Invoice.OutputRequired" xml:space="preserve">
+    <value>Wähle einen Ausgabeordner.</value>
+  </data>
+  <data name="Invoice.Recovery" xml:space="preserve">
+    <value>In „Aufträge“ ist eine geprüfte Wiederherstellungskopie verfügbar. Prüfe sie und das Ziel des Anbieters, bevor du es erneut versuchst.</value>
+  </data>
+  <data name="Invoice.RulesRequired" xml:space="preserve">
+    <value>Wähle das fixierte Regelpaket und die Saxon-JAR, bevor du Standardprüfungen anforderst.</value>
+  </data>
+  <data name="Invoice.Running" xml:space="preserve">
+    <value>Rechnung wird verarbeitet …</value>
+  </data>
+  <data name="Ocr.Review.Status" xml:space="preserve">
+    <value>Prüfe die erkannten Wörter, bevor du das durchsuchbare PDF erstellst.</value>
+  </data>
+  <data name="Editor.FormKind.Text" xml:space="preserve">
+    <value>Textfeld</value>
+  </data>
+  <data name="Editor.FormKind.CheckBox" xml:space="preserve">
+    <value>Kontrollkästchen</value>
+  </data>
+  <data name="Editor.FormKind.Choice" xml:space="preserve">
+    <value>Auswahlfeld</value>
+  </data>
+  <data name="Editor.FormKind.RadioButtonGroup" xml:space="preserve">
+    <value>Optionsgruppe</value>
+  </data>
+  <data name="Editor.FormKind.Signature" xml:space="preserve">
+    <value>Unterschriftsfeld</value>
+  </data>
+  <data name="Editor.FormKind.PushButton" xml:space="preserve">
+    <value>Schaltfläche</value>
+  </data>
+  <data name="Editor.Tool.Select.Label" xml:space="preserve">
+    <value>Auswählen</value>
+  </data>
+  <data name="Editor.Tool.Select.Hint" xml:space="preserve">
+    <value>Text auswählen und kopieren oder Links öffnen</value>
+  </data>
+  <data name="Editor.Tool.Note.Label" xml:space="preserve">
+    <value>Notiz</value>
+  </data>
+  <data name="Editor.Tool.Note.Hint" xml:space="preserve">
+    <value>Klicken, um eine Kommentarnotiz hinzuzufügen</value>
+  </data>
+  <data name="Editor.Tool.FreeText.Label" xml:space="preserve">
+    <value>Textfeld</value>
+  </data>
+  <data name="Editor.Tool.FreeText.Hint" xml:space="preserve">
+    <value>Eine Freitext-Anmerkung zeichnen</value>
+  </data>
+  <data name="Editor.Tool.Highlight.Label" xml:space="preserve">
+    <value>Hervorheben</value>
+  </data>
+  <data name="Editor.Tool.Highlight.Hint" xml:space="preserve">
+    <value>Über Text oder einen Bereich ziehen</value>
+  </data>
+  <data name="Editor.Tool.Underline.Label" xml:space="preserve">
+    <value>Unterstreichen</value>
+  </data>
+  <data name="Editor.Tool.Underline.Hint" xml:space="preserve">
+    <value>Über Text oder einen Bereich ziehen</value>
+  </data>
+  <data name="Editor.Tool.StrikeOut.Label" xml:space="preserve">
+    <value>Durchstreichen</value>
+  </data>
+  <data name="Editor.Tool.StrikeOut.Hint" xml:space="preserve">
+    <value>Über Text oder einen Bereich ziehen</value>
+  </data>
+  <data name="Editor.Tool.Rectangle.Label" xml:space="preserve">
+    <value>Rechteck</value>
+  </data>
+  <data name="Editor.Tool.Rectangle.Hint" xml:space="preserve">
+    <value>Eine Rechteck-Anmerkung zeichnen</value>
+  </data>
+  <data name="Editor.Tool.Ellipse.Label" xml:space="preserve">
+    <value>Ellipse</value>
+  </data>
+  <data name="Editor.Tool.Ellipse.Hint" xml:space="preserve">
+    <value>Eine Ellipsen-Anmerkung zeichnen</value>
+  </data>
+  <data name="Editor.Tool.Line.Label" xml:space="preserve">
+    <value>Linie</value>
+  </data>
+  <data name="Editor.Tool.Line.Hint" xml:space="preserve">
+    <value>Eine Prüflinie ziehen</value>
+  </data>
+  <data name="Editor.Tool.Ink.Label" xml:space="preserve">
+    <value>Freihand</value>
+  </data>
+  <data name="Editor.Tool.Ink.Hint" xml:space="preserve">
+    <value>Freihand zeichnen</value>
+  </data>
+  <data name="Editor.Tool.Stamp.Label" xml:space="preserve">
+    <value>Stempel</value>
+  </data>
+  <data name="Editor.Tool.Stamp.Hint" xml:space="preserve">
+    <value>Einen Anmerkungsstempel platzieren</value>
+  </data>
+  <data name="Editor.Tool.AddText.Label" xml:space="preserve">
+    <value>Text hinzufügen</value>
+  </data>
+  <data name="Editor.Tool.AddText.Hint" xml:space="preserve">
+    <value>Dauerhaften Seitentext hinzufügen, ohne vorhandenen Inhalt neu umzubrechen</value>
+  </data>
+  <data name="Editor.Tool.AddImage.Label" xml:space="preserve">
+    <value>Bild hinzufügen</value>
+  </data>
+  <data name="Editor.Tool.AddImage.Hint" xml:space="preserve">
+    <value>Ein PNG- oder JPEG-Bild auswählen und platzieren</value>
+  </data>
+  <data name="Editor.Tool.Link.Label" xml:space="preserve">
+    <value>Link</value>
+  </data>
+  <data name="Editor.Tool.Link.Hint" xml:space="preserve">
+    <value>Einen URI-Linkbereich zeichnen</value>
+  </data>
+  <data name="Editor.Tool.SignatureAppearance.Label" xml:space="preserve">
+    <value>Unterschriftsdarstellung</value>
+  </data>
+  <data name="Editor.Tool.SignatureAppearance.Hint" xml:space="preserve">
+    <value>Eine rein visuelle Unterschriftsbeschriftung zeichnen; das PDF wird dadurch nicht kryptografisch signiert</value>
+  </data>
+  <data name="Editor.Tool.Redact.Label" xml:space="preserve">
+    <value>Schwärzen</value>
+  </data>
+  <data name="Editor.Tool.Redact.Hint" xml:space="preserve">
+    <value>Einen Bereich zeichnen, prüfen und dann überlappende Inhalte dauerhaft entfernen</value>
+  </data>
+  <data name="Ocr.Language.Arabic" xml:space="preserve">
+    <value>Arabisch</value>
+  </data>
+  <data name="Ocr.Language.ChineseSimplified" xml:space="preserve">
+    <value>Chinesisch (vereinfacht)</value>
+  </data>
+  <data name="Ocr.Language.ChineseTraditional" xml:space="preserve">
+    <value>Chinesisch (traditionell)</value>
+  </data>
+  <data name="Ocr.Language.Czech" xml:space="preserve">
+    <value>Tschechisch</value>
+  </data>
+  <data name="Ocr.Language.Danish" xml:space="preserve">
+    <value>Dänisch</value>
+  </data>
+  <data name="Ocr.Language.Dutch" xml:space="preserve">
+    <value>Niederländisch</value>
+  </data>
+  <data name="Ocr.Language.English" xml:space="preserve">
+    <value>Englisch</value>
+  </data>
+  <data name="Ocr.Language.Finnish" xml:space="preserve">
+    <value>Finnisch</value>
+  </data>
+  <data name="Ocr.Language.French" xml:space="preserve">
+    <value>Französisch</value>
+  </data>
+  <data name="Ocr.Language.German" xml:space="preserve">
+    <value>Deutsch</value>
+  </data>
+  <data name="Ocr.Language.Greek" xml:space="preserve">
+    <value>Griechisch</value>
+  </data>
+  <data name="Ocr.Language.Hebrew" xml:space="preserve">
+    <value>Hebräisch</value>
+  </data>
+  <data name="Ocr.Language.Hindi" xml:space="preserve">
+    <value>Hindi</value>
+  </data>
+  <data name="Ocr.Language.Hungarian" xml:space="preserve">
+    <value>Ungarisch</value>
+  </data>
+  <data name="Ocr.Language.Italian" xml:space="preserve">
+    <value>Italienisch</value>
+  </data>
+  <data name="Ocr.Language.Japanese" xml:space="preserve">
+    <value>Japanisch</value>
+  </data>
+  <data name="Ocr.Language.Korean" xml:space="preserve">
+    <value>Koreanisch</value>
+  </data>
+  <data name="Ocr.Language.Norwegian" xml:space="preserve">
+    <value>Norwegisch</value>
+  </data>
+  <data name="Ocr.Language.Polish" xml:space="preserve">
+    <value>Polnisch</value>
+  </data>
+  <data name="Ocr.Language.Portuguese" xml:space="preserve">
+    <value>Portugiesisch</value>
+  </data>
+  <data name="Ocr.Language.Romanian" xml:space="preserve">
+    <value>Rumänisch</value>
+  </data>
+  <data name="Ocr.Language.Russian" xml:space="preserve">
+    <value>Russisch</value>
+  </data>
+  <data name="Ocr.Language.Slovak" xml:space="preserve">
+    <value>Slowakisch</value>
+  </data>
+  <data name="Ocr.Language.Spanish" xml:space="preserve">
+    <value>Spanisch</value>
+  </data>
+  <data name="Ocr.Language.Swedish" xml:space="preserve">
+    <value>Schwedisch</value>
+  </data>
+  <data name="Ocr.Language.Turkish" xml:space="preserve">
+    <value>Türkisch</value>
+  </data>
+  <data name="Ocr.Language.Ukrainian" xml:space="preserve">
+    <value>Ukrainisch</value>
+  </data>
+  <data name="Ocr.Language.Vietnamese" xml:space="preserve">
+    <value>Vietnamesisch</value>
+  </data>
+  <data name="Operation.CropBox" xml:space="preserve">
+    <value>Seitenbeschnitt geändert</value>
+  </data>
+  <data name="Operation.NormalizeRotation" xml:space="preserve">
+    <value>Seitendrehung normalisiert</value>
+  </data>
+  <data name="Reader.Layout.SinglePage.Label" xml:space="preserve">
+    <value>Einzelseite</value>
+  </data>
+  <data name="Reader.Layout.SinglePage.Description" xml:space="preserve">
+    <value>Nur die ausgewählte Seite anzeigen.</value>
+  </data>
+  <data name="Reader.Layout.Continuous.Label" xml:space="preserve">
+    <value>Fortlaufend</value>
+  </data>
+  <data name="Reader.Layout.Continuous.Description" xml:space="preserve">
+    <value>Seiten vertikal durchblättern.</value>
+  </data>
+  <data name="Reader.Layout.TwoPage.Label" xml:space="preserve">
+    <value>Zwei Seiten</value>
+  </data>
+  <data name="Reader.Layout.TwoPage.Description" xml:space="preserve">
+    <value>Ein Deckblatt und danach Doppelseiten lesen.</value>
+  </data>
+  <data name="Reader.Layout.Grid.Label" xml:space="preserve">
+    <value>Raster</value>
+  </data>
+  <data name="Reader.Layout.Grid.Description" xml:space="preserve">
+    <value>Das ganze Dokument als Seitenraster durchsuchen.</value>
+  </data>
+  <data name="Workflow.Progress.apply" xml:space="preserve">
+    <value>Änderungen werden angewendet …</value>
+  </data>
+  <data name="Workflow.Progress.assess" xml:space="preserve">
+    <value>Wird bewertet …</value>
+  </data>
+  <data name="Workflow.Progress.complete" xml:space="preserve">
+    <value>Fertig</value>
+  </data>
+  <data name="Workflow.Progress.discover" xml:space="preserve">
+    <value>Eingabedokumente werden gesucht …</value>
+  </data>
+  <data name="Workflow.Progress.execute" xml:space="preserve">
+    <value>Wird verarbeitet …</value>
+  </data>
+  <data name="Workflow.Progress.finalize" xml:space="preserve">
+    <value>Wird abgeschlossen …</value>
+  </data>
+  <data name="Workflow.Progress.input" xml:space="preserve">
+    <value>Eingabe wird gelesen …</value>
+  </data>
+  <data name="Workflow.Progress.inspect" xml:space="preserve">
+    <value>Wird untersucht …</value>
+  </data>
+  <data name="Workflow.Progress.merge" xml:space="preserve">
+    <value>Seiten werden zusammengefügt …</value>
+  </data>
+  <data name="Workflow.Progress.normalize" xml:space="preserve">
+    <value>Eingaben werden vorbereitet …</value>
+  </data>
+  <data name="Workflow.Progress.plan" xml:space="preserve">
+    <value>Wird geplant …</value>
+  </data>
+  <data name="Workflow.Progress.publish" xml:space="preserve">
+    <value>Ausgabe wird gesichert …</value>
+  </data>
+  <data name="Workflow.Progress.remove" xml:space="preserve">
+    <value>Inhalt wird entfernt …</value>
+  </data>
+  <data name="Workflow.Progress.render" xml:space="preserve">
+    <value>Seiten werden gerendert …</value>
+  </data>
+  <data name="Workflow.Progress.split" xml:space="preserve">
+    <value>Wird geteilt …</value>
+  </data>
+  <data name="Workflow.Progress.validate" xml:space="preserve">
+    <value>Wird validiert …</value>
+  </data>
+  <data name="Workflow.Progress.validate-output" xml:space="preserve">
+    <value>Ausgabe wird geprüft …</value>
+  </data>
+  <data name="Workflow.Progress.verify" xml:space="preserve">
+    <value>Wird überprüft …</value>
+  </data>
+  <data name="Workflow.Severity.Error" xml:space="preserve">
+    <value>Fehler</value>
+  </data>
+  <data name="Workflow.Severity.Information" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Workflow.Severity.Warning" xml:space="preserve">
+    <value>Warnung</value>
+  </data>
+  <data name="PageExport.Status.Failed" xml:space="preserve">
+    <value>Seitenexport fehlgeschlagen</value>
+  </data>
+  <data name="Assembly.Status.Failed" xml:space="preserve">
+    <value>Zusammenstellung fehlgeschlagen</value>
+  </data>
+  <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Wähle einen lokalen Ausgabeordner. Um einzelne Dokumente in der Cloud zu speichern, verwende Speichern unter.</value></data>
+  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
+    <value>„{0}“ ist bereits vorhanden. Beim Speichern wird die Datei nach den verbleibenden Prüfschritten ersetzt. Fortfahren?</value>
+  </data>
+  <data name="Output.PublicationTooLarge" xml:space="preserve"><value>Die Ausgabe überschreitet die unterstützte Dokumentgröße.</value></data>
+  <data name="Output.DestinationChanged" xml:space="preserve"><value>Die Zieldatei wurde geändert. Wählen Sie einen anderen Speicherort, um beide Versionen zu erhalten.</value></data>
+  <data name="Output.VerificationChanged" xml:space="preserve"><value>Die gespeicherte Datei wurde während der Überprüfung geändert. Prüfen Sie sie, bevor Sie es erneut versuchen.</value></data>
 </root>
