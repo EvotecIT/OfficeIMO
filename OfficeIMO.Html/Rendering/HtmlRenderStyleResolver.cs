@@ -178,7 +178,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             parent?.FontDescriptor ?? OfficeFontFaceDescriptor.Regular);
         string display = pseudoElement
             ? ResolvePseudoDisplay(computed.GetValue("display"))
-            : ResolveDisplay(element, computed.GetValue("display"), computed.GetValue("-webkit-box-orient"), ResolveLineClamp(computed).HasValue);
+            : ResolveDisplay(element, computed);
         bool propagatedUnderline = parent != null && parent.UnderlineStyle != OfficeTextDecorationStyle.None
             && CanReceiveTextDecoration(display, computed.GetValue("position"), computed.GetValue("float"));
         OfficeFontStyle fontStyle = ResolveFontStyle(fontTag, computed);
@@ -348,6 +348,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
         ApplyPositioning(physicalComputed, style);
+        style.TransformAppliesToBox = IsTransformableBox(element, style, parent, pseudoElement);
         // Positioned layout temporarily uses a static clone; retain applicability here.
         style.Clip = style.Position is "absolute" or "fixed"
             ? NormalizeCssValue(computed.GetValue("clip"), "auto")

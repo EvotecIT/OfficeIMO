@@ -30,25 +30,4 @@ internal sealed partial class HtmlRenderStyleResolver {
             HtmlDiagnosticSeverity.Warning, DescribeSource(element), string.Join(";", details), OfficeConversionLossKind.Approximation);
     }
 
-    private bool AcceptsBoxDimensions(IElement element, HtmlRenderBoxStyle style, HtmlRenderBoxStyle? parent, bool pseudoElement) {
-        if (style.Display is "none" or "contents") return false;
-        if (style.Display != "inline" || style.Position is "absolute" or "fixed" || style.FloatSide != "none") return true;
-        // Floats, positioned boxes and flex/grid items are blockified. Ordinary
-        // non-replaced inlines ignore all six dimensions without losing content.
-        string parentDisplay = parent?.Display ?? string.Empty;
-        // A pseudo's supplied parent style belongs to its originating element.
-        IElement? ancestor = pseudoElement ? element : element.ParentElement;
-        while (parentDisplay == "contents" && ancestor?.ParentElement != null) {
-            ancestor = ancestor.ParentElement;
-            parentDisplay = _computedStyles.Elements.TryGetValue(ancestor, out HtmlComputedStyle? ancestorStyle)
-                ? ResolveDisplay(ancestor, ancestorStyle.GetValue("display"))
-                : HtmlElementDisplay.GetDefaultValue(ancestor);
-        }
-        if (parentDisplay is "flex" or "inline-flex" or "grid" or "inline-grid") return true;
-        if (pseudoElement) return false;
-        // Replaced image boxes and native control/math boxes accept dimensions
-        // even though their HTML display default is inline in this renderer.
-        return element.LocalName.ToLowerInvariant() is "img" or "svg" or "iframe"
-            or "input" or "textarea" or "select" or "button" or "math";
-    }
 }

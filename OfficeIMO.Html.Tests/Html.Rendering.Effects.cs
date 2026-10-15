@@ -67,10 +67,10 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlIndividualScale_SurvivesUnsupportedTransformForBlockAndInline() {
+    public void HtmlIndividualScale_SurvivesUnsupportedTransformForBlockAndAtomicInline() {
         const string html = "<style>body{margin:0}</style>"
             + "<div id='block' style='width:20px;height:20px;background:red;scale:.8;transform:rotateX(20deg)'></div>"
-            + "<p style='margin:0'><span id='inline' style='scale:.5;transform:rotateX(20deg)'>Inline</span></p>";
+            + "<p style='margin:0'><span id='inline' style='display:inline-block;scale:.5;transform:rotateX(20deg)'>Inline</span></p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             ViewportWidth = 100D,
             ViewportHeight = 80D,
@@ -308,9 +308,9 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlEffects_InvalidAndInlineValuesUseCatalogedDiagnosticsAndSupportsTruth() {
+    public void HtmlEffects_InvalidBlockAndAtomicInlineValuesUseCatalogedDiagnosticsAndSupportsTruth() {
         const string html = "<div id='invalid-effect' style='transform:warp(2);opacity:opaque'>Block</div>"
-            + "<p><span id='invalid-inline-effect' style='transform:warp(2);opacity:opaque;clip-path:url(#missing)'>Inline</span></p>";
+            + "<p><span id='invalid-inline-effect' style='display:inline-block;transform:warp(2);opacity:opaque;clip-path:url(#missing)'>Inline</span></p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             Margins = HtmlRenderMargins.All(0D)
@@ -333,7 +333,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlEffects_NonAtomicInlineTransformOpacityAndClipPathShareArtifactPipeline() {
+    public void HtmlEffects_NonAtomicInlineIgnoresTransformWhileOpacityAndClipPathShareArtifactPipeline() {
         const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:20px'>Before "
             + "<span id='inline-effect' style='background:#ff0000;transform-origin:0 0;transform:translateX(4px);opacity:.5;clip-path:inset(0 2px)'>InlineEffectMarker</span> after</p>";
         var options = new HtmlRenderOptions {
@@ -352,7 +352,7 @@ public sealed partial class HtmlRenderingTests {
         string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
-        Assert.Equal(4D, effect.Transform.OffsetX, 3);
+        Assert.Equal(OfficeTransform.Identity, effect.Transform);
         Assert.Equal(.5D, effect.Opacity, 3);
         Assert.True(clip.Width > 0D);
         Assert.Contains("opacity=\"0.5\"", svg, StringComparison.Ordinal);

@@ -430,7 +430,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        if (style.Transform != "none"
+        if (style.UsedTransform != "none"
             || style.OpacityWasSpecified && (style.Opacity < 1D || style.UnsupportedOpacity.Length > 0)
             || style.ClipPath != "none"
             || HasInlineBoxPaint(style)) {

@@ -40,7 +40,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlInlineRun run = placement.Run;
                 HtmlRenderFlowBlock block = run.FloatingBlock!;
                 RecordInlineOwnerGeometry(run, formattingContainer, placement.X, placement.Y, placement.Width, placement.Height, inlineBounds);
-                RecordInlineAnchorGeometry(run, formattingContainer, placement.X, placement.Y,
+                bool ownsAnchorFragment = AtomicRunOwnsAnchorFragment(run, block);
+                if (!ownsAnchorFragment) RecordInlineAnchorGeometry(run, formattingContainer, placement.X, placement.Y,
                     placement.Width, placement.Height, anchorBounds);
                 foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) {
                     runningStringAssignments.Add(assignment.Translate(placement.Y));
@@ -57,7 +58,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             run.OwnerElement,
                             formattingContainer);
                     }
-                    if (run.LinkUri != null) {
+                    if (run.LinkUri != null && !ownsAnchorFragment) {
                         OfficeShape linkArea = OfficeShape.Rectangle(placement.Width, placement.Height);
                         linkArea.FillColor = null;
                         linkArea.StrokeWidth = 0D;

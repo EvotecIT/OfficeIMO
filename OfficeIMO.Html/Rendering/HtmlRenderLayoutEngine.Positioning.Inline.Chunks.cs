@@ -10,8 +10,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // A plain inline descendant participates in each fragment's foreground.
         // A positioned or effected child keeps its existing whole-layer order.
         private bool PaintsWithParentChunk => _paintChunks != null
-            && _style.Position == "static" && _style.Transform == "none"
-            && _style.IndividualScale == "none" && _style.ClipPath == "none"
+            && _style.Position == "static" && _style.UsedTransform == "none"
+            && _style.UsedIndividualScale == "none" && _style.ClipPath == "none"
             && _style.UnsupportedOpacity.Length == 0 && _style.Opacity >= 1D;
 
         internal void SetPaintChunks(IReadOnlyList<InlinePaintCapture> chunks) {

@@ -156,7 +156,7 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("opacity:.5", true)]
     [InlineData("transform:translateX(3px)", false)]
-    public void HtmlOrdinaryFontBox_PlainInterruptedAncestorsRetainNestedWholeEffectLayers(
+    public void HtmlOrdinaryFontBox_PlainInterruptedAncestorsRetainNestedPaintAndApplicableEffects(
         string effect, bool opacity) {
         string html = OrdinaryFontBoxSource(16D, 24D,
             "<span style='background:lime'><span style='background:yellow'>LEAD"
@@ -166,7 +166,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText[] text = OrdinaryFontBoxVisuals(rendered).OfType<HtmlRenderText>().ToArray();
         Assert.Equal(3, text.Length);
         Assert.Single(text, item => item.Text == "WHOLE");
-        Assert.Single(OrdinaryFontBoxVisuals(rendered).OfType<HtmlRenderEffectGroup>(),
+        if (opacity) Assert.Single(OrdinaryFontBoxVisuals(rendered).OfType<HtmlRenderEffectGroup>(),
+            group => group.Source == "span#grandchild");
+        else Assert.DoesNotContain(OrdinaryFontBoxVisuals(rendered).OfType<HtmlRenderEffectGroup>(),
             group => group.Source == "span#grandchild");
         Assert.Equal(74D, OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
         OfficeColor pixel = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()).GetPixel(100, 27);

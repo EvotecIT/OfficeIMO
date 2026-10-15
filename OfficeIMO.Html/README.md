@@ -443,7 +443,13 @@ border box. Clipped form controls use the diagnosed static fallback because PDF
 widgets cannot preserve that authored clipping; strict loss policy rejects it.
 An unsupported applicable rectangle reports `HtmlRenderClipValueUnsupported`.
 
-A supported box with a non-none CSS transform establishes a local padding-box
+CSS transforms and individual scale apply to transformable boxes, including
+inline-blocks, replaced content and inline elements blockified by floats, absolute
+positioning, flex or grid layout. Ordinary non-replaced inline text,
+`display:contents`, table columns and column groups keep their computed transform
+declarations but ignore them for layout and paint.
+
+A transformable box with a non-none CSS transform establishes a local padding-box
 containing block for absolute and fixed descendants. These fixed descendants
 follow that box through pagination; viewport-fixed boxes repeat on print pages.
 Heading destinations retain the coordinates produced by enclosing transforms.
