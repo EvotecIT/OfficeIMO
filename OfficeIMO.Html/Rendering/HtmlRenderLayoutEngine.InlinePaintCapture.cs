@@ -8,13 +8,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private sealed class InlinePaintCapture {
         private readonly HtmlRenderLayoutEngine _owner;
         internal InlinePaintCapture(HtmlRenderLayoutEngine owner) => _owner = owner;
+        internal bool IsOrdinaryText { get; private set; }
         internal List<HtmlRenderVisual> Visuals { get; } = new();
         internal Dictionary<IElement, List<HtmlRenderVisual>> Owned { get; } = new();
         internal Dictionary<IElement, InlineContainingBounds> Bounds { get; } = new();
 
         internal void Capture(IEnumerable<HtmlRenderVisual> visuals,
             IReadOnlyDictionary<IElement, List<HtmlRenderVisual>> owned,
-            IReadOnlyDictionary<IElement, InlineContainingBounds> bounds) {
+            IReadOnlyDictionary<IElement, InlineContainingBounds> bounds, bool ordinaryText) {
+            IsOrdinaryText = ordinaryText;
             Visuals.AddRange(visuals);
             foreach (var item in owned) Owned.Add(item.Key, item.Value);
             foreach (var item in bounds) Bounds.Add(item.Key, item.Value);

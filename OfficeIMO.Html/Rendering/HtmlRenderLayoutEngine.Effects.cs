@@ -168,9 +168,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement element,
         HtmlRenderBoxStyle style,
         InlineContainingRect? bounds,
-        IReadOnlyList<HtmlRenderVisual> visuals) {
+        IReadOnlyList<HtmlRenderVisual> visuals,
+        bool decorate = true) {
         if (bounds == null) return visuals;
-        IReadOnlyList<HtmlRenderVisual> decoratedVisuals = ApplyInlineBoxDecoration(element, style, bounds, visuals);
+        IReadOnlyList<HtmlRenderVisual> decoratedVisuals = decorate
+            ? ApplyInlineBoxDecoration(element, style, bounds, visuals) : visuals;
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         if (style.UnsupportedOpacity.Length > 0) {
             _diagnostics.Add(
@@ -288,7 +290,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement element,
         HtmlRenderBoxStyle style,
         InlineContainingRect bounds,
-        IReadOnlyList<HtmlRenderVisual> content) {
+        IReadOnlyList<HtmlRenderVisual> content,
+        ICollection<HtmlRenderVisual>? deferredOutlines = null) {
         if (!HasInlineBoxPaint(style) || bounds.Fragments.Count == 0) return content;
 
         var backgroundsAndBorders = new List<HtmlRenderVisual>();
@@ -316,7 +319,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var decorated = new List<HtmlRenderVisual>(backgroundsAndBorders.Count + content.Count + outlines.Count);
         decorated.AddRange(backgroundsAndBorders);
         decorated.AddRange(content);
-        decorated.AddRange(outlines);
+        if (deferredOutlines == null) decorated.AddRange(outlines);
+        else foreach (HtmlRenderVisual outline in outlines) deferredOutlines.Add(outline);
         return decorated;
     }
 

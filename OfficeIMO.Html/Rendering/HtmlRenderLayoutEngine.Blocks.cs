@@ -339,9 +339,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentHeight = tag == "div" || tag == "section" || tag == "article" ? 0D : style.LineHeight;
         }
 
+        bool hasZeroHeightOrdinaryContent = contentHeight == 0D
+            && (inlineLayout != null && inlineLayout.Height == 0D && inlineLayout.HasInFlowLineBoxes == true
+                || children.Count > 0 && children.All(child => child.Height == 0D)
+                    && children.Any(child => child.HasZeroHeightOrdinaryContent));
         bool zeroHeightCollapsible = CanUseZeroHeightForMarginCollapse(style, parentStyle, contentHeight);
         double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, boxWidth, style,
-            allowZeroHeight: style.Display == "block" && contentHeight <= 0D);
+            allowZeroHeight: contentHeight <= 0D && (style.Display == "block"
+                || style.Display == "flow-root" && hasZeroHeightOrdinaryContent));
         if (_inlineFloatOverhangs.TryGetValue(element, out double inlineOverhang)) {
             double normalFlowBoxHeight = ResolveBoxHeight(Math.Max(0D, contentHeight - inlineOverhang), boxWidth, style);
             double floatBottom = style.BorderTopWidth + style.PaddingTop + contentHeight;
@@ -355,11 +360,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double unclampedOuterHeight = style.MarginTop + boxHeight + style.MarginBottom;
         double outerHeight = unclampedOuterHeight;
         // Truly empty boxes need no flow epsilon. Keep the specialized carrier
-        // for existing line/float/positioned content and its pagination policy.
-        bool hasContentCarrier = contentVisuals.Count > 0 || inlineLayout?.HasInFlowLineBoxes == true
-            || inlineLayout?.FloatExclusions.Count > 0 || hasLocallyPositionedPseudo
-            || _localPositionedElements.ContainsKey(element);
-        if (outerHeight < 0D || outerHeight == 0D && (boxHeight > 0D || hasContentCarrier)) outerHeight = 0.01D;
+        // for existing line/float/specialized content and its pagination policy.
+        bool hasContentCarrier = contentVisuals.Any(ContainsInFlowPaint) || inlineLayout?.HasInFlowLineBoxes == true
+            || inlineLayout?.FloatExclusions.Count > 0 || hasLocallyPositionedPseudo;
+        if (outerHeight < 0D || outerHeight == 0D && (boxHeight > 0D
+                || hasContentCarrier && !hasZeroHeightOrdinaryContent)) outerHeight = 0.01D;
         var visuals = new List<HtmlRenderVisual>();
         var overflowContent = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -499,10 +504,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (ownsFloatContext) block = OrderBoxFlowPaint(block);
         block = ApplyElementSemantics(block, element, style);
         if (ownsFloatContext) foreach (HtmlRenderVisual visual in block.Visuals) visual.PaintPhase = HtmlRenderPaintPhase.Atomic;
-        bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
+        bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children,
+            contentVisuals, contentHeight, inlineLayout?.HasInFlowLineBoxes == true);
         HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
             style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
         completed.KnownNoInFlowLineBoxes = !usesBlockFormatting && inlineLayout?.HasInFlowLineBoxes == false;
+        completed.HasZeroHeightOrdinaryContent = hasZeroHeightOrdinaryContent;
         return completed;
     }
 
@@ -582,12 +589,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool usesBlockFormatting,
         IReadOnlyList<HtmlRenderFlowBlock> children,
         IReadOnlyList<HtmlRenderVisual> contentVisuals,
-        double contentHeight) {
+        double contentHeight,
+        bool hasInFlowLineBoxes) {
         if (style.Display != "block" || style.OverflowX != "visible" || style.OverflowY != "visible") return false;
         if (style.BorderTopWidth > 0D || style.BorderBottomWidth > 0D || style.PaddingTop > 0D || style.PaddingBottom > 0D) return false;
         if (style.ExplicitHeight.HasValue || style.AspectRatio.HasValue || style.MinHeight.HasValue && style.MinHeight.Value > 0D) return false;
         if (usesBlockFormatting) return children.Count == 0 || children.All(child => child.CollapsesThrough);
-        return contentVisuals.Count == 0 && contentHeight <= 0.0001D;
+        return !hasInFlowLineBoxes && contentVisuals.Count == 0 && contentHeight <= 0.0001D;
     }
 
     private static bool CanUseZeroHeightForMarginCollapse(HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, double contentHeight) =>
@@ -605,7 +613,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && !style.AspectRatio.HasValue
         && (!style.MinHeight.HasValue || style.MinHeight.Value <= 0D);
 
-    private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth, PagedFloatBoundary? pageBoundary = null, ICollection<HtmlFloatExclusion>? activeFloats = null, ICollection<HtmlFloatExclusion>? emittedFloats = null, double flowOffset = 0D, InlineFloatContext? floatContext = null) {
+    private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth, out bool hasInFlowLineBoxes, PagedFloatBoundary? pageBoundary = null, ICollection<HtmlFloatExclusion>? activeFloats = null, ICollection<HtmlFloatExclusion>? emittedFloats = null, double flowOffset = 0D, InlineFloatContext? floatContext = null) {
+        hasInFlowLineBoxes = false;
         if (nodes.Count == 0) return 0D;
         HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null,
             pageBoundary: pageBoundary,
@@ -624,12 +633,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 previousOverhang,
                 inline.Height - inline.NormalFlowHeight);
         }
+        hasInFlowLineBoxes = inline.HasInFlowLineBoxes == true
+            || inline.InterruptedFlow?.HasZeroHeightOrdinaryContent == true;
         nodes.Clear();
         if (inline.InterruptedFlow != null) {
             blocks.Add(inline.InterruptedFlow);
             return inline.Height;
         }
-        if (inline.Visuals.Count == 0) return 0D;
+        if (inline.Visuals.Count == 0 && !hasInFlowLineBoxes) return 0D;
         // A floated sibling does not consume normal-flow height before the
         // following block. A block formatting context still contains its float.
         bool containsFloat = EstablishesFloatContainingBlock(style);
@@ -656,6 +667,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             layoutViewportWidth: ActiveSurfaceWidth,
             layoutViewportHeight: _activePageGeometry.Height,
             pagedPaintExtent: inline.PagedPaintExtent);
+        block.HasZeroHeightOrdinaryContent = flowHeight == 0D && inline.HasInFlowLineBoxes == true;
         blocks.Add(block);
         return block.Height;
     }

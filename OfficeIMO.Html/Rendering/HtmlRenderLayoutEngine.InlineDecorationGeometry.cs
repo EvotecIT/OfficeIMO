@@ -12,6 +12,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? formattingContainer, double lineStart, double lineY, double lineHeight, double baseline,
         bool emptyAtomicBaseline, bool bidiResolved,
         IReadOnlyDictionary<IElement, InlineContainingBounds> bounds) {
+        bool ordinaryTextBoxes = !bidiResolved && CanUseOrdinaryInlineFontBoxes(line, paragraphStyle);
         bool qualifiedLine = !bidiResolved && line.HasFlowContent && !line.HasReplacedImage
             && paragraphStyle.WritingMode == "horizontal-tb" && paragraphStyle.Direction == "ltr"
             && line.Segments.All(segment => IsOrdinaryInlineDecorationRun(segment.Run, paragraphStyle));
@@ -37,7 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (run.IsFlowMarker || run.PositionedMarkerElement != null
                 || run.RunningStringElement != null || run.RunningElementAssignment != null) continue;
             double segmentDecorationBaseline = decorationBaseline;
-            if (qualifiedLine && !hasAtomic) {
+            if (!ordinaryTextBoxes && qualifiedLine && !hasAtomic) {
                 // Text and empty struts use the same selected-face placement,
                 // including negative half-leading in lines shorter than an em.
                 ResolveInlineTextVerticalPlacement(segment, false, lineY, lineHeight, baseline,
@@ -48,8 +49,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (bounds.TryGetValue(current, out InlineContainingBounds? ownerBounds)
                     && _layoutStyles.TryGetValue(current, out HtmlRenderBoxStyle? style)
                     && style.Display == "inline" && HasInlineBoxPaint(style)) {
-                    HtmlTextFaceMetrics? face = qualifiedLine && style.TableVerticalAlignment == "baseline"
-                        && IsOrdinaryInlineDecorationStyle(style, paragraphStyle)
+                    bool usesTextFontBox = ordinaryTextBoxes && IsOrdinaryInlineFontBoxStyle(style, paragraphStyle);
+                    HtmlTextFaceMetrics? face = style.TableVerticalAlignment == "baseline"
+                        && (usesTextFontBox || qualifiedLine && IsOrdinaryInlineDecorationStyle(style, paragraphStyle))
                         ? ResolveTextFaceMetrics(string.Empty, style) : null;
                     if (!IsUsableTextFaceMetrics(face)) {
                         // Specialized, mixed-face, bidi and displaced runs retain
@@ -64,9 +66,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             contentX = edges.Left;
                             contentWidth = Math.Max(0D, edges.Right - edges.Left);
                         }
+                        InlineTextLineMetrics fontBox = new InlineTextLineMetrics(face!.Value.Height, face.Value.BaselineOffset);
+                        if (usesTextFontBox) TryResolveUsedInlineFontBox(face, out fontBox);
                         ownerBounds.IncludeFontDecoration(contentX,
-                            lineY + segmentDecorationBaseline - face!.Value.BaselineOffset,
-                            contentWidth, face.Value.Height);
+                            lineY + segmentDecorationBaseline - fontBox.Baseline,
+                            contentWidth, fontBox.Height);
                     }
                 }
                 if (ReferenceEquals(current, formattingContainer)) break;

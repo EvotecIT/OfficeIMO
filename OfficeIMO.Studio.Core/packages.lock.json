@@ -21,8 +21,8 @@
       },
       "AngleSharp.Css": {
         "type": "Transitive",
-        "resolved": "1.1.2",
-        "contentHash": "7o5yCTuURjxmjy+O5/2EDQihTwnVlbeg9cIO+Zq8zDLt/7AZWebOfIxij+cejBGUBMad95wl5VlY3XFo3VQuCg==",
+        "resolved": "1.1.3",
+        "contentHash": "oWkfG/aJhRbDp3Lj1PiQqP0WHWQI+/kPs7Xkbt3mCMUCUiDl01jfLnT7ofe2XUCTvSi5pXWDMQticPM7pCkoBA==",
         "dependencies": {
           "AngleSharp": "[1.5.0, 2.0.0)"
         }
@@ -169,7 +169,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "AngleSharp.Css": "[1.1.2, )",
+          "AngleSharp.Css": "[1.1.3, )",
           "OfficeIMO.Core": "[3.4.5, )",
           "OfficeIMO.Html.AngleSharp": "[3.4.5, )",
           "OfficeIMO.Html.Core": "[3.4.5, )"

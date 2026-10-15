@@ -32,6 +32,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return result;
     }
 
+    // Semantic, clip and effect envelopes can contain only positioned paint.
+    // Wrapping that paint does not make it a normal-flow content carrier.
+    private static bool ContainsInFlowPaint(HtmlRenderVisual visual) =>
+        !visual.IsOutOfFlowPaint && (visual.PaintChildren is not { Count: > 0 } children
+            || children.Any(ContainsInFlowPaint));
+
     private static bool ContainsDeferredFlowPaint(HtmlRenderVisual visual) =>
         visual.PaintPhase is HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline
         || visual.PaintPhase == HtmlRenderPaintPhase.Content && visual.StackingContext == null

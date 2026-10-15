@@ -188,7 +188,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyDictionary<IElement, List<HtmlRenderVisual>> ownedVisuals,
         IReadOnlyDictionary<IElement, InlineContainingBounds> bounds,
         IElement? formattingContainer,
-        bool isInlineContinuation) {
+        bool isInlineContinuation,
+        IReadOnlyList<InlinePaintCapture>? paintChunks = null) {
         if (formattingContainer == null) return content;
         var nodes = new Dictionary<IElement, InlineStackingNode>();
         foreach (IElement element in ownedVisuals.Keys) CreateInlineStackingNode(element, formattingContainer, ownedVisuals, nodes);
@@ -223,6 +224,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             } else {
                 rootLayers.Add(layer);
             }
+        }
+        if (paintChunks != null) {
+            foreach (InlineStackingNode node in nodes.Values) node.SetPaintChunks(paintChunks);
         }
         if (rootLayers.Count == 0) return content;
         return ComposeInlineLayers(content, rootLayers);
@@ -429,7 +433,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal InlineContainingRect Rect { get; }
     }
 
-    private sealed class InlineStackingNode {
+    private sealed partial class InlineStackingNode {
         private readonly HtmlRenderLayoutEngine _owner;
         private readonly HtmlRenderBoxStyle _style;
 
@@ -448,8 +452,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal InlineContainingRect? Bounds { get; set; }
         internal InlineStackingNode? Parent { get; set; }
         internal List<InlinePaintLayer> Children { get; } = new List<InlinePaintLayer>();
-        internal IReadOnlyList<HtmlRenderVisual> ResolveVisuals() =>
-            _owner.ApplyInlineElementPaintEffects(Element, _style, Bounds, ComposeInlineLayers(RegularVisuals, Children));
+        internal IReadOnlyList<HtmlRenderVisual> ResolveVisuals() => _paintChunks == null
+            ? _owner.ApplyInlineElementPaintEffects(Element, _style, Bounds, ComposeInlineLayers(RegularVisuals, Children))
+            : ResolveChunkedVisuals();
     }
 
     private sealed class InlinePaintLayer {
@@ -470,6 +475,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal int ZIndex { get; }
         internal int SourceOrder { get; }
+        internal InlineStackingNode? Node => _node;
         internal IReadOnlyList<HtmlRenderVisual> ResolveVisuals() {
             IReadOnlyList<HtmlRenderVisual> visuals = _node?.ResolveVisuals() ?? _visuals ?? Array.Empty<HtmlRenderVisual>();
             var context = new HtmlRenderStackingContext(ZIndex, SourceOrder);

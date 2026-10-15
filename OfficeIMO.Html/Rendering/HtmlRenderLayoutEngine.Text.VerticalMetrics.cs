@@ -51,6 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double baseline = strut.Baseline;
         double descent = Math.Max(0D, strut.Height - baseline);
         foreach (InlineSegment segment in line.Segments) {
+            if (segment.Run.PositionedMarkerElement != null) continue;
             HtmlRenderFlowBlock? atomic = segment.Run.AtomicBlock;
             if (atomic != null && !hasImage) continue;
             InlineTextLineMetrics source = atomic != null
@@ -96,13 +97,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && !double.IsNaN(face.Value.BaselineOffset) && !double.IsInfinity(face.Value.BaselineOffset)
         && face.Value.BaselineOffset >= 0D && face.Value.BaselineOffset <= face.Value.Height;
 
-    /// <summary>Resolves normal horizontal CSS line alignment without changing the selected program's raw metrics or glyph ink.</summary>
+    /// <summary>Resolves horizontal CSS leading from used font boxes while preserving the program's raw metrics and glyph ink.</summary>
     private static bool TryResolveNormalInlineTextMetrics(HtmlRenderBoxStyle style,
-        HtmlTextFaceMetrics? face, out InlineTextLineMetrics metrics) {
+        HtmlTextFaceMetrics? face, out InlineTextLineMetrics metrics, bool allowShortLine = false) {
         metrics = default;
-        if (style.Font.Size <= 0D || style.LineHeight < style.Font.Size || !IsUsableTextFaceMetrics(face)) return false;
-        double ascent = Math.Floor(face!.Value.BaselineOffset + 0.5D);
-        double descent = Math.Floor(face.Value.Height - face.Value.BaselineOffset + 0.5D);
+        if (style.Font.Size <= 0D || !allowShortLine && style.LineHeight < style.Font.Size
+            || !TryResolveUsedInlineFontBox(face, out InlineTextLineMetrics fontBox)) return false;
+        double ascent = fontBox.Baseline;
+        double descent = fontBox.Height - ascent;
         double usedHeight = style.InlineAlignmentLineHeight
             ?? HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(style.LineHeight, style.Font.Size);
         double leadingUnits = (usedHeight - ascent - descent) * 64D;
@@ -114,16 +116,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HtmlTextFaceMetrics? ResolveTextFaceMetrics(string text, HtmlRenderBoxStyle style) {
-        IOfficeFontProgram? program = text.Length == 0
-            ? _fonts.ResolveForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out _)
-            : _fonts.TryResolveFaceForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
-                ? face?.Program : null;
+        IOfficeFontProgram? program = ResolveTextFaceProgram(text, style);
         if (program is IOfficeFontBaselineMetrics baseline) {
             return new HtmlTextFaceMetrics(program.LineHeight(style.Font.Size),
                 baseline.BaselineOffset(style.Font.Size));
         }
         return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
     }
+
+    private IOfficeFontProgram? ResolveTextFaceProgram(string text, HtmlRenderBoxStyle style) =>
+        text.Length == 0
+            ? _fonts.ResolveForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out _)
+            : _fonts.TryResolveFaceForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
+                ? face?.Program : null;
 
     private void ResolveInlineAnchorTextVerticalBounds(
         InlineSegment segment,

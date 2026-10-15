@@ -124,7 +124,7 @@ CSS media, layout surface, pagination, page-set behavior, and encoder are explic
 | `paged-print-v1` | `officeimo-html` | OfficeIMO.Html | 3.4.4 | OfficeIMO |
 | `paged-print-v1` | `officeimo-core` | OfficeIMO.Core drawing and text | 3.4.4 | OfficeIMO |
 | `paged-print-v1` | `anglesharp-html` | AngleSharp HTML parser adapter | AngleSharp 1.8.3 / OfficeIMO.Html.AngleSharp 3.4.4 | ThirdParty |
-| `paged-print-v1` | `anglesharp-css` | AngleSharp.Css parser | 1.1.2 | ThirdParty |
+| `paged-print-v1` | `anglesharp-css` | AngleSharp.Css parser | 1.1.3 | ThirdParty |
 | `paged-print-v1` | `caller-text-shaper` | Caller-selected text shaper | caller-selected; optional | Caller |
 | `paged-print-v1` | `officeimo-html-pdf` | OfficeIMO.Html.Pdf | 3.4.4 | OfficeIMO |
 | `paged-print-v1` | `officeimo-pdf` | OfficeIMO.Pdf | 3.4.4 | OfficeIMO |
@@ -132,7 +132,7 @@ CSS media, layout surface, pagination, page-set behavior, and encoder are explic
 | `static-screen-v1` | `officeimo-html` | OfficeIMO.Html | 3.4.4 | OfficeIMO |
 | `static-screen-v1` | `officeimo-core` | OfficeIMO.Core drawing and text | 3.4.4 | OfficeIMO |
 | `static-screen-v1` | `anglesharp-html` | AngleSharp HTML parser adapter | AngleSharp 1.8.3 / OfficeIMO.Html.AngleSharp 3.4.4 | ThirdParty |
-| `static-screen-v1` | `anglesharp-css` | AngleSharp.Css parser | 1.1.2 | ThirdParty |
+| `static-screen-v1` | `anglesharp-css` | AngleSharp.Css parser | 1.1.3 | ThirdParty |
 | `static-screen-v1` | `caller-text-shaper` | Caller-selected text shaper | caller-selected; optional | Caller |
 | `web-document-v1` | `officeimo-html-core` | OfficeIMO.Html.Core | 3.4.4 | OfficeIMO |
 | `web-document-v1` | `anglesharp-html` | AngleSharp HTML parser adapter | AngleSharp 1.8.3 / OfficeIMO.Html.AngleSharp 3.4.4 | ThirdParty |
