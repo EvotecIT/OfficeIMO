@@ -13,7 +13,11 @@
       "pdf": "fonts-type1.pdf",
       "pdfSha256": "ac41789f8f74db2ef3f7ceed801fe2688a468b427882edba2d468c411509d944",
       "baseline": "fonts-type1.poppler.png",
-      "baselineSha256": "b4e75934c648be0a54e22be7beefba5998bbb5bd6beb3d22b5ce38d6547705bd"
+      "baselineSha256": "b4e75934c648be0a54e22be7beefba5998bbb5bd6beb3d22b5ce38d6547705bd",
+      "measuredPsnr": 33.36,
+      "measuredSsim": 0.9968,
+      "minimumPsnr": 32.86,
+      "minimumSsim": 0.992
     },
     {
       "id": "fonts-type1c",
@@ -21,7 +25,11 @@
       "pdf": "fonts-type1c.pdf",
       "pdfSha256": "90da6259bdc631161b082a87e08d5d3bc0db269ffa32e0b64cd2b563be45b3f1",
       "baseline": "fonts-type1c.poppler.png",
-      "baselineSha256": "97b02d9997bcbff1e405de1b971ab87496148c24d3cd2c4685cd83928ae9a8c2"
+      "baselineSha256": "97b02d9997bcbff1e405de1b971ab87496148c24d3cd2c4685cd83928ae9a8c2",
+      "measuredPsnr": 35.78,
+      "measuredSsim": 0.9979,
+      "minimumPsnr": 35.28,
+      "minimumSsim": 0.993
     },
     {
       "id": "fonts-truetype",
@@ -29,7 +37,11 @@
       "pdf": "fonts-truetype.pdf",
       "pdfSha256": "9583fe2dceb04740d252ab352b0baa5306b2276e8e3c9e5e32167cc03abcda48",
       "baseline": "fonts-truetype.poppler.png",
-      "baselineSha256": "2aee04e2bcb0bacd7bad7768e19dc0a9f4d4e1cf29a6a76030d373b4827057ba"
+      "baselineSha256": "2aee04e2bcb0bacd7bad7768e19dc0a9f4d4e1cf29a6a76030d373b4827057ba",
+      "measuredPsnr": 35.96,
+      "measuredSsim": 0.998,
+      "minimumPsnr": 35.46,
+      "minimumSsim": 0.993
     },
     {
       "id": "clipping",
@@ -37,15 +49,59 @@
       "pdf": "clipping.pdf",
       "pdfSha256": "cd2093aeb42375d841a941b8af9226d47f5c2b61734fa2fe34e5f7ca9be1cb0d",
       "baseline": "clipping.poppler.png",
-      "baselineSha256": "1681b1fe047f0abba894dc46440b723dba2fdabff47f1907b01ea9e07d2b66cf"
+      "baselineSha256": "1681b1fe047f0abba894dc46440b723dba2fdabff47f1907b01ea9e07d2b66cf",
+      "measuredPsnr": 22.34,
+      "measuredSsim": 0.9534,
+      "minimumPsnr": 21.84,
+      "minimumSsim": 0.948
     },
     {
       "id": "text-modes",
-      "description": "Text rendering modes: fill, stroke, fill and stroke, hairline outline, rotated outline and text clipping.",
+      "description": "Text rendering modes: fill, stroke, fill and stroke, hairline outline and rotated outline.",
       "pdf": "text-modes.pdf",
-      "pdfSha256": "6c1d50c4d9f0012ce9a57e076e40965df2c533c50f08a24655e47e2bf2dbff66",
+      "pdfSha256": "5482d593d8768b576511557dcb16b940b3467d219992db7b0e8d17deb7084eca",
       "baseline": "text-modes.poppler.png",
-      "baselineSha256": "7d194025e431360aac7d62b178f27f3e671abdcbb5d8d77061afe9cde639b856"
+      "baselineSha256": "4342f010e09a08a13bab2e08a9e3ba0fdb65eeb19ec318000e97576b5abe214e",
+      "measuredPsnr": 25.56,
+      "measuredSsim": 0.976,
+      "minimumPsnr": 25.06,
+      "minimumSsim": 0.971
+    },
+    {
+      "id": "text-clip",
+      "description": "Text clipping modes 7 and 4 limiting later path painting to glyph outlines (known gap: not yet applied to paths).",
+      "pdf": "text-clip.pdf",
+      "pdfSha256": "5c6c66e4b8cb956de7fa0464d93b1579db444eaac4d14dc8a6c232bc8c817dff",
+      "baseline": "text-clip.poppler.png",
+      "baselineSha256": "23d01ecbd7b4bb26a063236b4d2fcc07f45921c3e753486d3062f9d33f7e3277",
+      "measuredPsnr": 3.64,
+      "measuredSsim": 0.618,
+      "minimumPsnr": 3.14,
+      "minimumSsim": 0.613
+    },
+    {
+      "id": "images",
+      "description": "Image sampling and formats: downscaled fine patterns, magnification with and without Interpolate, 1/2/4/16-bit RGB and CMYK, resized soft masks, Matte and rotation.",
+      "pdf": "images.pdf",
+      "pdfSha256": "51f203a9bf04d92625eab80132a4abac897a9a226ccf8e916143ba77fdb78784",
+      "baseline": "images.poppler.png",
+      "baselineSha256": "fc8a11ac38344cf7027e56df2d0cf3a9c1b3837fdd7046750d3846f1fbed6c5d",
+      "measuredPsnr": 19.57,
+      "measuredSsim": 0.8273,
+      "minimumPsnr": 19.07,
+      "minimumSsim": 0.822
+    },
+    {
+      "id": "jbig2",
+      "description": "JBIG2 generic regions (templates 0 to 3, typical prediction, adaptive pixels), MMR, and a text region over a global symbol dictionary.",
+      "pdf": "jbig2.pdf",
+      "pdfSha256": "9d80beefeea0b4552d8449ac77a9383ab7a1e84823edea85e21a5ffb2be47fe6",
+      "baseline": "jbig2.poppler.png",
+      "baselineSha256": "a4bb7a5db2a2020a0a9511d2c2c9354251b48a4a9419eee488c667f0f6b2ae6d",
+      "measuredPsnr": 13.52,
+      "measuredSsim": 0.8586,
+      "minimumPsnr": 13.02,
+      "minimumSsim": 0.854
     },
     {
       "id": "shadings",
@@ -53,7 +109,11 @@
       "pdf": "shadings.pdf",
       "pdfSha256": "2ab97f92bebad5ff6eb503f3d4d6349a855847db90acbd865115ef3332ae94ad",
       "baseline": "shadings.poppler.png",
-      "baselineSha256": "22276b676e0a219617ba9b3b1c7b1328d323e1d521161604fd7aadda55f0670e"
+      "baselineSha256": "22276b676e0a219617ba9b3b1c7b1328d323e1d521161604fd7aadda55f0670e",
+      "measuredPsnr": 27.16,
+      "measuredSsim": 0.9777,
+      "minimumPsnr": 26.66,
+      "minimumSsim": 0.973
     },
     {
       "id": "strokes",
@@ -61,7 +121,11 @@
       "pdf": "strokes.pdf",
       "pdfSha256": "e7cb5a6fcd06098f7f44c9513d6a6eaaa1f63a71269f75440bf08c6452813ddc",
       "baseline": "strokes.poppler.png",
-      "baselineSha256": "e86bd53463f82b8eb58fe4e0a659673e6a78e982bb38a66b85965e0e75d23191"
+      "baselineSha256": "e86bd53463f82b8eb58fe4e0a659673e6a78e982bb38a66b85965e0e75d23191",
+      "measuredPsnr": 27.25,
+      "measuredSsim": 0.9865,
+      "minimumPsnr": 26.75,
+      "minimumSsim": 0.982
     }
   ]
 }

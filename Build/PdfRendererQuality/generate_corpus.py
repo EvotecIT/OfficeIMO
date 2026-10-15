@@ -24,6 +24,7 @@ import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fonts  # noqa: E402
+import jbig2  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'OfficeIMO.Pdf.Tests', 'Pdf', 'RendererQuality')
@@ -248,8 +249,23 @@ def page_text_modes(path):
     c.append('BT /F1 34 Tf 0.4 w 0 g 0 G 1 0 0 1 16 115 Tm 2 Tr (TAXE 12) Tj ET')
     c.append('BT /F1 34 Tf 0 w 0 G 1 0 0 1 16 70 Tm 1 Tr (DOOH) Tj ET')
     c.append('q 0.95 0.3 -0.3 0.95 200 40 cm BT /F1 30 Tf 1 w 0 0.5 0 RG 1 0 0 1 0 0 Tm 1 Tr (LOT) Tj ET Q')
-    c.append('q 1 0 0 1 0 0 cm BT /F1 40 Tf 1 0 0 1 16 20 Tm 7 Tr (HOLD) Tj ET 0.9 0.1 0.4 rg 0 0 360 70 re f Q')
     root, _ = single_page(pdf, 360, 300, '\n'.join(c), '<< /Font << /F1 %d 0 R >> >>' % font)
+    pdf.write(path, root)
+
+
+def page_text_clip(path):
+    pdf = Pdf()
+    otf = fonts.build_otf('OIMOTestCFF')
+    program = pdf.stream(fonts.font_bytes_table(otf, 'CFF '), '/Subtype /Type1C')
+    descriptor = pdf.add('<< /Type /FontDescriptor /FontName /OIMOTestCFF /Flags 32 /FontBBox [0 -50 760 900] '
+                         '/ItalicAngle 0 /Ascent 900 /Descent -200 /CapHeight 700 /StemV 100 /FontFile3 %d 0 R >>' % program)
+    win = {code: name for name, code in CODES.items() if name not in ('acute', 'Aacute')}
+    font = pdf.add('<< /Type /Font /Subtype /Type1 /BaseFont /OIMOTestCFF /FirstChar 32 /LastChar 90 /Widths %s '
+                   '/Encoding /WinAnsiEncoding /FontDescriptor %d 0 R >>' % (simple_widths(32, 90, win), descriptor))
+    c = ['1 1 1 rg 0 0 360 160 re f']
+    c.append('q BT /F1 60 Tf 1 0 0 1 16 90 Tm 7 Tr (HOLD) Tj ET 0.9 0.1 0.4 rg 0 0 360 160 re f Q')
+    c.append('q BT /F1 40 Tf 1 0 0 1 16 20 Tm 4 Tr 0.2 0.4 0.8 rg 1 w 0 G (TOTAL) Tj ET 0.1 0.6 0.2 rg 0 0 360 80 re f Q')
+    root, _ = single_page(pdf, 360, 160, '\n'.join(c), '<< /Font << /F1 %d 0 R >> >>' % font)
     pdf.write(path, root)
 
 
@@ -311,12 +327,155 @@ def page_shadings(path):
     pdf.write(path, root)
 
 
+def pack_samples(values, bits, width, components):
+    rows = []
+    per_row = width * components
+    for start in range(0, len(values), per_row):
+        row = values[start:start + per_row]
+        if bits == 16:
+            rows.append(b''.join(struct.pack('>H', v) for v in row))
+            continue
+        acc = 0
+        count = 0
+        out = bytearray()
+        for v in row:
+            acc = (acc << bits) | v
+            count += bits
+            while count >= 8:
+                count -= 8
+                out.append((acc >> count) & 0xFF)
+        if count:
+            out.append((acc << (8 - count)) & 0xFF)
+        rows.append(bytes(out))
+    return b''.join(rows)
+
+
+def page_images(path):
+    pdf = Pdf()
+    images = {}
+
+    def image(name, data, extra):
+        images[name] = pdf.stream(data, '/Type /XObject /Subtype /Image ' + extra)
+    # Fine checkerboard and rings downscaled several times (moire test).
+    image('Ck', bytes(((x ^ y) & 1) * 255 for y in range(256) for x in range(256)),
+          '/Width 256 /Height 256 /ColorSpace /DeviceGray /BitsPerComponent 8')
+    image('Zp', bytes(int(127.5 + 127.5 * math.cos(((x - 128) ** 2 + (y - 128) ** 2) * math.pi / 256)) for y in range(256) for x in range(256)),
+          '/Width 256 /Height 256 /ColorSpace /DeviceGray /BitsPerComponent 8')
+    # A 4x4 RGB image magnified with and without /Interpolate, and at more than 400%.
+    px = bytes([220, 30, 30, 30, 160, 60, 40, 60, 210, 240, 200, 20] * 4)
+    image('Up', px, '/Width 4 /Height 4 /ColorSpace /DeviceRGB /BitsPerComponent 8')
+    image('Ui', px, '/Width 4 /Height 4 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Interpolate true')
+    image('Uk', bytes([200, 30, 120, 40, 90, 180, 220, 20] * 8), '/Width 4 /Height 4 /ColorSpace /DeviceRGB /BitsPerComponent 8')
+    # Bit depths: 2-bit RGB, 4-bit CMYK, 16-bit RGB and 1-bit RGB.
+    w = 16
+    rgb2 = [((x * 3 // 15) if c == 0 else (y * 3 // 15) if c == 1 else 3 - (x * 3 // 15)) for y in range(w) for x in range(w) for c in range(3)]
+    image('B2', pack_samples(rgb2, 2, w, 3), '/Width 16 /Height 16 /ColorSpace /DeviceRGB /BitsPerComponent 2')
+    cmyk4 = [(x if c == 0 else y if c == 1 else (15 - x) if c == 2 else (x * y) // 30) for y in range(w) for x in range(w) for c in range(4)]
+    image('B4', pack_samples(cmyk4, 4, w, 4), '/Width 16 /Height 16 /ColorSpace /DeviceCMYK /BitsPerComponent 4')
+    rgb16 = [((x * 4369) if c == 0 else (y * 4369) if c == 1 else 65535 - x * 4369) for y in range(w) for x in range(w) for c in range(3)]
+    image('B16', pack_samples(rgb16, 16, w, 3), '/Width 16 /Height 16 /ColorSpace /DeviceRGB /BitsPerComponent 16')
+    rgb1 = [((x + y + c) // 3) % 2 for y in range(w) for x in range(w) for c in range(3)]
+    image('B1', pack_samples(rgb1, 1, w, 3), '/Width 16 /Height 16 /ColorSpace /DeviceRGB /BitsPerComponent 1')
+    # Soft masks of a different size and depth, and a /Matte premultiplied image.
+    alpha_small = pdf.stream(bytes(int(255 * x / 7) for y in range(8) for x in range(8)),
+                             '/Type /XObject /Subtype /Image /Width 8 /Height 8 /ColorSpace /DeviceGray /BitsPerComponent 8')
+    image('Sm', bytes([30, 90, 200] * 1024), '/Width 32 /Height 32 /ColorSpace /DeviceRGB /BitsPerComponent 8 /SMask %d 0 R' % alpha_small)
+    alpha_values = [min(255, int(255 * ((x - 16) ** 2 + (y - 16) ** 2) ** 0.5 / 16)) for y in range(32) for x in range(32)]
+    alpha_values = [255 - a for a in alpha_values]
+    matte = pdf.stream(bytes(alpha_values), '/Type /XObject /Subtype /Image /Width 32 /Height 32 /ColorSpace /DeviceGray /BitsPerComponent 8 /Matte [1 1 1]')
+    premultiplied = bytearray()
+    for a in alpha_values:
+        for c in (200, 40, 40):
+            premultiplied.append(int(round(255 + (c - 255) * a / 255)))
+    image('Mt', bytes(premultiplied), '/Width 32 /Height 32 /ColorSpace /DeviceRGB /BitsPerComponent 8 /SMask %d 0 R' % matte)
+    c = ['0.85 0.9 0.95 rg 0 0 360 300 re f']
+    c.append('q 70 0 0 70 10 220 cm /Ck Do Q q 70 0 0 70 90 220 cm /Zp Do Q q 33 0 0 33 170 257 cm /Ck Do Q')
+    c.append('q 60 0 0 60 220 230 cm /Up Do Q q 60 0 0 60 290 230 cm /Ui Do Q')
+    c.append('q 60 0 0 60 10 150 cm /Uk Do Q q 60 0 0 60 80 150 cm /B2 Do Q q 60 0 0 60 150 150 cm /B4 Do Q')
+    c.append('q 60 0 0 60 220 150 cm /B16 Do Q q 60 0 0 60 290 150 cm /B1 Do Q')
+    c.append('q 80 0 0 80 20 40 cm /Sm Do Q q 80 0 0 80 120 40 cm /Mt Do Q')
+    c.append('q 0.94 0.34 -0.34 0.94 260 30 cm 70 0 0 70 0 0 cm /Zp Do Q')
+    resources = '<< /XObject << %s >> >>' % ' '.join('/%s %d 0 R' % (name, ref) for name, ref in images.items())
+    root, _ = single_page(pdf, 360, 300, '\n'.join(c), resources)
+    pdf.write(path, root)
+
+
+def synthetic_bitmap(width, height, seed):
+    rows = []
+    for y in range(height):
+        row = []
+        for x in range(width):
+            ring = ((x - width / 2) ** 2 + (y - height / 2) ** 2) ** 0.5
+            value = int(ring + seed) % 9 < 3 or (x * 3 + y * seed) % 17 == 0 or (abs(x - y) < 2 and x % 7 != 0)
+            row.append(1 if value else 0)
+        rows.append(row)
+    return rows
+
+
+def glyph_bitmap(kind, size):
+    rows = [[0] * size[0] for _ in range(size[1])]
+    w, h = size
+    for y in range(h):
+        for x in range(w):
+            if kind == 0:
+                on = x < 3 or x >= w - 3 or abs(y - h // 2) < 2
+            elif kind == 1:
+                on = abs(((x - w / 2) ** 2 / (w / 2) ** 2 + (y - h / 2) ** 2 / (h / 2) ** 2) - 0.75) < 0.25
+            elif kind == 2:
+                on = y < 3 or abs(x - w // 2) < 2
+            else:
+                on = abs(x - y * w / h) < 2 or abs(x - (h - y) * w / h) < 2
+            rows[y][x] = 1 if on else 0
+    return rows
+
+
+def page_jbig2(path):
+    pdf = Pdf()
+    width, height = 400, 300
+    segments = [jbig2.segment(1, 48, jbig2.page_info(width, height))]
+    number = 2
+    for template, (x, tp, at) in enumerate([(0, False, None), (100, True, None), (200, False, [(1, -1)]), (300, True, None)]):
+        bitmap = synthetic_bitmap(96, 90, template + 2)
+        segments.append(jbig2.segment(number, 38, jbig2.generic_region(bitmap, x + 2, 4, template, tp, at)))
+        number += 1
+    custom_at = [(-2, -1), (2, -1), (1, -2), (-1, -2)]
+    segments.append(jbig2.segment(number, 38, jbig2.generic_region(synthetic_bitmap(96, 90, 7), 2, 100, 0, False, custom_at)))
+    number += 1
+    segments.append(jbig2.segment(number, 38, jbig2.mmr_region(synthetic_bitmap(150, 90, 5), 102, 100)))
+    number += 1
+    symbols = [glyph_bitmap(k % 4, (12 + (k % 3) * 3, 18 + (k % 2) * 4)) for k in range(6)]
+    dictionary, order = jbig2.symbol_dictionary(symbols)
+    export_index = {original: position for position, original in enumerate(order)}
+    globals_data = jbig2.segment(1, 0, dictionary, page=0)
+    placements = []
+    for line in range(3):
+        left = 4
+        for k in range(14):
+            symbol = (k * 5 + line) % 6
+            placements.append((export_index[symbol], left, line * 30, len(symbols[symbol][0])))
+            left += len(symbols[symbol][0]) + 3
+    segments.append(jbig2.segment(number, 6, jbig2.text_region(390, 90, 4, 200, placements, len(symbols)), referred=[1]))
+    number += 1
+    segments.append(jbig2.segment(number, 49, b''))
+    data = b''.join(segments)
+    globals_ref = pdf.stream(globals_data, '', compress=False)
+    image = pdf.stream(data, '/Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray /BitsPerComponent 1 '
+                       '/Filter /JBIG2Decode /DecodeParms << /JBIG2Globals %d 0 R >>' % (width, height, globals_ref), compress=False)
+    page_w, page_h = width * 72 / DPI, height * 72 / DPI
+    content = 'q %s 0 0 %s 0 0 cm /Im1 Do Q' % (page_w, page_h)
+    root, _ = single_page(pdf, page_w, page_h, content, '<< /XObject << /Im1 %d 0 R >> >>' % image)
+    pdf.write(path, root)
+
+
 PAGES = [
     ('fonts-type1', page_type1, 'Embedded Type 1 (FontFile): eexec, subrs, flex, hint replacement, div, seac, built-in encoding and Differences.'),
     ('fonts-type1c', page_type1c, 'Embedded CFF (FontFile3 Type1C) with WinAnsi and Differences, and as a CIDFontType0C program.'),
     ('fonts-truetype', page_truetype, 'Embedded TrueType (FontFile2) with WinAnsi encoding.'),
     ('clipping', page_clipping, 'Anti-aliased circular, even-odd, nested and rectangular clips over fills, images and text.'),
-    ('text-modes', page_text_modes, 'Text rendering modes: fill, stroke, fill and stroke, hairline outline, rotated outline and text clipping.'),
+    ('text-modes', page_text_modes, 'Text rendering modes: fill, stroke, fill and stroke, hairline outline and rotated outline.'),
+    ('text-clip', page_text_clip, 'Text clipping modes 7 and 4 limiting later path painting to glyph outlines (known gap: not yet applied to paths).'),
+    ('images', page_images, 'Image sampling and formats: downscaled fine patterns, magnification with and without Interpolate, 1/2/4/16-bit RGB and CMYK, resized soft masks, Matte and rotation.'),
+    ('jbig2', page_jbig2, 'JBIG2 generic regions (templates 0 to 3, typical prediction, adaptive pixels), MMR, and a text region over a global symbol dictionary.'),
     ('shadings', page_shadings, 'Shading types 1 to 7 with Extend, BBox, non-nested radial circles, Gouraud, lattice, Coons and tensor meshes.'),
     ('strokes', page_strokes, 'Hairlines, sub-pixel rules, caps, joins, miter limits, dashes, rectangles and skewed pens.'),
 ]
