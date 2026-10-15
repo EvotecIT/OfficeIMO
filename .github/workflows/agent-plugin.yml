@@ -69,6 +69,11 @@ jobs:
           python -m pip install jsonschema==4.26.0
           python -m unittest discover -s Build -p test_validate_mcp_registry.py
           python Build/validate_mcp_registry.py metadata
+      - name: Install the product SDK for release verification
+        if: ${{ github.event_name == 'release' }}
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
       - name: Verify the published launcher before distributing the plugin
         if: ${{ github.event_name == 'release' }}
         run: |
