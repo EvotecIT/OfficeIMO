@@ -323,9 +323,15 @@ internal sealed class HtmlCssGradientStops {
         long lastCycle = (long)lastCycleValue;
         var expanded = new List<ResolvedStop>();
         for (long cycle = firstCycle; ; cycle++) {
-            double shift = cycle * period;
+            double cycleStart = first + (cycle * period);
+            double cycleEnd = first + ((cycle + 1L) * period);
             foreach (ResolvedStop stop in source) {
-                double offset = stop.Offset + shift;
+                // Adjacent cycles must share the exact same boundary. Adding the
+                // period to the last authored stop can round differently from
+                // shifting the next cycle's first stop and reverse a hard edge.
+                double offset = stop.Offset == last
+                    ? cycleEnd
+                    : Math.Min(cycleEnd, Math.Max(cycleStart, cycleStart + (stop.Offset - first)));
                 if (offset >= 0D && offset <= 1D) expanded.Add(new ResolvedStop(offset, stop.Color));
                 if (expanded.Count > maximumStops) {
                     stopLimitExceeded = true;
@@ -334,7 +340,6 @@ internal sealed class HtmlCssGradientStops {
             }
             if (cycle == lastCycle) break;
         }
-        expanded = expanded.OrderBy(stop => stop.Offset).ToList();
         OfficeColor start = SampleRepeating(source, period, 0D);
         OfficeColor end = SampleRepeating(source, period, 1D);
         if (expanded.Count == 0 || expanded[0].Offset > 0D) expanded.Insert(0, new ResolvedStop(0D, start));
