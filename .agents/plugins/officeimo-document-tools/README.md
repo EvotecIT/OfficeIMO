@@ -38,7 +38,7 @@ For local validation, add the absolute checkout path as the marketplace instead.
 
 ## Cursor
 
-Cursor supports the portable Agent Plugins layout used by this bundle. Extract the release ZIP into `~/.cursor/plugins/local/officeimo-document-tools`, restart Cursor or run **Developer: Reload Window**, and confirm that both skills and the `officeimo` MCP server appear in **Customize**. Set the allowed-roots environment before starting Cursor.
+Cursor supports the portable Agent Plugins layout used by this bundle. On Enterprise, an administrator must enable local plugin imports before this installation route is available. Extract the release ZIP into `~/.cursor/plugins/local/officeimo-document-tools`, restart Cursor or run **Developer: Reload Window**, and confirm that both skills and the `officeimo` MCP server appear in **Customize**. Set the allowed-roots environment before starting Cursor.
 
 For MCP-only setup, add this server under `mcpServers` in the client's `mcp.json`. Replace the example folder with your document and output folder; Windows JSON paths need escaped backslashes or forward slashes.
 
@@ -46,7 +46,7 @@ For MCP-only setup, add this server under `mcpServers` in the client's `mcp.json
 {
   "officeimo": {
     "command": "dotnet",
-    "args": ["dnx", "OfficeIMO.Tool@3.4.5", "mcp", "serve", "--stdio"],
+    "args": ["dnx", "OfficeIMO.Tool@3.4.6", "mcp", "serve", "--stdio"],
     "env": { "OFFICEIMO_MCP_ALLOWED_ROOTS": "/absolute/path/to/documents" }
   }
 }
@@ -59,7 +59,7 @@ Manual MCP configuration exposes tools; install the plugin bundle to load its sk
 The canonical `plugin.json`, `mcp.json`, and `skills/` follow Agent Plugins 1.0.0. Clients may support only a subset of components. A client with manual MCP configuration can launch the same server:
 
 ```text
-dotnet dnx OfficeIMO.Tool@3.4.5 mcp serve --stdio
+dotnet dnx OfficeIMO.Tool@3.4.6 mcp serve --stdio
 ```
 
 Use that client's native STDIO configuration syntax and pass the allowed-roots environment above. Local tools require a client that can execute on the machine containing the documents. They cannot read a desktop folder from a cloud-only conversation.

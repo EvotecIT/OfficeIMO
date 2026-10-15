@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.evotecit/officeimo",
+  "name": "io.github.EvotecIT/officeimo",
   "title": "OfficeIMO Document Tools",
   "description": "Inspect, search, fetch, and convert local documents and mail stores with bounded access.",
-  "version": "3.4.5",
+  "version": "3.4.6",
   "repository": {
     "url": "https://github.com/EvotecIT/OfficeIMO",
     "source": "github",
@@ -15,7 +15,7 @@
       "registryType": "nuget",
       "registryBaseUrl": "https://api.nuget.org/v3/index.json",
       "identifier": "OfficeIMO.Tool",
-      "version": "3.4.5",
+      "version": "3.4.6",
       "runtimeHint": "dnx",
       "transport": {
         "type": "stdio"

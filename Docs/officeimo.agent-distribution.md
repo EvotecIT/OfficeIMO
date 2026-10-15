@@ -22,7 +22,7 @@ Use synthetic documents for review examples. Skills select relevant workflows; t
 
 ## Official MCP Registry
 
-Publish the signed NuGet tool first and read it back from NuGet. Validate `OfficeIMO.Tool/server.json` against the pinned official schema, check version agreement, and verify that the actual packaged README contains exactly `<!-- mcp-name: io.github.evotecit/officeimo -->`.
+Publish the signed NuGet tool first and read it back from NuGet. Validate `OfficeIMO.Tool/server.json` against the pinned official schema, check version agreement, and verify that the actual packaged README contains exactly `<!-- mcp-name: io.github.EvotecIT/officeimo -->`.
 
 An authorized publisher runs `mcp-publisher login github` and `mcp-publisher publish OfficeIMO.Tool/server.json`. An authorized CI lane can use the official GitHub OIDC flow. Verify the returned name, version and package through the [Registry API](https://registry.modelcontextprotocol.io/docs). The Registry catalogs servers; it does not install skills or create vendor-directory listings. Follow the [official quickstart](https://modelcontextprotocol.io/registry/quickstart).
 

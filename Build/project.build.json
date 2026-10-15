@@ -172,7 +172,12 @@
     {
       "Path": ".agents/plugins/officeimo-document-tools/README.md",
       "Project": "OfficeIMO.Tool",
-      "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+      "Pattern": "(?m)(?<=^dotnet dnx OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    },
+    {
+      "Path": ".agents/plugins/officeimo-document-tools/README.md",
+      "Project": "OfficeIMO.Tool",
+      "Pattern": "(?m)(?<=^    \"args\": \\[\"dnx\", \"OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
     }
   ],
   "ExpectedVersionMapAsInclude": true,
