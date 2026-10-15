@@ -65,7 +65,7 @@ public static partial class OfficeDrawingRasterRenderer {
             DiagnosticSink = canvas.DiagnosticSink,
             DiagnosticSource = canvas.DiagnosticSource,
             TransformedTextBudget = canvas.TransformedTextBudget,
-            StrokeAdjustment = canvas.StrokeAdjustment,
+            PdfRasterConventions = canvas.PdfRasterConventions,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         }, scaleX, scaleY, tilePlan, canvas.Fonts);

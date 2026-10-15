@@ -529,7 +529,14 @@ internal static partial class ResourceResolver {
             fontDescriptorFlags,
             ResolvePredefinedCMap(fontVal, objects),
             hasDeclaredEncoding);
-        if (embeddedProgram == null) return resource;
+        if (embeddedProgram == null) {
+            if (!includeEmbeddedTrueTypeFont) return resource;
+            byte[]? cffProgram = TryReadEmbeddedCffProgram(fontVal, objects, out string? cffSubtype);
+            if (cffProgram == null) return resource;
+            // CFF and Type 1 outlines are wrapped as OpenType CFF so drawing uses the embedded glyphs.
+            PdfDrawingFontProgram? cffDrawingProgram = TryCreateCffDrawingProgram(resource, fontVal, objects, cffProgram, cffSubtype);
+            return cffDrawingProgram == null ? resource : resource.WithDrawingProgram(cffDrawingProgram);
+        }
         // Drawing scenes carry Unicode text. Programs that select glyphs by character code or CID
         // receive a Unicode cmap so rendering uses the embedded outlines instead of a substitute.
         PdfDrawingFontProgram? drawingProgram = PdfTrueTypeUnicodeCmap.TryCreate(
@@ -744,9 +751,43 @@ internal static partial class ResourceResolver {
         return loads || string.Equals(programFontSubtype, "CIDFontType2", StringComparison.Ordinal) ? bytes : null;
     }
 
+    private const int MaxEmbeddedFontProgramBytes = 32 * 1024 * 1024;
+
+    /// <summary>Reads an embedded Type 1 (FontFile) or CFF-flavoured FontFile3 program.</summary>
+    private static byte[]? TryReadEmbeddedCffProgram(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects, out string? programSubtype) {
+        programSubtype = null;
+        PdfDictionary? descriptor = ResolveFontDescriptor(font, objects, out string? programFontSubtype);
+        if (descriptor == null) return null;
+        PdfStream? program = null;
+        if (descriptor.Items.TryGetValue("FontFile3", out PdfObject? fontFile3) &&
+            ResolveObject(fontFile3, objects) is PdfStream candidate) {
+            string? subtype = candidate.Dictionary.Get<PdfName>("Subtype")?.Name;
+            if (PdfFontProgramCompatibility.IsCompatible(programFontSubtype, "FontFile3", subtype) && IsCffProgramSubtype(subtype)) {
+                program = candidate;
+                programSubtype = subtype;
+            }
+        }
+        if (program == null && descriptor.Items.TryGetValue("FontFile", out PdfObject? fontFile) &&
+            ResolveObject(fontFile, objects) is PdfStream type1 &&
+            PdfFontProgramCompatibility.IsCompatible(programFontSubtype, "FontFile")) {
+            program = type1;
+            programSubtype = "Type1";
+        }
+        if (program == null || Filters.StreamDecoder.GetUnsupportedFilters(program.Dictionary, objects).Count != 0) return null;
+        if (!Filters.StreamDecoder.TryDecode(program, MaxEmbeddedFontProgramBytes, out byte[] bytes, objects) || bytes.Length < 4) return null;
+        // OpenType programs with TrueType outlines are handled by the TrueType path.
+        if (string.Equals(programSubtype, "OpenType", StringComparison.Ordinal) &&
+            !PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram(programFontSubtype, bytes)) return null;
+        return bytes;
+    }
+
     private static string GetDefaultEncodingForBaseFont(string baseFont) {
         string fontName = StripSubsetPrefix(baseFont);
         switch (fontName) {
+            case "Symbol":
+                return "SymbolEncoding";
+            case "ZapfDingbats":
+                return "ZapfDingbatsEncoding";
             case "Courier":
             case "Courier-Bold":
             case "Courier-Oblique":
@@ -806,6 +847,8 @@ internal static partial class ResourceResolver {
 
         return map.Count == 0 ? null : map;
     }
+
+    internal static bool TryDecodeStandardGlyphName(string glyphName, out string? value) => TryDecodeGlyphName(glyphName, out value);
 
     private static bool TryDecodeGlyphName(string glyphName, out string? value) {
         value = null;
@@ -992,7 +1035,13 @@ internal static partial class ResourceResolver {
             case "fl": value = "fl"; return true;
             case "ffi": value = "ffi"; return true;
             case "ffl": value = "ffl"; return true;
-            default: return false;
+            default:
+                // Symbol and ZapfDingbats glyph names (Greek, mathematical and dingbat names).
+                if (PdfFontEncodingNames.TryGetSymbolicUnicode(glyphName, out int symbolic)) {
+                    value = char.ConvertFromUtf32(symbolic);
+                    return true;
+                }
+                return false;
         }
     }
 
@@ -1968,19 +2017,12 @@ internal static partial class ResourceResolver {
             byte y = TransformColorComponent(source[sourcePixel + 2], 2, decodeTransform);
             byte k = TransformColorComponent(source[sourcePixel + 3], 3, decodeTransform);
 
-            target[targetPixel] = ConvertDeviceCmykComponentToRgb(c, k);
-            target[targetPixel + 1] = ConvertDeviceCmykComponentToRgb(m, k);
-            target[targetPixel + 2] = ConvertDeviceCmykComponentToRgb(y, k);
+            OfficeColorSpaceConverter.FromCmykBytes(c, m, y, k, out target[targetPixel], out target[targetPixel + 1], out target[targetPixel + 2]);
         }
     }
 
     private static byte TransformColorComponent(byte sample, int componentIndex, PdfImageDecodeTransform? decodeTransform) {
         return decodeTransform is null ? sample : decodeTransform.TransformColorComponent(sample, componentIndex);
-    }
-
-    private static byte ConvertDeviceCmykComponentToRgb(byte colorant, byte black) {
-        int ink = colorant + black;
-        return (byte)(255 - (ink > 255 ? 255 : ink));
     }
 
     private static bool TryBuildPngFileWithSoftMask(
@@ -2172,11 +2214,6 @@ internal static partial class ResourceResolver {
         for (int i = 0; i < alphaPixels.Length; i++) {
             alphaPixels[i] = DecodeImageComponent(softMaskDictionary, 0, alphaPixels[i], objects);
         }
-    }
-
-    private static byte ConvertCmykComponent(byte component, byte black) {
-        double value = (1D - component / 255D) * (1D - black / 255D);
-        return (byte)System.Math.Round(value * 255D);
     }
 
     private static PdfStream? ResolveStream(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {

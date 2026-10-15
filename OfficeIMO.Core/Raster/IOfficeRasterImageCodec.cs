@@ -29,9 +29,9 @@ public sealed class OfficeDrawingRasterRenderOptions {
     /// <summary>Cancellation observed between drawing elements and nested render stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
     /// <summary>
-    /// Applies PDF-style stroke adjustment: axis-aligned strokes and rectangle fills snap to whole device pixels,
-    /// and every stroke paints at least one device pixel. Defaults to false.
+    /// Applies the raster conventions PDF viewers share: stroke adjustment, whole-pixel text baselines and
+    /// PDF image sampling (box-filtered downscaling, filtered upscaling below 400% and pixel-snapped edges).
     /// </summary>
-    public bool StrokeAdjustment { get; set; }
+    internal bool PdfRasterConventions { get; set; }
     internal OfficeRasterTransformedTextBudget? TransformedTextBudget { get; set; }
 }

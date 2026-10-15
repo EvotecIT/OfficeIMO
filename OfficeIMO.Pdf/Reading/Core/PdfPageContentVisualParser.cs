@@ -972,6 +972,14 @@ internal static partial class PdfPageContentVisualParser {
             }
 
             if (stroke && _hasInexactDash) _unsupportedOperatorVisitor?.Invoke("d");
+            if (fill && TryPaintFieldPatternFill(fillRule, paintOrder)) {
+                fill = false;
+                if (!stroke) {
+                    ClearPath();
+                    return;
+                }
+            }
+            if (stroke && _state.StrokePattern?.Shading.FunctionShading != null) _unsupportedShadingTransformVisitor?.Invoke();
             bool isAxisAlignedRectangle = TryCreateAxisAlignedRectangle(
                 requireExactCoordinates: _requireExactType3ShadingProjection,
                 out double x,
@@ -1315,6 +1323,27 @@ internal static partial class PdfPageContentVisualParser {
             }
             CreateShadingGradients(pattern.Shading, x, y, width, height, combined, _pageHeight, out linearGradient, out radialGradient);
             if (linearGradient == null && radialGradient == null) _unsupportedShadingTransformVisitor?.Invoke();
+        }
+
+        // Shading patterns whose colour field cannot be a drawing gradient (mesh, function-based, unextended or
+        // bounded axial and radial) paint their exact field clipped to the filled path.
+        private bool TryPaintFieldPatternFill(OfficeFillRule fillRule, double paintOrder) {
+            if (_state.FillPattern is not PdfPageShadingPatternResource pattern ||
+                pattern.Shading.FunctionShading is not PdfFunctionShading field ||
+                _requireExactType3ShadingProjection ||
+                !TryGetPathBounds(out double x, out double y, out double width, out double height) ||
+                !PdfPageClipPath.TryCreatePath(CloseFilledSubpaths(_pathCommands), fillRule, out PdfPageClipPath pathClip)) return false;
+            Matrix2D shadingToPage = Matrix2D.Multiply(_fillPatternPaintTransform, pattern.Matrix);
+            if (!IsRepresentableRadialShadingTransform(shadingToPage)) {
+                _unsupportedShadingTransformVisitor?.Invoke();
+                return true;
+            }
+            var transform = new OfficeTransform(shadingToPage.A, shadingToPage.B, shadingToPage.C, shadingToPage.D, shadingToPage.E, shadingToPage.F)
+                .Then(new OfficeTransform(1D, 0D, 0D, -1D, 0D, _pageHeight));
+            PdfPageClipPath clip = _textClippingBudget.ResolveActiveClip(_state.ClipPath, pathClip);
+            AddPrimitive(PdfPageVisualPrimitive.FunctionRectangle(x, y, width, height,
+                new PdfPageFunctionPaint(field, transform), _state.FillOpacity, clip, paintOrder));
+            return true;
         }
 
         private bool TryGetPathBounds(out double x, out double y, out double width, out double height) {

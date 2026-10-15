@@ -68,6 +68,9 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static void RenderPositionedTextLines(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale,
         double x, double y, double width, double height) {
+        using IDisposable? outline = text.OutlineStrokeColor is OfficeColor strokeColor
+            ? canvas.PushTextOutlineStroke(strokeColor, text.OutlineStrokeWidth * scale, text.FillSuppressed)
+            : null;
         double sourceSize = Math.Max(.1D, text.Font.Size * scale);
         double size = sourceSize * text.BaselineScale;
         double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scale;

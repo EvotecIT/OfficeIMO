@@ -1194,7 +1194,7 @@ public sealed partial class PdfReadPage {
             PdfDictionary? pattern = ResolveDictionary(patternValueObject);
             if (TryReadInteger(pattern?.Items.TryGetValue("PatternType", out PdfObject? typeValue) == true ? typeValue : null) != 2) continue;
             if (pattern?.Items.TryGetValue("Shading", out PdfObject? shading) == true) {
-                CollectOneShadingCapabilityDiagnostic(shading, name, diagnostics, seen, pageContentBudget, allowFunctionShading: false);
+                CollectOneShadingCapabilityDiagnostic(shading, name, diagnostics, seen, pageContentBudget);
             } else {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedShadingId, name);
             }
@@ -1207,7 +1207,7 @@ public sealed partial class PdfReadPage {
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         PageContentBudget pageContentBudget, bool allowFunctionShading = true) {
-        PdfDictionary? shading = ResolveDictionary(value);
+        PdfDictionary? shading = ResolveDictionary(value) ?? (ResolveObject(value) as PdfStream)?.Dictionary;
         if (shading == null || !shading.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
             !TryReadColorSpaceResource(
                 colorSpaceObject,

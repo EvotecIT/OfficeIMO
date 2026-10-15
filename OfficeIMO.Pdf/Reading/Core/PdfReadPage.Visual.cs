@@ -1656,9 +1656,19 @@ public sealed partial class PdfReadPage {
         OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PageContentBudget? pageContentBudget = null) {
         shading = default;
-        PdfDictionary? dictionary = ResolveDictionary(value);
-        if (dictionary != null && TryReadInteger(dictionary.Items.TryGetValue("ShadingType", out var type) ? type : null) == 1)
+        // Mesh shadings (types 4 to 7) are streams; their dictionary carries the shading entries.
+        PdfDictionary? dictionary = ResolveDictionary(value) ?? (ResolveObject(value) as PdfStream)?.Dictionary;
+        int? declaredType = dictionary == null ? null : TryReadInteger(dictionary.Items.TryGetValue("ShadingType", out var type) ? type : null);
+        if (dictionary != null && declaredType == 1)
             return TryReadFunctionShading(dictionary, renderingIntent, pageContentBudget ?? new PageContentBudget(this), out shading);
+        if (dictionary != null && declaredType is >= 4 and <= 7) {
+            pageContentBudget ??= new PageContentBudget(this);
+            return dictionary.Items.TryGetValue("ColorSpace", out PdfObject? meshColorSpaceObject) &&
+                TryReadColorSpaceResource(meshColorSpaceObject, pageContentBudget.TryConsumeColorFunctionEvaluation,
+                    pageContentBudget.ColorFunctionResolutionContext, out PdfPageColorSpace meshColorSpace) &&
+                TryReadShadingField(dictionary, ResolveObject(value) as PdfStream, declaredType.Value, meshColorSpace, null,
+                    MeshParameterDomain, false, false, renderingIntent, pageContentBudget, out shading);
+        }
         if (dictionary == null ||
             !dictionary.Items.TryGetValue("Coords", out PdfObject? coordsObject)) {
             return false;
@@ -1694,14 +1704,18 @@ public sealed partial class PdfReadPage {
              shadingDomain[0] == shadingDomain[1])) return false;
 
         bool extendsBothEnds = false;
+        bool extendsStart = false, extendsEnd = false;
         if (dictionary.Items.TryGetValue("Extend", out PdfObject? extendObject) &&
             ResolveObject(extendObject) is not PdfNull) {
             PdfArray? extend = ResolveArray(extendObject);
             if (extend == null || extend.Items.Count != 2 ||
                 ResolveObject(extend.Items[0]) is not PdfBoolean extendStart ||
                 ResolveObject(extend.Items[1]) is not PdfBoolean extendEnd) return false;
+            extendsStart = extendStart.Value;
+            extendsEnd = extendEnd.Value;
             extendsBothEnds = extendStart.Value && extendEnd.Value;
         }
+
 
         PdfObject? functionObject = dictionary.Items.TryGetValue("Function", out PdfObject? authoredFunction) ? authoredFunction : null;
         pageContentBudget ??= new PageContentBudget(this);
@@ -1709,6 +1723,18 @@ public sealed partial class PdfReadPage {
             return false;
         }
         exactColorInterpolation &= HasExactType3FunctionComponentRange(functionObject, colorSpace.ComponentCount);
+
+        // Drawing gradients pad both ends over the whole plane. Unextended ends, a BBox, a Background,
+        // or radial circles that do not nest need the exact PDF colour field.
+        bool hasBackground = dictionary.Items.TryGetValue("Background", out PdfObject? backgroundObject) &&
+            ResolveObject(backgroundObject) is not PdfNull;
+        bool nestedCircles = shadingType != 3 || coords.Count >= 6 &&
+            Math.Sqrt((coords[3] - coords[0]) * (coords[3] - coords[0]) + (coords[4] - coords[1]) * (coords[4] - coords[1])) +
+            Math.Min(coords[2], coords[5]) <= Math.Max(coords[2], coords[5]) + 1e-9D;
+        if ((shadingType is 2 or 3) && (!extendsBothEnds || hasShadingBoundingBox || hasBackground || !nestedCircles)) {
+            if (TryReadShadingField(dictionary, ResolveObject(value) as PdfStream, shadingType.Value, colorSpace, coords,
+                    shadingDomain, extendsStart, extendsEnd, renderingIntent, pageContentBudget, out shading)) return true;
+        }
 
         if (shadingType == 2) {
             bool exactAxialFamily = hasExactCoordinates;

@@ -566,10 +566,8 @@ internal static partial class ResourceResolver {
                     rgbPalette[target + 2] = lookupBytes[source];
                     break;
                 case IndexedBaseColorSpace.DeviceCmyk:
-                    byte black = lookupBytes[source + 3];
-                    rgbPalette[target] = ConvertCmykComponent(lookupBytes[source], black);
-                    rgbPalette[target + 1] = ConvertCmykComponent(lookupBytes[source + 1], black);
-                    rgbPalette[target + 2] = ConvertCmykComponent(lookupBytes[source + 2], black);
+                    OfficeColorSpaceConverter.FromCmykBytes(lookupBytes[source], lookupBytes[source + 1], lookupBytes[source + 2],
+                        lookupBytes[source + 3], out rgbPalette[target], out rgbPalette[target + 1], out rgbPalette[target + 2]);
                     break;
                 default:
                     return false;

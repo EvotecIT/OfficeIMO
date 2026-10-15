@@ -279,7 +279,7 @@ public class PdfIccColorRenderingTests {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         const string shadingObjects =
             "7 0 obj\n<< /Type /Pattern /PatternType 2 /Shading 8 0 R >>\nendobj\n" +
-            "8 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [0 0 100 0] /Function 9 0 R >>\nendobj\n" +
+            "8 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [0 0 100 0] /Function 9 0 R /Extend [true true] >>\nendobj\n" +
             "9 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 1 1] /N 1 >>\nendobj\n";
         const string resources = "/Pattern << /Sp 7 0 R >>";
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
@@ -779,7 +779,7 @@ public class PdfIccColorRenderingTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         Assert.True(OfficePngReader.TryDecode(Assert.Single(drawing.Images).Bytes, out OfficeRasterImage? raster));
 
-        Assert.Equal(OfficeColor.FromRgb(153, 153, 153), raster!.GetPixel(0, 0));
+        Assert.Equal(OfficeColor.FromRgb(168, 158, 155), raster!.GetPixel(0, 0));
     }
 
     [Theory]
@@ -2528,7 +2528,7 @@ public class PdfIccColorRenderingTests {
         PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
 
         Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
-        Assert.Equal(OfficeColor.Red, raster!.GetPixel(0, 0));
+        Assert.Equal(OfficeColor.FromRgb(237, 28, 36), raster!.GetPixel(0, 0));
     }
 
     [Theory]

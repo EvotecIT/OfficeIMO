@@ -3,9 +3,9 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageShadingResource {
-    internal PdfPageShadingResource(PdfFunctionShading functionShading) : this() {
+    internal PdfPageShadingResource(PdfFunctionShading functionShading, bool supportsExactType3Projection = true) : this() {
         FunctionShading = functionShading;
-        SupportsExactType3Projection = true;
+        SupportsExactType3Projection = supportsExactType3Projection;
         Stops = Array.Empty<OfficeGradientStop>();
     }
 

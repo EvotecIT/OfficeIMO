@@ -8,9 +8,56 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>
     /// PDF-style stroke adjustment: axis-aligned strokes and rectangle fills snap to whole device pixels
-    /// and every stroke paints at least one device pixel (ISO 32000-1, 10.7.5; matches Acrobat, Poppler and pdf.js).
+    /// and every stroke paints at least one device pixel (ISO 32000-1, 10.7.5), as common PDF viewers do.
     /// </summary>
     internal bool StrokeAdjustment { get; set; }
+
+    /// <summary>Enables stroke adjustment, whole-pixel text baselines and PDF image sampling together.</summary>
+    internal bool PdfRasterConventions {
+        get => StrokeAdjustment && SnapTextBaselines && PdfImageSampling && AntialiasedClipping;
+        set => StrokeAdjustment = SnapTextBaselines = PdfImageSampling = AntialiasedClipping = value;
+    }
+
+    /// <summary>Places upright positioned-text baselines on whole device rows (the glyph origin moves up to the row).</summary>
+    internal bool SnapTextBaselines { get; set; }
+
+    /// <summary>Returns the logical top offset that moves a baseline onto the device row at or above it.</summary>
+    private double SnapBaselineOffset(double logicalBaseline) {
+        if (!SnapTextBaselines || CoordinateScaleY <= 0D || !IsFinite(logicalBaseline)) return 0D;
+        double device = logicalBaseline * CoordinateScaleY;
+        return (Math.Floor(device + 1e-6D) - device) / CoordinateScaleY;
+    }
+
+    private (OfficeColor Color, double Width, bool FillSuppressed)? _textOutlineStroke;
+
+    /// <summary>Strokes the outlines of glyphs drawn within the scope, optionally without filling them.</summary>
+    internal IDisposable PushTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed) {
+        var previous = _textOutlineStroke;
+        _textOutlineStroke = (color, width, fillSuppressed);
+        return new TextOutlineStrokeScope(this, previous);
+    }
+
+    private sealed class TextOutlineStrokeScope : IDisposable {
+        private OfficeRasterCanvas? _canvas;
+        private readonly (OfficeColor Color, double Width, bool FillSuppressed)? _previous;
+        internal TextOutlineStrokeScope(OfficeRasterCanvas canvas, (OfficeColor Color, double Width, bool FillSuppressed)? previous) { _canvas = canvas; _previous = previous; }
+        public void Dispose() { if (_canvas != null) { _canvas._textOutlineStroke = _previous; _canvas = null; } }
+    }
+
+    // Glyph outlines are closed contours stroked with the PDF text-state defaults (miter joins, limit 10).
+    private void PaintTextContours(List<List<OfficePoint>> contours, OfficeColor fill, double emboldenOffset) {
+        if (_textOutlineStroke is not { } stroke) {
+            FillTextContours(contours, fill, emboldenOffset);
+            return;
+        }
+        if (!stroke.FillSuppressed) FillTextContours(contours, fill, emboldenOffset);
+        var outlines = new List<OfficeFlattenedPathContour>(contours.Count);
+        foreach (List<OfficePoint> contour in contours) if (contour.Count >= 2) outlines.Add(new OfficeFlattenedPathContour(contour, true));
+        if (outlines.Count == 0) return;
+        OfficeColor strokeColor = stroke.Color;
+        StrokeContours(outlines, stroke.Width > 0D ? stroke.Width : 1E-9D, OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Miter, 10D,
+            null, 0D, (_, _) => strokeColor, hairline: stroke.Width <= 0D);
+    }
 
     private double DevicePixelsPerLogicalUnit => Math.Sqrt(Math.Abs(CoordinateScaleX * CoordinateScaleY));
 
