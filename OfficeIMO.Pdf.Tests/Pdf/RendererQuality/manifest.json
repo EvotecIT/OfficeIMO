@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "purpose": "Full-colour PSNR and SSIM gates for the managed PDF rasterizer against Poppler pdftoppm on a synthetic, embedded-only corpus.",
+  "reference": {
+    "rasterizer": "pdftoppm version 26.09.0",
+    "dpi": 150,
+    "command": "pdftoppm -r 150 -singlefile -png"
+  },
+  "pages": [
+    {
+      "id": "fonts-type1",
+      "description": "Embedded Type 1 (FontFile): eexec, subrs, flex, hint replacement, div, seac, built-in encoding and Differences.",
+      "pdf": "fonts-type1.pdf",
+      "pdfSha256": "ac41789f8f74db2ef3f7ceed801fe2688a468b427882edba2d468c411509d944",
+      "baseline": "fonts-type1.poppler.png",
+      "baselineSha256": "b4e75934c648be0a54e22be7beefba5998bbb5bd6beb3d22b5ce38d6547705bd"
+    },
+    {
+      "id": "fonts-type1c",
+      "description": "Embedded CFF (FontFile3 Type1C) with WinAnsi and Differences, and as a CIDFontType0C program.",
+      "pdf": "fonts-type1c.pdf",
+      "pdfSha256": "90da6259bdc631161b082a87e08d5d3bc0db269ffa32e0b64cd2b563be45b3f1",
+      "baseline": "fonts-type1c.poppler.png",
+      "baselineSha256": "97b02d9997bcbff1e405de1b971ab87496148c24d3cd2c4685cd83928ae9a8c2"
+    },
+    {
+      "id": "fonts-truetype",
+      "description": "Embedded TrueType (FontFile2) with WinAnsi encoding.",
+      "pdf": "fonts-truetype.pdf",
+      "pdfSha256": "9583fe2dceb04740d252ab352b0baa5306b2276e8e3c9e5e32167cc03abcda48",
+      "baseline": "fonts-truetype.poppler.png",
+      "baselineSha256": "2aee04e2bcb0bacd7bad7768e19dc0a9f4d4e1cf29a6a76030d373b4827057ba"
+    },
+    {
+      "id": "clipping",
+      "description": "Anti-aliased circular, even-odd, nested and rectangular clips over fills, images and text.",
+      "pdf": "clipping.pdf",
+      "pdfSha256": "cd2093aeb42375d841a941b8af9226d47f5c2b61734fa2fe34e5f7ca9be1cb0d",
+      "baseline": "clipping.poppler.png",
+      "baselineSha256": "1681b1fe047f0abba894dc46440b723dba2fdabff47f1907b01ea9e07d2b66cf"
+    },
+    {
+      "id": "text-modes",
+      "description": "Text rendering modes: fill, stroke, fill and stroke, hairline outline, rotated outline and text clipping.",
+      "pdf": "text-modes.pdf",
+      "pdfSha256": "6c1d50c4d9f0012ce9a57e076e40965df2c533c50f08a24655e47e2bf2dbff66",
+      "baseline": "text-modes.poppler.png",
+      "baselineSha256": "7d194025e431360aac7d62b178f27f3e671abdcbb5d8d77061afe9cde639b856"
+    },
+    {
+      "id": "shadings",
+      "description": "Shading types 1 to 7 with Extend, BBox, non-nested radial circles, Gouraud, lattice, Coons and tensor meshes.",
+      "pdf": "shadings.pdf",
+      "pdfSha256": "2ab97f92bebad5ff6eb503f3d4d6349a855847db90acbd865115ef3332ae94ad",
+      "baseline": "shadings.poppler.png",
+      "baselineSha256": "22276b676e0a219617ba9b3b1c7b1328d323e1d521161604fd7aadda55f0670e"
+    },
+    {
+      "id": "strokes",
+      "description": "Hairlines, sub-pixel rules, caps, joins, miter limits, dashes, rectangles and skewed pens.",
+      "pdf": "strokes.pdf",
+      "pdfSha256": "e7cb5a6fcd06098f7f44c9513d6a6eaaa1f63a71269f75440bf08c6452813ddc",
+      "baseline": "strokes.poppler.png",
+      "baselineSha256": "e86bd53463f82b8eb58fe4e0a659673e6a78e982bb38a66b85965e0e75d23191"
+    }
+  ]
+}
