@@ -337,7 +337,8 @@ int32_t officeimo_document_acknowledge_save(officeimo_document document, const c
 /*
  * Writes the open revision with a password to open it, described as JSON:
  * { "path", "userPassword", "ownerPassword", "currentOwnerPassword", "allowPrinting", "allowCopying", "allowChanges" }
- * ownerPassword, when given, unlocks the permissions; the allow flags default to true. An empty userPassword writes the
+ * ownerPassword unlocks the permissions and is required when any allow flag is false. It must differ from userPassword
+ * after AES-256 FormKC normalization and truncation to 127 UTF-8 bytes. The allow flags default to true. An empty userPassword writes the
  * document without password protection. allowCopying=false disables both content copying and accessibility text extraction.
  * currentOwnerPassword is needed when the document was opened with its
  * user password and its permissions forbid changing security. The document itself keeps its protection and location.

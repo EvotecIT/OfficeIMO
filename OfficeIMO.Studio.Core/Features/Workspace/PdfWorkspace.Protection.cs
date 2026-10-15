@@ -9,6 +9,11 @@ internal sealed partial class PdfWorkspace {
         IProgress<PdfWorkspaceProgress>? progress = null, OfficeWorkflowStreamOutput? outputStream = null,
         IOfficeWorkflowPublicationGuard? publicationGuard = null) {
         ArgumentNullException.ThrowIfNull(encryption);
+        if (encryption.AllowedPermissions != PdfStandardPermissions.All &&
+            (string.IsNullOrEmpty(encryption.OwnerPassword) || PdfStandardSecurityWriter.PasswordsAreEquivalent(
+                encryption.UserPassword, encryption.OwnerPassword, encryption.Algorithm, cancellationToken))) {
+            throw new ArgumentException("Restricted copies require a separate permissions password that remains different after PDF password normalization.", nameof(encryption));
+        }
         return ChangeProtectionAsync(destinationPath, encryption.Clone(), currentOwnerPassword, cancellationToken,
             progress, outputStream, publicationGuard);
     }

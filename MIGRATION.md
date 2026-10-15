@@ -1,8 +1,10 @@
 # Upgrading OfficeIMO
 
-## Studio native redaction requests
+## Studio native interface and protected copies
 
 The native engine ABI is version 2. Redaction `apply` requests must include `revision`: use the revision returned by `find`, or the document facts revision on which drawn areas were reviewed. Requests without a revision or with a stale revision are rejected. After editing, reordering, undoing or redoing the document, find or mark the content again before applying redaction. Rebuild native hosts against the matching engine header and check `officeimo_abi_version()` at startup.
+
+Studio protected copies that restrict printing, copying or changes require a separate permissions password. For AES-256, the permissions and document-open passwords must still differ after FormKC normalization and truncation to 127 UTF-8 bytes. A single password remains sufficient for unrestricted copies. The native `allowCopying: false` option disables both content copying and accessibility text extraction; desktop Studio retains its separate accessibility setting.
 
 ## Excel worksheet persistence and wrapping
 

@@ -41,8 +41,12 @@ enum Engine {
 
     /// Names the app-owned folder for recovery copies. Call once at launch, before opening documents.
     static func initialize(dataDirectory: URL) async throws {
-        try FileManager.default.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
         try await run {
+            guard officeimo_abi_version() == expectedAbiVersion else {
+                throw EngineError(status: .unsupported, code: EngineStatus.unsupported.rawValue,
+                                  message: String(localized: "Studio and its document engine are incompatible. Update or reinstall the app."))
+            }
+            try FileManager.default.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
             var error: UnsafeMutablePointer<CChar>?
             let status = dataDirectory.path.withCString { officeimo_initialize($0, &error) }
             try check(status, error)

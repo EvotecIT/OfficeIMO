@@ -15396,6 +15396,46 @@
         }
       }
     },
+    "Studio and its document engine are incompatible. Update or reinstall the app." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Studio und seine Dokument-Engine sind nicht kompatibel. Aktualisieren Sie die App oder installieren Sie sie neu."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Studio y su motor de documentos son incompatibles. Actualiza o reinstala la aplicación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Studio et son moteur de documents sont incompatibles. Mettez à jour ou réinstallez l’application."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Studio e il suo motore di documenti non sono compatibili. Aggiorna o reinstalla l’app."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Studio i jego silnik dokumentów są niezgodne. Zaktualizuj aplikację lub zainstaluj ją ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Studio e seu mecanismo de documentos são incompatíveis. Atualize ou reinstale o aplicativo."
+          }
+        }
+      }
+    },
     "Subject" : {
       "localizations" : {
         "de" : {
