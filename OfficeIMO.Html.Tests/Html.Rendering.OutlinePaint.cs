@@ -35,4 +35,30 @@ public sealed class HtmlOutlinePaintTests {
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(32, 36));
         Assert.Equal(OfficeColor.FromRgb(208, 108, 36), raster.GetPixel(128, 36));
     }
+
+    [Theory]
+    [InlineData("page", true)]
+    [InlineData("page", false)]
+    [InlineData("column", true)]
+    [InlineData("column", false)]
+    public void DeferredPaintPreservesEmptyPageAndColumnFloatAnchors(string reference, bool outlined) {
+        string html = "<style>@page{size:240px 180px;margin:10px}"
+            + "body,p,span{margin:0;font:12px/20px Arial}</style>";
+        if (reference == "column") html += "<section style='column-count:2;column-gap:10px;height:120px'>";
+        html += "<p" + (outlined ? " style='outline:2px solid blue'" : "") + ">Before "
+            + (outlined ? "" : "<span style='float:left;width:20px;height:20px;background:red'></span>")
+            + "<span style='float:top;float-reference:" + reference + ";height:20px'>Floating </span>After</p>";
+        if (reference == "column") html += "</section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged, HonorCssPageRules = true
+        });
+        Assert.Single(rendered.Pages);
+        string[] words = rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(1, words.Count(word => word == "Before"));
+        Assert.Equal(1, words.Count(word => word == "Floating"));
+        Assert.Equal(1, words.Count(word => word == "After"));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
+    }
 }
