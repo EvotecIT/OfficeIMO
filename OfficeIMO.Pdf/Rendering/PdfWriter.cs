@@ -281,14 +281,14 @@ internal static partial class PdfWriter {
                     }
 
                     requiresPdf16FileVersion = true;
-                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan();
+                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan(allowCidKeyedCff: true);
                     pendingFont.Options.AddFontDiagnostics(
                         pendingFont.Font,
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
                     string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
                         ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds()) : cffFontProgram.FontName;
-                    string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
+                    string fontFileExtraEntries = "/Subtype /" + compactFontFile.FontFileSubtype;
                     int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
@@ -324,14 +324,14 @@ internal static partial class PdfWriter {
                 } else if (pendingFont.Options.TryGetNamedOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                            cffFontProgram != null) {
                     requiresPdf16FileVersion = true;
-                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan();
+                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan(allowCidKeyedCff: true);
                     pendingFont.Options.AddFontDiagnostics(
                         PdfStandardFont.Helvetica,
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "named-font:" + pendingFont.Font.FaceKey, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
                     string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
                         ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds()) : cffFontProgram.FontName;
-                    string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
+                    string fontFileExtraEntries = "/Subtype /" + compactFontFile.FontFileSubtype;
                     int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(

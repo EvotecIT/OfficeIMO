@@ -1859,7 +1859,7 @@ public partial class PdfFontFamilyTests {
 
         Assert.StartsWith("%PDF-1.6", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
-        Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType0C", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType0", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
@@ -1943,7 +1943,7 @@ public partial class PdfFontFamilyTests {
 
         Assert.StartsWith("%PDF-1.6", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
-        Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType0C", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType0", raw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("/FontFile2", raw, StringComparison.Ordinal);
@@ -1973,7 +1973,7 @@ public partial class PdfFontFamilyTests {
 
         Assert.Contains(PdfStandardFont.TimesRoman, options.EmbeddedFonts.Keys);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
-        Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType0C", raw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.Contains("CFF property fallback Łódź", extracted, StringComparison.Ordinal);
     }
