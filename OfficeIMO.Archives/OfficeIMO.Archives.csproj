@@ -3,7 +3,7 @@
     <Description>Bounded ZIP reading and traversal, Cabinet and Windows Installer inspection and member reads, and managed payload extraction.</Description>
     <AssemblyName>OfficeIMO.Archives</AssemblyName>
     <AssemblyTitle>OfficeIMO.Archives</AssemblyTitle>
-    <VersionPrefix>3.5.0</VersionPrefix>
+    <VersionPrefix>3.5.1</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
