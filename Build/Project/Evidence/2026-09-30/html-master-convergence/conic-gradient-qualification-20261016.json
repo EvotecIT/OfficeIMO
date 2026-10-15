@@ -1,0 +1,1374 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-15T23:19:16.237782+00:00",
+  "source": {
+    "branch": "feature/html-engine",
+    "commit": "9d7c3f051880099d28b4707bd7c9cdf33a440e3c",
+    "compileBase": "1f245e8ee8f3b0b5a9519b1ff70a2baaf5580fcc",
+    "contentSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+    "sealedFileCount": 92,
+    "everyCommittedBlobMatchesSeal": true
+  },
+  "scope": {
+    "failure": "Separate antialiased conic wedges leaked backing paint and accumulated opacity; plateau endpoints and the HTML PDF effect guard exposed related owner paths.",
+    "fix": "Use complete bounded vector color/opacity fields, paint alpha once, retain every authored stop endpoint, skip zero-area fans and map supported luminosity masks through the public HTML PDF path.",
+    "owners": [
+      "OfficeIMO.Core conic drawing",
+      "OfficeIMO.Pdf luminosity-mask writer",
+      "OfficeIMO.Html.Pdf drawing-effect mapping"
+    ],
+    "publicApiChange": false,
+    "dependencyChange": false,
+    "regressionProof": {
+      "drawing": {
+        "phase": "focused-before-fix",
+        "framework": "net10.0",
+        "sourceSealSha256": "29880349c45d14b915802d4b018c825f1a0e11d8cdc19e6a84c52e44fa3c2576",
+        "exitCode": 1,
+        "counts": {
+          "total": "8",
+          "executed": "8",
+          "passed": "0",
+          "failed": "8",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trxSha256": "f320ca9888697e2357af1fa66d904afbd6f4f95565ec5b2f54fc227baef3baa3",
+        "receipt": {
+          "path": "focused-before-fix-command.json",
+          "sha256": "87bad2c5653704f6cde4dea9d318d4829937bf7bdf08987ffe5ac2ef6e4f9211"
+        }
+      },
+      "pdfLuminosity": {
+        "phase": "focused-pdf-before-fix",
+        "framework": "net10.0",
+        "sourceSealSha256": "26b8a104747cb3d238a971250b7e223debc055d3c90053f9627509e99388450f",
+        "exitCode": 1,
+        "counts": {
+          "total": "3",
+          "executed": "3",
+          "passed": "0",
+          "failed": "3",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trxSha256": "31da3b9dbaa347c640deba5b3e5be80a1f3710b7522f1caf8d9b81d1c1302eca",
+        "receipt": {
+          "path": "focused-pdf-before-fix-command.json",
+          "sha256": "5b2d92ee080bb499a230478d5a57fad449d6d202c1d32368980a40768affa7b1"
+        }
+      },
+      "plateau": {
+        "phase": "focused-candidate-drawing",
+        "framework": "net10.0",
+        "sourceSealSha256": "b78997abf51f27919d3cad5e88fa2812393cb48eca3854df52765724a0a54169",
+        "exitCode": 1,
+        "counts": {
+          "total": "27",
+          "executed": "27",
+          "passed": "23",
+          "failed": "4",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trxSha256": "c70815116091f0d3869f391050714c5d4b918a45e6a36afa1e7adbff27ad31a7",
+        "receipt": {
+          "path": "plateau-before-fix-command.json",
+          "sha256": "9e87ec70c7de7cc7b22c4780a77175967fce33ae3254b02b9be608bd1a86ed38"
+        }
+      },
+      "publicPdfRasterization": {
+        "receipt": {
+          "path": "native/final-pdf-materialization.json",
+          "sha256": "f9e2c29ed1b2406aa09c88980a5f8bc9bfeea90b84c289389d48d41745e7808c"
+        },
+        "runs": [
+          {
+            "fixture": "conic-edge-controls",
+            "media": "print",
+            "pdfSha256": "eb0e02cc6499ea9ffe38ee0d86bb8d59c4e90eabfe7b451ca57ebb22d3840129",
+            "imageXObjectCount": 2,
+            "luminosityMaskDictionaryCount": 0,
+            "formXObjectCount": 1
+          },
+          {
+            "fixture": "conic-edge-controls",
+            "media": "screen",
+            "pdfSha256": "eb0e02cc6499ea9ffe38ee0d86bb8d59c4e90eabfe7b451ca57ebb22d3840129",
+            "imageXObjectCount": 2,
+            "luminosityMaskDictionaryCount": 0,
+            "formXObjectCount": 1
+          },
+          {
+            "fixture": "conic-seams",
+            "media": "print",
+            "pdfSha256": "ad72608d618fc0997071afbf559b5471995e290334be807cae03cf718004c2e7",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 0,
+            "formXObjectCount": 6
+          },
+          {
+            "fixture": "conic-seams",
+            "media": "screen",
+            "pdfSha256": "ad72608d618fc0997071afbf559b5471995e290334be807cae03cf718004c2e7",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 0,
+            "formXObjectCount": 6
+          },
+          {
+            "fixture": "conic-variable-alpha",
+            "media": "print",
+            "pdfSha256": "41cf24b3cca12b538fa1e8366080df0c7a70525893b0860cad883b95a91efbb6",
+            "imageXObjectCount": 2,
+            "luminosityMaskDictionaryCount": 0,
+            "formXObjectCount": 0
+          },
+          {
+            "fixture": "conic-variable-alpha",
+            "media": "screen",
+            "pdfSha256": "41cf24b3cca12b538fa1e8366080df0c7a70525893b0860cad883b95a91efbb6",
+            "imageXObjectCount": 2,
+            "luminosityMaskDictionaryCount": 0,
+            "formXObjectCount": 0
+          }
+        ]
+      },
+      "publicPdfClassification": {
+        "path": "native/prior-pdf-materialization-classification.json",
+        "sha256": "c5d2a244b31aac3387e86a22236e3922a57b83a321762a3a27f8c5972689da16"
+      }
+    }
+  },
+  "frameworkValidation": [
+    {
+      "phase": "all-html-net10.0",
+      "framework": "net10.0",
+      "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+      "exitCode": 0,
+      "counts": {
+        "total": "6454",
+        "executed": "6454",
+        "passed": "6454",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "1244cb523d24eb52a720453ac4ecb10c5f36cbce68856c4650865543281b9b58",
+      "receipt": {
+        "path": "all-html-net10.0-command.json",
+        "sha256": "c574d3313c78abe1acf0ea920a79c95af991c1774f5d1fadef32ea938ad261e3"
+      }
+    },
+    {
+      "phase": "focused-drawing-contracts-net10.0",
+      "framework": "net10.0",
+      "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+      "exitCode": 0,
+      "counts": {
+        "total": "69",
+        "executed": "69",
+        "passed": "69",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "ff6eac00c5ce46e88a54d91edd8078294fa87d5ddc16615fdb8d33e57f486bec",
+      "receipt": {
+        "path": "focused-drawing-contracts-net10.0-command.json",
+        "sha256": "1d97b5d65e9a6b0ea035fc338b8ae459c4089947250c0b1c2f258110ed95f18c"
+      }
+    },
+    {
+      "phase": "focused-pdf-contracts-net10.0",
+      "framework": "net10.0",
+      "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+      "exitCode": 0,
+      "counts": {
+        "total": "1086",
+        "executed": "1086",
+        "passed": "1086",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "d97036ed93cc58033779c4e2dcfd7b29455e011db8b72baebb790520cad8ed50",
+      "receipt": {
+        "path": "focused-pdf-contracts-net10.0-command.json",
+        "sha256": "3f1c8eaea8aa336657ab5c9fce2966de538bc8028ac47e982f4b352b55e36de3"
+      }
+    },
+    {
+      "phase": "all-html-net8.0",
+      "framework": "net8.0",
+      "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+      "exitCode": 0,
+      "counts": {
+        "total": "6454",
+        "executed": "6454",
+        "passed": "6454",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "bf26715818e76c2ea521cd41f0c94063aa7350d333d8e2829a5e3ae19bfec98e",
+      "receipt": {
+        "path": "all-html-net8.0-command.json",
+        "sha256": "f72fcd5ad9106e9f9a93b8e06f78142e3c82d1a47841565e9ed125d0a9409b32"
+      }
+    },
+    {
+      "phase": "focused-drawing-contracts-net8.0",
+      "framework": "net8.0",
+      "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+      "exitCode": 0,
+      "counts": {
+        "total": "69",
+        "executed": "69",
+        "passed": "69",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "76cf9a3bbc1161bdbd5b275ef64027435b9fdf73fc69dea6f08190430e636052",
+      "receipt": {
+        "path": "focused-drawing-contracts-net8.0-command.json",
+        "sha256": "51ae9ed560ecb9be196c47a24eed0364b9de4e72c3953c3376c8cde4eb2ff06e"
+      }
+    },
+    {
+      "phase": "focused-pdf-contracts-net8.0",
+      "framework": "net8.0",
+      "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+      "exitCode": 0,
+      "counts": {
+        "total": "1086",
+        "executed": "1086",
+        "passed": "1086",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "a226b0babd39616cb41b20de872e76a8e89913f3cdcfb9f0f4c927100122c71c",
+      "receipt": {
+        "path": "focused-pdf-contracts-net8.0-command.json",
+        "sha256": "1500680309363b7a9043901dc42c2849a2b860feb69bce52f183887f81d94401"
+      }
+    },
+    {
+      "phase": "build-renderer-netstandard20",
+      "framework": "netstandard2.0",
+      "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+      "exitCode": 0,
+      "receipt": {
+        "path": "build-renderer-netstandard20-command.json",
+        "sha256": "d8274e9f25aff4803a9b9b7a28bd463f43e8506752c4eeed04f9c74cc3c1a563"
+      }
+    }
+  ],
+  "focusedClosureValidation": [
+    {
+      "phase": "focused-closure-html",
+      "framework": "net10.0",
+      "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+      "exitCode": 0,
+      "counts": {
+        "total": "91",
+        "executed": "91",
+        "passed": "91",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "62894accb66ff61776cd33b3f525e384d27b7df60cecdc207262fae34f50ff32",
+      "receipt": {
+        "path": "focused-closure-html-command.json",
+        "sha256": "cbf7b3b6bcd13e3153d1e90164cac5e93d09f36a2917b446d83ee4655652f9a4"
+      }
+    }
+  ],
+  "priorCausalOwnerValidation": {
+    "scope": "Earlier focused owner proof; current six broad gates cover these contracts on the final complete source seal.",
+    "receipts": [
+      {
+        "phase": "focused-remediated-drawing",
+        "framework": "net10.0",
+        "sourceSealSha256": "1c8d3c7225b512bf1462dd96cf85b79901dd29717b455a91a0ec5711eec0911d",
+        "exitCode": 0,
+        "counts": {
+          "total": "27",
+          "executed": "27",
+          "passed": "27",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trxSha256": "6b058ca54b3986b54fc2826f0c5f3cd91c843ac15ed010e14e4ee2a66de77ac8",
+        "receipt": {
+          "path": "focused-remediated-drawing-command.json",
+          "sha256": "317a550e727b316abf5f90726e82248c24bcdecc8715cf2c4197cf70ebe2a3d2"
+        }
+      },
+      {
+        "phase": "focused-remediated-pdf",
+        "framework": "net10.0",
+        "sourceSealSha256": "1c8d3c7225b512bf1462dd96cf85b79901dd29717b455a91a0ec5711eec0911d",
+        "exitCode": 0,
+        "counts": {
+          "total": "3",
+          "executed": "3",
+          "passed": "3",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trxSha256": "fff95a26a1a5b057933a9cb167777ea15c72c84007837bc7307caf7754809cfc",
+        "receipt": {
+          "path": "focused-remediated-pdf-command.json",
+          "sha256": "8bf03601e66ceb25017636d5bcaf08362b7f1c08be27e37522dfe7c347b32ff5"
+        }
+      }
+    ]
+  },
+  "testResultsArchive": {
+    "sha256": "e010a9947a16dded54cd6735bb225c10d7f20ef4506ae495218774057074d6df",
+    "bytes": 6097561,
+    "readbackVerified": true,
+    "entryCount": 18,
+    "receipt": {
+      "path": "test-results-archive.json",
+      "sha256": "25d57b07bcc5a581ccb3cf6cae6c3df54710905de92217bc348bcd9d45bf3d82"
+    }
+  },
+  "native": {
+    "qualification": {
+      "status": "All bounded flat-opacity/plateau/vector-PDF contracts pass; smooth wrap/center AA residuals explicitly retained.",
+      "caseCount": 12,
+      "caseBreakdown": {
+        "original": 8,
+        "separatePlateaus": 4
+      },
+      "fixtureCount": 4,
+      "profiles": [
+        "print",
+        "screen"
+      ],
+      "qualitySegments": 360,
+      "viewportCssPx": [
+        816,
+        900
+      ],
+      "contracts": {
+        "originalFlatOpacity": {
+          "wholeRoiPixels": 1296000,
+          "failures": 0,
+          "centerAndEdgesIncluded": true
+        },
+        "originalFlatPlateauColorOutsidePhysicalAuthoredEdge2px": {
+          "pixels": 1278464,
+          "failures": 0
+        },
+        "opaqueSmoothBackdropLeakage": {
+          "fullRoiPixels": 259200,
+          "greenLeakage": 0
+        },
+        "cornerCenterCrash": "Old producer exited-6; final renders successfully in both profiles.",
+        "narrowEarlyLateRgbAlphaPlateaus": {
+          "cases": 4,
+          "eligiblePixelsPerCasePerProfilePerRoute": 31521,
+          "eligiblePixelsAcrossAllRoutes": 1008672,
+          "rgbExpected": [
+            0,
+            0,
+            255
+          ],
+          "rgbMismatchCount": 0,
+          "requestedAndGuardedWitnessesExact": true,
+          "colorTolerance": 0
+        },
+        "vectorPdf": {
+          "pdfDocuments": 8,
+          "imageXObjects": 0,
+          "actualLuminosityMaskDictionaries": 8,
+          "separateFromVisualAppearanceProof": true
+        },
+        "css50PercentVersusByte128": "Native CSS50% screenshots dither R/B127/128 with green128. Canonical byte128 flat paint is red128/green127 or blue128/green127; separate exact counts are retained. No tolerance widened."
+      },
+      "smoothResiduals": {
+        "packet": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native/final-r2-smooth-residual-packet.json",
+        "cornerOriginPacket": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native/final-r2-corner-residual-packet.json",
+        "perProfile": {
+          "print": {
+            "png": 1,
+            "pdf": 17,
+            "pdfWithinPhysicalWrapRay2px": 17,
+            "pdfOutsideWrapRayButWithinCenterRadius5": 0,
+            "pdfOutsideBothRegions": 0
+          },
+          "screen": {
+            "png": 1,
+            "pdf": 17,
+            "pdfWithinPhysicalWrapRay2px": 17,
+            "pdfOutsideWrapRayButWithinCenterRadius5": 0,
+            "pdfOutsideBothRegions": 0
+          }
+        },
+        "classification": "Centered control: one PNG pixel has green deficit3;17 vector-PDF pixels have deficit>2, all within the existing2px authored wrap-ray corridor, with0 outside it. SVG has0 such deficits. Corner control: one vector-PDF origin pixel at local(0,0) has green134 versus native screenshot143/native PDF139; PNG/SVG have0 such deficits. Raw fullROI data stays intact; no color tolerance changed.",
+        "priorRasterizedPdfResidual": "Prior PDF had28 deficits, including9 near-center pixels outside the corridor. That appearance proof was rasterized and is separately classified.",
+        "colorToleranceChanged": false
+      },
+      "qualificationLimits": [
+        "Bounded12 cases/default360 quality on current Mac/Chromium; no broader browser/runtime parity claim.",
+        "Smooth angular interpolation and authored wrap/origin antialiasing can differ; full distributions, zooms and raw pixel packets are retained.",
+        "Requested late plateau witness79,22 is retained;78,22 adds a strict>2px pixel-center guard.",
+        "Main fixture label-only font warning persists; empty gradient targets contain no text and exact bounds match.",
+        "Native PDF816x901 page rounding is retained; direct PNG/SVG816x900. No resize or coordinate adjustment.",
+        "Coordinator reports normal focused HTML91 passed; broad normal/package/review gates are owned by the coordinator and are not claimed by this receipt."
+      ],
+      "nativeResources": {
+        "allBrowserProcessSetsRestored": true,
+        "allLoopbackServersClosed": true,
+        "original8SvgSourcesReusedByExactSha": 6,
+        "newPlateauSvgSourcesCaptured": 2,
+        "actualAuthorFixturesUnchanged": true
+      }
+    },
+    "receipt": {
+      "path": "final-native-qualification.json",
+      "sha256": "472c8aa266447ad31e3b41793ac8572e7595cd8840026367b05302464726d8aa"
+    },
+    "originalEight": {
+      "caseCount": 8,
+      "receipt": {
+        "path": "native/final-r2-qualification.json",
+        "sha256": "24fafb96b7a9e15e6796de6695597786c47a3e053bf76153100b5593d5d48366"
+      },
+      "commands": {
+        "path": "native/final-r2-command-receipt.json",
+        "sha256": "b7799967ea5a6331a0401798915bba3e9147f0c048882d6fac290a989d4ec59a"
+      },
+      "producerFreeze": {
+        "normalOutputFreezeAfterBothMatrices": {
+          "normalProbe": {
+            "allFilesUnchanged": true,
+            "fileCount": 25,
+            "topLevelDllCount": 9,
+            "recursiveDllCount": 9,
+            "addedFiles": [],
+            "missingFiles": [],
+            "changedFiles": []
+          },
+          "normalTest": {
+            "allFilesUnchanged": true,
+            "fileCount": 368,
+            "topLevelDllCount": 59,
+            "recursiveDllCount": 124,
+            "addedFiles": [],
+            "missingFiles": [],
+            "changedFiles": []
+          }
+        },
+        "actualLoadedBindingsMatch": true,
+        "privateRuntimeUnchanged": true,
+        "archiveReadbackHashesMatchAfterNative": true,
+        "nativeSvgSources": 6,
+        "nativeSvgByteIdenticalReuseCount": 6,
+        "nativeSvgSourcesUnchanged": true,
+        "nativeBrowserProcessSetRestored": true,
+        "nativeServerClosed": true
+      },
+      "reportedLoadedOwners": [
+        "AngleSharp",
+        "AngleSharp.Css",
+        "OfficeIMO.Core",
+        "OfficeIMO.Html",
+        "OfficeIMO.Html.Pdf",
+        "OfficeIMO.Pdf",
+        "ShadowConsumerProbe"
+      ],
+      "contacts": [
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native/final-r2-comparison/conic-seams-contact.png",
+          "sha256": "9c132dcd0a237097f821bfc3a799c2437e876001044dd1925bd2127c82351735",
+          "visuallyInspected": true
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native/final-r2-comparison/conic-variable-alpha-contact.png",
+          "sha256": "862ce0eda56d43d1042488c0a9df5340466d2c98a4d6dae04db363ddbd49ee52",
+          "visuallyInspected": true
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native/final-r2-comparison/conic-edge-controls-contact.png",
+          "sha256": "6ce4c43aaa7caf45e1428a702ac0e73e521a986457893bfdd4164baa25daf39e",
+          "visuallyInspected": true
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native/final-r2-comparison/variable-alpha-wrap-center-8x.png",
+          "sha256": "ce2d639e9563fcdac6674861e4b6f96892fe593b5788128c097cb784e8ec1428",
+          "visuallyInspected": true
+        }
+      ],
+      "pdfMaterialization": {
+        "receipt": {
+          "path": "native/final-r2-pdf-materialization.json",
+          "sha256": "e394b1223d9b9c547d21c3b73a17bf4915bc9f4fbfd1ea11b46489cd9b504aa1"
+        },
+        "runs": [
+          {
+            "fixture": "conic-edge-controls",
+            "media": "print",
+            "pdfSha256": "ad6f4c5b8f8bf80816d7414c020cd5fcbe337b9051e6a0a3135b97912b7840c9",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 1,
+            "formXObjectCount": 4
+          },
+          {
+            "fixture": "conic-edge-controls",
+            "media": "screen",
+            "pdfSha256": "ad6f4c5b8f8bf80816d7414c020cd5fcbe337b9051e6a0a3135b97912b7840c9",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 1,
+            "formXObjectCount": 4
+          },
+          {
+            "fixture": "conic-seams",
+            "media": "print",
+            "pdfSha256": "ad72608d618fc0997071afbf559b5471995e290334be807cae03cf718004c2e7",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 0,
+            "formXObjectCount": 6
+          },
+          {
+            "fixture": "conic-seams",
+            "media": "screen",
+            "pdfSha256": "ad72608d618fc0997071afbf559b5471995e290334be807cae03cf718004c2e7",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 0,
+            "formXObjectCount": 6
+          },
+          {
+            "fixture": "conic-variable-alpha",
+            "media": "print",
+            "pdfSha256": "92efdc2908352e54eab9879035a1915fc1bb0bf7357cad91a91918d6a9d53aac",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 1,
+            "formXObjectCount": 3
+          },
+          {
+            "fixture": "conic-variable-alpha",
+            "media": "screen",
+            "pdfSha256": "92efdc2908352e54eab9879035a1915fc1bb0bf7357cad91a91918d6a9d53aac",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 1,
+            "formXObjectCount": 3
+          }
+        ]
+      },
+      "sourceBinding": {
+        "path": "native/final-r2-source-binding.json",
+        "sha256": "3ec6d920a5311e9ec50e588bf9b8edaaee6c14cb8495d9f6191ddfbe10ba399e"
+      }
+    },
+    "authoredPlateaus": {
+      "caseCount": 4,
+      "receipt": {
+        "path": "native-plateaus/final-qualification.json",
+        "sha256": "ce8e24bc21af6e8f362f9e71803b25487276172d9d13304ae2336aae40db2d30"
+      },
+      "commands": {
+        "path": "native-plateaus/final-command-receipt.json",
+        "sha256": "e1c03b7e2ddbe803b9713a6fdb26151faf8d8e488af1a5545ea013782b6d270c"
+      },
+      "producerFreeze": {
+        "normalOutputFreezeAfterBothMatrices": {
+          "normalProbe": {
+            "allFilesUnchanged": true,
+            "fileCount": 25,
+            "topLevelDllCount": 9,
+            "recursiveDllCount": 9,
+            "addedFiles": [],
+            "missingFiles": [],
+            "changedFiles": []
+          },
+          "normalTest": {
+            "allFilesUnchanged": true,
+            "fileCount": 368,
+            "topLevelDllCount": 59,
+            "recursiveDllCount": 124,
+            "addedFiles": [],
+            "missingFiles": [],
+            "changedFiles": []
+          }
+        },
+        "actualLoadedBindingsMatch": true,
+        "privateRuntimeUnchanged": true,
+        "archiveReadbackHashesMatchAfterNative": true,
+        "nativeSvgSources": 2,
+        "nativeSvgByteIdenticalReuseCount": 0,
+        "nativeSvgSourcesUnchanged": true,
+        "nativeBrowserProcessSetRestored": true,
+        "nativeServerClosed": true
+      },
+      "reportedLoadedOwners": [
+        "AngleSharp",
+        "AngleSharp.Css",
+        "OfficeIMO.Core",
+        "OfficeIMO.Html",
+        "OfficeIMO.Html.Pdf",
+        "OfficeIMO.Pdf",
+        "ShadowConsumerProbe"
+      ],
+      "contacts": [
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native-plateaus/final-comparison/conic-plateaus-contact.png",
+          "sha256": "7194cad17b9c5c046b575ba8b499de832d53ecfb10a92dc42b835cc130f38e26",
+          "visuallyInspected": true
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native-plateaus/final-comparison/conic-plateaus-witnesses-10x.png",
+          "sha256": "ba5db80c1d9c8eb32351162799989b9629582d04397c06722ec12ea24c331fa0",
+          "visuallyInspected": true
+        }
+      ],
+      "pdfMaterialization": {
+        "receipt": {
+          "path": "native-plateaus/final-pdf-materialization.json",
+          "sha256": "f409ff09a52465c3a99a280154b32978a7c51c935f5c501a15bc6bbde72c581a"
+        },
+        "runs": [
+          {
+            "fixture": "conic-plateaus",
+            "media": "print",
+            "pdfSha256": "2b3b00abc4fe303068c7bb084a12feccbed0cec648c765d567127b6cb18228f4",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 2,
+            "formXObjectCount": 8
+          },
+          {
+            "fixture": "conic-plateaus",
+            "media": "screen",
+            "pdfSha256": "2b3b00abc4fe303068c7bb084a12feccbed0cec648c765d567127b6cb18228f4",
+            "imageXObjectCount": 0,
+            "luminosityMaskDictionaryCount": 2,
+            "formXObjectCount": 8
+          }
+        ]
+      }
+    },
+    "pdfControls": {
+      "qualification": {
+        "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+        "recordedUtc": "2026-10-15T23:14:47.130224+00:00",
+        "status": "Bounded mask-data, placement, nested composition and print-resource contracts qualified; consumer-specific readback differences retained",
+        "currentOwnerBuild": {
+          "path": "build-final-pdf-native-controls-command.json",
+          "sha256": "5a0192b06851bbd444ceb0d5a578342a5bc7988e9c88dc7b2dd7d69407927c78",
+          "bytes": 13370
+        },
+        "currentOwnerBindings": [
+          {
+            "name": "OfficeIMO.Pdf",
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/graph/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll",
+            "sha256": "2f61263926385e90a54af213ec8c1bab3806275272dcc2f980128d58c2774d42",
+            "matchesNormalOwner": true
+          },
+          {
+            "name": "OfficeIMO.Core",
+            "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/graph/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll",
+            "sha256": "a36f7814f280ebcd02a54a2f335141926d618a7357c84dc6421df3d56755e483",
+            "matchesNormalOwner": true
+          }
+        ],
+        "directControls": {
+          "receipt": {
+            "path": "pdf-native-control/final-native-result.json",
+            "sha256": "69c886300a615db49088d04955a08efcb9828157a871725fd45bffcb9bbf8d8c",
+            "bytes": 16966
+          },
+          "cases": 3,
+          "witnesses": 14,
+          "withinOriginalTolerance": 13,
+          "resourceRolesPassed": true,
+          "retainedDifference": {
+            "case": "print-shared-shading-image",
+            "name": "gradient-opacity-data",
+            "x": 180,
+            "y": 50,
+            "maskFactor": 0.202625,
+            "expectedAlphaByte": 52,
+            "alphaTolerance": 2,
+            "expectedWhiteRgb": null,
+            "rgbTolerance": 3,
+            "referenceX": 40,
+            "referenceY": 50,
+            "actualRgba": [
+              34,
+              28,
+              130,
+              45
+            ],
+            "nativeWhiteRgb": [
+              234,
+              234,
+              239
+            ],
+            "alphaDelta": 7,
+            "alphaPassed": false
+          },
+          "runtime": {
+            "path": "pdf-native-control/final-qualified-runtime.zip",
+            "sha256": "d32be6f3e02dd1a7af9f558b7d444699151f850a550c3b2f5af234357fec3f22",
+            "bytes": 6802190,
+            "entries": {
+              "OfficeIMO.Core.dll": "a36f7814f280ebcd02a54a2f335141926d618a7357c84dc6421df3d56755e483",
+              "OfficeIMO.Core.pdb": "012658d424a58bc10b74bd259cff03181860b8055cf3fcf61a9c6a5a8a9ab247",
+              "OfficeIMO.Core.xml": "d0dab3854f5c0f318e32fc449f14ed9df8791ec57ab562f05fa0b62ae32910dd",
+              "OfficeIMO.Pdf.dll": "2f61263926385e90a54af213ec8c1bab3806275272dcc2f980128d58c2774d42",
+              "OfficeIMO.Pdf.pdb": "539a4bbbbf054a33e79700c65db638cc328b123113f1196cfa3cac10ce53f38a",
+              "OfficeIMO.Pdf.xml": "d2280e800554daae0430713694b891074fa9edabaf2440a2a1f04d0e6ba34ced",
+              "PdfLuminosityNativeControl": "8d0020c113599d5ce353c1b2f6476b442bbfb061ad4621609093f1d4718b56b3",
+              "PdfLuminosityNativeControl.deps.json": "f0511f0e72f973eabbd1f683032bcdcbaa1216731f9b9693691b971941464996",
+              "PdfLuminosityNativeControl.dll": "170d49ef8c8eea5f25d756d3ce6c741b91219d2edc95e9e964a9d0e62b7f5a34",
+              "PdfLuminosityNativeControl.pdb": "0f6dafdcbeca5e92e4defab7143e79a93226af48473035dcdd7fcb2f4105d35f",
+              "PdfLuminosityNativeControl.runtimeconfig.json": "9950d4583cfc9a106857c0d5b8a75b53e8774852b57b80bc3823a74d44a4d87f"
+            },
+            "readbackVerified": true
+          },
+          "outputs": [
+            {
+              "path": "pdf-native-control/final-output/controls.json",
+              "sha256": "ccbca6560033c3dbb7b6d1dc4235594d88c63d286849a452f014fc0d96da6060",
+              "bytes": 9570
+            },
+            {
+              "path": "pdf-native-control/final-output/pdf-native-controls-contact.png",
+              "sha256": "24c1747eb7584a924a2df1a9efdba7eea70be05bf80d7f5852691803755cd988",
+              "bytes": 11578
+            },
+            {
+              "path": "pdf-native-control/final-output/print-nested-luminosity-masks.native-rgb.png",
+              "sha256": "8512ac1873a94608905d88c2eb4bfaaa39b77993805fd3bce219d639e113802d",
+              "bytes": 601
+            },
+            {
+              "path": "pdf-native-control/final-output/print-nested-luminosity-masks.native-rgba.png",
+              "sha256": "2d908cb045b04a7b7220e120317123aac24e2689d3c87902c83e1d1d353068ba",
+              "bytes": 896
+            },
+            {
+              "path": "pdf-native-control/final-output/print-nested-luminosity-masks.pdf",
+              "sha256": "75156289e9c9f0c7ab83563e48c80e4557b943cec2e5eeee49a9cf3760c1407c",
+              "bytes": 4841
+            },
+            {
+              "path": "pdf-native-control/final-output/print-nested-luminosity-masks.source.png",
+              "sha256": "cd0a51b973a5f5c6d0a0b514853fd78b1d0c5cedb00ad1d12d824f3d2327de03",
+              "bytes": 408
+            },
+            {
+              "path": "pdf-native-control/final-output/print-nested-luminosity-masks.source.svg",
+              "sha256": "57cb9aa04ad67e0cb79deb2071ad7bf624653870f1b70b61679e59007f6bff6f",
+              "bytes": 1512
+            },
+            {
+              "path": "pdf-native-control/final-output/print-shared-shading-image.native-rgb.png",
+              "sha256": "79a78b76da56ba76d0d73d92ca261ce4389beafaa7606e768e548f044586f37b",
+              "bytes": 2541
+            },
+            {
+              "path": "pdf-native-control/final-output/print-shared-shading-image.native-rgba.png",
+              "sha256": "8dd8dedfb123c237c210907be22bfccdffe3e55cd8aa0ec106359ca2ecda3e70",
+              "bytes": 2887
+            },
+            {
+              "path": "pdf-native-control/final-output/print-shared-shading-image.pdf",
+              "sha256": "edc19466dece53d1e6345cdbd3b4b2616c402bbbe7f85925f53ef6405b9f3f3f",
+              "bytes": 7364
+            },
+            {
+              "path": "pdf-native-control/final-output/print-shared-shading-image.source.png",
+              "sha256": "0c1c682db31a714317524730dd4a58963781e921a9844719f2a33c45d32164ac",
+              "bytes": 529
+            },
+            {
+              "path": "pdf-native-control/final-output/print-shared-shading-image.source.svg",
+              "sha256": "6690614099581e7d0eb25894025e7dce23496f5bc9961fa1cbeae6ecd267f909",
+              "bytes": 2416
+            },
+            {
+              "path": "pdf-native-control/final-output/synthetic-test-print-condition.icc",
+              "sha256": "5eee7134ff67697623a353329079086a275fc687a58139988a7dcbf3b952e479",
+              "bytes": 600
+            },
+            {
+              "path": "pdf-native-control/final-output/translated-mask-effect-opacity.native-rgb.png",
+              "sha256": "85a7dd3b124a871134d633fcc1136be706c17aafe4c2050ae6f8cce45cb5c0d1",
+              "bytes": 386
+            },
+            {
+              "path": "pdf-native-control/final-output/translated-mask-effect-opacity.native-rgba.png",
+              "sha256": "da7c2e5a82c1d366e45e28dcf3340b7a38ad04d1ee73adeff9b0fd476bccf48b",
+              "bytes": 260
+            },
+            {
+              "path": "pdf-native-control/final-output/translated-mask-effect-opacity.pdf",
+              "sha256": "62cdf88b263bf313d28373df8b3aa1e37d56d45cecdfa1692e15b1022c729bb7",
+              "bytes": 1701
+            },
+            {
+              "path": "pdf-native-control/final-output/translated-mask-effect-opacity.source.png",
+              "sha256": "c04bbd7a73af9403686daad7deb8db72d639163300dadd1d9833a8c69374cb26",
+              "bytes": 387
+            },
+            {
+              "path": "pdf-native-control/final-output/translated-mask-effect-opacity.source.svg",
+              "sha256": "fe13717b023e751ecaa43523b6dff9c2c454c9e76e230bae68252b40910e9b3d",
+              "bytes": 856
+            }
+          ]
+        },
+        "neutralMaskPrimary": {
+          "receipt": {
+            "path": "pdf-neutral-gradient-native-control/poppler-native-result.json",
+            "sha256": "76fafe7b3dda2e1f9ba1353f2c681398cb876ed8eb7303b35a35bc9d433769f8",
+            "bytes": 4064
+          },
+          "engine": "Poppler pdftocairo26.09.0 72dpi transparentRGBA",
+          "witnesses": 9,
+          "allAnalyticAlphaBytesExact": true,
+          "pdfSha256": "da785891d73282e198cc847643d51bd8e9003540a0f20ef03a76722bf4189946",
+          "rgbAndCmykResourcesSeparated": true
+        },
+        "neutralMaskSecondary": {
+          "receipt": {
+            "path": "pdf-neutral-gradient-native-control/native-result.json",
+            "sha256": "478936be750234588dd59d095b0eab80ed7e7137ae839c51953a34068c419a26",
+            "bytes": 8619
+          },
+          "engine": "MuPDF mutool72dpi transparentRGBA alpha primary; RGB diagnostic",
+          "witnesses": 9,
+          "withinOriginalTolerance": 8,
+          "retainedDifference": {
+            "case": "print-neutral-shared-shading-image",
+            "name": "neutral-gradient-low",
+            "x": 165,
+            "y": 50,
+            "maskFactor": 0.1375,
+            "expectedAlphaByte": 35,
+            "alphaTolerance": 2,
+            "expectedWhiteRgb": null,
+            "rgbTolerance": 3,
+            "referenceX": 25,
+            "referenceY": 50,
+            "actualRgba": [
+              135,
+              135,
+              135,
+              32
+            ],
+            "nativeWhiteRgb": [
+              241,
+              241,
+              241
+            ],
+            "alphaDelta": 3,
+            "alphaPassed": false
+          },
+          "samePdfAsPrimary": true
+        },
+        "boundaries": [
+          "DeviceRGB-to-DeviceGray luminosity conversion is device dependent; PDF 1.7 section 7.4.2 recommends rather than requires the 0.30/0.59/0.11 coefficients.",
+          "The colored MuPDF alpha 45 versus analytic 52 difference remains visible with the original tolerance of 2; it does not establish a writer defect.",
+          "The neutral MuPDF low-ramp alpha 32 versus 35 difference remains visible with the original tolerance of 2; Poppler reproduces all nine analytic alpha values exactly from the same PDF.",
+          "Opacity data stays separate from print RGB/CMYK conversion; the synthetic ICC profile does not qualify a physical print condition or PDF/X.",
+          "This receipt binds the rebuilt direct controls to the final producer Core/Pdf bytes; earlier control binaries are historical evidence, with no byte-equivalence claim."
+        ],
+        "normativeReference": "https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.7old.pdf",
+        "tolerancesChanged": false
+      },
+      "receipt": {
+        "path": "pdf-control-qualification.json",
+        "sha256": "4741f505901855f7bc4d7257351ba6ea47e4735d8136e0202a55997d1090a724"
+      },
+      "neutralPrimary": {
+        "engine": "Poppler pdftocairo26.09.0 72dpi transparentRGBA",
+        "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+        "pdfSha256": "da785891d73282e198cc847643d51bd8e9003540a0f20ef03a76722bf4189946",
+        "pngSha256": "8b5e2c752ef41415d1e28e863d979e867e45c7567cbddbcab071af4c1e538b7a",
+        "passed": true,
+        "witnessCount": 9,
+        "alphaFailures": 0,
+        "maximumAlphaDelta": 0,
+        "receipt": {
+          "path": "pdf-neutral-gradient-native-control/poppler-native-result.json",
+          "sha256": "76fafe7b3dda2e1f9ba1353f2c681398cb876ed8eb7303b35a35bc9d433769f8"
+        }
+      },
+      "neutralSecondary": {
+        "engine": "MuPDF mutool72dpi transparentRGBA alpha primary; RGB diagnostic",
+        "boundary": "Synthetic existing test ICC profile checks print conversion/resource roles; no physical print or PDF/X conformance claim",
+        "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+        "sourceUnchanged": true,
+        "failures": [
+          {
+            "case": "print-neutral-shared-shading-image",
+            "name": "neutral-gradient-low",
+            "x": 165,
+            "y": 50,
+            "maskFactor": 0.1375,
+            "expectedAlphaByte": 35,
+            "alphaTolerance": 2,
+            "expectedWhiteRgb": null,
+            "rgbTolerance": 3,
+            "referenceX": 25,
+            "referenceY": 50,
+            "actualRgba": [
+              135,
+              135,
+              135,
+              32
+            ],
+            "nativeWhiteRgb": [
+              241,
+              241,
+              241
+            ],
+            "alphaDelta": 3,
+            "alphaPassed": false
+          }
+        ],
+        "caseCount": 1,
+        "witnessCount": 9,
+        "receipt": {
+          "path": "pdf-neutral-gradient-native-control/native-result.json",
+          "sha256": "478936be750234588dd59d095b0eab80ed7e7137ae839c51953a34068c419a26"
+        }
+      },
+      "coloredDeviceDependentGap": {
+        "purpose": "Preserved original colored DeviceRGB native luminosity control and failed alpha oracle; do not replace with neutral control",
+        "engine": "MuPDF mutool 1.28.5, 72 dpi",
+        "originalResult": "3 cases, 14 witnesses, 13 passed; colored gradient at (180,50) expected52\u00b12, actual45; original tolerance retained",
+        "boundary": "PDF DeviceRGB-to-DeviceGray luminosity conversion is device-dependent; 0.30/0.59/0.11 is recommended rather than mandatory",
+        "receipt": {
+          "path": "pdf-native-colored-device-rgb-readback/readback-manifest.json",
+          "sha256": "5209f729a34f875ddfd5726ea36a88cdd79ee10ede8883f8576e42ba7df2fc5b"
+        }
+      }
+    }
+  },
+  "producer": {
+    "archive": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native/final-r2-qualified-runtime.zip",
+      "bytes": 9004792,
+      "sha256": "0714f526617580be1a2684c426996961ab9653f0dd52ba558c4464b11d43e9b9",
+      "entries": 25,
+      "readbackHashesMatch": true
+    },
+    "manifest": {
+      "path": "native/final-r2-producer-tuple.json",
+      "sha256": "9a14141dd63993c45aed4fa0b798d16333b0df16086ec7aae770d9f6a683ab03"
+    },
+    "ownerDllCount": 8,
+    "normalProducerTestFreeze": {
+      "normalProbe": {
+        "allFilesUnchanged": true,
+        "fileCount": 25,
+        "topLevelDllCount": 9,
+        "recursiveDllCount": 9,
+        "addedFiles": [],
+        "missingFiles": [],
+        "changedFiles": []
+      },
+      "normalTest": {
+        "allFilesUnchanged": true,
+        "fileCount": 368,
+        "topLevelDllCount": 59,
+        "recursiveDllCount": 124,
+        "addedFiles": [],
+        "missingFiles": [],
+        "changedFiles": []
+      }
+    },
+    "copiedButNotReportedLoaded": [
+      "OfficeIMO.Html.Core.dll",
+      "OfficeIMO.Html.AngleSharp.dll"
+    ]
+  },
+  "packages": {
+    "entrypoint": "Build/Test-HtmlPackages.ps1",
+    "privateQualificationVersion": "3.4.5.1018",
+    "count": 19,
+    "targets": [
+      "net10.0",
+      "net472",
+      "net8.0",
+      "netstandard2.0"
+    ],
+    "receipt": {
+      "path": "packaged/run-result.json",
+      "sha256": "f3e67e88aa1bbdb00ebee4e7707d24ba0c92a1a720c38835ffd43898447f3ffe"
+    },
+    "metadata": {
+      "path": "packaged/package-metadata.json",
+      "sha256": "d5b6a72dacf96fdf7170f7923e4b6947cc009f06f97d2b7b9ebf467da8dacc1c"
+    },
+    "standardConsumers": [
+      {
+        "framework": "net10.0",
+        "documentOnly": true,
+        "providers": [
+          "AngleSharp/1.8.3"
+        ],
+        "matchedPackageDllCopies": 2
+      },
+      {
+        "framework": "net8.0",
+        "documentOnly": true,
+        "providers": [
+          "AngleSharp/1.8.3"
+        ],
+        "matchedPackageDllCopies": 2
+      },
+      {
+        "framework": "net10.0",
+        "documentOnly": false,
+        "providers": [
+          "AngleSharp/1.8.3",
+          "AngleSharp.Css/1.1.3"
+        ],
+        "matchedPackageDllCopies": 19
+      },
+      {
+        "framework": "net8.0",
+        "documentOnly": false,
+        "providers": [
+          "AngleSharp/1.8.3",
+          "AngleSharp.Css/1.1.3"
+        ],
+        "matchedPackageDllCopies": 19
+      }
+    ],
+    "focusedConsumers": [
+      {
+        "framework": "net8.0",
+        "contracts": [
+          {
+            "name": "uniform-opaque",
+            "samples": 32400
+          },
+          {
+            "name": "uniform-alpha",
+            "samples": 32400
+          },
+          {
+            "name": "smooth-common-alpha",
+            "samples": 32400
+          },
+          {
+            "name": "smooth-variable-alpha",
+            "samples": 8
+          },
+          {
+            "name": "corner-variable-alpha",
+            "samples": 6
+          }
+        ],
+        "matchedPackageDllCopies": 6
+      },
+      {
+        "framework": "net10.0",
+        "contracts": [
+          {
+            "name": "uniform-opaque",
+            "samples": 32400
+          },
+          {
+            "name": "uniform-alpha",
+            "samples": 32400
+          },
+          {
+            "name": "smooth-common-alpha",
+            "samples": 32400
+          },
+          {
+            "name": "smooth-variable-alpha",
+            "samples": 8
+          },
+          {
+            "name": "corner-variable-alpha",
+            "samples": 6
+          }
+        ],
+        "matchedPackageDllCopies": 6
+      }
+    ],
+    "focusedReceipt": {
+      "path": "packaged/background-consumer-result.json",
+      "sha256": "1ba47d945e9bdc8333bf5080281b4662d7d85b93018920746365ce09f104c3a6"
+    },
+    "embeddedPdfReadme": {
+      "package": "OfficeIMO.Pdf",
+      "privateVersion": "3.4.5.1018",
+      "entry": "README.md",
+      "embeddedReadmeMatchesCurrentSource": true,
+      "readmeSha256": "c45d5bff3868c1eeae6e0cb9a9168f1b396faa35650be81e44b6b3d553dd3dd6",
+      "nupkgSha256": "6aef6546e8ca6032effae1339e87acbb931ae05a6ec5a167fb6673d2fa457cec",
+      "receipt": {
+        "path": "packaged/readme-artifact-match.json",
+        "sha256": "64c06f0569459fce6d49ef64986cde1c51a06a1fb6cc8002b810f9adadbdc24f"
+      }
+    },
+    "providerQualification": {
+      "consumerExecutions": 6,
+      "providerDllCopiesMatchedOfficialAssets": 10,
+      "allOfficeImoDependenciesArePrivatePackages": true,
+      "staticGraphsExcludeRuntimeAndBrowserLibraries": true,
+      "currentOrdinaryAndPrivateProviderArchivesMatchOfficialHashes": true,
+      "receipt": {
+        "path": "packaged/provider-asset-matches.json",
+        "sha256": "6f86b7ef97918f16b5f5e6d0d0df83f0bd07a7e377dc5af6990cc12dd6b48e79"
+      }
+    }
+  },
+  "review": {
+    "reviewer": "conic_final_readonly_review",
+    "readOnly": true,
+    "initialReview": {
+      "boundary": "candidate-reviewed",
+      "technicalFindings": [
+        {
+          "priority": "P2",
+          "location": "OfficeIMO.Core/OfficeConicGradient.Drawing.cs:109",
+          "impact": "Coarsecoverage skipped ordinarytransition/plateauendpoints; flat regions retainwrongcolororalpha",
+          "status": "Fixed andvalidated; accepted in targetedconfirmation"
+        }
+      ],
+      "coordinatorFindings": [
+        {
+          "priority": "P2",
+          "location": "OfficeIMO.Html.Pdf/HtmlPdfRenderedConverter.DrawingEffects.cs:78",
+          "impact": "Existinganysoftmask guard rasterizes newvaryingalpha conics despitewriter support; packedpublicconsumer detectedPDFimagemask insteadvectorLuminosity",
+          "status": "Fixed andvalidated; accepted in targetedconfirmation"
+        }
+      ]
+    },
+    "receipt": {
+      "path": "local-review.json",
+      "sha256": "94d7103c8e135eba6168bdbc58de674228c3d1a88d550baa88903d44cd13e380"
+    },
+    "targetedConfirmation": {
+      "sourceSealSha256": "a666d93e7e7d37f0c1d4342df1e0e40fa888e2dac2030f71c1bf5fba86113f9e",
+      "accepted": true,
+      "verdict": "Accept implementation as shaped for bounded conic coverage, opacity and vector PDF contracts",
+      "actionableFindings": [],
+      "fixedFindings": [
+        "P2 ordinary plateau endpoints omitted by coarsecoverage",
+        "HTMLadapter rasterizedsupportedLum masks andunwrappedmaskedEffectGroups"
+      ],
+      "readOnly": true,
+      "reviewer": "conic_final_readonly_review",
+      "confirmationAllowanceUsed": true,
+      "manifest": "local-review-remediation-input.json",
+      "manifestFilesMatchedBeforeAndAfter": 20,
+      "qualificationLimits": [
+        "Remaining framework gates andcurrent-owner directPDFcontrols arecoordinator-owned",
+        "Device-dependentcoloredluminosity andboundedwrap/originAA limits retained",
+        "No wholebrowser appearance, Windows timing, release or hostedCI claim"
+      ],
+      "completedUtc": "2026-10-15T23:10:26.189149+00:00"
+    },
+    "confirmationReceipt": {
+      "path": "local-review-confirmation.json",
+      "sha256": "f01a21a1747d494074a94763515e5db53313fbe14ea4980879ea35264c896d6a"
+    }
+  },
+  "remainingLimits": [
+    "Smooth authored-wrap, center antialiasing and angular tessellation residuals remain explicitly recorded in the native receipts; full-ROI observations are retained.",
+    "Colored DeviceRGB luminosity conversion is device dependent; the preserved coefficient mismatch is separate from neutral grayscale mask acceptance.",
+    "Synthetic print-color controls are not physical print-condition or PDF/X conformance proof.",
+    "No general browser appearance, accessibility, runtime input, cross-platform timing or release claim. Windows profiling remains deferred."
+  ],
+  "delivery": {
+    "type": "Qualified integration-branch checkpoint",
+    "branchBackup": true,
+    "newPullRequest": false,
+    "releaseOrPackagePublication": false,
+    "hostedHtmlCorrectnessCiClaim": false
+  },
+  "storage": {
+    "taskRoot": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams",
+    "logicalBytesRemoved": 6470056597,
+    "removedTargetCount": 29,
+    "retainedSnapshotLogicalBytes": 135586969,
+    "retained": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native",
+        "logicalBytes": 42581225,
+        "reason": "Native browser/PDF/SVG/PNG comparisons, exact producer archives and causal captures."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native-plateaus",
+        "logicalBytes": 13608375,
+        "reason": "Four authored-endpoint plateau fixtures and independent rendering proof."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged",
+        "logicalBytes": 60183634,
+        "reason": "Nineteen final private package archives, official provider archives and six consumer receipts/sources."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/framework-test-results.zip",
+        "logicalBytes": 6097561,
+        "reason": "Eighteen TRX entries, each readback verified."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/pdf-native-control",
+        "logicalBytes": 6952245,
+        "reason": "Current owner-bound direct PDF controls, exact runtime ZIP and preserved earlier controls."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/pdf-neutral-gradient-native-control",
+        "logicalBytes": 49636,
+        "reason": "Same-PDF Poppler and MuPDF neutral-mask evidence and source harness."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams",
+        "logicalBytes": 6114293,
+        "excludes": [
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native",
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/native-plateaus",
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged",
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/framework-test-results.zip",
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/pdf-native-control",
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/pdf-neutral-gradient-native-control"
+        ],
+        "reason": "Remaining compact seals, command/review/cleanup receipts, reproduction scripts, causal source ZIP and task state."
+      }
+    ],
+    "allTargetsAbsent": true,
+    "sharedCachesPreserved": true,
+    "receipt": {
+      "path": "storage-result.json",
+      "sha256": "c10013412666ba98a11630971ad753bfb4c981cee4092d9511524e6e6e714ed2"
+    }
+  }
+}
