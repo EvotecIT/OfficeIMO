@@ -26,7 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription, sourceDescription);
-        AddInsetBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
+        AddInsetBoxShadows(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription);
 
         if (paintBorders || style.UnsupportedBorderPaint.Length > 0) {
             AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
@@ -63,7 +63,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription, visualSourceDescription);
-        AddInsetBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
+        AddInsetBoxShadows(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription);
     }
 
     private void AddBoxBackgroundCore(

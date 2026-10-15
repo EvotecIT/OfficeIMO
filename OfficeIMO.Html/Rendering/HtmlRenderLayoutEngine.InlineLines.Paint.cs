@@ -216,7 +216,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     // A legal zero CSS line height still paints glyphs. Retain that
                     // metric while giving their fragmentation carrier the same
                     // positive minimum used by the containing line box.
-                    double textLayoutHeight = textLineMetrics ? lineHeight : textLineHeight == 0D ? 0.01D : textLineHeight;
+                    double textLayoutHeight = textLineMetrics ? Math.Max(0.01D, lineHeight) : textLineHeight == 0D ? 0.01D : textLineHeight;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
                         textY - paintTopOverflow, Math.Max(0.01D, segment.Width),
                         paintHeight + paintTopOverflow, inlineBounds);
@@ -367,7 +367,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AppendInlineAnchorFragments(visuals, ownedVisuals, anchorBounds,
             formattingContainer, isInlineContinuation);
-        paintCapture?.Capture(visuals, ownedVisuals, inlineBounds);
+        paintCapture?.Capture(visuals, ownedVisuals, inlineBounds,
+            lines.Where(line => line.HasFlowContent || line.HasForcedBreak)
+                .All(line => CanUseOrdinaryInlineFontBoxes(line, paragraphStyle)));
         IReadOnlyList<HtmlRenderVisual> painted = paintCapture == null
             ? ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation)
             : visuals.Concat(ownedVisuals.Values.SelectMany(items => items)).ToArray();
