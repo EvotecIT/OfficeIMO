@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   package:
-    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'OfficeIMO-v') }}
+    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'OfficeIMO-v') || startsWith(github.event.release.tag_name, 'OfficeIMO.Tool-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -45,7 +45,8 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          [[ "$RELEASE_TAG" =~ ^OfficeIMO-v[0-9]{14}$ ]]
+          version=$(python3 -c 'import json; print(json.load(open(".agents/plugins/officeimo-document-tools/plugin.json"))["version"])')
+          [[ "$RELEASE_TAG" =~ ^OfficeIMO-v[0-9]{14}$ || "$RELEASE_TAG" == "OfficeIMO.Tool-v$version" ]]
           git merge-base --is-ancestor HEAD origin/master
       - name: Check out the shared packer
         uses: actions/checkout@v7
@@ -91,7 +92,7 @@ jobs:
           retention-days: 7
 
   attach-release:
-    if: ${{ github.event_name == 'release' && startsWith(github.event.release.tag_name, 'OfficeIMO-v') }}
+    if: ${{ github.event_name == 'release' && (startsWith(github.event.release.tag_name, 'OfficeIMO-v') || startsWith(github.event.release.tag_name, 'OfficeIMO.Tool-v')) }}
     needs: package
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -109,7 +110,7 @@ jobs:
         run: gh release upload "$RELEASE_TAG" agent-plugin/*.zip agent-plugin/*.sha256 --repo "$GITHUB_REPOSITORY"
 
   publish-distribution:
-    if: ${{ github.event_name == 'release' && startsWith(github.event.release.tag_name, 'OfficeIMO-v') }}
+    if: ${{ github.event_name == 'release' && (startsWith(github.event.release.tag_name, 'OfficeIMO-v') || startsWith(github.event.release.tag_name, 'OfficeIMO.Tool-v')) }}
     needs: package
     runs-on: ubuntu-latest
     timeout-minutes: 10
