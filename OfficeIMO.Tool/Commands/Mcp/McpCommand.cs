@@ -46,6 +46,8 @@ PDF tools may read only password variable names admitted at startup with --pdf-p
             var passwordVariables = new HashSet<string>(StringComparer.Ordinal);
             for (int index = 2; index < args.Length; index++) {
                 switch (args[index]) {
+                    // Older dotnet dnx versions forward the download-consent flag to the tool.
+                    case "--yes": break;
                     case "--ocr-provider-assembly": assemblies.Add(PdfWorkflowArguments.Value(args, ref index, args[index])); break;
                     case "--ocr-option": PdfWorkflowArguments.AddProviderOption(providerOptions, PdfWorkflowArguments.Value(args, ref index, args[index])); break;
                     case "--pdf-password-env":

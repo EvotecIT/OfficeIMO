@@ -39,5 +39,5 @@
     ]
   },
   "skills": "./skills/",
-  "mcpServers": "./.codex-plugin/mcp.json"
+  "mcpServers": "./.mcp.json"
 }

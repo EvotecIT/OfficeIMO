@@ -63,6 +63,12 @@ class RegistryValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "declare a README"):
             validate_package(self.package("", self.marker), self.server)
 
+    def test_public_package_must_match_the_launcher_version(self):
+        manifest = "<version>3.5.0</version><readme>docs/package-readme.md</readme>"
+        validate_package(self.package(manifest, self.marker), self.server, "3.5.0")
+        with self.assertRaisesRegex(ValueError, "version must match"):
+            validate_package(self.package(manifest, self.marker), self.server, "3.5.1")
+
 
 if __name__ == "__main__":
     unittest.main()

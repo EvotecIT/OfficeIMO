@@ -6,13 +6,14 @@ OfficeIMO Document Tools packages two user workflows and a local MCP server. `pl
 
 Use the repository's PowerForge release configuration. Its version bindings align `OfficeIMO.Tool`, the plugin, Registry metadata and the pinned launcher; compatibility files regenerate in that transaction. Every bundle change, including skills or installation instructions, needs a new product patch release. Preserve existing versioned archives and checksums.
 
-The Agent Plugin Package workflow attaches the ZIP and SHA-256 sidecar to an `OfficeIMO-v...` release. It also publishes the verified ZIP contents at the root of the generated `agent-plugin` branch through PowerForge's shared publication action. The product branch owns the sources; do not edit the generated branch. Publication preserves branch history, rejects version rollback or changed same-version payloads, and treats an identical retry as complete. Qualify the published NuGet tool and client installation separately; an attached ZIP establishes artifact availability.
+Publish and verify the matching signed NuGet tool before distributing a plugin that pins it. The Agent Plugin Package workflow verifies the public package version and embedded ownership marker before attaching the ZIP and SHA-256 sidecar to an `OfficeIMO-v...` release. It also publishes the verified ZIP contents at the root of the generated `agent-plugin` branch through PowerForge's shared publication action. The product branch owns the sources; do not edit the generated branch. Publication preserves branch history, rejects version rollback or changed same-version payloads, and treats an identical retry as complete. Qualify client installation separately; an attached ZIP establishes artifact availability.
 
 Verify the following on the stable candidate:
 
 - PowerForge `agent-plugin validate` and `pack` against `OfficeIMO.Tool.csproj`, plus an independent checksum and archive-content check.
 - Both Agent Skills with the skill validator, including bundled resources.
 - Installation from a fresh client profile outside an OfficeIMO checkout: both skills, MCP initialization and the advertised tools.
+- Noninteractive DNX startup with an empty private NuGet cache, preserving the SDK's ordinary user home. Check the plugin launcher on SDKs that consume `--yes` and SDKs that pass it to the host; qualify the Registry's runtime-argument order on an SDK with `--yes` support.
 - Inspect, search, selected fetch and requested conversion against synthetic inputs, with a separate output.
 - Startup without allowed roots fails; out-of-root access is denied; overwrite stays explicit.
 - Codex and Claude installation, Cursor portable-plugin loading and the documented manual MCP configuration. Record unavailable clients as unqualified lanes.

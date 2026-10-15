@@ -4,7 +4,7 @@ Inspect, search, selectively fetch, convert local documents and mail stores, and
 
 ## Requirements and document access
 
-Install .NET SDK 10.0.100 or later, which supplies `dotnet dnx`, and make `dotnet` available to the client. The first launch downloads the pinned tool from NuGet; later launches use the .NET tool cache. Client sandbox or network restrictions can prevent startup.
+Install .NET SDK 10.0.100 or later, which supplies `dotnet dnx`, and make `dotnet` available to the client. The first launch downloads the pinned tool from NuGet; later launches use the .NET tool cache. The launcher accepts this pinned package download without a terminal prompt. Client sandbox or network restrictions can prevent startup.
 
 Set `OFFICEIMO_MCP_ALLOWED_ROOTS` in the environment that starts the client. Choose only folders containing documents you intend to make available, including a destination folder for converted output. For example, launch a terminal client from that folder:
 
@@ -45,8 +45,9 @@ For MCP-only setup, add this server under `mcpServers` in the client's `mcp.json
 ```json
 {
   "officeimo": {
+    "type": "stdio",
     "command": "dotnet",
-    "args": ["dnx", "OfficeIMO.Tool@3.5.0", "mcp", "serve", "--stdio"],
+    "args": ["dnx", "OfficeIMO.Tool@3.5.0", "mcp", "serve", "--stdio", "--yes"],
     "env": { "OFFICEIMO_MCP_ALLOWED_ROOTS": "/absolute/path/to/documents" }
   }
 }
@@ -59,7 +60,7 @@ Manual MCP configuration exposes tools; install the plugin bundle to load its sk
 The canonical `plugin.json`, `mcp.json`, and `skills/` follow Agent Plugins 1.0.0. Clients may support only a subset of components. A client with manual MCP configuration can launch the same server:
 
 ```text
-dotnet dnx OfficeIMO.Tool@3.5.0 mcp serve --stdio
+dotnet dnx OfficeIMO.Tool@3.5.0 mcp serve --stdio --yes
 ```
 
 Use that client's native STDIO configuration syntax and pass the allowed-roots environment above. Local tools require a client that can execute on the machine containing the documents. They cannot read a desktop folder from a cloud-only conversation.
