@@ -12,6 +12,7 @@ public sealed class StudioScanCancellationTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-scan-cancellation-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
+            StudioNativeEngine.Initialize(Path.Combine(root, "data"));
             string source = Path.Combine(root, "source.pdf");
             PdfDocument.Create(document => document.Page(page => page.Size(300, 400))).Save(source);
             string image = Path.Combine(root, "page.png");
