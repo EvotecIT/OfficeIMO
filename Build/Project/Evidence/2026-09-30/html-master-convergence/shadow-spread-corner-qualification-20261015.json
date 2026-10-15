@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "qualifiedAtUtc": "2026-10-15T13:50:20.905854+00:00",
+  "purpose": "Apply the CSS small-corner growth rule to positive outer-shadow spread and negative inset-shadow spread.",
+  "source": {
+    "commit": "0b2b978b69a7e59e88871d3efe9e4e8dc19e15a4",
+    "tree": "6fcb7cf76bc1b3b059193c80c526357e7ecac51a",
+    "base": "66754a3586d14501be881f0e3c4da73a92c17936",
+    "host": "macOS arm64",
+    "compilerSdk": "10.0.303",
+    "files": [
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlResolvedBorderRadii.cs",
+        "bytes": 6652,
+        "sha256": "cd4c0172d8dc8c44130f21696c1de4a40bdcb5c7ca11fea703625d8b1a6743cc"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Shadows.cs",
+        "bytes": 9366,
+        "sha256": "73bed486885298f6daa9491f24c724878e2c987a5e64a7b4e61bc052acd979a1"
+      },
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.Shadows.cs",
+        "bytes": 22726,
+        "sha256": "86bc2d6fe7fbb54257c90ce58ccc3ddf59cc9711a23202bc5e7e3b46258136ba"
+      }
+    ],
+    "unchangedControls": {
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Borders.cs": "d3c69de722b506011f4c7a5e931e641c442b3cefb7b776e5874164a50d21d9e8"
+    }
+  },
+  "contracts": {
+    "normativeReference": "https://www.w3.org/TR/2024/CRD-css-backgrounds-3-20240311/#shadow-shape",
+    "radius": "For positive growth s and radius r<s, r+s*(1+(r/s-1)^3); adjust each axis independently, then normalize the target box.",
+    "example": "Radius2 and spread8 gives6.625 rather than10.",
+    "boundaries": {
+      "outer": {
+        "spread": 8,
+        "radii": [
+          0,
+          2,
+          8,
+          12
+        ],
+        "mixedAxes": "2/12 and zero axes",
+        "negativeSpread": -4,
+        "negativeSpreadRadii": [
+          2,
+          8
+        ],
+        "zeroSpreadRadius": 2
+      },
+      "inner": {
+        "negativeSpread": -8,
+        "radii": [
+          0,
+          2,
+          8
+        ],
+        "mixedAxes": "zero X, zero Y, 2/12 and12/2",
+        "offset": [
+          20,
+          20
+        ],
+        "zeroSpreadRadius": 2,
+        "positiveSpread": 8,
+        "positiveSpreadRadius": 12
+      }
+    },
+    "preserved": [
+      "General Expand/Inset and outline calculations",
+      "Ordinary positive inset and zero/negative outer spread",
+      "Existing blur pipeline",
+      "Outer/inset paint ownership and normal-flow geometry"
+    ]
+  },
+  "validation": {
+    "project": "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+    "ordinaryFilter": "Category!=Performance",
+    "gates": {
+      "red-final": {
+        "exitCode": 1,
+        "counts": {
+          "total": 14,
+          "passed": 6,
+          "failed": 8,
+          "notExecuted": 0
+        },
+        "recordSha256": "ea6747d4f6caa881f569e3b0c7af0f978e860cd905d845a62ecafe33682fad72",
+        "trxSha256": "22fcddf230dcadc1d2ef4456dce41dffb878a9d68b95a1a6e5be22d5651bd569",
+        "sourceUnchangedDuringRun": true
+      },
+      "focused-final": {
+        "exitCode": 0,
+        "counts": {
+          "total": 143,
+          "passed": 143,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "recordSha256": "8e4635a5e144e5a8ed615dee58bea463b59ade0f585267e1af89711746db86d8",
+        "trxSha256": "0a5f54d1a97ec1b73e856dbc7f06f4bdf1f4b9df51c50b7a02dbe0a1e881faa0",
+        "sourceUnchangedDuringRun": true
+      },
+      "full-net10": {
+        "exitCode": 0,
+        "counts": {
+          "total": 6288,
+          "passed": 6288,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "recordSha256": "3d1297c3bbb42d1633f741b783a6f69027bd1311a79acd748c89c103aa2090a2",
+        "trxSha256": "0bc2825dccd00c25536560ccd28edee4d34fcdb297338aea0c592a49b4b375e4",
+        "sourceUnchangedDuringRun": true
+      },
+      "full-net8": {
+        "exitCode": 0,
+        "counts": {
+          "total": 6288,
+          "passed": 6288,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "recordSha256": "18b2d22d10af3e29d4fdb59d4e63bc6ec3ddd0d220988a3ba31aec27c9e72444",
+        "trxSha256": "1049354c65f1383e3a06e13552016237985043fe88c509666779919349d27d4b",
+        "sourceUnchangedDuringRun": true
+      },
+      "compat-netstandard2": {
+        "exitCode": 0,
+        "counts": {},
+        "recordSha256": "14baff002303139bd4d70710e7d175a96880b3644d9cfe684fe0761ddd5eaa11",
+        "trxSha256": null,
+        "sourceUnchangedDuringRun": true
+      }
+    },
+    "canonicalRedMethod": "Isolated final-test runtime overlays exact retained qualified baseline OfficeIMO.Html.dll; final test/source/provider hashes recorded",
+    "canonicalRedMeaning": "Final14 public-render tests against exact retained baseline OfficeIMO.Html.dll:8fail and6passing controls. No source reversal during candidate proof.",
+    "compatibility": "OfficeIMO.Html netstandard2.0 build: zero warnings/errors.",
+    "commands": "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net8.0 (and net10.0) --filter Category!=Performance; dotnet build OfficeIMO.Html/OfficeIMO.Html.csproj -c Release -f netstandard2.0. Full argv and bindings retained in named task evidence."
+  },
+  "rendering": {
+    "cases": 18,
+    "profiles": [
+      "print",
+      "screen"
+    ],
+    "selectedInteriorWitnessGroups": 116,
+    "qualifiedGroups": 116,
+    "routes": [
+      "direct raster",
+      "managed PDF raster96",
+      "managed SVG native screenshot",
+      "managed SVG native PDF raster96",
+      "native HTML screenshot",
+      "native HTML PDF raster96"
+    ],
+    "renderQualificationSha256": "cb9a17f00052523027abf98e1f671fac3e042ef719ccd804bc0105d63ee20ccf",
+    "comparisonImages": [
+      "small-radius-comparison.png",
+      "final-corner-comparison.png",
+      "inset-corner-comparison.png"
+    ],
+    "rootVisualInspection": [
+      "small-radius-comparison.png",
+      "inset-corner-comparison.png"
+    ],
+    "browserServerClosed": true,
+    "provider": "Unchanged published AngleSharp.Css1.1.2; native browser owner HtmlTinkerX3.0.5 source366cbd06949dc1c00162a280a290e2c130ca0bea / Chromium153.0.8010.12",
+    "antialiasingBoundary": {
+      "sourceRecordSha256": "0900e249ef0af435d8b05b6df83fd0d1cfc0979fa93a6437b1f2937123c96f11",
+      "edgeResidualRecordSha256": "8b6fa2d34ee3c214d1822e8f190262da963a1a8992620380d8b930f4f8464d74",
+      "classification": "40 baseline/candidate control crops are RGBA-identical; thin straight managed-PDF hole-boundary bands pre-exist. Corrected corners expose the same one-pixel clip/antialias boundary. Selected fully covered samples and shape geometry are qualified; whole-image identity is not claimed."
+    }
+  },
+  "review": {
+    "agent": "html_shadow_growth_review",
+    "scope": "Independent read-only cubic growth, normalization ordering, public regressions and actual native/managed images",
+    "actionableCandidateFindings": 0,
+    "frozenHashesVerified": true,
+    "separatePreExistingFinding": "Bordered inset shadows currently receive border-box geometry. Native read-only witness confirms missing inner band; subsequent padding-box correction is independent of this borderless curve qualification."
+  },
+  "dependencies": {
+    "productionChanges": false,
+    "publicApiChanges": false,
+    "workerPinsChanged": false
+  },
+  "storage": {
+    "taskOutput": "shadow-small-radius",
+    "logicalBytesRemovedBeforeRootGates": 89818023,
+    "focusedRuntimeArchiveSha256": "65edc8b40c28ff853f073c65aa87ee18d2f1b5866c876698fdf63898dd60aa3d",
+    "frameworkArchiveSha256": "33af46c06f40f42e7800c46e17a2bc099fed73e78e7a40619cb12057e6fa5b7d",
+    "graphRetention": "Active root-owned graph retained temporarily for immediate subsequent shared-owner qualification; final cleanup belongs to the combined checkpoint.",
+    "compactEvidence": "Source seals, red/green TRX, fixtures, native/managed outputs and verified runtime archives retained."
+  },
+  "limits": [
+    "Windows profiling deferred.",
+    "No broader blur, whole-page H10, accessibility, package release or cross-platform timing claim.",
+    "Bordered inset padding-box geometry and ordinary font-box/short-line corrections are subsequent bounded work.",
+    "Broader antialiased edges and nested stacking contexts remain open."
+  ]
+}
