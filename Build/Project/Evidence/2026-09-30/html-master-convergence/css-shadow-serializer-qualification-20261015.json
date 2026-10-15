@@ -341,9 +341,9 @@
     "upstreamState": "OPEN ready for review",
     "head": "9b7419c0d501af3ddec9aadf1b655d0fb5f246f4",
     "externalCI": "action_required: maintainer workflow approval",
-    "CLA": "pending: user signature required by upstream",
+    "CLA": "SUCCESS: user signature verified",
     "packageAdoption": "Not yet qualified; production pin unchanged",
-    "snapshotUtc": "2026-10-15T07:45:20.694281+00:00",
-    "snapshotSha256": "541dcefa566488dec48a468c74e9c46837ff2171014178f52f0d6696e5e931ce"
+    "snapshotUtc": "2026-10-15T08:18:54.121557+00:00",
+    "snapshotSha256": "7b647a9fe3adf1898ef6d4350b400b633b760163c05a023a1b63648c88d5a91b"
   }
 }

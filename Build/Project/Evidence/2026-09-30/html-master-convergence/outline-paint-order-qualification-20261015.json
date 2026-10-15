@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "qualifiedAtUtc": "2026-10-15T08:26:25.787829+00:00",
+  "purpose": "Preserve ordinary outlines above following normal-flow backgrounds through the shared HTML scene while retaining clipping, atomic contexts, logical text and paint-neutral float anchors.",
+  "source": {
+    "baseHead": "354437556d76da23e5fb5baae2bb1e2a282945c4",
+    "utc": "2026-10-15T07:58:51.235264+00:00",
+    "files": {
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.FloatPaint.cs": "c82068af87d679a10724e06c9bb7fcac5f1a59fd9afa1d5d673b3807c40ff400",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Borders.cs": "05c8a0501b7d5d5ebf6645534a0d9e5cf6587bad7d73f5f03e4ff1d457669076",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.cs": "b4034948005401177872511b71b9b29c391a54ee781938e973bf7db6765f9367",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Positioning.cs": "3bc59c487605cc7466a12f0039fc33ab3d8208d78072bc0e60886e7bc2a1fd05",
+      "OfficeIMO.Html/Rendering/HtmlRenderVisual.cs": "55fab8e70b0f4c034c33b2b02e1f4b5b4a01a0c1b32e0669cc93b3afe773a0d8",
+      "OfficeIMO.Html.Tests/Html.Rendering.ZeroHeightBoxes.cs": "e479749a50117d44a8159e929ea9cb0e9210230e31497698cd64c9b8ee7f6237",
+      "OfficeIMO.Html.Tests/Html.Rendering.OutlinePaint.cs": "178653fcd97584cd417d2a9289ddbd5e7b416cd1793fbe34e47fdadce6428d53"
+    },
+    "testSourceBoundary": "Red5fail covers four zero-height owners plus paged positive-height case. Before full green gate, the positive-height contract also covered continuous mode; original red test source retained separately.",
+    "productionDependenciesChanged": false,
+    "sourceCommit": "6889762429f53f952599086f4718d8def03023c9",
+    "frozenAtUtc": "2026-10-15T08:12:41.268790+00:00",
+    "remediation": {
+      "finding": "Empty flow/meaningful groups dropped by phase projection",
+      "class": "remediation introduced P2",
+      "anchorRedFailures": 4,
+      "focusedPass": 449,
+      "fix": "Treat zero-child groups as one leaf in their existing Content phase; preserve source/flow/logical-text markers through both page and column planning."
+    }
+  },
+  "behavior": {
+    "normalFlow": "Outline pieces use an internal phase after normal-flow sibling paint. All backends consume the same ordered scene.",
+    "atomicity": "Existing positioned layers, effects, floats and independent formatting owners retain their boundaries; child order is finalized before atomic wrapping.",
+    "grouping": "Canonical group clones retain clip/semantic/layout metadata and shared paint-projection identity. Logical text has one content owner; zero-child groups remain original-phase leaves.",
+    "publicApiAndProductionDependencyChanges": false,
+    "parserProvider": "Published AngleSharp.Css1.1.2 unchanged; this correction is independent of the upstream serializer PR.",
+    "specification": "https://www.w3.org/TR/CSS22/zindex.html",
+    "outlineBoundary": "Bounded optional step7 behavior qualified against native following-background and positive-positioned controls; no claim that outlines are globally above every stacking context."
+  },
+  "tests": {
+    "overlapRedFailures": 5,
+    "anchorRedFailures": 4,
+    "focusedNet10Pass": 449,
+    "fullNet10Pass": 6261,
+    "fullNet8Pass": 6261,
+    "categoryFilter": "Category!=Performance",
+    "anchorClass": "Remediation-introduced emptygroup loss reproduced as both page and column float planner exceptions; fixed across zero-child group leaves.",
+    "fullNet10TrxSha256": "6e9b7a6e01517fa47ae96f7d0f0df69a65f047b96b458e9d9e5aa3d85fc26621",
+    "overlapRedTrxSha256": "0cd2173f12df87df21d087e8fb504b4ac46d20f67b7d2938ba0d6bba23b1ebda",
+    "anchorRedTrxSha256": "e57e5e71e759c3c07489940d53266e2d6f772b4df23740660fee0f49cfd488a1",
+    "fullNet8TrxSha256": "ca140d44707efe309fe6350ea85c2cfac2f49d6a46b1e6290b83162a2e6be53c",
+    "libraryBuildTargets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "netstandardBuildWarnings": 0,
+    "netstandardBuildErrors": 0,
+    "netstandardBuildCommandSha256": "97a6b01faa1f71b157d8f60caf576a53eeeefbde0c712f97c37704c7a916bd44"
+  },
+  "renders": {
+    "cases": 9,
+    "profiles": 18,
+    "media": [
+      "PrintPaged",
+      "ScreenMediaPaged"
+    ],
+    "surfaces": [
+      "Managed PDF raster at96DPI",
+      "Managed direct raster",
+      "Managed SVG through Chromium img",
+      "Native Chromium HTML screenshot/PDF"
+    ],
+    "interiorSamples": 240,
+    "opacityOnlyChannelTolerance": 1,
+    "otherSamplesExact": true,
+    "final54OutputsByteIdenticalAfterAnchorRemediation": true,
+    "linkedParagraph": "Exact-once Owned linked text and its single https://example.com/outline annotation unchanged.",
+    "anchorPdfReplay": "Both page/column examples formerly threw; final print/screen PDF routes retain Before/Floating/After exactly once.",
+    "browserVersion": "153.0.8010.12",
+    "browserOwner": {
+      "repository": "https://github.com/EvotecIT/HtmlTinkerX",
+      "sourceCommit": "366cbd06949dc1c00162a280a290e2c130ca0bea",
+      "role": "Test-only native browser capture; no shipped dependency change"
+    },
+    "consoleErrors": [],
+    "serversAndBrowserSessionsClosed": true,
+    "visualInspection": "Root inspected final linked-paragraph PDF raster and clipped screen raster after remediation; final54PDF/SVG/PNG outputs identical to reviewed controls. Existing corner antialiasing remains separate.",
+    "manifestSha256": "466c2315ee51f5ec3b05fd2318c5ab9f0e3686cd0e1a0e5ce497cabcaf8bc9af",
+    "byteReuseSha256": "90d5fc0fab3878663c476cfdae0b75669e31321b1caae10157e7fa3419f6103c",
+    "anchorReplaySha256": "c0561bef64c51cc5e2af62f03ad37edf7ef8698e1cfef5cff915a4b5f1fdf925"
+  },
+  "inputs": [
+    {
+      "id": "clipped",
+      "sha256": "eda870df526ccb744a39f68bbcc435303a421f2025204a416c2558c36c47b40d",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}.outlined{width:100px;height:20px;background:white;outline:2px solid blue}.tail{width:120px;height:2px;background:#d06c24}.host{width:150px;height:30px}</style><div id=\"host\" class=\"host\" style=\"overflow:hidden\"><div id=\"outlined\" class=\"outlined\"></div><div id=\"tail\" class=\"tail\"></div></div><div id=\"outside\" class=\"tail\"></div>"
+    },
+    {
+      "id": "float",
+      "sha256": "9f594decbdcf918fed2d380253446a42791b35915d9d9d90de2bfd887d909d31",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}.outlined{width:100px;height:20px;background:white;outline:2px solid blue}.tail{width:120px;height:2px;background:#d06c24}.host{width:150px;height:30px}</style><div id=\"host\" class=\"host\" style=\"float:left\"><div id=\"outlined\" class=\"outlined\"></div><div id=\"tail\" class=\"tail\"></div></div><div id=\"outside\" class=\"tail\"></div>"
+    },
+    {
+      "id": "linked-text",
+      "sha256": "56d0f8898158f29ea5f162fa7ba77fdb0c87c678efdac8fc58367d9f78df058b",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}.outlined{width:100px;height:20px;background:white;outline:2px solid blue}.tail{width:120px;height:2px;background:#d06c24}.host{width:150px;height:30px}</style><p id=\"outlined\" class=\"outlined\" style=\"margin:0;font:12px/20px sans-serif\"><a href=\"https://example.com/outline\">Owned linked text</a></p><div id=\"tail\" class=\"tail\"></div>"
+    },
+    {
+      "id": "opacity",
+      "sha256": "55e3c9646343c8afacfcced8a2d5a973855265b784500587d0e2b7aeded403f2",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}.outlined{width:100px;height:20px;background:white;outline:2px solid blue}.tail{width:120px;height:2px;background:#d06c24}.host{width:150px;height:30px}</style><div id=\"host\" class=\"host\" style=\"opacity:.5\"><div id=\"outlined\" class=\"outlined\"></div><div id=\"tail\" class=\"tail\"></div></div><div id=\"outside\" class=\"tail\"></div>"
+    },
+    {
+      "id": "path-clipped",
+      "sha256": "737ed3e97826ff222f267cecaccc80b1484b6fbfbadad9040b0b58e464cb6d23",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}.outlined{width:100px;height:20px;background:white;outline:2px solid blue}.tail{width:120px;height:2px;background:#d06c24}.host{width:150px;height:30px}</style><div id=\"host\" class=\"host\" style=\"clip-path:inset(0)\"><div id=\"outlined\" class=\"outlined\"></div><div id=\"tail\" class=\"tail\"></div></div><div id=\"outside\" class=\"tail\"></div>"
+    },
+    {
+      "id": "positioned-overlap",
+      "sha256": "ba7e7e8c9d8244f074a0c31629b8d255ad0361ff117088bcf295ded9866e5a70",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}.outlined{width:100px;height:20px;background:white;outline:2px solid blue}.tail{width:120px;height:2px;background:#d06c24}.host{width:150px;height:30px}</style><div id=\"outlined\" class=\"outlined\" style=\"height:0\"></div><div id=\"tail\" class=\"tail\" style=\"position:relative;z-index:1\"></div>"
+    },
+    {
+      "id": "positive-height",
+      "sha256": "06fdb065a2116b7faee165ca125cd067bf945e19961d41248c0fc553ae7e5247",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}.outlined{width:100px;height:20px;background:white;outline:2px solid blue}.tail{width:120px;height:2px;background:#d06c24}.host{width:150px;height:30px}</style><div id=\"outlined\" class=\"outlined\"></div><div id=\"tail\" class=\"tail\"></div>"
+    },
+    {
+      "id": "transformed",
+      "sha256": "f0fe27e2ce9077285f480792b7bd0dfa61e0c43c6b4b70ab3ecba782805c8acf",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}.outlined{width:100px;height:20px;background:white;outline:2px solid blue}.tail{width:120px;height:2px;background:#d06c24}.host{width:150px;height:30px}</style><div id=\"host\" class=\"host\" style=\"transform:translateX(20px)\"><div id=\"outlined\" class=\"outlined\"></div><div id=\"tail\" class=\"tail\"></div></div><div id=\"outside\" class=\"tail\"></div>"
+    },
+    {
+      "id": "zero-height-four-owners",
+      "sha256": "05e5a7d3edeb1ffd255e0ef0bfa6e2109445044b74b0bf2366b4573e9ae7c624",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}table,caption,td,tr{border:0;padding:0;margin:0;border-spacing:0}.zero{width:100px;height:0;box-shadow:0 0 1px 5px red;outline:2px solid blue}.tail{height:2px;width:120px;background:#d06c24;margin-bottom:30px}</style><div id='zero-block' class='zero'></div><div id='tail-block' class='tail'></div><table id='zero-table' class='zero'></table><div id='tail-table' class='tail'></div><table><caption id='zero-caption' class='zero'></caption><tr><td style='width:100px'></td></tr></table><div id='tail-caption' class='tail'></div><table><tr><td id='zero-cell' class='zero'></td></tr></table><div id='tail-cell' class='tail'></div>"
+    }
+  ],
+  "review": {
+    "reviewer": "/root/outline_paint_owner_review",
+    "fullPassUsed": true,
+    "targetedConfirmationUsed": true,
+    "head": "d507d9175f311484dc4d4090e70c245b228149c4",
+    "boundary": "current; targeted remediation confirmation clean",
+    "findings": [
+      {
+        "priority": "P2",
+        "class": "Remediation-introduced empty paint-neutral group removal",
+        "consequence": "Page and column float anchors disappear; both planners throw on supported inputs with outline or ordinary float deferred phases.",
+        "rootReproduced": true,
+        "proof": "anchor-review-reproduction.json",
+        "sameInvariantSweep": "All zero-child grouping leaves including meaningful text/flow markers should remain one Content leaf; no marker-specific workaround.",
+        "state": "Root reproduced and fixed; targeted confirmation clean"
+      }
+    ],
+    "disposition": "Accept canonical shape after empty-group preservation; no API/dependency approval gaps",
+    "utc": "2026-10-15T08:09:24.612987+00:00",
+    "targetedCommit": "6889762429f53f952599086f4718d8def03023c9",
+    "targetedConfirmation": "No remediation regression; zero-child groups retain one original-phase leaf and preserve anchor/text/scope/projection metadata. Nonempty logical handling unchanged. Focused449 and four anchor-red cases verified.",
+    "targetedUtc": "2026-10-15T08:15:45.650431+00:00"
+  },
+  "storage": {
+    "retainedRoot": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/outline-paint-order",
+    "retainedArchives": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/outline-paint-order/baseline-runtimes.zip",
+        "bytes": 17188913,
+        "sha256": "fa3c0efa1c5cb2d927b5182d8e2338fb2501baf2c1749678afbf3d76e1f83705",
+        "logicalBytes": 50004085,
+        "fullReadback": true,
+        "files": 54,
+        "source": "354437556d76da23e5fb5baae2bb1e2a282945c4",
+        "nativeOwner": "366cbd06949dc1c00162a280a290e2c130ca0bea",
+        "omitted": ".playwright externaldriverfiles fromsharedcache; noownedsourceproofomitted",
+        "createdUtc": "2026-10-15T07:54:48.438269+00:00"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/outline-paint-order/net10-qualified-runtimes.zip",
+        "bytes": 42812045,
+        "sha256": "84df0d5d07e0aadbbe06ac5537af16a5b82dfff9caf8dc629f039c5f39c830bd",
+        "files": 136,
+        "logicalProtectedBytes": 120342480,
+        "fullReadback": true,
+        "sourceSeal": "candidate-source-seal.json",
+        "source": "d507d9175f311484dc4d4090e70c245b228149c4",
+        "omitted": "Regenerable compilerobj/referenceprojectduplicatebins and tracked testfixturecopies; transitive Playwright driver remains in canonical shared cache. Rawlogs/TRX/native/candidate artifacts retained outside graph."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/outline-paint-order/net10-final-qualified-runtimes.zip",
+        "bytes": 42812699,
+        "sha256": "ac3d0eb4d0bb9e0dd6ecc3ccd57fe3a8bc7cc11765b3356d3ea779ea1ffe0ac0",
+        "files": 136,
+        "logicalProtectedBytes": 120345288,
+        "fullReadback": true,
+        "sourceSeal": "candidate-source-seal.json",
+        "source": "6889762429f53f952599086f4718d8def03023c9",
+        "omitted": "Regenerable compilerobj/referenceprojectduplicatebins and tracked testfixturecopies; transitive Playwright driver remains in canonical shared cache. Rawlogs/TRX/native/candidate artifacts retained outside graph."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/outline-paint-order/net8-qualified-runtimes.zip",
+        "bytes": 39860502,
+        "sha256": "44f145c10f5deee9395a754075fb0c3938eb8560dca583c2e1940191f7171e6b",
+        "files": 134,
+        "logicalProtectedBytes": 109240081,
+        "fullReadback": true,
+        "sourceSeal": "candidate-source-seal.json",
+        "source": "6889762429f53f952599086f4718d8def03023c9",
+        "omitted": "Regenerable compilerobj/referenceprojectduplicatebins and tracked testfixturecopies; transitive Playwright driver remains in canonical shared cache. Rawlogs/TRX/native/candidate artifacts retained outside graph."
+      }
+    ],
+    "nextColdReview": "2026-10-22",
+    "note": "Machine-local proof paths; compiler/source graphs are regenerable and retired under task storage policy.",
+    "logicalBytesRemoved": 1712853612,
+    "completedGraphsAndTemporaryStateRemoved": true
+  },
+  "limits": [
+    "Focused macOS print/screen source proof; no Windows profiling or published-package claim.",
+    "Existing native corner/antialias differences remain separate; samples are interior controls.",
+    "Half-opacity white/blue compositing rounds127versus128 in independently rendered surfaces; only that case allows1channelbyte error.",
+    "Native positioned-overlap remains orange; outlines are not promoted above positive positioned contexts.",
+    "Source-order text/link exact-once proof is the linked paragraph case; no universal accessibility claim.",
+    "Broader nested stacking-context outline placement, corner coverage, whole-page H10 appearance and manual accessibility remain open.",
+    "No new platform timing/memory, Windows or published-package qualification; Windows profiling explicitly deferred."
+  ]
+}
