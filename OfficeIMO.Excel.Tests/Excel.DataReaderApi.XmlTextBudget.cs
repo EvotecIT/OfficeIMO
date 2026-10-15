@@ -438,8 +438,10 @@ namespace OfficeIMO.Excel.Tests {
         }
 
         private static void AssertXmlTextBudgetFailure(Action action) {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(action);
-            Assert.Contains(nameof(ExcelReadOptions.MaxXmlDataReaderBufferedCharacters), error.Message);
+            OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(action);
+            Assert.Equal("excel", error.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxXmlDataReaderBufferedCharacters), error.LimitName);
+            Assert.True(error.Maximum > 0);
         }
 
         private static void AssertXmlTextBudgetReaderIsTerminal(DbDataReader reader) {

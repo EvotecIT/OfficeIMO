@@ -2,6 +2,12 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>Controls bounded package and XML loading.</summary>
 public sealed class OdfLoadOptions {
+    /// <summary>Defers unencrypted non-XML package payload expansion until native byte access or save. Default: false.</summary>
+    /// <remarks>The document owns a bounded immutable compressed snapshot. XML/control entries are read eagerly.
+    /// Encrypted non-XML entries are unsupported in this profile and refused before key derivation or binary allocation;
+    /// encrypted XML retains ordinary decryption and integrity checks without retaining a password or key.
+    /// Flat XML with inline office:binary-data is unsupported in this profile and refused before Base64 decoding.</remarks>
+    public bool DeferBinaryPayloads { get; set; }
     /// <summary>Password used to decrypt an encrypted package.</summary>
     /// <remarks>
     /// The password is used only while loading and is not retained by the document. A password must be supplied
@@ -39,6 +45,7 @@ public sealed class OdfLoadOptions {
 
     internal OdfLoadOptions Normalize() {
         return new OdfLoadOptions {
+            DeferBinaryPayloads = DeferBinaryPayloads,
             Password = Password,
             MaxPackageBytes = Math.Max(1L, MaxPackageBytes),
             MaxEntries = Math.Max(1, MaxEntries),

@@ -174,7 +174,7 @@ public static class OfficeTextIntegrityInspector {
         options ??= new OfficeTextIntegrityOptions();
         Validate(options);
         if (text.Length > options.MaxCharacters) {
-            throw new InvalidDataException("The text exceeds the configured character limit.");
+            throw new OfficeInspectionResourceLimitException("text-integrity", nameof(OfficeTextIntegrityOptions.MaxCharacters), options.MaxCharacters);
         }
         if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A text location is required.", nameof(location));
 
@@ -328,7 +328,7 @@ public static class OfficeTextIntegrityInspector {
         int codePoint,
         string location) {
         if (findings.Count >= options.MaxFindings) {
-            throw new InvalidDataException("The text exceeds the configured finding limit.");
+            throw new OfficeInspectionResourceLimitException("text-integrity", nameof(OfficeTextIntegrityOptions.MaxFindings), options.MaxFindings);
         }
         findings.Add(new OfficeTextIntegrityFinding(kind, risk, offset, length, codePoint, location));
     }
@@ -391,7 +391,7 @@ public static class OfficeTextIntegrityInspector {
                     out int charactersUsed,
                     out completed);
                 if (charactersUsed > maximumCharacters - builder.Length) {
-                    throw new InvalidDataException("The text exceeds the configured character limit.");
+                    throw new OfficeInspectionResourceLimitException("text-integrity", nameof(OfficeTextIntegrityOptions.MaxCharacters), maximumCharacters);
                 }
                 builder.Append(characters, 0, charactersUsed);
                 byteOffset += bytesUsed;

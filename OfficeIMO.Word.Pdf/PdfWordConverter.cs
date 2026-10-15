@@ -18,6 +18,7 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfToWordOptions readOptions = options ?? new PdfToWordOptions();
             readOptions.CancellationToken.ThrowIfCancellationRequested();
+            PdfCore.PdfLogicalContentProjection.RequireComplete(source, readOptions.CancellationToken);
             WordDocument document = WordDocument.Create();
             try {
                 ImportInto(source, document, readOptions);

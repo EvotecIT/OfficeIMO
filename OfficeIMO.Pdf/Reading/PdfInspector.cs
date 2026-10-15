@@ -463,7 +463,7 @@ internal static class PdfInspector {
         var unsupported = new List<string>();
         for (int i = 0; i < document.Pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (string filterName in document.Pages[i].GetUnsupportedContentStreamFilters()) {
+            foreach (string filterName in document.Pages[i].GetUnsupportedContentStreamFilters(cancellationToken)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!ContainsFilter(unsupported, filterName)) {
                     unsupported.Add(filterName);

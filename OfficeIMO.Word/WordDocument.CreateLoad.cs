@@ -417,7 +417,8 @@ namespace OfficeIMO.Word {
                 ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
                 if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
-                    return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
+                    if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
+                    return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
                 }
 
                 MemoryStream memoryStream = CreateLegacyValidationPackageStream(
@@ -454,7 +455,7 @@ namespace OfficeIMO.Word {
 
                 // initialize abstract number id for lists to make sure those are unique
                 WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
-                return word;
+                return WithSourcePackageInspection(word, sourceBytes, resolved);
             }
         }
 
@@ -481,7 +482,7 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             using var decryptedSource = new MemoryStream(packageBytes, writable: false);
-            return Load(decryptedSource, resolved);
+            return WithSourcePackageInspection(LoadFromStream(decryptedSource, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         /// <summary>
@@ -502,7 +503,7 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             using var decryptedSource = new MemoryStream(packageBytes, writable: false);
-            return Load(decryptedSource, resolved);
+            return WithSourcePackageInspection(LoadFromStream(decryptedSource, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
         private static void EnsureEncryptedLoadUsesExplicitPersistence(WordLoadOptions options) {
@@ -539,7 +540,8 @@ namespace OfficeIMO.Word {
             var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
-                return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
+                    if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
+                return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
             }
 
             MemoryStream memoryStream = CreateLegacyValidationPackageStream(
@@ -576,7 +578,7 @@ namespace OfficeIMO.Word {
             }
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
-            return word;
+            return WithSourcePackageInspection(word, sourceBytes, resolved);
         }
 
         /// <summary>Asynchronously loads a Word document from a readable stream.</summary>
@@ -616,7 +618,11 @@ namespace OfficeIMO.Word {
         /// <param name="stream">Readable source. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
         /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <returns></returns>
-        public static WordDocument Load(Stream stream, WordLoadOptions? options = null) {
+        public static WordDocument Load(Stream stream, WordLoadOptions? options = null) =>
+            LoadFromStream(stream, options, captureSourcePackageSecurity: true);
+
+        private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
+            bool captureSourcePackageSecurity) {
             if (stream == null) {
                 throw new ArgumentNullException(nameof(stream));
             }
@@ -634,7 +640,9 @@ namespace OfficeIMO.Word {
             ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
-                return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);
+                    if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
+                WordDocument document = LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
             }
 
             MemoryStream packageStream = CreateLegacyValidationPackageStream(
@@ -672,7 +680,7 @@ namespace OfficeIMO.Word {
 
                 WordChart.InitializeAxisIdSeed(wordDocument);
                 WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
-                return document;
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
             } catch {
                 packageStream.Dispose();
                 throw;

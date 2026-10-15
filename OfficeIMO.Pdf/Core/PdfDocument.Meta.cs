@@ -136,6 +136,14 @@ public sealed partial class PdfDocument {
     public static PdfDocument Load(Stream stream, PdfLoadOptions? loadOptions = null) =>
         new PdfDocument(PdfDocumentSource.FromStream(stream, loadOptions));
 
+    /// <summary>Loads a bounded file snapshot with cooperative cancellation.</summary>
+    public static PdfDocument Load(string path, PdfLoadOptions? loadOptions, CancellationToken cancellationToken) =>
+        new PdfDocument(PdfDocumentSource.FromPath(path, loadOptions, cancellationToken), cancellationToken);
+
+    /// <summary>Loads a bounded stream snapshot with cooperative cancellation and preserves seekable stream position.</summary>
+    public static PdfDocument Load(Stream stream, PdfLoadOptions? loadOptions, CancellationToken cancellationToken) =>
+        new PdfDocument(PdfDocumentSource.FromStream(stream, loadOptions, cancellationToken), cancellationToken);
+
     /// <summary>Asynchronously loads an existing PDF from a bounded file snapshot.</summary>
     public static async Task<PdfDocument> LoadAsync(
         string path,

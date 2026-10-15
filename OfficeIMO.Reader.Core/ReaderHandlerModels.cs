@@ -11,6 +11,13 @@ namespace OfficeIMO.Reader;
 /// without hard dependencies.
 /// </summary>
 public sealed class ReaderHandlerRegistration {
+    /// <summary>Whether the handler prevents secondary rich projections when TextAndMetadata is requested.
+    /// Default false: Core rejects an unsupported projection rather than silently performing a full read.</summary>
+    public bool SupportsTextAndMetadata { get; set; }
+    /// <summary>Exact registered source extensions supporting TextAndMetadata. Empty means every source form
+    /// accepted by a supporting handler; a nonempty list excludes its other legacy or specialized formats.</summary>
+    public IReadOnlyList<string> TextAndMetadataExtensions { get; set; } = Array.Empty<string>();
+
     /// <summary>Per-extension extraction declarations. Omitted extensions remain explicitly unqualified.</summary>
     public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; set; } = Array.Empty<ReaderFormatQualification>();
 
@@ -172,6 +179,11 @@ public sealed class ReaderHandlerRegistration {
 /// Immutable capability descriptor for configured handlers.
 /// </summary>
 public sealed class ReaderHandlerCapability {
+    /// <summary>Whether this handler supports text and metadata extraction without secondary rich projections.</summary>
+    public bool SupportsTextAndMetadata { get; set; }
+    /// <summary>Supported source-extension subset for TextAndMetadata; empty means no extension restriction.</summary>
+    public IReadOnlyList<string> TextAndMetadataExtensions { get; set; } = Array.Empty<string>();
+
     /// <summary>Per-extension extraction declarations, independent of delegate availability.</summary>
     public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; set; } = Array.Empty<ReaderFormatQualification>();
 
@@ -286,7 +298,7 @@ public static class ReaderCapabilitySchema {
     /// <summary>
     /// Current schema version.
     /// </summary>
-    public const int Version = 6;
+    public const int Version = 7;
 }
 
 /// <summary>Identifies the publisher of a configured Reader handler.</summary>

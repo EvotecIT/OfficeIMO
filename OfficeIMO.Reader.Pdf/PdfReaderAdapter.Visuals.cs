@@ -4,7 +4,7 @@ using System.Globalization;
 namespace OfficeIMO.Reader.Pdf;
 
 internal static partial class PdfReaderAdapter {
-    private static IReadOnlyList<ReaderVisual>? BuildVisuals(IReadOnlyList<PdfLogicalPage> pages, int? pageSelectionIndex = null) {
+    private static IReadOnlyList<ReaderVisual>? BuildVisuals(IReadOnlyList<PdfLogicalPage> pages, int? pageSelectionIndex = null, SourceMetadata? source = null) {
         if (pages.Count == 0) {
             return null;
         }
@@ -12,7 +12,7 @@ internal static partial class PdfReaderAdapter {
         var visuals = new List<ReaderVisual>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             PdfLogicalPage page = pages[pageIndex];
-            int selectionIndex = pageSelectionIndex ?? pageIndex;
+            int selectionIndex = pageSelectionIndex ?? GetPageSelectionIndex(source, pageIndex);
             for (int imageIndex = 0; imageIndex < page.Images.Count; imageIndex++) {
                 visuals.Add(BuildVisual(page.Images[imageIndex], selectionIndex, imageIndex));
             }
@@ -35,6 +35,7 @@ internal static partial class PdfReaderAdapter {
             PayloadHash = ComputeSha256Hex(content),
             Location = new ReaderLocation {
                 Page = image.PageNumber,
+                SourceBlockIndex = selectionIndex,
                 SourceBlockKind = "image",
                 BlockAnchor = "page-" + image.PageNumber.ToString(CultureInfo.InvariantCulture)
                     + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture)

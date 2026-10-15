@@ -106,7 +106,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// <summary>
         /// Loads a legacy DOC model from compound document bytes.
         /// </summary>
-        public static LegacyDocDocument Load(byte[] bytes, LegacyDocImportOptions? options = null) {
+        private static LegacyDocDocument LoadCore(byte[] bytes, LegacyDocImportOptions? options) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             options ??= new LegacyDocImportOptions();
             options.Validate();
@@ -115,7 +115,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             var document = new LegacyDocDocument();
-            if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compoundFile, out string? compoundError)) {
+            if (!OfficeCompoundFileReader.TryRead(bytes, new OfficeCompoundReadOptions(preserveResourceLimits: true), out OfficeCompoundFile? compoundFile, out string? compoundError)) {
                 document.AddError("DOC-COMPOUND-INVALID", compoundError ?? "The OLE compound document could not be read.");
                 return document;
             }

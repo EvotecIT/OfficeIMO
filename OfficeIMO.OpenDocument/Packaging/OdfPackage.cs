@@ -49,7 +49,7 @@ internal sealed partial class OdfPackage {
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
         var info = new FileInfo(fullPath);
         if (info.Length > effective.MaxPackageBytes) {
-            throw new InvalidDataException($"OpenDocument package size {info.Length} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
+            throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxPackageBytes), effective.MaxPackageBytes);
         }
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         return LoadSeekable(stream, effective);
@@ -59,30 +59,33 @@ internal sealed partial class OdfPackage {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("OpenDocument stream must be readable.", nameof(stream));
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
-        try {
-            byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, effective.MaxPackageBytes);
-            return Load(bytes, effective);
-        } catch (InvalidDataException ex) when (ex.Message.IndexOf("configured maximum size", StringComparison.Ordinal) >= 0) {
-            throw new InvalidDataException(
-                $"OpenDocument stream exceeds MaxPackageBytes ({effective.MaxPackageBytes}).",
-                ex);
-        }
+        byte[] bytes = OdfAdmission.ReadSnapshot(stream, effective.MaxPackageBytes);
+        return LoadSnapshot(bytes, effective);
     }
 
     internal static OdfPackage Load(byte[] packageBytes, OdfLoadOptions? options = null) {
         if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
         if (packageBytes.LongLength > effective.MaxPackageBytes) {
-            throw new InvalidDataException($"OpenDocument package size {packageBytes.LongLength} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
+            throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxPackageBytes), effective.MaxPackageBytes);
         }
-        using var stream = new MemoryStream(packageBytes, writable: false);
-        return LoadSeekable(stream, effective);
+        return LoadSnapshot(effective.DeferBinaryPayloads ? (byte[])packageBytes.Clone() : packageBytes, effective);
     }
 
-    private static OdfPackage LoadSeekable(Stream packageStream, OdfLoadOptions effective) {
+    private static OdfPackage LoadSnapshot(byte[] bytes, OdfLoadOptions effective) {
+        using var stream = new MemoryStream(bytes, writable: false);
+        return LoadSeekable(stream, effective, bytes);
+    }
+
+    private static OdfPackage LoadSeekable(Stream packageStream, OdfLoadOptions effective, byte[]? compressedSnapshot = null) {
+        // The canonical raw ZIP range owner takes a bounded byte snapshot. Stream loads already
+        // own that snapshot; file loads create one here. Eager loading does not retain it afterward.
+        compressedSnapshot ??= OdfAdmission.ReadSnapshot(packageStream, effective.MaxPackageBytes);
+        using var snapshotStream = new MemoryStream(compressedSnapshot, writable: false);
+        packageStream = snapshotStream;
         long packageLength = packageStream.Length - packageStream.Position;
         if (packageLength > effective.MaxPackageBytes) {
-            throw new InvalidDataException($"OpenDocument package size {packageLength} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
+            throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxPackageBytes), effective.MaxPackageBytes);
         }
         OdfZipHeaderInspector.ValidateMimetypeEntry(packageStream);
 
@@ -94,17 +97,19 @@ internal sealed partial class OdfPackage {
 
         using (var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true)) {
             if (archive.Entries.Count > effective.MaxEntries) {
-                throw new InvalidDataException($"OpenDocument package entry count {archive.Entries.Count} exceeds MaxEntries ({effective.MaxEntries}).");
+                throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxEntries), effective.MaxEntries);
             }
+            var entryMetadata = OfficeIMO.Provenance.OfficeProvenanceZip.GetInputEntryMetadata(compressedSnapshot, archive);
 
-            foreach (ZipArchiveEntry archiveEntry in archive.Entries) {
+            for (int archiveOrdinal = 0; archiveOrdinal < archive.Entries.Count; archiveOrdinal++) {
+                ZipArchiveEntry archiveEntry = archive.Entries[archiveOrdinal];
                 string normalized = OfficeArchiveSafety.NormalizeEntryName(archiveEntry.FullName);
                 if (!string.Equals(normalized, archiveEntry.FullName, StringComparison.Ordinal) || OfficeArchiveSafety.IsUnsafePath(normalized)) {
                     throw new InvalidDataException($"OpenDocument package contains unsafe or non-canonical entry path '{archiveEntry.FullName}'.");
                 }
                 bool isDirectory = normalized.EndsWith("/", StringComparison.Ordinal);
                 if (OfficeArchiveSafety.ComputeDepth(normalized, isDirectory) > effective.MaxDepth) {
-                    throw new InvalidDataException($"OpenDocument entry '{normalized}' exceeds MaxDepth ({effective.MaxDepth}).");
+                    throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxDepth), effective.MaxDepth);
                 }
                 if (!exactNames.Add(normalized) || !foldedNames.Add(normalized)) {
                     throw new InvalidDataException($"OpenDocument package contains duplicate or case-ambiguous entry '{normalized}'.");
@@ -113,23 +118,33 @@ internal sealed partial class OdfPackage {
                     throw new InvalidDataException($"OpenDocument entry '{normalized}' has unreadable length metadata.");
                 }
                 if (length > effective.MaxEntryUncompressedBytes) {
-                    throw new InvalidDataException($"OpenDocument entry '{normalized}' exceeds MaxEntryUncompressedBytes ({effective.MaxEntryUncompressedBytes}).");
+                    throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxEntryUncompressedBytes), effective.MaxEntryUncompressedBytes);
                 }
                 if (OfficeArchiveSafety.IsCompressionRatioExceeded(archiveEntry, length, effective.MaxCompressionRatio)) {
-                    throw new InvalidDataException($"OpenDocument entry '{normalized}' exceeds MaxCompressionRatio ({effective.MaxCompressionRatio.ToString(CultureInfo.InvariantCulture)}).");
+                    double ratio = (double)length / archiveEntry.CompressedLength;
+                    throw new OfficePackageSecurityException(new OfficePackageSecurityFinding(OfficePackageSecuritySeverity.Error,
+                        OfficePackageSecurityRule.CompressionRatio, $"OpenDocument entry '{normalized}' exceeds MaxCompressionRatio ({effective.MaxCompressionRatio.ToString(CultureInfo.InvariantCulture)}).",
+                        normalized, ratio, effective.MaxCompressionRatio));
                 }
-                totalUncompressed = checked(totalUncompressed + length);
-                if (totalUncompressed > effective.MaxTotalUncompressedBytes) {
-                    throw new InvalidDataException($"OpenDocument package exceeds MaxTotalUncompressedBytes ({effective.MaxTotalUncompressedBytes}).");
+                if (length > effective.MaxTotalUncompressedBytes - totalUncompressed) {
+                    throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxTotalUncompressedBytes), effective.MaxTotalUncompressedBytes);
                 }
+                totalUncompressed += length;
 
                 long remainingTotal = effective.MaxTotalUncompressedBytes - totalRead;
                 long readLimit = Math.Min(effective.MaxEntryUncompressedBytes, remainingTotal);
-                byte[] data = isDirectory ? Array.Empty<byte>() : ReadEntryBytes(archiveEntry, length, readLimit);
-                totalRead = checked(totalRead + data.LongLength);
                 DateTimeOffset timestamp;
                 try { timestamp = archiveEntry.LastWriteTime; } catch { timestamp = DeterministicTimestamp; }
-                loaded.Add(new OdfPackageEntry(normalized, data, null, timestamp, isNew: false));
+                var metadata = entryMetadata[archiveEntry];
+                if (effective.DeferBinaryPayloads && !isDirectory && IsBinaryPayloadPath(normalized)) {
+                    int sourceOrdinal = archiveOrdinal;
+                    loaded.Add(new OdfPackageEntry(normalized, length,
+                        token => OdfDeferredEntryStream.Open(compressedSnapshot, sourceOrdinal, normalized, length, metadata, token), timestamp));
+                } else {
+                    byte[] data = ReadEntryBytes(compressedSnapshot, archiveEntry, metadata, length, readLimit);
+                    totalRead = checked(totalRead + data.LongLength);
+                    loaded.Add(new OdfPackageEntry(normalized, data, null, timestamp, isNew: false));
+                }
             }
         }
 
@@ -184,6 +199,10 @@ internal sealed partial class OdfPackage {
         }
         return package;
     }
+
+    internal static bool IsBinaryPayloadPath(string path) => path != "mimetype" &&
+        !path.EndsWith("/", StringComparison.Ordinal) && !path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
+        && !path.EndsWith(".rdf", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadPartVersion(IEnumerable<OdfPackageEntry> entries, OdfLoadOptions options,
         out OdfVersion version, out string? versionToken) {
@@ -425,24 +444,23 @@ internal sealed partial class OdfPackage {
         }
     }
 
-    private static byte[] ReadEntryBytes(ZipArchiveEntry entry, long length, long maxBytes) {
-        if (length > int.MaxValue) throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' is too large for the in-memory package store.");
-        using Stream source = entry.Open();
-        var data = length == 0 ? Array.Empty<byte>() : new byte[(int)length];
+    private static byte[] ReadEntryBytes(byte[] snapshot, ZipArchiveEntry entry,
+        OfficeIMO.Provenance.OfficeProvenanceZip.OfficeProvenanceZipEntryMetadata metadata, long length, long maxBytes) {
+        if (length < 0) throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' has negative length metadata.");
+        if (length > maxBytes || length > int.MaxValue)
+            throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxEntryUncompressedBytes), Math.Min(maxBytes, int.MaxValue));
+        using Stream source = OfficeArchiveSafety.OpenEntryPayload(snapshot, entry, metadata);
+        // Keep the eager package store's single exact array allocation; raw range decoding and
+        // checksum validation remain canonical shared owners.
+        byte[] data = length == 0 ? Array.Empty<byte>() : new byte[(int)length];
         int offset = 0;
         while (offset < data.Length) {
-            int read = source.Read(data, offset, data.Length - offset);
-            if (read == 0) {
-                throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' length changed while reading.");
-            }
-            offset = checked(offset + read);
+            int read = source.Read(data, offset, Math.Min(81920, data.Length - offset));
+            if (read == 0) throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' length changed while reading.");
+            offset += read;
         }
-        if (source.ReadByte() != -1) {
-            if (length >= maxBytes) {
-                throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' exceeds its configured uncompressed read budget ({maxBytes}).");
-            }
-            throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' length changed while reading.");
-        }
+        if (source.ReadByte() != -1) throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' exceeds its declared expansion length.");
+        OfficeArchiveSafety.ValidateEntryChecksum(data, metadata.Checksum);
         return data;
     }
 

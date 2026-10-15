@@ -147,13 +147,20 @@ public static class RtfTokenizer {
         }
 
         limits.AddBinaryPayload(length, controlPosition);
+        if (limits.DeferBinaryPayloads) {
+            AddToken(tokens, new RtfToken(RtfTokenKind.Binary, position, rtf.Substring(position, available),
+                binaryFromRawText: true, declaredBinaryLength: length), limits);
+            position += available;
+            return;
+        }
         var data = new byte[available];
         for (int i = 0; i < available; i++) {
             limits.CheckCancellation();
             data[i] = (byte)(rtf[position + i] & 0xFF);
         }
 
-        AddToken(tokens, new RtfToken(RtfTokenKind.Binary, position, rtf.Substring(position, available), binaryData: data), limits);
+        AddToken(tokens, new RtfToken(RtfTokenKind.Binary, position, rtf.Substring(position, available), binaryData: data,
+            declaredBinaryLength: length), limits);
         position += available;
     }
 

@@ -145,6 +145,7 @@ namespace OfficeIMO {
             int externalCount = 0;
             int signatureCount = 0;
             var partNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var partIdentities = new ZipPartIdentityIndex();
             var macroParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var embeddedParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var activeXParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -190,6 +191,7 @@ namespace OfficeIMO {
                             $"Package contains a duplicate or case-ambiguous part name '{partName}'.", partName));
                     }
                     bool unsafePartName = IsUnsafePartName(entry.FullName);
+                    if (!unsafePartName) partIdentities.Add(partName);
                     if (unsafePartName) {
                         findings.Add(Error(OfficePackageSecurityRule.UnsafePartName,
                             $"Package part name '{partName}' is unsafe.", partName));
@@ -225,13 +227,14 @@ namespace OfficeIMO {
 
                 if (partCount <= options.MaxPartCount && totalBytes <= options.MaxTotalUncompressedBytes) {
                     if (contentTypesPart != null) {
-                        InspectContentTypes(contentTypesPart, partNames, macroParts, embeddedParts, activeXParts,
+                        InspectContentTypes(contentTypesPart, partNames, partIdentities, macroParts, embeddedParts, activeXParts,
                             options.MaxXmlCharactersInPart, findings);
                     }
                     foreach (ZipXmlPart relationshipPart in relationshipParts) {
                         externalCount += InspectRelationships(
                             relationshipPart.Entry,
                             relationshipPart.PartName,
+                            partIdentities,
                             macroParts,
                             embeddedParts,
                             activeXParts,
@@ -348,6 +351,7 @@ namespace OfficeIMO {
         private static int InspectRelationships(
             ZipArchiveEntry entry,
             string partName,
+            ZipPartIdentityIndex partIdentities,
             ISet<string> macroParts,
             ISet<string> embeddedParts,
             ISet<string> activeXParts,
@@ -369,6 +373,7 @@ namespace OfficeIMO {
                     string? relationshipType = reader.GetAttribute("Type");
                     string? target = reader.GetAttribute("Target");
                     string? targetPart = ResolveRelationshipTarget(partName, target);
+                    if (targetPart != null) targetPart = partIdentities.Resolve(targetPart);
                     string classificationKey = targetPart ?? partName + "#" + (target ?? string.Empty);
                     AddRelationshipClassification(relationshipType, classificationKey, macroParts, embeddedParts, activeXParts);
                 }

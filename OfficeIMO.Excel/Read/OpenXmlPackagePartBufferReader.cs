@@ -250,7 +250,8 @@ namespace OfficeIMO.Excel {
             int maximumBytes,
             CancellationToken cancellationToken = default,
             int maximumBufferedBytes = 8192,
-            Func<byte[], int, bool>? acceptBufferedPrefix = null) {
+            Func<byte[], int, bool>? acceptBufferedPrefix = null,
+            string limitName = "MaxPackagePartBytes") {
             if (_disposed) {
                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
             }
@@ -263,8 +264,11 @@ namespace OfficeIMO.Excel {
             if (!_entries.TryGetValue(normalizedPartName, out ZipArchiveEntry? entry)) {
                 throw new InvalidDataException($"Package part '{FormatPartNameForDisplay(normalizedPartName)}' is missing.");
             }
-            if (entry.Length < 0 || entry.Length > maximumBytes || entry.Length > int.MaxValue) {
-                throw ExcelReadLimitFailure.Create(
+            if (entry.Length < 0) {
+                throw new InvalidDataException($"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares a negative length.");
+            }
+            if (entry.Length > maximumBytes) {
+                throw ExcelReadLimitFailure.Create(limitName, maximumBytes,
                     $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
             }
 

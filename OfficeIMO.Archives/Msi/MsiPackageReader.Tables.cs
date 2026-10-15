@@ -54,7 +54,7 @@ internal sealed partial class MsiPackageReader {
         int rowSize = schema.Sum(Width);
         if (rowSize == 0 || bytes.Length % rowSize != 0) throw new InvalidDataException("MSI table contains an incomplete row: " + name);
         int count = bytes.Length / rowSize;
-        if (count > _limits.Rows) throw new InvalidDataException("MSI table exceeds the configured row limit: " + name);
+        ArchiveLimits.Check(count, _limits.Rows, "MaxTableRows");
         var rows = Enumerable.Range(0, count).Select(_ => new object?[schema.Length]).ToArray();
         int offset = 0;
         for (int column = 0; column < schema.Length; column++) for (int row = 0; row < count; row++) {

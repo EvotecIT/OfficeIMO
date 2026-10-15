@@ -22,6 +22,14 @@ public sealed class PdfReadOptions {
     /// <summary>Semantic reconstruction profile. Structured is the default public contract.</summary>
     public PdfReadProfile Profile { get; init; } = PdfReadProfile.Structured;
 
+    /// <summary>Includes image placements, image-region analysis and extracted image payloads. Default: true.
+    /// False retains native text, including text inside Form XObjects, without materializing image assets.</summary>
+    public bool IncludeImages { get; init; } = true;
+
+    /// <summary>Includes logical AcroForm widget projections. Default: true.
+    /// False retains bounded source field facts and values while omitting secondary widget objects.</summary>
+    public bool IncludeFormWidgets { get; init; } = true;
+
     /// <summary>Optional caller-ordered page selection. Null reads every page in document order.</summary>
     public PdfPageSelection? PageSelection { get; init; }
 
@@ -42,6 +50,8 @@ public sealed class PdfReadOptions {
         PdfReadOptions effective = Resolve(this);
         return new PdfReadOptions {
             Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
             PageSelection = effective.PageSelection,
             LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
             Pipeline = ClonePipelineOptions(effective.Pipeline)
@@ -61,6 +71,8 @@ public sealed class PdfReadOptions {
         PdfReadOptions effective = Resolve(options);
         return new PdfReadOptions {
             Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
             PageSelection = pageSelection,
             LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
             Pipeline = ClonePipelineOptions(effective.Pipeline)

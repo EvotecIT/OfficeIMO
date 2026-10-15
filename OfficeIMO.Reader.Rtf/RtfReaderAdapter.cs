@@ -24,7 +24,7 @@ internal static partial class RtfReaderAdapter {
         ReaderInputLimits.EnforceFileSize(rtfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes, cancellationToken);
 
-        RtfReadResult readResult = RtfDocument.LoadResult(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding, cancellationToken);
+        RtfReadResult readResult = RtfDocument.LoadResult(rtfPath, GetEffectiveReadOptions(effectiveReaderOptions, effectiveRtfOptions), encoding, cancellationToken);
         IReadOnlyList<ReaderChunk> chunks = ReadRtfResultCore(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken).ToArray();
         return CompleteChunkResult(chunks, effectiveRtfOptions.Report);
     }
@@ -57,7 +57,7 @@ internal static partial class RtfReaderAdapter {
                 parseStream.Position = parseStartPosition;
             }
 
-            RtfReadResult readResult = RtfDocument.LoadResult(parseStream, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding, cancellationToken);
+            RtfReadResult readResult = RtfDocument.LoadResult(parseStream, GetEffectiveReadOptions(effectiveReaderOptions, effectiveRtfOptions), encoding, cancellationToken);
             IReadOnlyList<ReaderChunk> chunks = ReadRtfResultCore(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken).ToArray();
             return CompleteChunkResult(chunks, effectiveRtfOptions.Report);
         } finally {
@@ -102,6 +102,10 @@ internal static partial class RtfReaderAdapter {
 
     private static IEnumerable<ReaderChunk> Read(RtfDocument document, SourceMetadata source, ReaderOptions readerOptions, ReaderRtfOptions rtfOptions, IReadOnlyList<RtfDiagnostic> diagnostics, CancellationToken cancellationToken) {
         rtfOptions.Report.Merge(document.GetStyleConversionDiagnostics());
+        if (readerOptions.Projection == ReaderProjection.TextAndMetadata) {
+            foreach (ReaderChunk chunk in ReadTextAndMetadataChunks(document, source, readerOptions, rtfOptions, diagnostics, cancellationToken)) yield return chunk;
+            yield break;
+        }
         int maxChars = readerOptions.MaxChars > 0 ? readerOptions.MaxChars : 8_000;
         var blocks = BuildBlocks(document, source.Path, rtfOptions).ToList();
         if (blocks.Count == 0) {

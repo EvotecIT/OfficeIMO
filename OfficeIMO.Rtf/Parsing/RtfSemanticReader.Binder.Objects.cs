@@ -26,8 +26,12 @@ internal static partial class RtfSemanticReader {
                             break;
                         case "objdata":
                             long objectBytes = 0;
-                            rtfObject.Data = ReadObjectData(childGroup, ref objectBytes);
-                            hasObjectMetadata |= rtfObject.Data.Length > 0;
+                            if (_options.DeferBinaryPayloads) {
+                                RtfPayloadSource deferred = RtfPayloadSource.FromGroup(childGroup, recursive: true, _limits.CheckCancellation);
+                                deferred.VisitLengths((count, position) => _limits.AddObjectBytes(ref objectBytes, count, position));
+                                rtfObject.SetDeferredPayload(deferred);
+                            } else rtfObject.Data = ReadObjectData(childGroup, ref objectBytes);
+                            hasObjectMetadata |= rtfObject.PayloadLength > 0;
                             break;
                         case "result":
                             ReadObjectResult(childGroup, rtfObject, state, depth);
@@ -83,7 +87,7 @@ internal static partial class RtfSemanticReader {
                 _limits.CheckCancellation();
                 switch (node) {
                     case RtfBinary binary:
-                        _limits.AddObjectBytes(ref objectBytes, binary.Data.Length, binary.Position);
+                        _limits.AddObjectBytes(ref objectBytes, binary.Length, binary.Position);
                         data.AddRange(binary.Data);
                         break;
                     case RtfText text:

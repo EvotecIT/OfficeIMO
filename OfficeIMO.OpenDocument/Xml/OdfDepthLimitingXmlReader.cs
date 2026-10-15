@@ -42,8 +42,8 @@ internal sealed class OdfDepthLimitingXmlReader : XmlReader {
     public override bool Read() {
         bool result = _inner.Read();
         if (result && _inner.Depth > _maxDepth) {
-            throw new InvalidDataException(
-                $"OpenDocument XML part '{_partPath}' exceeds MaxXmlDepth ({_maxDepth}).");
+            throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxXmlDepth), _maxDepth,
+                new InvalidDataException($"OpenDocument XML part '{_partPath}' exceeds MaxXmlDepth ({_maxDepth})."));
         }
         return result;
     }

@@ -59,7 +59,7 @@ internal static class WordRichMapping {
             tables,
             links,
             result.Source.Path);
-        IReadOnlyList<string> capabilities = options.IncludePageLocations
+        IReadOnlyList<string> capabilities = options.IncludePageLocations && readerOptions.Projection == ReaderProjection.Full
             ? new[] {
                 "officeimo.word.inspection-snapshot",
                 "officeimo.reader.word.rich-v5",

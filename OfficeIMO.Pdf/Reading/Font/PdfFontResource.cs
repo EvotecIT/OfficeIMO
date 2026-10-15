@@ -10,6 +10,7 @@ internal sealed class PdfFontResource {
     public string ResourceName { get; }
     public string BaseFont { get; }
     public string Encoding { get; }
+    internal bool HasDeclaredEncoding { get; }
     public string FontSubtype { get; }
     public string? EmbeddedProgramSubtype { get; }
     public bool HasToUnicode { get; }
@@ -39,10 +40,12 @@ internal sealed class PdfFontResource {
         bool isVerticalWriting = false,
         int? fontWeight = null,
         int? fontDescriptorFlags = null,
-        Lazy<PdfPredefinedCMap>? predefinedCMap = null) {
+        Lazy<PdfPredefinedCMap>? predefinedCMap = null,
+        bool hasDeclaredEncoding = false) {
         ResourceName = resourceName;
         BaseFont = baseFont;
         Encoding = encoding;
+        HasDeclaredEncoding = hasDeclaredEncoding;
         FontSubtype = fontSubtype ?? string.Empty;
         EmbeddedProgramSubtype = embeddedProgramSubtype;
         Type3 = type3;
@@ -64,6 +67,7 @@ internal sealed class PdfFontResource {
         ResourceName = resourceName;
         BaseFont = source.BaseFont;
         Encoding = source.Encoding;
+        HasDeclaredEncoding = source.HasDeclaredEncoding;
         FontSubtype = source.FontSubtype;
         EmbeddedProgramSubtype = source.EmbeddedProgramSubtype;
         HasToUnicode = source.HasToUnicode;

@@ -200,7 +200,7 @@ public sealed partial class OdgPage {
                 string? value = shape.ReadGraphicProperty(OdfNamespaces.Fo + name, OdfNamespaces.Fo + "padding");
                 return value == null ? 0 : TextLength(OdfLength.Parse(value));
             }
-        } catch (Exception exception) when (exception is ArgumentException or InvalidDataException or NotSupportedException or OverflowException or FormatException) {
+        } catch (Exception exception) when (exception is ArgumentException or InvalidDataException or NotSupportedException or OverflowException or FormatException or OfficeInspectionResourceLimitException) {
             report.Add(feature, OdfConversionMappingStatus.Skipped, message: exception.Message);
         }
         return Result();

@@ -37,8 +37,9 @@ public sealed partial class OdpPresentation : OdfDocument {
         .Select(element => new OdpSlide(this, element)).ToList();
 
     /// <summary>Master pages stored in <c>styles.xml</c>.</summary>
-    public IReadOnlyList<OdpMasterPage> MasterPages => GetStylesContainer(OdfNamespaces.Office + "master-styles")
-        .Elements(OdfNamespaces.Style + "master-page").Select(element => new OdpMasterPage(this, element)).ToList();
+    public IReadOnlyList<OdpMasterPage> MasterPages => GetExistingXml("styles.xml")?.Root?
+        .Element(OdfNamespaces.Office + "master-styles")?.Elements(OdfNamespaces.Style + "master-page")
+        .Select(element => new OdpMasterPage(this, element)).ToArray() ?? Array.Empty<OdpMasterPage>();
 
     /// <summary>Presentation page layouts stored in <c>styles.xml</c>.</summary>
     public IReadOnlyList<OdpPresentationLayout> Layouts => GetStylesContainer(OdfNamespaces.Office + "styles")

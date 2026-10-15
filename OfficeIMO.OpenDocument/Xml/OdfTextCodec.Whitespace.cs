@@ -16,7 +16,7 @@ internal static partial class OdfTextCodec {
             // Opaque values and other stories do not acquire an outer paragraph's rules.
             if (!IsWhitespaceContainer(ancestor)) return null;
             if (++depth > OdfTextTraversal.MaximumContainerDepth)
-                throw new NotSupportedException("OpenDocument text context exceeds the 128-container safety limit.");
+                throw Limit(nameof(OdfTextTraversal.MaximumContainerDepth), OdfTextTraversal.MaximumContainerDepth);
         }
         return null;
     }
@@ -39,9 +39,9 @@ internal static partial class OdfTextCodec {
         XNode? cursor = Move(anchor);
         while (cursor != null) {
             if (++visited > OdfTextTraversal.MaximumVisitedElements)
-                throw new NotSupportedException("OpenDocument text context exceeds the node safety limit.");
+                throw Limit(nameof(OdfTextTraversal.MaximumVisitedElements), OdfTextTraversal.MaximumVisitedElements);
             if (cursor.Ancestors().TakeWhile(a => a != paragraph).Take(OdfTextTraversal.MaximumContainerDepth + 1).Count() > OdfTextTraversal.MaximumContainerDepth)
-                throw new NotSupportedException("OpenDocument text context exceeds the 128-container safety limit.");
+                throw Limit(nameof(OdfTextTraversal.MaximumContainerDepth), OdfTextTraversal.MaximumContainerDepth);
             if (cursor is XText || cursor is XElement token && IsWhitespaceToken(token)) return cursor;
             if (cursor is XElement container && !IsNonVisibleTextElement(container)) {
                 XNode? child = forward ? container.FirstNode : container.LastNode;
@@ -63,15 +63,15 @@ internal static partial class OdfTextCodec {
     }
 
     private static TextSnapshot DecodeNodes(IEnumerable<XNode> nodes, int maximumCharacters, Action? onVisit = null,
-        Func<XElement, string, string?>? projectField = null) {
+        Func<XElement, string, string?>? projectField = null, int? admissionMaximum = null) {
         if (nodes == null) throw new ArgumentNullException(nameof(nodes));
         var selected = new List<XNode>();
         foreach (XNode node in nodes) {
             if (selected.Count >= OdfTextTraversal.MaximumVisitedElements)
-                throw new NotSupportedException($"OpenDocument text decoding exceeds the {OdfTextTraversal.MaximumVisitedElements}-node safety limit.");
+                throw Limit(nameof(OdfTextTraversal.MaximumVisitedElements), OdfTextTraversal.MaximumVisitedElements);
             selected.Add(node);
         }
-        var snapshot = new TextSnapshot(maximumCharacters);
+        var snapshot = new TextSnapshot(maximumCharacters, admissionMaximum);
         if (selected.Count == 0) return snapshot;
         XElement? paragraph = ParagraphOf(selected[0]);
         if (paragraph != ParagraphOf(selected[selected.Count - 1])) paragraph = null;
@@ -116,15 +116,19 @@ internal static partial class OdfTextCodec {
     /// <summary>A bounded, immutable text contribution map shared by native views and styled projection.</summary>
     internal sealed class TextSnapshot {
         private readonly int _maximumCharacters;
+        private readonly int _admissionMaximum;
         private readonly Dictionary<XNode, string> _text = new();
         private readonly Dictionary<XNode, int> _sourceCharacters = new();
         private readonly List<XNode> _order = new();
-        internal TextSnapshot(int maximumCharacters) { _maximumCharacters = maximumCharacters; }
+        internal TextSnapshot(int maximumCharacters, int? admissionMaximum = null) {
+            _maximumCharacters = maximumCharacters;
+            _admissionMaximum = admissionMaximum ?? maximumCharacters;
+        }
         internal int SourceCharacters { get; private set; }
         internal string Text => JoinBounded(_order.Select(node => _text.TryGetValue(node, out string? value) ? value : string.Empty), string.Empty);
         internal void Register(XNode node, int characters) {
             if (characters > _maximumCharacters - SourceCharacters)
-                throw new InvalidDataException($"Decoded OpenDocument text exceeds the {_maximumCharacters}-character safety limit.");
+                throw Limit(nameof(MaximumDecodedCharacters), _admissionMaximum);
             SourceCharacters += characters; _sourceCharacters.Add(node, characters); _order.Add(node);
         }
         internal void Set(XNode node, string value) { _text[node] = value; }
@@ -134,14 +138,14 @@ internal static partial class OdfTextCodec {
             foreach (XNode node in VisibleNodes(nodes, atomic: element => IsScalarField(element) && _sourceCharacters.ContainsKey(element))) {
                 if (!_sourceCharacters.TryGetValue(node, out int count)) continue;
                 if (count > remainingCharacters - consumed)
-                    throw new InvalidDataException($"Decoded OpenDocument text exceeds the {remainingCharacters}-character safety limit.");
+                    throw Limit(nameof(MaximumDecodedCharacters), _admissionMaximum);
                 consumed += count;
                 if (_text.TryGetValue(node, out string? value)) builder.Append(value);
             }
             remainingCharacters -= consumed; return builder.ToString();
         }
         internal string Read(XElement element, ref int remainingCharacters) => IsNonVisibleTextElement(element)
-            ? OdfTextCodec.Read(element, ref remainingCharacters) : ReadNodes(new[] { element }, ref remainingCharacters);
+            ? ReadWithinBudget(element, ref remainingCharacters, _admissionMaximum) : ReadNodes(new[] { element }, ref remainingCharacters);
         internal string ReadNode(XNode node) {
             int remaining = _maximumCharacters;
             return ReadNodes(new[] { node }, ref remaining);

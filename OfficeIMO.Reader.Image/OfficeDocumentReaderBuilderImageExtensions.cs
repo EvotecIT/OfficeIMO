@@ -21,6 +21,7 @@ public static class OfficeDocumentReaderBuilderImageExtensions {
             DisplayName = "Image Reader Adapter",
             Description = "Header-only image metadata, materializable asset, and optional OCR candidate projection.",
             Kind = ReaderInputKind.Unknown,
+            SupportsTextAndMetadata = true,
             UseDetectedKindFallback = false,
             Extensions = ImageReaderAdapter.Extensions,
             DefaultMaxInputBytes = DefaultMaxInputBytes,

@@ -49,9 +49,9 @@ public sealed class ArchiveMetadataLimitsTests {
         };
 
         if (exceedsLimit) {
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination, options));
-            Assert.Contains("string-pool entry limit", exception.Message);
+            Assert.Equal("MaxStringPoolEntries", exception.LimitName);
             Assert.False(Directory.Exists(fixture.Destination));
         } else {
             Assert.Single(ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination, options).Files);
@@ -61,9 +61,9 @@ public sealed class ArchiveMetadataLimitsTests {
     [Fact]
     public void TableRowLimitStillRejectsAnOversizedTable() {
         using var fixture = new ArchiveFixtures();
-        InvalidDataException error = Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(
             fixture.Package(ArchiveFixtures.Msi()), fixture.Destination, new ArchiveExtractionOptions { MaxTableRows = 22 }));
-        Assert.Contains("row limit: _Columns", error.Message);
+        Assert.Equal("MaxTableRows", error.LimitName);
         Assert.False(Directory.Exists(fixture.Destination));
     }
 

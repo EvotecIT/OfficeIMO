@@ -21,8 +21,8 @@ namespace OfficeIMO.Excel {
             ExcelReadOptions effectiveOptions = (options ?? new ExcelReadOptions()).Clone();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            byte[] encryptedBytes = OfficeStreamReader.ReadRemainingBytes(
-                source, effectiveOptions.CancellationToken, effectiveOptions.MaxInputBytes);
+            byte[] encryptedBytes = ExcelReadLimitFailure.ReadInput(() => OfficeStreamReader.ReadRemainingBytes(
+                source, effectiveOptions.CancellationToken, effectiveOptions.MaxInputBytes), effectiveOptions.MaxInputBytes);
             return OpenEncryptedDataReaderCore(encryptedBytes, password, effectiveOptions);
         }
 
@@ -46,8 +46,8 @@ namespace OfficeIMO.Excel {
             long originalPosition = stream.CanSeek ? stream.Position : 0L;
             byte[] encryptedBytes;
             try {
-                encryptedBytes = OfficeStreamReader.ReadRemainingBytes(
-                    stream, effectiveOptions.CancellationToken, effectiveOptions.MaxInputBytes);
+                encryptedBytes = ExcelReadLimitFailure.ReadInput(() => OfficeStreamReader.ReadRemainingBytes(
+                    stream, effectiveOptions.CancellationToken, effectiveOptions.MaxInputBytes), effectiveOptions.MaxInputBytes);
             } finally {
                 if (stream.CanSeek) stream.Position = originalPosition;
             }
@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
             byte[] encryptedBytes, string password, ExcelReadOptions options) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (encryptedBytes.LongLength > options.MaxInputBytes) {
-                throw new InvalidDataException(
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), options.MaxInputBytes,
                     $"Encrypted workbook input contains {encryptedBytes.LongLength} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
             }
             byte[] packageBytes = OfficeEncryption.DecryptPackage(

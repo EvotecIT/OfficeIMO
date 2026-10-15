@@ -20,11 +20,30 @@ public sealed class ReaderOpenDocumentOptions {
     /// <summary>Maximum text characters extracted across the document before building joined text or Markdown. Repeated cells consume this budget for each logical occurrence.</summary>
     public long MaxExtractedCharacters { get; set; } = 16_000_000L;
 
+    /// <summary>Maximum embedded image placements retained in a rich result. Default: 512.</summary>
+    public int MaxImageAssets { get; set; } = 512;
+    /// <summary>Maximum bytes copied from one embedded image. Default: 32 MiB.</summary>
+    public long MaxImageBytes { get; set; } = 32L * 1024 * 1024;
+    /// <summary>Maximum unique image payload bytes retained. Repeated placements share their payload. Default: 128 MiB.</summary>
+    public long MaxTotalImageBytes { get; set; } = 128L * 1024 * 1024;
+    /// <summary>Maximum hyperlinks retained by native rich projection. Default: 4,096.</summary>
+    public int MaxLinks { get; set; } = 4096;
+    /// <summary>Maximum combined hyperlink target and display characters. Default: one million.</summary>
+    public long MaxLinkCharacters { get; set; } = 1_000_000;
+    /// <summary>Maximum native rich text blocks retained, including master and note stories. Default: 65,536.</summary>
+    public int MaxRichBlocks { get; set; } = 65_536;
+
     internal ReaderOpenDocumentOptions Clone() => new ReaderOpenDocumentOptions {
         SheetName = SheetName,
         A1Range = A1Range,
         HeadersInFirstRow = HeadersInFirstRow,
         IncludeSpeakerNotes = IncludeSpeakerNotes,
+        MaxImageAssets = MaxImageAssets,
+        MaxImageBytes = MaxImageBytes,
+        MaxTotalImageBytes = MaxTotalImageBytes,
+        MaxLinks = MaxLinks,
+        MaxLinkCharacters = MaxLinkCharacters,
+        MaxRichBlocks = MaxRichBlocks,
         MaxXmlCharacters = MaxXmlCharacters,
         MaxExtractedCharacters = MaxExtractedCharacters
     };

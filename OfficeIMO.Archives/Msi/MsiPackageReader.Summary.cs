@@ -11,7 +11,8 @@ internal sealed partial class MsiPackageReader {
         const string name = "\u0005SummaryInformation";
         if (!_streams.ContainsKey(name)) return false;
         using Stream source = _compound.OpenStream(name);
-        ArchiveLimits.Add(ref _metadataBytes, source.Length, _limits.Metadata, "MSI metadata");
+        ArchiveLimits.Add(ref _metadataBytes, source.Length, _limits.Metadata, "MaxMetadataBytes");
+        ArchiveLimits.Check(source.Length, Math.Min(_limits.Metadata, int.MaxValue), "MaxMetadataBytes");
         byte[] bytes = OfficeArchiveSafety.ReadEntryBytes(source, source.Length, _limits.Metadata, _token);
         OfficeOlePropertySection[] summaries = OfficeOlePropertySetReader.ReadSections(bytes, _token)
             .Where(section => section.FormatId == OfficeOlePropertySetWriter.SummaryInformationFormatId).ToArray();

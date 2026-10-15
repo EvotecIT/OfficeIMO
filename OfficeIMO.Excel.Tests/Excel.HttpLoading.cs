@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
             using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
                 Task.FromResult(CreateWorkbookResponse(workbookBytes)));
 
-            var ex = await Assert.ThrowsAsync<IOException>(() =>
+            var ex = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
                     httpOptions: new ExcelHttpLoadOptions {
@@ -92,7 +92,8 @@ namespace OfficeIMO.Tests {
                         MaxBytes = workbookBytes.Length - 1
                     }));
 
-            Assert.Contains("too large", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("excel", ex.Owner); Assert.Equal("MaxBytes", ex.LimitName); Assert.Equal(workbookBytes.Length - 1, ex.Maximum);
+            Assert.Contains("too large", ex.InnerException!.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -101,7 +102,7 @@ namespace OfficeIMO.Tests {
             using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
                 Task.FromResult(CreateWorkbookResponse(workbookBytes)));
 
-            var ex = await Assert.ThrowsAsync<IOException>(() =>
+            var ex = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
                     new ExcelReadOptions { MaxInputBytes = workbookBytes.Length - 1 },
@@ -110,7 +111,8 @@ namespace OfficeIMO.Tests {
                         MaxBytes = workbookBytes.Length * 2L
                     }));
 
-            Assert.Contains((workbookBytes.Length - 1).ToString(), ex.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", ex.Owner); Assert.Equal("MaxInputBytes", ex.LimitName); Assert.Equal(workbookBytes.Length - 1, ex.Maximum);
+            Assert.Contains((workbookBytes.Length - 1).ToString(), ex.InnerException!.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -125,7 +127,7 @@ namespace OfficeIMO.Tests {
                 return Task.FromResult(response);
             });
 
-            var ex = await Assert.ThrowsAsync<IOException>(() =>
+            var ex = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
                     httpOptions: new ExcelHttpLoadOptions {
@@ -133,7 +135,8 @@ namespace OfficeIMO.Tests {
                         MaxBytes = workbookBytes.Length - 1
                     }));
 
-            Assert.Contains("exceeded", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("excel", ex.Owner); Assert.Equal("MaxBytes", ex.LimitName); Assert.Equal(workbookBytes.Length - 1, ex.Maximum);
+            Assert.Contains("exceeded", ex.InnerException!.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

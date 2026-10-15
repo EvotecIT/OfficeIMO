@@ -114,7 +114,7 @@ internal static partial class DocumentReaderEngine {
                 }
             }
         }
-        if (chunkDerived && !string.Equals(document.Markdown, BuildChunkDocumentMarkdown(chunks), StringComparison.Ordinal)) {
+        if (chunkDerived && !HasTextAndMetadataProjection(document) && !string.Equals(document.Markdown, BuildChunkDocumentMarkdown(chunks), StringComparison.Ordinal)) {
             chunkDerived = false;
         }
 
@@ -140,7 +140,12 @@ internal static partial class DocumentReaderEngine {
         bool sameDocument = ReferenceEquals(document, snapshot.Document);
         if ((sameDocument && string.Equals(document.Markdown, snapshot.Markdown, StringComparison.Ordinal)) ||
             (!sameDocument && string.IsNullOrWhiteSpace(document.Markdown))) {
-            document.Markdown = BuildProcessedChunkMarkdown(chunks, snapshot.Chunks);
+            if (HasTextAndMetadataProjection(snapshot.Document)) {
+                document.Markdown = null;
+                ApplyProjectionCapability(document, ReaderProjection.TextAndMetadata);
+            } else {
+                document.Markdown = BuildProcessedChunkMarkdown(chunks, snapshot.Chunks);
+            }
         }
 
         bool blocksUnchanged = sameDocument && BlocksRemainOriginal(document.Blocks, snapshot.Blocks);

@@ -15,10 +15,11 @@ namespace OfficeIMO.Excel {
             Uri uri,
             ExcelHttpLoadOptions? options,
             CancellationToken cancellationToken = default,
-            long? maximumBytes = null) {
+            long? maximumBytes = null,
+            bool sourceLimitIsPackageSize = false) {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
 
-            var snapshot = ExcelHttpLoadOptionsSnapshot.Create(options, maximumBytes);
+            var snapshot = ExcelHttpLoadOptionsSnapshot.Create(options, maximumBytes, sourceLimitIsPackageSize);
             ValidateScheme(uri, snapshot.SchemePolicy);
             ValidateHost(uri, snapshot);
             ValidateLimits(snapshot);
@@ -34,7 +35,8 @@ namespace OfficeIMO.Excel {
 
             long? contentLength = response.Content.Headers.ContentLength;
             if (contentLength.HasValue && contentLength.Value > snapshot.MaxBytes) {
-                throw new IOException($"Remote workbook is too large. Content-Length is {contentLength.Value} bytes and the configured limit is {snapshot.MaxBytes} bytes.");
+                throw ByteLimitExceeded(snapshot, contentLength.Value,
+                    $"Remote workbook is too large. Content-Length is {contentLength.Value} bytes and the configured limit is {snapshot.MaxBytes} bytes.");
             }
 
             byte[] bytes = await ReadResponseBytesAsync(
@@ -128,7 +130,8 @@ namespace OfficeIMO.Excel {
 
                 total += read;
                 if (total > options.MaxBytes) {
-                    throw new IOException($"Remote workbook exceeded the configured limit of {options.MaxBytes} bytes.");
+                    throw ByteLimitExceeded(options, total,
+                        $"Remote workbook exceeded the configured limit of {options.MaxBytes} bytes.");
                 }
 
                 buffer.Write(chunk, 0, read);
@@ -137,6 +140,11 @@ namespace OfficeIMO.Excel {
 
             return buffer.ToArray();
         }
+
+        private static IOException ByteLimitExceeded(ExcelHttpLoadOptionsSnapshot options, long observedBytes, string message) =>
+            options.IsPackageSizeLimit
+                ? new OfficePackageSecurityException(OfficePackageSecurityRule.PackageSize, message, observedBytes, options.MaxBytes)
+                : new OfficeInspectionResourceLimitException("excel", options.ByteLimitName, options.MaxBytes, new IOException(message));
 
         private static void ValidateScheme(Uri uri, ExcelUriSchemePolicy schemePolicy) {
             if (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
@@ -287,6 +295,8 @@ namespace OfficeIMO.Excel {
             private ExcelHttpLoadOptionsSnapshot(
                 ExcelUriSchemePolicy schemePolicy,
                 long maxBytes,
+                string byteLimitName,
+                bool isPackageSizeLimit,
                 TimeSpan timeout,
                 string? userAgent,
                 Dictionary<string, string> headers,
@@ -298,6 +308,8 @@ namespace OfficeIMO.Excel {
                 HttpMessageHandler? httpMessageHandler) {
                 SchemePolicy = schemePolicy;
                 MaxBytes = maxBytes;
+                ByteLimitName = byteLimitName;
+                IsPackageSizeLimit = isPackageSizeLimit;
                 Timeout = timeout;
                 UserAgent = userAgent;
                 Headers = headers;
@@ -311,6 +323,8 @@ namespace OfficeIMO.Excel {
 
             internal ExcelUriSchemePolicy SchemePolicy { get; }
             internal long MaxBytes { get; }
+            internal string ByteLimitName { get; }
+            internal bool IsPackageSizeLimit { get; }
             internal TimeSpan Timeout { get; }
             internal string? UserAgent { get; }
             internal Dictionary<string, string> Headers { get; }
@@ -321,15 +335,22 @@ namespace OfficeIMO.Excel {
             internal IProgress<ExcelHttpLoadProgress>? Progress { get; }
             internal HttpMessageHandler? HttpMessageHandler { get; }
 
-            internal static ExcelHttpLoadOptionsSnapshot Create(ExcelHttpLoadOptions? options, long? maximumBytes) {
+            internal static ExcelHttpLoadOptionsSnapshot Create(ExcelHttpLoadOptions? options, long? maximumBytes, bool sourceLimitIsPackageSize) {
                 options ??= new ExcelHttpLoadOptions();
                 long maxBytes = maximumBytes.HasValue
                     ? Math.Min(options.MaxBytes, maximumBytes.Value)
                     : options.MaxBytes;
+                bool sourceLimitBinds = maximumBytes.HasValue && maximumBytes.Value <= options.MaxBytes;
+                bool isPackageSizeLimit = sourceLimitBinds && sourceLimitIsPackageSize;
+                string byteLimitName = sourceLimitBinds
+                    ? isPackageSizeLimit ? nameof(OfficePackageSecurityOptions.MaxPackageBytes) : nameof(ExcelReadOptions.MaxInputBytes)
+                    : nameof(ExcelHttpLoadOptions.MaxBytes);
 
                 return new ExcelHttpLoadOptionsSnapshot(
                     options.SchemePolicy,
                     maxBytes,
+                    byteLimitName,
+                    isPackageSizeLimit,
                     options.Timeout,
                     options.UserAgent,
                     new Dictionary<string, string>(options.Headers, StringComparer.OrdinalIgnoreCase),

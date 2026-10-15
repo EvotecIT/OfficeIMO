@@ -36,7 +36,8 @@ namespace OfficeIMO.Tests {
                     MaxSharedStringItems = 2
                 });
 
-                Assert.Throws<InvalidDataException>(() => reader.GetSheet("Data").ReadRange("A1:A1"));
+                var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => reader.GetSheet("Data").ReadRange("A1:A1"));
+                Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringItems), error.LimitName); Assert.Equal(2, error.Maximum);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -55,7 +56,8 @@ namespace OfficeIMO.Tests {
                     MaxSharedStringItemCharacters = 3
                 });
 
-                Assert.Throws<InvalidDataException>(() => reader.GetSheet("Data").ReadRange("A1:A1"));
+                var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => reader.GetSheet("Data").ReadRange("A1:A1"));
+                Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringItemCharacters), error.LimitName); Assert.Equal(3, error.Maximum);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -74,7 +76,8 @@ namespace OfficeIMO.Tests {
                     MaxSharedStringCharacters = 5
                 });
 
-                Assert.Throws<InvalidDataException>(() => reader.GetSheet("Data").ReadRange("A1:A1"));
+                var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => reader.GetSheet("Data").ReadRange("A1:A1"));
+                Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringCharacters), error.LimitName); Assert.Equal(5, error.Maximum);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

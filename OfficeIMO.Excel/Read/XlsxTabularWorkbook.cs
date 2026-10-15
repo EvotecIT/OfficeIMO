@@ -119,6 +119,7 @@ namespace OfficeIMO.Excel {
                 ? int.MaxValue
                 : checked((int)options.MaxInputBytes);
 
+            string partLimitName = options.MaxInputBytes > int.MaxValue ? "MaxPackagePartBytes" : nameof(ExcelReadOptions.MaxInputBytes);
             string? sharedStringsPart = ResolveOptionalPart(
                 workbookPartName,
                 workbookRelationships,
@@ -130,7 +131,8 @@ namespace OfficeIMO.Excel {
                 : SharedStringCache.Build(
                     () => _parts.OpenPart(sharedStringsPart, maximumPartBytes, options.CancellationToken,
                         maximumBufferedBytes: SharedStringCache.MaximumIndexedPartBytes,
-                        acceptBufferedPrefix: SharedStringCache.CanIndexSimpleAsciiPrefix),
+                        acceptBufferedPrefix: SharedStringCache.CanIndexSimpleAsciiPrefix,
+                        limitName: partLimitName),
                     options);
 
             string? stylesPart = ResolveOptionalPart(
@@ -142,7 +144,8 @@ namespace OfficeIMO.Excel {
             _styles = stylesPart == null
                 ? new StylesCacheProvider(StylesCache.Empty())
                 : new StylesCacheProvider(
-                    () => _parts.OpenPart(stylesPart, maximumPartBytes, options.CancellationToken));
+                    () => _parts.OpenPart(stylesPart, maximumPartBytes, options.CancellationToken,
+                        limitName: partLimitName));
         }
 
         internal IReadOnlyList<string> TableNames => _tableNames;
@@ -176,7 +179,7 @@ namespace OfficeIMO.Excel {
             try {
                 snapshot = SharedReadOnlyFileSnapshot.Open(path);
                 if (snapshot.Length > options.MaxInputBytes) {
-                    throw new InvalidDataException(
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), options.MaxInputBytes,
                         $"Workbook input contains {snapshot.Length} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
                 }
 
@@ -207,7 +210,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(options));
             }
             if (bytes.LongLength > options.MaxInputBytes) {
-                throw new InvalidDataException(
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), options.MaxInputBytes,
                     $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
             }
 
@@ -371,8 +374,14 @@ namespace OfficeIMO.Excel {
             string? structures = ResolveOptionalPart(workbookPartName, relationships, "/rdRichValueStructure", "rich value structures", "application/vnd.ms-excel.rdrichvaluestructure+xml");
             if (values == null || structures == null) return RichValueErrorLookup.Empty;
             int maximumBytes = (int)Math.Min(_options.MaxInputBytes, Math.Min(_options.MaxMetadataPartBytes, RichValueErrorLookup.MaximumPartBytes));
+            string limitName = _options.MaxInputBytes <= _options.MaxMetadataPartBytes
+                && _options.MaxInputBytes <= RichValueErrorLookup.MaximumPartBytes
+                ? nameof(ExcelReadOptions.MaxInputBytes)
+                : _options.MaxMetadataPartBytes <= RichValueErrorLookup.MaximumPartBytes
+                    ? nameof(ExcelReadOptions.MaxMetadataPartBytes)
+                    : "MaxRichValuePartBytes";
             string Read(string name) {
-                using Stream stream = _parts.OpenPart(name, maximumBytes, _options.CancellationToken);
+                using Stream stream = _parts.OpenPart(name, maximumBytes, _options.CancellationToken, limitName: limitName);
                 string xml = RichValueErrorLookup.ReadXml(stream);
                 _options.CancellationToken.ThrowIfCancellationRequested();
                 return xml;
@@ -389,7 +398,8 @@ namespace OfficeIMO.Excel {
 
         private TResult ReadXmlPart<TResult>(string partName, int maximumBytes, Func<XmlReader, TResult> parse) {
             try {
-                using Stream stream = _parts.OpenPart(partName, maximumBytes, _options.CancellationToken);
+                using Stream stream = _parts.OpenPart(partName, maximumBytes, _options.CancellationToken,
+                    limitName: nameof(ExcelReadOptions.MaxMetadataPartBytes));
                 using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                     NameTable = new OpenXmlReadNameTable(),
                     DtdProcessing = DtdProcessing.Prohibit,

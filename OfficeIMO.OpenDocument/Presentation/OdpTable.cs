@@ -52,7 +52,7 @@ public sealed class OdpTable : OdpShape {
         long index = 0;
         foreach (XElement element in elements) {
             starts.Add(element, index);
-            index = checked(index + OdsRepeatModel.Read(element, repeatAttribute));
+            index = OdfRepeatedElementCollection<XElement>.AddCount(index, OdsRepeatModel.Read(element, repeatAttribute));
         }
         return starts;
     }
@@ -167,5 +167,5 @@ public sealed class OdpTableCell {
         if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") == null) return;
         _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
     }
-    private void Dirty() => _presentation.MarkPartDirty("content.xml");
+    private void Dirty() => _presentation.MarkPartDirty(_presentation.GetPartPath(_element));
 }

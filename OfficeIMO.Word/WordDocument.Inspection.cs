@@ -1,6 +1,7 @@
 
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Threading;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -14,6 +15,8 @@ namespace OfficeIMO.Word {
             }
 
             internal HashSet<string> ActiveNoteKeys { get; } = new(StringComparer.Ordinal);
+            internal bool IncludeImageBytes { get; set; } = true;
+            internal CancellationToken CancellationToken { get; set; }
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
             internal IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> ListMarkers { get; }
             private Dictionary<Paragraph, WordComplexFieldRunVisibility.FieldState> ComplexFieldPrefixes { get; } = new();
@@ -40,11 +43,19 @@ namespace OfficeIMO.Word {
         /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
         /// <returns>A snapshot suitable for inspection or serialization without retaining live Open XML elements.</returns>
         /// <exception cref="InvalidDataException">Generated list markers exceed the supported marker length or document character budget.</exception>
-        public WordDocumentSnapshot CreateInspectionSnapshot() {
-            using var storyScope = WordHeaderFooterResolutionSnapshot.Begin(this);
+        public WordDocumentSnapshot CreateInspectionSnapshot() => CreateInspectionSnapshot(includeImageBytes: true, CancellationToken.None);
+
+        /// <summary>Creates the native semantic snapshot, optionally retaining image descriptors without copying their payload bytes.</summary>
+        /// <param name="includeImageBytes">When false, image payloads are not read or copied; image metadata remains available.</param>
+        /// <param name="cancellationToken">Cancellation checked between source sections, paragraphs, table cells and notes.</param>
+        public WordDocumentSnapshot CreateInspectionSnapshot(bool includeImageBytes, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var storyScope = WordHeaderFooterResolutionSnapshot.Begin(this, cancellationToken);
             using var visibilityScope = WordComplexFieldRunVisibility.BeginConversionScope();
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup(),
-                WordDocumentTraversal.BuildResolvedListMarkers(this));
+                WordDocumentTraversal.BuildResolvedListMarkers(this)) {
+                IncludeImageBytes = includeImageBytes, CancellationToken = cancellationToken
+            };
             var snapshot = new WordDocumentSnapshot {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
                 Title = BuiltinDocumentProperties?.Title,
@@ -54,6 +65,7 @@ namespace OfficeIMO.Word {
             };
 
             for (int sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var section = Sections[sectionIndex];
                 var sectionSnapshot = new WordSectionSnapshot {
                     Index = sectionIndex,
@@ -192,6 +204,7 @@ namespace OfficeIMO.Word {
         }
 
         private WordParagraphSnapshot BuildParagraphSnapshot(WordParagraph paragraph, InspectionExpansionContext expansionContext) {
+            expansionContext.CancellationToken.ThrowIfCancellationRequested();
             var bookmark = paragraph.Bookmark;
             var bookmarkStart = paragraph._paragraph.ChildElements.OfType<BookmarkStart>().FirstOrDefault();
             bool hasListMarker = expansionContext.ListMarkers.TryGetValue(paragraph, out WordDocumentTraversal.ResolvedListMarker listMarker);
@@ -277,7 +290,7 @@ namespace OfficeIMO.Word {
                 var nonTextBreaks = run.GetNonTextBreakPositions();
                 var images = run.GetPositionedImages().Select(positionedImage =>
                     new WordPositionedImageSnapshot(positionedImage.Offset,
-                        BuildInlineImageSnapshot(positionedImage.Image))).ToArray();
+                        BuildInlineImageSnapshot(positionedImage.Image, expansionContext.IncludeImageBytes))).ToArray();
                 run._hyperlink = item.Ancestors<Hyperlink>().FirstOrDefault();
                 var hyperlink = run.Hyperlink;
 
@@ -367,11 +380,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static WordInlineImageSnapshot BuildInlineImageSnapshot(WordImage image) => new WordInlineImageSnapshot {
+        private static WordInlineImageSnapshot BuildInlineImageSnapshot(WordImage image, bool includeImageBytes) => new WordInlineImageSnapshot {
             FilePath = string.IsNullOrWhiteSpace(image.FilePath) ? null : image.FilePath,
             FileName = image.FileName,
             ContentType = ResolveImageContentType(image),
-            Bytes = image.IsExternal ? null : image.ToBytes(),
+            Bytes = !includeImageBytes || image.IsExternal ? null : image.ToBytes(),
             Description = image.Description,
             Title = image.Title,
             Width = image.Width,
@@ -408,6 +421,7 @@ namespace OfficeIMO.Word {
         }
 
         private WordTableSnapshot BuildTableSnapshot(WordTable table, InspectionExpansionContext expansionContext) {
+            expansionContext.CancellationToken.ThrowIfCancellationRequested();
             var snapshot = new WordTableSnapshot {
                 RowCount = table.Rows.Count,
                 ColumnCount = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.CellsCount),
@@ -478,6 +492,7 @@ namespace OfficeIMO.Word {
         }
 
         private WordFootnoteSnapshot? BuildFootnoteSnapshot(WordFootNote? footNote, InspectionExpansionContext expansionContext) {
+            expansionContext.CancellationToken.ThrowIfCancellationRequested();
             if (footNote == null) {
                 return null;
             }
@@ -510,6 +525,7 @@ namespace OfficeIMO.Word {
         }
 
         private WordEndnoteSnapshot? BuildEndnoteSnapshot(WordEndNote? endnote, InspectionExpansionContext expansionContext) {
+            expansionContext.CancellationToken.ThrowIfCancellationRequested();
             if (endnote == null) {
                 return null;
             }

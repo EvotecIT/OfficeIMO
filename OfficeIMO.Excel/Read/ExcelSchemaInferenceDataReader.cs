@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 long bufferedCells = checked((long)(_sampledRows.Count + 1) * fieldCount);
                 if (bufferedCells > maximumBufferedCells) {
-                    throw new InvalidDataException(
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), maximumBufferedCells,
                         $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
                 }
 

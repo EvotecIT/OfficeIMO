@@ -4,6 +4,8 @@ namespace OfficeIMO.Rtf;
 /// Dependency-free representation of an RTF embedded or linked object.
 /// </summary>
 public sealed partial class RtfObject : IRtfInline, IRtfBlock {
+    private byte[]? _data;
+    private RtfPayloadSource? _deferredPayload;
     /// <summary>Creates an RTF object with optional raw object payload.</summary>
     public RtfObject(RtfObjectKind kind = RtfObjectKind.Unknown, byte[]? data = null) {
         Kind = kind;
@@ -20,7 +22,13 @@ public sealed partial class RtfObject : IRtfInline, IRtfBlock {
     public string? Name { get; set; }
 
     /// <summary>Raw bytes from the <c>\objdata</c> destination.</summary>
-    public byte[] Data { get; set; }
+    public byte[] Data {
+        get { if (_data == null) { _data = _deferredPayload!.ReadBytes(); _deferredPayload = null; } return _data; }
+        set { _data = value; _deferredPayload = null; }
+    }
+    /// <summary>Available decoded byte length without materializing a deferred source payload.</summary>
+    public long PayloadLength => _data?.LongLength ?? _deferredPayload!.ActualLength;
+    internal void SetDeferredPayload(RtfPayloadSource source) { _data = null; _deferredPayload = source; }
 
     /// <summary>Object source width in twips or object units when declared by <c>\objw</c>.</summary>
     public int? Width { get; set; }

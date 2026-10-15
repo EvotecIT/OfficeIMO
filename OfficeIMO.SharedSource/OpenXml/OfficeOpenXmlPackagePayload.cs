@@ -31,7 +31,7 @@ namespace OfficeIMO.OpenXml.Internal {
     }
 
     /// <summary>Shared package-part inventory and bounded stream operations for Office Open XML formats.</summary>
-    internal static class OfficeOpenXmlPackagePayload {
+    internal static partial class OfficeOpenXmlPackagePayload {
         internal static IReadOnlyList<OfficeOpenXmlPayloadHandle> FindEmbeddedPayloads(OpenXmlPackage package) {
             if (package == null) throw new ArgumentNullException(nameof(package));
 

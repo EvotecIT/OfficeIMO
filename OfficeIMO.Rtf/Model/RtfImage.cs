@@ -4,17 +4,25 @@ namespace OfficeIMO.Rtf;
 /// RTF picture payload preserved without external imaging dependencies.
 /// </summary>
 public sealed partial class RtfImage : IRtfBlock, IRtfInline {
+    private byte[]? _data;
+    private RtfPayloadSource? _deferredPayload;
     /// <summary>Creates an image block.</summary>
     public RtfImage(RtfImageFormat format, byte[] data) {
         Format = format;
         Data = data ?? Array.Empty<byte>();
     }
+    internal RtfImage(RtfImageFormat format, RtfPayloadSource source) { Format = format; _deferredPayload = source; }
 
     /// <summary>Image format.</summary>
     public RtfImageFormat Format { get; set; }
 
     /// <summary>Raw image bytes.</summary>
-    public byte[] Data { get; set; }
+    public byte[] Data {
+        get { if (_data == null) { _data = _deferredPayload!.ReadBytes(); _deferredPayload = null; } return _data; }
+        set { _data = value; _deferredPayload = null; }
+    }
+    /// <summary>Available decoded byte length without materializing a deferred source payload.</summary>
+    public long PayloadLength => _data?.LongLength ?? _deferredPayload!.ActualLength;
 
     /// <summary>Original width in pixels when present.</summary>
     public int? SourceWidth { get; set; }

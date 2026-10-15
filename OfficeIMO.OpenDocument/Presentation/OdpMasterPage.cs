@@ -9,6 +9,9 @@ public sealed class OdpMasterPage {
     public string Name => (string?)_element.Attribute(OdfNamespaces.Style + "name") ?? string.Empty;
     /// <summary>Page layout name.</summary>
     public string? PageLayoutName => (string?)_element.Attribute(OdfNamespaces.Style + "page-layout-name");
+    /// <summary>Supported native shapes authored on this master, in XML order. Reading does not create or apply master content.</summary>
+    public IReadOnlyList<OdpShape> Shapes => _element.Elements()
+        .Select(element => OdpShape.Wrap(_presentation, element)).Where(shape => shape != null).Select(shape => shape!).ToList();
     /// <summary>Background fill color.</summary>
     public OdfColor? BackgroundColor {
         get {
