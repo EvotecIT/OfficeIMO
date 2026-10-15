@@ -2,13 +2,18 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Utilities;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>
         /// Creates an immutable workbook snapshot that exposes OfficeIMO's current workbook model for downstream integrations.
         /// </summary>
-        public ExcelWorkbookSnapshot CreateInspectionSnapshot(ExcelReadOptions? options = null) {
+        public ExcelWorkbookSnapshot CreateInspectionSnapshot(ExcelReadOptions? options = null) => CreateInspectionSnapshot(options, CancellationToken.None);
+
+        /// <summary>Creates the native immutable workbook snapshot with cancellation between source sheets, rows and cells.</summary>
+        public ExcelWorkbookSnapshot CreateInspectionSnapshot(ExcelReadOptions? options, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var effectiveOptions = options ?? new ExcelReadOptions {
                 UseCachedFormulaResult = true,
                 TreatDatesUsingNumberFormat = true,
@@ -57,6 +62,7 @@ namespace OfficeIMO.Excel {
                 var threadedCommentPeople = ExcelWorksheetCommentResolver.BuildThreadedCommentPersonMap(workbookPart);
 
                 for (int sheetIndex = 0; sheetIndex < sheetElements.Count; sheetIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var sheet = sheetElements[sheetIndex];
                     if (sheet.Id == null || workbookPart.GetPartById(sheet.Id!) is not WorksheetPart worksheetPart) {
                         continue;
@@ -83,6 +89,8 @@ namespace OfficeIMO.Excel {
                         ConditionalFormattingRuleCount = sourceSheet.CountConditionalFormattingRules(),
                         Index = sheetIndex,
                         Hidden = sheet.State?.Value == SheetStateValues.Hidden || sheet.State?.Value == SheetStateValues.VeryHidden,
+                        VisibilityState = sheet.State?.Value == SheetStateValues.VeryHidden ? "veryHidden" :
+                            sheet.State?.Value == SheetStateValues.Hidden ? "hidden" : "visible",
                         IsActive = activeWorksheetIndex == sheetIndex,
                         RightToLeft = sheetView?.RightToLeft?.Value == true,
                         ShowGridlines = sheetView?.ShowGridLines?.Value ?? true,
@@ -109,6 +117,7 @@ namespace OfficeIMO.Excel {
                     var sheetData = worksheet.GetFirstChild<SheetData>();
                     if (sheetData != null) {
                         foreach (var row in sheetData.Elements<Row>()) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             var rowIndex = checked((int)(row.RowIndex?.Value ?? 0U));
                             bool customFormat = row.CustomFormat?.Value == true;
                             uint? styleIndex = row.StyleIndex?.Value;
@@ -128,6 +137,7 @@ namespace OfficeIMO.Excel {
                             }
 
                             foreach (var cell in row.Elements<Cell>()) {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 if (string.IsNullOrWhiteSpace(cell.CellReference?.Value)) {
                                     continue;
                                 }
@@ -145,6 +155,11 @@ namespace OfficeIMO.Excel {
                                     Formula = resolvedFormulaTexts.TryGetValue(cellReference, out string? formulaText)
                                         ? formulaText
                                         : cell.CellFormula?.Text,
+                                    StoredFormula = cell.CellFormula?.Text,
+                                    FormulaKind = cell.CellFormula == null ? null : cell.CellFormula.FormulaType?.InnerText ?? "normal",
+                                    HasStoredValue = cell.CellValue != null,
+                                    StoredValue = cell.CellValue?.Text,
+                                    StoredValueType = cell.DataType?.InnerText ?? "n",
                                     StyleIndex = cell.StyleIndex?.Value,
                                     Style = BuildCellStyleSnapshot(styleContext, cell.StyleIndex?.Value),
                                     Hyperlink = hyperlinkMap.TryGetValue(cellReference, out var hyperlink) ? hyperlink : null,

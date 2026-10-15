@@ -80,7 +80,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool RouteCompoundDocument(byte[] bytes, bool encryptedLoad, string? filePath) {
-            OfficeCompoundDocumentDetector.DocumentKind kind = OfficeCompoundDocumentDetector.Detect(bytes, out _);
+            OfficeCompoundDocumentDetector.DocumentKind kind;
+            try { kind = OfficeCompoundDocumentDetector.Detect(bytes, out _, preserveResourceLimits: true); }
+            catch (OfficeCompoundStreamLimitExceededException exception) {
+                throw new OfficeInspectionResourceLimitException("excel", exception.LimitName, exception.MaximumValue, exception);
+            }
             switch (kind) {
                 case OfficeCompoundDocumentDetector.DocumentKind.ExcelWorkbook:
                     return true;

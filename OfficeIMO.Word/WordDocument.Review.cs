@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Office2013.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Threading;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -16,15 +17,19 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Inspects comments, comment thread metadata, and tracked revisions without mutating the document.
         /// </summary>
-        public WordReviewInfo InspectReview() {
+        public WordReviewInfo InspectReview() => InspectReview(CancellationToken.None);
+
+        /// <summary>Inspects native review markup with cancellation between source elements, without accepting or rejecting revisions.</summary>
+        public WordReviewInfo InspectReview(CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             MainDocumentPart mainPart = _wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("MainDocumentPart is missing.");
 
             ReviewRoot[] roots = GetReviewRoots(mainPart);
 
-            Dictionary<string, CommentTargetInfo> commentTargets = CollectCommentTargets(roots);
-            IReadOnlyList<WordCommentInfo> comments = InspectComments(mainPart, commentTargets);
-            IReadOnlyList<WordRevisionInfo> revisions = InspectRevisions(roots);
+            Dictionary<string, CommentTargetInfo> commentTargets = CollectCommentTargets(roots, cancellationToken);
+            IReadOnlyList<WordCommentInfo> comments = InspectComments(mainPart, commentTargets, cancellationToken);
+            IReadOnlyList<WordRevisionInfo> revisions = InspectRevisions(roots, cancellationToken);
             IReadOnlyList<string> unsupportedMetadata = InspectUnsupportedReviewMetadata(mainPart);
 
             return new WordReviewInfo(comments, revisions, unsupportedMetadata);
@@ -38,7 +43,7 @@ namespace OfficeIMO.Word {
             return WordReviewReport.From(InspectReview(), actions);
         }
 
-        private static IReadOnlyList<WordCommentInfo> InspectComments(MainDocumentPart mainPart, Dictionary<string, CommentTargetInfo> commentTargets) {
+        private static IReadOnlyList<WordCommentInfo> InspectComments(MainDocumentPart mainPart, Dictionary<string, CommentTargetInfo> commentTargets, CancellationToken cancellationToken) {
             WordprocessingCommentsPart? commentsPart = mainPart.WordprocessingCommentsPart;
             if (commentsPart?.Comments == null) {
                 return Array.Empty<WordCommentInfo>();
@@ -52,6 +57,7 @@ namespace OfficeIMO.Word {
             var comments = new List<WordCommentInfo>();
 
             for (int i = 0; i < commentElements.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 Comment comment = commentElements[i];
                 CommentEx? commentEx = WordComment.FindCommentExForComment(comment, commentExElements,
                     commentExByParagraphId, i);
@@ -80,12 +86,13 @@ namespace OfficeIMO.Word {
             return comments;
         }
 
-        private static Dictionary<string, CommentTargetInfo> CollectCommentTargets(IEnumerable<ReviewRoot> roots) {
+        private static Dictionary<string, CommentTargetInfo> CollectCommentTargets(IEnumerable<ReviewRoot> roots, CancellationToken cancellationToken) {
             var targets = new Dictionary<string, CommentTargetInfo>(StringComparer.Ordinal);
 
             foreach (ReviewRoot root in roots) {
                 int order = root.OrderBase;
                 foreach (OpenXmlElement element in root.Root.Descendants()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (element is CommentRangeStart start) {
                         AddCommentRangeTarget(targets, root, start, order);
                     } else if (element is CommentReference reference) {
@@ -189,12 +196,13 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static IReadOnlyList<WordRevisionInfo> InspectRevisions(IEnumerable<ReviewRoot> roots) {
+        private static IReadOnlyList<WordRevisionInfo> InspectRevisions(IEnumerable<ReviewRoot> roots, CancellationToken cancellationToken) {
             var revisions = new List<WordRevisionInfo>();
 
             foreach (ReviewRoot root in roots) {
                 int order = root.OrderBase;
                 foreach (OpenXmlElement element in root.Root.Descendants()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!TryGetRevisionType(element, out WordReviewRevisionType revisionType)) {
                         order++;
                         continue;

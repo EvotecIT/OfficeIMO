@@ -162,9 +162,12 @@ public sealed partial class ZipExtractionTests {
     [Fact]
     public void MemberCountIsLimitedFromTheCentralDirectory() {
         using var fixture = new ArchiveFixtures();
-        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(Zip(
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(fixture.Package(Zip(
                 ("a.admx", "A", CompressionLevel.Optimal), ("b.admx", "B", CompressionLevel.Optimal), ("c.admx", "C", CompressionLevel.Optimal))),
             fixture.Destination, new ArchiveExtractionOptions { MaxEntryCount = 2 }));
+        Assert.Equal("archives", error.Owner);
+        Assert.Equal(nameof(ArchiveExtractionOptions.MaxEntryCount), error.LimitName);
+        Assert.Equal(2L, error.Maximum);
         Assert.False(Directory.Exists(fixture.Destination));
     }
 
@@ -177,8 +180,11 @@ public sealed partial class ZipExtractionTests {
         var options = aggregate
             ? new ArchiveExtractionOptions { MaxExpandedBytes = 6000 }
             : new ArchiveExtractionOptions { MaxEntryBytes = 4000 };
-        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(Zip(
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(fixture.Package(Zip(
             ("a.admx", payload, CompressionLevel.Optimal), ("b.admx", payload, CompressionLevel.Optimal))), fixture.Destination, options));
+        Assert.Equal("archives", error.Owner);
+        Assert.Equal(aggregate ? nameof(ArchiveExtractionOptions.MaxExpandedBytes) : nameof(ArchiveExtractionOptions.MaxEntryBytes), error.LimitName);
+        Assert.Equal(aggregate ? options.MaxExpandedBytes : options.MaxEntryBytes, error.Maximum);
         Assert.False(Directory.Exists(fixture.Destination));
     }
 

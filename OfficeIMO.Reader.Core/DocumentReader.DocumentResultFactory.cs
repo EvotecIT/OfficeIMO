@@ -11,7 +11,7 @@ internal static partial class DocumentReaderEngine {
         IReadOnlyList<OfficeDocumentBlock> blocks, IReadOnlyList<ReaderTable> tables, IReadOnlyList<OfficeDocumentPage> pages,
         IReadOnlyList<OfficeDocumentAsset> assets, IReadOnlyList<OfficeDocumentLink> links) => new() {
         Kind = kind, Source = source, Chunks = chunks, Blocks = blocks, Tables = tables, Pages = pages, Assets = assets, Links = links,
-        Markdown = BuildChunkDocumentMarkdown(chunks),
+        Markdown = IsTextAndMetadataProjection ? null : BuildChunkDocumentMarkdown(chunks),
         CapabilitiesUsed = BuildChunkDocumentCapabilities(kind).Concat(capabilities)
             .Where(static value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal).ToArray(),
         Metadata = BuildChunkDocumentMetadata(kind, chunks, blocks, tables, Array.Empty<ReaderVisual>(), pages, assets)

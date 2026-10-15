@@ -5,6 +5,25 @@
 
 `OfficeIMO.Word` is the main Word document package in the OfficeIMO family. It creates, edits, inspects, converts, and saves `.docx` files, and can import and write supported legacy `.doc` files, without COM automation and without Microsoft Office installed.
 
+## Inspection without image copies
+
+`CreateInspectionSnapshot(includeImageBytes: false, cancellationToken)` keeps the
+native semantic document and image descriptors while leaving their `Bytes` null.
+The ordinary parameterless snapshot still includes embedded image bytes.
+`WordLoadOptions.AllowLegacyProjection = false` rejects binary DOC before its
+picture/model projection; the default continues to support that import.
+
+`InspectEmbeddedPayloads(options, cancellationToken)` inventories inert package,
+OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
+streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` is the direct
+single-payload convenience API. Streams are complete, read-only and caller-owned;
+they survive disposal of the Word document. Keep the document open while
+requesting a read. The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
+defines count, member, aggregate and cumulative work limits, unknown lengths and
+optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
+relationship without reading binary module content; `ModuleInspectionRequested`
+distinguishes this from full VBA metadata inspection.
+
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
 ## Install
@@ -71,6 +90,31 @@ using var incoming = WordDocument.Load("upload.docx", WordLoadOptions.UntrustedD
 ```
 
 This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with documents containing those parts; `PackageSecurity` can be set explicitly for a different policy.
+
+Capture structural observations from the exact loader input when an inspection
+workflow needs to retain original-package evidence:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("review.docx", new WordLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly,
+    PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = 64L * 1024 * 1024 },
+    CaptureSourcePackageSecurity = true
+});
+Console.WriteLine(document.SourcePackageSecurityReport?.ContainerKind);
+Console.WriteLine(document.SourcePackageSecurityScope);
+var loadedSafety = document.InspectLoadedContentSafety();
+```
+
+The captured report remains source evidence after model edits; it is not a report
+of a later save. `SourcePackageSecurityScope` identifies the source container,
+including an encrypted outer container when that load route supplies it. Loaded
+content-safety inspection examines the current model without reopening or saving
+the file. Package findings describe bounded structure and policy, not signature
+validity or a guarantee that content is safe. Capture is opt-in and does not replace
+the load policy or native import limits.
 
 `AsFluent()` wraps the same `WordDocument`; `End()` returns that document for
 direct object-model work:

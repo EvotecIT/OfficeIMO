@@ -119,7 +119,8 @@ public sealed partial class PdfReadDocument {
             DemandContentExtraction,
             _options.IncludeArtifactText,
             _outputIntentColorTransform,
-            _optionalContentVisibilityState);
+            _optionalContentVisibilityState,
+            _options.PreferToUnicode, _options.UseWinAnsiFallback, _options.AdjustKerningFromTJ);
 
     private HashSet<int> CollectReachableLeafCandidates(PdfDictionary pagesRoot, System.Threading.CancellationToken cancellationToken) {
         var set = new HashSet<int>();

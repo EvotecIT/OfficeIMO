@@ -38,6 +38,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public long MaxInputBytes { get; set; } = DefaultMaxInputBytes;
 
+        /// <summary>Allows native binary DOC projection into an Open XML model. Default: true. False rejects that source family before picture projection, including mislabeled input.</summary>
+        public bool AllowLegacyProjection { get; set; } = true;
+
         /// <summary>Replaces existing styles with OfficeIMO defaults when the document is editable.</summary>
         public bool OverrideStyles { get; set; }
 

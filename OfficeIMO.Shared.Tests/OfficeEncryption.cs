@@ -20,15 +20,14 @@ namespace OfficeIMO.Shared.Tests {
             byte[] encrypted = OfficeEncryption.EncryptPackage(plaintext,
                 Password);
 
-            InvalidDataException exception = Assert.Throws<
-                InvalidDataException>(() => OfficeEncryption.DecryptPackage(
+            OfficeInspectionResourceLimitException exception = Assert.Throws<
+                OfficeInspectionResourceLimitException>(() => OfficeEncryption.DecryptPackage(
                 encrypted, Password, CancellationToken.None,
                 maximumDecryptedPackageBytes: plaintext.Length - 1L));
 
-            Assert.Contains("4096", exception.Message,
-                StringComparison.Ordinal);
-            Assert.Contains("4095", exception.Message,
-                StringComparison.Ordinal);
+            Assert.Equal("encryption", exception.Owner);
+            Assert.Equal("MaximumDecryptedPackageBytes", exception.LimitName);
+            Assert.Equal(plaintext.Length - 1L, exception.Maximum);
         }
 
         [Fact]

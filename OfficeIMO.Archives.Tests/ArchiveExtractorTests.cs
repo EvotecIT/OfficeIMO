@@ -39,7 +39,7 @@ public sealed class ArchiveExtractorTests {
     public void LimitsAndCancellationKeepExistingDestinationContents() {
         using var fixture = new ArchiveFixtures();
         string package = fixture.Package(ArchiveFixtures.StoredCab("file.txt", Encoding.UTF8.GetBytes("hello")));
-        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(package, fixture.Destination, new ArchiveExtractionOptions { MaxExpandedBytes = 4 }));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(package, fixture.Destination, new ArchiveExtractionOptions { MaxExpandedBytes = 4 }));
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
         Assert.Throws<OperationCanceledException>(() => ArchiveExtractor.Extract(package, fixture.Destination, cancellationToken: canceled.Token));
         Directory.CreateDirectory(fixture.Destination); File.WriteAllText(Path.Combine(fixture.Destination, "keep.txt"), "keep");
@@ -85,7 +85,7 @@ public sealed class ArchiveExtractorTests {
         for (int index = 1; index <= 20; index++) directories.Add(new object?[] { "D" + index, index == 1 ? "TARGETDIR" : "D" + (index - 1), dots ? "." : "folder" });
         if (childFirst) directories.Reverse();
         string package = fixture.Package(ArchiveFixtures.Msi(directoryRows: directories.ToArray(), firstDirectory: "TARGETDIR"));
-        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(package, fixture.Destination,
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(package, fixture.Destination,
             new ArchiveExtractionOptions { MaxPathDepth = 8 }));
         Assert.False(Directory.Exists(fixture.Destination));
     }
@@ -95,7 +95,7 @@ public sealed class ArchiveExtractorTests {
         object?[][] directories = { new object?[] { "TARGETDIR", null, "SourceDir" },
             new object?[] { "PARENT", "TARGETDIR", "12345678901234567890" },
             new object?[] { "CHILD", "PARENT", "12345678901234567890" } };
-        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(
             fixture.Package(ArchiveFixtures.Msi(directoryRows: directories, firstDirectory: "TARGETDIR")), fixture.Destination,
             new ArchiveExtractionOptions { MaxPathLength = 32 }));
         Assert.False(Directory.Exists(fixture.Destination));
@@ -143,7 +143,7 @@ public sealed class ArchiveExtractorTests {
     [Fact]
     public void FilteredMsiCabinetsStillShareTheAggregateDecodedByteBudget() {
         using var fixture = new ArchiveFixtures();
-        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(
             fixture.Package(ArchiveFixtures.Msi(twoCabinets: true)), fixture.Destination,
             new ArchiveExtractionOptions { IncludeFile = _ => false, MaxExpandedBytes = 9 }));
         Assert.False(Directory.Exists(fixture.Destination));

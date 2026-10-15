@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (!pendingRows.ContainsKey(rowIndex) && pendingRows.Count >= _opt.MaxPendingTypedRows) {
-                throw new InvalidDataException(
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxPendingTypedRows), _opt.MaxPendingTypedRows,
                     $"Typed row streaming exceeded the configured out-of-order row buffer limit of {_opt.MaxPendingTypedRows.ToString(CultureInfo.InvariantCulture)}.");
             }
 
@@ -194,7 +194,7 @@ namespace OfficeIMO.Excel {
             } catch (XmlException) {
                 results = Array.Empty<T>();
                 return false;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 results = Array.Empty<T>();
                 return false;
             } catch (UnauthorizedAccessException) {

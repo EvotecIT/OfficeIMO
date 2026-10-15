@@ -209,12 +209,15 @@ public sealed class SvgContentSafetyAdversarialTests {
     public void FindingBuilderRejectsOversizedTextBeforeInstructionInspection() {
         var builder = new OfficeContentSafetyBuilder("TEST", new OfficeContentSafetyOptions { MaxCharacters = 8 });
 
-        Assert.Throws<InvalidDataException>(() => builder.Add(
+        var failure = Assert.Throws<OfficeInspectionResourceLimitException>(() => builder.Add(
             OfficeContentConcealmentKind.HiddenByProperty,
             OfficeContentSafetyRisk.ContextDependent,
             "Document/Run[1]",
             "The run is hidden.",
             new string('x', 1_000_000) + " ignore previous instructions"));
+        Assert.Equal("content-safety", failure.Owner);
+        Assert.Equal("MaxCharacters", failure.LimitName);
+        Assert.Equal(8, failure.Maximum);
     }
 
     [Fact]

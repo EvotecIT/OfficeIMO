@@ -21,10 +21,10 @@ internal static partial class ExcelReaderAdapter {
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
         using ExcelDocument document = Load(path, readerOptions);
-        using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
+        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
         ReaderChunk[] chunks = Extract(reader, path, readerOptions, options, warnings, cancellationToken).ToArray();
-        IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectExcel(
+        IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, path, readerOptions, options.SheetName, options.A1Range, cancellationToken);
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
             chunks,
@@ -32,7 +32,9 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, path);
-        return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
+        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
+        return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(
@@ -42,11 +44,11 @@ internal static partial class ExcelReaderAdapter {
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
         using ExcelDocument document = Load(stream, sourceName, readerOptions);
-        using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
+        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "workbook.xlsx" : sourceName!;
         IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
         ReaderChunk[] chunks = Extract(reader, logicalName, readerOptions, options, warnings, cancellationToken).ToArray();
-        IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectExcel(
+        IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, logicalName, readerOptions, options.SheetName, options.A1Range, cancellationToken);
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
             chunks,
@@ -54,7 +56,9 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, logicalName);
-        return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
+        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
+        return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
 
     internal static OfficeDocumentReadResult Project(
@@ -63,20 +67,23 @@ internal static partial class ExcelReaderAdapter {
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
         CancellationToken cancellationToken,
-        IReadOnlyList<string>? sourceWarnings = null) {
-        using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
+        IReadOnlyList<string>? sourceWarnings = null,
+        string capabilityId = OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId) {
+        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, sourceName, readerOptions, options,
             warnings, cancellationToken).ToArray();
-        IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectExcel(
+        IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, sourceName, readerOptions, options.SheetName, options.A1Range, cancellationToken);
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
             chunks,
             ReaderInputKind.Excel,
-            capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId },
+            capabilities: new[] { capabilityId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, sourceName);
-        return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
+        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
+        return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
 
     private static void AttachWarningsWhenEmpty(OfficeDocumentReadResult result, IReadOnlyList<ReaderChunk> chunks,
@@ -101,6 +108,10 @@ internal static partial class ExcelReaderAdapter {
                     StringComparison.OrdinalIgnoreCase));
         } catch (OperationCanceledException) {
             throw;
+        } catch (ReaderResourceLimitException) {
+            throw;
+        } catch (OfficePackageSecurityException) {
+            throw;
         } catch {
             return false;
         } finally {
@@ -109,44 +120,42 @@ internal static partial class ExcelReaderAdapter {
     }
 
     private static ExcelDocument Load(string path, ReaderOptions options) {
-        string extension = Path.GetExtension(path);
-        if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(options.OpenPassword)) {
-            return ExcelDocument.LoadLegacyXls(path, new LegacyXlsImportOptions { Password = options.OpenPassword, ReportUnsupportedContent = true });
-        }
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            AllowBinaryProjection = options.Projection == ReaderProjection.Full,
+            CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
+            PackageSecurity = OpenXmlReaderAdmission.Policy(options, ExcelLoadOptions.DefaultMaxInputBytes),
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
         try {
-            return ExcelDocument.Load(path, loadOptions);
-        } catch (Exception exception) when (!string.IsNullOrEmpty(options.OpenPassword) && exception is InvalidDataException or IOException) {
-            return ExcelDocument.LoadEncrypted(path, options.OpenPassword!, loadOptions);
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(path, loadOptions));
+        } catch (Exception exception) when (OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(path, options.OpenPassword!, loadOptions));
         }
     }
 
     private static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options) {
-        string extension = Path.GetExtension(sourceName ?? string.Empty);
-        if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(options.OpenPassword)) {
-            return ExcelDocument.LoadLegacyXls(stream, new LegacyXlsImportOptions { Password = options.OpenPassword, ReportUnsupportedContent = true });
-        }
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            AllowBinaryProjection = options.Projection == ReaderProjection.Full,
+            CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
+            PackageSecurity = OpenXmlReaderAdmission.Policy(options, ExcelLoadOptions.DefaultMaxInputBytes),
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
         if (stream.CanSeek) stream.Position = 0;
         try {
-            return ExcelDocument.Load(stream, loadOptions);
-        } catch (Exception exception) when (stream.CanSeek && !string.IsNullOrEmpty(options.OpenPassword) && exception is InvalidDataException or IOException) {
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions));
+        } catch (Exception exception) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
             stream.Position = 0;
-            return ExcelDocument.LoadEncrypted(stream, options.OpenPassword!, loadOptions);
+            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.LoadEncrypted(stream, options.OpenPassword!, loadOptions));
         }
     }
 
-    private static IEnumerable<ReaderChunk> Extract(
+    private static IEnumerable<ReaderChunk> ExtractNative(
         ExcelDocumentReader reader,
         string sourceName,
         ReaderOptions readerOptions,
@@ -165,7 +174,7 @@ internal static partial class ExcelReaderAdapter {
                          new ExcelExtractionExtensions.ExcelExtractOptions {
                              HeadersInFirstRow = options.HeadersInFirstRow,
                              ChunkRows = options.ChunkRows,
-                             EmitMarkdownTable = true
+                             EmitMarkdownTable = readerOptions.Projection == ReaderProjection.Full
                          },
                          new ExcelExtractChunkingOptions {
                              MaxChars = readerOptions.MaxChars,

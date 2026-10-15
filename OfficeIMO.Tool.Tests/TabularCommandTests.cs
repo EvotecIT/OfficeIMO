@@ -77,16 +77,21 @@ public sealed class TabularCommandTests {
                 document.Save(workbookPath);
             }
 
-            InvalidDataException countError = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException countError = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocument.GetSheetNames(
                     workbookPath,
                     new ExcelReadOptions { MaxWorksheets = 1 }));
-            Assert.Contains("worksheet", countError.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("excel", countError.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxWorksheets), countError.LimitName);
+            Assert.Equal(1, countError.Maximum);
 
-            Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException partError = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocument.GetSheetNames(
                     workbookPath,
                     new ExcelReadOptions { MaxMetadataPartBytes = 32 }));
+            Assert.Equal("excel", partError.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxMetadataPartBytes), partError.LimitName);
+            Assert.Equal(32, partError.Maximum);
 
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();

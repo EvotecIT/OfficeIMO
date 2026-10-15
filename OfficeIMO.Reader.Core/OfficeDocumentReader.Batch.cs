@@ -69,7 +69,7 @@ public sealed partial class OfficeDocumentReader {
             return new ReaderDocumentReadOutcome(index, path, document, error: null);
         } catch (OperationCanceledException) {
             throw;
-        } catch (Exception exception) when (exception is not ReaderResourceLimitException) {
+        } catch (Exception exception) when (exception is not ReaderResourceLimitException and not ReaderAdmissionLimitException) {
             return new ReaderDocumentReadOutcome(index, path, document: null, exception);
         }
     }

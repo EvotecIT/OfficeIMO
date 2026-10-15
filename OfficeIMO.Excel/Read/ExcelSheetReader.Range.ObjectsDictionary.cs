@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
             } catch (XmlException) {
                 result = [];
                 return false;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 result = [];
                 return false;
             } catch (UnauthorizedAccessException) {
@@ -373,7 +373,7 @@ namespace OfficeIMO.Excel {
             } catch (XmlException) {
                 result = [];
                 return false;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 result = [];
                 return false;
             } catch (UnauthorizedAccessException) {

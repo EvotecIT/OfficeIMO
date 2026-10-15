@@ -260,6 +260,24 @@ internal sealed class ToUnicodeCMap {
         return allMapped;
     }
 
+    /// <summary>Counts raw fallback bytes without materializing a second decoded text buffer.</summary>
+    internal int CountUnmappedCodeBytes(byte[] bytes, Action? cancellationCheck) {
+        int unmapped = 0;
+        for (int index = 0; index < bytes.Length;) {
+            cancellationCheck?.Invoke();
+            int used = 0;
+            for (int length = Math.Min(_maxKeyBytes, bytes.Length - index); length >= 1; length--) {
+                if (_map.ContainsKey(ByteSliceToHex(bytes, index, length))) {
+                    used = length;
+                    break;
+                }
+            }
+            if (used == 0) { unmapped++; used = 1; }
+            index += used;
+        }
+        return unmapped;
+    }
+
     private string MapBytesCore(byte[] bytes, int maxOutputCharacters, bool allowUnmappedBytes, out bool allMapped) {
         if (maxOutputCharacters <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maxOutputCharacters), maxOutputCharacters, "Maximum decoded text characters must be positive.");

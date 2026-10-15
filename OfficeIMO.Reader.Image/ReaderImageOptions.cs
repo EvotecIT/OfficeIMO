@@ -13,6 +13,9 @@ public sealed class ReaderImageOptions {
     /// </summary>
     public bool CreateOcrCandidate { get; set; } = true;
 
+    /// <summary>Owner-level metadata limits used when <see cref="ReaderOptions.Inspection"/> is enabled.</summary>
+    public OfficeIMO.Drawing.OfficeImageMetadataInspectionOptions MetadataInspection { get; set; } = new();
+
     internal ReaderImageOptions CloneValidated() {
         if (CreateOcrCandidate && !IncludePayload) {
             throw new ArgumentException(
@@ -20,7 +23,8 @@ public sealed class ReaderImageOptions {
         }
         return new ReaderImageOptions {
             IncludePayload = IncludePayload,
-            CreateOcrCandidate = CreateOcrCandidate
+            CreateOcrCandidate = CreateOcrCandidate,
+            MetadataInspection = (MetadataInspection ?? throw new ArgumentNullException(nameof(MetadataInspection))).Clone()
         };
     }
 }

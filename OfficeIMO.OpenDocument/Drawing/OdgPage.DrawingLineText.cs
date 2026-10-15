@@ -40,7 +40,7 @@ public sealed partial class OdgPage {
                     .Then(OfficeTransform.Translate(start.X, start.Y)).Then(transform);
             }
             ProjectText(shape, target, report, 1, 1, fields, new LineTextFrame(bounds, transform), cancellationToken, layoutMetrics);
-        } catch (Exception exception) when (exception is ArgumentException or InvalidDataException or NotSupportedException or OverflowException or FormatException) {
+        } catch (Exception exception) when (exception is ArgumentException or InvalidDataException or NotSupportedException or OverflowException or FormatException or OfficeInspectionResourceLimitException) {
             report.Add("shape:" + shape.Name + ":text", OdfConversionMappingStatus.Skipped, message: exception.Message);
         }
     }

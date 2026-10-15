@@ -93,9 +93,11 @@ namespace OfficeIMO.Tests {
                 MaxDataReaderBufferedCells = 2
             });
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadRangeAsDataReader("A1:C2"));
 
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.LimitName);
             Assert.Contains(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
         }
 
@@ -126,13 +128,15 @@ namespace OfficeIMO.Tests {
             using var reader = ExcelDocumentReader.Open(reordered.ToArray(), new ExcelReadOptions {
                 MaxDataReaderBufferedCells = 4
             });
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() => {
                 using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(
                     "A1:B4098",
                     headersInFirstRow: false,
                     schemaSampleRows: 0);
                 while (dataReader.Read()) { }
             });
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.LimitName);
             Assert.Contains(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
         }
 
@@ -153,9 +157,11 @@ namespace OfficeIMO.Tests {
                 memory.ToArray(),
                 new ExcelReadOptions { MaxDataReaderBufferedCells = 999 });
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadUsedRangeAsDataReader());
 
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.LimitName);
             Assert.Contains(
                 nameof(ExcelReadOptions.MaxDataReaderBufferedCells),
                 exception.Message,

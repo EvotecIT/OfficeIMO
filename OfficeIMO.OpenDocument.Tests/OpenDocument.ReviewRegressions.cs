@@ -22,8 +22,10 @@ public sealed class OpenDocumentReviewRegressionTests {
 
         OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => reopened.Paragraphs.Single().Text);
-        Assert.Contains("safety limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() => reopened.Paragraphs.Single().Text);
+        Assert.Equal("opendocument", exception.Owner);
+        Assert.Equal("MaximumDecodedCharacters", exception.LimitName);
+        Assert.Equal(16 * 1024 * 1024, exception.Maximum);
     }
 
     [Fact]

@@ -27,9 +27,12 @@ internal static class OfficeExifProfileCodec {
         internal bool Little;
         internal long RetainedManagedBytes;
         internal readonly Dictionary<OfficeExifDirectory, Directory> Directories = new Dictionary<OfficeExifDirectory, Directory>();
+        internal int OmittedInspectionFields;
+        internal long InspectionValueBytes;
     }
 
-    internal static Profile Parse(byte[] bytes, bool imageTiff = false, CancellationToken cancellationToken = default, long additionallyRetainedBytes = 0L) {
+    internal static Profile Parse(byte[] bytes, bool imageTiff = false, CancellationToken cancellationToken = default, long additionallyRetainedBytes = 0L,
+        List<OfficeExifFieldEvidence>? inspectionFields = null, OfficeImageMetadataInspectionOptions? inspectionOptions = null, string inspectionSource = "Exif") {
         cancellationToken.ThrowIfCancellationRequested();
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         if (bytes.Length > (imageTiff ? OfficeRasterGuards.MaximumEncodedBytes : MaximumProfileBytes)) throw new FormatException("Exif metadata exceeds the profile-size limit.");
@@ -39,12 +42,14 @@ internal static class OfficeExifProfileCodec {
         // Image-TIFF parsing is operation-local and read-only. Borrow its encoded
         // container instead of retaining another complete raster-sized copy.
         var profile = new Profile { Bytes = imageTiff && skip == 0 ? bytes : new byte[bytes.Length - skip], Little = bytes[skip] == 73, RetainedManagedBytes = checked(additionallyRetainedBytes + bytes.LongLength * (imageTiff && skip == 0 ? 1 : 2)) };
+        if (inspectionFields != null) foreach (OfficeExifFieldEvidence field in inspectionFields) if (field.Value != null) profile.InspectionValueBytes += field.ValueLengthBytes;
         if (!ReferenceEquals(profile.Bytes, bytes)) Buffer.BlockCopy(bytes, skip, profile.Bytes, 0, profile.Bytes.Length);
-        ParseDirectory(profile, OfficeExifDirectory.Image, checked((int)Read(profile.Bytes, 4, 4, profile.Little)), imageTiff, cancellationToken);
+        ParseDirectory(profile, OfficeExifDirectory.Image, checked((int)Read(profile.Bytes, 4, 4, profile.Little)), imageTiff, cancellationToken, inspectionFields, inspectionOptions, inspectionSource);
         return profile;
     }
 
-    private static void ParseDirectory(Profile profile, OfficeExifDirectory kind, int offset, bool imageTiff, CancellationToken token) {
+    private static void ParseDirectory(Profile profile, OfficeExifDirectory kind, int offset, bool imageTiff, CancellationToken token,
+        List<OfficeExifFieldEvidence>? inspectionFields, OfficeImageMetadataInspectionOptions? inspectionOptions, string inspectionSource) {
         if (offset == 0 || profile.Directories.ContainsKey(kind)) return;
         byte[] bytes = profile.Bytes;
         var directory = new Directory { Offset = offset };
@@ -59,7 +64,36 @@ internal static class OfficeExifProfileCodec {
             int size = Size(type);
             int byteLength = checked((int)length * size);
             int valueOffset = byteLength <= 4 ? entry + 8 : checked((int)Read(bytes, entry + 8, 4, profile.Little));
-            if (imageTiff && kind == OfficeExifDirectory.Image && !IsTiffMetadataTag(id)) continue;
+            bool selected = !imageTiff || kind != OfficeExifDirectory.Image || IsTiffMetadataTag(id);
+            bool structural = id == 34665 || id == 34853 || id == 40965 || id == 330 || id == 513 || id == 514;
+            string? omission = !selected ? "exif:tiff-layout-value-not-decoded" : type < 1 || type > 12 ? "exif:unsupported-type" :
+                structural ? "exif:structural-pointer" : null;
+            if (inspectionFields != null && inspectionOptions != null && byteLength > inspectionOptions.MaximumExifValueBytes) omission = "exif:value-byte-limit";
+            if (inspectionFields != null && inspectionOptions != null && byteLength > inspectionOptions.MaximumRetainedExifBytes - profile.InspectionValueBytes) omission = "exif:aggregate-value-byte-limit";
+            if (inspectionFields != null && inspectionOptions != null && inspectionFields.Count >= inspectionOptions.MaximumExifFields) omission = "exif:field-retention-limit";
+            OfficeExifValue? evidenceValue = null;
+            if (inspectionFields != null && omission == null) {
+                var inspectedTag = new OfficeExifTag(id, (OfficeExifDataType)type, kind, KnownName(kind, id));
+                evidenceValue = new OfficeExifValue(inspectedTag, Decode(bytes, valueOffset, checked((int)length), inspectedTag.DataType, profile.Little, token));
+                profile.InspectionValueBytes += byteLength;
+            }
+            if (inspectionFields != null && inspectionOptions != null && inspectionFields.Count < inspectionOptions.MaximumExifFields) {
+                inspectionFields.Add(new OfficeExifFieldEvidence(kind, id, (ushort)type, length, offset, entry, valueOffset, byteLength, inspectionSource, evidenceValue, omission));
+            } else if (inspectionFields != null) profile.OmittedInspectionFields++;
+            if (!selected) continue;
+            if (inspectionFields != null) {
+                // Inspection decodes values only above, within its retention budgets.
+                // Traversal requires just a genuine scalar LONG directory pointer;
+                // thumbnail offsets and malformed pointer-shaped arrays stay omitted.
+                if (type == 4 && length == 1 &&
+                    (kind == OfficeExifDirectory.Image && (id == 34665 || id == 34853) || kind == OfficeExifDirectory.Exif && id == 40965)) {
+                    int child = checked((int)Read(bytes, valueOffset, 4, profile.Little));
+                    if (kind == OfficeExifDirectory.Image && id == 34665) ParseDirectory(profile, OfficeExifDirectory.Exif, child, imageTiff, token, inspectionFields, inspectionOptions, inspectionSource);
+                    if (kind == OfficeExifDirectory.Image && id == 34853) ParseDirectory(profile, OfficeExifDirectory.Gps, child, imageTiff, token, inspectionFields, inspectionOptions, inspectionSource);
+                    if (kind == OfficeExifDirectory.Exif && id == 40965) ParseDirectory(profile, OfficeExifDirectory.Interoperability, child, imageTiff, token, inspectionFields, inspectionOptions, inspectionSource);
+                }
+                continue;
+            }
             if (byteLength > MaximumProfileBytes) throw new FormatException("An Exif field exceeds the metadata-size limit.");
             profile.RetainedManagedBytes = checked(profile.RetainedManagedBytes + byteLength * 2L + 96L);
             if (profile.RetainedManagedBytes > OfficeRasterGuards.MaximumDecodedBytes) throw new FormatException("Exif metadata exceeds the managed working-set limit.");
@@ -71,9 +105,9 @@ internal static class OfficeExifProfileCodec {
             directory.Fields.Add(field);
             if (type == 4 && length == 1) {
                 int child = checked((int)Read(bytes, valueOffset, 4, profile.Little));
-                if (kind == OfficeExifDirectory.Image && id == 34665) ParseDirectory(profile, OfficeExifDirectory.Exif, child, imageTiff, token);
-                if (kind == OfficeExifDirectory.Image && id == 34853) ParseDirectory(profile, OfficeExifDirectory.Gps, child, imageTiff, token);
-                if (kind == OfficeExifDirectory.Exif && id == 40965) ParseDirectory(profile, OfficeExifDirectory.Interoperability, child, imageTiff, token);
+                if (kind == OfficeExifDirectory.Image && id == 34665) ParseDirectory(profile, OfficeExifDirectory.Exif, child, imageTiff, token, inspectionFields, inspectionOptions, inspectionSource);
+                if (kind == OfficeExifDirectory.Image && id == 34853) ParseDirectory(profile, OfficeExifDirectory.Gps, child, imageTiff, token, inspectionFields, inspectionOptions, inspectionSource);
+                if (kind == OfficeExifDirectory.Exif && id == 40965) ParseDirectory(profile, OfficeExifDirectory.Interoperability, child, imageTiff, token, inspectionFields, inspectionOptions, inspectionSource);
             }
         }
         directory.Next = (uint)Read(bytes, offset + 2 + count * 12, 4, profile.Little);
@@ -204,6 +238,8 @@ internal static class OfficeExifProfileCodec {
         (OfficeExifDirectory.Image, 315) => nameof(OfficeExifTag.Artist), (OfficeExifDirectory.Image, 33432) => nameof(OfficeExifTag.Copyright),
         (OfficeExifDirectory.Exif, 33434) => nameof(OfficeExifTag.ExposureTime), (OfficeExifDirectory.Exif, 33437) => nameof(OfficeExifTag.FNumber), (OfficeExifDirectory.Exif, 34855) => nameof(OfficeExifTag.ISOSpeedRatings),
         (OfficeExifDirectory.Exif, 36864) => nameof(OfficeExifTag.ExifVersion), (OfficeExifDirectory.Exif, 36867) => nameof(OfficeExifTag.DateTimeOriginal), (OfficeExifDirectory.Exif, 36868) => nameof(OfficeExifTag.DateTimeDigitized),
+        (OfficeExifDirectory.Exif, 36880) => nameof(OfficeExifTag.OffsetTime), (OfficeExifDirectory.Exif, 36881) => nameof(OfficeExifTag.OffsetTimeOriginal), (OfficeExifDirectory.Exif, 36882) => nameof(OfficeExifTag.OffsetTimeDigitized),
+        (OfficeExifDirectory.Exif, 37520) => nameof(OfficeExifTag.SubSecTime), (OfficeExifDirectory.Exif, 37521) => nameof(OfficeExifTag.SubSecTimeOriginal), (OfficeExifDirectory.Exif, 37522) => nameof(OfficeExifTag.SubSecTimeDigitized),
         (OfficeExifDirectory.Exif, 37510) => nameof(OfficeExifTag.UserComment), (OfficeExifDirectory.Gps, 1) => nameof(OfficeExifTag.GPSLatitudeRef), (OfficeExifDirectory.Gps, 2) => nameof(OfficeExifTag.GPSLatitude),
         (OfficeExifDirectory.Gps, 3) => nameof(OfficeExifTag.GPSLongitudeRef), (OfficeExifDirectory.Gps, 4) => nameof(OfficeExifTag.GPSLongitude), _ => null
     };

@@ -1144,6 +1144,28 @@ IReadOnlyList<PdfImagePlacement> placements = pdf.Images.Placements("1-2");
 IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Attachments.Extract();
 ```
 
+For inspection workflows, `pdf.ReadForInspection()` retains readable pages when a selected page has unmappable text or an unsupported content-stream filter:
+
+```csharp
+PdfInspectionReadResult inspection = pdf.ReadForInspection();
+foreach (PdfPageReadOutcome outcome in inspection.PageOutcomes) {
+    Console.WriteLine($"Page {outcome.PageNumber}: {outcome.Status}");
+}
+string readableText = inspection.Document.Text;
+PdfDocumentInfo sourceStructure = inspection.SourceInfo;
+PdfRepairReport repairs = inspection.RepairReport;
+```
+
+Outcomes preserve caller order and repeated page selections. Failed pages have no logical page; their geometry, links, annotations and document metadata remain in `SourceInfo`. `CompletedAllSelectedPages` describes page completion only. Authentication, permission, parser, resource-limit, cancellation and unexpected stage failures still stop the operation. Ordinary `Read()` keeps its existing fail-fast behavior. Lenient parsing reports recoveries and detected-only issues separately; `PdfLoadOptions.ParsingMode = PdfParsingMode.Strict` rejects structural defects.
+
+For native text and metadata without image assets or secondary form-widget objects, use `ReadForInspection(new PdfReadOptions { IncludeImages = false, IncludeFormWidgets = false })`. The same options apply to ordinary `Read()`. `IncludesImages` and `IncludesFormWidgets` on the logical result record the requested projections. Native text inside Form XObjects is retained. Source field facts and values remain subject to the canonical parser's form budgets; these flags omit later image and widget construction. Excluding images also omits the optional visual primitive scan, which can materialize Type3 glyph images; `page.HasVisualPrimitiveCounts` reports whether its counts are available.
+
+Each logical page also retains `IncludesImages` and `IncludesFormWidgets`, including after page selection. An empty unrequested collection does not establish source absence. `AnalyzeExtractionScope()` and logical PDF conversions that report content loss require these projections and visual counts; they throw `InvalidOperationException` for a reduced read. Text and table extraction remain available. Use the default full read when you need omission analysis or conversion diagnostics.
+
+Each `page.Analysis.DecodedRuns` item exposes `DecodingEvidence`. It distinguishes ToUnicode, predefined Adobe maps, font encodings, Windows-1252 fallback and ActualText replacement. `UnmappedCodeBytes` counts raw character fallback inside a ToUnicode run; `UsedFallback` describes the returned logical text. ActualText retains the underlying mapping source without claiming that its replacement matches the painted glyphs. A public `PdfUnsupportedTextMappingException` exposes the font resource, base font, encoding and declared-ToUnicode state when extraction cannot map shown codes. These facts describe decoding, not text accuracy, author identity or visual fidelity.
+
+`PdfLoadOptions.PreferToUnicode` selects the Unicode-map path, `UseWinAnsiFallback = false` rejects unresolved mappings instead of emitting fallback characters, and `AdjustKerningFromTJ` controls positioned advances between strings in `TJ` arrays. Load settings and parser budgets can be copied with `Clone()`.
+
 `result.ToMarkdown()` uses canonical reading order and emits detected tables once, including tables reconstructed from OCR geometry. `result.ExportStructured(PdfStructuredExportFormat.Json)` preserves positioned `lines` and includes canonical page `text` and detected `tables`. Each table contains its source kind, coordinate space, vertical bounds and original cell `rows`; these additive fields retain the `officeimo.pdf.logical.v1` schema identifier.
 
 For documents with many embedded images, `pdf.Images.Visit(image => { ... }, cancellationToken)`

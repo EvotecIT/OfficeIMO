@@ -1,3 +1,4 @@
+using OfficeIMO.Reader.FormatInternals;
 using OfficeIMO.Excel;
 
 namespace OfficeIMO.Reader.Excel;
@@ -7,7 +8,7 @@ internal static partial class ExcelReaderAdapter {
         ReaderExcelOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using ExcelDocument document = Load(path, readerOptions);
-        using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
+        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
         foreach (var chunk in Extract(reader, path, readerOptions, options, BuildLegacyWarnings(document), cancellationToken))
             yield return chunk;
     }

@@ -37,6 +37,7 @@ public static class OfficeDocumentReaderBuilderTextExtensions {
                 new[] { "OfficeIMO.Reader.Tests/Reader.Incremental.cs" })).ToArray(),
             UseDetectedKindFallback = true,
             SupportsIncrementalPath = true,
+            SupportsTextAndMetadata = true,
             SupportsIncrementalStream = true,
             ReadPath = (path, options, token) => TextReaderAdapter.Read(path, kind, options, token),
             ReadStream = (stream, sourceName, options, token) => TextReaderAdapter.Read(stream, sourceName, kind, options, token),

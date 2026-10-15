@@ -12,6 +12,7 @@ namespace OfficeIMO.Provenance;
 internal sealed class OfficeProvenanceJpegXmpResult {
     internal HashSet<int> SegmentStarts { get; } = new HashSet<int>();
     internal Dictionary<int, byte[]> Replacements { get; } = new Dictionary<int, byte[]>();
+    internal List<string> InspectionIssues { get; } = new List<string>();
 }
 
 internal static class OfficeProvenanceJpegXmp {
@@ -29,7 +30,8 @@ internal static class OfficeProvenanceJpegXmp {
         OfficeProvenanceOptions options,
         OfficeProvenanceContext? context,
         OfficeProvenanceRemovalOptions? removalOptions,
-        List<OfficeProvenanceChange>? changes) {
+        List<OfficeProvenanceChange>? changes,
+        Action<byte[], string, bool>? inspectPacket = null) {
         var result = new OfficeProvenanceJpegXmpResult();
         var standards = new List<StandardPacket>();
         var extensions = new List<ExtendedChunk>();
@@ -87,8 +89,10 @@ internal static class OfficeProvenanceJpegXmp {
                 TryAssemble(chunks, options.MaxAssetBytes, out byte[] packet) &&
                 string.Equals(ComputeGuid(packet), guid, StringComparison.OrdinalIgnoreCase));
         bool standardSetIsStructurallyValid = standards.Count <= 1 && referenceCount <= 1 && extendedSetIsStructurallyValid;
+        if (!standardSetIsStructurallyValid) result.InspectionIssues.Add("xmp:ambiguous-or-invalid-packet-set");
         foreach (StandardPacket standard in standards) {
             string location = $"JPEG[{imageIndex}]/APP1-XMP@{standard.SegmentStart}";
+            inspectPacket?.Invoke(standard.Packet, location, standardSetIsStructurallyValid);
             if (context != null) OfficeProvenanceXmp.Inspect(standard.Packet, options, context, location, standardSetIsStructurallyValid);
             if (removalOptions != null && changes != null &&
                 OfficeProvenanceXmp.TryRemoveAiDeclarations(standard.Packet, removalOptions, location, changes, out byte[] cleaned,
@@ -104,13 +108,16 @@ internal static class OfficeProvenanceJpegXmp {
             int firstChunkOffset = chunks.Length == 0 ? int.MaxValue : chunks[0].SegmentStart;
             string location = $"JPEG[{imageIndex}]/APP1-ExtendedXMP@{firstChunkOffset}[{reference.Key}]";
             if (!TryAssemble(chunks, options.MaxAssetBytes, out byte[] packet)) {
+                result.InspectionIssues.Add("xmp:extended-incomplete-or-over-limit");
                 if (chunks.Length != 0) context?.Diagnostics.Add($"{location}: extended XMP chunks are incomplete or malformed.");
                 continue;
             }
             if (!string.Equals(ComputeGuid(packet), reference.Key, StringComparison.OrdinalIgnoreCase)) {
+                result.InspectionIssues.Add("xmp:extended-digest-mismatch");
                 context?.Diagnostics.Add($"{location}: extended XMP digest does not match its standard-packet reference.");
                 continue;
             }
+            inspectPacket?.Invoke(packet, location, standardSetIsStructurallyValid);
             if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location, standardSetIsStructurallyValid);
             if (removalOptions == null || changes == null) continue;
 

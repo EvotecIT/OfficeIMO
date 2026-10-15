@@ -303,7 +303,7 @@ namespace OfficeIMO.Excel {
             } catch (XmlException) {
                 rows = default;
                 return false;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 rows = default;
                 return false;
             } catch (UnauthorizedAccessException) {
@@ -432,7 +432,7 @@ namespace OfficeIMO.Excel {
             } catch (XmlException) {
                 rows = Array.Empty<object?[]>();
                 return false;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 rows = Array.Empty<object?[]>();
                 return false;
             } catch (UnauthorizedAccessException) {

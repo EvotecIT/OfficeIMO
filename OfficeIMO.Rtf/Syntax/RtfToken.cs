@@ -5,6 +5,7 @@ namespace OfficeIMO.Rtf.Syntax;
 /// </summary>
 public sealed class RtfToken {
     private readonly byte[]? _binaryData;
+    private readonly bool _binaryFromRawText;
 
     internal RtfToken(
         RtfTokenKind kind,
@@ -15,7 +16,7 @@ public sealed class RtfToken {
         char? controlSymbol = null,
         int? parameter = null,
         bool hasParameter = false,
-        byte[]? binaryData = null) {
+        byte[]? binaryData = null, bool binaryFromRawText = false, int? declaredBinaryLength = null) {
         Kind = kind;
         Position = position;
         RawText = rawText ?? string.Empty;
@@ -25,6 +26,7 @@ public sealed class RtfToken {
         Parameter = parameter;
         HasParameter = hasParameter;
         _binaryData = binaryData == null ? null : (byte[])binaryData.Clone();
+        _binaryFromRawText = binaryFromRawText; DeclaredBinaryLength = declaredBinaryLength;
     }
 
     /// <summary>Token kind.</summary>
@@ -52,7 +54,10 @@ public sealed class RtfToken {
     public bool HasParameter { get; }
 
     /// <summary>Binary payload following a <c>\binN</c> control word.</summary>
-    public byte[]? BinaryData => _binaryData == null ? null : (byte[])_binaryData.Clone();
+    public byte[]? BinaryData => _binaryFromRawText ? RtfBinary.DecodeRawText(RawText)
+        : _binaryData == null ? null : (byte[])_binaryData.Clone();
+    internal bool IsBinaryDeferred => _binaryFromRawText;
+    internal int? DeclaredBinaryLength { get; }
 
     /// <inheritdoc />
     public override string ToString() {

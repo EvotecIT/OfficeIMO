@@ -51,6 +51,7 @@ internal static partial class DocumentReaderEngine {
             }
             yield break;
         }
+        ValidateProjection(handler, options, sourceName);
         long? maximum = ResolveStreamMaxInputBytes(sourceName, options, stream.CanSeek);
         ReaderInputLimitProbe? probe = ResolveStreamInputLimitProbe(sourceName, options);
         long? initialPosition = stream.CanSeek ? stream.Position : null;

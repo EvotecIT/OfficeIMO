@@ -77,6 +77,7 @@ internal static class OfficeProvenanceXml {
         using XmlReader reader = XmlReader.Create(stream, CreateReaderSettings(options));
         int materializedNodes = 0;
         while (reader.Read()) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (reader.NodeType == XmlNodeType.Element && reader.Depth > MaximumDepth) {
                 throw OfficeProvenanceLimitException.Create($"{formatName} exceeds the configured XML depth limit.");
             }

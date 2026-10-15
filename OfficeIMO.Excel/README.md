@@ -5,6 +5,24 @@
 
 `OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, converts, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed. It also opens BIFF8 `.xls` and BIFF12 `.xlsb` workbooks, projects supported content into the normal OfficeIMO model, and provides first-party native writer subsets with explicit preservation and loss diagnostics.
 
+## Bounded native inspection
+
+`ExcelLoadOptions.AllowBinaryProjection = false` accepts XML workbook packages
+and rejects XLS/XLSB before their secondary payload/model projection. The default
+keeps existing binary import behavior. The inspection snapshot retains saved
+values, authored formulas, comments and worksheet state without evaluating formulas.
+
+`InspectEmbeddedPayloads(options, cancellationToken)` inventories inert package,
+OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
+streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` is the direct
+single-payload convenience API. Keep the workbook open while requesting reads;
+returned complete read-only streams are caller-owned and survive workbook
+disposal. The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
+defines count, member, aggregate and cumulative work limits, unknown lengths and
+optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
+relationship without reading binary module content, with
+`ModuleInspectionRequested = false`.
+
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
 ## Install
@@ -38,6 +56,30 @@ using var incoming = ExcelDocument.Load("upload.xlsx", ExcelLoadOptions.Untruste
 ```
 
 This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with workbooks containing those parts; `PackageSecurity` can be set explicitly for a different policy.
+
+Retain original-package evidence without a second file read:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Load("review.xlsx", new ExcelLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly,
+    PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = 64L * 1024 * 1024 },
+    CaptureSourcePackageSecurity = true
+});
+Console.WriteLine(workbook.SourcePackageSecurityReport?.ContainerKind);
+Console.WriteLine(workbook.SourcePackageSecurityScope);
+var loadedSafety = workbook.InspectLoadedContentSafety();
+```
+
+Capture uses the loader's source bytes and retains their physical scope, including
+an encrypted outer container where applicable. Later model edits do not rewrite
+that report. Loaded-content safety inspection examines the current workbook without
+reopening, saving, recalculating formulas or refreshing external links. Structural
+findings and saved values remain evidence; they do not verify signature validity
+or establish a safe workbook. Source capture is opt-in, and load/import budgets
+still apply.
 
 For ordinary workbook work, use `ExcelDocument.Create(...)` or
 `ExcelDocument.Load(...)`, edit the same document through its sheets, then call
@@ -266,6 +308,25 @@ IReadOnlyList<string> sheetNames = ExcelDocument.GetSheetNames(
 XLS. It returns readable worksheets in workbook order and applies
 `MaxInputBytes`, `MaxWorksheets`, `MaxMetadataPartBytes`, and the configured
 cancellation token before worksheet data is opened.
+
+Modern XML read APIs report configured input, metadata, shared-string, dense-range,
+and data-reader buffering ceilings as `OfficeInspectionResourceLimitException`.
+Its `Owner` is `excel`; `LimitName` and `Maximum` identify the effective native
+ceiling. Malformed package content retains its existing error contract. The
+bounded decrypted-package check uses the canonical `encryption` owner.
+
+URI reads and loads apply native input and package-security ceilings alongside
+`ExcelHttpLoadOptions.MaxBytes`. HTTP and read-input byte failures identify the
+binding `MaxBytes` or `MaxInputBytes` property and effective maximum under the
+`excel` owner. A binding `PackageSecurity.MaxPackageBytes` policy retains the
+Core `OfficePackageSecurityException` and `PackageSize` rule, including ties with
+the input ceiling. Transport failures retain their existing exception identity.
+
+Input and metadata admission applies while opening package input. Readers over an
+already-loaded mutable model do not reapply those checks to its earlier load.
+`MaxRangeCells` bounds dense range APIs; it does not cap the total cells delivered
+by row streaming. `MaxXmlDataReaderBufferedCharacters` applies to the XML data-reader
+buffer, rather than every workbook extraction path or total process memory.
 
 ```csharp
 using OfficeIMO.Excel;

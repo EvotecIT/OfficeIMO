@@ -162,17 +162,17 @@ namespace OfficeIMO.Excel {
             int cols = c2 - c1 + 1;
             int rows = r2 - r1 + 1;
             if (cols > _opt.MaxDataReaderColumns) {
-                throw new InvalidDataException($"Range data-reader column count exceeds {nameof(ExcelReadOptions.MaxDataReaderColumns)}.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderColumns), _opt.MaxDataReaderColumns, $"Range data-reader column count exceeds {nameof(ExcelReadOptions.MaxDataReaderColumns)}.");
             }
             long sampleCells = (long)Math.Min(Math.Max(0, rows - (headersInFirstRow ? 1 : 0)), schemaSampleRows) * cols;
             if (sampleCells > _opt.MaxDataReaderBufferedCells) {
-                throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
             }
             if (schemaSampleRows == 0
                 && (!_hasSdkWorksheetPart || rows > BufferedRangeStreamRowLimit)
                 && CanUseRangeStreamXmlReader()) {
                 if (cols > _opt.MaxDataReaderBufferedCells) {
-                    throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
                 }
 
                 return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct,
@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel {
 
             long chunkCells = (long)Math.Min(rows, chunkRows) * cols;
             if (chunkCells > _opt.MaxDataReaderBufferedCells) {
-                throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
             }
 
             IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct, trackCellPresence);

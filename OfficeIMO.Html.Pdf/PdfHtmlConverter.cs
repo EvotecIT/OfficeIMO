@@ -147,14 +147,10 @@ public static partial class PdfHtmlConverterExtensions {
             ? Array.Empty<PdfCore.PdfPageRange>()
             : CopyPageRanges(options);
         PdfCore.PdfReadOptions configured = options?.ReadOptions ?? PdfCore.PdfReadOptions.Default;
-        return document.Read(new PdfCore.PdfReadOptions {
-            Profile = configured.Profile,
-            PageSelection = ranges.Length == 0
-                ? configured.PageSelection
-                : PdfCore.PdfPageSelection.FromRanges(ranges),
-            LayoutOptions = configured.LayoutOptions,
-            Pipeline = configured.Pipeline
-        }, cancellationToken);
+        PdfCore.PdfPageSelection? selection = ranges.Length == 0
+            ? configured.PageSelection
+            : PdfCore.PdfPageSelection.FromRanges(ranges);
+        return document.Read(PdfCore.PdfReadOptions.WithPageSelection(configured, selection), cancellationToken);
     }
 
     private static PdfToHtmlOptions CreateRenderOptionsAfterPreselection(PdfToHtmlOptions? options, PdfCore.PdfDocument document) {

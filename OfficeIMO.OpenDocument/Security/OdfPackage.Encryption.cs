@@ -22,7 +22,7 @@ internal sealed partial class OdfPackage {
         long totalKdfIterations = 0;
         try {
             foreach (OdfPackageEntry entry in loaded.Where(entry => !encryptedPaths.Contains(entry.Name))) {
-                finalUncompressedBytes = checked(finalUncompressedBytes + entry.GetOriginalBytes().LongLength);
+                finalUncompressedBytes = checked(finalUncompressedBytes + entry.ByteLength);
             }
             foreach (XElement fileEntry in encryptedFileEntries) {
                 string path = ReadRequiredAttribute(fileEntry, "full-path", null);
@@ -59,6 +59,15 @@ internal sealed partial class OdfPackage {
         } catch (OverflowException ex) {
             throw new OdfEncryptedPackageException("Decrypted ODF package size metadata exceeds supported limits.",
                 OdfEncryptionFailureReason.ResourceLimitExceeded, null, ex);
+        }
+
+        // Keep complete declared-size/KDF preflight above. Deferred binary reads cannot retain
+        // passwords or keys, and cannot weaken the ordinary eager encrypted integrity checks.
+        if (options.DeferBinaryPayloads) {
+            string? encryptedBinary = encryptedPathList.FirstOrDefault(IsBinaryPayloadPath);
+            if (encryptedBinary != null) throw new OdfEncryptedPackageException(
+                "Deferred binary payload loading does not support encrypted non-XML entries. Use the ordinary load profile to verify them eagerly.",
+                OdfEncryptionFailureReason.UnsupportedProfile, encryptedBinary);
         }
 
         byte[] startKey;
@@ -104,7 +113,7 @@ internal sealed partial class OdfPackage {
                 long originalSize = ReadLongAttribute(fileEntry, "size", path);
                 byte[] plaintext = OdfPasswordEncryption.Decrypt(entry.GetOriginalBytes(), startKey, salt, iv,
                     iterationCount, checksum, originalSize, options.MaxEntryUncompressedBytes, path);
-                entry.ReplaceLoadedBytes(plaintext);
+                entry.ReplaceLoadedBytes(plaintext, decrypted: true);
                 encryptionData.Remove();
                 fileEntry.Attribute(OdfNamespaces.Manifest + "size")?.Remove();
             }

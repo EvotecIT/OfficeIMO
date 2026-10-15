@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Single owner for parser-backed semantic reconstruction.</summary>
-internal static class PdfDocumentReadEngine {
+internal static partial class PdfDocumentReadEngine {
     internal static PdfLogicalPage ReadLogicalPage(
         PdfReadDocument document,
         int pageNumber,
@@ -16,7 +16,7 @@ internal static class PdfDocumentReadEngine {
         PdfUnderstandingPageResult analysis = pipeline.RunPages(document, new[] { pageNumber }, cancellationToken)[0];
         formWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalFormWidget>? pageFormWidgets);
         PdfLogicalPage page = PdfLogicalPage.From(document, document.Pages[pageNumber - 1], pageNumber,
-            layout, pageFormWidgets, analysis, cancellationToken);
+            layout, pageFormWidgets, analysis, cancellationToken: cancellationToken);
         analysis.CompleteOperation();
         return page;
     }
@@ -51,7 +51,8 @@ internal static class PdfDocumentReadEngine {
         PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(options.Pipeline);
         pageAnalyses = new PdfUnderstandingPipeline(
                 options.LayoutOptions,
-                pipelineOptions)
+                pipelineOptions,
+                options.IncludeImages)
             .RunPages(document, pageNumbers, cancellationToken);
         IReadOnlyList<PdfUnderstandingPageResult> analyses = pageAnalyses;
         if (options.Profile == PdfReadProfile.Structured) {
@@ -70,7 +71,9 @@ internal static class PdfDocumentReadEngine {
             pageNumbers,
             analyses,
             options.Profile,
-            cancellationToken);
+            cancellationToken,
+            includeImages: options.IncludeImages,
+            includeFormWidgets: options.IncludeFormWidgets);
         cancellationToken.ThrowIfCancellationRequested();
         for (int pageIndex = 0; pageIndex < analyses.Count; pageIndex++) {
             analyses[pageIndex].CompleteOperation();

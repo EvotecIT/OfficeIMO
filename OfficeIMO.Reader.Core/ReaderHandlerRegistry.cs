@@ -151,6 +151,7 @@ internal sealed class ReaderHandlerRegistrySnapshot {
                      .Where(static item => item.ProbeStream != null && item.SupportsStreamInput)
                      .OrderBy(static item => item.Id, StringComparer.Ordinal)) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!DocumentReaderEngine.IsProjectionEligible(candidate, options, sourceName)) continue;
             stream.Position = position;
             bool accepted = candidate.ProbeStream!(stream, sourceName, options, cancellationToken);
             if (!accepted) continue;
@@ -168,6 +169,8 @@ internal sealed class ReaderHandlerRegistrySnapshot {
 }
 
 internal sealed class ReaderHandlerDescriptor {
+    public bool SupportsTextAndMetadata { get; private set; }
+    public IReadOnlyList<string> TextAndMetadataExtensions { get; private set; } = Array.Empty<string>();
     public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; private set; } = Array.Empty<ReaderFormatQualification>();
     public bool SupportsIncrementalPath { get; private set; }
     public bool SupportsIncrementalStream { get; private set; }
@@ -280,6 +283,10 @@ internal sealed class ReaderHandlerDescriptor {
         }
 
         IReadOnlyList<string> extensions = NormalizeExtensions(registration.Extensions);
+        IReadOnlyList<string> projectionExtensions = NormalizeExtensions(registration.TextAndMetadataExtensions);
+        if (projectionExtensions.Count > 0 && (!registration.SupportsTextAndMetadata ||
+            projectionExtensions.Any(extension => !extensions.Contains(extension, StringComparer.OrdinalIgnoreCase))))
+            throw new ArgumentException("TextAndMetadata extensions must belong to a supporting handler's registered extensions.", nameof(registration));
         if (extensions.Count == 0 && !registration.UseDetectedKindFallback) {
             throw new ArgumentException("Handler must define at least one extension unless it is a detected-kind fallback.", nameof(registration));
         }
@@ -322,6 +329,8 @@ internal sealed class ReaderHandlerDescriptor {
             registration.ExtensionValidationProbeStream,
             registration.OpenPathForContentDetection) {
                 FormatQualifications = NormalizeQualifications(registration.FormatQualifications, extensions, id),
+                SupportsTextAndMetadata = registration.SupportsTextAndMetadata,
+                TextAndMetadataExtensions = Array.AsReadOnly(projectionExtensions.ToArray()),
                 SupportsIncrementalPath = registration.SupportsIncrementalPath,
                 SupportsIncrementalStream = registration.SupportsIncrementalStream
             };
@@ -342,6 +351,8 @@ internal sealed class ReaderHandlerDescriptor {
     public ReaderHandlerCapability ToCapability() {
         return new ReaderHandlerCapability {
             Id = Id,
+            SupportsTextAndMetadata = SupportsTextAndMetadata,
+            TextAndMetadataExtensions = Array.AsReadOnly(TextAndMetadataExtensions.ToArray()),
             FormatQualifications = Array.AsReadOnly(FormatQualifications.ToArray()),
             DisplayName = DisplayName,
             Description = Description,

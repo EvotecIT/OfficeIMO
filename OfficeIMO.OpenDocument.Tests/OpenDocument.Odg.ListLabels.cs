@@ -16,7 +16,8 @@ public sealed class OpenDocumentOdgListLabelTests {
         if (afterVisibleParagraph) shape.AddParagraph("Before the list");
         var p = shape.AddList().AddItem("").Paragraphs[0];
         p.Element.Add(Enumerable.Range(0, 100001).Select(_ => new XElement(OdfNamespaces.Text + "span")));
-        Assert.Throws<NotSupportedException>(() => p.Text);
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => p.Text);
+        Assert.Equal("opendocument", error.Owner); Assert.Equal("MaximumVisitedElements", error.LimitName); Assert.Equal(100000, error.Maximum);
         var result = document.Pages[0].ToDrawing();
         Assert.DoesNotContain(result.Value.Elements, e => e is OfficeDrawingRichText);
         Assert.Contains(result.Report.Mappings, m => m.Feature == "shape:Lists:text" && m.Status == OdfConversionMappingStatus.Skipped);

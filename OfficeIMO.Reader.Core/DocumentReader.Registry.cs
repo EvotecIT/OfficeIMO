@@ -128,13 +128,24 @@ internal static partial class DocumentReaderEngine {
 
     internal static ReaderOptions NormalizeOptions(ReaderOptions? options) {
         ReaderOptions? source = options;
+        if (source != null && source.Projection != ReaderProjection.Full && source.Projection != ReaderProjection.TextAndMetadata)
+            throw new ArgumentOutOfRangeException(nameof(ReaderOptions.Projection));
+        if (source?.OpenXmlMaxPartUncompressedBytes < 1)
+            throw new ArgumentOutOfRangeException(nameof(ReaderOptions.OpenXmlMaxPartUncompressedBytes));
+        if (source?.OpenXmlMaxTotalUncompressedBytes < 1)
+            throw new ArgumentOutOfRangeException(nameof(ReaderOptions.OpenXmlMaxTotalUncompressedBytes));
         var clone = new ReaderOptions {
+            Projection = ReaderReadScope.Current?.Projection == ReaderProjection.TextAndMetadata
+                ? ReaderProjection.TextAndMetadata : source?.Projection ?? ReaderProjection.Full,
             MaxInputBytes = source?.MaxInputBytes,
             InputByteBudget = source?.InputByteBudget,
             ResourceLimits = source?.ResourceLimits?.CloneValidated(),
+            Inspection = source?.Inspection?.CloneValidated(),
             TextEncoding = source?.TextEncoding == null ? null : (Encoding)source.TextEncoding.Clone(),
             ThrowOnInvalidTextBytes = source?.ThrowOnInvalidTextBytes ?? false,
             OpenXmlMaxCharactersInPart = source == null ? ReaderOptions.DefaultOpenXmlMaxCharactersInPart : source.OpenXmlMaxCharactersInPart,
+            OpenXmlMaxPartUncompressedBytes = source?.OpenXmlMaxPartUncompressedBytes,
+            OpenXmlMaxTotalUncompressedBytes = source?.OpenXmlMaxTotalUncompressedBytes,
             MaxOpenXmlImageAssets = source == null ? ReaderOptions.DefaultMaxOpenXmlImageAssets : source.MaxOpenXmlImageAssets,
             OpenPassword = source?.OpenPassword,
             MaxOpenXmlImagePlacementsPerRelationship = source == null ? ReaderOptions.DefaultMaxOpenXmlImagePlacementsPerRelationship : source.MaxOpenXmlImagePlacementsPerRelationship,

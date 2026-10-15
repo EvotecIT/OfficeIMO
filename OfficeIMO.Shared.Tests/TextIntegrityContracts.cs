@@ -96,9 +96,12 @@ public sealed class TextIntegrityContracts {
 
     [Fact]
     public void InspectionBoundsFindingsAndMalformedUtf16() {
-        Assert.Throws<InvalidDataException>(() => OfficeTextIntegrityInspector.Inspect(
+        var limit = Assert.Throws<OfficeInspectionResourceLimitException>(() => OfficeTextIntegrityInspector.Inspect(
             "\u200B\u200B",
             new OfficeTextIntegrityOptions { MaxFindings = 1 }));
+        Assert.Equal("text-integrity", limit.Owner);
+        Assert.Equal(nameof(OfficeTextIntegrityOptions.MaxFindings), limit.LimitName);
+        Assert.Equal(1L, limit.Maximum);
 
         OfficeTextIntegrityFinding finding = Assert.Single(
             OfficeTextIntegrityInspector.Inspect("x\uD800y").Findings);

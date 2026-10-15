@@ -223,17 +223,7 @@ public sealed class ReleasePackagingGuardrails {
         return relativePath.Replace('\\', '/');
     }
 
-    private static string GetRepositoryRoot() {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) {
-                return directory.FullName;
-            }
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
-    }
+    private static string GetRepositoryRoot() => OfficeIMO.Tests.RepositoryTestPaths.Find();
 
     private sealed class PackageProject {
         internal PackageProject(string projectName, string packageId, string version) {

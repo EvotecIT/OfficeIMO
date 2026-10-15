@@ -23,7 +23,10 @@ public sealed class WordOdtNotesConversionTests {
         note.AddParagraph().Element.Add(new XElement(OdfNamespaces.Text + "s",
             new XAttribute(OdfNamespaces.Text + "c", halfLimit)));
 
-        Assert.Throws<InvalidDataException>(() => source.ToWordDocumentResult());
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => source.ToWordDocumentResult());
+        Assert.Equal("opendocument", error.Owner);
+        Assert.Equal("MaximumDecodedCharacters", error.LimitName);
+        Assert.True(error.Maximum > 0 && error.Maximum <= 16L * 1024 * 1024);
     }
 
     [Fact]

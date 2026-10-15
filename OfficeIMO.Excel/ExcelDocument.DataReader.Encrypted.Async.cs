@@ -63,8 +63,8 @@ namespace OfficeIMO.Excel {
                 long originalPosition = source.CanSeek ? source.Position : 0L;
                 byte[] encryptedBytes;
                 try {
-                    encryptedBytes = await OfficeStreamReader.ReadRemainingBytesAsync(
-                        source, linkedCancellation.Token, options.MaxInputBytes).ConfigureAwait(false);
+                    encryptedBytes = await ExcelReadLimitFailure.ReadInputAsync(() => OfficeStreamReader.ReadRemainingBytesAsync(
+                        source, linkedCancellation.Token, options.MaxInputBytes), options.MaxInputBytes).ConfigureAwait(false);
                 } finally {
                     if (source.CanSeek) source.Position = originalPosition;
                 }

@@ -29,11 +29,12 @@ internal sealed class ArchivePaths {
     }
     private string Validate(string authored) {
         string path = authored.Replace('\\', '/');
-        if (OfficeArchiveSafety.IsUnsafePath(path) || path.Length > _limits.PathLength)
+        if (OfficeArchiveSafety.IsUnsafePath(path))
             throw new InvalidDataException("Archive member has an unsafe or oversized relative path: " + authored);
         string[] parts = path.Split('/');
-        if (parts.Length > _limits.Depth) throw new InvalidDataException("Archive member exceeds the configured path depth.");
         foreach (string part in parts) ValidateSegment(part);
+        ArchiveLimits.Check(path.Length, _limits.PathLength, "MaxPathLength");
+        ArchiveLimits.Check(parts.Length, _limits.Depth, "MaxPathDepth");
         return path;
     }
     private void AddParents(string path, string authored) {

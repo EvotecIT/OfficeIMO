@@ -87,7 +87,8 @@ public sealed partial class SharedStringIndexTests {
         if (exit == "LateRichText") {
             AssertExactIndexedValues(failed, expected);
         } else if (exit == "Items") {
-            Assert.Throws<InvalidDataException>(() => failed.EnsureLoaded());
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => failed.EnsureLoaded());
+            Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringItems), error.LimitName); Assert.Equal(options.MaxSharedStringItems, error.Maximum);
         } else {
             Assert.Throws<OperationCanceledException>(() => failed.EnsureLoaded());
         }

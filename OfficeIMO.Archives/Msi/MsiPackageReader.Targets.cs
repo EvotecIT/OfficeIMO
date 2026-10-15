@@ -28,7 +28,7 @@ internal sealed partial class MsiPackageReader {
                 // Alias equality needs bytes even when the logical target is excluded.
                 // Count every retained source row, never only the deduplicated output.
                 if (selected || aliases.Length > 1)
-                    ArchiveLimits.Add(ref retainedBytes, alias.Length, _limits.Expanded, "Selected and compared MSI content");
+                    ArchiveLimits.Add(ref retainedBytes, alias.Length, _limits.Expanded, "MaxExpandedBytes");
                 alias.Target = target;
             }
         }

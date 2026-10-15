@@ -29,7 +29,7 @@ public sealed partial class OdgPage {
                 fields.PreparedTextFrames.Add(shape.Element, prepared);
                 fields.ProjectedFrameBounds.Add(shape.Element, new OdfRect(bounds.X, bounds.Y,
                     OdfLength.Points(prepared.Width), OdfLength.Points(prepared.Height)));
-            } catch (Exception exception) when (exception is FormatException or ArgumentException or NotSupportedException or InvalidDataException or OverflowException) {
+            } catch (Exception exception) when (exception is FormatException or ArgumentException or NotSupportedException or InvalidDataException or OverflowException or OfficeInspectionResourceLimitException) {
                 // The paint pass owns the geometry failure mapping. Cancellation
                 // and unexpected failures propagate without a partial result.
             }

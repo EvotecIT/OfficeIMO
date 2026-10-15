@@ -206,7 +206,7 @@ namespace OfficeIMO.Excel {
             } catch (XmlException) {
                 items = null!;
                 return false;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 items = null!;
                 return false;
             } catch (UnauthorizedAccessException) {
@@ -442,7 +442,7 @@ namespace OfficeIMO.Excel {
 
         private void EnsureCanAddSharedString(int itemCount) {
             if (itemCount >= _maxSharedStringItems) {
-                throw new InvalidDataException($"Shared string table exceeds the configured limit of {_maxSharedStringItems} entries.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxSharedStringItems), _maxSharedStringItems, $"Shared string table exceeds the configured limit of {_maxSharedStringItems} entries.");
             }
         }
 
@@ -452,11 +452,11 @@ namespace OfficeIMO.Excel {
 
         private void ValidateSharedStringLength(int length, ref long totalCharacters) {
             if (length > _maxSharedStringItemCharacters) {
-                throw new InvalidDataException($"Shared string item exceeds the configured limit of {_maxSharedStringItemCharacters} characters.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxSharedStringItemCharacters), _maxSharedStringItemCharacters, $"Shared string item exceeds the configured limit of {_maxSharedStringItemCharacters} characters.");
             }
 
             if (totalCharacters > _maxSharedStringCharacters - length) {
-                throw new InvalidDataException($"Shared string table exceeds the configured aggregate limit of {_maxSharedStringCharacters} characters.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxSharedStringCharacters), _maxSharedStringCharacters, $"Shared string table exceeds the configured aggregate limit of {_maxSharedStringCharacters} characters.");
             }
 
             totalCharacters += length;
@@ -464,7 +464,7 @@ namespace OfficeIMO.Excel {
 
         private static void EnsureItemCharacterBudget(int currentLength, int additionalLength, int maxItemCharacters) {
             if ((long)currentLength + additionalLength > maxItemCharacters) {
-                throw new InvalidDataException($"Shared string item exceeds the configured limit of {maxItemCharacters} characters.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxSharedStringItemCharacters), maxItemCharacters, $"Shared string item exceeds the configured limit of {maxItemCharacters} characters.");
             }
         }
 

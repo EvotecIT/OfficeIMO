@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Options for controlling PDF reading/decoding behavior.
 /// </summary>
-public sealed class PdfLoadOptions {
+public sealed partial class PdfLoadOptions {
     /// <summary>Creates default read settings with an independent limits graph.</summary>
     public static PdfLoadOptions Default => new PdfLoadOptions();
 

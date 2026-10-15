@@ -14,16 +14,16 @@ namespace OfficeIMO.Core.Internal {
         /// Payload streams are never materialized.
         /// </summary>
         internal static bool TryContainsStreamPath(Stream stream, string expectedPath, long maxInputBytes,
-            int maxDirectoryEntries, out bool contains, out string? error) {
+            int maxDirectoryEntries, out bool contains, out string? error, bool preserveResourceLimits = false) {
             return TryContainsStreamPath(stream, expectedPath,
                 maxInputBytes, maxDirectoryEntries, CancellationToken.None,
-                out contains, out error);
+                out contains, out error, preserveResourceLimits);
         }
 
         internal static bool TryContainsStreamPath(Stream stream,
             string expectedPath, long maxInputBytes,
             int maxDirectoryEntries, CancellationToken cancellationToken,
-            out bool contains, out string? error) {
+            out bool contains, out string? error, bool preserveResourceLimits = false) {
             contains = false;
             if (string.IsNullOrWhiteSpace(expectedPath)) {
                 throw new ArgumentException("A stream path is required.", nameof(expectedPath));
@@ -32,7 +32,7 @@ namespace OfficeIMO.Core.Internal {
             if (!TryInspectDirectory(stream, maxInputBytes, maxDirectoryEntries,
                 cancellationToken,
                 out IReadOnlyList<OfficeCompoundFileEntry> entries,
-                out error)) {
+                out error, preserveResourceLimits)) {
                 return false;
             }
 
@@ -51,17 +51,17 @@ namespace OfficeIMO.Core.Internal {
         /// Inspects allocation tables and directory metadata without materializing payload streams.
         /// </summary>
         internal static bool TryInspectDirectory(Stream stream, long maxInputBytes,
-            int maxDirectoryEntries, out IReadOnlyList<OfficeCompoundFileEntry> entries, out string? error) {
+            int maxDirectoryEntries, out IReadOnlyList<OfficeCompoundFileEntry> entries, out string? error, bool preserveResourceLimits = false) {
             return TryInspectDirectory(stream, maxInputBytes,
                 maxDirectoryEntries, CancellationToken.None, out entries,
-                out error);
+                out error, preserveResourceLimits);
         }
 
         internal static bool TryInspectDirectory(Stream stream,
             long maxInputBytes, int maxDirectoryEntries,
             CancellationToken cancellationToken,
             out IReadOnlyList<OfficeCompoundFileEntry> entries,
-            out string? error) {
+            out string? error, bool preserveResourceLimits = false) {
             entries = Array.Empty<OfficeCompoundFileEntry>();
             error = null;
             try {
@@ -76,11 +76,16 @@ namespace OfficeIMO.Core.Internal {
 
                 long basePosition = stream.Position;
                 long remainingBytes = checked(stream.Length - basePosition);
-                if (remainingBytes < HeaderSize || remainingBytes > maxInputBytes) {
-                    error = remainingBytes > maxInputBytes
-                        ? $"The compound file exceeds the configured input bound of {maxInputBytes}."
-                        : "The compound file is shorter than its header.";
+                if (remainingBytes < HeaderSize) {
+                    error = "The compound file is shorter than its header.";
                     return false;
+                }
+                if (remainingBytes > maxInputBytes) {
+                    if (!preserveResourceLimits) {
+                        error = $"The compound file exceeds the configured input bound of {maxInputBytes}.";
+                        return false;
+                    }
+                    throw AdmissionFailure("MaxInputBytes", remainingBytes, maxInputBytes, true, string.Empty);
                 }
 
                 byte[] header = ReadAt(stream, basePosition, HeaderSize,
@@ -122,9 +127,9 @@ namespace OfficeIMO.Core.Internal {
                     fatSectorCount, cancellationToken);
                 byte[] directoryBytes = ReadDirectoryStream(stream, basePosition, directoryStart, sectorSize,
                     physicalSectorCount, fatSectorIds, maxDirectoryEntries,
-                    cancellationToken);
+                    cancellationToken, preserveResourceLimits);
                 List<DirectoryEntry> directoryEntries = ReadDirectoryEntries(directoryBytes, majorVersion,
-                    maxDirectoryEntries, cancellationToken);
+                    maxDirectoryEntries, cancellationToken, preserveResourceLimits);
                 entries = BuildCompoundEntries(directoryEntries,
                     cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
@@ -184,7 +189,7 @@ namespace OfficeIMO.Core.Internal {
 
         private static byte[] ReadDirectoryStream(Stream stream, long basePosition, uint directoryStart,
             int sectorSize, int physicalSectorCount, IReadOnlyList<uint> fatSectorIds,
-            int maxDirectoryEntries, CancellationToken cancellationToken) {
+            int maxDirectoryEntries, CancellationToken cancellationToken, bool preserveResourceLimits = false) {
             long maximumBytes = checked((long)maxDirectoryEntries * DirectoryEntrySize);
             using (var output = new MemoryStream()) {
                 uint sector = directoryStart;
@@ -196,7 +201,8 @@ namespace OfficeIMO.Core.Internal {
                         throw new InvalidDataException("Invalid compound directory sector chain.");
                     }
                     if (output.Length > maximumBytes - sectorSize) {
-                        throw new InvalidDataException($"Compound directory entry count exceeds {maxDirectoryEntries}.");
+                        throw AdmissionFailure("MaxDirectoryEntries", output.Length / DirectoryEntrySize + sectorSize / DirectoryEntrySize,
+                            maxDirectoryEntries, preserveResourceLimits, $"Compound directory entry count exceeds {maxDirectoryEntries}.");
                     }
                     byte[] directorySector = ReadSector(stream, basePosition, sector, sectorSize,
                         physicalSectorCount, cancellationToken);

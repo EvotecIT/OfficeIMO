@@ -80,7 +80,7 @@ public sealed class MsiPayloadAliasTests {
             new ArchiveExtractionOptions { MaxDecompressionWorkBytes = 32768 },
             new ArchiveExtractionOptions { IncludeFile = _ => false, MaxExpandedBytes = 9 }
         }) {
-            Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(package, fixture.Destination, options));
+            Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(package, fixture.Destination, options));
             AssertNoOutput(fixture);
         }
     }

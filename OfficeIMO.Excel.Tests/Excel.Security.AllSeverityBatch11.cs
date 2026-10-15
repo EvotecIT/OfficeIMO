@@ -10,10 +10,13 @@ namespace OfficeIMO.Tests {
         public void Reader_RejectsWorkbookBufferBeyondConfiguredInputLimit() {
             using var stream = new MemoryStream(new byte[32], writable: false);
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocumentReader.Open(stream, new ExcelReadOptions { MaxInputBytes = 16 }));
 
-            Assert.Contains("configured maximum size", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxInputBytes), exception.LimitName);
+            Assert.Equal(16, exception.Maximum);
+            Assert.Contains("configured maximum size", exception.InnerException!.Message, StringComparison.Ordinal);
         }
 
         [Fact]

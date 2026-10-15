@@ -358,8 +358,8 @@ namespace OfficeIMO.Core.Internal {
             if (maximumDecryptedPackageBytes.HasValue
                 && packageSize > unchecked((ulong)
                     maximumDecryptedPackageBytes.Value)) {
-                throw new InvalidDataException(
-                    $"The decrypted Office package declares {packageSize} bytes, exceeding the configured maximum of {maximumDecryptedPackageBytes.Value} bytes.");
+                throw new OfficeInspectionResourceLimitException("encryption", "MaximumDecryptedPackageBytes",
+                    maximumDecryptedPackageBytes.Value);
             }
             if (packageSize > int.MaxValue) {
                 throw new NotSupportedException("Encrypted packages larger than 2 GB are not supported by this API.");
