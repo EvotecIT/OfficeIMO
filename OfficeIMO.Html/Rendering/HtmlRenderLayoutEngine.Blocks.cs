@@ -496,6 +496,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)),
             avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)),
             pagedPaintExtent: pagedPaintExtent);
+        if (ownsFloatContext) block = OrderBoxFlowPaint(block);
         block = ApplyElementSemantics(block, element, style);
         if (ownsFloatContext) foreach (HtmlRenderVisual visual in block.Visuals) visual.PaintPhase = HtmlRenderPaintPhase.Atomic;
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);

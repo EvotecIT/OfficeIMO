@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         double? containingHeight,
         IElement element) {
-        HtmlRenderFlowBlock linked = AttachAnchorBoxFragment(block, style, containingWidth, element);
+        HtmlRenderFlowBlock linked = AttachAnchorBoxFragment(OrderBoxFlowPaint(block), style, containingWidth, element);
         HtmlRenderFlowBlock effected = ApplyElementPaintEffects(linked, style, containingWidth, element, out bool effectStackingContext);
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         HtmlRenderFlowBlock positioned = ApplyPositioning(effected, style, containingWidth, containingHeight, source);

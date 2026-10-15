@@ -26,12 +26,13 @@ public sealed class HtmlZeroHeightBoxTests {
         HtmlRenderShape tail = FilledShape(page, "div#tail");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
 
-        // Native controls isolate zero flow and positive expanded paint. Pixel
-        // samples avoid outline antialias edges and overlap with the sibling.
+        // Native controls isolate zero flow and expanded paint. Samples avoid
+        // antialias edges and include outline overlap with the sibling background.
         Assert.Equal(16D, tail.Y, 6);
         Assert.Equal(2D, tail.Height, 6);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(32, 13));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(32, 14));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(32, 16));
         Assert.Equal(TailColor, raster.GetPixel(128, 16));
     }
 
