@@ -88,7 +88,7 @@ public sealed partial class CsvDocument
         if (readerOptions?.ParallelProcessing is not null)
             throw new ArgumentException("AggregateRowsAsParallelAsync uses parallelOptions; CsvDataReaderOptions.ParallelProcessing must be omitted.", nameof(readerOptions));
         var parallel = parallelOptions ?? new ParallelRowMappingOptions();
-        int degree = parallel.GetDegreeOfParallelism(), batchSize = parallel.GetBatchSize(256);
+        int degree = parallel.GetDegreeOfParallelism(), batchSize = parallel.GetBatchSize(1024);
         var parsing = loadOptions?.Clone() ?? new CsvLoadOptions();
         CancellationToken loadToken = parsing.CancellationToken;
         token.ThrowIfCancellationRequested();
@@ -107,7 +107,7 @@ public sealed partial class CsvDocument
                     createAccumulator, accumulate, merge, result, stop).ConfigureAwait(false);
             else
             {
-                while (await reader.ReadAsync(stop.Token).ConfigureAwait(false))
+                while (await reader.ReadRecordAsync(stop.Token).ConfigureAwait(false))
                 {
                     stop.Token.ThrowIfCancellationRequested();
                     accumulate(ref result, new CsvRecord(reader));

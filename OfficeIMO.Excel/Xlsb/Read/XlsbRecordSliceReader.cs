@@ -356,6 +356,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     }
 
     internal struct XlsbSliceCursor {
+        private static readonly bool WideStringCountMatchesUtf16Units =
+            Encoding.Unicode.IsReadOnly &&
+            Encoding.Unicode.GetType() == typeof(UnicodeEncoding) &&
+            Encoding.Unicode.DecoderFallback is DecoderReplacementFallback fallback &&
+            fallback.DefaultString == "\uFFFD";
         private readonly byte[] _bytes;
         private readonly int _end;
 
@@ -433,9 +438,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         /// <summary>
         /// Validates and advances over a wide string without materializing its text.
-        /// Uses the same Unicode decoder and fallback policy as delivery.
+        /// The immutable default decoder preserves the number of complete UTF-16 code units,
+        /// replacing each unpaired surrogate with one U+FFFD. An unexpected decoder policy
+        /// retains the counting decode used by canonical delivery.
         /// </summary>
-        internal void ValidateWideString(int maxCharacters) {
+        internal int ValidateWideString(int maxCharacters) {
             uint count = ReadUInt32();
             if (count > maxCharacters) {
                 throw new InvalidDataException(
@@ -444,8 +451,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int byteCount = checked((int)count * 2);
             EnsureAvailable(byteCount);
-            Encoding.Unicode.GetCharCount(_bytes, Position, byteCount);
+            int characterCount = WideStringCountMatchesUtf16Units
+                ? (int)count
+                : Encoding.Unicode.GetCharCount(_bytes, Position, byteCount);
             Position += byteCount;
+            return characterCount;
         }
 
         internal void Skip(int count) {

@@ -1,6 +1,16 @@
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     internal static class CsvBenchmarkQualification {
+        internal static void ValidateTypedStruct() {
+            foreach (int rows in new TypedReadBenchmarks().RowCounts())
+                new CsvTypedStructReadBenchmarks { RowCount = rows }.Setup();
+        }
+
 #if OFFICEIMO_BENCHMARK_NEW_APIS
+        internal static async Task ValidateBorrowedAsyncReadAsync() {
+            foreach (int rows in new TypedReadBenchmarks().RowCounts())
+                await new CsvBorrowedAsyncReadBenchmarks { RowCount = rows }.SetupAsync();
+        }
+
         internal static async Task ValidateDirectAggregateScaleAsync() {
             // An explicit scale command preserves the bounded ordinary qualification.
             foreach (CsvParallelInput input in CsvParallelFixture.Cases())

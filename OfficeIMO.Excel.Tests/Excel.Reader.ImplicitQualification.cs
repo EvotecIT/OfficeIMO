@@ -71,6 +71,55 @@ public partial class Excel {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void DataReader_ImplicitRowsClearReusedValueAndFormulaMetadata(bool useCachedFormulaResult) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            string formulas = "<row><c><f>1+1</f><v>2</v></c><c><f>2+2</f><v>4</v></c><c><f>3+3</f><v>6</v></c></row>";
+            string xml = ImplicitQualificationWorksheet(formulas
+                + "<row><c><v>10</v></c><c/><c></c></row>"
+                + "<row><c><v>30</v></c><c><f>20+2</f><v>22</v></c><c><v>31</v></c></row>"
+                + "<row><c><v>11</v></c></row><row></row>"
+                + "<row><c><v>12</v></c><c t=\"inlineStr\"><is><t></t></is></c><c><v>13</v></c></row>");
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
+
+            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+                HasHeaderRow = false, MaxDataReaderBufferedCells = 3, MaxDataReaderChunkRows = 1,
+                UseCachedFormulaResult = useCachedFormulaResult,
+            });
+            Assert.Equal(3, reader.FieldCount);
+            Assert.True(reader.Read());
+            for (int column = 0; column < 3; column++) {
+                if (useCachedFormulaResult) Assert.Equal((column + 1) * 2, reader.GetInt32(column));
+                else Assert.Equal($"{column + 1}+{column + 1}", reader.GetString(column));
+            }
+            Assert.True(reader.Read());
+            Assert.Equal(10, reader.GetInt32(0));
+            Assert.True(reader.IsDBNull(1));
+            Assert.True(reader.IsDBNull(2));
+            Assert.True(reader.Read());
+            Assert.Equal(30, reader.GetInt32(0));
+            if (useCachedFormulaResult) Assert.Equal(22, reader.GetInt32(1));
+            else Assert.Equal("20+2", reader.GetString(1));
+            Assert.Equal(31, reader.GetInt32(2));
+            Assert.True(reader.Read());
+            Assert.Equal(11, reader.GetInt32(0));
+            Assert.True(reader.IsDBNull(1));
+            Assert.True(reader.IsDBNull(2));
+            Assert.True(reader.Read());
+            for (int column = 0; column < reader.FieldCount; column++) Assert.True(reader.IsDBNull(column));
+            Assert.True(reader.Read());
+            Assert.Equal(12, reader.GetInt32(0));
+            Assert.Equal(string.Empty, reader.GetString(1));
+            Assert.Equal(13, reader.GetInt32(2));
+            Assert.False(reader.Read());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void DataReader_ImplicitDimensionlessRowsInferLateCellReferencesBeforeEarlierCells(bool includeDimension) {
         string path = CreateCompactFastPathWorkbook();
         try {

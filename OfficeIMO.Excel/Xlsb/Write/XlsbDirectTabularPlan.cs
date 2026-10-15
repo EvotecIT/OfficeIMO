@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ((long)source.Rows.RowCount + (source.IncludeHeaders ? 1 : 0)) * source.Rows.ColumnCount <= MaximumCellSlots;
 
         internal static bool TryCreate(
-            ExcelDocument document,
+            ExcelDateSystem dateSystem,
             ExcelSheet sheet,
             ExcelDirectTabularSource source,
             XlsbSharedStringTable? sharedStrings,
@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         object? rawValue = flatValues != null ? flatValues[row * rows.ColumnCount + column]
                             : bufferedRow != null ? bufferedRow[column] : rows.GetValue(row, column);
                         if (rawValue is DateTime date) {
-                            double serial = ExcelDateSystemConverter.ToSerial(date, document.DateSystem);
+                            double serial = ExcelDateSystemConverter.ToSerial(date, dateSystem);
                             dateStyle ??= sheet.GetOrCreateDirectTabularDateStyle(source.UseCellValueNumberFormats);
                             candidate._kinds[slot] = DateKind;
                             candidate._payloads[slot] = unchecked((ulong)BitConverter.DoubleToInt64Bits(serial));

@@ -16,11 +16,15 @@ namespace OfficeIMO.CSV.Tests;
 
 public sealed class CsvAggregateAsyncTests {
     [Theory]
-    [InlineData(1)]
-    [InlineData(3)]
-    [InlineData(4096)]
-    [InlineData(32768)]
-    public async Task ShortReadsPreserveEveryBorrowedFieldAndOrderedIndependentState(int chunk) {
+    [InlineData(1, 1)]
+    [InlineData(3, 1)]
+    [InlineData(4096, 1)]
+    [InlineData(32768, 1)]
+    [InlineData(1, 4)]
+    [InlineData(3, 4)]
+    [InlineData(4096, 4)]
+    [InlineData(32768, 4)]
+    public async Task ShortReadsPreserveEveryBorrowedFieldAndOrderedIndependentState(int chunk, int degree) {
         Guid guid = Guid.Parse("03366c08-b412-48af-9106-386b7da35f77");
         string text = "Id,Name,Money,When,Flag,Key\r\n" + string.Concat(Enumerable.Range(1, 32).Select(
             id => $"{id},\"Żółć 😀 {id}\n\"\"quoted\"\"\",\"1,25\",02/01/2024,1,{guid}\r\n"));
@@ -48,11 +52,79 @@ public sealed class CsvAggregateAsyncTests {
             }, static (left, right) => { Assert.NotSame(left, right); left.Ids.AddRange(right.Ids); left.Sum += right.Sum; return left; },
             loadOptions: new CsvLoadOptions {
                 Culture = CultureInfo.GetCultureInfo("pl-PL"), DateTimeFormats = new[] { "dd/MM/yyyy" },
-            }, parallelOptions: Options(3, 3));
+            }, parallelOptions: Options(degree, 3));
         Assert.Equal(1, builders);
         Assert.Equal(Enumerable.Range(1, 32), result.Ids);
         Assert.Equal(528, result.Sum);
-        Assert.True(created.Count > 1);
+        if (degree == 1) Assert.Single(created);
+        else Assert.True(created.Count > 1);
+        Assert.True(input.AsyncReads > 0);
+        Assert.True(input.CanRead);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4096)]
+    public async Task MixedUnquotedAndQuotedRecordsKeepOneBatchAndEveryField(int chunk) {
+        const string text = "Id,Name,Value,Trailing\r\n" +
+            " 1 , Żółć 😀 , NULL ,\r\n" +
+            "2,\"quoted, \"\"name\"\"\",middle,\r\n" +
+            "3,   ,,last,ignored\r\n" +
+            "4, tail \r\n" +
+            "5,\"line1\nline2\",NULL,\r\n" +
+            "6, final , end ,";
+        string[] names = { "Żółć 😀", "quoted, \"name\"", "", "tail", "line1\nline2", "final" };
+        string[] values = { "NULL", "middle", "", "", "NULL", "end" };
+        string[] trailing = { "", "", "last", "", "", "" };
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes(text), chunk);
+        int factories = 0, merges = 0;
+        AsyncState result = await CsvDocument.AggregateRowsAsParallelAsync(
+            input, () => { Interlocked.Increment(ref factories); return new AsyncState(); },
+            header => {
+                Assert.Equal(4, header.Count);
+                return (ref AsyncState state, CsvRecord row) => {
+                    int id = row.GetInt32(0);
+                    Assert.Equal(4, row.FieldCount);
+                    Assert.Equal(names[id - 1], row.GetSpan(1).ToString());
+                    Assert.Equal(values[id - 1], row.GetString(2));
+                    Assert.Equal(trailing[id - 1], row.GetSpan(3).ToString());
+                    Assert.Equal(id == 4, row.IsMissing(2));
+                    Assert.Equal(id == 4, row.IsMissing(3));
+                    Assert.Equal(id == 1 || id == 5, row.IsNull(2));
+                    Assert.False(row.IsNull(3));
+                    state.Ids.Add(id);
+                };
+            }, (left, right) => {
+                Interlocked.Increment(ref merges);
+                Assert.NotSame(left, right);
+                left.Ids.AddRange(right.Ids);
+                return left;
+            }, loadOptions: new CsvLoadOptions {
+                TrimWhitespace = true, NullValue = "NULL",
+                ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.PadMissingFieldsAndIgnoreExtraFields,
+            }, parallelOptions: Options(4, 8));
+        Assert.Equal(Enumerable.Range(1, 6), result.Ids);
+        Assert.Equal(2, factories);
+        Assert.Equal(1, merges);
+        Assert.True(input.AsyncReads > 0);
+        Assert.True(input.CanRead);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4096)]
+    public async Task MalformedQuotedRecordDoesNotDispatchValidPrefixOfIncompleteBatch(int chunk) {
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes("Id,Name\n1,raw\n2,also raw\n3,\"unfinished"), chunk);
+        int factories = 0, callbacks = 0, merges = 0;
+        await Assert.ThrowsAsync<CsvParseException>(() => CsvDocument.AggregateRowsAsParallelAsync<int>(
+            input, () => { Interlocked.Increment(ref factories); return 0; },
+            _ => (ref int rows, CsvRecord row) => { Interlocked.Increment(ref callbacks); rows++; },
+            (left, right) => { Interlocked.Increment(ref merges); return left + right; },
+            loadOptions: new CsvLoadOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict },
+            parallelOptions: Options(4, 8)));
+        Assert.Equal(1, factories);
+        Assert.Equal(0, callbacks);
+        Assert.Equal(0, merges);
         Assert.True(input.AsyncReads > 0);
         Assert.True(input.CanRead);
     }

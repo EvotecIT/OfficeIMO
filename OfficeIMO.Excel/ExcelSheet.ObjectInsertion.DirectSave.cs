@@ -201,9 +201,11 @@ namespace OfficeIMO.Excel {
             }
 
             Type? inferred = inferredColumnTypes[columnIndex];
-            inferredColumnTypes[columnIndex] = inferred == null || inferred == valueType
-                ? valueType
-                : typeof(object);
+            if (inferred == valueType) {
+                return;
+            }
+
+            inferredColumnTypes[columnIndex] = inferred == null ? valueType : typeof(object);
         }
 
         internal static Type[] CompleteObjectExportColumnTypes(Type?[] inferredColumnTypes) {

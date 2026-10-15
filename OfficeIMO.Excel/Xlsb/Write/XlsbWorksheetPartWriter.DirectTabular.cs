@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     internal static partial class XlsbWorksheetPartWriter {
         /// <summary>Emits each source value once to an owned worksheet entry before package publication.</summary>
         internal static bool TryWriteDirectTabular(
-            ExcelDocument document,
+            ExcelDateSystem dateSystem,
             ExcelSheet sheet,
             ExcelDirectTabularSource source,
             Stream output,
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                             ? bufferedRow[column]
                             : rows.GetValue(row, column);
                     if (rawValue is DateTime date) {
-                        double serial = ExcelDateSystemConverter.ToSerial(date, document.DateSystem);
+                        double serial = ExcelDateSystemConverter.ToSerial(date, dateSystem);
                         dateStyle ??= sheet.GetOrCreateDirectTabularDateStyle(source.UseCellValueNumberFormats);
                         writer.WriteNumberCell(BrtCellReal, column, serial, dateStyle.Value);
                         wroteCell = true;

@@ -49,7 +49,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long Sylvan() => _workload.Sylvan();
 
-        internal long ExcelReaderStringsMaterialized(bool intern = false) => _workload.ExcelReader(materializeStrings: true, intern: intern);
+        internal long ExcelReaderStringsMaterialized(bool intern = false, bool prefetch = false) =>
+            _workload.ExcelReader(materializeStrings: true, intern: intern, prefetch: prefetch);
     }
 
     /// <summary>Consumes materialized string cells while preserving the peer's explicit cache-policy case.</summary>
@@ -73,6 +74,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         public long ExcelReaderStringsMaterialized() => _workload.ExcelReaderStringsMaterialized();
         [Benchmark]
         public long ExcelReaderStringsInterned() => _workload.ExcelReaderStringsMaterialized(intern: true);
+        [Benchmark]
+        public long ExcelReaderStringsMaterializedPrefetch() => _workload.ExcelReaderStringsMaterialized(prefetch: true);
         [Benchmark]
         public long OfficeIMOBytes() => _workload.OfficeIMOBytes();
         [Benchmark]

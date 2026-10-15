@@ -4,6 +4,7 @@ using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,23 @@ namespace OfficeIMO.CSV.Tests;
 
 public class CsvIncrementalAsyncReaderTests
 {
+    [Fact]
+    public async Task Parser_Disposal_Failure_Preserves_Error_And_Ends_Both_Advance_Routes()
+    {
+        var input = new ThrowingDisposeTextReader("Value\n1\n");
+        var parser = new CsvParser.IncrementalRecords(input, new CsvLoadOptions());
+        Assert.True(await parser.ReadAsync(asynchronous: true, CancellationToken.None));
+
+        Assert.Same(input.Failure, Assert.Throws<IOException>(() => parser.Dispose()));
+        parser.Dispose();
+        Assert.Equal(1, input.DisposeCalls);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            parser.ReadAsync(asynchronous: true, CancellationToken.None, reuseValues: true).AsTask());
+        using var batch = new CsvRecordTextBatch(1, 1, System.Globalization.CultureInfo.InvariantCulture, null);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            parser.CaptureRawRecordRunAsync(batch, CancellationToken.None).AsTask());
+    }
+
     [Theory]
     [InlineData(",", 1)]
     [InlineData(",", 4096)]
@@ -441,6 +459,71 @@ public class CsvIncrementalAsyncReaderTests
     }
 
     [Theory]
+    [InlineData(CsvCompressionType.None)]
+    [InlineData(CsvCompressionType.GZip)]
+    public async Task Owned_Path_Preserves_Bom_Unicode_Quoted_Rows_And_Closes_On_Early_Disposal(CsvCompressionType compression)
+    {
+        const int rowCount = 4096;
+        string extension = compression == CsvCompressionType.GZip ? ".csv.gz" : ".csv";
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-csv-incremental-" + Guid.NewGuid().ToString("N") + extension);
+        var expectedNotes = new string[rowCount];
+        var random = new Random(7101);
+        var textBytes = new byte[64];
+        try
+        {
+            using (Stream destination = compression == CsvCompressionType.GZip
+                ? new GZipStream(File.Create(path), CompressionLevel.Fastest)
+                : File.Create(path))
+            using (var writer = new StreamWriter(destination, new UnicodeEncoding(false, true)))
+            {
+                writer.NewLine = "\r\n";
+                writer.WriteLine("Id,Name,Notes");
+                for (int index = 0; index < rowCount; index++)
+                {
+                    random.NextBytes(textBytes);
+                    string note = $"row \"{index}\"\r\nMünchen,{Convert.ToHexString(textBytes)}";
+                    expectedNotes[index] = note;
+                    writer.Write(index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    writer.Write(",Żółć 😀 東京,\"");
+                    writer.Write(note.Replace("\"", "\"\""));
+                    writer.WriteLine('"');
+                }
+            }
+
+            var options = new CsvLoadOptions
+            {
+                MaxInputBytes = new FileInfo(path).Length,
+                QuoteParsingMode = CsvQuoteParsingMode.Strict
+            };
+            using (var reader = await CsvDocument.OpenDataReaderAsync(path, options))
+            {
+                Assert.Equal(3, reader.FieldCount);
+                Assert.Equal("Id", reader.GetName(0));
+                Assert.Equal("Name", reader.GetName(1));
+                Assert.Equal("Notes", reader.GetName(2));
+                for (int index = 0; index < rowCount; index++)
+                {
+                    Assert.True(await reader.ReadAsync());
+                    Assert.Equal(index, reader.GetInt32(0));
+                    Assert.Equal("Żółć 😀 東京", reader.GetString(1));
+                    Assert.Equal(expectedNotes[index], reader.GetString(2));
+                }
+                Assert.False(await reader.ReadAsync());
+            }
+            using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+
+            using (var reader = await CsvDocument.OpenDataReaderAsync(path, options))
+            {
+                Assert.True(await reader.ReadAsync());
+                Assert.Equal(0, reader.GetInt32(0));
+                Assert.Equal(expectedNotes[0], reader.GetString(2));
+            }
+            using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Synchronous_Failed_Advance_Hides_Previous_Row_And_Ends_Reader(bool mismatch)
@@ -470,6 +553,17 @@ public class CsvIncrementalAsyncReaderTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.ReadAsync(cancellation.Token));
         Assert.Equal(0, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
         await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync());
+    }
+
+    private sealed class ThrowingDisposeTextReader(string text) : StringReader(text)
+    {
+        internal IOException Failure { get; } = new("dispose failure");
+        internal int DisposeCalls { get; private set; }
+        protected override void Dispose(bool disposing)
+        {
+            DisposeCalls++;
+            throw Failure;
+        }
     }
 
     internal sealed class AsyncInput : Stream
