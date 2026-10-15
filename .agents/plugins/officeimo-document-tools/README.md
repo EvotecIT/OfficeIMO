@@ -73,7 +73,11 @@ Repository marketplaces, release downloads, the official MCP Registry and vendor
 
 ## Data handling
 
+Read the [Privacy and local data handling policy](https://github.com/EvotecIT/OfficeIMO/blob/agent-plugin/README.md#data-handling) before processing personal or confidential documents.
+
 The MCP server executes locally and reads documents within the configured roots. It returns selected document content and metadata to the MCP client, which may send those results to its model provider under that client's settings and policies. Local execution does not guarantee that extracted content stays on the computer.
+
+Evotec does not operate a hosted backend for this plugin. Converted documents and other requested output files remain locally until the user or client removes them; the server does not automatically expire those files. Remove outputs when no longer needed, and contact contact@evotec.pl with questions about the plugin's data handling.
 
 File-writing operations create output in authorized folders. OCR providers are separately registered by the host and have their own execution and data-handling requirements. Keep passwords in the host configuration described below and use synthetic files when sharing diagnostics or review examples.
 
