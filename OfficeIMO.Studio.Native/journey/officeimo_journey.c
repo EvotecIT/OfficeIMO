@@ -52,7 +52,7 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_save_copy) X(officeimo_document_save_protected_copy_json) X(officeimo_document_save_signed_copy_json) \
     X(officeimo_document_structure_json) X(officeimo_document_edit_json) X(officeimo_document_write_json) \
     X(officeimo_document_check_json) X(officeimo_document_redact_json) \
-    X(officeimo_document_prepare_save) X(officeimo_document_acknowledge_save)
+    X(officeimo_document_prepare_save) X(officeimo_document_acknowledge_save) X(officeimo_document_acknowledge_ordered_save)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(&name) engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -255,6 +255,8 @@ int main(int argc, char **argv) {
     expect(prepared && prepared_length > 5 && memcmp(prepared, "%PDF-", 5) == 0, "prepared save is not a PDF", NULL);
     engine_officeimo_free(prepared);
     CHECK("ignore unknown publication", engine_officeimo_document_acknowledge_save(document,
+          "0000000000000000000000000000000000000000000000000000000000000000", source, 0, &error), OFFICEIMO_OK);
+    CHECK("ignore unknown ordered publication", engine_officeimo_document_acknowledge_ordered_save(document,
           "0000000000000000000000000000000000000000000000000000000000000000", source, 0, &error), OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "isDirty", "true") && has(json, "canUndo", "true"), "preparation acknowledged an unpublished save", json);

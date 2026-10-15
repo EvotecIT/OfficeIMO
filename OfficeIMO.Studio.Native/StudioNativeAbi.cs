@@ -10,7 +10,7 @@ namespace OfficeIMO.Studio.Native;
 /// <summary>Version, status codes and memory rules of the C interface declared in <c>include/officeimo_studio.h</c>.</summary>
 internal static class StudioNativeAbi {
     /// <summary>Raised whenever an entry point's signature or a JSON payload changes incompatibly.</summary>
-    internal const int Version = 2;
+    internal const int Version = 3;
 
     internal const int Ok = 0;
     internal const int Failed = 1;

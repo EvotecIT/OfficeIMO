@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define OFFICEIMO_ABI_VERSION 2
+#define OFFICEIMO_ABI_VERSION 3
 
 typedef enum officeimo_status {
     OFFICEIMO_OK = 0,
@@ -333,6 +333,12 @@ int32_t officeimo_document_prepare_save(officeimo_document document, officeimo_c
 /* Acknowledge only a prepared SHA-256 actually observed at the host's original file, after its publication completes. */
 int32_t officeimo_document_acknowledge_save(officeimo_document document, const char *fingerprint, const char *identity,
                                             officeimo_cancellation cancellation, char **error);
+
+/* For hosts that serialize document publication: acknowledge an observed prepared snapshot and retire all earlier
+ * preparations. Later preparations remain recoverable. Use acknowledge_save instead when an older in-flight save
+ * may still publish after this observation. Both calls require the SHA-256 of bytes actually read from the original. */
+int32_t officeimo_document_acknowledge_ordered_save(officeimo_document document, const char *fingerprint, const char *identity,
+                                                  officeimo_cancellation cancellation, char **error);
 
 /*
  * Writes the open revision with a password to open it, described as JSON:

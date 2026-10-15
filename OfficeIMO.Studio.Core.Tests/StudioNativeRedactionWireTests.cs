@@ -26,7 +26,7 @@ public sealed class StudioNativeRedactionWireTests {
             var first = Request(handle, "{\"find\":{\"text\":\"secret\"}}");
             Assert.Equal(StudioNativeAbi.Ok, first.Status);
             using var found = JsonDocument.Parse(first.Json!);
-            Assert.Equal(2, found.RootElement.GetProperty("abiVersion").GetInt32());
+            Assert.Equal(StudioNativeAbi.Version, found.RootElement.GetProperty("abiVersion").GetInt32());
             long revision = found.RootElement.GetProperty("revision").GetInt64();
             Assert.Equal(2, found.RootElement.GetProperty("marks").GetArrayLength());
             var missing = Request(handle, "{\"apply\":{\"find\":{\"text\":\"secret\"},\"include\":[0]}}");

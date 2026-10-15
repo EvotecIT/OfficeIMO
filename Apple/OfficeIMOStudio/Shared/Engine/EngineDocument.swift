@@ -541,12 +541,12 @@ actor EngineDocument {
         }
     }
 
-    nonisolated func acknowledgeSaveAndWait(fingerprint: String, identity: String) throws {
+    nonisolated func acknowledgeOrderedSaveAndWait(fingerprint: String, identity: String) throws {
         dispatchPrecondition(condition: .notOnQueue(queue))
         try queue.sync {
             var error: UnsafeMutablePointer<CChar>?
             let status = fingerprint.withCString { digest in
-                identity.withCString { officeimo_document_acknowledge_save(handle, digest, $0, 0, &error) }
+                identity.withCString { officeimo_document_acknowledge_ordered_save(handle, digest, $0, 0, &error) }
             }
             try check(status, error)
         }

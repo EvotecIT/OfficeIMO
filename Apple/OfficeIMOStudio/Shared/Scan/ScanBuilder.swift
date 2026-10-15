@@ -37,21 +37,23 @@ enum ScanBuilder {
     /// Matches the shared scan composer's admission limit, before image preparation starts.
     static let maximumPages = 500
 
-    static func makePDF(from images: [CGImage], named name: String) async throws -> URL {
-        guard !images.isEmpty else { throw CocoaError(.userCancelled) }
-        guard images.count <= maximumPages else { throw CocoaError(.fileReadTooLarge) }
+    @MainActor
+    static func makePDF(pageCount: Int, named name: String,
+                        loadPage: @MainActor (Int) async throws -> CGImage) async throws -> URL {
+        guard pageCount > 0 else { throw CocoaError(.userCancelled) }
+        guard pageCount <= maximumPages else { throw CocoaError(.fileReadTooLarge) }
+        let name = try StudioTemporaryFiles.outputName(name)
         let folder = StudioTemporaryFiles.root.appending(path: "Scans/\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         var completed = false
         defer { if !completed { try? FileManager.default.removeItem(at: folder) } }
         var pages: [ScanRequest.Page] = []
-        for (index, image) in images.enumerated() {
+        for index in 0..<pageCount {
             try Task.checkCancellation()
-            let page = try scaled(image)
-            let url = folder.appending(path: "page-\(index + 1).jpg")
-            try writeJPEG(page, to: url)
-            pages.append(ScanRequest.Page(image: url.path, words: try await recognizeWords(in: page)))
+            // This frame returns only disk paths and words; no source image survives into the next load.
+            pages.append(try await preparePage(index, in: folder, loadPage: loadPage))
         }
+        try Task.checkCancellation()
         let output = folder.appending(path: "\(name).pdf")
         _ = try await Engine.createPDFFromScan(ScanRequest(pages: pages), at: output)
         for page in pages { try? FileManager.default.removeItem(atPath: page.image) }
@@ -59,13 +61,47 @@ enum ScanBuilder {
         return output
     }
 
+    @MainActor
+    private static func preparePage(_ index: Int, in folder: URL,
+                                    loadPage: @MainActor (Int) async throws -> CGImage) async throws -> ScanRequest.Page {
+        var image: CGImage? = try await loadPage(index)
+        try Task.checkCancellation()
+        let url = folder.appending(path: "page-\(index + 1).jpg")
+        try autoreleasepool { try writeJPEG(scaled(image!), to: url) }
+        image = nil
+        // Vision consumes the staged page rather than retaining the caller's full-resolution photo across the await.
+        let request = textRequest()
+        return ScanRequest.Page(image: url.path, words: try words(from: await request.perform(on: url)))
+    }
+
+    /// Providers own their temporary URL only during the callback. Decode a bounded, upright image before returning.
+    static func image(from provider: NSItemProvider) async throws -> CGImage {
+        try await withCheckedThrowingContinuation { continuation in
+            _ = provider.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { url, error in
+                if let error { continuation.resume(throwing: error) }
+                else if let url, let image = autoreleasepool(invoking: { image(at: url) }) {
+                    continuation.resume(returning: image)
+                } else { continuation.resume(throwing: CocoaError(.fileReadCorruptFile)) }
+            }
+        }
+    }
+
     /// The words on a page, each with its box from the image's top-left corner in fractions of its size.
     static func recognizeWords(in image: CGImage) async throws -> [ScanRequest.Word] {
         try Task.checkCancellation()
+        let request = textRequest()
+        let observations = try await request.perform(on: image)
+        return try words(from: observations)
+    }
+
+    private static func textRequest() -> RecognizeTextRequest {
         var request = RecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
-        let observations = try await request.perform(on: image)
+        return request
+    }
+
+    private static func words(from observations: [RecognizedTextObservation]) throws -> [ScanRequest.Word] {
         try Task.checkCancellation()
         var words: [ScanRequest.Word] = []
         for observation in observations {
@@ -128,7 +164,7 @@ enum ScanBuilder {
     private static func image(from source: CGImageSource) -> CGImage? {
         // The thumbnail path applies the photo's orientation, so the page is upright.
         let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true,
-                                        kCGImageSourceThumbnailMaxPixelSize: maximumPixels]
+                                        kCGImageSourceThumbnailMaxPixelSize: maximumPixels, kCGImageSourceShouldCacheImmediately: true]
         return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
     }
 

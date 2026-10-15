@@ -1,7 +1,8 @@
 import CryptoKit
 import Foundation
 
-/// Foundation owns publication. A file-presenter notification acknowledges only bytes read back from its original URL.
+/// Foundation's document hosts serialize publication. Notifications can coalesce; readback acknowledges the observed
+/// prepared bytes and retires earlier preparations, while retaining newer ones and any unobserved working revision.
 final class StudioFilePublicationObserver: NSObject, NSFilePresenter, @unchecked Sendable {
     let presentedItemURL: URL?
     let presentedItemOperationQueue: OperationQueue
@@ -30,7 +31,7 @@ final class StudioFilePublicationObserver: NSObject, NSFilePresenter, @unchecked
             // Failed or unavailable readback keeps recovery. It never acknowledges an unobserved publication.
             guard let fingerprint = Self.fingerprint(of: original) else { return }
             if let identity = StudioDocument.recoveryIdentity(for: url) {
-                try? engine.acknowledgeSaveAndWait(fingerprint: fingerprint, identity: identity)
+                try? engine.acknowledgeOrderedSaveAndWait(fingerprint: fingerprint, identity: identity)
             }
         }
     }

@@ -44,8 +44,14 @@ struct MakePDFFromImagesIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
-        try await EngineRuntime.ready()
-        let url = try await DocumentActions.pdf(fromImages: images.map(\.data))
+        guard images.count <= ScanBuilder.maximumPages else { throw CocoaError(.fileReadTooLarge) }
+        guard !images.isEmpty else { throw IntentProblem.message(String(localized: "None of the files is an image OfficeIMO Studio can read.")) }
+        let work = try await ActionFolder.prepare()
+        let inputs = try images.enumerated().map { try work.copy($0.element, as: "\($0.offset + 1).image") }
+        let url = try await ScanBuilder.makePDF(pageCount: inputs.count, named: ScanBuilder.newName) { index in
+            guard let image = ScanBuilder.image(at: inputs[index]) else { throw CocoaError(.fileReadCorruptFile) }
+            return image
+        }
         StudioTemporaryFiles.markReturnedOutput(url)
         return .result(value: IntentFile(fileURL: url, filename: url.lastPathComponent, type: .pdf))
     }
@@ -200,10 +206,11 @@ enum DocumentActions {
     /// A searchable PDF with a page for each image, its text recognized on this device.
     static func pdf(fromImages images: [Data]) async throws -> URL {
         guard images.count <= ScanBuilder.maximumPages else { throw CocoaError(.fileReadTooLarge) }
-        let pages = images.compactMap(ScanBuilder.image(from:))
-        guard pages.count == images.count else { throw CocoaError(.fileReadCorruptFile) }
-        guard !pages.isEmpty else { throw IntentProblem.message(String(localized: "None of the files is an image OfficeIMO Studio can read.")) }
-        return try await ScanBuilder.makePDF(from: pages, named: ScanBuilder.newName)
+        guard !images.isEmpty else { throw IntentProblem.message(String(localized: "None of the files is an image OfficeIMO Studio can read.")) }
+        return try await ScanBuilder.makePDF(pageCount: images.count, named: ScanBuilder.newName) { index in
+            guard let image = ScanBuilder.image(from: images[index]) else { throw CocoaError(.fileReadCorruptFile) }
+            return image
+        }
     }
 
     /// A new PDF at output from pages such as "1-3, 5", in the order written.
@@ -294,10 +301,15 @@ final class ActionFolder {
     }
 
     func copy(_ file: IntentFile, as name: String) throws -> URL {
-        let safe = (name as NSString).lastPathComponent
-        guard !safe.isEmpty, safe != ".", safe != ".." else { throw CocoaError(.fileWriteInvalidFileName) }
+        let safe = try StudioTemporaryFiles.outputName(name)
         let url = folder.appending(path: "Inputs/\(safe)")
-        try file.data.write(to: url)
+        if let source = file.fileURL {
+            let accessing = source.startAccessingSecurityScopedResource()
+            defer { if accessing { source.stopAccessingSecurityScopedResource() } }
+            try FileManager.default.copyItem(at: source, to: url)
+        } else {
+            try file.data.write(to: url)
+        }
         return url
     }
 

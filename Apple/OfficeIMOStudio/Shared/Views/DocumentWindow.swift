@@ -185,7 +185,6 @@ struct DocumentWindow: View {
             .toolbar { DocumentToolbar(session: session, fileURL: fileURL, isCompact: isCompact, isAddingNote: $isAddingNote) }
             .fileExporter(isPresented: exportedFileShown, document: session.exportedFile?.document,
                           contentType: session.exportedFile?.contentType ?? .data, defaultFilename: session.exportedFile?.name) { result in
-                if let folder = session.exportedFile?.folder { try? FileManager.default.removeItem(at: folder) }
                 session.exportedFile = nil
                 if case .failure(let error) = result { session.errorMessage = error.localizedDescription }
             }

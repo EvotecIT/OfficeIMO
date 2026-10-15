@@ -232,6 +232,7 @@ extension DocumentSession {
     private func writeOutput(named name: String, contentType: UTType,
                              write: @escaping @Sendable (EngineDocument, URL) async throws -> String?) async throws -> ExportedFile? {
         guard let engine else { return nil }
+        let name = try StudioTemporaryFiles.outputName(name)
         let folder = StudioTemporaryFiles.root.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
         let url = folder.appending(path: name, directoryHint: contentType == .folder ? .isDirectory : .notDirectory)
         isRunningOperation = true
@@ -239,7 +240,7 @@ extension DocumentSession {
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             let notes = try await write(engine, url)
-            return ExportedFile(document: try ExportedDocument(url: url), contentType: contentType, name: name, folder: folder, notes: notes)
+            return ExportedFile(document: try ExportedDocument(url: url, stagingFolder: folder), contentType: contentType, name: name, folder: folder, notes: notes)
         } catch {
             try? FileManager.default.removeItem(at: folder)
             throw error
@@ -312,39 +313,4 @@ extension ExportFormat {
 
 extension UTType {
     static let markdown = UTType(importedAs: "net.daringfireball.markdown", conformingTo: .plainText)
-}
-
-/// An output in the app's temporary folder, saved where the user chooses; the folder goes once it is saved or not.
-struct ExportedFile: Identifiable {
-    let document: ExportedDocument
-    let contentType: UTType
-    let name: String
-    let folder: URL
-    /// What a conversion couldn't keep, one per line.
-    var notes: String?
-    var id: URL { folder }
-}
-
-/// A written file or folder of files as a document for the system's export panel.
-struct ExportedDocument: FileDocument {
-    static let readableContentTypes: [UTType] = [.pdf, .plainText, .markdown, .json, .html, .folder, .data]
-    /// The export panel saves only these types; anything else would be saved as the first, a PDF.
-    static let writableContentTypes: [UTType] = readableContentTypes + ExportFormat.documents.map(\.contentType)
-    private let serialized: Data
-
-    init(url: URL) throws {
-        let wrapper = try FileWrapper(url: url, options: .immediate)
-        guard let data = wrapper.serializedRepresentation else { throw CocoaError(.fileReadCorruptFile) }
-        serialized = data
-    }
-
-    init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.serializedRepresentation else { throw CocoaError(.fileReadCorruptFile) }
-        serialized = data
-    }
-
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        guard let wrapper = FileWrapper(serializedRepresentation: serialized) else { throw CocoaError(.fileReadCorruptFile) }
-        return wrapper
-    }
 }

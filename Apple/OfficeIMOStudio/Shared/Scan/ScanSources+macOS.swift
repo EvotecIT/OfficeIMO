@@ -15,49 +15,39 @@ enum ScanSources {
         panel.message = String(localized: "Choose images for the pages of a new PDF.")
         panel.prompt = String(localized: "Create PDF")
         guard panel.runModal() == .OK else { return }
-        do {
-            let images = try panel.urls.map { url in
-                guard let image = ScanBuilder.image(at: url) else { throw CocoaError(.fileReadCorruptFile, userInfo: [NSFilePathErrorKey: url.path]) }
-                return image
+        let urls = panel.urls
+        make(pageCount: urls.count, newDocument) { index in
+            let url = urls[index]
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            guard let image = ScanBuilder.image(at: url) else {
+                throw CocoaError(.fileReadCorruptFile, userInfo: [NSFilePathErrorKey: url.path])
             }
-            make(images, newDocument)
-        } catch { NSAlert(error: error).runModal() }
+            return image
+        }
     }
 
     /// Makes a document from images Continuity Camera delivers.
     static func newDocument(from providers: [NSItemProvider], _ newDocument: NewDocumentAction) -> Bool {
         let imageProviders = providers.filter { $0.canLoadObject(ofClass: NSImage.self) }
         guard !imageProviders.isEmpty else { return false }
-        Task {
-            do {
-                var images: [CGImage] = []
-                for provider in imageProviders {
-                    guard let image = await load(provider) else { throw CocoaError(.fileReadCorruptFile) }
-                    images.append(image)
-                }
-                make(images, newDocument)
-            } catch { NSAlert(error: error).runModal() }
+        make(pageCount: imageProviders.count, newDocument) { index in
+            try await ScanBuilder.image(from: imageProviders[index])
         }
         return true
     }
 
-    private static func make(_ images: [CGImage], _ newDocument: NewDocumentAction) {
-        guard !images.isEmpty else { return }
+    private static func make(pageCount: Int, _ newDocument: NewDocumentAction,
+                             loadPage: @escaping @MainActor (Int) async throws -> CGImage) {
+        guard pageCount > 0 else { return }
         Task {
             do {
-                let url = try await ScanBuilder.makePDF(from: images, named: ScanBuilder.newName)
+                let url = try await ScanBuilder.makePDF(pageCount: pageCount, named: ScanBuilder.newName, loadPage: loadPage)
+                defer { StudioTemporaryFiles.removeGeneratedPDF(url) }
                 let document = try StudioDocument(contentsOf: url)
                 newDocument { document }
             } catch {
                 NSAlert(error: error).runModal()
-            }
-        }
-    }
-
-    private static func load(_ provider: NSItemProvider) async -> CGImage? {
-        await withCheckedContinuation { continuation in
-            _ = provider.loadObject(ofClass: NSImage.self) { object, _ in
-                continuation.resume(returning: (object as? NSImage)?.cgImage(forProposedRect: nil, context: nil, hints: nil))
             }
         }
     }

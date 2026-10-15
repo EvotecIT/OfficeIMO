@@ -14,6 +14,7 @@ extension DocumentSession {
         let copy = folder.appending(path: fileURL.lastPathComponent)
         do {
             try await engine.saveCopy(to: copy)
+            StudioTemporaryFiles.markReturnedOutput(copy)
             return copy
         } catch {
             try? FileManager.default.removeItem(at: folder)

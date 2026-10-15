@@ -82,10 +82,12 @@ enum PageSources {
         if type?.conforms(to: .image) == true {
             let accessing = url.startAccessingSecurityScopedResource()
             defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-            guard let image = ScanBuilder.image(from: try Data(contentsOf: url)) else {
-                throw PageSourceProblem(message: String(localized: "“\(name)” isn’t an image OfficeIMO Studio can read."))
+            return try await ScanBuilder.makePDF(pageCount: 1, named: url.deletingPathExtension().lastPathComponent) { _ in
+                guard let image = ScanBuilder.image(at: url) else {
+                    throw PageSourceProblem(message: String(localized: "“\(name)” isn’t an image OfficeIMO Studio can read."))
+                }
+                return image
             }
-            return try await ScanBuilder.makePDF(from: [image], named: url.deletingPathExtension().lastPathComponent)
         }
         do {
             return try await DocumentConversion.convert(url).url

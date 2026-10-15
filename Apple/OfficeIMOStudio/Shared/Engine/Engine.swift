@@ -28,7 +28,7 @@ enum Engine {
     private static let queue = DispatchQueue(label: "OfficeIMO.Engine", qos: .userInitiated)
 
     /// The ABI required by this host's JSON requests, independent of a previously built framework's header.
-    static let expectedAbiVersion: Int32 = 2
+    static let expectedAbiVersion: Int32 = 3
 
     /// Reads the library's ABI version; the first call into the library also starts its runtime.
     static func abiVersion() async -> Int32 {

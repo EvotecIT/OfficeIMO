@@ -6,6 +6,7 @@ import Foundation
 enum StudioTemporaryFiles {
     private static let container = FileManager.default.temporaryDirectory.appending(path: "OfficeIMOStudio", directoryHint: .isDirectory)
     private static let processRoot = container.appending(path: "Process-\(ProcessInfo.processInfo.processIdentifier)-\(UUID().uuidString)", directoryHint: .isDirectory)
+    private static let returnedCategories = ["Scans", "Converted", "Shortcuts", "Shared"]
     static var root: URL {
         // A long-running process may hand off a new output just before exit. Keep its retention clock current.
         try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: processRoot.path)
@@ -30,6 +31,7 @@ enum StudioTemporaryFiles {
 
     /// A returned file needs time for the system to consume it; input copies and failed actions are removed immediately.
     static func markReturnedOutput(_ url: URL) {
+        removeStaleReturnedOutputs()
         guard let folder = returnedOutputFolder(url) else { return }
         try? Data().write(to: folder.appending(path: ".returned"), options: .atomic)
     }
@@ -37,12 +39,13 @@ enum StudioTemporaryFiles {
     private static func returnedOutputFolder(_ url: URL) -> URL? {
         let folder = url.deletingLastPathComponent()
         guard folder.path.hasPrefix(root.path + "/"), UUID(uuidString: folder.lastPathComponent) != nil,
-              ["Scans", "Converted", "Shortcuts"].contains(folder.deletingLastPathComponent().lastPathComponent) else { return nil }
+              returnedCategories.contains(folder.deletingLastPathComponent().lastPathComponent),
+              folder.deletingLastPathComponent().deletingLastPathComponent().standardizedFileURL == root.standardizedFileURL else { return nil }
         return folder
     }
 
     private static func removeStaleReturnedOutputs() {
-        for category in ["Scans", "Converted", "Shortcuts"] {
+        for category in returnedCategories {
             let parent = root.appending(path: category, directoryHint: .isDirectory)
             guard let folders = try? FileManager.default.contentsOfDirectory(at: parent,
                 includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey]) else { continue }
@@ -55,6 +58,13 @@ enum StudioTemporaryFiles {
                 try? FileManager.default.removeItem(at: folder)
             }
         }
+    }
+
+    /// External attachment and action names identify one output, never a path outside its staging directory.
+    static func outputName(_ name: String) throws -> String {
+        let leaf = (name as NSString).lastPathComponent
+        guard !leaf.isEmpty, leaf != ".", leaf != "..", !leaf.contains("/") else { throw CocoaError(.fileWriteInvalidFileName) }
+        return leaf
     }
 
     /// Removes only a generated PDF's UUID staging directory after a caller has imported its contents.

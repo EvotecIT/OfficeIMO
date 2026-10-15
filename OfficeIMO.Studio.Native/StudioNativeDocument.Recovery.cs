@@ -7,8 +7,9 @@ internal sealed partial class StudioNativeDocument {
         finally { _gate.Release(); }
     }
 
-    internal Task AcknowledgeSaveAsync(string fingerprint, CancellationToken token, string? identity = null) =>
-        RunAsync(() => _workspace.AcknowledgeExternalSaveAsync(fingerprint, token, identity), token);
+    internal Task AcknowledgeSaveAsync(string fingerprint, CancellationToken token, string? identity = null,
+        bool supersedesEarlierPreparations = false) =>
+        RunAsync(() => _workspace.AcknowledgeExternalSaveAsync(fingerprint, token, identity, supersedesEarlierPreparations), token);
 
     internal Task SetRecoveryIdentityAsync(string? identity, CancellationToken token) =>
         RunAsync(() => _workspace.SetRecoveryIdentityAsync(identity, token), token);

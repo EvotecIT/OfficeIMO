@@ -307,7 +307,7 @@ internal sealed partial class StudioNativeDocument {
                     await _workspace.ExtractToLocalFileAsync(pages, path, cancellationToken, replaceExisting: false).ConfigureAwait(false);
                     written.Add(path);
                     break;
-                } catch (IOException) when (File.Exists(path)) {
+                } catch (IOException) when (File.Exists(path) || Directory.Exists(path)) {
                     // Another writer took this name after selection. Publication never replaced it; try the next name.
                     cancellationToken.ThrowIfCancellationRequested();
                 }
@@ -324,7 +324,7 @@ internal sealed partial class StudioNativeDocument {
     private static string FreePath(string directory, string name, HashSet<string> taken) {
         for (int attempt = 1; ; attempt++) {
             string candidate = Path.Combine(directory, (attempt == 1 ? name : $"{name} {attempt}") + ".pdf");
-            if (!File.Exists(candidate) && taken.Add(candidate)) return candidate;
+            if (!File.Exists(candidate) && !Directory.Exists(candidate) && taken.Add(candidate)) return candidate;
         }
     }
 

@@ -133,6 +133,7 @@ extension DocumentSession {
     private func writeOutputFile(named name: String, write: @escaping @Sendable (EngineDocument, URL) async throws -> String?,
                                  summary: (String?) -> Void) async throws -> ExportedFile? {
         guard let engine else { return nil }
+        let name = try StudioTemporaryFiles.outputName(name)
         let folder = StudioTemporaryFiles.root.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
         let url = folder.appending(path: name)
         isRunningOperation = true
@@ -140,7 +141,7 @@ extension DocumentSession {
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             summary(try await write(engine, url))
-            return ExportedFile(document: try ExportedDocument(url: url), contentType: .pdf, name: name, folder: folder)
+            return ExportedFile(document: try ExportedDocument(url: url, stagingFolder: folder), contentType: .pdf, name: name, folder: folder)
         } catch {
             try? FileManager.default.removeItem(at: folder)
             throw error

@@ -534,7 +534,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
             JsonElement hit = Assert.Single(hits.RootElement.GetProperty("hits").EnumerateArray());
             Assert.Equal(1, hit.GetProperty("page").GetInt32());
             Assert.True(hit.GetProperty("bounds").GetProperty("width").GetDouble() > 0);
-            Assert.Equal(2, hits.RootElement.GetProperty("abiVersion").GetInt32());
+            Assert.Equal(StudioNativeAbi.Version, hits.RootElement.GetProperty("abiVersion").GetInt32());
         } finally { close(document); }
     }
 

@@ -18,11 +18,21 @@ internal static unsafe partial class StudioNativeExports {
     /// <summary>Acknowledges the SHA-256 of a prepared snapshot observed at the host's saved document.</summary>
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_acknowledge_save")]
     internal static int DocumentAcknowledgeSave(nint document, byte* fingerprint, byte* identity, nint cancellation, byte** error) {
+        return AcknowledgeSave(document, fingerprint, identity, cancellation, error, supersedesEarlierPreparations: false);
+    }
+
+    /// <summary>Acknowledges an observed publication that supersedes all earlier prepared snapshots.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_acknowledge_ordered_save")]
+    internal static int DocumentAcknowledgeOrderedSave(nint document, byte* fingerprint, byte* identity, nint cancellation, byte** error) =>
+        AcknowledgeSave(document, fingerprint, identity, cancellation, error, supersedesEarlierPreparations: true);
+
+    private static int AcknowledgeSave(nint document, byte* fingerprint, byte* identity, nint cancellation, byte** error,
+        bool supersedesEarlierPreparations) {
         string? value = StudioNativeAbi.FromUtf8(fingerprint);
         string? source = StudioNativeAbi.FromUtf8(identity);
         return WithDocument(document, error, cancellation, (target, token) =>
             target.AcknowledgeSaveAsync(value ?? throw new ArgumentNullException(nameof(fingerprint)), token,
-                source ?? throw new ArgumentNullException(nameof(identity))).GetAwaiter().GetResult());
+                source ?? throw new ArgumentNullException(nameof(identity)), supersedesEarlierPreparations).GetAwaiter().GetResult());
     }
 
     /// <summary>Opens a private working file while recovery follows the host's stable original-document identity.</summary>

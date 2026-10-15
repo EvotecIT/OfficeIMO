@@ -11,16 +11,23 @@ enum ScanSources {
 
     /// A new searchable PDF from the document camera, for the launch screen's Scan Document.
     static func newDocumentFromCamera() async throws -> URL? {
-        guard let images = try await CameraSession().run(), !images.isEmpty else { return nil }
-        let output = try await ScanBuilder.makePDF(from: images, named: ScanBuilder.newName)
+        guard let scan = try await CameraSession().run(), scan.pageCount > 0 else { return nil }
+        let output = try await ScanBuilder.makePDF(pageCount: scan.pageCount, named: ScanBuilder.newName) { index in
+            guard let image = autoreleasepool(invoking: { upright(scan.imageOfPage(at: index)) }) else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            return image
+        }
         StudioTemporaryFiles.markReturnedOutput(output)
         return output
     }
 
     /// A new searchable PDF from photos, one page each in the order chosen.
     static func newDocumentFromPhotos() async throws -> URL? {
-        guard let images = try await PhotosSession().run(), !images.isEmpty else { return nil }
-        let output = try await ScanBuilder.makePDF(from: images, named: ScanBuilder.newName)
+        guard let providers = try await PhotosSession().run(), !providers.isEmpty else { return nil }
+        let output = try await ScanBuilder.makePDF(pageCount: providers.count, named: ScanBuilder.newName) { index in
+            try await ScanBuilder.image(from: providers[index])
+        }
         StudioTemporaryFiles.markReturnedOutput(output)
         return output
     }
@@ -45,10 +52,10 @@ enum ScanSources {
 
 @MainActor
 private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraViewControllerDelegate {
-    private var continuation: CheckedContinuation<[CGImage]?, any Error>?
+    private var continuation: CheckedContinuation<VNDocumentCameraScan?, any Error>?
     private var keepAlive: CameraSession?
 
-    func run() async throws -> [CGImage]? {
+    func run() async throws -> VNDocumentCameraScan? {
         try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
             let camera = VNDocumentCameraViewController()
@@ -59,14 +66,7 @@ private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraVie
     }
 
     func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
-        do {
-            guard scan.pageCount <= ScanBuilder.maximumPages else { throw CocoaError(.fileReadTooLarge) }
-            let images = try (0..<scan.pageCount).map { index in
-                guard let image = upright(scan.imageOfPage(at: index)) else { throw CocoaError(.fileReadCorruptFile) }
-                return image
-            }
-            finish(.success(images), from: controller)
-        } catch { finish(.failure(error), from: controller) }
+        finish(.success(scan), from: controller)
     }
 
     func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
@@ -77,7 +77,7 @@ private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraVie
         finish(.failure(error), from: controller)
     }
 
-    private func finish(_ result: Result<[CGImage]?, any Error>, from controller: UIViewController?) {
+    private func finish(_ result: Result<VNDocumentCameraScan?, any Error>, from controller: UIViewController?) {
         controller?.dismiss(animated: true)
         continuation?.resume(with: result)
         continuation = nil
@@ -87,10 +87,10 @@ private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraVie
 
 @MainActor
 private final class PhotosSession: NSObject, PHPickerViewControllerDelegate {
-    private var continuation: CheckedContinuation<[CGImage]?, any Error>?
+    private var continuation: CheckedContinuation<[NSItemProvider]?, any Error>?
     private var keepAlive: PhotosSession?
 
-    func run() async throws -> [CGImage]? {
+    func run() async throws -> [NSItemProvider]? {
         try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
             var configuration = PHPickerConfiguration()
@@ -105,34 +105,12 @@ private final class PhotosSession: NSObject, PHPickerViewControllerDelegate {
     }
 
     func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
         let providers = results.map(\.itemProvider)
-        Task {
-            picker.dismiss(animated: true)
-            do {
-                guard providers.count <= ScanBuilder.maximumPages else { throw CocoaError(.fileReadTooLarge) }
-                var images: [CGImage] = []
-                for provider in providers {
-                    let image = try await Self.load(provider)
-                    guard let upright = upright(image) else { throw CocoaError(.fileReadCorruptFile) }
-                    images.append(upright)
-                }
-                finish(.success(images.isEmpty ? nil : images))
-            } catch { finish(.failure(error)) }
-        }
+        finish(.success(providers.isEmpty ? nil : providers))
     }
 
-    private static func load(_ provider: NSItemProvider) async throws -> UIImage {
-        guard provider.canLoadObject(ofClass: UIImage.self) else { throw CocoaError(.fileReadCorruptFile) }
-        return try await withCheckedThrowingContinuation { continuation in
-            _ = provider.loadObject(ofClass: UIImage.self) { object, error in
-                if let error { continuation.resume(throwing: error) }
-                else if let image = object as? UIImage { continuation.resume(returning: image) }
-                else { continuation.resume(throwing: CocoaError(.fileReadCorruptFile)) }
-            }
-        }
-    }
-
-    private func finish(_ result: Result<[CGImage]?, any Error>) {
+    private func finish(_ result: Result<[NSItemProvider]?, any Error>) {
         continuation?.resume(with: result)
         continuation = nil
         keepAlive = nil
