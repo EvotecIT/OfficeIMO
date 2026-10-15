@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 1,
+  "qualifiedAtUtc": "2026-10-15T15:49:06.664104+00:00",
+  "purpose": "Correct ordinary inline font boxes and zero-height flow, preserve interrupted effect content and margin boundaries, and render inset shadows from the padding box with the released CSS serializer.",
+  "source": {
+    "commit": "b4878e48394827d2829eddf941b96238f34c6621",
+    "tree": "f099a736222de008a2c08ff1ba73bf8507922b1d",
+    "base": "19ad6265531b04ff4d662bb6a4b66795e090c12c",
+    "host": "macOS arm64",
+    "compilerSdk": "10.0.303",
+    "sourceSealSha256": "5aa2fdb81d0260b0e66e9ccefe381081449d265564b0c30eeb70b5dedfdf83d9",
+    "qualifiedFiles": {
+      "Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj": "bf74081656c12df4d689935454049c537a72f47f31f6ef9a8450452ef2bd7082",
+      "OfficeIMO.Epub/packages.lock.json": "614e0cad16ca7e01559aecea2d49b0342d9af43aec701f7634707683e8dbd7fb",
+      "OfficeIMO.Epub/packages.nonwindows.lock.json": "03e15a74c0b47c0e487901cfd8ce63ef23f9b0d54634407772b864c6241e7b03",
+      "OfficeIMO.Html.Pdf/packages.lock.json": "88ae29841ee5f0d095354ef3ca3a4b11c4f383a57ff1dd35a7eb6191066d6415",
+      "OfficeIMO.Html.Pdf/packages.nonwindows.lock.json": "cf43a8500af22861e50e0513efc74f3c6fa711f627def323d158e61749678bd9",
+      "OfficeIMO.Html.Runtime.Worker/OfficeIMO.Html.Runtime.Worker.csproj": "94d16a3f9e83e23bf00f384a12724d6282b3f06e969e2f0938104145869a231b",
+      "OfficeIMO.Html.Tests/Html.Rendering.InlineDecorationGeometry.cs": "6b60b6213e0653c0f222a48eee42893dfb3078352f6a5214454591069a84f934",
+      "OfficeIMO.Html.Tests/Html.Rendering.OrdinaryFontBoxes.cs": "9dd670952359abe8be83aefa5b84a54ca5637c24e8e74b6e89875aff29212ad8",
+      "OfficeIMO.Html.Tests/Html.Rendering.Shadows.PaddingBox.cs": "82beae90d866882d6ec44855a8fd1a3a5a8d99f30311c262efe067709e8e3e3b",
+      "OfficeIMO.Html.Tests/Html.Rendering.Shadows.cs": "86bc2d6fe7fbb54257c90ce58ccc3ddf59cc9711a23202bc5e7e3b46258136ba",
+      "OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.Profiles.cs": "9ae7a2d18bb62f1d630be3d69d23b6595f5080b7b396db6b0b3008a6e399d2af",
+      "OfficeIMO.Html/OfficeIMO.Html.csproj": "d5d4ac3b0a48643ca5dee9fac3fcd587685ee0c55495cee1535edc1129d433c7",
+      "OfficeIMO.Html/Rendering/HtmlRenderFlowBlock.cs": "5531b45048b4ca6e94efe0c876490e6a837acc31d3ae60cdd1d67469e00225fa",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs": "25075bd6015d68e7d67a55c27771b8826afa483954b67a1b0f7ac88613dc0d52",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BlockFlow.cs": "825487310020aca0611be47fb82a79481bb58cc162cb6e2606279ad4b0cfc516",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.cs": "082fab0b0190b0ce25e54b74fd64f5adb7aac72a3ef4f4c0864ea51ca0373d72",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Effects.cs": "62d0db9fb7f1af12d92e182485953dd8f465b96567e3cd50ad0d0ce775ef4c3e",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.FloatPaint.cs": "15ffd70ff9e1eeaa46bfcf82b216fff1a3006ea7df06343412d5fbe6e8f2c6f1",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs": "04268bd1ffa7a252b85a8e6296137443315f8c49b0e70796fb438df0d12e47a9",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineDecorationGeometry.cs": "d1c2acd67f9a6c1da891b4cf9b128a7dbb295a74be9ae0398cc94e797af2538f",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineInterruptions.cs": "e3f4f060b328d5cae59a5fb55d29d41e40f2341377bded4ae503d72b4f226d4f",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineLines.EmptyAtomic.cs": "fb4365324bba2c939ba9049b4f5a667f44abfff45a6aea7b4d6fc82f006c6939",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineLines.Paint.cs": "b7182e40a2722b7020b3b2abdf4da322f7e39ba1f88c7a13102d70f512e77495",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineLines.cs": "e022bcb218b010d228e708d2a0b8a490cafe068eaa24bfcf065c8a1738026934",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlinePaintCapture.cs": "20117cf0acbbeba121c6e5e3e5da4b44b0709535de11311d54180b5d24fca110",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Positioning.Inline.Chunks.cs": "3cb09935d2608cbda5543cc985f6aaccd1fda58f059cc36cd8e25384b9370fae",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Positioning.Inline.cs": "612a72f2ad3053553268f3e213774a5d6adcb909d2da7d19d55339aad6938b4a",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Shadows.cs": "44b8e7c852572a37abb511c7a2fe4d621c32082c7f569f7efa70f8654bd283b5",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.FontBoxes.cs": "98f790b631220f371de1771f982b18f189933898f14f7aca0ece9469a28d895f",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.LineExtents.cs": "3aa427b202936e4f57ff224d65e132ff08813c729f41b5506e2da1dc5685386b",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.VerticalMetrics.cs": "aa043a46f7234fa655ddf193723822721907a988dc8f56442cc7e7de2fcb5d41",
+      "OfficeIMO.Html/Rendering/HtmlResolvedBorderRadii.cs": "cd4c0172d8dc8c44130f21696c1de4a40bdcb5c7ca11fea703625d8b1a6743cc",
+      "OfficeIMO.Html/packages.lock.json": "3f3ed8b6ce199499ce0bd17b48c41f9b8bb1dae36df31573345a4bce52e79a3f",
+      "OfficeIMO.Html/packages.nonwindows.lock.json": "da0e1d4d967eb7c508b3ff14290fde4d71ce219eede8d33410342217e40b5fc4",
+      "OfficeIMO.Studio.Core/packages.lock.json": "006419f41b65465a1e2d75c9f0e7c0c1a5d86a30f204b7c230039c347bba2523",
+      "OfficeIMO.Studio.Core/packages.nonwindows.lock.json": "006419f41b65465a1e2d75c9f0e7c0c1a5d86a30f204b7c230039c347bba2523",
+      "OfficeIMO.Studio/packages.lock.json": "d5c0bf1073f27209409b81590ca90a0e829206ebd04f99d6e3c0d5ca1b8e365e",
+      "OfficeIMO.Studio/packages.nonwindows.lock.json": "d5c0bf1073f27209409b81590ca90a0e829206ebd04f99d6e3c0d5ca1b8e365e",
+      "OfficeIMO.Workflows/packages.lock.json": "ee9091f08736e0a971b0bd2ea2cbbff941ce305f0260d54e26d40ea39f696079",
+      "OfficeIMO.Workflows/packages.nonwindows.lock.json": "ee9091f08736e0a971b0bd2ea2cbbff941ce305f0260d54e26d40ea39f696079"
+    }
+  },
+  "contracts": {
+    "ordinaryFontBoxes": "Use each selected same-face horizontal owner font box and actual glyph or empty-strut baseline. Round ascent/descent separately; the supplied16px face uses15+4=19, and40px uses38+11=49. Keep raw Core metrics and annotation/positioning bounds separate.",
+    "shortAndZeroFlow": "Preserve real text and paint with positive, short, mixed-size or zero leading. Real hidden/visible line boxes separate adjoining margins; positioned-only markers retain static anchors without creating flow or changing surrounding font metrics.",
+    "interruptedPaint": "Retain fragment background/foreground order, all nested whole effect layers and saved glyphs, with one opacity/transform envelope per owning effect. Preserve native-matching negative positioned layer order and deferred outlines.",
+    "insetShadows": "Resolve origin, extent, radii and clipping through the existing padding-box owner using actual effective border insets. Ordinary/generated callers carry their borders; root and table-row zero-border overrides remain explicit.",
+    "provider": "Use released AngleSharp.Css1.1.3 through the existing adapter; preserve zero blur before positive/negative spread during serialization. Static AngleSharp remains1.8.3; the isolated worker retains its qualified353ad27c core fork."
+  },
+  "validation": {
+    "ordinaryFilter": "Category!=Performance",
+    "gates": {
+      "focused-net10-r8": {
+        "exitCode": 0,
+        "counts": {
+          "total": 324,
+          "passed": 324,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "recordSha256": "d510ff24f65aebd0456a71c6b49796b7581d980bfc8b082f745d27d33c4ce15f",
+        "trxSha256": "6241d0bda7320281a95fd5fc336ff8e3bdbc81b077418c423a777982b363e7f9",
+        "sourceMatchedBeforeAndAfter": true
+      },
+      "full-net10-r8": {
+        "exitCode": 0,
+        "counts": {
+          "total": 6339,
+          "passed": 6339,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "recordSha256": "483ba5f4163e93be8d7a70492e068e56badac208f2723bd28a180112105c4d62",
+        "trxSha256": "836650e0da71d243b18ca6eeff3d0c39f4121ba53733ad1dffddca760e8c55ad",
+        "sourceMatchedBeforeAndAfter": true
+      },
+      "full-net8-r8": {
+        "exitCode": 0,
+        "counts": {
+          "total": 6339,
+          "passed": 6339,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "recordSha256": "842ae595d116681142128af9ce00b82eb042d1dd478e37cd75cbe1c8855a6ca8",
+        "trxSha256": "d67e0ba7ca3097c976d0efda0cd03efa7a3f2267884cbb8eddc9d368630cf026",
+        "sourceMatchedBeforeAndAfter": true
+      },
+      "compat-netstandard2-r8": {
+        "exitCode": 0,
+        "counts": {},
+        "recordSha256": "2259fea256031c055800aa8fe2f04e9a8324ff86841663782d33cb800cfae843",
+        "trxSha256": null,
+        "sourceMatchedBeforeAndAfter": true
+      },
+      "runtime-css113-net8-r8": {
+        "exitCode": 0,
+        "counts": {
+          "total": 3,
+          "passed": 3,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "recordSha256": "62c8fd4262ccca3c9430bac1a91bebc1b3360083b240219b4ad45e1be7c018bb",
+        "trxSha256": "380fa59e8d0ab17ed82b304471d7122fc703ec7cdd03cc3d4f8e9454af80e639",
+        "sourceMatchedBeforeAndAfter": true
+      },
+      "worker-css113-net10-r8": {
+        "exitCode": 0,
+        "counts": {},
+        "recordSha256": "e8de5771ed55973ac15e4035b60543aa72294ca4f7fd6d3d14277cccec74d137",
+        "trxSha256": null,
+        "sourceMatchedBeforeAndAfter": true
+      },
+      "static-budget-css113-r8": {
+        "exitCode": 0,
+        "counts": {},
+        "recordSha256": "a569381aa17ec7bacad9c145d28de0bd1904405ee12619ccad1fce58e55c86fa",
+        "trxSha256": null,
+        "sourceMatchedBeforeAndAfter": true
+      }
+    },
+    "commands": "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net8.0 (and net10.0) --filter Category!=Performance; dotnet build OfficeIMO.Html/OfficeIMO.Html.csproj -c Release -f netstandard2.0. Targeted runtime CSS tests and worker/budget builds use the same source seal. Exact argv/log/TRX hashes retained in the task packet.",
+    "compatibility": "netstandard2.0 renderer, net10 worker and budget-tool builds: zero warnings/errors. Existing three xUnit analyzer warnings remain in the broader HTML test project.",
+    "budgetBoundary": "Budget tool compilation qualifies its released provider graph; no timing budget or Windows profiling run was performed."
+  },
+  "rendering": {
+    "font": {
+      "fixtureFiles": 22,
+      "printAndScreenOutputs": 44,
+      "exactVerticalGeometryRows": 202,
+      "savedPdfBaselineGlyphs": 550,
+      "maxObservedPdfBaselineErrorCssPx": 0,
+      "savedPdfBaselineAcceptanceCssPx": 0.0006676666666666667,
+      "pixelProbes": 26,
+      "browserErrors": [],
+      "allNativeFontsLoaded": true,
+      "allReportsNoLoss": true,
+      "pass": true,
+      "font": {
+        "path": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+        "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+        "bytes": 105592,
+        "fixtureCount": 22
+      },
+      "producerDlls": 59,
+      "actualLoadedOwnerBindingsVerifiedForEveryFixture": true,
+      "HTML": "4a2d582255d428576dd2b73cd1b4b043fec56c3e9ed5e6609088afe45e292961",
+      "HtmlPdf": "e8f2b15ce77b9e3e7ec9a440c37be65a7116ebe3370e7313211f4497f973236d",
+      "CSS": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61",
+      "rootInspectedFinalImages": 6
+    },
+    "paddingAndSerializer": {
+      "paddingCases": 10,
+      "originalFixtureDocuments": 11,
+      "profiles": [
+        "print",
+        "screen"
+      ],
+      "paddingObservationGroups": 64,
+      "qualifiedPaddingGroups": 64,
+      "serializerObservationGroups": 30,
+      "qualifiedSerializerGroups": 30,
+      "comparisonRoutes": [
+        "direct",
+        "PDF96",
+        "SVGscreen",
+        "SVGpdf96",
+        "nativeScreen",
+        "nativePDF96"
+      ],
+      "outputsByteIdenticalToRetainedNativeQualifiedControl": 110,
+      "decisiveSvgAndDirectOutputs": 44,
+      "freshPdfSamples": true,
+      "recapturedNativeBrowser": false,
+      "archiveReadbackFiles": 25,
+      "nativeReuse": "Exact original inputs and all110 output artifacts match the retained native-qualified control; fresh final PDF observations retain recorded antialiasing boundary residuals."
+    },
+    "nativeOwner": "HtmlTinkerX 3.0.5 source 366cbd06949dc1c00162a280a290e2c130ca0bea with Chromium 153.0.8010.12",
+    "browserServerCleanup": "Owned native browser/server processes closed and verified."
+  },
+  "packages": {
+    "runner": "Build/Test-HtmlPackages.ps1",
+    "privateQualificationOnly": true,
+    "packages": 19,
+    "frameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "consumerExecutions": 4,
+    "consumerFrameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "consumerOfficeImoDllCopiesMatchedToArchives": 42,
+    "apiValidationEnabled": true,
+    "configuredBaselineProjects": {
+      "OfficeIMO.Rtf/OfficeIMO.Rtf.csproj": "3.3.0",
+      "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj": "3.3.0",
+      "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj": "3.3.0",
+      "OfficeIMO.Mhtml.Pdf/OfficeIMO.Mhtml.Pdf.csproj": "3.3.0"
+    },
+    "officialProviderArchives": [
+      {
+        "id": "anglesharp.css",
+        "version": "1.1.3",
+        "sha256": "438b106f62ab96c310fa4744eb7be2a302e39041df5a041fc090cc42dae3c91f",
+        "ordinaryCacheMatchesRelease": true,
+        "privateConsumerCacheSha256": "438b106f62ab96c310fa4744eb7be2a302e39041df5a041fc090cc42dae3c91f"
+      },
+      {
+        "id": "anglesharp",
+        "version": "1.8.3",
+        "sha256": "93cc6fd76ae6e450aa35f4f38b1a75f201b544ed8e336e02035b69cb25d81ebd",
+        "ordinaryCacheMatchesRelease": true,
+        "privateConsumerCacheSha256": "93cc6fd76ae6e450aa35f4f38b1a75f201b544ed8e336e02035b69cb25d81ebd"
+      }
+    ],
+    "allSealedSourcesAndGitStatusUnchangedDuringRun": true,
+    "metadataSha256": "1420b7b70c6707b935bf7463b6155c51717aceccacc64e2022bc3b87edb3c31a",
+    "consumerMetadataSha256": "1cb227e0a5d8f2a5444e25457652a41c992ddba6f927d144077f3beae6918202",
+    "nativeWindowsExecution": false
+  },
+  "dependencies": {
+    "newProductionRoles": false,
+    "publicApiChanges": false,
+    "updatedExistingPackage": {
+      "AngleSharp.Css": {
+        "from": "1.1.2",
+        "to": "1.1.3",
+        "license": "MIT",
+        "dependencyGroupsChanged": false,
+        "generatedLockfiles": 12,
+        "releasedSource": "fdf4a584fdfbb6e3657b920f4646f096960a673e",
+        "upstream": "https://github.com/AngleSharp/AngleSharp.Css/pull/250"
+      }
+    },
+    "runtimePerFrameworkAssets": "net8 andnet10 worker CSS DLLs each match their selected official nupkg asset; different target-framework hashes are expected.",
+    "staticCore": "AngleSharp1.8.3",
+    "workerCoreSource": "353ad27c680d7585ace3989fc70065856b96a3e6",
+    "coreUpgradeAcceptance": "The merged select-state contribution and future released-core/worker adoption remain separate from this CSS update."
+  },
+  "review": {
+    "padding": "One independent scoped read-only pass accepted padding ownership and actual native images; final110-output identity preserves that visual proof.",
+    "fontClosure": "Original font review was coverage-incomplete after native/broad findings. A fresh bounded zero-flow/marker/chunk-paint closure found two reproduced defects; both fixed and the single targeted confirmation accepted source, actual screenshots, and complete producer bindings.",
+    "withdrawnInference": "A source-only negative-layer suspicion matched native opacity/z0/no-background controls and was withdrawn; paint phases stay unchanged.",
+    "knownUnresolvedWithinQualifiedBoundary": 0,
+    "manualHostedReviewRequested": false
+  },
+  "remainingAcceptance": [
+    "Non-replaced inline transform applicability: retainedR4/R8 translateX1 moves the glyph to25.0000107px while native stays24px. The nested translateX3 case adds3px beyond the existing~0.11px shaping-width difference. This is a preexisting transform eligibility defect; no full horizontal/image parity claim.",
+    "CSS transformable-element rule: https://www.w3.org/TR/css-transforms-1/#transformable-element. Correct eligibility and preserve eligible atomic/replaced boxes, containing blocks, stacking and link/hit geometry in the next owner slice.",
+    "Existing relative positioned decoration uses H23/top185 versus nativeH19/top186; negative absolute raw reference top-7 versus native-6. Selected glyph baselines/common paint comparisons pass; specialized reference geometry remains unqualified.",
+    "Mixed-family, bidi/vertical, generated-leader and specialized/atomic routes retain their earlier qualification limits.",
+    "Broader blur/antialiased boundary, original captured-font ink, whole-page H10 appearance, manual accessibility and cross-platform budgets remain open.",
+    "net472 package compilation and API validation on macOS do not establish native Windows execution. Windows profiling is explicitly deferred.",
+    "No package release, runtime milestone completion or arbitrary-website compatibility claim."
+  ],
+  "storage": {
+    "logicalBytesRemovedThisContinuation": 6340095037,
+    "frameworkArchiveSha256": "b4d768471a246a1626b5c40bf135a5f63616e8d8fbd5c8a486235dc0158e7bd5",
+    "fontProofArchiveSha256": "9ff28c9c3a02bc8195ae7375fc0a2ce3674dbd7b40ac35a93a12d531864a08d6",
+    "paddingRuntimeArchiveSha256": "ef7071082787107c59a362d8e7c17ff4cf314343da2cbf411fe42f041d08b05f",
+    "validationLogsArchiveSha256": "a648bf73f3deaecefb018cbfedc48101da722d0affb9b60a3d3d24d64231daf2",
+    "validationLogAndTrxReadbackFiles": 41,
+    "privatePackageGraphsAndCachesRemoved": true,
+    "rootCompilerGraphRemoved": true,
+    "retainedEvidence": "Named font-padding-qualification, inline-used-font-box and shadow-small-radius task folders retain compact proofs, source/native fixtures and19private candidate packages. Storage snapshot is retained in font-padding-qualification/finish-storage-result.json."
+  }
+}

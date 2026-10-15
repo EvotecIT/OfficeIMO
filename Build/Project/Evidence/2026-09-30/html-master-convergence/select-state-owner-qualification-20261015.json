@@ -149,5 +149,21 @@
     "manualHostedReviewRequested": false,
     "reviewerOnlyHeartbeatScheduled": false,
     "reason": "Independent HTML work remains available; no further scheduling solely for unchanged maintainer review."
+  },
+  "upstreamAcceptance": {
+    "verifiedUtc": "2026-10-15T13:53:09.259038+00:00",
+    "state": "MERGED",
+    "qualifiedHead": "51b76206c39ae9d780ec9f76107bdd2c6d2cea1e",
+    "approval": {
+      "author": "FlorianRappl",
+      "state": "APPROVED",
+      "submittedAt": "2026-10-15T13:42:40Z",
+      "commit": "51b76206c39ae9d780ec9f76107bdd2c6d2cea1e"
+    },
+    "mergeCommit": "3aa3ed4e",
+    "mergedAt": "2026-10-15T13:43:13Z",
+    "officialDevelContainsMerge": true,
+    "contributionWorktreeAndLocalBranch": "Removed after exact ancestry, clean status, containment, no active handles and common-dir verification; OfficeIMO worker submodule353ad27c unchanged.",
+    "packageBoundary": "Core stable public package and OfficeIMO worker adoption remain separate; no adoption or release claimed."
   }
 }
