@@ -89,7 +89,7 @@
       "id": "mcp-registry",
       "name": "Official MCP Registry",
       "state": "planned",
-      "detail": "io.github.evotecit/officeimo, verified against the NuGet package. VS Code, GitHub Copilot and other registries list servers from it.",
+      "detail": "io.github.EvotecIT/officeimo, verified against the NuGet package. VS Code, GitHub Copilot and other registries list servers from it.",
       "roadmap": "product-discovery-and-public-evidence"
     },
     {
