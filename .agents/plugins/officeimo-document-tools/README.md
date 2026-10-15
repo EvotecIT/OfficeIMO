@@ -36,6 +36,24 @@ claude plugin install officeimo-document-tools@officeimo
 
 For local validation, add the absolute checkout path as the marketplace instead. The checked-in `.claude-plugin/plugin.json` and `.mcp.json` provide Claude's native package layout.
 
+## Cursor
+
+Cursor supports the portable Agent Plugins layout used by this bundle. Extract the release ZIP into `~/.cursor/plugins/local/officeimo-document-tools`, restart Cursor or run **Developer: Reload Window**, and confirm that both skills and the `officeimo` MCP server appear in **Customize**. Set the allowed-roots environment before starting Cursor.
+
+For MCP-only setup, add this server under `mcpServers` in the client's `mcp.json`. Replace the example folder with your document and output folder; Windows JSON paths need escaped backslashes or forward slashes.
+
+```json
+{
+  "officeimo": {
+    "command": "dotnet",
+    "args": ["dnx", "OfficeIMO.Tool@3.4.5", "mcp", "serve", "--stdio"],
+    "env": { "OFFICEIMO_MCP_ALLOWED_ROOTS": "/absolute/path/to/documents" }
+  }
+}
+```
+
+Manual MCP configuration exposes tools; install the plugin bundle to load its skills as well. A Cursor Marketplace listing is a separate reviewed publication.
+
 ## Other MCP and skills clients
 
 The canonical `plugin.json`, `mcp.json`, and `skills/` follow Agent Plugins 1.0.0. Clients may support only a subset of components. A client with manual MCP configuration can launch the same server:
@@ -44,7 +62,19 @@ The canonical `plugin.json`, `mcp.json`, and `skills/` follow Agent Plugins 1.0.
 dotnet dnx OfficeIMO.Tool@3.4.5 mcp serve --stdio
 ```
 
-Use that client's native STDIO configuration syntax and pass the allowed-roots environment above. ChatGPT's public directory requires a reviewed submission and a hosted HTTPS MCP endpoint for connected tools; this local package alone does not provide that endpoint or imply a directory listing.
+Use that client's native STDIO configuration syntax and pass the allowed-roots environment above. Local tools require a client that can execute on the machine containing the documents. They cannot read a desktop folder from a cloud-only conversation.
+
+## Updates and discovery
+
+The plugin and its NuGet launcher use the same release version. Refresh your marketplace and update the plugin through the client to receive a new bundled version. For an extracted ZIP, replace the local plugin directory with the new release bundle and restart the client. Restart the MCP server after changing access configuration.
+
+Repository marketplaces, release downloads, the official MCP Registry and vendor directories are separate distribution routes. A release ZIP or registry entry does not establish a listing in a vendor directory. See [publication and client qualification](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.agent-distribution.md) for the maintainer procedure.
+
+## Data handling
+
+The MCP server executes locally and reads documents within the configured roots. It returns selected document content and metadata to the MCP client, which may send those results to its model provider under that client's settings and policies. Local execution does not guarantee that extracted content stays on the computer.
+
+File-writing operations create output in authorized folders. OCR providers are separately registered by the host and have their own execution and data-handling requirements. Keep passwords in the host configuration described below and use synthetic files when sharing diagnostics or review examples.
 
 ## Available operations
 
