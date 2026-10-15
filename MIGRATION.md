@@ -913,6 +913,17 @@ requested replacements completed. Model or mapping errors can remain in the
 report; requested standards validation must pass before output is returned.
 Create captured edit requests through `ForSourceEdit` on the memory or file
 request type.
+## Asynchronous CSV aggregation batch size
+
+`CsvDocument.AggregateRowsAsParallelAsync` uses 1,024 records per worker batch
+when `ParallelRowMappingOptions.BatchSize` is omitted, replacing the previous
+default of 256. Its copied text allowance grows with the effective batch
+capacity, up to 262,144 characters per batch. This reduces scheduling overhead
+while allowing more buffered input and later first-callback delivery. Set
+`BatchSize = 256` explicitly to retain smaller worker batches. Explicit batch
+sizes, bounded worker counts, source-ordered merges and caller stream ownership
+keep their existing behavior.
+
 ## CSV asynchronous reads and stream saves
 
 On .NET 8 and later, `CsvDocument.OpenDataReaderAsync` reads incrementally.

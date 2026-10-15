@@ -177,16 +177,26 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static int AppendUInt32(byte[] buffer, int offset, uint value) {
+#if NET8_0_OR_GREATER
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(offset, sizeof(uint)), value);
+            return offset + sizeof(uint);
+#else
             buffer[offset++] = (byte)value;
             buffer[offset++] = (byte)(value >> 8);
             buffer[offset++] = (byte)(value >> 16);
             buffer[offset++] = (byte)(value >> 24);
             return offset;
+#endif
         }
 
         private static int AppendUInt64(byte[] buffer, int offset, ulong value) {
+#if NET8_0_OR_GREATER
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(offset, sizeof(ulong)), value);
+            return offset + sizeof(ulong);
+#else
             offset = AppendUInt32(buffer, offset, unchecked((uint)value));
             return AppendUInt32(buffer, offset, unchecked((uint)(value >> 32)));
+#endif
         }
     }
 }

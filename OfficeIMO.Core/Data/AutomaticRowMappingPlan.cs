@@ -133,9 +133,17 @@ internal sealed class AutomaticRowMappingPlan<
     }
 
     private bool HasIncompatibleReaderValue(DbDataReader reader) {
-        foreach (MappingBinding binding in _bindings) {
-            if (!DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, binding.ColumnIndex, binding.Property.ValueType)
-                || reader.IsDBNull(binding.ColumnIndex)) return true;
+        // MapReaderRow already requires the fast-value contract. Native readers can
+        // prove conversion and presence together without a second virtual null probe.
+        if (reader is IDataReaderTypedMappingCompatibility compatibility) {
+            foreach (MappingBinding binding in _bindings) {
+                if (!compatibility.CanUseNonNullTypedGetter(
+                        binding.ColumnIndex, binding.Property.ValueType)) return true;
+            }
+        } else {
+            foreach (MappingBinding binding in _bindings) {
+                if (reader.IsDBNull(binding.ColumnIndex)) return true;
+            }
         }
         return false;
     }

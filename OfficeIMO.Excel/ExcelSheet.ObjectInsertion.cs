@@ -293,12 +293,19 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<Func<T, object?>> selectors,
             out Type?[] inferredColumnTypes) {
             var values = new object?[checked(rows.Count * selectors.Count)];
+#if NET8_0_OR_GREATER
+            Span<object?> valueBuffer = values;
+#endif
             inferredColumnTypes = new Type?[selectors.Count];
             for (int r = 0; r < rows.Count; r++) {
                 int rowOffset = r * selectors.Count;
                 for (int c = 0; c < selectors.Count; c++) {
                     object? value = selectors[c](rows[r]);
+#if NET8_0_OR_GREATER
+                    valueBuffer[rowOffset + c] = value;
+#else
                     values[rowOffset + c] = value;
+#endif
                     UpdateObjectExportColumnType(inferredColumnTypes, c, value);
                 }
             }

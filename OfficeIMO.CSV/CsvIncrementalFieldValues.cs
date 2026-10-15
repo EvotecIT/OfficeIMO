@@ -15,30 +15,21 @@ internal sealed class CsvIncrementalFieldValues : IReadOnlyList<string>
     {
         Clear();
         _buffer = buffer;
-        int end = start + length;
-        while (true)
+        var fields = new CsvUnquotedFieldEnumerator(buffer, start, length, delimiter, trim);
+        while (fields.MoveNext())
         {
-            int separator = buffer.AsSpan(start, end - start).IndexOf(delimiter);
-            int fieldEnd = separator < 0 ? end : start + separator;
-            AddField(start, fieldEnd, trim);
-            if (separator < 0) return;
-            start = fieldEnd + 1;
+            AddField(fields.Start, fields.Length);
         }
     }
 
-    private void AddField(int start, int end, bool trim)
+    private void AddField(int start, int length)
     {
-        if (trim)
-        {
-            while (start < end && char.IsWhiteSpace(_buffer[start])) start++;
-            while (end > start && char.IsWhiteSpace(_buffer[end - 1])) end--;
-        }
         if (Count == _ranges.Length)
         {
             Array.Resize(ref _ranges, checked(Count * 2));
             Array.Resize(ref _strings, _ranges.Length);
         }
-        _ranges[Count++] = (start, end - start);
+        _ranges[Count++] = (start, length);
     }
 
     internal ReadOnlySpan<char> GetSpan(int index)

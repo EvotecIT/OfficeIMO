@@ -10,14 +10,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     /// Owns the bounded package state needed by forward-only XLSB table readers. Unlike the
     /// editable importer, it does not build an intermediate workbook or Open XML projection.
     /// </summary>
-    internal sealed class XlsbTabularWorkbook : IDisposable {
+    internal sealed partial class XlsbTabularWorkbook : IDisposable {
         private const int BrtBeginBook = 131;
         private const int BrtEndBook = 132;
         private const int BrtWbProp = 153;
         private const int BrtBundleSh = 156;
-        private const int BrtSstItem = 19;
-        private const int BrtBeginSst = 159;
-        private const int BrtEndSst = 160;
         private const int BrtBeginStyleSheet = 278;
         private const int BrtEndStyleSheet = 279;
         private const int BrtBeginFills = 603;
@@ -44,7 +41,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private const string ChartSheetRelationshipSuffix = "/chartsheet";
         private const string DialogSheetRelationshipSuffix = "/dialogsheet";
         private const string MacroSheetRelationshipSuffix = "/macrosheet";
-        private const string SharedStringsRelationshipSuffix = "/sharedStrings";
         private const string StylesRelationshipSuffix = "/styles";
 
         private readonly Stream _packageStream;
@@ -126,7 +122,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             _sharedStrings = ReadSharedStrings(workbookPartName, relationships);
-            _dateStyles = ReadDateStyles(workbookPartName, relationships);
+            try {
+                _dateStyles = ReadDateStyles(workbookPartName, relationships);
+            } catch {
+                (_sharedStrings as IDisposable)?.Dispose();
+                throw;
+            }
         }
 
         internal bool Uses1904DateSystem { get; }
@@ -280,6 +281,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             _disposed = true;
+            (_sharedStrings as IDisposable)?.Dispose();
             _archive.Dispose();
             _packageStream.Dispose();
         }
@@ -352,88 +354,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The XLSB workbook contains {sheets.Count} worksheets, exceeding the configured limit of {_limits.MaxWorksheets}.");
             }
-        }
-
-        private IReadOnlyList<string> ReadSharedStrings(
-            string workbookPartName,
-            IReadOnlyDictionary<string, XlsbPackageRelationship> relationships) {
-            XlsbPackageRelationship? relationship = XlsbPackagePartReader.GetOptionalSingletonRelationship(
-                relationships,
-                SharedStringsRelationshipSuffix,
-                "shared-string");
-            if (relationship == null) {
-                return Array.Empty<string>();
-            }
-
-            string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            byte[] bytes = _parts.ReadPart(partName, _cancellationToken);
-            var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
-            var values = new List<string>();
-            long totalCharacters = 0;
-            bool began = false;
-            bool ended = false;
-            uint declaredUniqueCount = 0;
-            while (records.TryRead(out XlsbRecordSlice record)) {
-                CheckCancellation();
-                if (record.Type == BrtBeginSst) {
-                    if (began || ended || record.RecordOffset != 0 || record.Size < 8) {
-                        throw new InvalidDataException(
-                            $"The BrtBeginSst record in '{partName}' is truncated or misplaced.");
-                    }
-                    var header = record.CreateCursor();
-                    uint declaredTotalCount = header.ReadUInt32();
-                    declaredUniqueCount = header.ReadUInt32();
-                    if (declaredTotalCount < declaredUniqueCount) {
-                        throw new InvalidDataException(
-                            $"The XLSB shared-string part '{partName}' declares fewer total strings than unique strings.");
-                    }
-                    if (declaredUniqueCount > _limits.MaxSharedStrings) {
-                        throw new InvalidDataException(
-                            $"The XLSB shared-string table declares {declaredUniqueCount} unique items, exceeding the configured limit of {_limits.MaxSharedStrings} items.");
-                    }
-                    began = true;
-                } else if (record.Type == BrtEndSst) {
-                    if (!began || ended || record.Size != 0) {
-                        throw new InvalidDataException(
-                            $"The XLSB shared-string part '{partName}' contains an invalid BrtEndSst boundary.");
-                    }
-                    ended = true;
-                } else if (record.Type == BrtSstItem) {
-                    if (!began || ended) {
-                        throw new InvalidDataException(
-                            $"The XLSB shared-string part '{partName}' contains an item outside its boundary records.");
-                    }
-                    if (values.Count >= _limits.MaxSharedStrings) {
-                        throw new InvalidDataException(
-                            $"The XLSB shared-string table exceeds the configured limit of {_limits.MaxSharedStrings} items.");
-                    }
-
-                    var cursor = record.CreateCursor();
-                    cursor.ReadByte();
-                    string value = cursor.ReadWideString(_maxSharedStringItemCharacters);
-                    if (totalCharacters > _maxSharedStringCharacters - value.Length) {
-                        throw new InvalidDataException(
-                            $"The XLSB shared-string table exceeds the configured aggregate limit of {_maxSharedStringCharacters} characters.");
-                    }
-
-                    totalCharacters += value.Length;
-                    values.Add(value);
-                } else if (!began || ended) {
-                    throw new InvalidDataException(
-                        $"The XLSB shared-string part '{partName}' contains records outside its boundary records.");
-                }
-            }
-
-            if (!began || !ended) {
-                throw new InvalidDataException(
-                    $"The XLSB shared-string part '{partName}' is missing its boundary records.");
-            }
-            if ((uint)values.Count != declaredUniqueCount) {
-                throw new InvalidDataException(
-                    $"The XLSB shared-string part '{partName}' declares {declaredUniqueCount} unique items but contains {values.Count}.");
-            }
-
-            return values;
         }
 
         private ExcelSerialDateStyle[] ReadDateStyles(

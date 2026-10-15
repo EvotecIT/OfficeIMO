@@ -34,6 +34,9 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         internal static long Accumulate(TypedRecord record) =>
             record.Id + (long)record.Value + (record.Name?.Length ?? 0) + record.Date.Ticks;
 
+        internal static long Accumulate(TypedValueRecord record) =>
+            record.Id + (long)record.Value + (record.Name?.Length ?? 0) + record.Date.Ticks;
+
         internal static long ExpectedChecksum(int rowCount) {
             long result = 0;
             for (int row = 1; row <= rowCount; row++) result = unchecked(result + Accumulate(ExpectedRecord(row)));

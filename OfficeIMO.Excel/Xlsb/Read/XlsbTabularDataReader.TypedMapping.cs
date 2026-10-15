@@ -4,7 +4,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader : IDataReaderFastMappingValues, IDataReaderTypedMappingCompatibility {
         bool IDataReaderFastMappingValues.HasOnlyNonNullFastValues => false;
 
-        bool IDataReaderTypedMappingCompatibility.CanUseTypedGetter(int ordinal, Type targetType) {
+        bool IDataReaderTypedMappingCompatibility.CanUseTypedGetter(int ordinal, Type targetType) =>
+            CanUseTypedMappingGetter(ordinal, targetType);
+
+        // Every accepted native kind contains a value; Empty and Custom are excluded below.
+        bool IDataReaderTypedMappingCompatibility.CanUseNonNullTypedGetter(int ordinal, Type targetType) =>
+            CanUseTypedMappingGetter(ordinal, targetType);
+
+        private bool CanUseTypedMappingGetter(int ordinal, Type targetType) {
             ValidateReadableOrdinal(ordinal);
             if (_options.NumericAsDecimal || _options.CellValueConverter != null) return false;
 

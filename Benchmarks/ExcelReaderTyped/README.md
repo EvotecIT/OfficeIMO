@@ -56,6 +56,10 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 enabled workload and parameter case. It checks declaration compatibility before
 fixture qualification; a Dry run also proves generated-process execution.
 
+The runner preserves the active power plan. Record that plan, power source,
+processor placement and background load with the results, and use the same
+settings for each implementation in a comparison.
+
 Source is the default OfficeIMO input. For a published-package comparison,
 pass an explicit version when building or running the project:
 
@@ -249,13 +253,16 @@ API and OfficeIMO's `byte[]` API. OfficeIMO's `Stream` case uses its normal stre
 overload, including its input-buffering cost. None of these methods measures disk
 I/O. `PrefetchedRealDataReadBenchmarks` preserves the upstream ZIP decompression
 prefetch cases for XLSX/XLSM/XLSB; `MaterializedRealDataReadBenchmarks` reads
-materialized strings in every engine.
+materialized strings in every engine. Its `ExcelReaderStringsMaterializedPrefetch`
+method combines materialized strings with decompression prefetch. Select XLSX,
+XLSM, or XLSB for that method; prefetch has no effect on uncompressed XLS.
 
 `StringHeavyReadBenchmarks` uses the [upstream generator](https://github.com/GabrielMarquezMatte/ExcelReader/blob/ca5b50f99e8ef57ab476f0a2bc8043558d58b28d/tests/ExcelReader.Benchmarks/Shared/StringHeavyWorkbookGenerator.cs)
 with shared strings enabled: 65,536 data rows, one header, eight text columns, and
 `Id`, `Amount`, and `Date`. It preserves the original deterministic text pools
-and distributions. `MaterializedStringHeavyReadBenchmarks` includes ordinary and
-explicitly interned ExcelReader string access as separate methods. OfficeIMO and
+and distributions. `MaterializedStringHeavyReadBenchmarks` includes ordinary,
+explicitly interned, and prefetched materialized ExcelReader string access as
+separate methods. OfficeIMO and
 Sylvan use their normal reader defaults; cache settings are not silently matched
 through adapters. `OFFICEIMO_STRING_BENCHMARK_ROWS` selects diagnostic sizes.
 
@@ -275,6 +282,49 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*RealDataReadBenchmarks*' '*StringHeavyReadBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/large-input-dry --noOverwrite
 ```
 
+## Public borrowed UTF-8 scans
+
+Enable `OfficeIMOBenchmarkNewApis=true` to compare borrowed text bytes through
+each library's public API:
+
+| Benchmark class | Input |
+| --- | --- |
+| `BorrowedRawReadBenchmarks` | Generated headerless XLSX/XLSB, 50,000 rows and four fields by default |
+| `BorrowedRealDataReadBenchmarks` | Pinned XLSX/XLSM/XLSB, 65,535 data rows plus header and fourteen fields |
+
+Both classes expose `ExcelReaderBorrowed`, `ExcelReaderBorrowedPrefetch`, and
+`OfficeIMOBorrowedUtf8`. The OfficeIMO method calls `TryGetUtf8Text`; nontext
+fields retain their native values through `GetValue`, including its numeric/date
+boxing cost. Each invocation opens a fresh reader and consumes spans before
+advancing the row. Provider decoding, UTF-8 encoding, and reader-owned caching
+remain part of the operation. A borrowed result does not imply allocation-free
+lookup. XLS uses the separate materialized scan classes.
+
+Setup checks exact UTF-8 bytes, native values/types, row order, width, and count
+for both default and prefetched peer reads. It compares values against the
+independent reader and generated expected records where available. Unsupported
+nonempty text fails qualification; it is never converted by a caller fallback.
+An already-qualified empty value can contribute zero bytes when borrowing is
+unavailable. Timed scans retain a count/checksum check.
+
+`--validate-public-utf8` runs these setup checks and the deflated XLSX/XLSB
+shared-string UTF-8 checks without collecting timing results. Generated raw sizes
+use `OFFICEIMO_TYPED_BENCHMARK_ROWS`; shared-string sizes use the separate
+`OFFICEIMO_SHARED_UTF8_BENCHMARK_ROWS`. Real-data sizes are fixed. Set
+`OFFICEIMO_BENCHMARK_DATA` as described above to reuse hash-verified local fixtures.
+
+```powershell
+$project = './Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj'
+$env:OFFICEIMO_TYPED_BENCHMARK_ROWS = '50000'
+$env:OFFICEIMO_SHARED_UTF8_BENCHMARK_ROWS = '65536'
+dotnet run -c Release --project $project -p:OfficeIMOBenchmarkNewApis=true -- --validate-public-utf8
+dotnet run -c Release --project $project -p:OfficeIMOBenchmarkNewApis=true -- --filter '*.BorrowedRawReadBenchmarks.*' '*.BorrowedRealDataReadBenchmarks.*' --job Dry --artifacts ./Ignore/Benchmarks/public-utf8-dry --noOverwrite
+```
+
+Report borrowed-byte and materialized-string scans separately. Keep default,
+decompression-prefetch, and string-interning policies labelled in their results;
+the original raw API comparisons perform different string-materialization work.
+
 ## Writer options and native binary formats
 
 `SharedStringWriterBenchmarks` selects shared strings in both ordinary XLSX
@@ -293,6 +343,27 @@ and 4 MiB output capacity; XLS preserves its separate 16 MiB capacity. Both
 operations finish and dispose the workbook before returning the output length.
 `ConfiguredXlsbWriterBenchmarks` preserves the peer's shared-string and write-
 prefetch variants without inventing equivalent OfficeIMO options.
+
+The current-API build also provides `NativeXlsbWarmSaveControlBenchmarks` and
+`NativeXlsbFirstSaveControlBenchmarks` for 50,000-row mixed-value and all-text
+inputs, each with inline and shared string storage. These OfficeIMO controls
+prepare the source records and a fixed 4 MiB destination outside measurement.
+Every operation resets that destination, creates the document and worksheet,
+inserts the objects, saves, and disposes the document. The all-text selectors
+perform invariant number and date conversion inside the measured insertion.
+Destination growth invalidates a result. Keep these controls separate from the
+ordinary writer comparison, which allocates its destination inside measurement.
+
+The warm control uses one launch, four warmups, eight measured iterations, and
+one invocation per iteration, with allocation diagnostics. The first-save
+control uses sixteen fresh-process launches, no warmups, and one measured save
+per launch. Its setup calls neither a document writer nor an output reader.
+It omits `MemoryDiagnoser`, whose additional workload invocation would be a
+later save in that process. First-save timing excludes process launch and does
+not establish cold disk-cache performance. `--validate-native-xlsb-controls`
+checks the first and second outputs of all four combinations in a separate
+process, including every field and native type through ExcelReader and Sylvan,
+string storage, ZIP payloads, and relationships.
 
 Every native output is read field by field through ExcelReader and Sylvan outside
 timing. XLSB also checks ZIP payload CRCs, required parts, and relationships.
@@ -315,6 +386,8 @@ cell-value checks through ExcelReader and Sylvan.
 ```powershell
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-write-options
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*SharedStringWriterBenchmarks*' '*CompactWriterBenchmarks*' '*NativeWriterBenchmarks*' '*ConfiguredXlsbWriterBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/writer-options-dry --noOverwrite
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --validate-native-xlsb-controls
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --filter '*NativeXlsbWarmSaveControlBenchmarks*' '*NativeXlsbFirstSaveControlBenchmarks*' --artifacts ./Ignore/Benchmarks/native-save-controls --noOverwrite
 ```
 
 Set `-p:OfficeIMOBenchmarkNewApis=true` when compiling optional cases that call
@@ -377,6 +450,23 @@ version and SHA-256 hash are printed and checked against saved inputs.
 The CSV suite covers raw, materialized, typed, async, 32-column text, and writing
 work. `--validate-csv` checks every field and count outside timing. The parallel
 suite compares complete typed records separately from native aggregate work.
+`CsvTypedStructReadBenchmarks` maps the same headered four-field input into a
+materialized value record using each library's automatic property mapping.
+Both methods open and dispose a fresh memory-backed reader, consume all four
+properties, and check the row count and checksum. Setup and
+`--validate-csv-struct` additionally check every native field and row order.
+The class-model lane remains available separately.
+`CsvBorrowedAsyncReadBenchmarks` consumes the same headerless four-field ASCII
+fixture through a native asynchronous UTF-8 row loop and OfficeIMO's public
+`AggregateRowsAsParallelAsync(Stream, ...)` callback at DOP 1. OfficeIMO consumes
+borrowed UTF-16 spans and scalar getters; its headerless initialization may
+materialize the first row. Both methods acquire a fresh `MemoryStream` inside
+the measured call. `--validate-csv-borrowed-async` verifies every name byte/span,
+scalar and row order, including Unicode, escaped quotes and multiline names,
+outside timing. The materialized async companion remains a separate workload.
+These memory-backed streams measure API and parsing work, without establishing
+asynchronous disk throughput or zero allocation.
+
 `--validate-csv-parallel` uses bounded 50,000-row fixtures across the upstream
 degrees of parallelism; measured cases retain their original 4.3M, 8M, and 3M
 sizes. `OFFICEIMO_CSV_PARALLEL_BENCHMARK_ROWS` and
@@ -470,6 +560,8 @@ this opt-in comparison project.
 
 ```powershell
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -- --validate-csv
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -- --validate-csv-struct
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -- --validate-csv-borrowed-async
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -- --validate-csv-parallel
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -p:OfficeIMOBenchmarkArrow=true -- --validate-arrow
 ```
@@ -567,7 +659,8 @@ variants. Native XLSB calls the public reader's own borrowed UTF-8 provider;
 there is no caller string-to-byte adapter.
 `OFFICEIMO_SHARED_UTF8_BENCHMARK_ROWS` selects a labelled diagnostic size.
 Its text fields use public borrowed UTF-8 spans, and numeric/date values retain
-their native getters. Setup validates every borrowed byte, native field type,
+their native values through `GetValue`, including boxing. Setup validates every
+borrowed byte, native field type,
 count, and order against the generator, peer, and independent Sylvan reader.
 Each measured operation opens and disposes a new reader. OfficeIMO borrows
 canonical bytes for indexed plain ASCII shared strings. Other normalized

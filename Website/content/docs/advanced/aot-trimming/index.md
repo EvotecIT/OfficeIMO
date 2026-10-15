@@ -12,16 +12,17 @@ The project inventory distinguishes NativeAOT evidence from managed deployment. 
 
 The separate `OfficeIMO.Studio.iOS` host has Debug ARM64 simulator evidence. Release trimming, device AOT, signing, and physical-device acceptance remain unqualified.
 
-The 118 native-validated projects are not all proved in the same way:
+The 119 native-validated projects are not all proved in the same way:
 
 - **113 production libraries** are fully rooted as complete assemblies across three native hosts: 111 in the main compile graph, with the optional `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa` packages each exercised in a dedicated host. All three executables must start successfully.
 - **1 optional Google APIs adapter** runs a bounded token-store workflow natively. Its complete Google authorization dependency surface is not advertised as trim-safe because fully rooting `Google.Apis` and `Newtonsoft.Json` produces upstream warnings.
 - **1 iWork workflow adapter** executes bounded complete PDF conversions, rejection and cancellation on macOS arm64. Its complete API and other architectures are not qualified by that profile.
 - **1 production command-line tool** publishes as a native executable and must start and return its real command help.
 - **1 optional Windows x64 ODBC driver** publishes as a native shared library and executes read-only workbook queries through Windows ODBC manager and an independent `System.Data.Odbc` client.
+- **1 Studio native engine** publishes as a shared library and runs the document journey through its exported C interface.
 - **1 build-time source generator** emits an explicit row mapper that compiles into and executes from the main native host. The analyzer itself is not deployed as a runtime assembly.
 
-The [machine-readable project matrix](/data/aot-compatibility.json) names all 152 production projects and records which proof applies to each one. A passing native workflow does not establish that every optional third-party API has been executed.
+The [machine-readable project matrix](/data/aot-compatibility.json) names every production project and records which proof applies to each one. A passing native workflow does not establish that every optional third-party API has been executed.
 
 `OfficeIMO.Project` has additional bounded Linux NativeAOT lifecycle smoke evidence described in its [Project runtime and scale support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Project/SUPPORT.md#runtime-and-scale). It is not counted in the coordinated native hosts above; full-library rooting remains unqualified.
 

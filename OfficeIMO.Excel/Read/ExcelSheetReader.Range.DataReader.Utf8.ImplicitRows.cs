@@ -10,6 +10,8 @@ namespace OfficeIMO.Excel {
             /// to omit its coordinate. A later explicit cell reference may determine
             /// the row number, so any incomplete attempt restores the discovery state
             /// before the ordinary coordinate lookahead runs.
+            /// A committed row initializes every metadata slot; callers reset partial
+            /// metadata before indexing an unsuccessful attempt through the fallback.
             /// </summary>
             private bool TryIndexCanonicalImplicitDenseRow(
                 ref int position,
@@ -45,6 +47,12 @@ namespace OfficeIMO.Excel {
                     if (position <= _length - 6
                         && _buffer![position + 1] == (byte)'/'
                         && MatchesUtf8(position, "</row>"u8)) {
+                        // Every indexed cell owns its metadata. Only absent trailing
+                        // cells need missing sentinels when a complete row is proven.
+                        int indexedFieldCount = columnIndex - 1;
+                        if (indexedFieldCount < _fieldCount) {
+                            InitializeMetadataRow(rowOffset, indexedFieldCount);
+                        }
                         position += 6;
                         UpdateUsedBounds(rowIndex, columnIndex - 1);
                         return true;
@@ -96,12 +104,24 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    int sharedStringIndex = ValidateIndexedCell(
-                        rowIndex, columnIndex, kind, styleIndex,
-                        sharedFormulaFollower: false, hasCachedValue, valueStart, valueLength);
+                    // Exact cached tags already proved their style against this
+                    // reader's immutable StylesCache. Shared-string indexes belong
+                    // to each value and must still be validated on every cell.
+                    int sharedStringIndex = repeatedTag && kind != Utf8CellKind.SharedString
+                        ? -1
+                        : ValidateIndexedCell(
+                            rowIndex, columnIndex, kind, styleIndex,
+                            sharedFormulaFollower: false, hasCachedValue, valueStart, valueLength);
                     if (sharedStringIndex >= 0) {
                         _valueStarts![cellIndex] = sharedStringIndex;
                         _valueLengths![cellIndex] = SharedStringIndexValueLength;
+                    } else if (valueLength < 0) {
+                        _valueStarts![cellIndex] = 0;
+                        _valueLengths![cellIndex] = -1;
+                    }
+                    if (_formulaStarts != null) {
+                        _formulaStarts[cellIndex] = 0;
+                        _formulaLengths![cellIndex] = -1;
                     }
                     byte encodedKind = repeatedTag ? cachedTag.EncodedKind : EncodeCellKind(kind, styleIndex);
                     _cellKinds![cellIndex] = encodedKind;

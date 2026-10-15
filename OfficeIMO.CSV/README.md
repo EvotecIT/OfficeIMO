@@ -507,6 +507,14 @@ leaves the stream open.
 Callbacks have no thread affinity; completed states merge sequentially in
 source order, and all workers finish before return or failure.
 
+When `BatchSize` is omitted, asynchronous parallel aggregation uses up to 1,024
+records per worker batch. The copied text allowance scales with the effective
+batch capacity, up to 262,144 characters per batch; larger records use the
+canonical string fallback. Larger batches reduce scheduling overhead but can
+buffer more input before the first callback. Set `BatchSize = 256`, as in the
+example, when smaller batches suit the workload. The queue remains bounded by
+`MaxDegreeOfParallelism`.
+
 On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets are supported by
 `RowsAs<T>`, `GetFieldValue<T>`, and `CsvColumnBuilder.AsDateOnly()` /
 `AsTimeOnly()`. Default schema inference remains `DateTime`, so moving between

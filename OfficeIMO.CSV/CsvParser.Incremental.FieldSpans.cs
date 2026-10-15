@@ -57,6 +57,7 @@ internal static partial class CsvParser
         /// The caller retries the same borrowed parser; quotes, EOF and incomplete rows remain canonical.
         /// Earlier borrowed fields have already been cleared by the current advance.
         /// </summary>
+        [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
         private async ValueTask<bool> RefillBorrowedTailAsync(bool asynchronous, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
@@ -66,8 +67,8 @@ internal static partial class CsvParser
             _offset = 0;
             _length = remaining;
             int read = asynchronous
-                ? await _reader.ReadAsync(_buffer.AsMemory(remaining), token).ConfigureAwait(false)
-                : _reader.Read(_buffer, remaining, _buffer.Length - remaining);
+                ? await _reader.ReadAsync(_buffer.AsMemory(remaining, CsvLineReader.DefaultBufferSize - remaining), token).ConfigureAwait(false)
+                : _reader.Read(_buffer, remaining, CsvLineReader.DefaultBufferSize - remaining);
             _length += read;
             return read > 0;
         }
