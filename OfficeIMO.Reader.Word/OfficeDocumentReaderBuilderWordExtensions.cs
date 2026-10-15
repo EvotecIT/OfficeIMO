@@ -42,6 +42,8 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
         long legacyMaxInputBytes = configuredLegacyImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes;
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
+            SupportsTextAndMetadata = true,
+            TextAndMetadataExtensions = global::OfficeIMO.Word.WordFormatCatalog.All.Where(format => format.Encoding == OfficeFormatEncoding.OpenXml).Select(format => format.Extension).ToArray(),
             Id = HandlerId,
             DisplayName = "Word Reader",
             Description = "OfficeIMO.Word Markdown and structured document projection.",
@@ -78,6 +80,7 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
         global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? configuredImport = LegacyWordReaderAdapter.Clone(importOptions);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
+            SupportsTextAndMetadata = false,
             Id = LegacyHandlerId,
             DisplayName = "Legacy Word Reader",
             Description = "Bounded WordPerfect, WordStar, Ami Pro, Word Pro, Works/Write, and Word for DOS import.",

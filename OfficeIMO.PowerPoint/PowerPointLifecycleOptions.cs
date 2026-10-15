@@ -21,6 +21,9 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long? MaxInputBytes { get; set; } = DefaultMaxInputBytes;
 
+        /// <summary>Allows native binary PPT projection into an Open XML model. Default: true. False rejects that source family before secondary payload projection, including mislabeled input.</summary>
+        public bool AllowLegacyProjection { get; set; } = true;
+
         /// <summary>Provides optional low-level Open XML package settings.</summary>
         public OfficeOpenXmlLoadSettings? OpenSettings { get; set; }
 

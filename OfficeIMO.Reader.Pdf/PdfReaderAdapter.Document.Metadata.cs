@@ -439,7 +439,7 @@ internal static partial class PdfReaderAdapter {
                     freeTextAppearanceMetadataCount++;
                 }
 
-                annotationEntries.Add(BuildAnnotationMetadataEntry(source, page, pageIndex, annotation, annotationIndex));
+                annotationEntries.Add(BuildAnnotationMetadataEntry(source, page, GetPageSelectionIndex(source, pageIndex), annotation, annotationIndex));
             }
         }
 

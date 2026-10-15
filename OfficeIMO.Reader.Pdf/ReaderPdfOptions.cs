@@ -9,6 +9,10 @@ public sealed class ReaderPdfOptions {
     /// <summary>Optional password used locally to open an encrypted PDF. It is not included in extracted content or metadata.</summary>
     public string? Password { get; set; }
 
+    /// <summary>Full canonical parser, security and stream budgets. Registration and each read snapshot these settings.
+    /// ReaderOptions.MaxInputBytes further restricts the input limit; Password overrides this password when non-null.</summary>
+    public PdfLoadOptions? LoadOptions { get; set; }
+
     /// <summary>
     /// Creates the default PDF reader profile with page-level chunks and wrapper-friendly Markdown.
     /// </summary>
@@ -67,6 +71,7 @@ public sealed class ReaderPdfOptions {
             throw new ArgumentOutOfRangeException(nameof(MinimumMixedPageImageAreaRatio));
         return new ReaderPdfOptions {
             Password = Password,
+            LoadOptions = LoadOptions?.Clone(),
             ReadOptions = ReadOptions?.Clone(),
             MarkdownOptions = CloneMarkdownOptions(MarkdownOptions),
             IncludeParagraphContinuationMetadata = IncludeParagraphContinuationMetadata,

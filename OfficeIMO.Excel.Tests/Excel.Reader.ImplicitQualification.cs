@@ -171,8 +171,9 @@ public partial class Excel {
             if (columnBudget) options.MaxDataReaderColumns = 2;
             else options.MaxDataReaderBufferedCells = 2;
 
-            var error = Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(path, options));
-            Assert.Contains(columnBudget ? nameof(ExcelReadOptions.MaxDataReaderColumns) : nameof(ExcelReadOptions.MaxDataReaderBufferedCells), error.Message, StringComparison.Ordinal);
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReader(path, options));
+            Assert.Equal("excel", error.Owner); Assert.Equal(2, error.Maximum);
+            Assert.Equal(columnBudget ? nameof(ExcelReadOptions.MaxDataReaderColumns) : nameof(ExcelReadOptions.MaxDataReaderBufferedCells), error.LimitName);
         } finally {
             File.Delete(path);
         }

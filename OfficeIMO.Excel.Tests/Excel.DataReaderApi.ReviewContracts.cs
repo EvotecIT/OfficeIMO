@@ -141,8 +141,9 @@ public partial class Excel {
                 Assert.Equal("Trailing ", reader.GetString(0));
                 Assert.False(reader.Read());
             }
-            Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReader(
                 path, new ExcelReadOptions { MaxSharedStringItems = 2 }));
+            Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringItems), error.LimitName); Assert.Equal(2, error.Maximum);
 
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(
                 root + "<si><t>Value</t></si><si><t>" + encoded + "</t></si>" + suffix));

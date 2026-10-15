@@ -174,9 +174,14 @@ public abstract partial class OdfDocument {
         return OdfFeatureInspector.Inspect(this);
     }
 
+    /// <summary>Inspects native package features with cancellation between XML parts, without executing preserved content.</summary>
+    public OdfFeatureReport InspectFeatures(CancellationToken cancellationToken) => OdfFeatureInspector.Inspect(this, cancellationToken);
+
     internal XDocument GetXml(string partPath) {
         return Package.GetXml(partPath);
     }
+
+    internal XDocument? GetExistingXml(string partPath) => Package.Entries.Any(entry => entry.Name == partPath) ? GetXml(partPath) : null;
 
     /// <summary>Resolves the style scope of an XML-backed drawing or text element.</summary>
     internal string GetPartPath(XElement element) => Package.ContainsEntry("styles.xml") &&
@@ -247,10 +252,8 @@ public abstract partial class OdfDocument {
                 cancellationToken,
                 effective.MaxPackageBytes).ConfigureAwait(false);
             return OdfPackage.Load(bytes, effective);
-        } catch (InvalidDataException ex) when (ex.Message.IndexOf("configured maximum size", StringComparison.Ordinal) >= 0) {
-            throw new InvalidDataException(
-                $"OpenDocument stream exceeds MaxPackageBytes ({effective.MaxPackageBytes}).",
-                ex);
+        } catch (InvalidDataException ex) when (OfficeStreamReader.IsSizeLimitException(ex)) {
+            throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxPackageBytes), effective.MaxPackageBytes, ex);
         }
     }
 

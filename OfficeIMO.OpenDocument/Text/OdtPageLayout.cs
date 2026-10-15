@@ -166,6 +166,13 @@ public sealed class OdtHeaderFooter {
         _element = element;
     }
 
+    /// <summary>Native story kind, including distinct first and left variants.</summary>
+    public string Kind => _element.Name.LocalName;
+    /// <summary>Owning authored master page name when present.</summary>
+    public string? MasterPageName => (string?)_element.Parent?.Attribute(OdfNamespaces.Style + "name");
+    /// <summary>Supported ordered paragraph and table blocks in the existing story.</summary>
+    public IReadOnlyList<OdtContentBlock> ContentBlocks => _document.EnumerateContentBlocks(_element).ToArray();
+
     /// <summary>Whether this header or footer is displayed by the master page.</summary>
     public bool IsDisplayed {
         get => OdfBoolean.ReadCompatible((string?)_element.Attribute(OdfNamespaces.Style + "display"), true);

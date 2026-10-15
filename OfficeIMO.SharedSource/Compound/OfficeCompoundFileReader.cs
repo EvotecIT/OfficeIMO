@@ -104,31 +104,31 @@ namespace OfficeIMO.Core.Internal {
                     miniFatSectorCount,
                     physicalSectorCount,
                     sectorSize,
-                    options.MaxTotalStreamBytes);
+                    options.MaxTotalStreamBytes, options.PreserveResourceLimits);
 
                 List<uint> fatSectorIds = ReadDifat(bytes, sectorSize, firstDifat, difatSectorCount, fatSectorCount, cancellationToken);
                 uint[] fat = ReadFat(bytes, sectorSize, fatSectorIds, cancellationToken);
                 long maximumDirectoryBytes = checked((long)options.MaxDirectoryEntries * DirectoryEntrySize);
                 byte[] directoryBytes = ReadRegularStream(bytes, sectorSize, fat, directoryStart, long.MaxValue,
-                    maximumDirectoryBytes, cancellationToken);
+                    maximumDirectoryBytes, cancellationToken, options.PreserveResourceLimits);
                 List<DirectoryEntry> entries = ReadDirectoryEntries(
                     directoryBytes,
                     majorVersion,
                     options.MaxDirectoryEntries,
-                    cancellationToken);
+                    cancellationToken, options.PreserveResourceLimits);
                 DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
-                if (root.Size < 0
-                    || root.Size > options.MaxTotalStreamBytes
-                    || root.Size > maximumPhysicalStreamBytes
-                    || root.Size > int.MaxValue) {
+                if (root.Size < 0 || root.Size > maximumPhysicalStreamBytes) {
                     throw new InvalidDataException("Compound file mini stream exceeds configured or physical bounds.");
                 }
+                CheckConfiguredSize(root.Size, options.MaxTotalStreamBytes, "MaxTotalStreamBytes", options.PreserveResourceLimits,
+                    "Compound file mini stream exceeds configured or physical bounds.", buffered: true);
 
                 IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries, cancellationToken);
                 DirectoryEntry[] streamEntries = entries.Where(entry => entry.ObjectType == 2).ToArray();
                 if (streamEntries.Length > options.MaxStreamCount) {
-                    throw new InvalidDataException($"Compound file stream count {streamEntries.Length} exceeds {options.MaxStreamCount}.");
+                    throw AdmissionFailure("MaxStreamCount", streamEntries.Length, options.MaxStreamCount, options.PreserveResourceLimits,
+                        $"Compound file stream count {streamEntries.Length} exceeds {options.MaxStreamCount}.");
                 }
                 long totalStreamBytes = 0;
                 foreach (DirectoryEntry entry in streamEntries) {
@@ -136,13 +136,14 @@ namespace OfficeIMO.Core.Internal {
                     string path = streamPaths.TryGetValue(entry.Index, out string? entryPath)
                         ? entryPath
                         : entry.Name;
-                    if (entry.Size < 0 || entry.Size > options.MaxStreamBytes || entry.Size > int.MaxValue) {
-                        throw new InvalidDataException($"Compound stream '{entry.Name}' has unsupported size {entry.Size}.");
-                    }
+                    if (entry.Size < 0) throw new InvalidDataException($"Compound stream '{entry.Name}' has unsupported size {entry.Size}.");
                     ValidateRegularStreamPhysicalBounds(path, entry.Size, miniCutoff, maximumPhysicalStreamBytes);
+                    CheckConfiguredSize(entry.Size, options.MaxStreamBytes, "MaxStreamBytes", options.PreserveResourceLimits,
+                        $"Compound stream '{entry.Name}' has unsupported size {entry.Size}.", buffered: true);
                     totalStreamBytes = checked(totalStreamBytes + entry.Size);
                     if (totalStreamBytes > options.MaxTotalStreamBytes) {
-                        throw new InvalidDataException($"Compound stream bytes exceed {options.MaxTotalStreamBytes}.");
+                        throw AdmissionFailure("MaxTotalStreamBytes", totalStreamBytes, options.MaxTotalStreamBytes, options.PreserveResourceLimits,
+                            $"Compound stream bytes exceed {options.MaxTotalStreamBytes}.");
                     }
                     options.StreamSizeValidator?.Invoke(path, entry.Size);
                 }
@@ -193,16 +194,32 @@ namespace OfficeIMO.Core.Internal {
             int miniFatSectorCount,
             int physicalSectorCount,
             int sectorSize,
-            long maximumTableBytes) {
+            long maximumTableBytes, bool preserveResourceLimits = false) {
             long miniFatBytes = checked((long)miniFatSectorCount * sectorSize);
             if (fatSectorCount > physicalSectorCount
                 || difatSectorCount > physicalSectorCount
-                || miniFatSectorCount > physicalSectorCount
-                || miniFatBytes > maximumTableBytes) {
+                || miniFatSectorCount > physicalSectorCount) {
                 throw new InvalidDataException(
                     "Compound allocation table counts exceed configured or physical bounds.");
             }
+            if (miniFatBytes > maximumTableBytes)
+                throw AdmissionFailure("MaxAllocationTableBytes", miniFatBytes, maximumTableBytes, preserveResourceLimits,
+                    "Compound allocation table counts exceed configured or physical bounds.");
         }
+
+        /// <summary>Separates a configured or array-buffer admission ceiling from physical format validation.</summary>
+        private static void CheckConfiguredSize(long value, long maximum, string limitName,
+            bool preserveResourceLimits, string compatibilityMessage, bool buffered = false) {
+            long effectiveMaximum = buffered ? Math.Min(maximum, int.MaxValue) : maximum;
+            if (value > effectiveMaximum)
+                throw AdmissionFailure(limitName, value, effectiveMaximum, preserveResourceLimits, compatibilityMessage);
+        }
+
+        /// <summary>Changes only native configured admission. Exceptions raised by caller validators are not translated.</summary>
+        private static Exception AdmissionFailure(string limitName, long actual, long maximum,
+            bool preserveResourceLimits, string compatibilityMessage) => preserveResourceLimits
+                ? new OfficeCompoundStreamLimitExceededException(limitName, actual, maximum)
+                : new InvalidDataException(compatibilityMessage);
 
         /// <summary>
         /// Rejects regular-stream declarations that cannot fit in the compound file before chain-sized storage is allocated.
@@ -281,7 +298,7 @@ namespace OfficeIMO.Core.Internal {
 
         private static byte[] ReadRegularStream(byte[] bytes, int sectorSize, uint[] fat, uint startSector, long size,
             long maximumBytes = long.MaxValue,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default, bool preserveResourceLimits = false) {
             if (size == 0) return Array.Empty<byte>();
             if (startSector == EndOfChain) {
                 if (size == long.MaxValue) return Array.Empty<byte>();
@@ -302,7 +319,9 @@ namespace OfficeIMO.Core.Internal {
                     throw new InvalidDataException("Compound file sector points outside the file.");
                 }
                 if (output.Length > maximumBytes - sectorSize) {
-                    throw new InvalidDataException($"Compound directory entry count exceeds {maximumBytes / DirectoryEntrySize}.");
+                    throw AdmissionFailure("MaxDirectoryEntries", output.Length / DirectoryEntrySize + sectorSize / DirectoryEntrySize,
+                        maximumBytes / DirectoryEntrySize, preserveResourceLimits,
+                        $"Compound directory entry count exceeds {maximumBytes / DirectoryEntrySize}.");
                 }
 
                 output.Write(bytes, offset, sectorSize);
@@ -364,11 +383,12 @@ namespace OfficeIMO.Core.Internal {
 
         private static List<DirectoryEntry> ReadDirectoryEntries(
             byte[] directoryBytes, ushort majorVersion, int maximumEntries,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default, bool preserveResourceLimits = false) {
             var result = new List<DirectoryEntry>();
             for (int offset = 0; offset + DirectoryEntrySize <= directoryBytes.Length; offset += DirectoryEntrySize) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (result.Count >= maximumEntries) throw new InvalidDataException($"Compound directory entry count exceeds {maximumEntries}.");
+                if (result.Count >= maximumEntries) throw AdmissionFailure("MaxDirectoryEntries", (long)result.Count + 1,
+                    maximumEntries, preserveResourceLimits, $"Compound directory entry count exceeds {maximumEntries}.");
                 ushort nameLength = ReadUInt16(directoryBytes, offset + 64);
                 byte objectType = directoryBytes[offset + 66];
                 string name = objectType == 0 || nameLength < 2 || nameLength > 64
@@ -641,7 +661,7 @@ namespace OfficeIMO.Core.Internal {
 
         internal OfficeCompoundReadOptions(int maxDirectoryEntries = 65536, int maxStreamCount = 32768,
             long maxStreamBytes = 256L * 1024L * 1024L, long maxTotalStreamBytes = 512L * 1024L * 1024L,
-            Action<string, long>? streamSizeValidator = null) {
+            Action<string, long>? streamSizeValidator = null, bool preserveResourceLimits = false) {
             if (maxDirectoryEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxDirectoryEntries));
             if (maxStreamCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxStreamCount));
             if (maxStreamBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxStreamBytes));
@@ -651,6 +671,7 @@ namespace OfficeIMO.Core.Internal {
             MaxStreamBytes = maxStreamBytes;
             MaxTotalStreamBytes = maxTotalStreamBytes;
             StreamSizeValidator = streamSizeValidator;
+            PreserveResourceLimits = preserveResourceLimits;
         }
 
         internal int MaxDirectoryEntries { get; }
@@ -662,6 +683,9 @@ namespace OfficeIMO.Core.Internal {
         internal long MaxTotalStreamBytes { get; }
 
         internal Action<string, long>? StreamSizeValidator { get; }
+
+        /// <summary>Opts into structured native admission failures. Caller validator exceptions always propagate independently.</summary>
+        internal bool PreserveResourceLimits { get; }
     }
 
     /// <summary>Signals a path-aware stream-size rejection before compound stream bytes are buffered.</summary>

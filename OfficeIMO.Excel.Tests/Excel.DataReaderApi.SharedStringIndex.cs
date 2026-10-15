@@ -97,7 +97,10 @@ public partial class Excel {
                 MaxSharedStringItemCharacters = limit == "ItemCharacters" ? 20 : 100,
                 MaxSharedStringCharacters = limit == "AggregateCharacters" ? IndexedSharedStringFillerCount * 16L + 11 : 100_000
             };
-            Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(path, options));
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReader(path, options));
+            string limitName = limit == "Items" ? nameof(ExcelReadOptions.MaxSharedStringItems) : limit == "ItemCharacters" ? nameof(ExcelReadOptions.MaxSharedStringItemCharacters) : nameof(ExcelReadOptions.MaxSharedStringCharacters);
+            long maximum = limit == "Items" ? options.MaxSharedStringItems : limit == "ItemCharacters" ? options.MaxSharedStringItemCharacters : options.MaxSharedStringCharacters;
+            Assert.Equal("excel", error.Owner); Assert.Equal(limitName, error.LimitName); Assert.Equal(maximum, error.Maximum);
         } finally {
             File.Delete(path);
         }

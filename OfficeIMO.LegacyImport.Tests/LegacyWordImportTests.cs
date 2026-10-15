@@ -532,9 +532,12 @@ public sealed class LegacyWordImportTests {
     [Fact]
     public void CompoundDetectionHonorsRaisedDirectoryEntryLimit() {
         byte[] source = LegacyFixtureFactory.CompoundWithLargeDirectory();
-        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Detect(
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => LegacyWordImporter.Detect(
             source,
             new LegacyWordImportOptions { SourceName = "archive.lwp" }));
+        Assert.Equal("legacy-import", error.Owner);
+        Assert.Equal("MaxDirectoryEntries", error.LimitName);
+        Assert.Equal(512L, error.Maximum);
 
         LegacyWordDetection detected = LegacyWordImporter.Detect(
             source,

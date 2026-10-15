@@ -169,7 +169,9 @@ public sealed class OdsChart {
                 chartClass, title, titleCellRangeAddress, categories, series, stacked, percentage,
                 threeDimensional, vertical, default, null, null);
             return template.WithFrame(frame, anchorRow, anchorColumn);
-        } catch (InvalidDataException) {
+        } catch (Exception exception) when (exception is InvalidDataException ||
+            exception is OfficeInspectionResourceLimitException limit && limit.Owner == "opendocument" &&
+            limit.LimitName == nameof(OdfTextCodec.MaximumDecodedCharacters)) {
             return null;
         }
     }

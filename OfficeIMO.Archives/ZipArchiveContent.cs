@@ -21,8 +21,8 @@ internal static class ZipArchiveContent {
         source.Position = 0;
         OfficeArchiveSafety.ZipCentralDirectoryScanResult scan =
             OfficeArchiveSafety.ScanZipCentralDirectoryForExtraction(source, source.Length, limits.Entries, records, token);
+        if (scan.LimitExceeded) throw ArchiveLimits.Exceeded(nameof(ArchiveExtractionOptions.MaxEntryCount), limits.Entries);
         if (!scan.IsValid) throw new InvalidDataException(scan.Error ?? "The ZIP central directory is malformed.");
-        if (scan.LimitExceeded) throw new InvalidDataException("ZIP exceeds the configured member count.");
         foreach (OfficeArchiveSafety.ZipCentralDirectoryRecord record in records) {
             if (record.CompressionMethod != ZipStored && record.CompressionMethod != ZipDeflate)
                 throw new NotSupportedException("ZIP members must be stored or Deflate-compressed.");
@@ -51,7 +51,7 @@ internal static class ZipArchiveContent {
             limits.CheckEntry(length);
             if (!limits.Select(path)) continue;
             // Declared lengths are binding: WriteStream never writes more than them and rejects short members.
-            ArchiveLimits.Add(ref declared, length, limits.Expanded, "Selected ZIP content");
+            ArchiveLimits.Add(ref declared, length, limits.Expanded, nameof(ArchiveExtractionOptions.MaxExpandedBytes));
             selected.Add((record, path));
         }
         foreach (var item in selected) {

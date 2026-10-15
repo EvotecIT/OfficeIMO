@@ -1067,12 +1067,15 @@ public sealed class ReaderPdfModularTests {
         using var stream = new MemoryStream(prefix.Concat(pdf).ToArray(), writable: false);
         stream.Position = prefix.Length;
 
-        Assert.Throws<IOException>(() => PdfReaderAdapter.Read(
+        ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() => PdfReaderAdapter.Read(
                 stream,
                 sourceName: "embedded-limited.pdf",
                 readerOptions: new ReaderOptions { MaxInputBytes = pdf.Length })
             .ToList());
         Assert.Equal(prefix.Length, stream.Position);
+        Assert.Equal(PdfReadLimitKind.InputBytes, Assert.IsType<PdfReadLimitException>(error.InnerException).Kind);
+        Assert.Equal(pdf.Length, error.Maximum);
+        Assert.Equal(prefix.Length + pdf.Length, error.Actual);
     }
 
     [Fact]
@@ -2188,12 +2191,14 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new NonSeekableReadStream(pdf);
 
-        var ex = Assert.Throws<IOException>(() => PdfReaderAdapter.Read(
+        var ex = Assert.Throws<ReaderAdmissionLimitException>(() => PdfReaderAdapter.Read(
             stream,
             sourceName: "nonseekable.pdf",
             readerOptions: new ReaderOptions { MaxInputBytes = 16 }).ToList());
 
-        Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(PdfReadLimitKind.InputBytes, Assert.IsType<PdfReadLimitException>(ex.InnerException).Kind);
+        Assert.Equal(16, ex.Maximum);
+        Assert.True(ex.Actual > ex.Maximum);
     }
 
     [Fact]

@@ -38,19 +38,5 @@ public sealed class ReaderNoRegexGuardrailTests {
         }
     }
 
-    private static string GetRepositoryRoot() {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            if (
-                File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")) ||
-                File.Exists(Path.Combine(directory.FullName, "OfficeImo.sln"))
-            ) {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Unable to locate OfficeIMO repository root from test runtime base directory.");
-    }
+    private static string GetRepositoryRoot() => RepositoryTestPaths.Find();
 }

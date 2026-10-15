@@ -25,7 +25,7 @@ public sealed class OdpTextBox : OdpShape {
     }
     /// <summary>Adds an ordered or unordered list.</summary>
     public OdpList AddList(bool ordered = false) {
-        string styleName = OdfListStyleStore.Create(Presentation, ordered);
+        string styleName = OdfListStyleStore.Create(Presentation, ordered, PartPath);
         var list = new XElement(OdfNamespaces.Text + "list", new XAttribute(OdfNamespaces.Text + "style-name", styleName)); TextBox.Add(list); Dirty(); return new OdpList(Presentation, list);
     }
     internal static OdpTextBox Create(OdpPresentation presentation, OdfRect bounds, string? text, string name) {
@@ -94,8 +94,8 @@ public sealed class OdpParagraph {
     /// <summary>Explicit or inherited text background color.</summary>
     public OdfColor? BackgroundColor {
         get {
-            OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(
-                OdfStyleFamily.Paragraph, StyleName);
+            OdfStyle? style = StyleName == null ? null : _presentation.Styles.FindInPart(
+                OdfStyleFamily.Paragraph, StyleName, _presentation.GetPartPath(_element));
             return _presentation.Styles.ResolveTextBackgroundColor(style ?? _presentation.Styles.FindDefault(OdfStyleFamily.Paragraph));
         }
         set => EnsureStyle().TextBackgroundColor = value;
@@ -118,13 +118,13 @@ public sealed class OdpParagraph {
             new XAttribute(OdfNamespaces.XLink + "href", href));
         OdfTextCodec.Append(element, text); EnsureMaterialized().Add(element); Dirty(); return new OdpHyperlink(_presentation, element);
     }
-    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofPr");
+    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofPr", _presentation.GetPartPath(_element));
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
-        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Paragraph, StyleName);
+        OdfStyle? style = StyleName == null ? null : _presentation.Styles.FindInPart(OdfStyleFamily.Paragraph, StyleName, _presentation.GetPartPath(_element));
         foreach (OdfStyle candidate in _presentation.Styles.ResolveWithDefault(style, OdfStyleFamily.Paragraph)) { T? value = selector(candidate); if (value.HasValue) return value; } return null;
     }
     private string? ResolveReference(Func<OdfStyle, string?> selector) {
-        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Paragraph, StyleName);
+        OdfStyle? style = StyleName == null ? null : _presentation.Styles.FindInPart(OdfStyleFamily.Paragraph, StyleName, _presentation.GetPartPath(_element));
         foreach (OdfStyle candidate in _presentation.Styles.ResolveWithDefault(style, OdfStyleFamily.Paragraph)) { string? value = selector(candidate); if (value != null) return value; } return null;
     }
     private static OdpParagraphAlignment? ParseAlignment(string? value) {
@@ -153,7 +153,7 @@ public sealed class OdpParagraph {
         if (_materializeForEdit != null) { _element = _materializeForEdit(); _materializeForEdit = null; }
         return _element;
     }
-    private void Dirty() => _presentation.MarkPartDirty("content.xml");
+    private void Dirty() => _presentation.MarkPartDirty(_presentation.GetPartPath(_element));
 }
 
 /// <summary>An XML-backed presentation inline text run.</summary>
@@ -228,28 +228,28 @@ public sealed class OdpRun {
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
     /// <summary>Explicit or inherited text background color.</summary>
     public OdfColor? BackgroundColor {
-        get => OdfInlineStyleResolver.ResolveTextBackgroundColor(_presentation.Styles, _element, "content.xml");
+        get => OdfInlineStyleResolver.ResolveTextBackgroundColor(_presentation.Styles, _element, _presentation.GetPartPath(_element));
         set => EnsureStyle().TextBackgroundColor = value;
     }
     /// <summary>Whether an inline style sets a text background, including transparent.</summary>
     public bool HasTextBackgroundOverride => OdfInlineStyleResolver.TryResolveTextBackgroundColor(
-        _presentation.Styles, _element, "content.xml", out _);
+        _presentation.Styles, _element, _presentation.GetPartPath(_element), out _);
     /// <summary>Changes the stored run text casing while preserving its text style.</summary>
     public OdpRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
         OdfTextCodec.TransformTextCase(EnsureMaterialized(), textCase, culture);
         Dirty();
         return this;
     }
-    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun");
+    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun", _presentation.GetPartPath(_element));
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
-        OdfInlineStyleResolver.Resolve(_presentation.Styles, _element, "content.xml", selector);
+        OdfInlineStyleResolver.Resolve(_presentation.Styles, _element, _presentation.GetPartPath(_element), selector);
     private string? ResolveReference(Func<OdfStyle, string?> selector) =>
-        OdfInlineStyleResolver.ResolveReference(_presentation.Styles, _element, "content.xml", selector);
+        OdfInlineStyleResolver.ResolveReference(_presentation.Styles, _element, _presentation.GetPartPath(_element), selector);
     private XElement EnsureMaterialized() {
         if (_materializeForEdit != null) { _element = _materializeForEdit(); _materializeForEdit = null; }
         return _element;
     }
-    private void Dirty() => _presentation.MarkPartDirty("content.xml");
+    private void Dirty() => _presentation.MarkPartDirty(_presentation.GetPartPath(_element));
 }
 
 /// <summary>An XML-backed presentation list.</summary>
@@ -262,6 +262,6 @@ public sealed class OdpList {
     /// <summary>Adds a one-paragraph list item.</summary>
     public OdpParagraph AddItem(string? text = null) {
         var paragraph = new XElement(OdfNamespaces.Text + "p"); OdfTextCodec.Append(paragraph, text);
-        _element.Add(new XElement(OdfNamespaces.Text + "list-item", paragraph)); _presentation.MarkPartDirty("content.xml"); return new OdpParagraph(_presentation, paragraph);
+        _element.Add(new XElement(OdfNamespaces.Text + "list-item", paragraph)); _presentation.MarkPartDirty(_presentation.GetPartPath(_element)); return new OdpParagraph(_presentation, paragraph);
     }
 }

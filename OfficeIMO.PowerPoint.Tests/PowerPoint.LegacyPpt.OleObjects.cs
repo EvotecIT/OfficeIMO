@@ -469,15 +469,11 @@ namespace OfficeIMO.Tests {
                     ["PowerPoint Document"] = document
                 });
 
-            LegacyPptPresentation imported = LegacyPptPresentation.Load(
-                malicious);
-
-            Assert.Empty(imported.OleObjects);
-            Assert.Contains(imported.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-OLE-STORAGE"
-                && diagnostic.Message.Contains(
-                    "Compound stream bytes exceed",
-                    StringComparison.OrdinalIgnoreCase));
+            OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
+                LegacyPptPresentation.Load(malicious));
+            Assert.Equal("powerpoint", error.Owner);
+            Assert.Equal("MaxTotalStreamBytes", error.LimitName);
+            Assert.Equal((long)expandedStorage.Length, error.Maximum);
         }
 
         [Fact]

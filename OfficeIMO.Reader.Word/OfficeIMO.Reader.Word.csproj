@@ -22,4 +22,8 @@
   <ItemGroup><Using Include="System" /><Using Include="System.Collections.Generic" /><Using Include="System.IO" /><Using Include="System.Linq" /><Using Include="System.Threading" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Reader.Tests" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Reader.All" /></ItemGroup>
+  <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\NativeInspectionProjection.cs" Link="FormatInternals\NativeInspectionProjection.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\NativePackageInspectionProjection.cs" Link="FormatInternals\NativePackageInspectionProjection.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\OpenXmlReaderAdmission.cs" Link="FormatInternals\OpenXmlReaderAdmission.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\NativeReaderAdmission.cs" Link="FormatInternals\NativeReaderAdmission.cs" /></ItemGroup>
 </Project>

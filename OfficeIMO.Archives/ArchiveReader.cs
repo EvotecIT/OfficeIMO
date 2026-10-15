@@ -10,11 +10,12 @@ namespace OfficeIMO.Archives;
 public static partial class ArchiveReader {
     /// <summary>Reads a ZIP from bytes using the same strict member validation as extraction.
     /// Returns only after every selected payload is fully verified. Do not modify the input during this call.</summary>
+    /// <exception cref="OfficeInspectionResourceLimitException">A configured or managed admission ceiling is exhausted.</exception>
     public static IReadOnlyList<ArchiveEntryData> ReadZip(byte[] bytes, ArchiveReadOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         var limits = (options ?? new ArchiveReadOptions()).Limits();
-        if (bytes.LongLength > limits.Input) throw new InvalidDataException("ZIP exceeds the configured input-byte limit.");
+        ArchiveLimits.Check(bytes.LongLength, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
         using var source = new MemoryStream(bytes, writable: false);
         return Read(source, limits, cancellationToken);
     }
@@ -22,6 +23,7 @@ public static partial class ArchiveReader {
     /// <summary>Reads from the stream's current position to EOF into a bounded snapshot.
     /// Supports nonseekable streams, leaves the caller's stream open, and advances its position by the bytes read.
     /// Selected content is independent of the stream after return.</summary>
+    /// <exception cref="OfficeInspectionResourceLimitException">A configured or managed admission ceiling is exhausted.</exception>
     public static IReadOnlyList<ArchiveEntryData> ReadZip(Stream source, ArchiveReadOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
@@ -29,13 +31,14 @@ public static partial class ArchiveReader {
         var limits = (options ?? new ArchiveReadOptions()).Limits();
         cancellationToken.ThrowIfCancellationRequested();
         using var snapshot = new MemoryStream();
+        long inputMaximum = Math.Min(limits.Input, int.MaxValue);
         var buffer = new byte[81920];
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
-            long remaining = limits.Input - snapshot.Length;
+            long remaining = inputMaximum - snapshot.Length;
             int read = source.Read(buffer, 0, remaining >= buffer.Length ? buffer.Length : (int)remaining + 1);
             if (read == 0) break;
-            if (read > limits.Input - snapshot.Length) throw new InvalidDataException("ZIP exceeds the configured input-byte limit.");
+            if (read > remaining) throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxInputBytes), inputMaximum);
             snapshot.Write(buffer, 0, read);
         }
         return Read(snapshot, limits, cancellationToken);
@@ -46,7 +49,7 @@ public static partial class ArchiveReader {
         if (ArchiveExtractor.Detect(source, token) != ArchiveFormat.Zip) throw new NotSupportedException("A ZIP archive is required.");
         var files = new List<ArchiveEntryData>();
         ZipArchiveContent.Read(source, limits, (path, payload, length) => {
-            if (length > int.MaxValue) throw new InvalidDataException("Selected ZIP content is too large for an in-memory result.");
+            ArchiveLimits.Check(length, Math.Min(limits.Entry, int.MaxValue), nameof(ArchiveReadOptions.MaxEntryBytes));
             using var content = new MemoryStream();
             payload.CopyTo(content);
             files.Add(new ArchiveEntryData(path, content.ToArray()));

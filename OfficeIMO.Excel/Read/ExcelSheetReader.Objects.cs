@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellCount > _opt.MaxRangeCells) {
-                throw new InvalidDataException(
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxRangeCells), _opt.MaxRangeCells,
                     $"Range '{a1Range}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
             }
 

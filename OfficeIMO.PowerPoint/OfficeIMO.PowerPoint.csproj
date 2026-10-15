@@ -64,6 +64,7 @@
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" Link="SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
     </ItemGroup>
 
     <ItemGroup>

@@ -87,7 +87,7 @@ public sealed class OdtTable {
         }
         throw new InvalidOperationException("Repeated ODF element is no longer present in its collection.");
     }
-    private void Dirty() => _document.MarkPartDirty("content.xml");
+    private void Dirty() => _document.MarkPartDirty(_document.GetPartPath(_element));
 }
 
 /// <summary>An XML-backed ODT table row.</summary>
@@ -124,7 +124,7 @@ public sealed class OdtTableRow {
         EnsureMaterialized();
         XElement cell = OdtTableCell.CreateElement(text);
         _element.Add(cell);
-        _document.MarkPartDirty("content.xml");
+        _document.MarkPartDirty(_document.GetPartPath(_element));
         return new OdtTableCell(_document, cell);
     }
 
@@ -188,7 +188,7 @@ public sealed class OdtTableCell {
             // logical row and cell only when it is edited.
             return _element.Elements()
                 .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
-                .Select((element, index) => new OdtParagraph(_document, element,
+                .Select((element, index) => new OdtParagraph(_document, element, _document.GetPartPath(element),
                     materializeForEdit: () => ResolveParagraphForEdit(index))).ToList();
         }
     }
@@ -242,7 +242,7 @@ public sealed class OdtTableCell {
         OdfTextCodec.Append(paragraph, text);
         _element.Add(paragraph);
         Dirty();
-        return new OdtParagraph(_document, paragraph);
+        return new OdtParagraph(_document, paragraph, _document.GetPartPath(paragraph));
     }
 
     internal static XElement CreateElement(string? text = null) {
@@ -305,5 +305,5 @@ public sealed class OdtTableCell {
         }
     }
 
-    private void Dirty() => _document.MarkPartDirty("content.xml");
+    private void Dirty() => _document.MarkPartDirty(_document.GetPartPath(_element));
 }

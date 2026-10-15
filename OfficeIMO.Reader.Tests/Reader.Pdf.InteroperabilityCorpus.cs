@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf;
 using System.Text.Json;
 using System.Threading;
 using OfficeIMO.Reader;
@@ -124,10 +125,14 @@ public sealed class ReaderPdfInteroperabilityCorpusTests {
     public void ReaderPdf_RejectsCorpusInputBeyondBudgetAndHonorsPreCancellation() {
         string path = Path.Combine(InteroperabilityRoot, "verapdf-devicen-content.pdf");
         byte[] bytes = File.ReadAllBytes(path);
-        Assert.Throws<IOException>(() => PdfReaderAdapter.ReadDocument(
+        ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() => PdfReaderAdapter.ReadDocument(
             bytes,
             Path.GetFileName(path),
             new ReaderOptions { MaxInputBytes = bytes.LongLength - 1 }));
+        PdfReadLimitException native = Assert.IsType<PdfReadLimitException>(error.InnerException);
+        Assert.Equal(PdfReadLimitKind.InputBytes, native.Kind);
+        Assert.Equal(bytes.LongLength - 1, error.Maximum);
+        Assert.Equal(bytes.LongLength, error.Actual);
 
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

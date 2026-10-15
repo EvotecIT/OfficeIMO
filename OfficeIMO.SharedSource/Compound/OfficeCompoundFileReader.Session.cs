@@ -38,8 +38,10 @@ namespace OfficeIMO.Core.Internal {
                 try {
                     token.ThrowIfCancellationRequested();
                     long remaining = checked(source.Length - _basePosition);
-                    if (remaining < HeaderSize || remaining > options.MaxTotalStreamBytes)
-                        throw new InvalidDataException("The compound input is shorter than its header or exceeds the configured byte limit.");
+                    if (remaining < HeaderSize) throw new InvalidDataException("The compound input is shorter than its header or exceeds the configured byte limit.");
+                    if (remaining > options.MaxTotalStreamBytes)
+                        throw AdmissionFailure("MaxTotalStreamBytes", remaining, options.MaxTotalStreamBytes, options.PreserveResourceLimits,
+                            "The compound input is shorter than its header or exceeds the configured byte limit.");
                     byte[] header = ReadAt(source, _basePosition, HeaderSize, token);
                     if (!HasSignature(header)) throw new InvalidDataException("The compound signature is invalid.");
                     ushort major = ReadUInt16(header, 26);
@@ -58,20 +60,23 @@ namespace OfficeIMO.Core.Internal {
                     _miniCutoff = ReadUInt32(header, 56);
                     if (requireCanonicalHeader && _miniCutoff != 4096)
                         throw new InvalidDataException("The compound mini-stream cutoff must be 4096 bytes.");
-                    ValidateAllocationTableCounts(fatCount, difatCount, miniFatCount, _physicalSectorCount, _sectorSize, options.MaxTotalStreamBytes);
+                    ValidateAllocationTableCounts(fatCount, difatCount, miniFatCount, _physicalSectorCount, _sectorSize, options.MaxTotalStreamBytes, options.PreserveResourceLimits);
                     _fatSectorIds = ReadFatSectorIds(source, _basePosition, header, _sectorSize, _physicalSectorCount,
                         difatStart, difatCount, fatCount, token);
                     byte[] directory = ReadDirectoryStream(source, _basePosition, ReadUInt32(header, 48), _sectorSize,
-                        _physicalSectorCount, _fatSectorIds, options.MaxDirectoryEntries, token);
-                    List<DirectoryEntry> entries = ReadDirectoryEntries(directory, major, options.MaxDirectoryEntries, token);
+                        _physicalSectorCount, _fatSectorIds, options.MaxDirectoryEntries, token, options.PreserveResourceLimits);
+                    List<DirectoryEntry> entries = ReadDirectoryEntries(directory, major, options.MaxDirectoryEntries, token, options.PreserveResourceLimits);
                     DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                     if (root == null) throw new InvalidDataException("Compound root directory entry is missing.");
                     RootEntry = CreateCompoundEntry(root, string.Empty);
                     HasCanonicalRootDirectory = root.Index == 0 && string.Equals(root.Name, "Root Entry", StringComparison.Ordinal)
                         && entries.Count(entry => entry.ObjectType == 5) == 1;
                     long physicalBytes = checked((long)_physicalSectorCount * _sectorSize);
-                    if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > physicalBytes)
+                    if (root.Size < 0 || root.Size > physicalBytes)
                         throw new InvalidDataException("Compound mini stream exceeds configured or physical bounds.");
+                    if (root.Size > options.MaxTotalStreamBytes)
+                        throw AdmissionFailure("MaxTotalStreamBytes", root.Size, options.MaxTotalStreamBytes, options.PreserveResourceLimits,
+                            "Compound mini stream exceeds configured or physical bounds.");
                     _rootSize = root.Size;
                     _rootStartSector = root.StartSector;
                     Entries = BuildCompoundEntries(entries, out bool hasInvalidDirectoryTree, token);
@@ -81,13 +86,19 @@ namespace OfficeIMO.Core.Internal {
                     foreach (DirectoryEntry entry in entries.Where(entry => entry.ObjectType == 2)) {
                         token.ThrowIfCancellationRequested();
                         string path = paths.TryGetValue(entry.Index, out string? qualified) ? qualified : entry.Name;
-                        if (_streams.Count >= options.MaxStreamCount) throw new InvalidDataException("Compound stream count exceeds the configured limit.");
+                        if (_streams.Count >= options.MaxStreamCount)
+                            throw AdmissionFailure("MaxStreamCount", (long)_streams.Count + 1, options.MaxStreamCount, options.PreserveResourceLimits,
+                                "Compound stream count exceeds the configured limit.");
                         if (_streams.ContainsKey(path)) throw new InvalidDataException("Compound stream paths are ambiguous.");
-                        if (entry.Size < 0 || entry.Size > options.MaxStreamBytes)
-                            throw new InvalidDataException("Compound stream exceeds its configured byte limit.");
+                        if (entry.Size < 0) throw new InvalidDataException("Compound stream exceeds its configured byte limit.");
                         ValidateRegularStreamPhysicalBounds(path, entry.Size, _miniCutoff, physicalBytes);
+                        if (entry.Size > options.MaxStreamBytes)
+                            throw AdmissionFailure("MaxStreamBytes", entry.Size, options.MaxStreamBytes, options.PreserveResourceLimits,
+                                "Compound stream exceeds its configured byte limit.");
                         total = checked(total + entry.Size);
-                        if (total > options.MaxTotalStreamBytes) throw new InvalidDataException("Compound streams exceed the aggregate byte limit.");
+                        if (total > options.MaxTotalStreamBytes)
+                            throw AdmissionFailure("MaxTotalStreamBytes", total, options.MaxTotalStreamBytes, options.PreserveResourceLimits,
+                                "Compound streams exceed the aggregate byte limit.");
                         options.StreamSizeValidator?.Invoke(path, entry.Size);
                         _streams.Add(path, entry);
                     }
@@ -122,18 +133,21 @@ namespace OfficeIMO.Core.Internal {
             }
 
             /// <summary>Opens an exact, case-sensitive path without rescanning the directory or buffering its payload.</summary>
-            internal Stream OpenStream(string path) {
-                ThrowIfDisposed(); _token.ThrowIfCancellationRequested();
+            internal Stream OpenStream(string path) => OpenStream(path, _token);
+
+            /// <summary>Opens a view with an independent read token after construction has completed.</summary>
+            internal Stream OpenStream(string path, CancellationToken token) {
+                ThrowIfDisposed(); token.ThrowIfCancellationRequested();
                 if (!_streams.TryGetValue(path, out DirectoryEntry? entry)) throw new InvalidDataException("Required compound stream is missing: " + path);
                 List<uint>? regular = null; List<uint>? mini = null;
                 if (_validatedRegularChains != null && _validatedMiniChains != null) {
                     _validatedRegularChains.TryGetValue(path, out regular);
                     _validatedMiniChains.TryGetValue(path, out mini);
                 } else if (entry.Size >= _miniCutoff) regular = GetRegularSectorChain(_source, _basePosition, entry.StartSector,
-                    entry.Size, _sectorSize, _physicalSectorCount, _fatSectorIds, _fatCache, _token);
+                    entry.Size, _sectorSize, _physicalSectorCount, _fatSectorIds, _fatCache, token);
                 else if (entry.Size > 0) mini = GetMiniSectorChain(entry.StartSector, entry.Size, _miniFat);
                 return new CompoundEntryStream(_source, _basePosition, _sectorSize, entry.Size, regular, mini,
-                    _rootChain, _rootSize, leaveOpen: true, _token, () => _disposed);
+                    _rootChain, _rootSize, leaveOpen: true, token, () => _disposed);
             }
 
             public void Dispose() {

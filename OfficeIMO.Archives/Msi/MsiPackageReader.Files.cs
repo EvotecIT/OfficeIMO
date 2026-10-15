@@ -6,7 +6,7 @@ using System.Linq;
 namespace OfficeIMO.Archives;
 
 internal sealed partial class MsiPackageReader {
-    internal IReadOnlyList<MsiPayloadFile> ReadFiles(out IReadOnlyList<string> cabinets) {
+    internal IReadOnlyList<MsiPayloadFile> ReadFiles(out IReadOnlyList<string> cabinets, bool inspection = false) {
         var directories = Index(Table("Directory", "Directory", "Directory_Parent", "DefaultDir"), "Directory");
         var components = Index(Table("Component", "Component", "ComponentId", "Directory_", "Attributes", "Condition", "KeyPath"), "Component");
         object?[][] fileRows = Table("File", "File", "Component_", "FileName", "FileSize", "Version", "Language", "Attributes", "Sequence");
@@ -19,27 +19,31 @@ internal sealed partial class MsiPackageReader {
             if (row[5] != null) RequiredIdentifier(row[5], "Component.KeyPath");
         }
         foreach (object?[] row in fileRows) RequiredIdentifier(row[1], "File.Component_");
-        if (fileRows.Length > _limits.Entries) throw new InvalidDataException("MSI exceeds the configured file count.");
+        ArchiveLimits.Check(fileRows.Length, _limits.Entries, "MaxEntryCount");
         bool compressedByDefault = ReadDefaultCompression();
+        var looseFiles = new HashSet<string>(StringComparer.Ordinal);
         foreach (object?[] row in fileRows) {
             _token.ThrowIfCancellationRequested();
             int attributes = row[6] is int flags ? flags : 0;
             int compression = attributes & 0x6000;
             if (compression == 0x6000) throw new InvalidDataException("MSI File compression overrides conflict.");
-            if (compression == 0x2000 || compression == 0 && !compressedByDefault)
-                throw new NotSupportedException("MSI loose uncompressed source files are unsupported.");
+            if (compression == 0x2000 || compression == 0 && !compressedByDefault) {
+                if (!inspection) throw new NotSupportedException("MSI loose uncompressed source files are unsupported.");
+                looseFiles.Add(RequiredIdentifier(row[0], "File.File"));
+            }
         }
         var media = new List<Tuple<int, int, string>>();
         var disks = new HashSet<int>();
         foreach (object?[] row in mediaRows) {
             int disk = RequiredInteger(row[0], "Media.DiskId");
             int last = RequiredInteger(row[1], "Media.LastSequence");
-            string cabinet = RequiredString(row[3], "Media.Cabinet");
+            string cabinet = inspection && row[3] == null ? string.Empty : RequiredString(row[3], "Media.Cabinet");
             if (disk <= 0 || last < 0 || !disks.Add(disk)) throw new InvalidDataException("MSI media identifiers or sequences are invalid.");
-            if (!cabinet.StartsWith("#", StringComparison.Ordinal) || cabinet.Length == 1)
-                throw new NotSupportedException("MSI external cabinets and loose source files are unsupported.");
-            if (!_streams.ContainsKey(EncodeStreamName(cabinet.Substring(1), table: false))) throw new InvalidDataException("An embedded MSI cabinet is absent.");
-            media.Add(Tuple.Create(disk, last, cabinet.Substring(1)));
+            bool embedded = cabinet.StartsWith("#", StringComparison.Ordinal);
+            if (embedded && cabinet.Length == 1) throw new InvalidDataException("MSI embedded cabinet name is empty.");
+            if (!embedded && !inspection) throw new NotSupportedException("MSI external cabinets and loose source files are unsupported.");
+            if (embedded && !_streams.ContainsKey(EncodeStreamName(cabinet.Substring(1), table: false))) throw new InvalidDataException("An embedded MSI cabinet is absent.");
+            media.Add(Tuple.Create(disk, last, cabinet));
         }
         media = media.OrderBy(item => item.Item1).ToList();
         if (media.Count != 0 && media[0].Item1 != 1)
@@ -49,7 +53,7 @@ internal sealed partial class MsiPackageReader {
             if (disk.Item2 < previousSequence) throw new InvalidDataException("MSI media sequence boundaries move backwards in disk order.");
             previousSequence = disk.Item2;
         }
-        cabinets = media.Select(item => item.Item3).Distinct(StringComparer.Ordinal).ToArray();
+        cabinets = media.Where(item => item.Item3.StartsWith("#", StringComparison.Ordinal)).Select(item => item.Item3.Substring(1)).Distinct(StringComparer.Ordinal).ToArray();
         var sequences = new HashSet<int>();
         var directoryCache = new Dictionary<string, MsiResolvedDirectory>(StringComparer.Ordinal);
         var roots = directories.Where(pair => pair.Value[1] == null || string.Equals(pair.Key, pair.Value[1] as string, StringComparison.Ordinal)).Take(2).ToArray();
@@ -57,20 +61,24 @@ internal sealed partial class MsiPackageReader {
             !string.Equals(roots[0].Value[2] as string, "SourceDir", StringComparison.Ordinal))
             throw new InvalidDataException("MSI requires exactly one TARGETDIR root with SourceDir as DefaultDir.");
         foreach (string directoryId in directories.Keys)
-            ResolveDirectory(directoryId, directories, directoryCache);
+            ResolveDirectory(directoryId, directories, directoryCache, inspection);
         var result = new List<MsiPayloadFile>();
         foreach (object?[] row in fileRows) {
             _token.ThrowIfCancellationRequested();
             string id = RequiredIdentifier(row[0], "File.File");
             string component = RequiredIdentifier(row[1], "File.Component_");
             if (!components.TryGetValue(component, out object?[]? owner)) throw new InvalidDataException("MSI file references an absent component.");
-            MsiResolvedDirectory resolved = ResolveDirectory(RequiredIdentifier(owner[2], "Component.Directory_"), directories, directoryCache);
+            MsiResolvedDirectory resolved = ResolveDirectory(RequiredIdentifier(owner[2], "Component.Directory_"), directories, directoryCache, inspection);
             string directory = resolved.Path;
-            string filename = InstalledName(LongName(RequiredString(row[2], "File.FileName")));
-            ArchivePaths.ValidateSegment(filename);
+            string rawFileName = RequiredString(row[2], "File.FileName");
+            string filename = LongName(rawFileName);
+            if (!inspection) {
+                filename = InstalledName(filename);
+                ArchivePaths.ValidateSegment(filename);
+            }
             long pathLength = (long)directory.Length + (directory.Length == 0 ? 0 : 1) + filename.Length;
-            if (resolved.PathSegments >= _limits.Depth || pathLength > _limits.PathLength)
-                throw new InvalidDataException("MSI authored file path exceeds configured bounds.");
+            ArchiveLimits.Check((long)resolved.PathSegments + 1, _limits.Depth, "MaxPathDepth");
+            ArchiveLimits.Check(pathLength, _limits.PathLength, "MaxPathLength");
             // A pool string may be reused by many File rows. Check bounds before
             // allocating each target; only collision registration waits for aliases.
             string path = directory.Length == 0 ? filename : directory + "/" + filename;
@@ -78,10 +86,11 @@ internal sealed partial class MsiPackageReader {
             _limits.CheckEntry(length);
             int sequence = RequiredInteger(row[7], "File.Sequence");
             if (sequence <= 0 || !sequences.Add(sequence)) throw new InvalidDataException("MSI file sequences are invalid or duplicated.");
-            string cabinet = FindCabinet(media, sequence);
-            result.Add(new MsiPayloadFile(id, path, length, cabinet, sequence));
+            string rawCabinet = FindCabinet(media, sequence);
+            string cabinet = rawCabinet.StartsWith("#", StringComparison.Ordinal) ? rawCabinet.Substring(1) : rawCabinet;
+            result.Add(new MsiPayloadFile(id, path, length, cabinet, sequence, rawFileName, rawCabinet, looseFiles.Contains(id)));
         }
-        PlanTargets(result);
+        if (!inspection) PlanTargets(result);
         return result;
     }
     private static string FindCabinet(List<Tuple<int, int, string>> media, int sequence) {
@@ -105,11 +114,17 @@ internal sealed partial class MsiPackageReader {
 }
 
 internal sealed class MsiPayloadFile {
-    internal MsiPayloadFile(string id, string path, long length, string cabinet, int sequence) { Id = id; Path = path; Length = length; Cabinet = cabinet; Sequence = sequence; }
+    internal MsiPayloadFile(string id, string path, long length, string cabinet, int sequence, string rawFileName, string rawCabinet, bool looseSource) {
+        Id = id; Path = path; Length = length; Cabinet = cabinet; Sequence = sequence;
+        RawFileName = rawFileName; RawCabinet = rawCabinet; LooseSource = looseSource;
+    }
     internal string Id { get; }
     internal string Path { get; }
     internal long Length { get; }
     internal string Cabinet { get; }
     internal int Sequence { get; }
+    internal string RawFileName { get; }
+    internal string RawCabinet { get; }
+    internal bool LooseSource { get; }
     internal MsiPayloadTarget Target { get; set; } = null!;
 }

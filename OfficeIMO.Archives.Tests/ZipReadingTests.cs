@@ -40,9 +40,28 @@ public sealed partial class ZipExtractionTests {
             case "entry": options.MaxEntryBytes = 2; break;
             case "expanded": options.MaxExpandedBytes = 5; break;
         }
-        Assert.Throws<InvalidDataException>(() => ArchiveReader.ReadZip(zip, options));
+        string name = limit switch {
+            "input" => nameof(ArchiveReadOptions.MaxInputBytes),
+            "entries" => nameof(ArchiveReadOptions.MaxEntryCount),
+            "entry" => nameof(ArchiveReadOptions.MaxEntryBytes),
+            _ => nameof(ArchiveReadOptions.MaxExpandedBytes)
+        };
+        long maximum = limit switch {
+            "input" => options.MaxInputBytes,
+            "entries" => options.MaxEntryCount,
+            "entry" => options.MaxEntryBytes,
+            _ => options.MaxExpandedBytes
+        };
+        AssertLimit(() => ArchiveReader.ReadZip(zip, options));
         using var stream = new NonseekableZip(zip);
-        Assert.Throws<InvalidDataException>(() => ArchiveReader.ReadZip(stream, options));
+        AssertLimit(() => ArchiveReader.ReadZip(stream, options));
+
+        void AssertLimit(Action read) {
+            OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(read);
+            Assert.Equal("archives", error.Owner);
+            Assert.Equal(name, error.LimitName);
+            Assert.Equal(maximum, error.Maximum);
+        }
     }
 
     [Fact]

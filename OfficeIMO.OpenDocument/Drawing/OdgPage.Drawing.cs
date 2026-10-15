@@ -151,7 +151,7 @@ public sealed partial class OdgPage {
                 if (geometry != null || imageProjected)
                     report.Add(feature, OdfConversionMappingStatus.Approximated, message: "Geometry, transforms, supported fill, solid or dashed stroke, caps and joins with uniform opacity and supported image cropping and horizontal mirroring are projected; advanced graphic styles, effects and metadata are not reproduced.");
                 if (linePath != null) ProjectLineText(shape, drawing, report, linePath, transform, fields, cancellationToken, layoutMetrics);
-            } catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is NotSupportedException || exception is InvalidDataException || exception is OverflowException) {
+            } catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is NotSupportedException || exception is InvalidDataException || exception is OverflowException || exception is OfficeInspectionResourceLimitException) {
                 report.Add(feature, OdfConversionMappingStatus.Skipped, message: exception.Message);
             }
         }

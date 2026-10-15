@@ -52,17 +52,6 @@ public class WorkflowSecurityTests {
         return count;
     }
 
-    private static string GetRepositoryPath(string relativePath) {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            string solutionPath = Path.Combine(directory.FullName, "OfficeIMO.sln");
-            if (File.Exists(solutionPath)) {
-                return Path.Combine(directory.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Unable to locate OfficeIMO repository root from test runtime base directory.");
-    }
+    private static string GetRepositoryPath(string relativePath) =>
+        Path.Combine(OfficeIMO.Tests.RepositoryTestPaths.Find(), relativePath.Replace('/', Path.DirectorySeparatorChar));
 }

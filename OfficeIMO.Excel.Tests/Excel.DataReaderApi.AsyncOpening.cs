@@ -70,8 +70,9 @@ public partial class Excel {
     public async Task AsyncOpeningRejectsOverLimitInputWithoutClosingSource(bool seekable) {
         byte[] workbook = CreateAsyncOpeningWorkbook(ExcelFileFormat.Xlsx);
         using var source = new AsyncOpeningReadStream(workbook, seekable);
-        await Assert.ThrowsAsync<InvalidDataException>(() => ExcelDocument.OpenDataReaderAsync(
+        var error = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReaderAsync(
             source, new ExcelReadOptions { MaxInputBytes = workbook.Length - 1 }));
+        Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxInputBytes), error.LimitName); Assert.Equal(workbook.Length - 1, error.Maximum);
         Assert.True(source.CanRead);
         if (seekable) Assert.Equal(0, source.Position);
     }

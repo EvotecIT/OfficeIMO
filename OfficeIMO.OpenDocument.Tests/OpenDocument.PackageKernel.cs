@@ -72,6 +72,25 @@ public class OpenDocumentPackageKernelTests {
         Assert.Equal(first, second);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativePackageWriterRoundTripsEmptyResources(bool encrypted) {
+        OdtDocument document = OdtDocument.Create();
+        document.Package.AddOrReplaceEntry("Vendor/empty.bin", Array.Empty<byte>(), "application/octet-stream");
+        const string password = "empty-resource-test";
+        byte[] bytes = document.ToBytes(new OdfSaveOptions {
+            Encryption = encrypted ? new OdfEncryptionOptions { Password = password } : null
+        });
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(bytes), new OdfLoadOptions {
+            Password = encrypted ? password : null
+        });
+
+        Assert.Empty(reopened.Package.GetRequiredEntry("Vendor/empty.bin").GetOriginalBytes());
+        Assert.Equal(encrypted, reopened.Security.SourceIsEncrypted);
+    }
+
     [Fact]
     public void PreservesUnknownEntriesAndForeignXmlDuringTargetedMetadataEdit() {
         OdtDocument created = OdtDocument.Create();
@@ -112,7 +131,8 @@ public class OpenDocumentPackageKernelTests {
         byte[] bytes = document.ToBytes();
         var options = new OdfLoadOptions { MaxPackageBytes = bytes.Length - 1 };
 
-        Assert.Throws<InvalidDataException>(() => OdtDocument.Load(new MemoryStream(bytes), options));
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => OdtDocument.Load(new MemoryStream(bytes), options));
+        Assert.Equal("opendocument", error.Owner); Assert.Equal("MaxPackageBytes", error.LimitName); Assert.Equal(bytes.Length - 1, error.Maximum);
     }
 
     [Fact]

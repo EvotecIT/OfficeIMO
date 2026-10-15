@@ -54,7 +54,7 @@ public abstract partial class OdfDocument {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Flat OpenDocument stream must be readable.", nameof(stream));
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
-        byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, effective.MaxPackageBytes);
+        byte[] bytes = OdfAdmission.ReadSnapshot(stream, effective.MaxPackageBytes);
         XDocument flat = OdfXmlCodec.Load(bytes, "flat-document.xml", effective.MaxXmlCharacters, effective.MaxXmlDepth);
         return LoadFlatXml(flat, effective);
     }
@@ -73,6 +73,8 @@ public abstract partial class OdfDocument {
         if (root.Name != OdfNamespaces.Office + "document") throw new InvalidDataException("Flat OpenDocument root must be office:document.");
         string mediaType = (string?)root.Attribute(OdfNamespaces.Office + "mimetype") ?? string.Empty;
         if (!OdfMediaTypes.TryGetKind(mediaType, out OdfDocumentKind kind)) throw new InvalidDataException("Unsupported flat OpenDocument media type '" + mediaType + "'.");
+        if (options.DeferBinaryPayloads && root.Descendants(OdfNamespaces.Office + "binary-data").Any())
+            throw new NotSupportedException("Deferred OpenDocument binary payloads do not support inline flat-XML binary-data; the ordinary profile decodes those payloads eagerly.");
         string? versionToken = (string?)root.Attribute(OdfNamespaces.Office + "version");
         if (!OdfVersionExtensions.TryParse(versionToken, out OdfVersion version)) version = OdfVersion.V1_4;
         OdfPackage package = OdfPackage.Create(kind, version);

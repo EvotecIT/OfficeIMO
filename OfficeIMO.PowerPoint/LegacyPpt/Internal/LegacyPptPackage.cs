@@ -113,7 +113,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptImportOptions options,
             LegacyPptRecordTraversalBudget recordBudget,
             LegacyPptDecodedStorageBudget decodedStorageBudget,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default, bool preserveResourceLimits = false) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (recordBudget == null) {
@@ -125,7 +125,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             cancellationToken.ThrowIfCancellationRequested();
             OfficeCompoundReadOptions compoundReadOptions =
-                CreateCompoundReadOptions(options);
+                CreateCompoundReadOptions(options, preserveResourceLimits);
             if (!OfficeCompoundFileReader.TryRead(bytes,
                     compoundReadOptions,
                     out OfficeCompoundFile? compound, out string? error)
@@ -248,14 +248,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         internal static OfficeCompoundReadOptions CreateCompoundReadOptions(
-            LegacyPptImportOptions options) {
+            LegacyPptImportOptions options, bool preserveResourceLimits = false) {
             int maxDirectoryEntries = Math.Max(1,
                 Math.Min(65536, options.MaxRecordCount));
             int maxStreamCount = Math.Max(1,
                 Math.Min(32768, options.MaxRecordCount));
             return new OfficeCompoundReadOptions(maxDirectoryEntries,
                 maxStreamCount, options.MaxInputBytes,
-                options.MaxInputBytes);
+                options.MaxInputBytes, preserveResourceLimits: preserveResourceLimits);
         }
 
         private static uint ReadCurrentEditOffset(byte[] currentUserStream) {

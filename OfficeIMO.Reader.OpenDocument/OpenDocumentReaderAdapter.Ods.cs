@@ -56,14 +56,14 @@ internal static partial class OpenDocumentReaderAdapter {
                 Id = BuildId(sourceName, "sheet", blockIndex), Kind = ReaderInputKind.OpenDocument,
                 Location = location,
                 Text = string.Join(Environment.NewLine, rows.Select(row => string.Join("\t", row))),
-                Markdown = BuildTableMarkdown(columns, rows), Tables = new[] { table },
+                Markdown = options.Projection == ReaderProjection.TextAndMetadata ? null : BuildTableMarkdown(columns, rows), Tables = new[] { table },
                 Warnings = warnings.Count == 0 ? null : warnings
             };
             blockIndex++;
         }
     }
 
-    private static string ToA1(long row, long column) {
+    internal static string ToA1(long row, long column) {
         long value = checked(column + 1);
         var letters = new StringBuilder();
         while (value > 0) {
@@ -74,7 +74,7 @@ internal static partial class OpenDocumentReaderAdapter {
         return letters + checked(row + 1).ToString(CultureInfo.InvariantCulture);
     }
 
-    private static (int FirstRow, int FirstColumn, int LastRow, int LastColumn) ParseA1Range(string value) {
+    internal static (int FirstRow, int FirstColumn, int LastRow, int LastColumn) ParseA1Range(string value) {
         if (!SpreadsheetRangeReference.TryParse(value, SpreadsheetAddressDialect.UnboundedA1, out SpreadsheetRangeReference? reference)
             || !reference!.Start.IsCell
             || reference.Start.SheetName != null

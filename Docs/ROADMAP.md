@@ -448,7 +448,7 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 ## Archive containers
 
-- [ ] Extend verified in-memory reads beyond ZIP when CAB/MSI consumers need them; keep application selection in thin consumers. Assess lazy entry streams only against a real workflow, with explicit owner and disposal contracts.
+- [ ] Assess lazy entry streams only against a real workflow, with explicit owner and disposal contracts; keep application selection in thin consumers.
 - [ ] Add structured verification diagnostics and reported resource usage. Use one cumulative budget for nested containers across inspection, reading and extraction.
 - [ ] Extend independent producer fixtures for ZIP64, streaming descriptors, CAB and MSI across supported runtimes. Define an explicit legacy filename-encoding policy and qualify Polish names from Windows Explorer and 7-Zip without guessing the host code page.
 - [ ] Qualify TAR/GZip when a concrete cross-platform ingestion workflow requires them. Assess archive creation, deterministic bundles, encryption and additional compression providers separately against actual consumers, compatibility and dependency approval.

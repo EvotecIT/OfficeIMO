@@ -85,11 +85,14 @@ public partial class Excel {
             }
             File.Move(xlsxPath, xlsmPath);
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocument.OpenDataReader(
                     xlsmPath,
                     new ExcelReadOptions { MaxWorksheets = 1 }));
-            Assert.Contains("1 worksheet definitions", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxWorksheets), exception.LimitName);
+            Assert.Equal(1, exception.Maximum);
+            Assert.Contains("1 worksheet definitions", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
             File.Delete(xlsxPath);
             File.Delete(xlsmPath);
@@ -120,13 +123,16 @@ public partial class Excel {
                 Encoding.UTF8.GetBytes(contentTypes.ToString(SaveOptions.DisableFormatting)));
 
             var options = new ExcelReadOptions { MaxMetadataPartBytes = 64 };
-            InvalidDataException exception = useBytes
-                ? Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = useBytes
+                ? Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                     ExcelDocument.OpenDataReader(File.ReadAllBytes(path), options))
-                : Assert.Throws<InvalidDataException>(() =>
+                : Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                     ExcelDocument.OpenDataReader(path, options));
-            Assert.Contains("[Content_Types].xml", exception.Message, StringComparison.Ordinal);
-            Assert.Contains("64 bytes", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxMetadataPartBytes), exception.LimitName);
+            Assert.Equal(options.MaxMetadataPartBytes, exception.Maximum);
+            Assert.Contains("[Content_Types].xml", exception.InnerException!.Message, StringComparison.Ordinal);
+            Assert.Contains("64 bytes", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
             File.Delete(path);
         }
@@ -137,14 +143,17 @@ public partial class Excel {
         using var stream = new NonSeekableReadStream(new byte[65]);
         var options = new ExcelReadOptions { MaxMetadataPartBytes = 64 };
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+        OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
             ExcelDocumentReader.DrainMetadataPartStream(
                 stream,
                 "xl/workbook.xml",
                 options));
 
-        Assert.Contains("xl/workbook.xml", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("64 bytes", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("excel", exception.Owner);
+        Assert.Equal(nameof(ExcelReadOptions.MaxMetadataPartBytes), exception.LimitName);
+        Assert.Equal(options.MaxMetadataPartBytes, exception.Maximum);
+        Assert.Contains("xl/workbook.xml", exception.InnerException!.Message, StringComparison.Ordinal);
+        Assert.Contains("64 bytes", exception.InnerException!.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -178,11 +187,14 @@ public partial class Excel {
             ReplaceZipEntry(xlsmPath, entryName, oversizedMalformedXml);
 
             var options = new ExcelReadOptions { MaxMetadataPartBytes = maxMetadataPartBytes };
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocument.OpenDataReader(xlsmPath, options));
 
-            Assert.Contains("xl/workbook.xml", exception.Message, StringComparison.Ordinal);
-            Assert.Contains($"{maxMetadataPartBytes} bytes", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxMetadataPartBytes), exception.LimitName);
+            Assert.Equal(options.MaxMetadataPartBytes, exception.Maximum);
+            Assert.Contains("xl/workbook.xml", exception.InnerException!.Message, StringComparison.Ordinal);
+            Assert.Contains($"{maxMetadataPartBytes} bytes", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
             File.Delete(xlsxPath);
             File.Delete(xlsmPath);

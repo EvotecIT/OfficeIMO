@@ -34,10 +34,13 @@ public sealed class ExcelResourceBudgetSecurityTests {
             var options = new ExcelReadOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadRange("A1:Z100"));
 
-            Assert.Contains("2600", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(options.MaxRangeCells, exception.Maximum);
+            Assert.Contains("2600", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
             DeleteIfExists(path);
         }
@@ -50,10 +53,13 @@ public sealed class ExcelResourceBudgetSecurityTests {
             var options = new ExcelReadOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadRangeAsDataTable("A1:XFD1048576"));
 
-            Assert.Contains("17179869184", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(options.MaxRangeCells, exception.Maximum);
+            Assert.Contains("17179869184", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
             DeleteIfExists(path);
         }
@@ -66,10 +72,13 @@ public sealed class ExcelResourceBudgetSecurityTests {
             var options = new ExcelReadOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadObjects("A1:XFD1048576"));
 
-            Assert.Contains("17179869184", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(options.MaxRangeCells, exception.Maximum);
+            Assert.Contains("17179869184", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
             DeleteIfExists(path);
         }
@@ -82,10 +91,13 @@ public sealed class ExcelResourceBudgetSecurityTests {
             var options = new ExcelReadOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadObjects<BudgetRow>("A1:Z100").ToList());
 
-            Assert.Contains("2600", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(options.MaxRangeCells, exception.Maximum);
+            Assert.Contains("2600", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
             DeleteIfExists(path);
         }
@@ -117,10 +129,13 @@ public sealed class ExcelResourceBudgetSecurityTests {
             var options = new ExcelReadOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadUsedRange());
 
-            Assert.Contains("17179869184", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("excel", exception.Owner);
+            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(options.MaxRangeCells, exception.Maximum);
+            Assert.Contains("17179869184", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
             DeleteIfExists(path);
         }
@@ -142,8 +157,9 @@ public sealed class ExcelResourceBudgetSecurityTests {
             var options = new ExcelReadOptions { MaxPendingTypedRows = 1 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
-            Assert.Throws<InvalidDataException>(() =>
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadObjectsStream<BudgetRow>("A1:A4").ToList());
+            Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxPendingTypedRows), error.LimitName); Assert.Equal(1, error.Maximum);
         } finally {
             DeleteIfExists(path);
         }

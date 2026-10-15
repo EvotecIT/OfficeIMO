@@ -19,7 +19,7 @@ dotnet add package OfficeIMO.Reader.Email
 
 Use `OfficeIMO.Reader.All` only when the complete local managed format graph is intentional.
 
-Format handlers can register `ReaderHandlerRegistration.ReadDirectoryBundle` for directory packages with their exact registered extensions. Reader dispatches these paths as individual documents and excludes their resources from recursive folder ingestion. The handler owns bounded traversal, physical-root validation, cancellation, and snapshot hashing, and must report aggregate physical file bytes in `Source.LengthBytes`. Reader supplies the effective input-byte limit and verifies the reported size. Capability schema version 6 exposes this support through `SupportsDirectoryBundle`; ordinary directories retain the folder-ingestion path. Bundle detection reports extension/handler evidence without claiming content inspection.
+Format handlers can register `ReaderHandlerRegistration.ReadDirectoryBundle` for directory packages with their exact registered extensions. Reader dispatches these paths as individual documents and excludes their resources from recursive folder ingestion. The handler owns bounded traversal, physical-root validation, cancellation, and snapshot hashing, and must report aggregate physical file bytes in `Source.LengthBytes`. Reader supplies the effective input-byte limit and verifies the reported size. Capability schema version 7 exposes this support through `SupportsDirectoryBundle`; ordinary directories retain the folder-ingestion path. Bundle detection reports extension/handler evidence without claiming content inspection.
 
 ## Build a reader
 
@@ -40,6 +40,46 @@ one `Block`, `Table`, or fallback `Chunk`, plus its effective `Location`. Tables
 use known source positions or an unambiguous block anchor. Content without a known position follows positioned
 content in the same page, slide, or sheet. The traversal preserves the source objects; copy values when an
 immutable snapshot is needed.
+
+## Inspect review and saved content
+
+Enable native inspection on rich document or structured reads:
+
+```csharp
+OfficeDocumentReadResult inspected = reader.ReadDocument("Review.docx", new ReaderOptions {
+    Inspection = new ReaderInspectionOptions {
+        MaxRecords = 4096,
+        MaxCharacters = 1_000_000
+    }
+});
+
+foreach (OfficeDocumentMetadataEntry entry in inspected.Metadata) {
+    if (entry.Category == OfficeDocumentInspectionCategories.Comment)
+        Console.WriteLine($"{entry.Value} ({entry.SourceObjectId})");
+}
+```
+
+Format owners supply comments and replies, revision text, authored formulas with saved caches, hidden source state, inert package descriptors, and bounded content-safety observations where supported. Located metadata keeps native identifiers and semantic attributes through `ExtractStructured`, JSON, and nested document results. Coverage entries state the requested flags, selection, native profile, and omissions. Formula inspection reads stored values without recalculation; package and safety observations do not validate signatures or execute content.
+
+`Inspection` is null by default. Its options are snapshotted, and record/character budgets span nested, folder, and batch reads. Exceeding an inspection or native safety admission ceiling throws terminal `ReaderResourceLimitException`; ordinary malformed inputs retain the existing recoverable per-file behavior. Unicode and concealment observations are heuristic evidence. See [migration guidance](../MIGRATION.md#typed-inspection-resource-failures) for the typed native owner exception.
+
+The six content flags default to true when inspection is enabled: `IncludeComments`,
+`IncludeRevisions`, `IncludeFormulas`, `IncludeVisibility`, `IncludePackageContent`,
+and `IncludeContentSafety`. Disable individual flags to omit that work. `MaxRecords`
+defaults to 4,096, including coverage records; `MaxCharacters` defaults to one million
+and counts retained names, values and attributes. Both must be positive. These are
+inspection-output budgets, not a bound on every allocation made by the format loader.
+
+`IncludePackageContent` requests original-package structural observations in Word,
+Excel and PowerPoint loaders, plus their inert payload/VBA descriptors. The metadata
+records its physical source scope and whether that import route captured a report.
+Presence of a macro or signature part does not establish execution or signature
+validity. Format-specific parser limits and qualified profiles still apply.
+
+Inspection uses the existing document metadata transport and does not introduce a
+new schema version or a dependency on FileInspectorX. The format owners and Reader
+adapters remain independently usable; mapping their evidence into another product
+and selecting that product's package graph are separate integration decisions.
 
 ## Find content by page
 
@@ -139,6 +179,33 @@ Plain-text handlers recognize UTF-8, UTF-16 and UTF-32 BOMs. Without a BOM they 
 BOMs override `TextEncoding`. These options apply to plain-text handlers; other formats use their own
 codec policies. Chunk boundaries preserve Unicode surrogate pairs, and line breaks normalize to LF.
 
+## Text and metadata projection
+
+Supporting handlers can read text and metadata without building secondary Markdown, asset, visual,
+form or OCR projections:
+
+```csharp
+var options = ReaderOptions.CreateSafeIngestion();
+options.Projection = ReaderProjection.TextAndMetadata;
+OfficeDocumentReadResult document = reader.ReadDocument("Policy.docx", options);
+```
+
+The default is `ReaderProjection.Full`. Check each handler's `SupportsTextAndMetadata` capability
+and `TextAndMetadataExtensions` before requesting the lean projection. An empty extension list means
+no extension restriction for a supporting handler; a nonempty list identifies its qualified subset.
+Unsupported handlers and formats reject the request before parsing rather than silently running a full read.
+Several legacy Office imports reconstruct pictures as part of loading and therefore remain Full-only.
+
+The lean result retains text, source locations, metadata and configured native inspection evidence.
+Its `CapabilitiesUsed` includes `officeimo.reader.projection.text-and-metadata`; an empty asset collection
+in that profile means asset projection was not requested, rather than proving the source contains no images.
+Options are snapshotted, and nested reads inherit the lean operation profile. Core does not reconstruct
+unrequested Markdown when refreshing a text processor's changes.
+
+This projection avoids secondary work; it is not a hard process-memory limit. Keep native parser,
+package expansion and input limits alongside aggregate output budgets. Format owners document
+any source structures that must still be decoded or validated during loading.
+
 ## Nested results and qualified capabilities
 
 ZIP and email reads keep each delegated source's rich result in `NestedDocuments`, alongside the existing
@@ -157,7 +224,7 @@ carry nested documents, below 10 cannot carry XPS input kinds, below 11 cannot c
 CHM input kinds, below 12 cannot carry DjVu input kinds, below 13 cannot carry DBF input kinds,
 and below 14 cannot carry Publisher input kinds.
 
-Capability manifest version 6 includes incremental route flags and per-extension `FormatQualifications`.
+Capability manifest version 7 includes incremental route flags, per-extension `FormatQualifications`, and lean-projection support.
 A qualification records a format ID, extraction maturity, profile, preservation, limitations and evidence
 references. Word, Excel and modern PowerPoint reuse their owner's format IDs. Other undeclared profiles
 remain `Unqualified`; an available handler is not a claim of complete format preservation. Applications can

@@ -169,6 +169,7 @@ internal static partial class DocumentReaderEngine {
         } else if (!TryResolveDetectedHandler(detection, pathInput: true, out handler)) {
             return false;
         }
+        ValidateProjection(handler, options, path);
         ReaderInputLimits.EnforceFileSize(
             path,
             ResolveSelectedHandlerMaxInputBytes(handler, path, options),
@@ -212,6 +213,7 @@ internal static partial class DocumentReaderEngine {
         } else if (!TryResolveDetectedHandler(detection, pathInput: false, out handler)) {
             return false;
         }
+        ValidateProjection(handler, options, sourceName);
         ReaderInputLimits.EnforceSeekableStreamSize(
             stream,
             ResolveSelectedHandlerMaxInputBytes(handler, sourceName, options),
@@ -280,7 +282,7 @@ internal static partial class DocumentReaderEngine {
 
     private static bool ValidateExtensionHandler(string path, ReaderHandlerDescriptor handler, ReaderOptions options,
         CancellationToken cancellationToken) {
-        if (handler.ExtensionValidationProbeStream == null || !handler.SupportsPathInput) return false;
+        if (!IsProjectionEligible(handler, options, path) || handler.ExtensionValidationProbeStream == null || !handler.SupportsPathInput) return false;
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = OpenPathForContentDetection(path);
         return handler.ExtensionValidationProbeStream(stream, path, options, cancellationToken);
@@ -292,7 +294,7 @@ internal static partial class DocumentReaderEngine {
 
     private static bool ValidateExtensionHandler(Stream stream, string? sourceName, ReaderHandlerDescriptor handler,
         ReaderOptions options, CancellationToken cancellationToken) {
-        if (handler.ExtensionValidationProbeStream == null || !handler.SupportsStreamInput || !stream.CanSeek) return false;
+        if (!IsProjectionEligible(handler, options, sourceName) || handler.ExtensionValidationProbeStream == null || !handler.SupportsStreamInput || !stream.CanSeek) return false;
         long position = stream.Position;
         try {
             cancellationToken.ThrowIfCancellationRequested();

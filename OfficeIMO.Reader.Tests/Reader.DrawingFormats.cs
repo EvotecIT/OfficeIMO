@@ -28,7 +28,9 @@ public class ReaderDrawingFormatTests {
         Assert.Contains(chunk.Warnings!, warning => warning.Contains("hidden layers"));
         // The page name and the two original labels fit; the image caption must also charge the budget.
         var bounded = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler(new ReaderOpenDocumentOptions { MaxExtractedCharacters = 18 }).Build();
-        Assert.Throws<InvalidDataException>(() => bounded.Read(stream.ToArray(), "drawing." + extension).ToArray());
+        var error = Assert.Throws<ReaderResourceLimitException>(() => bounded.Read(stream.ToArray(), "drawing." + extension).ToArray());
+        Assert.Equal("OpenDocument.MaxExtractedCharacters", error.LimitName);
+        Assert.Equal(18, error.Maximum);
     }
 
     [Theory]

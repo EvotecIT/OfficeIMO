@@ -62,10 +62,10 @@ namespace OfficeIMO.Excel {
             long originalPosition = stream.CanSeek ? stream.Position : 0L;
             byte[] bytes;
             try {
-                bytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(
+                bytes = ExcelReadLimitFailure.ReadInput(() => OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(
                     stream,
                     effectiveOptions.CancellationToken,
-                    effectiveOptions.MaxInputBytes);
+                    effectiveOptions.MaxInputBytes), effectiveOptions.MaxInputBytes);
             } finally {
                 if (stream.CanSeek) {
                     stream.Position = originalPosition;
@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel {
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             if (bytes.LongLength > effectiveOptions.MaxInputBytes) {
-                throw new InvalidDataException(
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), effectiveOptions.MaxInputBytes,
                     $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
             }
 

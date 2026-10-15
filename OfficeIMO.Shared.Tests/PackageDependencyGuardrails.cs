@@ -509,6 +509,7 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/IO/PooledUtf8TextWriter.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlContractMappings.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.Inspection.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeVbaProjectPartEditor.cs",
                 "OfficeIMO.SharedSource/Processes/OfficeWindowsSuspendedProcess.cs",
@@ -989,27 +990,8 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.DoesNotContain("netstandard2.0", condition!, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string GetRepositoryRoot([System.Runtime.CompilerServices.CallerFilePath] string sourcePath = "") {
-        // External artifact directories need not be beneath the source checkout.
-        foreach (string startPath in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory(), Path.GetDirectoryName(sourcePath) ?? string.Empty }) {
-            if (string.IsNullOrEmpty(startPath)) {
-                continue;
-            }
-            DirectoryInfo? directory = new DirectoryInfo(startPath);
-            while (directory != null) {
-                if (
-                    File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")) ||
-                    File.Exists(Path.Combine(directory.FullName, "OfficeImo.sln"))
-                ) {
-                    return directory.FullName;
-                }
-
-                directory = directory.Parent;
-            }
-        }
-
-        throw new DirectoryNotFoundException("Unable to locate OfficeIMO repository root from test runtime, working directory or source path.");
-    }
+    private static string GetRepositoryRoot([System.Runtime.CompilerServices.CallerFilePath] string sourcePath = "") =>
+        OfficeIMO.Tests.RepositoryTestPaths.Find(sourcePath);
 
     private static string GetRepositoryPath(string relativePath) {
         Assert.False(Path.IsPathRooted(relativePath), "Repository-relative path must not be rooted: " + relativePath);

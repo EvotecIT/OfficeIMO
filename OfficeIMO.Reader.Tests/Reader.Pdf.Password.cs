@@ -16,9 +16,12 @@ public sealed class ReaderPdfPasswordTests {
             pdfOptions: new ReaderPdfOptions { Password = "incorrect" }));
         Assert.Throws<PdfPermissionDeniedException>(() => PdfReaderAdapter.ReadDocument(encrypted,
             pdfOptions: new ReaderPdfOptions { Password = "reader" }));
-        Assert.Throws<IOException>(() => PdfReaderAdapter.ReadDocument(encrypted,
+        ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() => PdfReaderAdapter.ReadDocument(encrypted,
             readerOptions: new ReaderOptions { MaxInputBytes = encrypted.Length - 1 },
             pdfOptions: new ReaderPdfOptions { Password = "owner" }));
+        Assert.Equal(PdfReadLimitKind.InputBytes, Assert.IsType<PdfReadLimitException>(error.InnerException).Kind);
+        Assert.Equal(encrypted.Length - 1, error.Maximum);
+        Assert.Equal(encrypted.Length, error.Actual);
     }
 
     [Theory]

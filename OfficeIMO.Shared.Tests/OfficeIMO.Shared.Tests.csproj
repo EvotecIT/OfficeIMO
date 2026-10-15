@@ -88,6 +88,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Epub\W3cSpine\**\*" Link="w3c\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Epub\IdpfPublishing\**\*" Link="idpf\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\ExcelEncryptionCorpus\*.xlsx" Link="Documents\ExcelEncryptionCorpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

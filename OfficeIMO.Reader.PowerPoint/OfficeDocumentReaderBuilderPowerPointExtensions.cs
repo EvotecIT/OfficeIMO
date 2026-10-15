@@ -20,6 +20,8 @@ public static class OfficeDocumentReaderBuilderPowerPointExtensions {
         ReaderPowerPointOptions configured = PowerPointReaderAdapter.Clone(options);
         builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
+            SupportsTextAndMetadata = true,
+            TextAndMetadataExtensions = global::OfficeIMO.PowerPoint.PowerPointFormatCatalog.All.Where(format => format.Encoding == OfficeFormatEncoding.OpenXml).Select(format => format.Extension).ToArray(),
             Id = HandlerId,
             DisplayName = "PowerPoint Reader",
             Description = "OfficeIMO.PowerPoint slide, table, and speaker-note projection.",
@@ -43,6 +45,7 @@ public static class OfficeDocumentReaderBuilderPowerPointExtensions {
         }, replaceExisting);
         builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
+            SupportsTextAndMetadata = false,
             Id = BinaryHandlerId,
             DisplayName = "Legacy PowerPoint Reader",
             Description = "Bounded OfficeIMO.PowerPoint projection for PPT, POT, and PPS compound files.",

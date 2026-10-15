@@ -28,6 +28,7 @@ public static class OfficeDocumentReaderBuilderPdfExtensions {
             DisplayName = "PDF Reader Adapter",
             Description = "Modular PDF adapter using OfficeIMO.Pdf logical read model.",
             Kind = ReaderInputKind.Pdf,
+            SupportsTextAndMetadata = true,
             Extensions = new[] { ".pdf" },
             ReadPath = (path, readerOptions, ct) => PdfReaderAdapter.Read(
                 pdfPath: path,

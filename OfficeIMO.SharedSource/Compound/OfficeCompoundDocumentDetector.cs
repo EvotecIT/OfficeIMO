@@ -36,12 +36,12 @@ namespace OfficeIMO.Core.Internal {
             return true;
         }
 
-        internal static DocumentKind Detect(byte[] bytes, out string? error) {
+        internal static DocumentKind Detect(byte[] bytes, out string? error, bool preserveResourceLimits = false) {
             error = null;
             if (!HasCompoundSignature(bytes)) return DocumentKind.NotCompound;
 
             using var stream = new MemoryStream(bytes, writable: false);
-            return Detect(stream, bytes.LongLength, 65536, out error);
+            return Detect(stream, bytes.LongLength, 65536, out error, preserveResourceLimits);
         }
 
         /// <summary>
@@ -49,14 +49,14 @@ namespace OfficeIMO.Core.Internal {
         /// The source position is restored before this method returns.
         /// </summary>
         internal static DocumentKind Detect(Stream stream, long maxInputBytes,
-            int maxDirectoryEntries, out string? error) {
+            int maxDirectoryEntries, out string? error, bool preserveResourceLimits = false) {
             return Detect(stream, maxInputBytes, maxDirectoryEntries,
-                CancellationToken.None, out error);
+                CancellationToken.None, out error, preserveResourceLimits);
         }
 
         internal static DocumentKind Detect(Stream stream, long maxInputBytes,
             int maxDirectoryEntries, CancellationToken cancellationToken,
-            out string? error) {
+            out string? error, bool preserveResourceLimits = false) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead || !stream.CanSeek) {
@@ -79,7 +79,7 @@ namespace OfficeIMO.Core.Internal {
                         maxInputBytes, maxDirectoryEntries,
                         cancellationToken,
                         out IReadOnlyList<OfficeCompoundFileEntry> entries,
-                        out error)) {
+                        out error, preserveResourceLimits)) {
                     return DocumentKind.UnknownCompound;
                 }
 

@@ -1193,7 +1193,7 @@ public partial class PdfUnderstandingPipelineTests {
             .Paragraph(paragraph => paragraph.Text("Page two"))
             .ToBytes();
 
-        Assert.Throws<PdfReadLimitException>(() => PdfReaderAdapter.ReadDocument(
+        ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() => PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             "limited.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1201,6 +1201,9 @@ public partial class PdfUnderstandingPipelineTests {
                     Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 1 }
                 }
             }));
+
+        Assert.Equal(PdfReadLimitKind.Pages, Assert.IsType<PdfReadLimitException>(error.InnerException).Kind);
+        Assert.Equal(1, error.Maximum); Assert.Equal(2, error.Actual);
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),

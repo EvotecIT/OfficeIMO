@@ -99,10 +99,10 @@ public partial class ExcelDocument {
     private static OfficeContentSafetyReport InspectContentSafetyDocument(
         ExcelDocument document,
         OfficeContentSafetyOptions? options,
-        IDictionary<string, ExcelCleanupTarget>? targets) {
+        IDictionary<string, ExcelCleanupTarget>? targets, System.Threading.CancellationToken cancellationToken = default) {
         WorkbookPart workbookPart = document.WorkbookPartRoot ?? throw new InvalidDataException("The package has no workbook part.");
         Workbook workbook = workbookPart.Workbook ?? throw new InvalidDataException("The workbook part has no workbook root.");
-        var builder = new OfficeContentSafetyBuilder("Excel " + document.SourceFormat, options);
+        var builder = new OfficeContentSafetyBuilder("Excel " + document.SourceFormat, options, cancellationToken);
         var styles = new ExcelContentStyleResolver(workbookPart);
         IReadOnlyList<SharedStringItem> sharedStrings = workbookPart.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToArray()
             ?? Array.Empty<SharedStringItem>();

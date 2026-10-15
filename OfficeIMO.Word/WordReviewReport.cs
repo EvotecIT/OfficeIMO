@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Creates a review report from an existing review read model.
         /// </summary>
-        /// <param name="review">Review metadata returned by <see cref="WordDocument.InspectReview"/>.</param>
+        /// <param name="review">Review metadata returned by <see cref="WordDocument.InspectReview()"/>.</param>
         /// <param name="actions">Optional accept/reject operation reports to include.</param>
         public static WordReviewReport From(WordReviewInfo review, params WordRevisionOperationReport[] actions) {
             if (review == null) {

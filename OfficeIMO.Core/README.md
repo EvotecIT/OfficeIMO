@@ -5,6 +5,48 @@
 
 `OfficeIMO.Core` is the zero-dependency shared foundation for OfficeIMO packages. It owns common document lifecycle and package-safety contracts, neutral tabular row mapping, color conversion, image metadata, font and text measurement, vector scenes, reusable ink and math models, chart snapshots, SVG, raster canvases, PNG/JPEG/TIFF/WebP encoding, and drawing-quality primitives. Format packages keep their file-format behavior while reusing these document-agnostic models and renderers.
 
+## Bounded embedded payload reads
+
+Native document owners create `OfficeEmbeddedPayloadInspection` sessions through
+`InspectEmbeddedPayloads(options, cancellationToken)`. Core owns their common
+descriptor and cumulative read contract; the format owner discovers and opens its
+own payloads. No consumer needs to reopen private package parts.
+
+```csharp
+using OfficeIMO;
+
+using OfficeEmbeddedPayloadInspection payloads = document.InspectEmbeddedPayloads(
+    new OfficeEmbeddedPayloadInspectionOptions {
+        MaxPayloads = 128,
+        MaxPayloadBytes = 16L * 1024 * 1024,
+        MaxTotalPayloadBytes = 64L * 1024 * 1024,
+        MaxReadBytes = 64L * 1024 * 1024
+    });
+foreach (OfficeEmbeddedPayloadInfo payload in payloads.Payloads) {
+    Console.WriteLine($"{payload.Id}: {payload.ContentType}");
+    if (payload.SuggestedFileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) {
+        using Stream bytes = payloads.OpenRead(payload.Ordinal);
+        // Pass the selected document to the application's bounded consumer.
+    }
+}
+```
+
+Hashing is off by default. An inventory can report `Length = -1` and
+`HasKnownLength = false` when the native owner cannot obtain the decoded size
+without reading the payload. Unknown sizes are admitted during a selected read;
+they never bypass the member or aggregate limits. `IncludeSha256 = true` requests
+a bounded scan, and that scan shares `MaxReadBytes` with subsequent and repeated
+reads. Distinct owner relationships remain distinct descriptors.
+
+Keep the native document open while requesting new reads. Each returned stream
+is a complete read-only detached copy; the caller disposes it, and it remains
+usable after either the document or inspection session is disposed. Disposing a
+session rejects new reads and releases its source callbacks. Limit failures retain
+the `embedded-payload` owner, limit name and maximum in
+`OfficeInspectionResourceLimitException`. External references are never fetched
+and payloads are never executed. Native source, parser and expansion limits apply
+separately; these byte ceilings do not measure all managed model allocations.
+
 The assembly was previously named `OfficeIMO.Drawing`. Drawing became the original shared foundation because keeping these primitives together avoided a separate Core → Drawing → format dependency chain. As lifecycle, security, package, and data contracts accumulated, the package name stopped describing its actual responsibility. That same single zero-dependency foundation is now named `OfficeIMO.Core`; it was not split into another runtime dependency. Actual drawing APIs remain in `OfficeIMO.Drawing`, neutral data and flattening contracts use `OfficeIMO.Data`, security APIs remain in `OfficeIMO.Security`, and cross-document lifecycle, compatibility, capability, and conversion-report contracts use the root `OfficeIMO` namespace.
 
 The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT license. It was ported from the same author's CodeGlyphX implementation. The lossy VP8 encoder is adapted from CodeGlyphX under Apache-2.0 and retains its source notices. Both implementations run inside Core without a CodeGlyphX runtime dependency. The [third-party notices](THIRD-PARTY-NOTICES.md) identify the incorporated code and its license files.
@@ -811,6 +853,35 @@ Resolution values retain native aspect-ratio, pixels-per-inch, pixels-per-centim
 Use `ParseExifProfile` and `EncodeExifProfile` for metadata-only workflows. They accept and return classic TIFF Exif bytes without JPEG framing, and parsing also accepts the JPEG Exif prefix. Parsed TIFF fields preserve their original representations, including NUL-separated ASCII strings and zero-count arrays, through unrelated edits and profile export. `SetExifValue` validates new edits and requires ASCII text without embedded NULs and nonempty typed arrays. Both profile methods have cancellation-token overloads. `Clone` preserves independent edits and the original-container constraints. Metadata rewriting bounds retained inputs, profiles, stream backing growth, and the final encoded array against the Core managed working-set limit. Malformed ICC profiles are rejected before replacement. C2PA removal uses the canonical carrier inspector and retains malformed or conflicting carriers rather than treating unrelated bytes as a removable manifest.
 
 When re-encoding pixels into another format, call `PrepareForEncoding(destinationFormat, out omittedProfiles)` before `Apply`. The returned copy contains supported profile families and reports what the destination cannot carry. For example, JPEG IPTC IIM metadata is omitted when producing PNG, while Exif, XMP, and ICC are retained. This explicit projection leaves the source metadata intact; lossless replacement still rejects unsupported profiles.
+
+### Inspect source metadata and normalized values
+
+`OfficeImageMetadata.Inspect` returns passive metadata evidence without editing the image or decoding pixels. It retains Exif field identities, original counts, profile-relative directory/entry/value offsets and duplicate tags. Values omitted by a retention limit keep their descriptors. `InspectExifProfile` provides the same evidence for standalone classic TIFF Exif bytes, including the optional JPEG Exif prefix.
+
+```csharp
+OfficeImageMetadataInspection inspection = OfficeImageMetadata.Inspect(File.ReadAllBytes("photo.jpg"));
+foreach (OfficeExifTimestamp timestamp in inspection.Timestamps) {
+    Console.WriteLine($"{timestamp.FieldName}: {timestamp.RawValue}; explicit timezone: {timestamp.HasKnownTimezone}");
+}
+if (inspection.GpsCoordinate is OfficeExifGpsCoordinate coordinate) {
+    Console.WriteLine($"{coordinate.Latitude}, {coordinate.Longitude}");
+}
+Console.WriteLine($"Authored density: {inspection.Resolution.IsDeclared}");
+```
+
+Capture timestamps retain their raw date, offset and subseconds. A date without an offset, or with Exif's blank unknown-offset representation, remains a local wall-clock value with an unknown timezone; no machine timezone is assigned. The timestamp companions use the tag identities and unknown-value forms in the [CIPA Exif specification](https://www.cipa.jp/std/documents/e/DC-X008-Translation-2019-E.pdf). Fractions beyond .NET's seven-digit precision retain their source text and report truncation. GPS coordinates are derived only from complete, valid DMS rationals and cardinal references in one profile. Invalid or conflicting density carriers return no effective authored resolution, and absent density is never reported as an embedded 96-DPI value.
+
+XMP values retain namespace URIs, RDF sequence/bag/alternative identity, item order, language and resource qualifiers. The inspector uses the shared secure XML loader and the canonical digest-bound JPEG extended-XMP assembler. Arbitrary structured RDF remains an explicit omission. `OfficeXmpInspector.Inspect` also accepts standalone packets. `OfficeIccProfileInspector.Inspect` separates header/tag-range structural validity from support by the managed input-transform engine; a valid unsupported profile is not labeled corrupt.
+
+`OfficeImageMetadataInspectionOptions` bounds input, profiles, retained Exif descriptors/values, XML nodes and retained XMP characters, and ICC tag descriptors. Defaults are 16 MiB of encoded input, 4 MiB per profile, 512 Exif fields, 64 KiB per Exif value, 4 MiB of retained Exif value bytes, 4,096 XML nodes, 512 XMP values and one million retained XMP characters. Diagnostics identify malformed, ambiguous, omitted and unsupported evidence. Classic Exif inspection covers the primary image, camera, GPS and interoperability directories. Additional TIFF pages/private IFD trees, proprietary MakerNote interpretation and BigTIFF profile parsing remain outside this inspection profile. Structural metadata evidence does not establish pixel integrity, authorship or cryptographic provenance.
+
+The default XMP value ceiling is 4,096 characters and the retained ICC descriptor
+ceiling is 256 tags. Options are snapshotted and require finite positive values
+within their supported ceilings. An unreadable/unsupported image container or an
+exceeded encoded-input limit fails the operation; cancellation propagates. Individual
+profile and value-retention omissions appear in `Issues`, and oversized Exif values
+can retain only their source descriptors. Check those issues before treating the
+retained metadata as complete.
 
 ### Inspect and edit HEIF container metadata
 
