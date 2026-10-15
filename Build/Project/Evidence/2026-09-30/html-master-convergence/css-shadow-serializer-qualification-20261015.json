@@ -1,0 +1,349 @@
+{
+  "schemaVersion": 1,
+  "qualifiedAtUtc": "2026-10-15T07:43:43.919642+00:00",
+  "purpose": "Qualify the AngleSharp.Css zero-blur/nonzero-spread serializer correction through its public declaration contract and the unchanged OfficeIMO adapter.",
+  "source": {
+    "officeIMOCommit": "75ebe6481bc54701632daa6427bf90e463359b22",
+    "upstreamRepository": "https://github.com/AngleSharp/AngleSharp.Css",
+    "upstreamBase": "650fb47ed4ef823513be350c6477cf8bf4ab174b",
+    "upstreamCandidate": "9b7419c0d501af3ddec9aadf1b655d0fb5f246f4",
+    "pullRequest": "https://github.com/AngleSharp/AngleSharp.Css/pull/250",
+    "issue": "https://github.com/AngleSharp/AngleSharp.Css/issues/249",
+    "consumerBaseAndPatch": {
+      "base": "c5ddd09b54605551583d058bf37a31b82c8932f4",
+      "patchHead": "9b7419c0d501af3ddec9aadf1b655d0fb5f246f4",
+      "changedFiles": [
+        "src/AngleSharp.Css/Values/Composites/CssShadowValue.cs"
+      ],
+      "before": "188356505735442cee649d2238379b79b37cfcc9919b6d1bdee1cbeb74f49d41",
+      "after": "6394104c1c3eb3e4ba6643becb0d41b7dcf0b179bca93c23f0702fd0fe93e4a8",
+      "fullTreeOtherwiseUnchanged": true,
+      "productionPinsChanged": false
+    },
+    "compilerSdk": "10.0.303",
+    "host": "macOS arm64",
+    "productionPackagePin": "AngleSharp.Css 1.1.2 unchanged",
+    "referenceRoute": "Test-only CustomAfterMicrosoftCommonTargets removes the OfficeIMO.Html package reference and adds the stable provider source plus exactly the reviewed serializer file. No assembly replacement, shared-cache mutation or downstream workaround."
+  },
+  "provider": {
+    "baselineRegressionFailures": 2,
+    "focusedShadowPass": 25,
+    "fullSuitePass": 2344,
+    "libraryBuildTargets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "commandResult": 0,
+    "before": [
+      {
+        "authored": "0 0 0 5px red",
+        "serialized": "0 0 5px rgba(255, 0, 0, 1)",
+        "reparsed": "0 0 5px rgba(255, 0, 0, 1)",
+        "blur": "5px",
+        "spread": null
+      },
+      {
+        "authored": "0 0 0 -5px red",
+        "serialized": "0 0 -5px rgba(255, 0, 0, 1)",
+        "reparsed": "0 0 -5px rgba(255, 0, 0, 1)",
+        "blur": "-5px",
+        "spread": null
+      },
+      {
+        "authored": "0 0 1px 5px red",
+        "serialized": "0 0 1px 5px rgba(255, 0, 0, 1)",
+        "reparsed": "0 0 1px 5px rgba(255, 0, 0, 1)",
+        "blur": "1px",
+        "spread": "5px"
+      }
+    ],
+    "after": [
+      {
+        "authored": "0 0 0 5px red",
+        "serialized": "0 0 0 5px rgba(255, 0, 0, 1)",
+        "reparsed": "0 0 0 5px rgba(255, 0, 0, 1)",
+        "blur": "0",
+        "spread": "5px"
+      },
+      {
+        "authored": "0 0 0 -5px red",
+        "serialized": "0 0 0 -5px rgba(255, 0, 0, 1)",
+        "reparsed": "0 0 0 -5px rgba(255, 0, 0, 1)",
+        "blur": "0",
+        "spread": "-5px"
+      },
+      {
+        "authored": "0 0 1px 5px red",
+        "serialized": "0 0 1px 5px rgba(255, 0, 0, 1)",
+        "reparsed": "0 0 1px 5px rgba(255, 0, 0, 1)",
+        "blur": "1px",
+        "spread": "5px"
+      }
+    ],
+    "localExecutionLimits": [
+      "Existing SourceLink1.0/GitTask1.0 cannot read partial-clone Git format1; local command disables source metadata queries and SourceLink only. No dependency/project/configuration change.",
+      "Existing full-suite Resource tests require the tracked Resources directory beside the custom SDK artifacts output. All five fixtures copied unchanged and SHA-verified; first layout failure retained. Upstream normal-checkout CI remains separate."
+    ]
+  },
+  "consumer": {
+    "profiles": [
+      {
+        "case": "positive-zero-height",
+        "media": "print",
+        "pageCount": 1,
+        "size": [
+          240,
+          180
+        ],
+        "shadowCarriers": 4,
+        "emptyTextAndLinksUnchanged": true,
+        "nativeErrors": []
+      },
+      {
+        "case": "positive-zero-height",
+        "media": "screen",
+        "pageCount": 1,
+        "size": [
+          240,
+          180
+        ],
+        "shadowCarriers": 4,
+        "emptyTextAndLinksUnchanged": true,
+        "nativeErrors": []
+      },
+      {
+        "case": "negative-spread-offset",
+        "media": "print",
+        "pageCount": 1,
+        "size": [
+          240,
+          180
+        ],
+        "shadowCarriers": 1,
+        "emptyTextAndLinksUnchanged": true,
+        "nativeErrors": []
+      },
+      {
+        "case": "negative-spread-offset",
+        "media": "screen",
+        "pageCount": 1,
+        "size": [
+          240,
+          180
+        ],
+        "shadowCarriers": 1,
+        "emptyTextAndLinksUnchanged": true,
+        "nativeErrors": []
+      },
+      {
+        "case": "nonzero-blur-control",
+        "media": "print",
+        "pageCount": 1,
+        "size": [
+          240,
+          180
+        ],
+        "shadowCarriers": 4,
+        "emptyTextAndLinksUnchanged": true,
+        "nativeErrors": []
+      },
+      {
+        "case": "nonzero-blur-control",
+        "media": "screen",
+        "pageCount": 1,
+        "size": [
+          240,
+          180
+        ],
+        "shadowCarriers": 4,
+        "emptyTextAndLinksUnchanged": true,
+        "nativeErrors": []
+      }
+    ],
+    "onlyChangedRuntimeAssembly": "AngleSharp.Css",
+    "matchingInteriorSamples": 150,
+    "surfaces": [
+      "OfficeIMO PDF at96DPI",
+      "OfficeIMO direct raster",
+      "OfficeIMO SVG through Chromium img",
+      "Chromium native HTML screenshot",
+      "Chromium native HTML PDF at96DPI"
+    ],
+    "nonzeroBlurOutputsByteIdentical": [
+      {
+        "name": "office-print.pdf",
+        "sha256": "da0c4f6581874ea71f0213e4754387fd629e196c8460169e648e4bc61ba5ef14"
+      },
+      {
+        "name": "office-print.svg",
+        "sha256": "3a46ab7c884f3b4f72b763dcb180da639aeb3b9d13b4fc205068caa14a4d379b"
+      },
+      {
+        "name": "office-print.png",
+        "sha256": "9356d67b3bac040e3414e3e4ac9779096d45ac3f0d8d68504a3a2d171f881f54"
+      },
+      {
+        "name": "office-screen.pdf",
+        "sha256": "da0c4f6581874ea71f0213e4754387fd629e196c8460169e648e4bc61ba5ef14"
+      },
+      {
+        "name": "office-screen.svg",
+        "sha256": "3a46ab7c884f3b4f72b763dcb180da639aeb3b9d13b4fc205068caa14a4d379b"
+      },
+      {
+        "name": "office-screen.png",
+        "sha256": "9356d67b3bac040e3414e3e4ac9779096d45ac3f0d8d68504a3a2d171f881f54"
+      }
+    ],
+    "positiveBounds": {
+      "sources": [
+        "div",
+        "table",
+        "caption",
+        "td"
+      ],
+      "x": 11,
+      "ys": [
+        11,
+        43,
+        75,
+        107
+      ],
+      "width": 110,
+      "height": 10,
+      "blur": 0
+    },
+    "negativeBounds": {
+      "x": 21,
+      "y": 21,
+      "width": 30,
+      "height": 10,
+      "offsetX": 12,
+      "blur": 0,
+      "unsupportedShadowDiagnosticAbsent": true
+    },
+    "pageSize": [
+      240,
+      180
+    ],
+    "textAndLinkBoundary": "Empty-text/link fixtures unchanged; no additional rich-text or link coverage claimed.",
+    "browserVersion": "153.0.8010.12",
+    "browserOwner": "https://github.com/EvotecIT/HtmlTinkerX",
+    "browserOwnerQualifiedCommit": "5031eb16bb252501d384602d788b590b6ce70600",
+    "browserOwnerMergedCommit": "366cbd06949dc1c00162a280a290e2c130ca0bea",
+    "browserOwnerBoundary": "Qualified5031source; all23PR-changed blobs preserved by merge. Default has later Jint/NUglify dependency updates; this is not a default-package build claim.",
+    "browserErrors": [],
+    "ownedServersAndBrowserSessionsClosed": true,
+    "visualInspection": {
+      "viewer": "root",
+      "files": [
+        "render-comparison.png",
+        "candidate/positive-zero-height/office-screen.png",
+        "svg-embedded-native/negative-spread-offset/browser-screen.png",
+        "svg-embedded-native/nonzero-blur-control/browser-print.png"
+      ],
+      "result": "Correctedpositiveandnegativespreadvisible; knownroundedcorner/outlineoverlapboundarypreserved",
+      "utc": "2026-10-15T07:38:58.368447+00:00"
+    }
+  },
+  "inputs": [
+    {
+      "id": "negative-spread-offset",
+      "sha256": "877b176e05fab0750b3fab0b77e2d78fef16e233c6624396f7268b17c508e95b",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}#negative{width:40px;height:20px;background:white;box-shadow:12px 0 0 -5px red}#tail{width:120px;height:2px;background:#d06c24}</style><div id='negative'></div><div id='tail'></div>\n"
+    },
+    {
+      "id": "nonzero-blur-control",
+      "sha256": "05e5a7d3edeb1ffd255e0ef0bfa6e2109445044b74b0bf2366b4573e9ae7c624",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}table,caption,td,tr{border:0;padding:0;margin:0;border-spacing:0}.zero{width:100px;height:0;box-shadow:0 0 1px 5px red;outline:2px solid blue}.tail{height:2px;width:120px;background:#d06c24;margin-bottom:30px}</style><div id='zero-block' class='zero'></div><div id='tail-block' class='tail'></div><table id='zero-table' class='zero'></table><div id='tail-table' class='tail'></div><table><caption id='zero-caption' class='zero'></caption><tr><td style='width:100px'></td></tr></table><div id='tail-caption' class='tail'></div><table><tr><td id='zero-cell' class='zero'></td></tr></table><div id='tail-cell' class='tail'></div>"
+    },
+    {
+      "id": "positive-zero-height",
+      "sha256": "9f5d11c43219f9ecdc6f98206fdf08759924cf3dab11e951dd4210965a51faa7",
+      "html": "<!doctype html><style>@page{size:240px 180px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}body{padding:16px}table,caption,td,tr{border:0;padding:0;margin:0;border-spacing:0}.zero{width:100px;height:0;box-shadow:0 0 0 5px red;outline:2px solid blue}.tail{height:2px;width:120px;background:#d06c24;margin-bottom:30px}</style><div id='zero-block' class='zero'></div><div id='tail-block' class='tail'></div><table id='zero-table' class='zero'></table><div id='tail-table' class='tail'></div><table><caption id='zero-caption' class='zero'></caption><tr><td style='width:100px'></td></tr></table><div id='tail-caption' class='tail'></div><table><tr><td id='zero-cell' class='zero'></td></tr></table><div id='tail-cell' class='tail'></div>"
+    }
+  ],
+  "review": {
+    "capturedUtc": "2026-10-15T07:31:16.083886+00:00",
+    "reviewer": "/root/css_shadow_serializer_review",
+    "base": "650fb47ed4ef823513be350c6477cf8bf4ab174b",
+    "head": "9b7419c0d501af3ddec9aadf1b655d0fb5f246f4",
+    "boundary": "current",
+    "fullPassUsed": true,
+    "targetedConfirmationUsed": false,
+    "findings": [],
+    "disposition": "accept as shaped; canonical serializer, narrow public behavior correction, no public API/dependency additions",
+    "scope": "Shared shadow serializer optional blur/spread positions and declaration serialize/reparse regression tests; existing zero-spread/text-shadow behavior retained.",
+    "reviewerReadTrx": {
+      "red": 2,
+      "focusedPass": 25,
+      "fullPass": 2344
+    },
+    "reviewerDidNotBuild": true,
+    "externalGates": "Upstream CI/CLA/maintainer acceptance; downstream source-reference/native proof separate",
+    "files": [
+      {
+        "path": "src/AngleSharp.Css/Values/Composites/CssShadowValue.cs",
+        "sha256": "6394104c1c3eb3e4ba6643becb0d41b7dcf0b179bca93c23f0702fd0fe93e4a8"
+      },
+      {
+        "path": "src/AngleSharp.Css.Tests/Declarations/CssBoxShadowProperty.cs",
+        "sha256": "1c28572b157113924e45e808867eb594fa1a10e2ed8425644571ecc607e441df"
+      }
+    ]
+  },
+  "proof": {
+    "consumerQualificationSha256": "9f482a0a3fa3fee1ee3c06a98b9bfd577f1569c37be4f89b15c3a6ebb57eaa0c",
+    "providerRedTrxSha256": "d55b3a4c8668223035bf7f4fa71e76743df407354d74aadb39630c9aad0615b3",
+    "providerFocusedTrxSha256": "86bbb10e8e9543a6b46077ac4c0276996eaa637e9e6c1519b478392a87bcddc7",
+    "providerFullTrxSha256": "5662b24320bebff00378972ec3edbd75b10b02db1174ea3f81215310be7248f6",
+    "candidateRuntimeArchive": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/css-shadow-serialization/qualified-runtimes.zip",
+      "bytes": 22011996,
+      "sha256": "6fa601e00a953da95c1c0e9e041cab80e0b6b38cb0fbc1e8afc836fb2859085b",
+      "logicalProtectedBytes": 65196397,
+      "files": 172,
+      "fullEntryReadback": true,
+      "omitted": "Regenerable transitive Playwright Node/driver under .playwright remains in canonical shared NuGet cache; no private content or shipped artifact change. Compiler objgraphs regenerable from retained source identity/commands/shared packages."
+    },
+    "baselineRuntimeArchive": {
+      "utc": "2026-10-15T07:35:03.015018+00:00",
+      "base": "c5ddd09b54605551583d058bf37a31b82c8932f4",
+      "sourceMap": "stable-source-map.json",
+      "sourceCount": 1056,
+      "archive": "baseline-runtime.zip",
+      "sha256": "3ff2aa5ffb37354105ae38227192091c9196c968c8effa6e345337bfab9e4a68",
+      "bytes": 9189322,
+      "uncompressedBytes": 27803604,
+      "readback": "full CRC and per-entry SHA256 pass"
+    },
+    "comparisonImageSha256": "6f6b2a68a27abea49d0bc2d225e46e543f40bc5ca192e24a54eca95a9cdba1de"
+  },
+  "storage": {
+    "logicalBytesRemoved": 466737622,
+    "mergedHtmlTinkerWorktreeBytesRemoved": 29188178,
+    "retainedRoot": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/css-shadow-serialization",
+    "purpose": "Compact source/test/runtime/paired-render proof and current upstream PR evidence; completed compiler graphs, stable source copies/tar, local TMP/CLI state and merged HtmlTinkerX worktree retired.",
+    "nextColdReview": "2026-10-22"
+  },
+  "limits": [
+    "Focused macOS source-reference proof, not published package adoption or Windows profiling.",
+    "Existing outline/sibling paint ordering and rounded corners differ from native; no whole-page equality claim.",
+    "Chromium PDF raster is240x181 at96DPI from page-unit rounding; interior samples use identical coordinates.",
+    "Nonzero blur control remains byte-identical, including existing native blur kernel differences.",
+    "Standalone SVG full-page screenshot timed out; exact SVG bytes are visually qualified through an HTML img consumer.",
+    "Empty text/link observations only; no rich-text/link regression coverage claimed.",
+    "Upstream maintainer acceptance, provider release and representative published-package/framework adoption remain open.",
+    "Windows profiling remains explicitly deferred."
+  ],
+  "delivery": {
+    "upstreamState": "OPEN ready for review",
+    "head": "9b7419c0d501af3ddec9aadf1b655d0fb5f246f4",
+    "externalCI": "action_required: maintainer workflow approval",
+    "CLA": "pending: user signature required by upstream",
+    "packageAdoption": "Not yet qualified; production pin unchanged",
+    "snapshotUtc": "2026-10-15T07:45:20.694281+00:00",
+    "snapshotSha256": "541dcefa566488dec48a468c74e9c46837ff2171014178f52f0d6696e5e931ce"
+  }
+}
