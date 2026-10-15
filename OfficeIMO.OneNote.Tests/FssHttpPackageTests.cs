@@ -257,6 +257,58 @@ public sealed class FssHttpPackageTests {
         Assert.Equal("ONENOTE_PACKAGE_MAPPING_COUNT", exception.Code);
     }
 
+    [Fact]
+    public void EmbeddedFileBlobsAreLengthPrefixedBinaryItems() {
+        byte[] payload = Enumerable.Range(0, 300).Select(index => (byte)index).ToArray();
+        byte[] data = WriteSectionWithEmbeddedFiles(payload);
+
+        using (var stream = new MemoryStream(data)) {
+            FssHttpStreamObject blob = Assert.Single(FindObjectDataBlobs(stream));
+            byte[] raw = FssHttpStreamObjectReader.ReadData(stream, blob, int.MaxValue, "object-data BLOB");
+            Assert.Equal(302, raw.Length);
+            Assert.Equal(new byte[] { 0xB2, 0x04 }, raw.Take(2).ToArray()); // compact uint64 300
+            Assert.Equal(payload, raw.Skip(2).ToArray());
+        }
+
+        OneNoteSection section = OneNoteSectionReader.Read(new MemoryStream(data));
+        OneNoteEmbeddedFile file = Assert.Single(section.Pages.SelectMany(page => page.Outlines).SelectMany(outline => outline.Children).OfType<OneNoteEmbeddedFile>());
+        Assert.Equal(payload, file.Payload!.ToArray(payload.Length));
+    }
+
+    [Fact]
+    public void AssetLimitsApplyToTheBlobPayloadLength() {
+        byte[] first = Enumerable.Repeat((byte)1, 300).ToArray();
+        byte[] second = Enumerable.Repeat((byte)2, 300).ToArray();
+        byte[] data = WriteSectionWithEmbeddedFiles(first, second);
+
+        OneNoteSection section = OneNoteSectionReader.Read(new MemoryStream(data), new OneNoteReaderOptions { MaxAssetBytes = 300, MaxTotalAssetBytes = 600 });
+
+        Assert.Equal(new[] { first, second }, section.Pages.SelectMany(page => page.Outlines).SelectMany(outline => outline.Children).OfType<OneNoteEmbeddedFile>().Select(file => file.Payload!.ToArray(300)).ToArray());
+        Assert.Equal("ONENOTE_ASSET_LIMIT", Assert.Throws<OneNoteFormatException>(() => OneNoteRevisionStoreReader.Read(
+            new MemoryStream(data),
+            new OneNoteReaderOptions { MaxAssetBytes = 299 })).Code);
+        Assert.Equal("ONENOTE_ASSET_LIMIT", Assert.Throws<OneNoteFormatException>(() => OneNoteRevisionStoreReader.Read(
+            new MemoryStream(data),
+            new OneNoteReaderOptions { MaxAssetBytes = 300, MaxTotalAssetBytes = 599 })).Code);
+    }
+
+    [Fact]
+    public void BlobLengthThatDisagreesWithItsStreamObjectIsABoundedFormatError() {
+        byte[] data = WriteSectionWithEmbeddedFiles(new byte[300]);
+        int offset;
+        using (var stream = new MemoryStream(data)) {
+            offset = checked((int)Assert.Single(FindObjectDataBlobs(stream)).DataOffset);
+        }
+        Assert.Equal((300 << 2) | 0b10, BitConverter.ToUInt16(data, offset)); // two-byte compact uint64
+        byte[] shorter = BitConverter.GetBytes((ushort)((299 << 2) | 0b10));
+        Buffer.BlockCopy(shorter, 0, data, offset, shorter.Length);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteRevisionStoreReader.Read(new MemoryStream(data)));
+
+        Assert.Equal("ONENOTE_PACKAGE_ITEM_LENGTH", exception.Code);
+    }
+
     private const uint ObjectReferencesProperty = ((uint)OneNotePropertyType.ObjectIdArray << 26) | 0x1001;
     private const uint ObjectSpaceReferenceProperty = ((uint)OneNotePropertyType.ObjectSpaceId << 26) | 0x1002;
     private const uint ContextReferenceProperty = ((uint)OneNotePropertyType.ContextId << 26) | 0x1003;
@@ -412,6 +464,28 @@ public sealed class FssHttpPackageTests {
         output.Write(data, 0, checked((int)packaging.HeaderOffset));
         FssHttpStreamObjectWriter.WriteObject(output, Rewrite(packaging));
         return output.ToArray();
+    }
+
+    private static byte[] WriteSectionWithEmbeddedFiles(params byte[][] payloads) {
+        var section = new OneNoteSection { Name = "Attachments" };
+        var page = new OneNotePage { Title = "Attachment page" };
+        for (int index = 0; index < payloads.Length; index++) {
+            page.DirectContent.Add(new OneNoteEmbeddedFile {
+                FileName = "attachment-" + index + ".bin",
+                Payload = OneNoteBinaryPayload.FromBytes(payloads[index])
+            });
+        }
+        section.Pages.Add(page);
+        return OneNoteSectionWriter.Write(section, new OneNoteWriterOptions { StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage });
+    }
+
+    private static IEnumerable<FssHttpStreamObject> FindObjectDataBlobs(Stream stream) {
+        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteReaderOptions());
+        FssHttpStreamObject package = Assert.Single(packaging.Children, item => item.Type == 0x15);
+        return package.Children
+            .Where(item => DataElementType(stream, item) == 10)
+            .Select(item => Assert.Single(item.Children, child => child.Type == 0x02))
+            .ToArray();
     }
 
     private static ulong DataElementType(Stream stream, FssHttpStreamObject element) {
