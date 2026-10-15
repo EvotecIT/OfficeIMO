@@ -18,6 +18,7 @@
     <PackageReference Include="OpenMcdf" Version="3.1.4" />
     <PackageReference Include="MsgReader" Version="6.0.12" />
     <PackageReference Include="MsgKit" Version="3.0.5" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" PrivateAssets="all" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="coverlet.collector" Version="10.0.1">
       <PrivateAssets>all</PrivateAssets>
@@ -39,8 +40,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <!-- Service MsgReader's .NET Framework oracle dependency without changing production package references. -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" PrivateAssets="all" />
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
 

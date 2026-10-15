@@ -1,24 +1,29 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using OfficeIMO.Core.Internal;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace OfficeIMO.Zip;
+namespace OfficeIMO.Archives;
 
-public static partial class ZipTraversal {
+public static partial class ArchiveReader {
     /// <summary>
     /// Validates compressed size and physical entry count on a seekable ZIP source before opening a <see cref="ZipArchive"/>.
     /// The source position is restored. This check is safe only if the caller keeps the source bytes immutable until its archive has been read.
-    /// Prefer a stream or path Traverse overload for mutable or untrusted sources.
+    /// Prefer a stream or path TraverseZip overload for mutable or untrusted sources.
     /// </summary>
-    public static void ValidateSource(Stream zipStream, ZipTraversalOptions? options = null,
+    public static void ValidateZipSource(Stream zipStream, ArchiveTraversalOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (zipStream == null) throw new ArgumentNullException(nameof(zipStream));
         if (!zipStream.CanRead || !zipStream.CanSeek) {
             throw new ArgumentException("ZIP source must be readable and seekable for preflight validation.", nameof(zipStream));
         }
 
-        ZipTraversalOptions effective = Normalize(options);
+        ArchiveTraversalOptions effective = Normalize(options);
         cancellationToken.ThrowIfCancellationRequested();
         long originalPosition = zipStream.Position;
         try {

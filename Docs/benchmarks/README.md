@@ -421,16 +421,16 @@ reviewed with BenchmarkDotNet and a same-machine healthy commit.
 
 ## ZIP traversal policy diagnostic
 
-`OfficeIMO.Zip.Benchmarks` measures safe, deterministic OfficeIMO traversal
+`OfficeIMO.Archives.Benchmarks` measures safe, deterministic OfficeIMO traversal
 against direct `System.IO.Compression` metadata projection. Both lanes return
 the same validated ordered descriptor fields; only OfficeIMO applies path and
 expansion safety limits, so this non-parity diagnostic reports the cost of that
 policy and is excluded from the published library-comparison catalog.
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Zip.Benchmarks -- validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Archives.Benchmarks -- validate
 .\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload ziptraverse -RunMode full -Framework net10.0
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Zip.Benchmarks -- --evidence --repeat 5 --json .benchmark-artifacts\zip\evidence.json
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Archives.Benchmarks -- --evidence --repeat 5 --json .benchmark-artifacts\zip\evidence.json
 ```
 
 The full Windows run is recorded in

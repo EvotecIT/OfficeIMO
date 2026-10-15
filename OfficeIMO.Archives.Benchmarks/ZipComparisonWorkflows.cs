@@ -2,12 +2,12 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace OfficeIMO.Zip.Benchmarks;
+namespace OfficeIMO.Archives.Benchmarks;
 
 internal static class ZipComparisonWorkflows {
-    internal static ZipTraversalResult TraverseOffice(byte[] input) {
+    internal static ArchiveTraversalResult TraverseOffice(byte[] input) {
         using var stream = new MemoryStream(input, writable: false);
-        return ZipTraversal.Traverse(stream);
+        return ArchiveReader.TraverseZip(stream);
     }
 
     internal static IReadOnlyList<ZipProjectionDescriptor> TraversePlatform(byte[] input) {
@@ -29,7 +29,7 @@ internal static class ZipComparisonWorkflows {
         return descriptors;
     }
 
-    internal static ZipComparisonObservation Observe(IReadOnlyList<ZipEntryDescriptor> entries) => Observe(
+    internal static ZipComparisonObservation Observe(IReadOnlyList<ArchiveEntryDescriptor> entries) => Observe(
         entries.Select(entry => new ZipProjectionDescriptor(
             entry.FullName,
             entry.Name,

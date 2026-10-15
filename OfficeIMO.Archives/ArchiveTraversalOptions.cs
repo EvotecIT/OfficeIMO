@@ -1,9 +1,11 @@
-namespace OfficeIMO.Zip;
+using System;
+using System.Collections.Generic;
+namespace OfficeIMO.Archives;
 
 /// <summary>
 /// Controls safe ZIP traversal behavior.
 /// </summary>
-public sealed class ZipTraversalOptions {
+public sealed class ArchiveTraversalOptions {
     /// <summary>
     /// Maximum number of entries to emit.
     /// </summary>

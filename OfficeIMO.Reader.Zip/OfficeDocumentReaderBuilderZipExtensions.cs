@@ -1,4 +1,4 @@
-using OfficeIMO.Zip;
+using OfficeIMO.Archives;
 
 namespace OfficeIMO.Reader.Zip;
 
@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
     /// </summary>
     public static OfficeDocumentReaderBuilder AddZipHandler(
         this OfficeDocumentReaderBuilder builder,
-        ZipTraversalOptions? zipOptions = null,
+        ArchiveTraversalOptions? zipOptions = null,
         ReaderZipOptions? readerZipOptions = null,
         bool replaceExisting = false) {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
@@ -25,9 +25,9 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
     }
 
     private static ReaderHandlerRegistration CreateRegistration(
-        ZipTraversalOptions? zipOptions,
+        ArchiveTraversalOptions? zipOptions,
         ReaderZipOptions? readerZipOptions) {
-        ZipTraversalOptions? registeredZipOptions = Clone(zipOptions);
+        ArchiveTraversalOptions? registeredZipOptions = Clone(zipOptions);
         ReaderZipOptions? registeredReaderZipOptions = Clone(readerZipOptions);
         return new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
@@ -52,9 +52,9 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
         };
     }
 
-    private static ZipTraversalOptions? Clone(ZipTraversalOptions? options) {
+    private static ArchiveTraversalOptions? Clone(ArchiveTraversalOptions? options) {
         if (options == null) return null;
-        return new ZipTraversalOptions {
+        return new ArchiveTraversalOptions {
             MaxEntries = options.MaxEntries,
             MaxPhysicalEntries = options.MaxPhysicalEntries,
             MaxArchiveBytes = options.MaxArchiveBytes,

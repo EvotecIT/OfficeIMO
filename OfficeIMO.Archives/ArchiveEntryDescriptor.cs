@@ -1,9 +1,11 @@
-namespace OfficeIMO.Zip;
+using System;
+using System.Collections.Generic;
+namespace OfficeIMO.Archives;
 
 /// <summary>
 /// Describes a ZIP archive entry.
 /// </summary>
-public sealed class ZipEntryDescriptor {
+public sealed class ArchiveEntryDescriptor {
     /// <summary>
     /// Entry path inside the ZIP.
     /// </summary>

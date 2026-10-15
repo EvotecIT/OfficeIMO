@@ -461,19 +461,6 @@
           "product_url": "/products/epub/",
           "docs_url": "/docs/epub/",
           "accent": "#c084fc"
-        },
-        {
-          "registry": "nuget",
-          "registry_label": "NuGet",
-          "registry_package": "OfficeIMO.Zip",
-          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Zip",
-          "title": "OfficeIMO.Zip",
-          "summary": "Safe ZIP traversal primitives for modular OfficeIMO ingestion pipelines.",
-          "best_for": "archive-aware ingestion helpers and ZIP-safe traversal",
-          "install": "dotnet add package OfficeIMO.Zip",
-          "product_url": "/products/reader/",
-          "docs_url": "/docs/reader/",
-          "accent": "#fb923c"
         }
       ]
     },

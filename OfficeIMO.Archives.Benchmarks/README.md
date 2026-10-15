@@ -1,4 +1,4 @@
-# OfficeIMO.Zip benchmarks
+# OfficeIMO.Archives ZIP benchmarks
 
 This opt-in benchmark project measures OfficeIMO's guarded, deterministic ZIP
 metadata traversal against direct `System.IO.Compression` traversal of the same
@@ -19,15 +19,15 @@ reverse package order, plus excluded directory entries, so deterministic sorting
 is exercised by both implementations.
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Zip.Benchmarks -- validate
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Zip.Benchmarks -- --filter '*ZipTraversalComparisonBenchmarks*'
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Zip.Benchmarks -- --evidence --repeat 3 --json .benchmark-artifacts\zip\evidence.json
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Archives.Benchmarks -- validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Archives.Benchmarks -- --filter '*ZipTraversalComparisonBenchmarks*'
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Archives.Benchmarks -- --evidence --repeat 3 --json .benchmark-artifacts\zip\evidence.json
 ```
 
 BenchmarkDotNet reports elapsed time and managed allocations. The isolated
 evidence runner additionally records input archive size and sampled peak managed
 heap growth. ZIP creation is corpus setup rather than a measured OfficeIMO
-product workflow, because `OfficeIMO.Zip` owns traversal policy rather than ZIP
+product workflow, because `OfficeIMO.Archives` owns traversal policy rather than ZIP
 writing.
 
 The project stays outside `OfficeIMO.sln` so performance tooling does not affect

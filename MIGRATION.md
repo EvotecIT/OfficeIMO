@@ -8,6 +8,24 @@ Hosts that serialize document publication can use `officeimo_document_acknowledg
 
 Studio protected copies that restrict printing, copying or changes require a separate permissions password. For AES-256, the permissions and document-open passwords must still differ after FormKC normalization and truncation to 127 UTF-8 bytes. A single password remains sufficient for unrestricted copies. The native `allowCopying: false` option disables both content copying and accessibility text extraction; desktop Studio retains its separate accessibility setting.
 
+## ZIP APIs move to OfficeIMO.Archives
+
+OfficeIMO 3.5.0 removes `OfficeIMO.Zip`. Replace its package reference and namespace with `OfficeIMO.Archives`, then update these public APIs:
+
+| Previous API | Replacement |
+| --- | --- |
+| `ZipTraversal.Traverse` | `ArchiveReader.TraverseZip` |
+| `ZipTraversal.Enumerate` | `ArchiveReader.EnumerateZip` |
+| `ZipTraversal.ValidateSource` | `ArchiveReader.ValidateZipSource` |
+| `ZipTraversalOptions` | `ArchiveTraversalOptions` |
+| `ZipTraversalResult` | `ArchiveTraversalResult` |
+| `ZipEntryDescriptor` | `ArchiveEntryDescriptor` |
+| `ZipTraversalWarning` | `ArchiveTraversalWarning` |
+
+`OfficeIMO.Reader.Zip` remains the ZIP document ingestion adapter. Its `AddZipHandler` options and `ReaderAllOptions.ZipTraversal` now use `ArchiveTraversalOptions`. Recompile callers against the matching Reader and Archives packages; this is a source and binary API break, with no compatibility facade.
+
+Traversal retains its limits, descriptors and ingestion warnings. Use `ArchiveReader.ReadZip` with `ArchiveReadOptions` for verified member content in memory, or `ArchiveExtractor` for transactional filesystem extraction. Those content operations reject unsafe or corrupt selected payloads.
+
 ## Typed inspection resource failures
 
 Content-safety collectors and input guards, and text-integrity character/finding ceilings, throw `OfficeInspectionResourceLimitException` when their admission budget is exhausted. The exception carries `Owner`, `LimitName`, and `Maximum`. Code that previously caught `InvalidDataException` for these limits should catch this type, or `IOException` when it handles resource failures together with I/O failures. Malformed XML and encoded content retain their parsing errors.
@@ -500,7 +518,7 @@ Reader OCR blocks carry `Recognition` provenance through JSON and nested project
 
 ## ZIP, drawing links, and MCP filesystem access
 
-`OfficeIMO.Zip` now rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ZipTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
+`ArchiveReader.TraverseZip` rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ArchiveTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ArchiveReader.ValidateZipSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
 
 `OfficeDrawing.AddLink` rejects script, data, file, unknown-scheme, and ambiguous targets. SVG import keeps the visible content inside a rejected link but does not export its interactive target. Replace such targets with HTTP(S), mail, telephone, or local relative/fragment links where appropriate.
 

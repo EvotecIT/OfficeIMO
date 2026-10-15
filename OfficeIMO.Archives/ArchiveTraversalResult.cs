@@ -1,18 +1,20 @@
-namespace OfficeIMO.Zip;
+using System;
+using System.Collections.Generic;
+namespace OfficeIMO.Archives;
 
 /// <summary>
 /// ZIP traversal output including accepted entries and warnings.
 /// </summary>
-public sealed class ZipTraversalResult {
+public sealed class ArchiveTraversalResult {
     /// <summary>
     /// Accepted entries that passed traversal rules.
     /// </summary>
-    public IReadOnlyList<ZipEntryDescriptor> Entries { get; set; } = Array.Empty<ZipEntryDescriptor>();
+    public IReadOnlyList<ArchiveEntryDescriptor> Entries { get; set; } = Array.Empty<ArchiveEntryDescriptor>();
 
     /// <summary>
     /// Warnings produced while evaluating entries.
     /// </summary>
-    public IReadOnlyList<ZipTraversalWarning> Warnings { get; set; } = Array.Empty<ZipTraversalWarning>();
+    public IReadOnlyList<ArchiveTraversalWarning> Warnings { get; set; } = Array.Empty<ArchiveTraversalWarning>();
 
     /// <summary>
     /// Total uncompressed bytes across accepted file entries.
