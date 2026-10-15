@@ -47,7 +47,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             Flush();
             HtmlRenderFlowBlock block = run.AtomicBlock!;
-            if (run.LinkUri != null) {
+            if (run.LinkUri != null && !AtomicRunOwnsAnchorFragment(run, block)) {
                 var visuals = block.Visuals.ToList();
                 OfficeShape link = OfficeShape.Rectangle(Math.Max(0.01D, block.Width), Math.Max(0.01D, block.Height));
                 link.FillColor = null;

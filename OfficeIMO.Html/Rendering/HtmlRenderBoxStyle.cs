@@ -217,6 +217,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedOverflowClipMargin = string.Empty;
     internal string Transform = "none";
     internal string IndividualScale = "none";
+    // Resolved box applicability survives positioning/float clones that reset
+    // their original boxifying fields. Synthetic styles carry no declarations.
+    internal bool TransformAppliesToBox;
+    internal string UsedTransform => TransformAppliesToBox ? Transform : "none";
+    internal string UsedIndividualScale => TransformAppliesToBox ? IndividualScale : "none";
     internal string TransformOrigin = "50% 50%";
     internal string ClipPath = "none";
     internal string Clip = "auto";

@@ -31,7 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeConversionLossKind.Omission);
         }
 
-        bool hasTransform = style.Transform != "none";
+        bool hasTransform = style.UsedTransform != "none";
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double boxHeight = Math.Max(0.01D, block.Height - style.MarginTop - style.MarginBottom);
@@ -211,7 +211,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         OfficeTransform transform = OfficeTransform.Identity;
-        bool hasTransform = style.Transform != "none";
+        bool hasTransform = style.UsedTransform != "none";
         if (hasTransform && !TryParsePaintTransform(style, bounds.X, bounds.Y, bounds.Width, bounds.Height,
                 out transform, out string transformDetail, out bool retainedScale)) {
             _diagnostics.Add(
@@ -271,14 +271,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double viewportWidth = _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth;
         double viewportHeight = _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D;
         bool parsed = HtmlCssTransformParser.TryParse(
-            style.Transform, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
+            style.UsedTransform, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
             style.Font.Size, _styleResolver.RootFontSize, viewportWidth, viewportHeight,
             style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
             out transform, out detail, style.CharacterAdvance);
         retainedScale = false;
-        if (parsed || style.IndividualScale == "none") return parsed;
+        if (parsed || style.UsedIndividualScale == "none") return parsed;
         retainedScale = HtmlCssTransformParser.TryParse(
-            style.IndividualScale, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
+            style.UsedIndividualScale, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
             style.Font.Size, _styleResolver.RootFontSize, viewportWidth, viewportHeight,
             style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
             out OfficeTransform scaleTransform, out _, style.CharacterAdvance);

@@ -262,7 +262,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlDiagnosticSeverity.Warning, source, "input[type=checkbox]", OfficeConversionLossKind.Approximation);
             return false;
         }
-        if (!string.Equals(style.Transform, "none", StringComparison.OrdinalIgnoreCase)) {
+        if (!string.Equals(style.UsedTransform, "none", StringComparison.OrdinalIgnoreCase)) {
             ReportTransformedFormFieldFallback(source, "transform=" + style.Transform);
             return false;
         }

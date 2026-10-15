@@ -20,9 +20,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return null;
     }
 
-    // Non-replaced inline boxes and display:contents have no transformed box
-    // to establish a containing block (CSS Transforms 1, sections 2 and 3).
+    // Use the same original box applicability as paint, including replaced
+    // inlines and boxes blockified before local layout resets their position.
     private static bool EstablishesTransformedContainingBlock(HtmlRenderBoxStyle style) =>
-        style.Transform != "none"
-        && style.Display is not ("inline" or "contents" or "none" or "table-column" or "table-column-group");
+        style.UsedTransform != "none";
 }
