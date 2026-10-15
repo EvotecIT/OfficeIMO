@@ -76,7 +76,7 @@
     <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Zip\OfficeIMO.Zip.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Archives\OfficeIMO.Archives.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' != 'net472'">

@@ -1,7 +1,7 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Zip;
-using OfficeIMO.Zip;
+using OfficeIMO.Archives;
 using System.IO.Compression;
 using System.Text;
 using Xunit;
@@ -23,7 +23,7 @@ public sealed class ReaderZipModularTests {
                 WriteTextEntry(archive, "deep/a/b/c/d.txt", "deep");
             }
 
-            var result = ZipTraversal.Traverse(zipPath, new ZipTraversalOptions {
+            var result = ArchiveReader.TraverseZip(zipPath, new ArchiveTraversalOptions {
                 MaxEntries = 2,
                 MaxDepth = 3,
                 MaxTotalUncompressedBytes = 128,
@@ -53,22 +53,22 @@ public sealed class ReaderZipModularTests {
                 WriteTextEntry(archive, "safe.md", "# Accepted");
             }
 
-            var options = new ZipTraversalOptions {
+            var options = new ArchiveTraversalOptions {
                 MaxEntries = 1, MaxPhysicalEntries = 3, DeterministicOrder = false
             };
-            ZipTraversalResult accepted = ZipTraversal.Traverse(zipPath, options);
+            ArchiveTraversalResult accepted = ArchiveReader.TraverseZip(zipPath, options);
             Assert.Equal("safe.md", Assert.Single(accepted.Entries).FullName);
             Assert.Equal(3, accepted.EntriesVisited);
 
             options.MaxPhysicalEntries = 2;
             Assert.Contains("MaxPhysicalEntries", Assert.Throws<InvalidDataException>(
-                () => ZipTraversal.Traverse(zipPath, options)).Message, StringComparison.Ordinal);
+                () => ArchiveReader.TraverseZip(zipPath, options)).Message, StringComparison.Ordinal);
             using var source = File.OpenRead(zipPath);
-            Assert.Throws<InvalidDataException>(() => ZipTraversal.ValidateSource(source, options));
+            Assert.Throws<InvalidDataException>(() => ArchiveReader.ValidateZipSource(source, options));
             Assert.Equal(0, source.Position);
-            Assert.Throws<InvalidDataException>(() => ZipTraversal.Traverse(source, options));
+            Assert.Throws<InvalidDataException>(() => ArchiveReader.TraverseZip(source, options));
             using var opened = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true);
-            Assert.Throws<InvalidDataException>(() => ZipTraversal.Traverse(opened, options));
+            Assert.Throws<InvalidDataException>(() => ArchiveReader.TraverseZip(opened, options));
         } finally {
             if (File.Exists(zipPath)) File.Delete(zipPath);
         }
@@ -78,11 +78,11 @@ public sealed class ReaderZipModularTests {
     public void ZipTraversalBoundsNonSeekableSourceBeforeMetadataMaterialization() {
         byte[] source = BuildSimpleZipBytes();
         using var accepted = new NonSeekableReadStream(source);
-        Assert.Single(ZipTraversal.Traverse(accepted).Entries);
+        Assert.Single(ArchiveReader.TraverseZip(accepted).Entries);
 
         using var oversized = new NonSeekableReadStream(source);
         Assert.Contains("MaxArchiveBytes", Assert.Throws<InvalidDataException>(() =>
-            ZipTraversal.Traverse(oversized, new ZipTraversalOptions { MaxArchiveBytes = source.Length - 1 })).Message,
+            ArchiveReader.TraverseZip(oversized, new ArchiveTraversalOptions { MaxArchiveBytes = source.Length - 1 })).Message,
             StringComparison.Ordinal);
     }
 
@@ -100,8 +100,8 @@ public sealed class ReaderZipModularTests {
         }
 
         using var source = new SwitchAfterFullReadStream(small, replacement);
-        ZipTraversalResult result = ZipTraversal.Traverse(source,
-            new ZipTraversalOptions { MaxPhysicalEntries = 1 });
+        ArchiveTraversalResult result = ArchiveReader.TraverseZip(source,
+            new ArchiveTraversalOptions { MaxPhysicalEntries = 1 });
 
         Assert.True(source.Switched);
         Assert.Equal("docs/readme.md", Assert.Single(result.Entries).FullName);
@@ -119,7 +119,7 @@ public sealed class ReaderZipModularTests {
         }
         source.Position = 0;
 
-        ZipTraversalResult result = ZipTraversal.Traverse(source, new ZipTraversalOptions {
+        ArchiveTraversalResult result = ArchiveReader.TraverseZip(source, new ArchiveTraversalOptions {
             MaxPhysicalEntries = 5, MaxWarnings = 2, DeterministicOrder = false
         });
 
@@ -149,7 +149,7 @@ public sealed class ReaderZipModularTests {
             outer = outerStream.ToArray();
         }
 
-        var options = new ZipTraversalOptions { MaxPhysicalEntries = 2 };
+        var options = new ArchiveTraversalOptions { MaxPhysicalEntries = 2 };
         using (var source = new MemoryStream(outer, writable: false)) {
             ReaderChunk[] chunks = CreateMarkdownZipReader(options).Read(source, "outer.zip").ToArray();
             Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Zip &&
@@ -171,7 +171,7 @@ public sealed class ReaderZipModularTests {
                 WriteTextEntry(archive, "bomb.txt", new string('A', 25_000));
             }
 
-            var result = ZipTraversal.Traverse(zipPath, new ZipTraversalOptions {
+            var result = ArchiveReader.TraverseZip(zipPath, new ArchiveTraversalOptions {
                 MaxCompressionRatio = 2
             });
 
@@ -195,7 +195,7 @@ public sealed class ReaderZipModularTests {
                 WriteTextEntry(archive, "safe/../parent.txt", "bad");
             }
 
-            ZipTraversalResult result = ZipTraversal.Traverse(zipPath);
+            ArchiveTraversalResult result = ArchiveReader.TraverseZip(zipPath);
 
             Assert.Equal(
                 new[] { "safe.txt", "safe/.../literal.txt", "safe//double.txt" },
@@ -222,7 +222,7 @@ public sealed class ReaderZipModularTests {
             }
 
             OfficeDocumentReader reader = CreateMarkdownZipReader(
-                new ZipTraversalOptions { DeterministicOrder = true },
+                new ArchiveTraversalOptions { DeterministicOrder = true },
                 new ReaderZipOptions { ReadNestedZipEntries = true, MaxNestedDepth = 2 });
             var chunks = reader.Read(zipPath,
                 new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000 }).ToList();
@@ -250,7 +250,7 @@ public sealed class ReaderZipModularTests {
         using var stream = new NonSeekableReadStream(zipBytes);
 
         OfficeDocumentReader reader = CreateMarkdownZipReader(
-            new ZipTraversalOptions { DeterministicOrder = true });
+            new ArchiveTraversalOptions { DeterministicOrder = true });
         var chunks = reader.Read(stream, "nonseekable.zip",
             new ReaderOptions { MaxChars = 8_000 }).ToList();
 
@@ -270,7 +270,7 @@ public sealed class ReaderZipModularTests {
             stream,
             sourceName: "nonseekable.zip",
             readerOptions: new ReaderOptions { MaxInputBytes = 16, MaxChars = 8_000 },
-            zipOptions: new ZipTraversalOptions { DeterministicOrder = true }).ToList());
+            zipOptions: new ArchiveTraversalOptions { DeterministicOrder = true }).ToList());
 
         Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
     }
@@ -282,7 +282,7 @@ public sealed class ReaderZipModularTests {
         using var first = new MemoryStream(zipBytes, writable: false);
         using var second = new MemoryStream(zipBytes, writable: false);
         OfficeDocumentReader reader = CreateMarkdownZipReader(
-            new ZipTraversalOptions { DeterministicOrder = true });
+            new ArchiveTraversalOptions { DeterministicOrder = true });
 
         var firstChunk = reader.Read(first, "first.zip",
             new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
@@ -314,14 +314,14 @@ public sealed class ReaderZipModularTests {
             first,
             sourceName: "first.zip",
             readerOptions: new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000, ComputeHashes = true },
-            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+            zipOptions: new ArchiveTraversalOptions { DeterministicOrder = true })
             .Single(c => c.Kind == ReaderInputKind.Zip && (c.Warnings?.Count ?? 0) > 0);
 
         var secondWarning = ZipReaderAdapter.Read(
             second,
             sourceName: "second.zip",
             readerOptions: new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000, ComputeHashes = true },
-            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+            zipOptions: new ArchiveTraversalOptions { DeterministicOrder = true })
             .Single(c => c.Kind == ReaderInputKind.Zip && (c.Warnings?.Count ?? 0) > 0);
 
         Assert.Contains("first.zip::big.txt", firstWarning.Location.Path ?? string.Empty, StringComparison.OrdinalIgnoreCase);
@@ -346,7 +346,7 @@ public sealed class ReaderZipModularTests {
 
         using var stream = new MemoryStream(zipBytes, writable: false);
         OfficeDocumentReader reader = CreateMarkdownZipReader(
-            new ZipTraversalOptions { DeterministicOrder = true });
+            new ArchiveTraversalOptions { DeterministicOrder = true });
 
         var chunks = reader.Read(stream, "case-sensitive.zip",
             new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
@@ -376,7 +376,7 @@ public sealed class ReaderZipModularTests {
                 var relativePath = Path.GetFileName(zipPath);
                 var fullPath = Path.GetFullPath(relativePath).Replace('\\', '/');
                 OfficeDocumentReader reader = CreateMarkdownZipReader(
-                    new ZipTraversalOptions { DeterministicOrder = true });
+                    new ArchiveTraversalOptions { DeterministicOrder = true });
 
                 var relativeChunk = reader.Read(relativePath,
                     new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
@@ -400,7 +400,7 @@ public sealed class ReaderZipModularTests {
     }
 
     private static OfficeDocumentReader CreateMarkdownZipReader(
-        ZipTraversalOptions? zipOptions = null,
+        ArchiveTraversalOptions? zipOptions = null,
         ReaderZipOptions? readerZipOptions = null) =>
         new OfficeDocumentReaderBuilder()
             .AddMarkdownHandler()
@@ -421,7 +421,7 @@ public sealed class ReaderZipModularTests {
             var warningChunk = ZipReaderAdapter.Read(
                 zipPath,
                 readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
-                zipOptions: new ZipTraversalOptions { DeterministicOrder = true },
+                zipOptions: new ArchiveTraversalOptions { DeterministicOrder = true },
                 readerZipOptions: new ReaderZipOptions { ReadNestedZipEntries = false })
                 .Single(c => c.Kind == ReaderInputKind.Zip && (c.Warnings?.Any(w => w.Contains("ReadNestedZipEntries is disabled", StringComparison.OrdinalIgnoreCase)) ?? false));
 
@@ -451,7 +451,7 @@ public sealed class ReaderZipModularTests {
             var warningChunk = ZipReaderAdapter.Read(
                 zipPath,
                 readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
-                zipOptions: new ZipTraversalOptions { DeterministicOrder = true },
+                zipOptions: new ArchiveTraversalOptions { DeterministicOrder = true },
                 readerZipOptions: new ReaderZipOptions { ReadNestedZipEntries = true, MaxNestedDepth = 0 })
                 .Single(c => c.Kind == ReaderInputKind.Zip && (c.Warnings?.Any(w => w.Contains("MaxNestedDepth", StringComparison.OrdinalIgnoreCase)) ?? false));
 

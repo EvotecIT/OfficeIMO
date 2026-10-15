@@ -108,7 +108,7 @@ public sealed class ReaderAllOptions {
     public Yaml.YamlReadOptions? Yaml { get; set; }
 
     /// <summary>Gets or sets ZIP archive traversal limits.</summary>
-    public OfficeIMO.Zip.ZipTraversalOptions? ZipTraversal { get; set; }
+    public OfficeIMO.Archives.ArchiveTraversalOptions? ZipTraversal { get; set; }
 
     /// <summary>Gets or sets Reader-specific nested ZIP behavior.</summary>
     public Zip.ReaderZipOptions? Zip { get; set; }

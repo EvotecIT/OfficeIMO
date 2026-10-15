@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 307,
-    "productionComponentCount": 153,
+    "projectCount": 306,
+    "productionComponentCount": 152,
     "testProjectCount": 60,
     "benchmarkProjectCount": 36,
     "validationProjectCount": 59,
     "apiReferenceCount": 122,
     "conceptualPageCount": 129,
-    "conceptualWordCount": 58528
+    "conceptualWordCount": 58504
   },
   "categories": [
     {
@@ -86,7 +86,7 @@
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 15,
+      "componentCount": 14,
       "componentIndexes": [
         1,
         5,
@@ -101,8 +101,7 @@
         71,
         72,
         93,
-        133,
-        152
+        133
       ]
     },
     {
@@ -284,13 +283,13 @@
       "name": "OfficeIMO.Archives",
       "packageId": "OfficeIMO.Archives",
       "category": "Foundations and integrations",
-      "description": "Managed, bounded ZIP, Cabinet and passive Windows Installer payload extraction.",
+      "description": "Bounded ZIP reading and traversal, and managed ZIP, Cabinet and passive Windows Installer payload extraction.",
       "kind": "package",
       "projectPath": "OfficeIMO.Archives/OfficeIMO.Archives.csproj",
-      "sourceFileCount": 15,
-      "referencingTestProjectCount": 1,
+      "sourceFileCount": 25,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/archives/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Archives"
     },
     {
@@ -456,7 +455,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1073,
+      "sourceFileCount": 1079,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -781,7 +780,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 438,
+      "sourceFileCount": 471,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -807,7 +806,7 @@
       "description": "Owned HTML document, editing, parser provider and lossless CSS syntax contracts for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
-      "sourceFileCount": 31,
+      "sourceFileCount": 32,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-core/",
@@ -820,7 +819,7 @@
       "description": "Direct HTML-to-PDF rendering and PDF-to-HTML conversion for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
-      "sourceFileCount": 42,
+      "sourceFileCount": 43,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-pdf/",
@@ -1314,7 +1313,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1420,
+      "sourceFileCount": 1423,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -2190,19 +2189,6 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Xps.Pdf"
-    },
-    {
-      "name": "OfficeIMO.Zip",
-      "packageId": "OfficeIMO.Zip",
-      "category": "Foundations and integrations",
-      "description": "Safe ZIP traversal primitives for modular OfficeIMO ingestion pipelines.",
-      "kind": "package",
-      "projectPath": "OfficeIMO.Zip/OfficeIMO.Zip.csproj",
-      "sourceFileCount": 6,
-      "referencingTestProjectCount": 2,
-      "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": "/api/zip/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Zip"
     }
   ]
 }
