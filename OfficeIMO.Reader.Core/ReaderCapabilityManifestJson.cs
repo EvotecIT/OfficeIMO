@@ -81,6 +81,8 @@ internal static class ReaderCapabilityManifestJson {
             WriteBoolean("supportsAsyncPath", handler.SupportsAsyncPath, trailingComma: true);
             WriteBoolean("supportsAsyncStream", handler.SupportsAsyncStream, trailingComma: true);
             WriteBoolean("supportsIncrementalPath", handler.SupportsIncrementalPath, trailingComma: true);
+            WriteBoolean("supportsTextAndMetadata", handler.SupportsTextAndMetadata, trailingComma: true);
+            WriteStringArray("textAndMetadataExtensions", handler.TextAndMetadataExtensions, trailingComma: true);
             WriteBoolean("supportsIncrementalStream", handler.SupportsIncrementalStream, trailingComma: true);
             WriteString("schemaId", handler.SchemaId ?? ReaderCapabilitySchema.Id, trailingComma: true);
             WriteNumber("schemaVersion", handler.SchemaVersion, trailingComma: true);

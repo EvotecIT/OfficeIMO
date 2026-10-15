@@ -78,8 +78,10 @@ internal static class EmailBodyContentSafety {
             Add(diagnostics, "EMAIL_CONTENT_SAFETY_" + report.InspectionStatus.ToUpperInvariant(),
                 "Selected-body inspection is advisory and does not establish that email content is safe to follow.", EmailDiagnosticSeverity.Information);
             return html;
-        } catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException || exception is HtmlDomLimitException) {
+        } catch (Exception exception) when (exception is InvalidDataException || exception is OfficeInspectionResourceLimitException || exception is NotSupportedException || exception is HtmlDomLimitException) {
             report.InspectionStatus = "Unavailable";
+            report.FindingLimitMayHaveBeenReached = exception is OfficeInspectionResourceLimitException limit
+                && limit.Owner == "content-safety" && limit.LimitName == nameof(OfficeContentSafetyOptions.MaxFindings);
             Add(diagnostics, "EMAIL_CONTENT_SAFETY_INCOMPLETE", "Selected-body content-safety inspection could not complete.", EmailDiagnosticSeverity.Warning);
             return OmitIfRequired(html, plainText, exclude, report, diagnostics);
         }

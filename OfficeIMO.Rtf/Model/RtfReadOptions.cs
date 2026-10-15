@@ -4,6 +4,11 @@ namespace OfficeIMO.Rtf;
 /// Options controlling RTF parsing and semantic binding.
 /// </summary>
 public sealed class RtfReadOptions {
+    /// <summary>Retains binary source slices and defers picture/object byte materialization until explicit native access or save. Default: false.</summary>
+    /// <remarks>Syntax, source-size, binary declaration and semantic payload limits still apply. This does not enable embedded objects.
+    /// Sources declaring fromhtml with pict or objdata destinations are unsupported in this profile because their HTML baseline
+    /// requires eager semantic binary serialization; the ordinary profile remains available.</remarks>
+    public bool DeferBinaryPayloads { get; set; }
     /// <summary>Default maximum nested group depth accepted by the parser.</summary>
     public const int DefaultMaxDepth = 128;
 

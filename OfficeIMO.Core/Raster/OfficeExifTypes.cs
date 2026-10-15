@@ -108,6 +108,18 @@ public readonly struct OfficeExifTag : IEquatable<OfficeExifTag> {
     public static OfficeExifTag DateTimeOriginal => new OfficeExifTag(36867, OfficeExifDataType.Ascii, OfficeExifDirectory.Exif, nameof(DateTimeOriginal));
     /// <summary>Digitization date and time.</summary>
     public static OfficeExifTag DateTimeDigitized => new OfficeExifTag(36868, OfficeExifDataType.Ascii, OfficeExifDirectory.Exif, nameof(DateTimeDigitized));
+    /// <summary>UTC offset of the image modification timestamp.</summary>
+    public static OfficeExifTag OffsetTime => new OfficeExifTag(36880, OfficeExifDataType.Ascii, OfficeExifDirectory.Exif, nameof(OffsetTime));
+    /// <summary>UTC offset of the original capture timestamp.</summary>
+    public static OfficeExifTag OffsetTimeOriginal => new OfficeExifTag(36881, OfficeExifDataType.Ascii, OfficeExifDirectory.Exif, nameof(OffsetTimeOriginal));
+    /// <summary>UTC offset of the digitization timestamp.</summary>
+    public static OfficeExifTag OffsetTimeDigitized => new OfficeExifTag(36882, OfficeExifDataType.Ascii, OfficeExifDirectory.Exif, nameof(OffsetTimeDigitized));
+    /// <summary>Fractional seconds of the image modification timestamp.</summary>
+    public static OfficeExifTag SubSecTime => new OfficeExifTag(37520, OfficeExifDataType.Ascii, OfficeExifDirectory.Exif, nameof(SubSecTime));
+    /// <summary>Fractional seconds of the capture timestamp.</summary>
+    public static OfficeExifTag SubSecTimeOriginal => new OfficeExifTag(37521, OfficeExifDataType.Ascii, OfficeExifDirectory.Exif, nameof(SubSecTimeOriginal));
+    /// <summary>Fractional seconds of the digitization timestamp.</summary>
+    public static OfficeExifTag SubSecTimeDigitized => new OfficeExifTag(37522, OfficeExifDataType.Ascii, OfficeExifDirectory.Exif, nameof(SubSecTimeDigitized));
     /// <summary>User comment including its Exif character-set prefix.</summary>
     public static OfficeExifTag UserComment => new OfficeExifTag(37510, OfficeExifDataType.Undefined, OfficeExifDirectory.Exif, nameof(UserComment));
     /// <summary>North or south latitude reference.</summary>

@@ -69,6 +69,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         PdfCore.PdfDocumentReadResult logical = document.Read(options.ReadOptions, cancellationToken);
         ValidateLogicalPageCount(logical, options);
+        PdfCore.PdfLogicalContentProjection.RequireComplete(logical, cancellationToken);
         return logical;
     }
 
@@ -216,6 +217,7 @@ public static partial class PowerPointPdfConverterExtensions {
         if (operation.MaxPages <= 0) {
             throw new ArgumentOutOfRangeException(nameof(operation.MaxPages), "The page limit must be positive.");
         }
+        PdfCore.PdfLogicalContentProjection.RequireComplete(selected, cancellationToken);
         if (operation.Mode == PdfPowerPointImportMode.EditableContent) {
             ValidateLogicalPageCount(selected, operation);
             return ImportEditableContent(selected, operation, cancellationToken);
@@ -401,8 +403,8 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfDocument document,
         PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
-        IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options, cancellationToken);
         PdfCore.PdfDocumentReadResult logical = ReadBoundedLogicalDocument(document, options, cancellationToken);
+        IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options, cancellationToken);
         using var presentationOwner = new PresentationConstructionScope();
         PptCore.PowerPointPresentation presentation = presentationOwner.Value;
         ConfigureSlideSize(presentation, rendered);

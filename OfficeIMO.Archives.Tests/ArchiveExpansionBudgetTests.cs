@@ -26,7 +26,7 @@ public sealed class ArchiveExpansionBudgetTests {
     [InlineData(false)]
     public void ExhaustedBudgetRejectsFollowingNonemptyCabinetEvenWhenUnselected(bool selected) {
         using var fixture = new ArchiveFixtures();
-        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.Msi(twoCabinets: true)), fixture.Destination,
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.Msi(twoCabinets: true)), fixture.Destination,
             new ArchiveExtractionOptions { MaxExpandedBytes = 5, IncludeFile = _ => selected }));
         Assert.False(Directory.Exists(fixture.Destination));
     }

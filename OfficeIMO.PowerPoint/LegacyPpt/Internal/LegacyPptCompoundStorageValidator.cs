@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal static class LegacyPptCompoundStorageValidator {
         internal static bool TryRead(byte[] bytes,
             LegacyPptImportOptions options, out OfficeCompoundFile? compound,
-            out string? reason) {
+            out string? reason, bool preserveResourceLimits = false) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));
             int maxDirectoryEntries = Math.Max(1,
@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             long physicalBytes = Math.Max(1L, bytes.LongLength);
             var readOptions = new OfficeCompoundReadOptions(
                 maxDirectoryEntries, maxStreamCount,
-                physicalBytes, physicalBytes);
+                physicalBytes, physicalBytes, preserveResourceLimits: preserveResourceLimits);
             using var source = new MemoryStream(bytes, writable: false);
             return OfficeCompoundFileReader.TryReadSelective(source,
                 readOptions, externalize: (name, _) =>

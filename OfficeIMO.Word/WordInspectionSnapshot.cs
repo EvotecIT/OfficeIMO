@@ -329,7 +329,7 @@ namespace OfficeIMO.Word {
         public string? FileName { get; internal set; }
         /// <summary>Gets the image MIME type inferred from the available file name or path extension, or <see langword="null"/> when it cannot be inferred.</summary>
         public string? ContentType { get; internal set; }
-        /// <summary>Gets the embedded image bytes.</summary>
+        /// <summary>Gets embedded image bytes, or null for external images and snapshots that explicitly omit image payloads.</summary>
         public byte[]? Bytes { get; internal set; }
         /// <summary>Gets image alternative text.</summary>
         public string? Description { get; internal set; }

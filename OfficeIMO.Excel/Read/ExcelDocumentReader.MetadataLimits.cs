@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
                 _opt.CancellationToken.ThrowIfCancellationRequested();
                 sheetDefinitions++;
                 if (sheetDefinitions > _opt.MaxWorksheets) {
-                    throw ExcelReadLimitFailure.Create(
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxWorksheets), _opt.MaxWorksheets,
                         $"The OpenXML workbook contains more than the configured {_opt.MaxWorksheets} worksheet definitions.");
                 }
             }
@@ -85,7 +85,8 @@ namespace OfficeIMO.Excel {
             using Stream stream = partBufferReader.OpenPart(
                 partName,
                 options.MaxMetadataPartBytes,
-                options.CancellationToken);
+                options.CancellationToken,
+                limitName: nameof(ExcelReadOptions.MaxMetadataPartBytes));
             DrainMetadataPartStream(stream, partName, options);
         }
 
@@ -103,7 +104,7 @@ namespace OfficeIMO.Excel {
 
             options.CancellationToken.ThrowIfCancellationRequested();
             if (stream.CanSeek && stream.Length > options.MaxMetadataPartBytes) {
-                throw ExcelReadLimitFailure.Create(
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxMetadataPartBytes), options.MaxMetadataPartBytes,
                     $"Package part '{partName}' contains {stream.Length} bytes, exceeding the supported limit of {options.MaxMetadataPartBytes} bytes.");
             }
 
@@ -116,7 +117,7 @@ namespace OfficeIMO.Excel {
                     options.CancellationToken.ThrowIfCancellationRequested();
                     totalBytes += read;
                     if (totalBytes > options.MaxMetadataPartBytes) {
-                        throw ExcelReadLimitFailure.Create(
+                        throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxMetadataPartBytes), options.MaxMetadataPartBytes,
                             $"Package part '{partName}' exceeds the supported limit of {options.MaxMetadataPartBytes} bytes.");
                     }
                 }

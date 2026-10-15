@@ -44,7 +44,13 @@ internal static class OfficeLegacyCompoundInspector {
         entries = Array.Empty<OfficeCompoundFileEntry>();
         if (!HasCompoundSignature(data) || data.LongLength > limits.MaxInputBytes) return false;
         using var stream = new MemoryStream(data, writable: false);
-        return OfficeCompoundFileReader.TryInspectDirectory(stream, limits.MaxInputBytes, limits.MaxCompoundStreams, cancellationToken, out entries, out _);
+        try {
+            return OfficeCompoundFileReader.TryInspectDirectory(stream, limits.MaxInputBytes, limits.MaxCompoundStreams,
+                cancellationToken, out entries, out _, preserveResourceLimits: true);
+        } catch (OfficeCompoundStreamLimitExceededException exception) {
+            throw new OfficeInspectionResourceLimitException("legacy-import", exception.LimitName,
+                exception.MaximumValue, exception);
+        }
     }
 
     private static bool HasCompoundSignature(byte[] data) =>

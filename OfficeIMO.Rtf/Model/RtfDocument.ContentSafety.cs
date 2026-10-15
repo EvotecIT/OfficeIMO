@@ -85,8 +85,8 @@ public sealed partial class RtfDocument {
     private static OfficeContentSafetyReport InspectRtfContentSafety(
         RtfDocument document,
         OfficeContentSafetyOptions? options,
-        IDictionary<string, RtfContentSafetyTarget>? targets) {
-        var builder = new OfficeContentSafetyBuilder("RTF", options);
+        IDictionary<string, RtfContentSafetyTarget>? targets, System.Threading.CancellationToken cancellationToken = default) {
+        var builder = new OfficeContentSafetyBuilder("RTF", options, cancellationToken);
         if (document.Sections.Count > 0) {
             for (int index = 0; index < document.Sections.Count; index++) {
                 InspectRtfBlocks(document, document.Sections[index].Blocks, "Section[" + (index + 1).ToString(CultureInfo.InvariantCulture) + "]", false, builder, targets);

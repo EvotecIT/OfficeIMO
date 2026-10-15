@@ -36,8 +36,8 @@ public class ReaderOpenDocumentModularTests {
         byte[] bytes = OdfDocument.LoadFlatXml(stream).ToBytes();
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler(
             new ReaderOpenDocumentOptions { MaxExtractedCharacters = 1000 }).Build();
-        InvalidDataException error = Assert.Throws<InvalidDataException>(() => reader.Read(bytes, "repeated." + kind).ToArray());
-        Assert.Contains("MaxExtractedCharacters", error.Message);
+        ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() => reader.Read(bytes, "repeated." + kind).ToArray());
+        Assert.Equal("OpenDocument.MaxExtractedCharacters", error.LimitName); Assert.Equal(1000, error.Maximum);
     }
 
     [Fact]

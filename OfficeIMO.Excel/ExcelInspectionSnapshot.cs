@@ -172,6 +172,8 @@ namespace OfficeIMO.Excel {
         /// Whether the worksheet is hidden.
         /// </summary>
         public bool Hidden { get; internal set; }
+        /// <summary>Loaded Open XML worksheet state token: <c>visible</c>, <c>hidden</c>, or <c>veryHidden</c>. Defaults to <c>visible</c> when the state is absent.</summary>
+        public string VisibilityState { get; internal set; } = "visible";
 
         /// <summary>
         /// Whether the worksheet is the workbook's active worksheet.
@@ -478,6 +480,17 @@ namespace OfficeIMO.Excel {
         /// Formula text without a guaranteed leading equals sign.
         /// </summary>
         public string? Formula { get; internal set; }
+
+        /// <summary>Formula text stored on the loaded cell before shared-formula expansion. Legacy input may have a normalized OOXML backing model.</summary>
+        public string? StoredFormula { get; internal set; }
+        /// <summary>Loaded Open XML formula type token, such as <c>shared</c> or <c>array</c>; <c>normal</c> when a formula has no explicit type, or null when no formula exists.</summary>
+        public string? FormulaKind { get; internal set; }
+        /// <summary>Whether the loaded cell has a saved value element, including an explicitly empty cache.</summary>
+        public bool HasStoredValue { get; internal set; }
+        /// <summary>Uninterpreted saved value text. For formula cells this is the saved cache, not a freshly calculated result.</summary>
+        public string? StoredValue { get; internal set; }
+        /// <summary>Loaded Open XML cell data type token, or <c>n</c> when the type is absent, including cells without a stored value.</summary>
+        public string StoredValueType { get; internal set; } = "n";
 
         /// <summary>
         /// OpenXML style index currently backing the cell, when present.

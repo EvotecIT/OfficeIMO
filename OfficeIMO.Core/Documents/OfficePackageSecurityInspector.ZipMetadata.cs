@@ -20,6 +20,7 @@ namespace OfficeIMO {
         private static void InspectContentTypes(
             ZipXmlPart contentTypesPart,
             ISet<string> packagePartNames,
+            ZipPartIdentityIndex partIdentities,
             ISet<string> macroParts,
             ISet<string> embeddedParts,
             ISet<string> activeXParts,
@@ -36,7 +37,9 @@ namespace OfficeIMO {
                         string? contentType = reader.GetAttribute("ContentType");
                         string? normalizedPartName = NormalizeContentTypePartName(partName);
                         if (normalizedPartName != null) {
-                            AddContentTypeClassification(contentType, normalizedPartName, macroParts, embeddedParts, activeXParts);
+                            string identity = partIdentities.Resolve(normalizedPartName)
+                                ?? contentTypesPart.PartName + "#" + normalizedPartName;
+                            AddContentTypeClassification(contentType, identity, macroParts, embeddedParts, activeXParts);
                         }
                     } else if (string.Equals(reader.LocalName, "Default", StringComparison.Ordinal)) {
                         string? extension = reader.GetAttribute("Extension");
@@ -115,7 +118,12 @@ namespace OfficeIMO {
 
         private static string? ResolveRelationshipTarget(string relationshipPartName, string? target) {
             if (string.IsNullOrWhiteSpace(target)) return null;
-            if (Uri.TryCreate(target, UriKind.Absolute, out Uri? absolute) && absolute.IsAbsoluteUri) return null;
+            string normalizedTarget = target!.Replace('\\', '/');
+            // OPC uses one leading slash for a package-root part reference.
+            // Authority/UNC targets and absolute URI schemes remain unresolved.
+            if (normalizedTarget.StartsWith("//", StringComparison.Ordinal)) return null;
+            if (!target.StartsWith("/", StringComparison.Ordinal)
+                && Uri.TryCreate(target, UriKind.Absolute, out Uri? absolute) && absolute.IsAbsoluteUri) return null;
 
             string normalizedRelationshipPart = relationshipPartName.Replace('\\', '/');
             int relationshipsSegment = normalizedRelationshipPart.LastIndexOf("/_rels/", StringComparison.OrdinalIgnoreCase);
@@ -135,12 +143,13 @@ namespace OfficeIMO {
                 return null;
             }
 
-            string normalizedTarget = target!.Replace('\\', '/');
             int suffix = normalizedTarget.IndexOfAny(new[] { '?', '#' });
             if (suffix >= 0) normalizedTarget = normalizedTarget.Substring(0, suffix);
+            if (IsDirectoryOrEmptySegmentTarget(normalizedTarget)) return null;
             string combined = normalizedTarget.StartsWith("/", StringComparison.Ordinal)
                 ? normalizedTarget
                 : sourceDirectory + normalizedTarget;
+            if (IsDirectoryOrEmptySegmentTarget(combined)) return null;
             var segments = new List<string>();
             foreach (string segment in combined.Split('/')) {
                 if (segment.Length == 0 || segment == ".") continue;
@@ -148,6 +157,9 @@ namespace OfficeIMO {
                     if (segments.Count == 0) return null;
                     segments.RemoveAt(segments.Count - 1);
                 } else {
+                    // Validate the original spelling before a later parent segment
+                    // can remove it; retain the spelling for once-decoded lookup.
+                    if (DecodePartIdentitySegment(segment) == null) return null;
                     segments.Add(segment);
                 }
             }

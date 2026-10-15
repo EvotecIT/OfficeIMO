@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
                 return true;
             } catch (XmlException) {
                 return false;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 return false;
             } catch (UnauthorizedAccessException) {
                 return false;

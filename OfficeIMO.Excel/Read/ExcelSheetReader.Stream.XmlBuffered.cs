@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
             } catch (XmlException) {
                 chunks = Array.Empty<RangeChunk>();
                 return false;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 chunks = Array.Empty<RangeChunk>();
                 return false;
             } catch (UnauthorizedAccessException) {
@@ -261,7 +261,7 @@ namespace OfficeIMO.Excel {
             } catch (XmlException) {
                 chunks = Array.Empty<RangeChunk>();
                 return false;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 chunks = Array.Empty<RangeChunk>();
                 return false;
             } catch (UnauthorizedAccessException) {

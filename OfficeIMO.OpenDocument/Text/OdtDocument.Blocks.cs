@@ -106,13 +106,13 @@ public sealed partial class OdtDocument {
         int listLevel = 0, string? inheritedListStyleName = null) {
         foreach (XElement element in container.Elements()) {
             if (element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h") {
-                yield return OdtContentBlock.FromParagraph(new OdtParagraph(this, element), orderedList.HasValue, orderedList, listLevel);
+                yield return OdtContentBlock.FromParagraph(new OdtParagraph(this, element, GetPartPath(element)), orderedList.HasValue, orderedList, listLevel);
             } else if (element.Name == OdfNamespaces.Table + "table") {
                 yield return OdtContentBlock.FromTable(new OdtTable(this, element));
             } else if (element.Name == OdfNamespaces.Text + "list") {
                 string? styleName = (string?)element.Attribute(OdfNamespaces.Text + "style-name") ?? inheritedListStyleName;
                 int level = orderedList.HasValue ? listLevel + 1 : listLevel;
-                bool ordered = OdfListStyleStore.IsOrdered(this, styleName, level: level + 1);
+                bool ordered = OdfListStyleStore.IsOrdered(this, styleName, GetPartPath(element), level: level + 1);
                 foreach (OdtContentBlock block in EnumerateContentBlocks(element, ordered, level, styleName)) yield return block;
             } else if (element.Name == OdfNamespaces.Text + "section" || element.Name == OdfNamespaces.Text + "list-item" ||
                        element.Name == OdfNamespaces.Text + "list-header") {

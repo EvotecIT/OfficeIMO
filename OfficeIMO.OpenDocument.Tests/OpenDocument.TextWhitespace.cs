@@ -75,7 +75,8 @@ public sealed class OpenDocumentTextWhitespaceTests {
         Assert.Equal("A B", OdfTextCodec.Read(p, ref budget));
         Assert.Equal(1, budget);
         int small = 8;
-        Assert.Throws<InvalidDataException>(() => OdfTextCodec.Read(new XElement(OdfNamespaces.Text + "p", new string(' ', 9)), ref small));
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => OdfTextCodec.Read(new XElement(OdfNamespaces.Text + "p", new string(' ', 9)), ref small));
+        Assert.Equal("opendocument", error.Owner); Assert.Equal("MaximumDecodedCharacters", error.LimitName); Assert.Equal(8, error.Maximum);
         var document = OdgDocument.Create(); var page = document.AddPage();
         var shape = page.Shapes.AddRectangle(OdfRect.FromCentimeters(1, 1, 12, 8), "Budget");
         shape.AddParagraph().Element.Add(new string(' ', 100_000), "B");

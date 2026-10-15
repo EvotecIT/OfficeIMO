@@ -267,7 +267,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 streamSizeValidator: (_, size) => {
                     cancellationToken.ThrowIfCancellationRequested();
                     decodedStorageBudget.Consume(checked((int)size));
-                });
+                }, preserveResourceLimits: true);
             if (!OfficeCompoundFileReader.TryRead(bytes, readOptions,
                     out OfficeCompoundFile? storage, out string? error)
                 || storage == null) {

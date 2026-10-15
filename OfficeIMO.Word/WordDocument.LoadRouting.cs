@@ -35,7 +35,12 @@ namespace OfficeIMO.Word {
         }
 
         private static bool RouteCompoundDocument(byte[] bytes) {
-            OfficeCompoundDocumentDetector.DocumentKind kind = OfficeCompoundDocumentDetector.Detect(bytes, out string? error);
+            OfficeCompoundDocumentDetector.DocumentKind kind;
+            string? error;
+            try { kind = OfficeCompoundDocumentDetector.Detect(bytes, out error, preserveResourceLimits: true); }
+            catch (OfficeCompoundStreamLimitExceededException exception) {
+                throw new OfficeInspectionResourceLimitException("word", exception.LimitName, exception.MaximumValue, exception);
+            }
             switch (kind) {
                 case OfficeCompoundDocumentDetector.DocumentKind.WordDocument:
                     return true;

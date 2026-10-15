@@ -5,12 +5,18 @@ namespace OfficeIMO.Core.Internal.Cabinet;
 /// <summary>Shared, finite processing budget for all CAB frames decoded by one operation.</summary>
 internal sealed class OfficeCabinetWorkBudget {
     internal const long DefaultMaximumBytes = 2L * 1024 * 1024 * 1024;
+    private readonly long _maximumBytes;
     private long _remainingBytes;
 
     internal OfficeCabinetWorkBudget(long maximumBytes = DefaultMaximumBytes) {
         if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        _maximumBytes = maximumBytes;
         _remainingBytes = maximumBytes;
     }
+
+    /// <summary>Frame-processing work actually charged, including attempts that fail after charging.</summary>
+    internal long ConsumedBytes => _maximumBytes - _remainingBytes;
+    internal long MaximumBytes => _maximumBytes;
 
     /// <summary>Charges a frame before checksumming, buffering or decoding it. The 32 KiB
     /// minimum bounds frame setup; input bytes and MSZIP dictionary replay can increase the charge.

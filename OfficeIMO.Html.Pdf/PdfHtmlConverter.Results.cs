@@ -27,6 +27,7 @@ public static partial class PdfHtmlConverterExtensions {
         options.CancellationToken.ThrowIfCancellationRequested();
         options.Validate();
         IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
+        PdfCore.PdfLogicalContentProjection.RequireComplete(document, cancellationToken);
         string html;
         try {
             html = options.Profile switch {

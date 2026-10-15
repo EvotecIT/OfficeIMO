@@ -15,7 +15,7 @@ public sealed class OpenDocumentDecodedTextBudgetTests {
         XElement first = ParagraphWithSpaces(HalfLimit);
         XElement second = ParagraphWithSpaces(HalfLimit);
 
-        Assert.Throws<InvalidDataException>(() => OdfTextCodec.ReadJoined(new[] { first, second }));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => OdfTextCodec.ReadJoined(new[] { first, second }));
         Assert.Equal("one\ntwo  ", OdfTextCodec.ReadJoined(new[] {
             new XElement(OdfNamespaces.Text + "p", "one"),
             new XElement(OdfNamespaces.Text + "p", "two", new XElement(OdfNamespaces.Text + "s",
@@ -23,23 +23,32 @@ public sealed class OpenDocumentDecodedTextBudgetTests {
         }));
     }
 
-    [Fact]
-    public void OdtAndOdpInlineSnapshotsCountNonvisibleOtherNodes() {
-        OdtDocument text = OdtDocument.Create();
-        OdtParagraph odtParagraph = text.AddParagraph("visible");
-        AddLargeAnnotations(odtParagraph.Element);
-        Assert.Equal("visible", odtParagraph.Text);
-        Assert.Throws<InvalidDataException>(() => _ = odtParagraph.InlineNodes);
-
-        OdpPresentation presentation = OdpPresentation.Create();
-        OdpParagraph odpParagraph = presentation.AddSlide("Slide")
-            .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Body")
-            .AddParagraph("visible");
-        XElement odpElement = presentation.Package.GetXml("content.xml")
-            .Descendants(OdfNamespaces.Text + "p").Single(element => element.Value == "visible");
-        AddLargeAnnotations(odpElement);
-        Assert.Equal("visible", odpParagraph.Text);
-        Assert.Throws<InvalidDataException>(() => _ = odpParagraph.InlineNodes);
+    [Theory]
+    [InlineData("odt", false)]
+    [InlineData("odt", true)]
+    [InlineData("odp", false)]
+    [InlineData("odp", true)]
+    public void InlineSnapshotsKeepTheEnclosingCeilingAcrossAnnotationOrder(string family, bool annotationFirst) {
+        OdfDocument document;
+        Action read;
+        Func<string> readText;
+        if (family == "odt") {
+            var text = OdtDocument.Create(); OdtParagraph paragraph = text.AddParagraph("visible");
+            document = text; read = () => _ = paragraph.InlineNodes; readText = () => paragraph.Text;
+        } else {
+            var presentation = OdpPresentation.Create();
+            OdpParagraph paragraph = presentation.AddSlide("Slide").AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Body").AddParagraph("visible");
+            document = presentation; read = () => _ = paragraph.InlineNodes; readText = () => paragraph.Text;
+        }
+        XElement element = document.GetXml("content.xml").Descendants(OdfNamespaces.Text + "p").Single();
+        AddLargeAnnotations(element);
+        if (annotationFirst) {
+            XText visible = element.Nodes().OfType<XText>().Single(); visible.Remove(); element.Add(visible);
+        }
+        Assert.Equal("visible", readText());
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(read);
+        Assert.Equal("opendocument", error.Owner); Assert.Equal("MaximumDecodedCharacters", error.LimitName);
+        Assert.Equal(2 * HalfLimit, error.Maximum);
     }
 
     [Fact]
@@ -51,9 +60,9 @@ public sealed class OpenDocumentDecodedTextBudgetTests {
         cell.Element.Elements(OdfNamespaces.Text + "p").Remove();
         cell.Element.Add(ParagraphWithSpaces(HalfLimit), ParagraphWithSpaces(HalfLimit));
 
-        Assert.Throws<InvalidDataException>(() => _ = cell.Text);
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = cell.Text);
         OdsDataPilotTable pivot = document.AddDataPilotTable("Pivot", "Data.A1:Data.A2", "Data.C1:Data.D2");
-        Assert.Throws<InvalidDataException>(() => pivot.AddField("Header", "row"));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => pivot.AddField("Header", "row"));
     }
 
     [Fact]

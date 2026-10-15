@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
                         return ValidateDataReaderProjectionXml(stream, ct);
                     }
                 } catch (XmlException) {
-                } catch (IOException) {
+                } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 } catch (UnauthorizedAccessException) {
                 } catch (ObjectDisposedException) {
                 }

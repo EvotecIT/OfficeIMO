@@ -18,6 +18,7 @@ internal sealed class RtfReadLimitGuard {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _cancellationToken = cancellationToken;
     }
+    internal bool DeferBinaryPayloads => _options.DeferBinaryPayloads;
 
     public void CheckInputCharacters(long actual) => Check("RtfInputCharacterLimitExceeded", nameof(RtfReadOptions.MaxInputCharacters), actual, _options.MaxInputCharacters, -1);
 

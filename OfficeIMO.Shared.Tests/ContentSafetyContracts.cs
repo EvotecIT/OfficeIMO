@@ -231,7 +231,10 @@ public sealed class ContentSafetyContracts {
     [Fact]
     public void EncodedInputIsRejectedBeforeHtmlParsing() {
         var options = new OfficeContentSafetyOptions { MaxInputBytes = 8, MaxCharacters = 1024 };
-        Assert.Throws<InvalidDataException>(() => HtmlContentSafety.Inspect("<p>too large</p>", options));
+        var limit = Assert.Throws<OfficeInspectionResourceLimitException>(() => HtmlContentSafety.Inspect("<p>too large</p>", options));
+        Assert.Equal("content-safety", limit.Owner);
+        Assert.Equal(nameof(OfficeContentSafetyOptions.MaxInputBytes), limit.LimitName);
+        Assert.Equal(8L, limit.Maximum);
     }
 
     [Fact]
@@ -246,7 +249,10 @@ public sealed class ContentSafetyContracts {
             package = stream.ToArray();
         }
         var options = new OfficeContentSafetyOptions { MaxInputBytes = 4096, MaxExpandedPackageBytes = 32 };
-        Assert.Throws<InvalidDataException>(() => OfficeContentSafetyInputGuard.ValidateBytes(package, options, inspectZipPackage: true));
+        var limit = Assert.Throws<OfficeInspectionResourceLimitException>(() => OfficeContentSafetyInputGuard.ValidateBytes(package, options, inspectZipPackage: true));
+        Assert.Equal("content-safety", limit.Owner);
+        Assert.Equal(nameof(OfficeContentSafetyOptions.MaxExpandedPackageBytes), limit.LimitName);
+        Assert.Equal(32L, limit.Maximum);
     }
 
     [Fact]
@@ -285,12 +291,15 @@ public sealed class ContentSafetyContracts {
     public void CombinedFindingLimitCoversConcealmentAndUnicodeEvidence() {
         var builder = new OfficeContentSafetyBuilder("TEST", new OfficeContentSafetyOptions { MaxFindings = 1 });
 
-        Assert.Throws<InvalidDataException>(() => builder.Add(
+        var limit = Assert.Throws<OfficeInspectionResourceLimitException>(() => builder.Add(
             OfficeContentConcealmentKind.HiddenByProperty,
             OfficeContentSafetyRisk.ContextDependent,
             "Document/Run[1]",
             "The run is hidden.",
             "hidden\u200Btext"));
+        Assert.Equal("content-safety", limit.Owner);
+        Assert.Equal(nameof(OfficeContentSafetyOptions.MaxFindings), limit.LimitName);
+        Assert.Equal(1L, limit.Maximum);
     }
 
     [Fact]

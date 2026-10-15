@@ -217,14 +217,19 @@ namespace OfficeIMO.PowerPoint {
 
     public sealed partial class PowerPointPresentation {
         /// <summary>Inspects classic and modern comments without mutating review markup.</summary>
-        public PowerPointReviewReport InspectReviewComments() {
+        public PowerPointReviewReport InspectReviewComments() => InspectReviewComments(CancellationToken.None);
+
+        /// <summary>Inspects native comment threads with cancellation between slides, comments and replies.</summary>
+        public PowerPointReviewReport InspectReviewComments(CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
             var comments = new List<PowerPointReviewComment>();
             Dictionary<uint, string> classicAuthors = GetClassicAuthors();
             Dictionary<string, string> modernAuthors = GetModernAuthors();
             for (int index = 0; index < _slides.Count; index++) {
-                AddClassicComments(_slides[index], index + 1, classicAuthors, comments);
-                AddModernComments(_slides[index], index + 1, modernAuthors, comments);
+                cancellationToken.ThrowIfCancellationRequested();
+                AddClassicComments(_slides[index], index + 1, classicAuthors, comments, cancellationToken);
+                AddModernComments(_slides[index], index + 1, modernAuthors, comments, cancellationToken);
             }
             return new PowerPointReviewReport(comments);
         }
@@ -357,10 +362,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void AddClassicComments(PowerPointSlide slide, int slideNumber,
-            IDictionary<uint, string> authors, IList<PowerPointReviewComment> destination) {
+            IDictionary<uint, string> authors, IList<PowerPointReviewComment> destination, CancellationToken cancellationToken) {
             CommentList? list = slide.SlidePart.SlideCommentsPart?.CommentList;
             if (list == null) return;
             foreach (Comment comment in list.Elements<Comment>()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 uint? authorId = comment.AuthorId?.Value;
                 destination.Add(new PowerPointReviewComment(PowerPointCommentKind.Classic, slideNumber,
                     (comment.Index?.Value ?? 0U).ToString(CultureInfo.InvariantCulture), null,
@@ -372,12 +378,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void AddModernComments(PowerPointSlide slide, int slideNumber,
-            IDictionary<string, string> authors, IList<PowerPointReviewComment> destination) {
+            IDictionary<string, string> authors, IList<PowerPointReviewComment> destination, CancellationToken cancellationToken) {
             foreach (PowerPointCommentPart part in slide.SlidePart.Parts.Select(pair => pair.OpenXmlPart)
                          .OfType<PowerPointCommentPart>()) {
                 P188.CommentList? list = part.CommentList;
                 if (list == null) continue;
                 foreach (P188.Comment comment in list.Elements<P188.Comment>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string id = comment.Id?.Value ?? "modern-" + slideNumber + "-" + destination.Count;
                     string? authorId = comment.AuthorId?.Value;
                     destination.Add(CreateModernComment(PowerPointCommentKind.Modern, slideNumber, id, null,
@@ -387,6 +394,7 @@ namespace OfficeIMO.PowerPoint {
                     P188.CommentReplyList? replies = comment.GetFirstChild<P188.CommentReplyList>();
                     if (replies == null) continue;
                     foreach (P188.CommentReply reply in replies.Elements<P188.CommentReply>()) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string replyId = reply.Id?.Value ?? "modern-reply-" + slideNumber + "-" + destination.Count;
                         string? replyAuthor = reply.AuthorId?.Value;
                         destination.Add(CreateModernComment(PowerPointCommentKind.ModernReply, slideNumber,

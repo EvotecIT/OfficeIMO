@@ -28,6 +28,7 @@ internal static partial class DocumentReaderEngine {
             throw new IOException($"'{path}' is a directory. Use {nameof(ReadFolder)}(...) to ingest directories.");
         }
         ReaderOptions effective = NormalizeOptions(options);
+        ValidateProjection(handler, effective, path);
         using var readScope = ReaderReadScope.Enter(effective);
         effective.MaxInputBytes = ResolveSelectedHandlerMaxInputBytes(handler, path, effective)
             ?? DefaultUnidentifiedStreamMaxInputBytes;

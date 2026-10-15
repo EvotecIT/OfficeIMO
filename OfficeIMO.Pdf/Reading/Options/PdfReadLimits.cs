@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Resource budgets applied while parsing PDF syntax and object graphs.</summary>
-public sealed class PdfReadLimits {
+public sealed partial class PdfReadLimits {
     internal const int DefaultMaxDecodedStreamBytes = 256 * 1024 * 1024;
     internal const long DefaultMaxTotalDecodedStreamBytes = 512L * 1024L * 1024L;
     internal const int DefaultMaxContentOperations = 1_000_000;

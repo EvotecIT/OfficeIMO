@@ -938,6 +938,42 @@ A failed or canceled write keeps pending edits, the source version, and signatur
 New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output needs the ODF 1.3 schema and compatibility profile.
 Distinct first-page master-page headers and footers require ODF 1.4. Saving those stories with the ODF 1.3 profile, or preserving an older source version, fails before writing an invalid package.
 
+## Read text before expanding binary payloads
+
+Set `OdfLoadOptions.DeferBinaryPayloads` to retain unencrypted non-XML package entries in a bounded, immutable compressed snapshot. XML and RDF control parts still load normally. ZIP path, entry count, declared expansion, ratio and XML limits apply during load. The caller can close or change its input stream after loading.
+
+Configured package-byte, entry-count, entry-byte, total-byte, path-depth and XML-depth ceilings throw `OfficeInspectionResourceLimitException` with owner `opendocument`, the native limit name and effective maximum. Native text getters use the same classification for decoded-character, traversal and repeated-table-item safety ceilings. Malformed ZIP/XML, unsafe paths, inconsistent lengths and CRC failures retain their malformed-input contract. Compression-ratio refusal uses `OfficePackageSecurityException` with `Rule = CompressionRatio`, the entry path and exact numeric policy values. Encrypted-package resource failures retain `OdfEncryptedPackageException.Reason = ResourceLimitExceeded`.
+
+`MaxXmlCharacters` is enforced by System.Xml. Its `XmlException` shares the malformed-XML boundary and is wrapped as `InvalidDataException`; it has no separate native resource identity. A bounded ingestion profile can make that character ceiling unreachable by keeping each admitted XML entry's byte ceiling, including decrypted XML, at or below `MaxXmlCharacters`. For flat XML, also keep `MaxPackageBytes` at or below that character ceiling. DTD processing is prohibited. This profile does not remove the independent native text-expansion and traversal ceilings.
+
+Both eager and selected deferred ZIP reads prove actual decoded EOF and length and check the ZIP CRC before returning complete bytes. The raw range reader avoids runtime declared-size clamps that could otherwise hide extra decoded bytes. CRC detects corruption; it does not authenticate a package. That canonical range reader requires compressed bytes: file loads use one compressed buffer bounded by `MaxPackageBytes` (256 MiB by default), while stream loads reuse their already owned input buffer. Eager loads release it after loading; deferred entries retain it for later reads.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.OpenDocument;
+
+OdtDocument document = OdtDocument.Load("report.odt", new OdfLoadOptions {
+    DeferBinaryPayloads = true
+});
+
+using OfficeEmbeddedPayloadInspection payloads = document.InspectEmbeddedPayloads(
+    new OfficeEmbeddedPayloadInspectionOptions {
+        MaxPayloadBytes = 8L * 1024 * 1024,
+        MaxTotalPayloadBytes = 32L * 1024 * 1024,
+        MaxReadBytes = 64L * 1024 * 1024
+    });
+foreach (OfficeEmbeddedPayloadInfo payload in payloads.Payloads) {
+    Console.WriteLine($"{payload.Ordinal}: {payload.PartUri} ({payload.Length} bytes)");
+}
+using Stream selected = payloads.OpenRead(0, cancellationToken);
+```
+
+Inventory retains native entry identities and declared lengths without reading their payload bytes. Hashing is explicit through `IncludeSha256`; hashes and selected streams require complete bounded reads. `MaxReadBytes` charges repeated reads and hash scans. Returned streams are read-only, independent buffers and remain usable after the inspection session is disposed. Session content sources are snapshots, so later document edits do not replace their bytes. Nothing is executed or fetched.
+
+`BinaryPayloadEntries`, `GetPackageEntryByteLength` and `GetPackageEntryPayloadState` expose native package coverage. `Deferred` means directory declarations were checked; payload bytes have not yet been read. `Loaded` and `Decrypted` describe materialized native state, with decrypted entries checked by the existing encrypted-package reader. Selected session reads do not change the document's cached entry state. Native byte getters and saves expand deferred entries when needed, retaining ordinary edit and save behavior. These are input, expansion and selected-read limits, not a peak-memory guarantee.
+
+This profile rejects encrypted non-XML payloads with `OdfEncryptedPackageException` and `UnsupportedProfile` after manifest/security preflight and before key derivation. Encrypted XML/RDF-only packages retain ordinary decryption and integrity checks without retaining passwords or keys. Flat ODF containing inline `office:binary-data` is also refused before Base64 decoding. `DeferBinaryPayloads` defaults to `false`, preserving eager loading for these sources.
+
 ## Encrypt and decrypt ODF packages
 
 Password encryption is format-owned and does not require `OfficeIMO.Security`:

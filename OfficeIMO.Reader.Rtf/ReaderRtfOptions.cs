@@ -72,6 +72,7 @@ public sealed class ReaderRtfOptions {
         if (options is null) return OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile();
 
         return new RtfReadOptions {
+            DeferBinaryPayloads = options.DeferBinaryPayloads,
             MaxDepth = options.MaxDepth,
             MaxInputBytes = options.MaxInputBytes,
             MaxInputCharacters = options.MaxInputCharacters,

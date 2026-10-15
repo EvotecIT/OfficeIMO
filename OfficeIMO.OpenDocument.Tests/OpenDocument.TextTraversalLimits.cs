@@ -103,12 +103,12 @@ public sealed class OpenDocumentTextTraversalLimitsTests {
             new OdfLoadOptions { MaxXmlDepth = listLevels * 2 + 20 });
         var reopened = read.Pages[0].Shapes[0];
 
-        Assert.Contains("128-container", Assert.Throws<NotSupportedException>(() => _ = reopened.Paragraphs).Message);
-        Assert.Contains("128-container", Assert.Throws<NotSupportedException>(() => _ = reopened.Text).Message);
+        Assert.Equal("MaximumContainerDepth", Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = reopened.Paragraphs).LimitName);
+        Assert.Equal("MaximumContainerDepth", Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = reopened.Text).LimitName);
         var result = read.Pages[0].ToDrawing();
         Assert.Empty(result.Value.Elements.OfType<OfficeDrawingRichText>());
         Assert.Contains(result.Report.Mappings, mapping => mapping.Status == OdfConversionMappingStatus.Skipped &&
-            mapping.Message?.Contains("128-container") == true);
+            mapping.Message?.Contains("MaximumContainerDepth") == true);
     }
 
     [Theory]
@@ -123,18 +123,18 @@ public sealed class OpenDocumentTextTraversalLimitsTests {
             new OdfLoadOptions { MaxXmlDepth = spanLevels + 20 });
         var paragraph = Assert.Single(read.Pages[0].Shapes[0].Paragraphs);
 
-        Assert.Contains("128-container", Assert.Throws<NotSupportedException>(() => _ = paragraph.Runs).Message);
-        Assert.Contains("128-container", Assert.Throws<NotSupportedException>(() => _ = paragraph.Hyperlinks).Message);
-        Assert.Contains("128-container", Assert.Throws<NotSupportedException>(() => _ = paragraph.Fields).Message);
-        Assert.Contains("128-container", Assert.Throws<NotSupportedException>(() => _ = paragraph.Text).Message);
-        Assert.Contains("128-container", Assert.Throws<NotSupportedException>(() => _ = read.Pages[0].Shapes[0].Text).Message);
+        Assert.Equal("MaximumContainerDepth", Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = paragraph.Runs).LimitName);
+        Assert.Equal("MaximumContainerDepth", Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = paragraph.Hyperlinks).LimitName);
+        Assert.Equal("MaximumContainerDepth", Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = paragraph.Fields).LimitName);
+        Assert.Equal("MaximumContainerDepth", Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = paragraph.Text).LimitName);
+        Assert.Equal("MaximumContainerDepth", Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = read.Pages[0].Shapes[0].Text).LimitName);
         string before = read.GetXml("content.xml").ToString();
-        Assert.Throws<NotSupportedException>(() => paragraph.TransformTextCase(OfficeTextCase.Uppercase));
+        Assert.Throws<OfficeInspectionResourceLimitException>(() => paragraph.TransformTextCase(OfficeTextCase.Uppercase));
         Assert.Equal(before, read.GetXml("content.xml").ToString());
         var result = read.Pages[0].ToDrawing();
         Assert.Empty(result.Value.Elements.OfType<OfficeDrawingRichText>());
         Assert.Contains(result.Report.Mappings, mapping => mapping.Status == OdfConversionMappingStatus.Skipped &&
-            mapping.Message?.Contains("128-container") == true);
+            mapping.Message?.Contains("MaximumContainerDepth") == true);
     }
 
     [Theory]
@@ -148,14 +148,14 @@ public sealed class OpenDocumentTextTraversalLimitsTests {
         XName name = OdfNamespaces.Text + (inline ? "span" : "p");
         for (int index = 0; index <= 100_000; index++) root.Add(new XElement(name));
 
-        NotSupportedException exception = inline
-            ? Assert.Throws<NotSupportedException>(() => _ = paragraph!.Runs)
-            : Assert.Throws<NotSupportedException>(() => _ = shape.Paragraphs);
-        Assert.Contains("100000-element", exception.Message);
+        OfficeInspectionResourceLimitException exception = inline
+            ? Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = paragraph!.Runs)
+            : Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = shape.Paragraphs);
+        Assert.Equal("MaximumVisitedElements", exception.LimitName);
         if (paragraph != null) {
-            Assert.Contains("100000-node", Assert.Throws<NotSupportedException>(() => _ = paragraph.Text).Message);
+            Assert.Equal("MaximumVisitedElements", Assert.Throws<OfficeInspectionResourceLimitException>(() => _ = paragraph.Text).LimitName);
             string before = paragraph.ToXml().ToString();
-            Assert.Throws<NotSupportedException>(() => paragraph.TransformTextCase(OfficeTextCase.Uppercase));
+            Assert.Throws<OfficeInspectionResourceLimitException>(() => paragraph.TransformTextCase(OfficeTextCase.Uppercase));
             Assert.Equal(before, paragraph.ToXml().ToString());
         }
     }

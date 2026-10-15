@@ -88,11 +88,12 @@ public sealed partial class PowerPointPresentation {
     private static OfficeContentSafetyReport InspectContentSafetyPresentation(
         PowerPointPresentation presentation,
         OfficeContentSafetyOptions? options,
-        IDictionary<string, PowerPointCleanupTarget>? targets) {
-        var builder = new OfficeContentSafetyBuilder("PowerPoint " + presentation.SourceFormat, options);
+        IDictionary<string, PowerPointCleanupTarget>? targets, CancellationToken cancellationToken = default) {
+        var builder = new OfficeContentSafetyBuilder("PowerPoint " + presentation.SourceFormat, options, cancellationToken);
         long slideWidth = presentation.PresentationRoot.SlideSize?.Cx?.Value ?? 0L;
         long slideHeight = presentation.PresentationRoot.SlideSize?.Cy?.Value ?? 0L;
         for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PowerPointSlide slide = presentation.Slides[slideIndex];
             InspectPowerPointSlide(slide, slideIndex + 1, slideWidth, slideHeight, builder, targets);
         }

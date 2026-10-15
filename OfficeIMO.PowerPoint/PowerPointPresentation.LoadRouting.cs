@@ -1,6 +1,7 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using System.Threading;
 
 namespace OfficeIMO.PowerPoint {
     internal enum LegacyBinaryEncryptionKind {
@@ -12,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
     internal static class PowerPointPresentationLoadRouting {
         internal static bool IsLegacyBinary(byte[] bytes, string? filePath) {
             if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
-                OfficeCompoundDocumentDetector.DocumentKind kind = OfficeCompoundDocumentDetector.Detect(bytes, out _);
+                OfficeCompoundDocumentDetector.DocumentKind kind = DetectCompound(bytes, out _);
                 switch (kind) {
                     case OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation:
                         return true;
@@ -36,16 +37,23 @@ namespace OfficeIMO.PowerPoint {
             if (!OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
                 return LegacyBinaryEncryptionKind.NotLegacyBinary;
             }
-            if (OfficeCompoundDocumentDetector.Detect(bytes, out _)
+            if (DetectCompound(bytes, out _)
                 != OfficeCompoundDocumentDetector.DocumentKind
                     .PowerPointPresentation) {
                 return LegacyBinaryEncryptionKind.NotLegacyBinary;
             }
             LegacyPptImportOptions resolved = importOptions
                 ?? new LegacyPptImportOptions();
-            if (!OfficeCompoundFileReader.TryRead(bytes,
-                    LegacyPptPackage.CreateCompoundReadOptions(resolved),
-                    out OfficeCompoundFile? compound, out string? error)
+            bool read;
+            OfficeCompoundFile? compound;
+            string? error;
+            try {
+                read = OfficeCompoundFileReader.TryRead(bytes, LegacyPptPackage.CreateCompoundReadOptions(resolved, preserveResourceLimits: true),
+                    out compound, out error);
+            } catch (OfficeCompoundStreamLimitExceededException exception) {
+                throw new OfficeInspectionResourceLimitException("powerpoint", exception.LimitName, exception.MaximumValue, exception);
+            }
+            if (!read
                 || compound == null
                 || !compound.Streams.TryGetValue("Current User",
                     out byte[]? currentUserStream)) {
@@ -72,6 +80,21 @@ namespace OfficeIMO.PowerPoint {
                 || string.Equals(extension, ".pot", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(extension, ".pps", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(extension, ".ppa", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static OfficeCompoundDocumentDetector.DocumentKind DetectCompound(byte[] bytes, out string? error) {
+            try { return OfficeCompoundDocumentDetector.Detect(bytes, out error, preserveResourceLimits: true); }
+            catch (OfficeCompoundStreamLimitExceededException exception) {
+                throw new OfficeInspectionResourceLimitException("powerpoint", exception.LimitName, exception.MaximumValue, exception);
+            }
+        }
+
+        internal static OfficeCompoundDocumentDetector.DocumentKind DetectCompound(Stream source, long maximumInputBytes,
+            int maximumDirectoryEntries, CancellationToken cancellationToken, out string? error) {
+            try { return OfficeCompoundDocumentDetector.Detect(source, maximumInputBytes, maximumDirectoryEntries, cancellationToken, out error, preserveResourceLimits: true); }
+            catch (OfficeCompoundStreamLimitExceededException exception) {
+                throw new OfficeInspectionResourceLimitException("powerpoint", exception.LimitName, exception.MaximumValue, exception);
+            }
         }
 
         internal static PowerPointFileFormat GetFormat(string? filePath, bool legacyDefault = false) {

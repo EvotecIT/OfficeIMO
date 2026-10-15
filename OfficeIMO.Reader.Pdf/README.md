@@ -30,6 +30,35 @@ IReadOnlyList<ReaderChunk> chunks = reader
 
 For an encrypted PDF, register `AddPdfHandler(new ReaderPdfOptions { Password = password })` with a password supplied by the caller. The password is used locally to open the PDF and is not included in extracted content or metadata. PDF content-extraction permissions still apply.
 
+### Inspect native decoding and incomplete pages
+
+Register full PDF parser settings through `ReaderPdfOptions.LoadOptions`. Registration and each read take independent option and resource-limit snapshots; `ReaderOptions.MaxInputBytes` can further restrict the PDF input budget.
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Pdf;
+
+var reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler(new ReaderPdfOptions {
+        LoadOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPages = 500, MaxDecodedStreamBytes = 16 * 1024 * 1024 }
+        }
+    })
+    .Build();
+OfficeDocumentReadResult document = reader.ReadDocument("input.pdf", new ReaderOptions {
+    Inspection = new ReaderInspectionOptions { MaxRecords = 4096, MaxCharacters = 1_000_000 }
+});
+```
+
+Inspection uses the canonical PDF page pipeline and returns successful pages with explicit failed-page warnings and diagnostics. Located metadata records in `pdf.page-outcome`, `pdf.text-decoding` and `pdf.repair` retain every selected occurrence, decoding source, fallback and parser recovery evidence. Unreadable pages retain source links, annotations, page actions and geometry as metadata. Resource, cancellation, authentication, permission and unexpected parser failures remain terminal. The existing Reader JSON schema is unchanged. Without `Inspection`, PDF reading retains its fail-fast behavior. Native inspection does not run OCR.
+
+Set `ReaderOptions.Projection = ReaderProjection.TextAndMetadata` to retain plain text chunks and metadata while skipping Markdown, image extraction, assets, visuals, normalized forms and OCR candidates. Combine it with `Inspection` to retain page outcomes and located decoding evidence. Source form counts and descriptors remain available; canonical parsing still retains bounded source field values. `Full` is the default projection.
+
+To project an already loaded `PdfDocumentReadResult`, call `logical.ReadDocument("input.pdf", readerOptions, pdfOptions)`. This uses the same Reader projection and operation budgets without opening the named path, parsing again, or rendering pages. The caller controls the native load, input limits and authentication. Inspection describes the supplied logical pages as `existing-projection`; it does not reassess original page completion or recreate native failure outcomes. Load with native `IncludeImages = false` and `IncludeFormWidgets = false` as well when you need to avoid that work before the Reader projection.
+
+When you already have a `PdfInspectionReadResult`, call `inspection.ReadDocument("input.pdf", readerOptions, pdfOptions)`. This preserves failed page outcomes and original selection indexes, including repeated pages. Choose pages in the native `ReadForInspection` call; this overload rejects a second page selection during projection. It retains bounded inspection evidence and uses the same Reader output budgets without reopening the source.
+
 ### Discover OCR needs on mixed pages
 
 The default policy emits candidates for image pages without native text. For a scanned body with a native footer, opt into mixed-page discovery:

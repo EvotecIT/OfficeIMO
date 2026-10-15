@@ -14,8 +14,16 @@ internal static partial class DocumentReaderEngine {
         new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 });
 
     private static DetectionCandidate InspectOfficeCompound(byte[] boundedPayload) {
+        try {
+            return InspectOfficeCompoundBytes(boundedPayload);
+        } catch (OfficeCompoundStreamLimitExceededException exception) {
+            throw CompoundDetectionLimit(exception);
+        }
+    }
+
+    private static DetectionCandidate InspectOfficeCompoundBytes(byte[] boundedPayload) {
         DetectionCandidate office = MapOfficeCompoundKind(
-            OfficeCompoundDocumentDetector.Detect(boundedPayload, out _));
+            OfficeCompoundDocumentDetector.Detect(boundedPayload, out _, preserveResourceLimits: true));
         if (office.Kind != ReaderInputKind.Unknown ||
             office.Evidence.Contains(EncryptedOpenXmlEvidence, StringComparer.Ordinal)) {
             return office;
@@ -31,12 +39,29 @@ internal static partial class DocumentReaderEngine {
         long position,
         int maxContainerEntries,
         CancellationToken cancellationToken = default) {
+        try {
+            return InspectOfficeCompoundStream(stream, position, maxContainerEntries, cancellationToken);
+        } catch (OfficeCompoundStreamLimitExceededException exception) {
+            throw CompoundDetectionLimit(exception);
+        }
+    }
+
+    private static ReaderResourceLimitException CompoundDetectionLimit(
+        OfficeCompoundStreamLimitExceededException exception) =>
+        new ReaderResourceLimitException("Detection." + exception.LimitName,
+            exception.MaximumValue, exception);
+
+    private static DetectionCandidate InspectOfficeCompoundStream(
+        Stream stream,
+        long position,
+        int maxContainerEntries,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         stream.Position = position;
         long remainingBytes = checked(stream.Length - position);
         DetectionCandidate office = MapOfficeCompoundKind(
             OfficeCompoundDocumentDetector.Detect(stream, remainingBytes,
-                maxContainerEntries, cancellationToken, out _));
+                maxContainerEntries, cancellationToken, out _, preserveResourceLimits: true));
         if (office.Kind != ReaderInputKind.Unknown ||
             office.Evidence.Contains(EncryptedOpenXmlEvidence, StringComparer.Ordinal)) {
             return office;
@@ -79,7 +104,7 @@ internal static partial class DocumentReaderEngine {
             stream.Position = position;
             bool inspected = OfficeCompoundFileReader.TryContainsStreamPath(
                 stream, "__properties_version1.0", Math.Max(512, maxInputBytes),
-                maxContainerEntries, cancellationToken, out bool contains, out _);
+                maxContainerEntries, cancellationToken, out bool contains, out _, preserveResourceLimits: true);
             return inspected && contains
                 ? DetectionCandidate.High(ReaderInputKind.Email,
                     "application/vnd.ms-outlook", "container:msg-properties-stream")

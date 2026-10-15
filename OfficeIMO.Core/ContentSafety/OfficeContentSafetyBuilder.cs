@@ -149,15 +149,20 @@ public sealed class OfficeContentSafetyBuilder {
         OfficeContentCleanupCapability cleanupCapability) {
         if (!_options.IncludeTextIntegrityEvidence || text.Length == 0) return Array.Empty<OfficeContentSafetyFinding>();
         int remaining = RemainingFindingCapacity();
-        OfficeTextIntegrityReport unicode = OfficeTextIntegrityInspector.Inspect(text, new OfficeTextIntegrityOptions {
-            MaxCharacters = Math.Max(1, text.Length),
-            MaxFindings = Math.Max(1, remaining),
-            IncludeTypographicSpaces = _options.TextIntegrityOptions?.IncludeTypographicSpaces ?? true,
-            IncludeVariationSelectors = _options.TextIntegrityOptions?.IncludeVariationSelectors ?? true,
-            IgnoreLeadingByteOrderMark = _options.TextIntegrityOptions?.IgnoreLeadingByteOrderMark ?? true
-        }, location, CancellationToken);
+        OfficeTextIntegrityReport unicode;
+        try {
+            unicode = OfficeTextIntegrityInspector.Inspect(text, new OfficeTextIntegrityOptions {
+                MaxCharacters = Math.Max(1, text.Length),
+                MaxFindings = Math.Max(1, remaining),
+                IncludeTypographicSpaces = _options.TextIntegrityOptions?.IncludeTypographicSpaces ?? true,
+                IncludeVariationSelectors = _options.TextIntegrityOptions?.IncludeVariationSelectors ?? true,
+                IgnoreLeadingByteOrderMark = _options.TextIntegrityOptions?.IgnoreLeadingByteOrderMark ?? true
+            }, location, CancellationToken);
+        } catch (OfficeInspectionResourceLimitException limit) when (limit.Owner == "text-integrity" && limit.LimitName == nameof(OfficeTextIntegrityOptions.MaxFindings)) {
+            throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxFindings), _options.MaxFindings, limit);
+        }
         if (remaining <= 0 && unicode.Findings.Count > 0) {
-            throw new InvalidDataException("The asset exceeds the configured combined finding limit.");
+            throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxFindings), _options.MaxFindings);
         }
         _textIntegrity.AddRange(unicode.Findings);
         var contentFindings = new List<OfficeContentSafetyFinding>(unicode.Findings.Count);
@@ -196,7 +201,7 @@ public sealed class OfficeContentSafetyBuilder {
     /// <summary>Adds one bounded adapter diagnostic.</summary>
     public void AddDiagnostic(string diagnostic) {
         if (string.IsNullOrWhiteSpace(diagnostic)) return;
-        if (_diagnostics.Count >= 256) throw new InvalidDataException("The asset exceeds the configured content-safety diagnostic limit.");
+        if (_diagnostics.Count >= 256) throw new OfficeInspectionResourceLimitException("content-safety", "MaxDiagnostics", 256);
         _diagnostics.Add(Preview(diagnostic, 512));
     }
 
@@ -236,7 +241,7 @@ public sealed class OfficeContentSafetyBuilder {
     private void EnsureCanCharge(int characters) {
         CancellationToken.ThrowIfCancellationRequested();
         if (characters < 0 || _characters > _options.MaxCharacters - characters) {
-            throw new InvalidDataException("The asset exceeds the configured decoded-character limit.");
+            throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxCharacters), _options.MaxCharacters);
         }
     }
 
@@ -250,7 +255,7 @@ public sealed class OfficeContentSafetyBuilder {
     private void EnsureFindingCapacity() {
         CancellationToken.ThrowIfCancellationRequested();
         if (RemainingFindingCapacity() <= 0) {
-            throw new InvalidDataException("The asset exceeds the configured combined finding limit.");
+            throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxFindings), _options.MaxFindings);
         }
     }
 

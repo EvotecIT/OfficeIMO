@@ -225,7 +225,7 @@
         "-NoLogo",
         "-NoProfile",
         "-Command",
-        "$version = [string](Import-PowerShellDataFile ./data/apidocs/powershell/PSWriteOffice.psd1).ModuleVersion; if (-not (Get-Module -ListAvailable -FullyQualifiedName @{ModuleName='PSWriteOffice';RequiredVersion=$version})) { Install-Module PSWriteOffice -RequiredVersion $version -Repository PSGallery -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop }"
+        "$version = [string](Import-PowerShellDataFile ./data/apidocs/powershell/PSWriteOffice.psd1).ModuleVersion; if (-not (Get-Module -ListAvailable -FullyQualifiedName @{ModuleName='PSWriteOffice';RequiredVersion=$version})) { if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) { Register-PSRepository -Default -ErrorAction Stop | Out-Null }; Install-Module PSWriteOffice -RequiredVersion $version -Repository PSGallery -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop }"
       ],
       "workingDirectory": "."
     },

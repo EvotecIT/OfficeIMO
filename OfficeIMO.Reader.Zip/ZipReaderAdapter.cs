@@ -242,7 +242,7 @@ internal static class ZipReaderAdapter {
             string? readError = null;
             try {
                 bytes = ReadAllBytes(entry, cancellationToken);
-            } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
+            } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException and not ReaderAdmissionLimitException) {
                 readError = $"Skipped ZIP entry due read error: {ex.GetType().Name}.";
             }
 
@@ -266,7 +266,7 @@ internal static class ZipReaderAdapter {
                 using var content = new MemoryStream(bytes!, 0, bytes!.Length, writable: false, publiclyVisible: true);
                 nestedDocument = ReaderNestedContent.ReadDocumentInContainer(content, entryName, BuildVirtualPath(entryArchivePath, entryName), readerOptions, cancellationToken);
                 chunks = nestedDocument.Chunks;
-            } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
+            } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException and not ReaderAdmissionLimitException) {
                 parseError = $"Skipped ZIP entry due parse error: {ex.GetType().Name}.";
             }
 
@@ -413,7 +413,7 @@ internal static class ZipReaderAdapter {
                          readerZipOptions,
                          warningCounter,
                          cancellationToken).ToList();
-        } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException and not ReaderAdmissionLimitException) {
             parseError = $"Skipped nested ZIP entry due archive parse error: {ex.GetType().Name}.";
         }
 
@@ -491,7 +491,7 @@ internal static class ZipReaderAdapter {
             bytes = ReadAllBytes(entry, cancellationToken);
             error = null;
             return true;
-        } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException and not ReaderAdmissionLimitException) {
             bytes = null;
             error = $"Skipped nested ZIP entry due read error: {ex.GetType().Name}.";
             return false;

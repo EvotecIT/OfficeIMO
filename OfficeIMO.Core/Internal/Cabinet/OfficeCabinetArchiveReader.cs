@@ -7,7 +7,7 @@ using System.Threading;
 namespace OfficeIMO.Core.Internal.Cabinet;
 
 /// <summary>Reads bounded, single-cabinet MS-CAB archives with uncompressed, MSZIP or LZX folders.</summary>
-internal static class OfficeCabinetArchiveReader {
+internal static partial class OfficeCabinetArchiveReader {
     /// <summary>Reads from the start of a seekable stream and restores its original position without closing it.</summary>
     internal static IReadOnlyList<OfficeCabinetEntry> Read(Stream stream, long? maxInputBytes,
         long maxExpandedBytes, long maxEntryBytes, int maxEntries, CancellationToken cancellationToken = default,
@@ -85,14 +85,14 @@ internal static class OfficeCabinetArchiveReader {
         if (maxEntries < 1) throw new ArgumentOutOfRangeException(nameof(maxEntries));
     }
 
-    private sealed class Reader {
+    private sealed partial class Reader {
         private readonly byte[] _data;
         private readonly long _maxExpandedBytes;
         private readonly long _maxEntryBytes;
         private readonly int _maxEntries;
         private readonly CancellationToken _cancellationToken;
         private readonly OfficeCabinetWorkBudget _workBudget;
-        private int _length;
+        internal int _length;
 
         internal Reader(byte[] data, long maxExpandedBytes, long maxEntryBytes, int maxEntries,
             CancellationToken cancellationToken, OfficeCabinetWorkBudget workBudget) {
@@ -108,73 +108,20 @@ internal static class OfficeCabinetArchiveReader {
         internal IReadOnlyList<OfficeCabinetEntry> Read(Func<string, bool>? entryFilter,
             Action<string, long>? entryValidator, out long expandedBytes) {
             expandedBytes = 0;
-            if (_length < 36 || _data[0] != (byte)'M' || _data[1] != (byte)'S' || _data[2] != (byte)'C' || _data[3] != (byte)'F') {
-                throw Error("CAB_SIGNATURE", "The file is not a Microsoft Cabinet archive.");
-            }
-            uint declaredSize = UInt32(8);
-            uint filesOffset = UInt32(16);
-            int folderCount = UInt16(26);
-            int fileCount = UInt16(28);
-            // MS-CAB requires readers to ignore reserved CFHEADER flag bits.
-            ushort flags = (ushort)(UInt16(30) & 7);
-            if (UInt32(4) != 0 || UInt32(12) != 0 || UInt32(20) != 0 ||
-                declaredSize < 36 || declaredSize > _length || folderCount < 1 || fileCount > _maxEntries ||
-                _data[24] != 3 || _data[25] != 1) {
-                throw Error("CAB_HEADER", "The CAB header contains invalid reserved fields, sizes, version or entry counts.");
-            }
-            // Signed cabinets may have an appended signature, but offsets must
-            // remain within the size declared by CFHEADER.
-            _length = (int)declaredSize;
-            if ((flags & 3) != 0) throw Error("CAB_MULTIPART", "Cabinet sets and continued cabinets are not supported.");
-
-            int offset = 36;
-            int folderReserve = 0;
-            int dataReserve = 0;
-            if ((flags & 4) != 0) {
-                Ensure(offset, 4, "CAB reserve header");
-                int headerReserve = UInt16(offset);
-                folderReserve = _data[offset + 2];
-                dataReserve = _data[offset + 3];
-                Ensure(offset, 4 + headerReserve, "CAB reserve header");
-                offset += 4 + headerReserve;
-            }
-            Ensure(offset, folderCount * (8 + folderReserve), "CFFOLDER table");
-            var folders = new FolderHeader[folderCount];
-            for (int index = 0; index < folders.Length; index++) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                folders[index] = new FolderHeader(UInt32(offset), UInt16(offset + 4), UInt16(offset + 6));
-                offset += 8 + folderReserve;
-            }
-            if (filesOffset > int.MaxValue || filesOffset < offset) {
-                throw Error("CAB_FILE_TABLE", "The CAB file table overlaps its header or is too large.");
-            }
-            offset = (int)filesOffset;
-            Ensure(offset, fileCount * 17, "CFFILE table");
-            var files = new FileHeader[fileCount];
-            var folderMembers = new List<int>?[folderCount];
-            var selected = new bool[fileCount];
-            long extractedBytes = 0;
+            Directory directory = ReadDirectory();
+            FolderHeader[] folders = directory.Folders;
+            FileHeader[] files = directory.Files;
+            int dataReserve = directory.DataReserve;
+            int fileTableEnd = directory.FileTableEnd;
+            var folderMembers = new List<int>?[folders.Length];
+            var selected = new bool[files.Length];
             for (int index = 0; index < files.Length; index++) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                Ensure(offset, 16, "CFFILE");
-                uint length = UInt32(offset);
-                uint folderOffset = UInt32(offset + 4);
-                ushort folderIndex = UInt16(offset + 8);
-                ushort attributes = UInt16(offset + 14);
-                string name = ReadCString(offset + 16, (attributes & 0x80) != 0, out int nextOffset);
-                if (length > _maxEntryBytes || length > int.MaxValue) throw Error("CAB_ENTRY_LIMIT", "A CAB entry exceeds the configured size or managed buffer limit.");
-                if (folderIndex >= 0xFFFD) throw Error("CAB_MULTIPART", "Continued CAB file entries are not supported.");
-                if (folderIndex >= folders.Length) throw Error("CAB_FOLDER", "A CAB entry references a missing folder.");
-                if (length > _maxExpandedBytes - extractedBytes) throw Error("CAB_EXPANDED_LIMIT", "The extracted CAB entries exceed the configured size limit.");
-                extractedBytes += length;
-                files[index] = new FileHeader(length, folderOffset, folderIndex, name);
-                (folderMembers[folderIndex] ?? (folderMembers[folderIndex] = new List<int>())).Add(index);
-                entryValidator?.Invoke(name, length);
-                selected[index] = entryFilter == null || entryFilter(name);
-                offset = nextOffset;
+                FileHeader file = files[index];
+                (folderMembers[file.FolderIndex] ?? (folderMembers[file.FolderIndex] = new List<int>())).Add(index);
+                entryValidator?.Invoke(file.Name, file.Length);
+                selected[index] = entryFilter == null || entryFilter(file.Name);
             }
-
-            int fileTableEnd = offset;
             var decodedEntries = new OfficeCabinetEntry?[files.Length];
             for (int folderIndex = 0; folderIndex < folders.Length; folderIndex++) {
                 _cancellationToken.ThrowIfCancellationRequested();
@@ -201,17 +148,16 @@ internal static class OfficeCabinetArchiveReader {
             return entries.AsReadOnly();
         }
 
-        private byte[] DecompressFolder(FolderHeader folder, int dataReserve, long maxExpandedBytes) {
+        internal byte[] DecompressFolder(FolderHeader folder, int dataReserve, long maxExpandedBytes) {
             if (folder.DataOffset > int.MaxValue) throw Error("CAB_DATA_OFFSET", "The CAB folder data offset is too large.");
             int offset = (int)folder.DataOffset;
             Ensure(offset, 0, "CAB folder data");
             ushort method = (ushort)(folder.Compression & 0x000F);
-            if (method != 0 && method != 1 && method != 3) throw Error("CAB_COMPRESSION", "The CAB uses an unsupported compression method; Quantum is not supported.");
-            if ((method != 3 && folder.Compression != method) || (method == 3 && (folder.Compression & 0xE0F0) != 0)) {
-                throw Error("CAB_COMPRESSION", "The CAB compression parameters contain unsupported flags.");
-            }
+            string? unsupported = CompressionDiagnostic(folder.Compression);
+            if (unsupported != null) throw Error(unsupported, unsupported == "CAB_LZX_WINDOW"
+                ? "The CAB uses an unsupported LZX window size."
+                : "The CAB compression method or parameters are unsupported; Quantum is not supported.");
             int windowBits = (folder.Compression >> 8) & 0x1F;
-            if (method == 3 && (windowBits < 15 || windowBits > 21)) throw Error("CAB_LZX_WINDOW", "The CAB uses an unsupported LZX window size.");
             var blocks = new BlockHeader[folder.BlockCount];
             long total = 0;
             for (int index = 0; index < blocks.Length; index++) {
@@ -222,16 +168,11 @@ internal static class OfficeCabinetArchiveReader {
                 int expandedLength = UInt16(offset + 6);
                 int dataOffset = offset + 8 + dataReserve;
                 Ensure(dataOffset, compressedLength, "CFDATA payload");
-                if (expandedLength > maxExpandedBytes - total || total + expandedLength > int.MaxValue) {
+                ValidateFrame(dataOffset, compressedLength, expandedLength, method);
+                if (expandedLength > maxExpandedBytes - total) {
                     throw Error("CAB_EXPANDED_LIMIT", "The expanded CAB folder exceeds the configured size or managed buffer limit.");
                 }
-                if (expandedLength > OfficeMsZipDecoder.WindowBytes) throw Error("CAB_BLOCK_SIZE", "A CAB frame exceeds the 32 KiB expanded size limit.");
-                if (expandedLength == 0) throw Error("CAB_MULTIPART", "Split CFDATA records are not supported.");
-                if (method == 0 && compressedLength != expandedLength) throw Error("CAB_UNCOMPRESSED", "An uncompressed CAB block has inconsistent sizes.");
-                if (method == 1 && (compressedLength < 2 || compressedLength > OfficeMsZipDecoder.MaximumCompressedBytes ||
-                    _data[dataOffset] != 0x43 || _data[dataOffset + 1] != 0x4B)) {
-                    throw Error("CAB_MSZIP_HEADER", "The CAB contains an invalid MSZIP frame header or size.", dataOffset);
-                }
+                if (total + expandedLength > int.MaxValue) throw Error("CAB_FOLDER_BUFFER_LIMIT", "The expanded CAB folder exceeds the managed buffer limit.");
                 // Charge every validated CFDATA record, including repeated folder offsets,
                 // unselected members and gaps. MSZIP replays prior history for each new frame.
                 int dictionaryLength = method == 1 ? (int)Math.Min(total, OfficeMsZipDecoder.WindowBytes) : 0;
@@ -282,6 +223,17 @@ internal static class OfficeCabinetArchiveReader {
             return output;
         }
 
+        /// <summary>Checks cheap intrinsic frame facts without decoding or checksumming the payload.</summary>
+        internal void ValidateFrame(int dataOffset, int compressedLength, int expandedLength, int method) {
+            if (expandedLength > OfficeMsZipDecoder.WindowBytes) throw Error("CAB_BLOCK_SIZE", "A CAB frame exceeds the 32 KiB expanded size limit.");
+            if (expandedLength == 0) throw Error("CAB_MULTIPART", "Split CFDATA records are not supported.");
+            if (method == 0 && compressedLength != expandedLength) throw Error("CAB_UNCOMPRESSED", "An uncompressed CAB block has inconsistent sizes.");
+            if (method == 1 && (compressedLength < 2 || compressedLength > OfficeMsZipDecoder.MaximumCompressedBytes ||
+                _data[dataOffset] != 0x43 || _data[dataOffset + 1] != 0x4B)) {
+                throw Error("CAB_MSZIP_HEADER", "The CAB contains an invalid MSZIP frame header or size.", dataOffset);
+            }
+        }
+
         private string ReadCString(int offset, bool utf8, out int nextOffset) {
             int end = offset;
             while (end < _length && _data[end] != 0) {
@@ -307,26 +259,27 @@ internal static class OfficeCabinetArchiveReader {
             return new string(characters);
         }
 
-        private void Ensure(int offset, int count, string structure) {
+        internal void Ensure(int offset, int count, string structure) {
             if (offset < 0 || count < 0 || offset > _length - count) {
                 throw Error("CAB_TRUNCATED", "The CAB archive ended inside " + structure + ".", offset);
             }
         }
 
-        private ushort UInt16(int offset) {
+        internal ushort UInt16(int offset) {
             Ensure(offset, 2, "integer");
             return (ushort)(_data[offset] | (_data[offset + 1] << 8));
         }
 
-        private uint UInt32(int offset) {
+        internal uint UInt32(int offset) {
             Ensure(offset, 4, "integer");
             return (uint)(_data[offset] | (_data[offset + 1] << 8) | (_data[offset + 2] << 16) | (_data[offset + 3] << 24));
         }
 
-        private static OfficeCabinetException Error(string code, string message, long? offset = null) => new OfficeCabinetException(code, message, offset);
     }
 
-    private readonly struct FolderHeader {
+    private static OfficeCabinetException Error(string code, string message, long? offset = null) => new OfficeCabinetException(code, message, offset);
+
+    internal readonly struct FolderHeader {
         internal FolderHeader(uint dataOffset, ushort blockCount, ushort compression) {
             DataOffset = dataOffset; BlockCount = blockCount; Compression = compression;
         }
@@ -335,7 +288,7 @@ internal static class OfficeCabinetArchiveReader {
         internal ushort Compression { get; }
     }
 
-    private readonly struct FileHeader {
+    internal readonly struct FileHeader {
         internal FileHeader(uint length, uint folderOffset, ushort folderIndex, string name) {
             Length = length; FolderOffset = folderOffset; FolderIndex = folderIndex; Name = name;
         }

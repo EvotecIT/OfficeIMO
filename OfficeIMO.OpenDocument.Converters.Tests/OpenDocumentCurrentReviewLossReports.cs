@@ -812,7 +812,10 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                         new XAttribute(OdfNamespaces.Text + "c", 8 * 1024 * 1024)))));
         }
 
-        Assert.Throws<InvalidDataException>(() => source.ToExcelDocumentResult());
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => source.ToExcelDocumentResult());
+        Assert.Equal("opendocument", error.Owner);
+        Assert.Equal("MaximumDecodedCharacters", error.LimitName);
+        Assert.Equal(16L * 1024 * 1024, error.Maximum);
     }
 
     [Fact]
@@ -827,7 +830,10 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 new XElement(OdfNamespaces.Text + "s",
                     new XAttribute(OdfNamespaces.Text + "c", 16 * 1024 * 1024)))));
 
-        Assert.Throws<InvalidDataException>(() => source.ToExcelDocumentResult());
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => source.ToExcelDocumentResult());
+        Assert.Equal("opendocument", error.Owner);
+        Assert.Equal("MaximumDecodedCharacters", error.LimitName);
+        Assert.Equal(16L * 1024 * 1024, error.Maximum);
     }
 
     [Fact]

@@ -281,6 +281,8 @@ internal static partial class DocumentReaderEngine {
             throw;
         } catch (ReaderResourceLimitException) {
             throw;
+        } catch (ReaderAdmissionLimitException) {
+            throw;
         } catch (Exception exception) {
             string warning = $"Skipped file due read error: {exception.GetType().Name}. {exception.Message}";
             return BuildSourceDocument(source, false, null, new[] { warning });

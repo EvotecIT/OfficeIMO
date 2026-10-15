@@ -44,6 +44,10 @@ internal static class WordReaderAdapter {
                     StringComparison.OrdinalIgnoreCase));
         } catch (OperationCanceledException) {
             throw;
+        } catch (ReaderResourceLimitException) {
+            throw;
+        } catch (OfficePackageSecurityException) {
+            throw;
         } catch {
             return false;
         } finally {
@@ -54,34 +58,41 @@ internal static class WordReaderAdapter {
     private static WordDocument Load(string path, ReaderOptions options) {
         var loadOptions = new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            AllowLegacyProjection = options.Projection == ReaderProjection.Full,
+            CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
+            PackageSecurity = OpenXmlReaderAdmission.Policy(options, WordLoadOptions.DefaultMaxInputBytes),
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
-        try { return WordDocument.Load(path, loadOptions); }
-        catch (Exception exception) when (!string.IsNullOrEmpty(options.OpenPassword) && exception is InvalidDataException or IOException) {
-            return WordDocument.LoadEncrypted(path, options.OpenPassword!, loadOptions);
+        try { return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(path, loadOptions)); }
+        catch (Exception exception) when (OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
+            return OpenXmlReaderAdmission.Load(options, () => WordDocument.LoadEncrypted(path, options.OpenPassword!, loadOptions));
         }
     }
 
     private static WordDocument Load(Stream stream, ReaderOptions options) {
         var loadOptions = new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            AllowLegacyProjection = options.Projection == ReaderProjection.Full,
+            CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
+            PackageSecurity = OpenXmlReaderAdmission.Policy(options, WordLoadOptions.DefaultMaxInputBytes),
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
-        try { return WordDocument.Load(stream, loadOptions); }
-        catch (Exception exception) when (!string.IsNullOrEmpty(options.OpenPassword) && exception is InvalidDataException or IOException) {
+        try { return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(stream, loadOptions)); }
+        catch (Exception exception) when (OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
             if (stream.CanSeek) stream.Position = 0;
-            return WordDocument.LoadEncrypted(stream, options.OpenPassword!, loadOptions);
+            return OpenXmlReaderAdmission.Load(options, () => WordDocument.LoadEncrypted(stream, options.OpenPassword!, loadOptions));
         }
     }
 
     internal static OfficeDocumentReadResult Project(WordDocument document, string sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken, IReadOnlyList<string>? sourceWarnings = null, string capabilityId = OfficeDocumentReaderBuilderWordExtensions.HandlerId) {
-        WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot();
+        bool lean = readerOptions.Projection == ReaderProjection.TextAndMetadata;
+        WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot(includeImageBytes: !lean, cancellationToken);
         IReadOnlyList<WordDocumentVisualSnapshot> pageSnapshots = Array.Empty<WordDocumentVisualSnapshot>();
-        if (options.IncludePageLocations) {
+        if (options.IncludePageLocations && !lean) {
             cancellationToken.ThrowIfCancellationRequested();
             WordImageExportOptions layoutOptions = options.PageLocationOptions?.Clone() ?? new WordImageExportOptions();
             layoutOptions.IncludeDocumentContent = true;
@@ -91,7 +102,7 @@ internal static class WordReaderAdapter {
         }
         IReadOnlyList<string>? legacyWarnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         var chunks = new List<ReaderChunk>();
-        IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectWord(
+        IReadOnlyList<OfficeDocumentAsset> assets = lean ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectWord(
             document.OpenXmlDocument, sourceName, readerOptions, options.IncludeFootnotes, cancellationToken);
         int blockIndex = 0;
         int tableIndex = 0;
@@ -100,12 +111,13 @@ internal static class WordReaderAdapter {
             foreach (WordBlockSnapshot block in section.Elements) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (block is WordParagraphSnapshot paragraph) {
-                    IReadOnlyList<ParagraphRepresentation> representations = BuildParagraphRepresentations(
+                    IReadOnlyList<string>? projectionWarnings = null;
+                    IReadOnlyList<ParagraphRepresentation> representations = lean ? BuildPlainParagraphRepresentations(paragraph, readerOptions.MaxChars) : BuildParagraphRepresentations(
                         paragraph,
                         options.IncludeFootnotes,
                         ref imageIndex,
                         readerOptions.MaxChars,
-                        out IReadOnlyList<string>? projectionWarnings);
+                        out projectionWarnings);
                     int representationIndex = 0;
                     foreach (ParagraphRepresentation representation in representations) {
                         chunks.Add(new ReaderChunk {
@@ -120,7 +132,7 @@ internal static class WordReaderAdapter {
                                 BlockAnchor = paragraph.BookmarkName
                             },
                             Text = representation.Text,
-                            Markdown = representation.Markdown,
+                            Markdown = lean ? null : representation.Markdown,
                             Warnings = representationIndex == 0
                                 ? Combine(blockIndex == 0 ? legacyWarnings : null, projectionWarnings)
                                 : null
@@ -135,7 +147,7 @@ internal static class WordReaderAdapter {
                         blockIndex,
                         tableIndex++,
                         readerOptions.MaxTableRows);
-                    string markdown = RenderTable(readerTable);
+                    string? markdown = lean ? null : RenderTable(readerTable);
                     chunks.Add(new ReaderChunk {
                         Id = $"word:{Path.GetFileName(sourceName)}:table:{tableIndex.ToString("D4", CultureInfo.InvariantCulture)}",
                         Kind = ReaderInputKind.Word,
@@ -145,7 +157,7 @@ internal static class WordReaderAdapter {
                         Tables = new[] { readerTable },
                         Warnings = Combine(
                             readerTable.Truncated ? new[] { "Word table rows were truncated due to MaxTableRows." } : null,
-                            markdown.Length > readerOptions.MaxChars
+                            markdown?.Length > readerOptions.MaxChars
                                 ? new[] { "Word table exceeded MaxChars and was preserved as one complete chunk." }
                                 : null)
                     });
@@ -165,7 +177,20 @@ internal static class WordReaderAdapter {
                 .Concat(legacyWarnings.Distinct(StringComparer.Ordinal).Select(warning => DocumentReaderEngine.BuildWarningDiagnostic(warning, warningLocation)))
                 .ToArray();
         }
-        return WordRichMapping.Apply(snapshot, pageSnapshots, readerOptions, options, result);
+        result = WordRichMapping.Apply(snapshot, pageSnapshots, readerOptions, options, result);
+        return WordInspectionProjection.Apply(document, readerOptions, result, cancellationToken);
+    }
+
+    private static IReadOnlyList<ParagraphRepresentation> BuildPlainParagraphRepresentations(WordParagraphSnapshot paragraph, int maxChars) {
+        string text = paragraph.Text ?? string.Empty;
+        int limit = Math.Max(256, maxChars);
+        var result = new List<ParagraphRepresentation>();
+        for (int offset = 0; offset < text.Length;) {
+            int length = GetUnicodeSafeLength(text, offset, Math.Min(limit, text.Length - offset));
+            result.Add(new ParagraphRepresentation(text.Substring(offset, length), string.Empty));
+            offset += length;
+        }
+        return result;
     }
 
     private static IReadOnlyList<ParagraphRepresentation> BuildParagraphRepresentations(

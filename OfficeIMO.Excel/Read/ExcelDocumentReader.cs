@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
             try {
                 snapshot = SharedReadOnlyFileSnapshot.Open(path);
                 if (snapshot.Length > effectiveOptions.MaxInputBytes) {
-                    throw new InvalidDataException(
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), effectiveOptions.MaxInputBytes,
                         $"Workbook input contains {snapshot.Length} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
                 }
 
@@ -109,10 +109,10 @@ namespace OfficeIMO.Excel {
                 byte[] bytes;
                 try {
                     using (Stream stream = snapshot!.CreateView()) {
-                        bytes = OfficeStreamReader.ReadAllBytes(
+                        bytes = ExcelReadLimitFailure.ReadInput(() => OfficeStreamReader.ReadAllBytes(
                             stream,
                             effectiveOptions.CancellationToken,
-                            effectiveOptions.MaxInputBytes);
+                            effectiveOptions.MaxInputBytes), effectiveOptions.MaxInputBytes);
                     }
                 } finally {
                     snapshot?.Dispose();
@@ -135,10 +135,10 @@ namespace OfficeIMO.Excel {
 
             var effectiveOptions = options ?? new ExcelReadOptions();
             return OpenFromBytes(
-                OfficeStreamReader.ReadAllBytes(
+                ExcelReadLimitFailure.ReadInput(() => OfficeStreamReader.ReadAllBytes(
                     stream,
                     effectiveOptions.CancellationToken,
-                    effectiveOptions.MaxInputBytes),
+                    effectiveOptions.MaxInputBytes), effectiveOptions.MaxInputBytes),
                 effectiveOptions,
                 normalizeContentTypes: false,
                 contextMessage: "Failed to open workbook stream after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel {
             var effectiveOptions = options ?? new ExcelReadOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             if (bytes.LongLength > effectiveOptions.MaxInputBytes) {
-                throw new InvalidDataException($"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), effectiveOptions.MaxInputBytes, $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
             }
 
             return OpenFromBytes(
@@ -576,7 +576,7 @@ namespace OfficeIMO.Excel {
             var effectiveOptions = options ?? new ExcelReadOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             if (bytes.LongLength > effectiveOptions.MaxInputBytes) {
-                throw new InvalidDataException($"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), effectiveOptions.MaxInputBytes, $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
             }
 
             MemoryStream? packageStream = null;

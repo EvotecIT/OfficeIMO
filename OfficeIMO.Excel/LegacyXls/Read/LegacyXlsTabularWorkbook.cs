@@ -169,15 +169,18 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             long maximum = Math.Min(options.MaxInputBytes, int.MaxValue);
             var compoundOptions = new OfficeCompoundReadOptions(
                 maxStreamBytes: maximum,
-                maxTotalStreamBytes: maximum);
-            bool read = OfficeCompoundFileReader.TryOpenStream(
-                source,
-                compoundOptions,
-                static (name, _) => IsWorkbookStreamName(name),
-                leaveOpen: false,
-                cancellationToken,
-                out Stream? workbookStream,
-                out string? error);
+                maxTotalStreamBytes: maximum,
+                preserveResourceLimits: true);
+            bool read;
+            Stream? workbookStream;
+            string? error;
+            try {
+                read = OfficeCompoundFileReader.TryOpenStream(source, compoundOptions,
+                    static (name, _) => IsWorkbookStreamName(name), leaveOpen: false,
+                    cancellationToken, out workbookStream, out error);
+            } catch (OfficeCompoundStreamLimitExceededException exception) {
+                throw new OfficeInspectionResourceLimitException("excel", exception.LimitName, exception.MaximumValue, exception);
+            }
             if (!read) {
                 throw new InvalidDataException(error ?? "The input is not a supported OLE compound XLS file.");
             }

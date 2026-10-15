@@ -3,7 +3,7 @@ using OfficeIMO.OpenDocument;
 namespace OfficeIMO.Reader.OpenDocument;
 
 internal static partial class OpenDocumentReaderAdapter {
-    private static IEnumerable<ReaderChunk> ReadDrawing(OdgDocument document, string sourceName, ProjectionBudget budget, CancellationToken cancellationToken) {
+    private static IEnumerable<ReaderChunk> ReadDrawing(OdgDocument document, string sourceName, ReaderOptions options, ProjectionBudget budget, CancellationToken cancellationToken) {
         IReadOnlyList<OdgPage> pages = document.Pages;
         for (int index = 0; index < pages.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -25,9 +25,10 @@ internal static partial class OpenDocumentReaderAdapter {
             string text = string.Join(Environment.NewLine, paragraphs);
             yield return new ReaderChunk {
                 Id = BuildId(sourceName, "page", index), Kind = ReaderInputKind.OpenDocument,
-                Text = text, Markdown = "## Page " + (index + 1).ToString(CultureInfo.InvariantCulture) + ": " + name + Environment.NewLine + Environment.NewLine + text,
+                Text = text, Markdown = options.Projection == ReaderProjection.TextAndMetadata ? null
+                    : "## Page " + (index + 1).ToString(CultureInfo.InvariantCulture) + ": " + name + Environment.NewLine + Environment.NewLine + text,
                 Location = new ReaderLocation { Path = sourceName, Page = index + 1, BlockIndex = index, SourceBlockIndex = index, SourceBlockKind = "drawing-page", HeadingPath = name },
-                Warnings = new[] { "Drawing extraction includes shape text in paint order, including hidden layers; master text, image OCR and embedded objects are not extracted." }
+                Warnings = new[] { "Drawing chunks include page-shape text in paint order, including hidden layers. The rich result separately retains master stories and image resources; image OCR and embedded object interpretation are not performed." }
             };
         }
     }

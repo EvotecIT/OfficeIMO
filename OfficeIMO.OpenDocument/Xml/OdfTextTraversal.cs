@@ -33,12 +33,12 @@ internal static class OdfTextTraversal {
                     continue;
                 }
                 if (++visited > MaximumVisitedElements)
-                    throw new NotSupportedException($"OpenDocument text traversal exceeds the {MaximumVisitedElements}-element safety limit.");
+                    throw OdfTextCodec.Limit(nameof(MaximumVisitedElements), MaximumVisitedElements);
 
                 XElement child = current.Current;
                 bool descend = isContainer(child);
                 if (descend && pending.Count > MaximumContainerDepth)
-                    throw new NotSupportedException($"OpenDocument text traversal exceeds the {MaximumContainerDepth}-container nesting limit.");
+                    throw OdfTextCodec.Limit(nameof(MaximumContainerDepth), MaximumContainerDepth);
 
                 yield return child;
                 if (descend) pending.Push(child.Elements().GetEnumerator());

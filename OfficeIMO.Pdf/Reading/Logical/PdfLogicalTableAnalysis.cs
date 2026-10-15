@@ -152,6 +152,7 @@ public static class PdfLogicalTableAnalysis {
     /// <returns>
     /// Table counts plus visible and interactive page content that a table-only adapter will not import.
     /// </returns>
+    /// <exception cref="InvalidOperationException">An optional image, widget, or visual primitive projection was not inspected.</exception>
     public static PdfTableExtractionScopeReport AnalyzeExtractionScope(PdfDocumentReadResult document) {
         return AnalyzeExtractionScope(document, DefaultMaximumScopeAnalysisComparisons);
     }
@@ -159,10 +160,12 @@ public static class PdfLogicalTableAnalysis {
     /// <summary>
     /// Describes table extraction scope while bounding attacker-controlled text/table comparisons.
     /// </summary>
+    /// <exception cref="InvalidOperationException">An optional image, widget, or visual primitive projection was not inspected.</exception>
     public static PdfTableExtractionScopeReport AnalyzeExtractionScope(
         PdfDocumentReadResult document,
         int maximumComparisons) {
         Guard.NotNull(document, nameof(document));
+        PdfLogicalContentProjection.RequireComplete(document);
         bool hasOpenAction = document.SourceFidelityFacts.HasOpenAction;
         int documentActionCount = document.SourceFidelityFacts.CatalogActionCount;
         if (hasOpenAction && !document.SourceFidelityFacts.CatalogContainsOpenAction) {
@@ -192,6 +195,7 @@ public static class PdfLogicalTableAnalysis {
     /// </summary>
     /// <param name="pages">Logical pages to inspect.</param>
     /// <returns>Page-scoped table counts plus visible and interactive content outside detected tables.</returns>
+    /// <exception cref="InvalidOperationException">A page's optional image, widget, or visual primitive projection was not inspected.</exception>
     public static PdfTableExtractionScopeReport AnalyzeExtractionScope(IReadOnlyList<PdfLogicalPage> pages) {
         return AnalyzeExtractionScope(pages, DefaultMaximumScopeAnalysisComparisons);
     }
@@ -200,10 +204,12 @@ public static class PdfLogicalTableAnalysis {
     /// Describes table extraction scope for selected logical pages while bounding attacker-controlled text/table comparisons.
     /// Page-level optional-content usage is reported even when document-level group metadata is unavailable.
     /// </summary>
+    /// <exception cref="InvalidOperationException">A page's optional image, widget, or visual primitive projection was not inspected.</exception>
     public static PdfTableExtractionScopeReport AnalyzeExtractionScope(
         IReadOnlyList<PdfLogicalPage> pages,
         int maximumComparisons) {
         Guard.NotNull(pages, nameof(pages));
+        PdfLogicalContentProjection.RequireComplete(pages);
         return AnalyzeExtractionScope(
             pages,
             formFieldCount: 0,

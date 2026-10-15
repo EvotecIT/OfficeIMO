@@ -174,11 +174,12 @@ internal static partial class DocumentReaderEngine {
         IReadOnlyList<OfficeDocumentOcrCandidate>? ocrCandidates = null) {
         ReaderInputKind kind = fallbackKind != ReaderInputKind.Unknown || chunks.Count == 0
             ? fallbackKind : chunks[0].Kind;
-        ReaderTable[] tables = ExtractTables(chunks).ToArray();
-        ReaderVisual[] visuals = ExtractVisuals(chunks).ToArray();
+        bool lean = IsTextAndMetadataProjection;
+        ReaderTable[] tables = lean ? Array.Empty<ReaderTable>() : ExtractTables(chunks).ToArray();
+        ReaderVisual[] visuals = lean ? Array.Empty<ReaderVisual>() : ExtractVisuals(chunks).ToArray();
         OfficeDocumentAsset[] assetArray = assets == null || assets.Count == 0 ? Array.Empty<OfficeDocumentAsset>() : assets.ToArray();
         OfficeDocumentBlock[] blocks = BuildChunkDocumentBlocks(chunks).ToArray();
-        OfficeDocumentOcrCandidate[] candidateArray = ocrCandidates == null
+        OfficeDocumentOcrCandidate[] candidateArray = lean ? Array.Empty<OfficeDocumentOcrCandidate>() : ocrCandidates == null
             ? BuildChunkDocumentOcrCandidates(blocks, assetArray).ToArray()
             : ocrCandidates.ToArray();
         IReadOnlyList<OfficeDocumentPage> pages = BuildChunkDocumentPages(chunks, blocks, tables, assetArray, candidateArray);
@@ -187,7 +188,7 @@ internal static partial class DocumentReaderEngine {
             Kind = kind,
             Source = source,
             CapabilitiesUsed = BuildChunkDocumentCapabilities(kind),
-            Markdown = BuildChunkDocumentMarkdown(chunks),
+            Markdown = lean ? null : BuildChunkDocumentMarkdown(chunks),
             Chunks = chunks,
             Metadata = BuildChunkDocumentMetadata(kind, chunks, blocks, tables, visuals, pages, assetArray),
             Pages = pages,

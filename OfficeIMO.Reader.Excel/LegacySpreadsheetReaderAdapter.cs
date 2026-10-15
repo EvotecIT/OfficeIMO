@@ -1,3 +1,4 @@
+using OfficeIMO.Reader.FormatInternals;
 using OfficeIMO.Excel.Legacy;
 
 namespace OfficeIMO.Reader.Excel;
@@ -17,7 +18,7 @@ internal static class LegacySpreadsheetReaderAdapter {
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderExcelOptions options,
         LegacySpreadsheetImportOptions? importOptions, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(path, Prepare(importOptions, path, readerOptions), cancellationToken);
+        using LegacySpreadsheetImportResult imported = NativeReaderAdmission.Load(() => LegacySpreadsheetImporter.Import(path, Prepare(importOptions, path, readerOptions), cancellationToken));
         return ExcelReaderAdapter.Project(imported.Value, path, readerOptions, options, cancellationToken, BuildWarnings(imported));
     }
 
@@ -25,7 +26,7 @@ internal static class LegacySpreadsheetReaderAdapter {
         LegacySpreadsheetImportOptions? importOptions, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "legacy-workbook" : sourceName!;
-        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(stream, Prepare(importOptions, sourceName, readerOptions), cancellationToken);
+        using LegacySpreadsheetImportResult imported = NativeReaderAdmission.Load(() => LegacySpreadsheetImporter.Import(stream, Prepare(importOptions, sourceName, readerOptions), cancellationToken));
         return ExcelReaderAdapter.Project(imported.Value, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported));
     }
 
@@ -52,6 +53,8 @@ internal static class LegacySpreadsheetReaderAdapter {
             throw;
         } catch (InvalidDataException) {
             return false;
+        } catch (OfficeInspectionResourceLimitException exception) {
+            throw NativeReaderAdmission.TranslateLimit(exception);
         } catch (IOException) {
             return false;
         } catch (NotSupportedException) {

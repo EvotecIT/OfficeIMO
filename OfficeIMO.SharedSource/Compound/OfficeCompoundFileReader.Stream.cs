@@ -73,7 +73,7 @@ namespace OfficeIMO.Core.Internal {
                     miniFatSectorCount,
                     physicalSectorCount,
                     sectorSize,
-                    options.MaxTotalStreamBytes);
+                    options.MaxTotalStreamBytes, options.PreserveResourceLimits);
 
                 List<uint> fatSectorIds = ReadFatSectorIds(
                     source,
@@ -93,20 +93,21 @@ namespace OfficeIMO.Core.Internal {
                     physicalSectorCount,
                     fatSectorIds,
                     options.MaxDirectoryEntries,
-                    cancellationToken);
+                    cancellationToken, options.PreserveResourceLimits);
                 List<DirectoryEntry> entries = ReadDirectoryEntries(
                     directoryBytes,
                     majorVersion,
                     options.MaxDirectoryEntries,
-                    cancellationToken);
+                    cancellationToken, options.PreserveResourceLimits);
                 DirectoryEntry? root = entries.FirstOrDefault(static entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
                 long maximumPhysicalStreamBytes = checked((long)physicalSectorCount * sectorSize);
                 if (root.Size < 0
-                    || root.Size > options.MaxTotalStreamBytes
                     || root.Size > maximumPhysicalStreamBytes) {
                     throw new InvalidDataException("Compound file mini stream exceeds configured or physical bounds.");
                 }
+                CheckConfiguredSize(root.Size, options.MaxTotalStreamBytes, "MaxTotalStreamBytes", options.PreserveResourceLimits,
+                    "Compound file mini stream exceeds configured or physical bounds.");
 
                 IReadOnlyDictionary<int, string> paths = BuildCompoundEntryPaths(entries, cancellationToken);
                 DirectoryEntry? selected = null;
@@ -118,10 +119,10 @@ namespace OfficeIMO.Core.Internal {
                     if (selected != null) {
                         throw new InvalidDataException("More than one compound stream matched the requested selector.");
                     }
-                    if (entry.Size < 0 || entry.Size > options.MaxStreamBytes) {
-                        throw new InvalidDataException($"Compound stream '{path}' has unsupported size {entry.Size}.");
-                    }
+                    if (entry.Size < 0) throw new InvalidDataException($"Compound stream '{path}' has unsupported size {entry.Size}.");
                     ValidateRegularStreamPhysicalBounds(path, entry.Size, miniCutoff, maximumPhysicalStreamBytes);
+                    CheckConfiguredSize(entry.Size, options.MaxStreamBytes, "MaxStreamBytes", options.PreserveResourceLimits,
+                        $"Compound stream '{path}' has unsupported size {entry.Size}.");
                     options.StreamSizeValidator?.Invoke(path, entry.Size);
                     selected = entry;
                 }
@@ -184,6 +185,9 @@ namespace OfficeIMO.Core.Internal {
                     leaveOpen,
                     cancellationToken);
                 return true;
+            } catch (OfficeCompoundStreamLimitExceededException) {
+                source.Position = originalPosition;
+                throw;
             } catch (Exception exception) when (exception is IOException
                                                 || exception is ArgumentException
                                                 || exception is InvalidDataException

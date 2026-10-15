@@ -776,24 +776,24 @@ namespace OfficeIMO.Tests {
             var importOptions = new LegacyPptImportOptions {
                 MaxInputBytes = expanded.Length
             };
-            InvalidDataException exception = Assert.Throws<
-                InvalidDataException>(() => LegacyPptPresentation.Load(
+            OfficeInspectionResourceLimitException exception = Assert.Throws<
+                OfficeInspectionResourceLimitException>(() => LegacyPptPresentation.Load(
                     expanded, importOptions));
 
-            Assert.Contains("Compound stream bytes exceed",
-                exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(expanded.Length.ToString(), exception.Message,
-                StringComparison.Ordinal);
+            Assert.Equal("powerpoint", exception.Owner);
+            Assert.Equal("MaxTotalStreamBytes", exception.LimitName);
+            Assert.Equal((long)expanded.Length, exception.Maximum);
             using var encryptedRoute = new MemoryStream(expanded,
                 writable: false);
-            InvalidDataException routeException = Assert.Throws<
-                InvalidDataException>(() =>
+            OfficeInspectionResourceLimitException routeException = Assert.Throws<
+                OfficeInspectionResourceLimitException>(() =>
                 PowerPointPresentation.LoadEncrypted(encryptedRoute,
                     "password", new PowerPointLoadOptions {
                         LegacyPptImportOptions = importOptions
                     }));
-            Assert.Contains("Compound stream bytes exceed",
-                routeException.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(exception.Owner, routeException.Owner);
+            Assert.Equal(exception.LimitName, routeException.LimitName);
+            Assert.Equal(exception.Maximum, routeException.Maximum);
         }
 
 #if POWERPOINT_PERFORMANCE_EVIDENCE

@@ -149,7 +149,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             return Load(bytes, options, CancellationToken.None);
         }
 
-        internal static LegacyPptPresentation Load(byte[] bytes,
+        private static LegacyPptPresentation LoadCore(byte[] bytes,
             LegacyPptImportOptions? options,
             CancellationToken cancellationToken) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
@@ -165,7 +165,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             var decodedStorageBudget = new LegacyPptDecodedStorageBudget(
                 options.MaxDecodedStorageBytes);
             LegacyPptPackage package = LegacyPptPackage.Read(bytes, options,
-                recordBudget, decodedStorageBudget, cancellationToken);
+                recordBudget, decodedStorageBudget, cancellationToken, preserveResourceLimits: true);
             var presentation = new LegacyPptPresentation {
                 Package = package,
                 _recordBudget = recordBudget,
