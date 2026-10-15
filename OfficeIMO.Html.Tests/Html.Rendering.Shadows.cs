@@ -9,6 +9,85 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlShadows_PositiveSpreadSharpensSmallCircularCorners() {
+        HtmlRenderPage page = RenderShadowSpread("2px", 8);
+        HtmlRenderShape shadow = Assert.Single(page.Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#box:box-shadow");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
+
+        Assert.Equal(6.625D, shadow.Shape.CornerRadius, 6);
+        // Independent native print and screen controls fully cover these pixels.
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(26, 26));
+        Assert.Equal(72D, Assert.Single(page.Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#tail").Y, 6);
+    }
+
+    [Fact]
+    public void HtmlShadows_SmallEllipticalSpreadAdjustsEachAxis() {
+        HtmlRenderPage page = RenderShadowSpread("2px 12px 0 2px / 12px 2px 12px 2px", 8);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
+
+        // The small horizontal and vertical axes sharpen independently while
+        // the larger axes and the authored square corner retain their shape.
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(28, 26));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(117, 28));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(119, 79));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(24, 24));
+    }
+
+    [Theory]
+    [InlineData(0, 8, 0)]
+    [InlineData(8, 8, 16)]
+    [InlineData(12, 8, 20)]
+    [InlineData(2, 0, 2)]
+    [InlineData(2, -4, 0)]
+    [InlineData(8, -4, 4)]
+    public void HtmlShadows_SpreadKeepsZeroThresholdAndNegativeRadiusBoundaries(
+        int radius, int spread, int expectedRadius) {
+        HtmlRenderPage page = RenderShadowSpread(radius + "px", spread);
+        HtmlRenderShape shadow = Assert.Single(page.Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#box:box-shadow");
+
+        Assert.Equal(expectedRadius, shadow.Shape.CornerRadius, 6);
+        Assert.Equal(32D - spread, shadow.X, 6);
+        Assert.Equal(32D - spread, shadow.Y, 6);
+        Assert.Equal(80D + spread * 2D, shadow.Width, 6);
+        Assert.Equal(40D + spread * 2D, shadow.Height, 6);
+    }
+
+    [Theory]
+    [InlineData("0", 44, 44)]
+    [InlineData("0 2px 0 2px / 12px 2px 12px 2px", 44, 44)]
+    [InlineData("12px 2px 12px 2px / 0 2px 0 2px", 44, 44)]
+    [InlineData("2px", 46, 46)]
+    [InlineData("2px 12px 0 2px / 12px 2px 12px 2px", 48, 46)]
+    [InlineData("12px 2px 0 2px / 2px 12px 12px 2px", 46, 48)]
+    public void HtmlShadows_NegativeInsetSpreadKeepsSquareAndSmallRoundedHoleCorners(
+        string radii, int holeX, int holeY) {
+        HtmlRenderPage page = RenderShadowSpread(radii, -8, inset: true);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
+
+        // Offsetting the expanded hole exposes the same square/small-radius
+        // boundary that independent native print and screen controls show.
+        Assert.Equal(OfficeColor.White, raster.GetPixel(holeX, holeY));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(43, 43));
+    }
+
+    private static HtmlRenderPage RenderShadowSpread(string radii, int spread, bool inset = false) =>
+        Assert.Single(HtmlRenderTestDriver.Render("<!doctype html><style>"
+            + "html,body{margin:0;padding:0;font-size:0;line-height:0;background:white}"
+            + "body{padding:32px}</style>"
+            + "<div id='box' style='width:80px;height:40px;background:white;border-radius:" + radii
+            + ";box-shadow:" + (inset ? "20px 20px" : "0 0") + " 0 " + spread
+            + "px red" + (inset ? " inset" : "") + "'></div>"
+            + "<div id='tail' style='width:80px;height:2px;background:blue'></div>", new HtmlRenderOptions {
+                ViewportWidth = 240D, ViewportHeight = 180D,
+                Margins = HtmlRenderMargins.All(0D),
+                UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser,
+                AllowSystemFontFallback = false
+            }).Pages);
+
+    [Fact]
     public void HtmlShadows_HalfHeightRadiusRendersRoundedShadowAndClipInPdf() {
         const string html = "<body style='margin:0'><div id='rounded' style='width:98.399px;height:52.4px;border-radius:26.200000000000003px;box-shadow:0 2px 4px black;overflow:hidden;background:white'>Rounded shadow</div></body>";
         var options = new HtmlRenderOptions {
