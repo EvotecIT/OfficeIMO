@@ -1,0 +1,517 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-15T18:49:44.135065+00:00",
+  "source": {
+    "branch": "feature/html-engine",
+    "commit": "888ba1e8a8430f4fe27be23190a86a9f6fe30b64",
+    "compileBase": "19795d6a31e1e84f1e775639f4516d6196281025",
+    "contentSealSha256": "5a2ac5b28bb22a416da565aed39e01f0a8fe07a333a44948327a62a83f8a670d",
+    "sealedFiles": {
+      "Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj": "bf74081656c12df4d689935454049c537a72f47f31f6ef9a8450452ef2bd7082",
+      "OfficeIMO.Epub/packages.lock.json": "614e0cad16ca7e01559aecea2d49b0342d9af43aec701f7634707683e8dbd7fb",
+      "OfficeIMO.Epub/packages.nonwindows.lock.json": "03e15a74c0b47c0e487901cfd8ce63ef23f9b0d54634407772b864c6241e7b03",
+      "OfficeIMO.Html.Pdf/packages.lock.json": "88ae29841ee5f0d095354ef3ca3a4b11c4f383a57ff1dd35a7eb6191066d6415",
+      "OfficeIMO.Html.Pdf/packages.nonwindows.lock.json": "cf43a8500af22861e50e0513efc74f3c6fa711f627def323d158e61749678bd9",
+      "OfficeIMO.Html.Runtime.Worker/OfficeIMO.Html.Runtime.Worker.csproj": "94d16a3f9e83e23bf00f384a12724d6282b3f06e969e2f0938104145869a231b",
+      "OfficeIMO.Html.Tests/Html.Rendering.Effects.cs": "beafe36b481e32a43a170a0e132cf3771d7fbd7283945b621cef1dade5cd3d51",
+      "OfficeIMO.Html.Tests/Html.Rendering.InlineDecorationGeometry.cs": "6b60b6213e0653c0f222a48eee42893dfb3078352f6a5214454591069a84f934",
+      "OfficeIMO.Html.Tests/Html.Rendering.OrdinaryFontBoxes.cs": "c04c4e57c9e654cd2ab5713a3955d4983939e042b3225b7cac65db8e2de1c044",
+      "OfficeIMO.Html.Tests/Html.Rendering.Shadows.PaddingBox.cs": "82beae90d866882d6ec44855a8fd1a3a5a8d99f30311c262efe067709e8e3e3b",
+      "OfficeIMO.Html.Tests/Html.Rendering.Shadows.cs": "86bc2d6fe7fbb54257c90ce58ccc3ddf59cc9711a23202bc5e7e3b46258136ba",
+      "OfficeIMO.Html.Tests/Html.Rendering.TransformApplicability.cs": "88f754f9cedbb7c9819f9661eb537df00bef5baa917b8af81becf302984ff4d0",
+      "OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.Profiles.cs": "9ae7a2d18bb62f1d630be3d69d23b6595f5080b7b396db6b0b3008a6e399d2af",
+      "OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs": "2f17758dd8ba4dae8dd99f41fc4c039ffbd5a4dd2bcc10c9c172a85732e3bfaa",
+      "OfficeIMO.Html/OfficeIMO.Html.csproj": "d5d4ac3b0a48643ca5dee9fac3fcd587685ee0c55495cee1535edc1129d433c7",
+      "OfficeIMO.Html/Rendering/HtmlRenderBoxStyle.cs": "f93a60af8c1ab74a1ff4da3c2c7188c39e2c6dcdfc083535eb6f02eea399639a",
+      "OfficeIMO.Html/Rendering/HtmlRenderFlowBlock.cs": "5531b45048b4ca6e94efe0c876490e6a837acc31d3ae60cdd1d67469e00225fa",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs": "25075bd6015d68e7d67a55c27771b8826afa483954b67a1b0f7ac88613dc0d52",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BlockFlow.cs": "825487310020aca0611be47fb82a79481bb58cc162cb6e2606279ad4b0cfc516",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.cs": "082fab0b0190b0ce25e54b74fd64f5adb7aac72a3ef4f4c0864ea51ca0373d72",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Effects.cs": "4baf6b506f0ea93788f4a3911588b33d6c159345d122a2a91bb535410bdb3086",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.FloatPaint.cs": "15ffd70ff9e1eeaa46bfcf82b216fff1a3006ea7df06343412d5fbe6e8f2c6f1",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.FormControls.cs": "f618971d1bd5da7197a2fb69fee839c5045cdf4cf89bddeea21ec161bf564b73",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs": "04268bd1ffa7a252b85a8e6296137443315f8c49b0e70796fb438df0d12e47a9",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineDecorationGeometry.cs": "d1c2acd67f9a6c1da891b4cf9b128a7dbb295a74be9ae0398cc94e797af2538f",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineInterruptions.cs": "fde83d9ec2da6eed89ff71c16d3ec8d40e9f698546a1ae0be9a0a42a7dddc822",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineLines.EmptyAtomic.cs": "fb4365324bba2c939ba9049b4f5a667f44abfff45a6aea7b4d6fc82f006c6939",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineLines.Paint.cs": "fc5aae1edd55606cd3828799b2ba12adb2d29c19eac1bcb019a32a72704c0cba",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlineLines.cs": "e022bcb218b010d228e708d2a0b8a490cafe068eaa24bfcf065c8a1738026934",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.InlinePaintCapture.cs": "20117cf0acbbeba121c6e5e3e5da4b44b0709535de11311d54180b5d24fca110",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PagedBackgrounds.cs": "f17a3001be8d72a54221eab3a86efac0c4b23ad5f412b839a1acb81b3e85820b",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Positioning.ContainingBlocks.cs": "d0753e2510b377eb764b35db3690b7dc1b06dba8a3816660e670e0fd0616e608",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Positioning.Inline.Chunks.cs": "d6e1e3ca9c866dd06386dfb29096ec1c7ec0961a86512d8f29ed945967cd98af",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Positioning.Inline.cs": "612a72f2ad3053553268f3e213774a5d6adcb909d2da7d19d55339aad6938b4a",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Positioning.OutOfFlow.cs": "3adef67c0d09d8a23428406474ee95d5e2c9cb0ffe977ceb1b33e86442c35796",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Positioning.Pagination.cs": "0913a6bffeaf78edd85c17d3a33f37bdab61a6e1656500443abcc852521d08e5",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Shadows.cs": "44b8e7c852572a37abb511c7a2fe4d621c32082c7f569f7efa70f8654bd283b5",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.FontBoxes.cs": "98f790b631220f371de1771f982b18f189933898f14f7aca0ece9469a28d895f",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.LineExtents.cs": "3aa427b202936e4f57ff224d65e132ff08813c729f41b5506e2da1dc5685386b",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.VerticalMetrics.cs": "aa043a46f7234fa655ddf193723822721907a988dc8f56442cc7e7de2fcb5d41",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.cs": "8a4fdb5bba32e9dc8b09994ec54bfa719751e0703abfeb4a9610bea1b95710ee",
+      "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BoxApplicability.cs": "31cfa6fcedb7fc006410f783f358815741abacf276d99264b82a90abefd69c47",
+      "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.DimensionDiagnostics.cs": "a3dfda512f4349170be73cf8fda35094742cf7759f16fde0d7dbaa1ae69cd6be",
+      "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs": "65ca69d4d639152c34300e57f6a13e806b873b1cf15969fd5c8821c4ea8a0841",
+      "OfficeIMO.Html/Rendering/HtmlResolvedBorderRadii.cs": "cd4c0172d8dc8c44130f21696c1de4a40bdcb5c7ca11fea703625d8b1a6743cc",
+      "OfficeIMO.Html/packages.lock.json": "3f3ed8b6ce199499ce0bd17b48c41f9b8bb1dae36df31573345a4bce52e79a3f",
+      "OfficeIMO.Html/packages.nonwindows.lock.json": "da0e1d4d967eb7c508b3ff14290fde4d71ce219eede8d33410342217e40b5fc4",
+      "OfficeIMO.Studio.Core/packages.lock.json": "006419f41b65465a1e2d75c9f0e7c0c1a5d86a30f204b7c230039c347bba2523",
+      "OfficeIMO.Studio.Core/packages.nonwindows.lock.json": "006419f41b65465a1e2d75c9f0e7c0c1a5d86a30f204b7c230039c347bba2523",
+      "OfficeIMO.Studio/packages.lock.json": "d5c0bf1073f27209409b81590ca90a0e829206ebd04f99d6e3c0d5ca1b8e365e",
+      "OfficeIMO.Studio/packages.nonwindows.lock.json": "d5c0bf1073f27209409b81590ca90a0e829206ebd04f99d6e3c0d5ca1b8e365e",
+      "OfficeIMO.Workflows/packages.lock.json": "ee9091f08736e0a971b0bd2ea2cbbff941ce305f0260d54e26d40ea39f696079",
+      "OfficeIMO.Workflows/packages.nonwindows.lock.json": "ee9091f08736e0a971b0bd2ea2cbbff941ce305f0260d54e26d40ea39f696079"
+    },
+    "committedContentMatchesEverySealedFile": true,
+    "scope": "Bounded static transform applicability and anchor ownership; independent HTML program continues.",
+    "standards": [
+      "https://www.w3.org/TR/css-transforms-1/#transformable-element",
+      "https://www.w3.org/TR/css-display-3/#blockify"
+    ]
+  },
+  "changes": [
+    "Retain raw computed transform and scale declarations while deriving used applicability from the original box role.",
+    "Preserve eligible replaced, atomic and blockified boxes across float/position layout clones and parentless flex/grid recovery.",
+    "Use the same applicability for paint, stacking, containing blocks, pagination and PDF form fallback.",
+    "Suppress stale placement-slot links when floated or interrupted root anchors already own their effected fragments; preserve inherited-anchor fallback.",
+    "Share complete legacy orientation/clamp display context between normal layout and ancestor recovery."
+  ],
+  "environment": {
+    "host": "macOS arm64",
+    "sdk": "10.0.303",
+    "font": "OfficeIMOBaselineSans-Regular.ttf",
+    "fontSha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+    "providerPins": {
+      "AngleSharp": "1.8.3",
+      "AngleSharp.Css": "1.1.3"
+    }
+  },
+  "validation": {
+    "ordinaryFilter": "Category!=Performance",
+    "gates": [
+      {
+        "phase": "full-net8-r4",
+        "framework": "net8.0",
+        "exitCode": 0,
+        "counts": {
+          "total": "6355",
+          "executed": "6355",
+          "passed": "6355",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "commandRecordSha256": "31b657230f3cbd84219989585aa4380e5623864b3c47a08222b696dc8b1aeaf5"
+      },
+      {
+        "phase": "full-net10-r4",
+        "framework": "net10.0",
+        "exitCode": 0,
+        "counts": {
+          "total": "6355",
+          "executed": "6355",
+          "passed": "6355",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "commandRecordSha256": "924f39bd19e241a3bb7716343935b44e0bf5d5acbf37f41a35a013a61489ad04"
+      },
+      {
+        "phase": "renderer-netstandard-r4",
+        "framework": "netstandard2.0",
+        "exitCode": 0,
+        "counts": null,
+        "commandRecordSha256": "f5973de1e78cd48eafc3de44dd463a41380c4f490c3375bc39c52efd77b8c00a"
+      }
+    ],
+    "newPublicRegressionCases": 16,
+    "correctedOrdinaryInlineExpectations": 4,
+    "warnings": "Three existing xUnit2031 warnings in the HTML test project; netstandard renderer and normal render probe compile cleanly.",
+    "machineLocalPacket": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/inline-transform-applicability",
+    "frameworkTrxArchive": {
+      "machineLocalPath": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/inline-transform-applicability/framework-test-results.zip",
+      "sha256": "4beb196a654d92cd077f725af94304065f355ec4b6b9f42ea0d789ab7a68ddef",
+      "readbackHashesMatch": true
+    }
+  },
+  "native": {
+    "status": "PASS for applicability",
+    "wholeNativeAppearance": "OPEN",
+    "browser": "Chromium 153.0.8010.12",
+    "owner": "HtmlTinkerX 3.0.5 source 366cbd06949dc1c00162a280a290e2c130ca0bea",
+    "fixtures": [
+      {
+        "path": "native/inputs/ordinary-inline.html",
+        "sha256": "98dcdabb1819fcd0b29dec926f945b2e0b7e0d5c94116f0fbd109180b377be66",
+        "purpose": "Ordinary non-replaced inline declarations are ignored without changing margins, links or following text."
+      },
+      {
+        "path": "native/inputs/atomic-inline-controls.html",
+        "sha256": "63ec9741340d48a0a53eb141700158971e571520e8f91924eadbd85ed512ca64",
+        "purpose": "Eligible inline-block and replaced image boxes keep authored translation and scale."
+      },
+      {
+        "path": "native/inputs/inline-absolute-containing-block.html",
+        "sha256": "48c33fd1f7b8f913487bf94ee0253d965cdd4bd07507f82c2d9d3f2ddf04a112",
+        "purpose": "Ignored inline transforms create no containing block; a relative inline still owns absolute descendants through positioning."
+      },
+      {
+        "path": "native/inputs/inline-fixed-containing-block.html",
+        "sha256": "bfd094dc2ca76390981d11243576dcb29044414ab55258a950aa022daae3afd4",
+        "purpose": "Ignored static or relative inline transforms do not establish a fixed descendant containing block."
+      },
+      {
+        "path": "native/inputs/atomic-fixed-containing-block.html",
+        "sha256": "930a70a40bef2a8bf914c0f583256a114b458a333012fd94791851fb8627c652",
+        "purpose": "An eligible inline-block transform establishes and paints the fixed descendant containing block."
+      },
+      {
+        "path": "native/inputs/blockification-controls.html",
+        "sha256": "2fc981856b7923069f93a89332387eea3398cf21a2dc142861edbd50e5150054",
+        "purpose": "Authored inline boxes remain transformable after float, absolute-position or flex/grid item blockification."
+      },
+      {
+        "path": "native/inputs/generated-inline-controls.html",
+        "sha256": "665aa165a948fcbb4829b1cd39f3b738a1866dbf66abb35ded0c4f0bccfa3738",
+        "purpose": "Generated non-replaced inline content ignores transforms while its inline-block positive control retains them."
+      },
+      {
+        "path": "native/inputs/interrupted-inline-effects.html",
+        "sha256": "1605ed00394ad84bdc5935ee449133ce58672775ea5436f383e599de5e0c43ae",
+        "purpose": "Ignoring an inline transform retains interrupted text, nested backgrounds and opacity."
+      },
+      {
+        "path": "native/inputs/display-contents.html",
+        "sha256": "fa23137605afed0418eb7058590061a1eca4d70e2cdff88ee5d5f75d1ef02c96",
+        "purpose": "A display:contents ancestor has no transformable box."
+      },
+      {
+        "path": "native/inputs/table-column-exclusions.html",
+        "sha256": "ad451aa54098efcfb85a719cab97252331f5eefef0b52ba31fdd0a0ce195dfca",
+        "purpose": "Table columns and column groups remain excluded from transform applicability."
+      },
+      {
+        "path": "native/inputs/blockified-fixed-containing-block.html",
+        "sha256": "f6a332a96f417b27b2218b9b4689a0efed19067ac40c7a18a53e7485d6c4a961",
+        "purpose": "Parentless transformed-containing-block lookup recovers a blockified inline flex/grid item."
+      },
+      {
+        "path": "native/clamp-consistency/inputs/legacy-clamped-webkit-box.html",
+        "sha256": "09f37897ce2b7dd177e2db48929e0c29e36f0b0df06bd22be8118b31cf8a0f1a",
+        "purpose": "Native-confirmed viewport anchoring through vertical clamped legacy boxes."
+      }
+    ],
+    "fixtureCount": 12,
+    "pairedControls": 27,
+    "profiles": [
+      "print",
+      "screen"
+    ],
+    "profileControls": 54,
+    "viewportCssPixels": [
+      816,
+      900
+    ],
+    "pdfRasterDpi": 96,
+    "normalProducerDllCount": 59,
+    "actualLoadedOwnersCheckedForEveryFixture": true,
+    "normalProducerUnchangedDuringReplay": true,
+    "producerDllSha256": {
+      "OfficeIMO.Core.dll": "59e3976ee82ce622e1d01417ab8059da2d14e5ec6f6c25a329c4ea8f3aa5b647",
+      "OfficeIMO.Html.Core.dll": "0359092598d0ffd9955e1983d9100f9d0864aeb229e52d557d58004ab69b8b3a",
+      "OfficeIMO.Html.AngleSharp.dll": "22e6dc36f95d5639288d36de9a78d06297e01446959450e654177d888d9eafe9",
+      "OfficeIMO.Html.dll": "58eebd5384b7dfa7b7a2e91457d22ce2986cf152da9f0986bb83a0cea07b489b",
+      "OfficeIMO.Pdf.dll": "82a5c1186a4ee75f98f104b29b530d52fea4725de95dda011f17e629c2311573",
+      "OfficeIMO.Html.Pdf.dll": "329b3ee6fddcc0760320bec779366d3373e44783ee0bdbfa850433d6f3aebf1c",
+      "AngleSharp.dll": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911",
+      "AngleSharp.Css.dll": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+    },
+    "producerArchive": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/inline-transform-applicability/native/final-r4-qualified-runtime.zip",
+      "bytes": 8996042,
+      "sha256": "5cdd99e4804a0b591d0f18d7b82b774b81005b5f57641d3643d6a27b6226e636",
+      "entries": 25,
+      "readbackHashesMatch": true
+    },
+    "rawComputedDeclarationsUnchanged": true,
+    "clampFixedOrigins": [
+      125,
+      4
+    ],
+    "savedPdfExtractedText": "All original profile glyph multisets match native with declared coincident-fixed deduplication; extraction does not prove ink visibility.",
+    "positiveAppearancePreserved": "Eight eligible-control PDF96 PNGs are byte-identical to the original 19795 producer. All 22 original final PNGs are byte-identical before/after the clamp closure.",
+    "rootVisualInspection": "Eight original r3 contacts and decisive final-r4 clamp/ordinary/blockified controls inspected; native owner also inspected all final contacts.",
+    "nativeTolerancesChanged": false,
+    "limits": [
+      {
+        "fixture": "inline-absolute-containing-block.html",
+        "profiles": [
+          "print",
+          "screen"
+        ],
+        "controls": [
+          "absolute-relative-none",
+          "absolute-relative-authored"
+        ],
+        "observed": "The untransformed relative-inline ABS first glyph is nativeX165 versus baselineX169: constant four CSS pixels of padding/containing-box placement. Applicability acceptance compares authored-minus-none delta0 after the fix; it does not claim absolute containing-box parity.",
+        "classification": "Existing independent inline padding/containing-box geometry boundary."
+      },
+      {
+        "fixture": "atomic-inline-controls.html",
+        "profiles": [
+          "print",
+          "screen"
+        ],
+        "controls": [
+          "inline-block-scale-none",
+          "inline-block-scale-authored"
+        ],
+        "observed": "Native DOM first LINK glyph advances1.6 CSSpx X; baseline managed PDF advances1.60024. Chromium saved PDF advances1.131248, a0.46875 CSSpx horizontal producer residual. Both PDF baselines advance3.8 CSSpx and opaque box scale remains correct.",
+        "classification": "Native PDF text-origin/DOM observation boundary, separate from transform eligibility."
+      },
+      {
+        "fixture": "atomic-inline-controls.html",
+        "profiles": [
+          "print",
+          "screen"
+        ],
+        "controls": [
+          "img-scale-none",
+          "img-scale-authored",
+          "img-translate-none",
+          "img-translate-authored"
+        ],
+        "observed": "Chromium scaled-image PDF annotation width quantizes to51 CSSpx while DOM/managed width is50.4. Chromium translated-image anchors include an unchanged parent-inline fragment rectangle plus a translated child-image rectangle; managed retains the child-image rectangle only.",
+        "classification": "Native PDF rounding and parent-anchor coverage policy boundary; complete annotation-count/parent-line-box hit parity remains unqualified."
+      },
+      {
+        "fixture": "inline-absolute-containing-block.html",
+        "profiles": [
+          "print",
+          "screen"
+        ],
+        "controls": [
+          "absolute-static-none",
+          "absolute-static-authored",
+          "absolute-relative-none",
+          "absolute-relative-authored"
+        ],
+        "observed": "Stylesheet .target{background:#00ff00} plus inline background:#ff0000 leaves baseline computed background-color green despite raw background red; native screenshot/PDF paints red. Pixel150,29 nativeRGBA255,0,0,255 versus baseline0,255,0,255. The native observer did not collect background-color; no native computed value is claimed.",
+        "classification": "Observed preexisting CSS shorthand/expanded-longhand priority mismatch. Root owns separate canonical roadmap item; no style-engine edit in this transform checkpoint.",
+        "evidence": "preexisting-background-cascade-evidence.json"
+      },
+      {
+        "fixture": "generated-inline-controls.html",
+        "profiles": [
+          "print",
+          "screen"
+        ],
+        "controls": [
+          "generated-inline-none",
+          "generated-inline-authored",
+          "generated-inline-block-none",
+          "generated-inline-block-authored"
+        ],
+        "observed": "Native and managed generated glyph applicability is compared directly. Ordinary inline pseudo background paint is not present in the old managed output; atomic pseudo following-text baseline also has an existing one-pixel absolute difference. Those producer/inline-pseudo decoration details do not qualify through the effect-delta test.",
+        "classification": "Existing generated-inline paint and atomic baseline geometry boundaries."
+      },
+      {
+        "fixture": "blockified-fixed-containing-block.html",
+        "profiles": [
+          "print",
+          "screen"
+        ],
+        "controls": [
+          "fixed-flex-item-fixed-none",
+          "fixed-grid-item-fixed-none"
+        ],
+        "observed": "Both no-transform controls coincide at viewport125,4. Native MuPDF structured-text extraction deduplicates one overlapping FIX; the candidate is compared to native saved-PDF extraction plus separate scene/content counts, rather than expecting four distinct visible FIX tokens from the DOM.",
+        "classification": "Deliberate coincident-control extraction boundary; authored fixed children still require separate native local origins."
+      },
+      {
+        "fixture": "atomic-inline-controls.html and generated-inline-controls.html",
+        "profiles": [
+          "print",
+          "screen"
+        ],
+        "observed": "Native transformed atomic background covers part of following TAIL, while managed TAIL paints above the transformed box. Both eligible-atomic and generated-atomic PDF96 artifacts are byte-identical to the 19795 baseline.",
+        "classification": "Existing eligible atomic foreground/overlap stacking appearance gap; applicability PASS does not qualify native stacking/whole appearance."
+      },
+      {
+        "fixture": "interrupted-inline-effects.html",
+        "profiles": [
+          "print",
+          "screen"
+        ],
+        "observed": "Native nested background is blue/yellow; managed remains green. Both old/final computed dictionaries keep raw background:#0000ff and expanded background-color:rgba(0,255,0,1). The fix restores position without changing this cascade mismatch.",
+        "classification": "Existing shorthand-priority appearance boundary; no full native paint/color/source-order parity claim."
+      }
+    ],
+    "browserAndServerCleanup": "All three serialized native capture batches released their owned browser/server; no Windows connection used."
+  },
+  "packages": {
+    "status": "PASS",
+    "command": "Build/Test-HtmlPackages.ps1",
+    "privateQualificationVersion": "3.4.5.1015",
+    "packageCount": 19,
+    "frameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "executedConsumers": 4,
+    "executedFrameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "matchedConsumerDllCopies": 42,
+    "apiValidation": "Enabled for all public packages; configured 3.3.0 baselines retained for OfficeIMO.Pdf, OfficeIMO.Html.Pdf, OfficeIMO.Mhtml.Pdf and OfficeIMO.Rtf.",
+    "providerArchivesMatchOfficialNuGet": true,
+    "selectedProviderDllCopiesMatchedOfficialAssets": 6,
+    "staticConsumersExcludeWorkerAndBrowserLibraries": true,
+    "packageArchives": [
+      {
+        "id": "OfficeIMO.Core",
+        "bytes": 8318289,
+        "sha256": "639ca503a050fec401fd3647ea9c833a145626bd64ebcb42ba4c6432b02ae682"
+      },
+      {
+        "id": "OfficeIMO.Email",
+        "bytes": 3033953,
+        "sha256": "d08efa01873ee5ee1d0a7d1dbf4fd9153f8a65cdf1209a2fc4725afb1d3d0af3"
+      },
+      {
+        "id": "OfficeIMO.Excel",
+        "bytes": 9324320,
+        "sha256": "26345a586a01f0020794d93dbc78daba33892ad628335f3d61caf00bc061554d"
+      },
+      {
+        "id": "OfficeIMO.Excel.Html",
+        "bytes": 249076,
+        "sha256": "1057fdca3762a6cde30f8af4f8fc9461beae9993fd2f4e86294db0e047f6cdbb"
+      },
+      {
+        "id": "OfficeIMO.Html",
+        "bytes": 3930751,
+        "sha256": "4102326172abb1793a25e7b3749ce38c2cc7dd2cd7894d009cfe2f5b87c7975c"
+      },
+      {
+        "id": "OfficeIMO.Html.AngleSharp",
+        "bytes": 104868,
+        "sha256": "9b8dfeb07d71f485a3f642411d2c95a9bb9b5ecb738ef97e0a24322b01d1ae05"
+      },
+      {
+        "id": "OfficeIMO.Html.Core",
+        "bytes": 325483,
+        "sha256": "0b5cdbaaa5a04457de7126385f7db943321a36eb4f38116bf8ae97dccce39913"
+      },
+      {
+        "id": "OfficeIMO.Html.Pdf",
+        "bytes": 529711,
+        "sha256": "54e8ff00506fc3df874c8ef9bd988a8ff3bb7ea5a496127165dc1655fba5c0d1"
+      },
+      {
+        "id": "OfficeIMO.Html.Rtf",
+        "bytes": 415919,
+        "sha256": "8a530f6f5bb8d4d5a83f1a651d80963ecce76c309f8afc671c5fe9c5d94914b1"
+      },
+      {
+        "id": "OfficeIMO.Markdown",
+        "bytes": 2290306,
+        "sha256": "15e82bb3ea4fef782a4df04b83d252d096f3830776a08261286f7f682fe41179"
+      },
+      {
+        "id": "OfficeIMO.Markdown.Html",
+        "bytes": 216834,
+        "sha256": "0e9c63fd5c39f92b0079f3b308792b73fd4fadf21e135cc247603077b00a1496"
+      },
+      {
+        "id": "OfficeIMO.Mhtml",
+        "bytes": 114206,
+        "sha256": "2add7289d5f3875f1ec24972a9a07d8bf0edb1e9b0ea41836092823da5c3f23c"
+      },
+      {
+        "id": "OfficeIMO.Mhtml.Pdf",
+        "bytes": 43189,
+        "sha256": "fe4974a3337b5295f901bd5ce8e9308182367aae7671decc33cf2d636035f9a1"
+      },
+      {
+        "id": "OfficeIMO.Pdf",
+        "bytes": 12838368,
+        "sha256": "02d7e8c8e1663ea7b0064eff8d3c0a61a888fd63cd9a4ecd47dba91c6535e072"
+      },
+      {
+        "id": "OfficeIMO.PowerPoint",
+        "bytes": 4452162,
+        "sha256": "1d0699d9a312fb911896a493d4f08fc185ca7ea28bd8e4de37950f1e55ad0196"
+      },
+      {
+        "id": "OfficeIMO.PowerPoint.Html",
+        "bytes": 291134,
+        "sha256": "5c14ee635d19a85650c9c8b96cca6ac5c56c53a74c4c55fefb8dc914789dcb31"
+      },
+      {
+        "id": "OfficeIMO.Rtf",
+        "bytes": 1019604,
+        "sha256": "b3a20e5b7fb2b4b8242f25c50e4891c93c4e8fb149a545655f998d21bb25f0fc"
+      },
+      {
+        "id": "OfficeIMO.Word",
+        "bytes": 6751405,
+        "sha256": "5a4757f34d70e83f72d25023c7f55358866de4221c57e36ccf0235a0db43b634"
+      },
+      {
+        "id": "OfficeIMO.Word.Html",
+        "bytes": 823430,
+        "sha256": "c0a22d9767f5409a4a2d3ae1ceaca0f53b4ac9bc3a13845d8c554cf5b654b69d"
+      }
+    ],
+    "deliveryBoundary": "Private unpublished qualification packages. net472 compiled/packed on macOS; no Windows runtime execution, signed release or public publication."
+  },
+  "review": {
+    "fullPass": "One independent read-only pass over the shared applicability/clone/link contracts.",
+    "finding": "One introduced P2: vertical clamped legacy display context was lost during parentless recovery.",
+    "disposition": "Reproduced in native print/screen, fixed through the shared computed-display owner, regression passed.",
+    "targetedConfirmation": "Single confirmation accepted source, actual corrected images and complete producer evidence; no remaining consequential findings.",
+    "manualHostedReviewRequested": false,
+    "publicApiOrProductionDependencyChange": false
+  },
+  "remaining": [
+    "Full native atomic foreground overlap and generated-inline decoration appearance.",
+    "Shorthand/longhand background cascade priority in the computed-style owner.",
+    "Absolute relative-inline descendant geometry, horizontal font/PDF snapping and complete parent-anchor coverage.",
+    "Positive transformed element input geometry in the separate interactive runtime.",
+    "Original-font/H10/corpus/platform, accessibility, AOT/WASM and release criteria remain in the canonical roadmap."
+  ],
+  "WindowsProfiling": "Explicitly deferred; no Windows profiling or timing-budget qualification performed.",
+  "delivery": "Qualified integration-branch checkpoint; no new PR, merge, tag, package publication or deployment in this slice.",
+  "storage": {
+    "removedLogicalBytes": 3519367383,
+    "retainedMachineLocalRoot": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/inline-transform-applicability",
+    "retainedApproximateLogicalBytes": 110146079,
+    "purpose": "Compact native, framework, review and nineteen private-package proof; all compiler graphs, expanded runtimes and private qualification cache removed.",
+    "sharedCachesRemoved": false,
+    "lockedOrUncertainTargets": []
+  }
+}
