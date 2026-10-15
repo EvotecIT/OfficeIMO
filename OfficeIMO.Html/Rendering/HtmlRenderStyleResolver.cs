@@ -1026,7 +1026,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         IReadOnlyList<string> attachmentLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-attachment"));
         (string shorthandOrigin, string shorthandClip) = ExtractBackgroundBoxes(backgroundShorthand);
         style.BackgroundColorClip = HtmlRenderBackgroundLayer.NormalizeBox(
-            clipLayers.Count > 0 ? clipLayers[clipLayers.Count - 1] : shorthandClip,
+            GetLayerValue(clipLayers, Math.Max(0, sourceLayers.Count - 1), shorthandClip, "border-box"),
             "border-box");
         var layers = new List<HtmlRenderBackgroundLayer>();
         int declaredLayerCount = 0;
