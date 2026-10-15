@@ -36,6 +36,13 @@ def validate_marker(readme, server):
         raise ValueError(f"README must contain exactly one ownership marker: {marker}")
 
 
+def validate_launcher_version(mcp, plugin_version):
+    arguments = mcp["mcpServers"]["officeimo"]["args"]
+    pins = [argument for argument in arguments if argument.startswith("OfficeIMO.Tool@")]
+    if pins != [f"OfficeIMO.Tool@{plugin_version}"]:
+        raise ValueError("MCP launcher version must match the plugin")
+
+
 def validate_package(package, server, expected_version=None):
     with ZipFile(package) as archive:
         nuspecs = [name for name in archive.namelist() if name.endswith(".nuspec")]
@@ -72,6 +79,8 @@ def main():
         validate_metadata(server, schema)
         plugin = json.loads((ROOT / ".agents/plugins/officeimo-document-tools/plugin.json").read_text())
         validate_release_versions(server, plugin["version"])
+        mcp = json.loads((ROOT / ".agents/plugins/officeimo-document-tools/mcp.json").read_text())
+        validate_launcher_version(mcp, plugin["version"])
         validate_marker((ROOT / "OfficeIMO.Tool/README.md").read_text(), server)
 
 
