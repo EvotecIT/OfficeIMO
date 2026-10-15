@@ -18,8 +18,15 @@ Use the plugin's `officeimo_*` MCP tools. Mail stores are query-first: never rea
    - `folderId` and `includeDescendants`
    - `since` and `before`
    - `hasAttachments` or `isRead`
-3. Call `officeimo_fetch` for only the chosen message ids.
-4. Follow `nextCursor` only for a selected result that needs more content.
+3. When the words may be in a body, recipient list or attachment name rather than the subject or sender, call
+   `officeimo_search_email` with one phrase and the narrowest `fields`. It scans within explicit bounds; continue with
+   `checkpoint` set to the returned `nextCheckpoint` only while the result is incomplete and more hits are needed.
+4. Call `officeimo_fetch` for only the chosen message ids.
+5. Follow `nextCursor` only for a selected result that needs more content.
+
+For a single message file (EML, MSG, OFT or TNEF), a calendar or contact file, or a store's catalogs, call
+`officeimo_inspect_email` for its metadata, charset and attachment diagnostics and the HTML body's safety findings. It
+does not decrypt messages or verify signatures.
 
 Search results load lightweight message summaries. Fetch materializes the selected message body, recipients, metadata, and attachment metadata, but not unrelated message bodies or attachment payloads.
 
