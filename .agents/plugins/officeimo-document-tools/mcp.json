@@ -9,7 +9,8 @@
         "OfficeIMO.Tool@3.5.0",
         "mcp",
         "serve",
-        "--stdio"
+        "--stdio",
+        "--yes"
       ]
     }
   }

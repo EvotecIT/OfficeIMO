@@ -3,7 +3,9 @@
   "version": "3.5.0",
   "description": "Inspect, search, selectively fetch, and convert local documents and mail stores with OfficeIMO.",
   "author": {
-    "name": "EvotecIT"
+    "name": "Evotec Services sp. z o.o.",
+    "email": "contact@evotec.pl",
+    "url": "https://evotec.xyz"
   },
   "homepage": "https://officeimo.com/",
   "repository": "https://github.com/EvotecIT/OfficeIMO",

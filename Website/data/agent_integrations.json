@@ -2,8 +2,8 @@
   "pluginVersion": "3.5.0",
   "roadmapBase": "https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/ROADMAP.md",
   "pluginUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools",
-  "mcpConfig": "{\"name\":\"officeimo\",\"type\":\"stdio\",\"command\":\"dotnet\",\"args\":[\"dnx\",\"OfficeIMO.Tool@{version}\",\"mcp\",\"serve\",\"--stdio\"],\"env\":{\"OFFICEIMO_MCP_ALLOWED_ROOTS\":\"${workspaceFolder}\"}}",
-  "cursorConfig": "{\"command\":\"dotnet\",\"args\":[\"dnx\",\"OfficeIMO.Tool@{version}\",\"mcp\",\"serve\",\"--stdio\"],\"env\":{\"OFFICEIMO_MCP_ALLOWED_ROOTS\":\"${workspaceFolder}\"}}",
+  "mcpConfig": "{\"name\":\"officeimo\",\"type\":\"stdio\",\"command\":\"dotnet\",\"args\":[\"dnx\",\"OfficeIMO.Tool@{version}\",\"mcp\",\"serve\",\"--stdio\",\"--yes\"],\"env\":{\"OFFICEIMO_MCP_ALLOWED_ROOTS\":\"${workspaceFolder}\"}}",
+  "cursorConfig": "{\"command\":\"dotnet\",\"args\":[\"dnx\",\"OfficeIMO.Tool@{version}\",\"mcp\",\"serve\",\"--stdio\",\"--yes\"],\"env\":{\"OFFICEIMO_MCP_ALLOWED_ROOTS\":\"${workspaceFolder}\"}}",
   "states": [
     { "id": "ready", "label": "Ready", "description": "Install with the client's own plugin or MCP commands" },
     { "id": "manual", "label": "Manual setup", "description": "Add the MCP server to the client's configuration" },
@@ -66,7 +66,7 @@
       "state": "manual",
       "detail": "Any client that starts local stdio MCP servers runs the same command; set the allowed folders in its environment.",
       "commands": [
-        "dotnet dnx OfficeIMO.Tool@{version} mcp serve --stdio"
+        "dotnet dnx OfficeIMO.Tool@{version} mcp serve --stdio --yes"
       ]
     }
   ],

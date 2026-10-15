@@ -10,5 +10,7 @@
       "description": "Inspect, search, selectively fetch, and convert local documents and mail stores with OfficeIMO."
     }
   ],
-  "description": "Local OfficeIMO document and mailbox tools with portable agent skills."
+  "metadata": {
+    "description": "Local OfficeIMO document and mailbox tools with portable agent skills."
+  }
 }

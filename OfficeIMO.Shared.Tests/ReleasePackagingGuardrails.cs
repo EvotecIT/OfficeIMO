@@ -32,6 +32,9 @@ public sealed class ReleasePackagingGuardrails {
     public void CodexPlugin_McpConfigurationUsesSupportedServerSchema() {
         string repositoryRoot = GetRepositoryRoot();
         string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
+        using JsonDocument plugin = JsonDocument.Parse(File.ReadAllText(Path.Combine(
+            repositoryRoot, ".agents", "plugins", "officeimo-document-tools", ".codex-plugin", "plugin.json")));
+        Assert.Equal("./.mcp.json", plugin.RootElement.GetProperty("mcpServers").GetString());
         string mcpPath = Path.Combine(
             repositoryRoot,
             ".agents",
@@ -46,7 +49,7 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Equal("stdio", officeImo.GetProperty("type").GetString());
         Assert.Equal("dotnet", officeImo.GetProperty("command").GetString());
         Assert.Equal(
-            ["dnx", $"OfficeIMO.Tool@{coordinatedVersion}", "mcp", "serve", "--stdio"],
+            ["dnx", $"OfficeIMO.Tool@{coordinatedVersion}", "mcp", "serve", "--stdio", "--yes"],
             officeImo.GetProperty("args").EnumerateArray()
                 .Select(static value => value.GetString() ?? string.Empty)
                 .ToArray());

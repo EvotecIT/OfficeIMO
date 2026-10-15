@@ -1,6 +1,6 @@
 # OfficeIMO.Tool
 
-<!-- mcp-name: io.github.evotecit/officeimo -->
+<!-- mcp-name: io.github.EvotecIT/officeimo -->
 
 OfficeIMO.Tool is the installable command-line interface for OfficeIMO document conversion, extraction, inspection, markup, output, intake, and MCP workflows.
 
@@ -32,7 +32,9 @@ dotnet tool uninstall --global OfficeIMO.Tool
 
 ## MCP clients
 
-`server.json` describes the local STDIO server as `io.github.evotecit/officeimo`, backed by the `OfficeIMO.Tool` NuGet package. Clients supply `OFFICEIMO_MCP_ALLOWED_ROOTS` and launch `dotnet dnx OfficeIMO.Tool@<package-version> mcp serve --stdio` with .NET SDK 10.0.100 or later. The registry entry exposes the same bounded operations as the [agent plugin](https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools).
+`server.json` describes the local STDIO server as `io.github.EvotecIT/officeimo`, backed by the `OfficeIMO.Tool` NuGet package. Clients supply `OFFICEIMO_MCP_ALLOWED_ROOTS`. The [agent plugin](https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools) launches `dotnet dnx OfficeIMO.Tool@<package-version> mcp serve --stdio --yes` with .NET SDK 10.0.100 or later; the trailing flag accepts the pinned package download on SDKs that prompt, and older SDKs pass it through harmlessly to the MCP host.
+
+Registry clients place the download-consent flag before the package argument. This route requires an SDK whose `dotnet dnx --help` lists `--yes`, qualified with SDK 10.0.113. Some other .NET 10 feature bands lack that option; use the plugin's explicit launcher above on those SDKs. The registry entry exposes the same bounded operations as the plugin.
 
 ## PDF copies and searchable scans
 
