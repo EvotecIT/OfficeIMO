@@ -10,7 +10,7 @@ Studio protected copies that restrict printing, copying or changes require a sep
 
 ## ZIP APIs move to OfficeIMO.Archives
 
-OfficeIMO 3.5.0 removes `OfficeIMO.Zip`. Replace its package reference and namespace with `OfficeIMO.Archives`, then update these public APIs:
+OfficeIMO 3.5.1 removes `OfficeIMO.Zip`. Replace its package reference and namespace with `OfficeIMO.Archives`, then update these public APIs:
 
 | Previous API | Replacement |
 | --- | --- |
