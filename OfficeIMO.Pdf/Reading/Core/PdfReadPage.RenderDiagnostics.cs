@@ -1479,6 +1479,27 @@ public sealed partial class PdfReadPage {
         }
     }
 
+    // Filters without a managed decoder, and JBIG2 features the decoder rejects, omit the image when it is painted.
+    private void CollectImageEncodingCapabilityDiagnostic(
+        PdfDictionary image,
+        List<PdfRenderCapabilityDiagnostic> diagnostics,
+        HashSet<string> seen,
+        string imageName,
+        PdfStream? imageStream) {
+        List<string> unsupportedFilters = Filters.StreamDecoder.GetUnsupportedFilters(image, _objects);
+        // DCT and JPEG 2000 are image codecs rather than stream filters, and Crypt is resolved by decryption.
+        unsupportedFilters.RemoveAll(static name => name is "DCTDecode" or "DCT" or "JPXDecode" or "Crypt");
+        if (unsupportedFilters.Count != 0) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedImageId, imageName + ":" + unsupportedFilters[0]);
+            return;
+        }
+        string? jbig2Feature = imageStream == null ? null :
+            Filters.StreamDecoder.FindUnsupportedJbig2Feature(imageStream, _objects, _limits.MaxDecodedStreamBytes);
+        if (jbig2Feature != null) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedImageId, imageName + ":JBIG2-" + jbig2Feature);
+        }
+    }
+
     private void CollectImageColorSpaceCapabilityDiagnostic(
         PdfDictionary image,
         PdfDictionary? resources,
@@ -1487,6 +1508,7 @@ public sealed partial class PdfReadPage {
         string imageName,
         PageContentBudget pageContentBudget,
         PdfStream? imageStream = null) {
+        CollectImageEncodingCapabilityDiagnostic(image, diagnostics, seen, imageName, imageStream);
         if (!image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
             return;
         }

@@ -147,6 +147,7 @@ public static class PdfRenderCapabilities {
     internal const string SynthesizedAnnotationAppearanceId = "render.annotation.appearance-synthesized";
     internal const string AnnotationAppearanceId = "render.resource.annotation-appearance-missing";
     internal const string OptionalImageCodecId = "render.resource.image-codec-optional";
+    internal const string UnsupportedImageId = "render.resource.image-unsupported";
 
     private static readonly IReadOnlyList<PdfRenderCapability> Registry = BuildRegistry();
     private static readonly Dictionary<string, PdfRenderCapability> ById = Registry.ToDictionary(static entry => entry.Id, StringComparer.Ordinal);
@@ -191,6 +192,7 @@ public static class PdfRenderCapabilities {
             Entry("render.resource.form-xobject", "resource", "Form XObjects", PdfRenderSupportLevel.Supported, "Form XObjects are recursively projected with bounded nesting."),
             Entry("render.resource.image-xobject", "resource", "Image XObjects and inline images", PdfRenderSupportLevel.Supported, "Decoded image resources are projected through shared Drawing image elements."),
             Entry(OptionalImageCodecId, "resource", "JPEG 2000 and optional raster codecs", PdfRenderSupportLevel.Simplified, "JPEG 2000 image bytes require a caller-supplied IOfficeRasterImageCodec. Supported Gray/RGB images can be projected through that codec; unsupported masks, color normalization, or missing decoders prevent complete raster rendering."),
+            Entry(UnsupportedImageId, "resource", "Unsupported image encoding", PdfRenderSupportLevel.Unsupported, "The image uses a filter or encoded feature outside the managed decoders, such as JBIG2 halftone or Huffman-coded regions, or its JBIG2 segments are malformed; the image is omitted."),
             Entry("render.resource.shading-pattern", "resource", "Axial and radial shading patterns", PdfRenderSupportLevel.Supported, "Supported axial and radial shadings are projected to shared Drawing gradients."),
             Entry("render.resource.function-shading", "resource", "Direct function-based shading", PdfRenderSupportLevel.Supported, "Bounded two-input functions are sampled at the requested export resolution with page-wide pixel and evaluation-work limits. Function-based shading patterns are unsupported."),
             Entry(UnsupportedShadingId, "resource", "Unsupported shading", PdfRenderSupportLevel.Unsupported, "The invoked shading is malformed or uses a color or function contract outside the bounded managed renderer."),

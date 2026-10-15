@@ -1452,7 +1452,7 @@ internal static partial class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes) {
         if (string.Equals(transparencyMaskKind, "soft-mask", System.StringComparison.Ordinal)) {
-            return !PdfImageMaskSemantics.HasUnsupportedSoftMaskMatte(imageDictionary, objects);
+            return true;
         }
         if (!string.Equals(transparencyMaskKind, "color-key-mask", System.StringComparison.Ordinal)) return false;
 
@@ -1559,10 +1559,6 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if (PdfImageMaskSemantics.HasUnsupportedSoftMaskMatte(stream.Dictionary, objects)) {
-            return false;
-        }
-
         if (IsPackedGray(colorSpace, bitsPerComponent)) {
             if (!TryExpandPackedGray(stream, width, height, bitsPerComponent, objects, maxDecodedStreamBytes, out PdfStream expanded, cancellationToken)) return false;
             return TryBuildPngFile(expanded, width, height, 8, colorSpaceObj, colorSpace, string.Empty,
@@ -1605,6 +1601,17 @@ internal static partial class ResourceResolver {
                 maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform,
                 colorFunctionEvaluationBudget, decodedPixels: null, functionResolutionContext, out pngBytes, cancellationToken)) {
             return true;
+        }
+
+        if (RequiresSampleNormalization(stream, width, height, bitsPerComponent, objects) &&
+            !PdfIndexedImageNormalizer.IsIndexedColorSpace(colorSpaceObj, objects)) {
+            if (!PdfImageColorSpaceNormalization.TryResolve(colorSpaceObj, colorSpace, objects, maxDecodedStreamBytes, renderingIntent,
+                    outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var sampleLayout) ||
+                !TryNormalizeImageSamples(stream, width, height, bitsPerComponent, sampleLayout.SourceColorCount, objects,
+                    maxDecodedStreamBytes, out PdfStream normalized, cancellationToken)) return false;
+            return TryBuildPngFile(normalized, width, height, 8, colorSpaceObj, colorSpace, string.Empty,
+                objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform,
+                colorFunctionEvaluationBudget, functionResolutionContext, out pngBytes, cancellationToken);
         }
 
         if (bitsPerComponent != 8) {

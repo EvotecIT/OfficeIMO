@@ -58,8 +58,6 @@ internal static partial class ResourceResolver {
                 CanAllocateProjectedImageBuffer(dictionary, channels: 4, maxDecodedStreamBytes);
         }
 
-        if (PdfImageMaskSemantics.HasUnsupportedSoftMaskMatte(dictionary, objects)) return false;
-
         PdfObject? authoredColorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
             ? colorSpaceObject
             : null;
@@ -113,7 +111,8 @@ internal static partial class ResourceResolver {
                 : CanAllocateDecodedImageBuffer(dictionary, components: 1, bitsPerComponent, maxDecodedStreamBytes);
         }
         string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
-        if (bitsPerComponent != 8 && !IsPackedGray(colorSpaceName, bitsPerComponent)) return false;
+        // 1, 2, 4 and 16-bit samples of every non-indexed colour space are normalized to 8 bits before projection.
+        if (bitsPerComponent is not (1 or 2 or 4 or 8 or 16) || isDctFilterChain && bitsPerComponent != 8) return false;
         if (!PdfImageColorSpaceNormalization.TryResolve(
                 effectiveColorSpace,
                 colorSpaceName,
