@@ -67,7 +67,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             IncludeConflictPages = true,
             IncludeVersionHistory = true
         },
-        ZipTraversal = new OfficeIMO.Zip.ZipTraversalOptions {
+        ZipTraversal = new OfficeIMO.Archives.ArchiveTraversalOptions {
             MaxEntries = 500,
             MaxTotalUncompressedBytes = 64L * 1024 * 1024
         }

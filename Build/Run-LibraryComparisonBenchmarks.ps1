@@ -417,10 +417,10 @@ $definitions = [ordered]@{
         )
     }
     ziptraverse = [pscustomobject]@{
-        Project = 'OfficeIMO.Zip.Benchmarks\OfficeIMO.Zip.Benchmarks.csproj'
+        Project = 'OfficeIMO.Archives.Benchmarks\OfficeIMO.Archives.Benchmarks.csproj'
         Filter = '*ZipTraversalComparisonBenchmarks*'
         ComparisonId = "zip-safe-traversal-$Framework"
-        Suite = 'OfficeIMO.Zip.SafeTraversal'
+        Suite = 'OfficeIMO.Archives.SafeZipTraversal'
         CatalogEligible = $false
         IdentityVariables = @('scale')
         ExpectedCases = @(

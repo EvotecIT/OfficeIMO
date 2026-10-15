@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 75,
-    "operationCount": 1402
+    "packageCount": 76,
+    "operationCount": 1406
   },
   "fidelityStates": [
     {
@@ -3312,7 +3312,7 @@
     {
       "id": "OfficeIMO.IWork",
       "slug": "iwork",
-      "capabilityCount": 6,
+      "capabilityCount": 7,
       "formats": [
         "IWork.Keynote",
         "IWork.Native"
@@ -3328,13 +3328,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
-            },
-            {
-              "id": "Unsupported",
-              "label": "Unsupported",
-              "description": "The operation is not implemented.",
-              "count": 1
+              "count": 2
             }
           ]
         },
@@ -3342,10 +3336,10 @@
           "id": "Edit",
           "states": [
             {
-              "id": "Unsupported",
-              "label": "Unsupported",
-              "description": "The operation is not implemented.",
-              "count": 1
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
             }
           ]
         },
@@ -3364,9 +3358,9 @@
           "id": "Preserve",
           "states": [
             {
-              "id": "Unsupported",
-              "label": "Unsupported",
-              "description": "The operation is not implemented.",
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
               "count": 1
             }
           ]
@@ -5804,6 +5798,33 @@
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
               "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Workflows.IWork",
+      "slug": "workflows-iwork",
+      "capabilityCount": 3,
+      "formats": [
+        "Keynote",
+        "Numbers",
+        "Pages",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 3
             }
           ]
         }

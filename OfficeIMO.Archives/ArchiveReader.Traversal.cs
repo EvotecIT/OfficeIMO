@@ -1,94 +1,99 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using OfficeIMO.Core.Internal;
 using System.Threading;
 
-namespace OfficeIMO.Zip;
+namespace OfficeIMO.Archives;
 
 /// <summary>
 /// Safe ZIP traversal helpers for ingestion pipelines.
 /// </summary>
-public static partial class ZipTraversal {
+public static partial class ArchiveReader {
     /// <summary>
     /// Enumerates ZIP entries from a path.
     /// </summary>
-    public static IReadOnlyList<ZipEntryDescriptor> Enumerate(string zipPath, ZipTraversalOptions? options = null) {
+    public static IReadOnlyList<ArchiveEntryDescriptor> EnumerateZip(string zipPath, ArchiveTraversalOptions? options = null) {
         if (zipPath == null) throw new ArgumentNullException(nameof(zipPath));
         if (zipPath.Length == 0) throw new ArgumentException("ZIP path cannot be empty.", nameof(zipPath));
         if (!File.Exists(zipPath)) throw new FileNotFoundException($"ZIP file '{zipPath}' doesn't exist.", zipPath);
 
         using var fs = new FileStream(zipPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        return Traverse(fs, options).Entries;
+        return TraverseZip(fs, options).Entries;
     }
 
     /// <summary>
     /// Enumerates ZIP entries from a stream.
     /// </summary>
-    public static IReadOnlyList<ZipEntryDescriptor> Enumerate(Stream zipStream, ZipTraversalOptions? options = null) {
-        return Traverse(zipStream, options).Entries;
+    public static IReadOnlyList<ArchiveEntryDescriptor> EnumerateZip(Stream zipStream, ArchiveTraversalOptions? options = null) {
+        return TraverseZip(zipStream, options).Entries;
     }
 
     /// <summary>
     /// Traverses ZIP entries from a path and returns accepted entries with warnings.
     /// </summary>
-    public static ZipTraversalResult Traverse(string zipPath, ZipTraversalOptions? options = null) {
+    public static ArchiveTraversalResult TraverseZip(string zipPath, ArchiveTraversalOptions? options = null) {
         if (zipPath == null) throw new ArgumentNullException(nameof(zipPath));
         if (zipPath.Length == 0) throw new ArgumentException("ZIP path cannot be empty.", nameof(zipPath));
         if (!File.Exists(zipPath)) throw new FileNotFoundException($"ZIP file '{zipPath}' doesn't exist.", zipPath);
 
         using var fs = new FileStream(zipPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        return Traverse(fs, options);
+        return TraverseZip(fs, options);
     }
 
     /// <summary>
     /// Traverses ZIP entries from a stream and returns accepted entries with warnings.
     /// </summary>
-    public static ZipTraversalResult Traverse(Stream zipStream, ZipTraversalOptions? options = null) {
-        return Traverse(zipStream, options, CancellationToken.None);
+    public static ArchiveTraversalResult TraverseZip(Stream zipStream, ArchiveTraversalOptions? options = null) {
+        return TraverseZip(zipStream, options, CancellationToken.None);
     }
 
     /// <summary>Traverses a ZIP source with a physical-entry preflight and cooperative cancellation.</summary>
-    public static ZipTraversalResult Traverse(Stream zipStream, ZipTraversalOptions? options,
+    public static ArchiveTraversalResult TraverseZip(Stream zipStream, ArchiveTraversalOptions? options,
         CancellationToken cancellationToken) {
         if (zipStream == null) throw new ArgumentNullException(nameof(zipStream));
         if (!zipStream.CanRead) throw new IOException("ZIP stream must be readable.");
 
         var effective = Normalize(options);
         using Stream snapshot = CreateBoundedSnapshot(zipStream, effective.MaxArchiveBytes, cancellationToken);
-        ValidateSource(snapshot, effective, cancellationToken);
+        ValidateZipSource(snapshot, effective, cancellationToken);
         using var archive = new ZipArchive(snapshot, ZipArchiveMode.Read, leaveOpen: true);
-        return TraverseCore(archive, effective, cancellationToken);
+        return TraverseZipCore(archive, effective, cancellationToken);
     }
 
     /// <summary>
     /// Traverses ZIP entries from an already opened archive and returns accepted entries with warnings.
     /// </summary>
-    public static ZipTraversalResult Traverse(ZipArchive archive, ZipTraversalOptions? options = null) {
-        return Traverse(archive, options, CancellationToken.None);
+    public static ArchiveTraversalResult TraverseZip(ZipArchive archive, ArchiveTraversalOptions? options = null) {
+        return TraverseZip(archive, options, CancellationToken.None);
     }
 
     /// <summary>Traverses an opened archive with bounded metadata processing and cooperative cancellation.</summary>
-    public static ZipTraversalResult Traverse(ZipArchive archive, ZipTraversalOptions? options,
+    public static ArchiveTraversalResult TraverseZip(ZipArchive archive, ArchiveTraversalOptions? options,
         CancellationToken cancellationToken) {
         if (archive == null) throw new ArgumentNullException(nameof(archive));
 
         var effective = Normalize(options);
-        return TraverseCore(archive, effective, cancellationToken);
+        return TraverseZipCore(archive, effective, cancellationToken);
     }
 
-    private static ZipTraversalResult TraverseCore(ZipArchive archive, ZipTraversalOptions options,
+    private static ArchiveTraversalResult TraverseZipCore(ZipArchive archive, ArchiveTraversalOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<ZipArchiveEntry> archiveEntries = archive.Entries;
         if (archiveEntries.Count > options.MaxPhysicalEntries) {
             throw new InvalidDataException($"ZIP source exceeds MaxPhysicalEntries ({options.MaxPhysicalEntries}).");
         }
-        var list = new List<ZipEntryDescriptor>(Math.Min(archiveEntries.Count, options.MaxEntries));
-        var warnings = new List<ZipTraversalWarning>();
+        var list = new List<ArchiveEntryDescriptor>(Math.Min(archiveEntries.Count, options.MaxEntries));
+        var warnings = new List<ArchiveTraversalWarning>();
         bool warningsTruncated = false;
-        void Warn(ZipTraversalWarning warning) {
+        void Warn(ArchiveTraversalWarning warning) {
             if (warnings.Count < options.MaxWarnings) {
                 warnings.Add(warning);
             } else if (!warningsTruncated) {
-                warnings[options.MaxWarnings - 1] = new ZipTraversalWarning {
+                warnings[options.MaxWarnings - 1] = new ArchiveTraversalWarning {
                     Warning = $"Further ZIP entry warnings were omitted after MaxWarnings ({options.MaxWarnings}) was reached."
                 };
                 warningsTruncated = true;
@@ -108,7 +113,7 @@ public static partial class ZipTraversal {
             visited++;
             var fullName = NormalizeEntryName(entry.FullName);
             if (fullName.Length == 0) {
-                Warn(new ZipTraversalWarning {
+                Warn(new ArchiveTraversalWarning {
                     EntryPath = string.Empty,
                     Warning = "Skipped ZIP entry because its path is empty."
                 });
@@ -121,7 +126,7 @@ public static partial class ZipTraversal {
             }
 
             if (IsUnsafePath(fullName)) {
-                Warn(new ZipTraversalWarning {
+                Warn(new ArchiveTraversalWarning {
                     EntryPath = fullName,
                     Warning = "Skipped ZIP entry because path traversal or absolute path patterns were detected."
                 });
@@ -130,7 +135,7 @@ public static partial class ZipTraversal {
 
             var depth = ComputeDepth(fullName, isDirectory);
             if (depth > options.MaxDepth) {
-                Warn(new ZipTraversalWarning {
+                Warn(new ArchiveTraversalWarning {
                     EntryPath = fullName,
                     Warning = $"Skipped ZIP entry because depth {depth} exceeds MaxDepth ({options.MaxDepth})."
                 });
@@ -138,7 +143,7 @@ public static partial class ZipTraversal {
             }
 
             if (accepted >= options.MaxEntries) {
-                Warn(new ZipTraversalWarning {
+                Warn(new ArchiveTraversalWarning {
                     EntryPath = fullName,
                     Warning = $"Stopped ZIP traversal because MaxEntries ({options.MaxEntries}) was reached."
                 });
@@ -148,7 +153,7 @@ public static partial class ZipTraversal {
             long entryLength = 0;
             if (!isDirectory) {
                 if (!TryGetLength(entry, out entryLength)) {
-                    Warn(new ZipTraversalWarning {
+                    Warn(new ArchiveTraversalWarning {
                         EntryPath = fullName,
                         Warning = "Skipped ZIP entry because uncompressed size could not be read."
                     });
@@ -156,7 +161,7 @@ public static partial class ZipTraversal {
                 }
 
                 if (entryLength < 0) {
-                    Warn(new ZipTraversalWarning {
+                    Warn(new ArchiveTraversalWarning {
                         EntryPath = fullName,
                         Warning = "Skipped ZIP entry because its uncompressed size is negative."
                     });
@@ -164,7 +169,7 @@ public static partial class ZipTraversal {
                 }
 
                 if (options.MaxEntryUncompressedBytes.HasValue && entryLength > options.MaxEntryUncompressedBytes.Value) {
-                    Warn(new ZipTraversalWarning {
+                    Warn(new ArchiveTraversalWarning {
                         EntryPath = fullName,
                         Warning = $"Skipped ZIP entry because uncompressed size {entryLength} exceeds MaxEntryUncompressedBytes ({options.MaxEntryUncompressedBytes.Value})."
                     });
@@ -172,7 +177,7 @@ public static partial class ZipTraversal {
                 }
 
                 if (options.MaxCompressionRatio.HasValue && IsCompressionRatioExceeded(entry, entryLength, options.MaxCompressionRatio.Value)) {
-                    Warn(new ZipTraversalWarning {
+                    Warn(new ArchiveTraversalWarning {
                         EntryPath = fullName,
                         Warning = $"Skipped ZIP entry because compression ratio exceeds MaxCompressionRatio ({options.MaxCompressionRatio.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)})."
                     });
@@ -181,7 +186,7 @@ public static partial class ZipTraversal {
 
                 if (options.MaxTotalUncompressedBytes.HasValue &&
                     entryLength > options.MaxTotalUncompressedBytes.Value - totalUncompressed) {
-                    Warn(new ZipTraversalWarning {
+                    Warn(new ArchiveTraversalWarning {
                         EntryPath = fullName,
                         Warning = $"Stopped ZIP traversal because MaxTotalUncompressedBytes ({options.MaxTotalUncompressedBytes.Value}) would be exceeded."
                     });
@@ -193,7 +198,7 @@ public static partial class ZipTraversal {
 
             accepted++;
             var lastWriteUtc = TryGetLastWriteUtc(entry);
-            list.Add(new ZipEntryDescriptor {
+            list.Add(new ArchiveEntryDescriptor {
                 FullName = fullName,
                 RawFullName = entry.FullName,
                 EntryIndex = index,
@@ -205,7 +210,7 @@ public static partial class ZipTraversal {
             });
         }
 
-        return new ZipTraversalResult {
+        return new ArchiveTraversalResult {
             Entries = list,
             Warnings = warnings,
             TotalUncompressedBytes = totalUncompressed,
@@ -241,9 +246,9 @@ public static partial class ZipTraversal {
         }
     }
 
-    private static ZipTraversalOptions Normalize(ZipTraversalOptions? options) {
-        var source = options ?? new ZipTraversalOptions();
-        var o = new ZipTraversalOptions {
+    private static ArchiveTraversalOptions Normalize(ArchiveTraversalOptions? options) {
+        var source = options ?? new ArchiveTraversalOptions();
+        var o = new ArchiveTraversalOptions {
             MaxEntries = source.MaxEntries,
             MaxPhysicalEntries = source.MaxPhysicalEntries,
             MaxArchiveBytes = source.MaxArchiveBytes,

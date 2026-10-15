@@ -3,7 +3,7 @@
     <Description>ZIP adapter for OfficeIMO.Reader modular ingestion.</Description>
     <AssemblyName>OfficeIMO.Reader.Zip</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Zip</AssemblyTitle>
-    <VersionPrefix>3.4.6</VersionPrefix>
+    <VersionPrefix>3.5.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Zip\OfficeIMO.Zip.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Archives\OfficeIMO.Archives.csproj" />
   </ItemGroup>
 
   <ItemGroup>
