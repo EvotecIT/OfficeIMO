@@ -37,8 +37,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || visual.PaintPhase == HtmlRenderPaintPhase.Content && visual.StackingContext == null
             && GetFlowPaintChildren(visual)?.Any(ContainsDeferredFlowPaint) == true;
 
-    private static IReadOnlyList<HtmlRenderVisual>? GetFlowPaintChildren(HtmlRenderVisual visual) =>
-        visual is HtmlRenderEffectGroup ? null : GetGroupChildren(visual);
+    private static IReadOnlyList<HtmlRenderVisual>? GetFlowPaintChildren(HtmlRenderVisual visual) {
+        IReadOnlyList<HtmlRenderVisual>? children = visual is HtmlRenderEffectGroup ? null : GetGroupChildren(visual);
+        // Empty groups can own logical text or paint-neutral pagination anchors.
+        // Keep them as one content leaf rather than filtering away every phase.
+        return children is { Count: > 0 } ? children : null;
+    }
 
     private static HtmlRenderVisual? FilterFlowPaint(
         HtmlRenderVisual visual, HtmlRenderPaintPhase phase,
