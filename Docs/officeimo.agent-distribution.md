@@ -6,7 +6,7 @@ OfficeIMO Document Tools packages two user workflows and a local MCP server. `pl
 
 Use the repository's PowerForge release configuration. Its version bindings align `OfficeIMO.Tool`, the plugin, Registry metadata and the pinned launcher; compatibility files regenerate in that transaction. Every bundle change, including skills or installation instructions, needs a new product patch release. Preserve existing versioned archives and checksums.
 
-The Agent Plugin Package workflow attaches the ZIP and SHA-256 sidecar to an `OfficeIMO-v...` release. Qualify the published NuGet tool and client installation separately; an attached ZIP establishes artifact availability.
+The Agent Plugin Package workflow attaches the ZIP and SHA-256 sidecar to an `OfficeIMO-v...` release. It also publishes the verified ZIP contents at the root of the generated `agent-plugin` branch through PowerForge's shared publication action. The product branch owns the sources; do not edit the generated branch. Publication preserves branch history, rejects version rollback or changed same-version payloads, and treats an identical retry as complete. Qualify the published NuGet tool and client installation separately; an attached ZIP establishes artifact availability.
 
 Verify the following on the stable candidate:
 
@@ -38,13 +38,13 @@ The current bundle launches a pinned NuGet tool rather than embedding its runtim
 
 The repository's `.claude-plugin/marketplace.json` provides the direct Claude Code install route. Validate the plugin and marketplace with the installed CLI and exercise a fresh session. Use strict validation where supported.
 
-For wider discovery, follow [Anthropic's publication guide](https://code.claude.com/docs/en/plugins/publish) and submit at [claude.ai/directory/manage](https://claude.ai/directory/manage). Check the component support for Claude Code, Cowork and claude.ai. The directory portal and `claude-plugins-official` have different admission routes.
+For wider discovery, follow [Anthropic's publication guide](https://code.claude.com/docs/en/plugins/publish) and submit at [claude.ai/directory/manage](https://claude.ai/directory/manage). Use repository `EvotecIT/OfficeIMO`, branch `agent-plugin`, and the repository root as the plugin path. This small generated branch satisfies the directory's whole-archive limits without downloading the full library and its fixtures. Validate the published branch against the [pre-submission checklist](https://claude.com/docs/plugins/pre-submission-checklist). Check the component support for Claude Code, Cowork and claude.ai. The directory portal and `claude-plugins-official` have different admission routes.
 
 ## Cursor
 
 Cursor supports root `plugin.json`, `mcp.json` and `skills/` through Agent Plugins. Test a release copy under `~/.cursor/plugins/local/officeimo-document-tools`, reload Cursor, and inspect the loaded skills and server. This plugin uses no root-variable placeholders, avoiding Cursor's documented difference in variable expansion.
 
-Submit the qualified Git source at [Cursor Marketplace publishing](https://cursor.com/marketplace/publish), following the [plugin documentation](https://cursor.com/docs/plugins). Verify the reviewed listing and a fresh marketplace installation after acceptance.
+Submit the generated `agent-plugin` branch at [Cursor Marketplace publishing](https://cursor.com/marketplace/publish), following the [plugin documentation](https://cursor.com/docs/plugins). Its root contains the same payload as the release ZIP. Verify the reviewed listing and a fresh marketplace installation after acceptance.
 
 ## Submission material
 

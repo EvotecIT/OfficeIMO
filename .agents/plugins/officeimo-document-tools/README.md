@@ -112,4 +112,4 @@ are unavailable to PDF tool calls.
 OCR is optional. The server host can register trusted provider deployments with
 `--ocr-provider-assembly` and configure them with `--ocr-option key=value` at
 startup. Tool calls cannot select executable/model paths or load assemblies.
-See [PDF commands and MCP configuration](../../../OfficeIMO.Tool/README.md#pdf-copies-and-searchable-scans).
+See [PDF commands and MCP configuration](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Tool/README.md#pdf-copies-and-searchable-scans).
