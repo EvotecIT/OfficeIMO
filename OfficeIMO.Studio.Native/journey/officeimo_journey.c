@@ -459,6 +459,9 @@ int main(int argc, char **argv) {
     json_escape(escaped_signed, sizeof escaped_signed, signed_copy);
     json_escape(escaped_identity, sizeof escaped_identity, identity);
     snprintf(request, sizeof request, "{\"path\":\"%s\",\"userPassword\":\"journey\",\"allowCopying\":false}", escaped_locked);
+    CHECK("protect without owner", engine_officeimo_document_save_protected_copy_json(document, request, 0, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
+    snprintf(request, sizeof request, "{\"path\":\"%s\",\"userPassword\":\"journey\",\"ownerPassword\":\"journey-owner\",\"allowCopying\":false}", escaped_locked);
     CHECK("protect copy", engine_officeimo_document_save_protected_copy_json(document, request, 0, &error), OFFICEIMO_OK);
     officeimo_document locked_document = 0;
     CHECK("open locked without password", engine_officeimo_document_open(locked, NULL, 0, &locked_document, &error),
@@ -467,6 +470,18 @@ int main(int argc, char **argv) {
     if (locked_document) {
         json = facts(locked_document);
         expect(has(json, "isEncrypted", "true"), "the locked copy is not protected", json);
+        expect(has(json, "canExtractText", "false"), "reader password bypassed restricted text extraction", json);
+        expect(has(json, "canExtractContent", "false"), "reader password bypassed restricted content extraction", json);
+        expect(has(json, "canPrint", "true"), "copy restriction also blocked permitted printing", json);
+        engine_officeimo_free(json);
+        engine_officeimo_document_close(locked_document);
+    }
+    locked_document = 0;
+    CHECK("open locked as owner", engine_officeimo_document_open(locked, "journey-owner", 0, &locked_document, &error), OFFICEIMO_OK);
+    if (locked_document) {
+        json = facts(locked_document);
+        expect(has(json, "canExtractText", "true"), "owner password did not authorize text extraction", json);
+        expect(has(json, "canExtractContent", "true"), "owner password did not authorize content extraction", json);
         engine_officeimo_free(json);
         engine_officeimo_document_close(locked_document);
     }
