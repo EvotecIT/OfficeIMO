@@ -103,13 +103,11 @@ public class DrawingTextTypographyTests {
     [InlineData('\u058a', true)]
     [InlineData('\u05be', true)]
     [InlineData('\u1400', true)]
-    [InlineData('\u1806', false)]
     [InlineData('\u200b', true)]
     [InlineData('\u2010', true)]
     [InlineData('\u2012', true)]
     [InlineData('\u2013', true)]
     [InlineData('\u2027', true)]
-    [InlineData('\u30a0', false)]
     [InlineData('\u2003', true)]
     public void LineBreaks_RespectUnicodeNoBreakSpaceExceptions(char breakAfter, bool allowsBeforeNoBreakSpace) {
         foreach (bool allowCjkBreaks in new[] { true, false }) {
@@ -121,6 +119,17 @@ public class DrawingTextTypographyTests {
                 else Assert.DoesNotContain(6, breaks);
             }
         }
+    }
+
+    [Fact]
+    public void LineBreaks_FollowUax14ForBreakBeforeAndNonStarterHyphens() {
+        // U+1806 MONGOLIAN TODO SOFT HYPHEN is class BB: the opportunity is before it, never after.
+        Assert.Equal(new[] { 5 }, OfficeTextLineBreaks.GetBreakPositions("alpha\u1806beta"));
+        Assert.Equal(new[] { 5 }, OfficeTextLineBreaks.GetBreakPositions("alpha\u1806beta", allowCjkBreaks: false));
+        // U+30A0 KATAKANA-HIRAGANA DOUBLE HYPHEN is class NS: a CJK-style opportunity after it.
+        Assert.Equal(new[] { 6 }, OfficeTextLineBreaks.GetBreakPositions("alpha\u30a0beta"));
+        Assert.Empty(OfficeTextLineBreaks.GetBreakPositions("alpha\u30a0beta", allowCjkBreaks: false));
+        Assert.Empty(OfficeTextLineBreaks.GetBreakPositions("alpha\u30a0\u00a0beta"));
     }
 
     [Fact]

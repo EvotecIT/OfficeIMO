@@ -6,9 +6,10 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Dependency-free Unicode line-break opportunities shared by OfficeIMO renderers.</summary>
 /// <remarks>
-/// The implementation deliberately covers deterministic, high-value boundaries rather than
-/// claiming the complete Unicode Line Breaking Algorithm. It never splits a surrogate pair or
-/// grapheme cluster and applies common CJK punctuation constraints.
+/// Opportunities follow the Unicode Line Breaking Algorithm (UAX #14, Unicode 16.0.0 data):
+/// spaces, hyphens, solidus, zero-width space and CJK boundaries, with no-break, joiner, quote,
+/// numeric-expression and East Asian punctuation constraints. Breaks never split a surrogate pair
+/// or grapheme cluster.
 /// </remarks>
 public static class OfficeTextLineBreaks {
     /// <summary>
@@ -19,7 +20,8 @@ public static class OfficeTextLineBreaks {
 
     /// <summary>
     /// Returns safe UTF-16 indexes where text can wrap without inserting characters,
-    /// optionally excluding boundaries introduced only by CJK characters.
+    /// optionally excluding boundaries that are not after a space, hyphen, solidus or other break character
+    /// (or before a break-before character).
     /// </summary>
     public static IReadOnlyList<int> GetBreakPositions(string? text, bool allowCjkBreaks) {
         if (text == null || text.Length == 0) {
@@ -31,18 +33,29 @@ public static class OfficeTextLineBreaks {
             return Array.Empty<int>();
         }
 
+        int[] scalars = OfficeUnicodeBidi.ToScalars(text, out int[] scalarStarts);
+        OfficeUnicodeLineBreaker.BreakAction[] actions = OfficeUnicodeLineBreaker.Analyze(scalars);
         var positions = new List<int>();
-        for (int elementIndex = 1; elementIndex < elementStarts.Length; elementIndex++) {
-            int boundary = elementStarts[elementIndex];
-            int left = ReadLastScalar(text, boundary);
-            int right = ReadFirstScalar(text, boundary);
-            if (CanBreakBetween(left, right, allowCjkBreaks)) {
-                positions.Add(boundary);
-            }
+        for (int index = 1; index < scalars.Length; index++) {
+            if (actions[index] == OfficeUnicodeLineBreaker.BreakAction.Prohibited) continue;
+            // A soft hyphen breaks only by inserting a visible hyphen; discretionary hyphenation owns it.
+            if (scalars[index - 1] == 0x00AD) continue;
+            int boundary = scalarStarts[index];
+            if (Array.BinarySearch(elementStarts, boundary) < 0) continue;
+            if (!allowCjkBreaks && !IsExplicitBreakAfter(scalars[index - 1]) && !IsExplicitBreakBefore(scalars[index])) continue;
+            positions.Add(boundary);
         }
 
         return positions.ToArray();
     }
+
+    // Breaks that remain without CJK boundaries: after spaces and explicit break characters.
+    private static bool IsExplicitBreakAfter(int scalar) => OfficeUnicodeTextData.GetLineBreakClass(scalar) is
+        OfficeLineBreakClass.SP or OfficeLineBreakClass.BA or OfficeLineBreakClass.HY or OfficeLineBreakClass.ZW or
+        OfficeLineBreakClass.B2 or OfficeLineBreakClass.SY or OfficeLineBreakClass.BK or OfficeLineBreakClass.CB;
+
+    private static bool IsExplicitBreakBefore(int scalar) =>
+        OfficeUnicodeTextData.GetLineBreakClass(scalar) == OfficeLineBreakClass.BB;
 
     /// <summary>Returns true when an index is a non-edge grapheme-cluster boundary.</summary>
     public static bool IsValidBreakPosition(string? text, int position) {
@@ -52,119 +65,5 @@ public static class OfficeTextLineBreaks {
 
         int[] elementStarts = StringInfo.ParseCombiningCharacters(text);
         return Array.BinarySearch(elementStarts, position) >= 0;
-    }
-
-    private static bool CanBreakBetween(int left, int right, bool allowCjkBreaks) {
-        // A zero-width space explicitly permits the following boundary (LB8),
-        // including one before a no-break or ordinary Unicode separator.
-        if (left == 0x200B) return true;
-        bool explicitBreak = IsBreakAfterScalar(left);
-        bool breakAfterSpace = IsUnicodeBreakSpace(left);
-        if (IsNoBreakSpace(left)
-            || IsNoBreakSpace(right) && !IsBreakBeforeNoBreakSpaceScalar(left) && !breakAfterSpace
-            || IsUnicodeBreakSpace(right)
-            || IsNonStarter(right) || IsOpeningPunctuation(left) || IsClosingPunctuation(right)) {
-            return false;
-        }
-
-        return (allowCjkBreaks && (IsCjkScalar(left) || IsCjkScalar(right))) ||
-            breakAfterSpace || explicitBreak;
-    }
-
-    // Unicode BA space separators keep their advance and permit a break only
-    // after the separator. GL spaces block CJK breaks while preserving the
-    // supported BA/HY/HH exceptions before GL in Unicode 17.
-    private static bool IsUnicodeBreakSpace(int scalar) => scalar == 0x1680
-        || scalar >= 0x2000 && scalar <= 0x2006
-        || scalar >= 0x2008 && scalar <= 0x200A
-        || scalar is 0x205F or 0x3000;
-
-    private static bool IsNoBreakSpace(int scalar) => scalar is 0x00A0 or 0x2007 or 0x202F;
-
-    // Only the supported BA/HY/HH token breaks bypass GL (LB12a). Other
-    // explicit breaks, such as solidus (SY), retain their ordinary behavior.
-    private static bool IsBreakBeforeNoBreakSpaceScalar(int scalar) => scalar is
-        0x002D or 0x058A or 0x05BE or 0x1400 or 0x2010 or 0x2012 or 0x2013 or 0x2027;
-
-    private static bool IsBreakAfterScalar(int scalar) => scalar is
-        0x002D or // hyphen-minus
-        0x002F or // solidus
-        0x058A or // Armenian hyphen
-        0x05BE or // Hebrew punctuation maqaf
-        0x1400 or // Canadian syllabics hyphen
-        0x1806 or // Mongolian todo soft hyphen
-        0x200B or // zero-width space
-        0x2010 or // hyphen
-        0x2012 or // figure dash
-        0x2013 or // en dash
-        0x2027 or // hyphenation point
-        0x30A0;   // katakana-hiragana double hyphen
-
-    private static bool IsNonStarter(int scalar) {
-        if (scalar == 0x200D ||
-            IsCjkNonStarter(scalar) ||
-            scalar >= 0xFE00 && scalar <= 0xFE0F ||
-            scalar >= 0xE0100 && scalar <= 0xE01EF) {
-            return true;
-        }
-
-        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(char.ConvertFromUtf32(scalar), 0);
-        return category == UnicodeCategory.NonSpacingMark ||
-            category == UnicodeCategory.SpacingCombiningMark ||
-            category == UnicodeCategory.EnclosingMark;
-    }
-
-    private static bool IsCjkNonStarter(int scalar) => scalar is
-        0x3005 or 0x303B or // ideographic iteration marks
-        0x3041 or 0x3043 or 0x3045 or 0x3047 or 0x3049 or
-        0x3063 or 0x3083 or 0x3085 or 0x3087 or 0x308E or
-        0x3095 or 0x3096 or 0x309D or 0x309E or
-        0x30A1 or 0x30A3 or 0x30A5 or 0x30A7 or 0x30A9 or
-        0x30C3 or 0x30E3 or 0x30E5 or 0x30E7 or 0x30EE or
-        0x30F5 or 0x30F6 or 0x30FC or 0x30FD or 0x30FE ||
-        scalar >= 0x31F0 && scalar <= 0x31FF;
-
-    private static bool IsCjkScalar(int scalar) =>
-        scalar >= 0x3040 && scalar <= 0x309F ||
-        scalar >= 0x30A0 && scalar <= 0x30FF ||
-        scalar >= 0x31F0 && scalar <= 0x31FF ||
-        scalar >= 0x3400 && scalar <= 0x4DBF ||
-        scalar >= 0x4E00 && scalar <= 0x9FFF ||
-        scalar >= 0xAC00 && scalar <= 0xD7AF ||
-        scalar >= 0xF900 && scalar <= 0xFAFF ||
-        scalar >= 0x20000 && scalar <= 0x2FA1F;
-
-    private static bool IsOpeningPunctuation(int scalar) => scalar switch {
-        '(' or '[' or '{' or 0x201C or 0x2018 or 0x3008 or 0x300A or 0x300C or
-        0x300E or 0x3010 or 0x3014 or 0x3016 or 0x3018 or 0x301A or 0xFF08 or
-        0xFF3B or 0xFF5B => true,
-        _ => false
-    };
-
-    private static bool IsClosingPunctuation(int scalar) => scalar switch {
-        ')' or ']' or '}' or ',' or '.' or ':' or ';' or '!' or '?' or 0x2019 or
-        0x201D or 0x2026 or 0x3001 or 0x3002 or 0x3009 or 0x300B or 0x300D or
-        0x300F or 0x3011 or 0x3015 or 0x3017 or 0x3019 or 0x301B or 0xFF01 or
-        0xFF09 or 0xFF0C or 0xFF0E or 0xFF1A or 0xFF1B or 0xFF1F or 0xFF3D or
-        0xFF5D => true,
-        _ => false
-    };
-
-    private static int ReadFirstScalar(string text, int index) {
-        char first = text[index];
-        return char.IsHighSurrogate(first) &&
-            index + 1 < text.Length &&
-            char.IsLowSurrogate(text[index + 1])
-            ? char.ConvertToUtf32(first, text[index + 1])
-            : first;
-    }
-
-    private static int ReadLastScalar(string text, int boundary) {
-        char last = text[boundary - 1];
-        return char.IsLowSurrogate(last) &&
-            boundary > 1 &&
-            char.IsHighSurrogate(text[boundary - 2])
-            ? char.ConvertToUtf32(text[boundary - 2], last)
-            : last;
     }
 }
