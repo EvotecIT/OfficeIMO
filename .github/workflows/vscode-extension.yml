@@ -138,9 +138,9 @@ jobs:
             $package | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $packagePath -Encoding utf8
 
             if (Test-Path -LiteralPath $lockPath) {
-              $lock = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
+              $lock = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json -AsHashtable
               $lock.version = $Version
-              $rootPackage = $lock.packages.PSObject.Properties[''].Value
+              $rootPackage = $lock.packages['']
               if ($null -ne $rootPackage) {
                 $rootPackage.version = $Version
               }
