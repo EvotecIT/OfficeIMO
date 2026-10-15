@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-15T21:38:24.126254+00:00",
+  "source": {"branch": "feature/html-engine", "commit": "077715dac6b35b1db40b0f875391c8de4708affa", "compileBase": "cdab5c938a0245b13697b5d86adf1c67408b6dfc", "contentSealSha256": "b358b5eace9872c36a63e335deb83dda4513f7cce63c75768e776818421e604c", "sealedFileCount": 74, "everyCommittedBlobMatchesSeal": true},
+  "scope": "Background cascade priority, component resets/admission and bounded square paint clipping; broader HTML goal continues.",
+  "frameworkValidation": {
+    "ordinaryFilter": "Category!=Performance",
+    "gates": [
+      {"phase": "focused-net10-r9", "exitCode": 0, "receiptSha256": "03b8879ad2bf27993eeebb09e2f5abc26cbea6c2ab7c51ed444ab3428099e682", "framework": "net10.0", "total": 1087, "executed": 1087, "passed": 1087, "trxSha256": "c21e5f5fd01184dfaf2df73812befe37eda54f605cb3fbb1c17b64bcd9653b6c"},
+      {"phase": "full-net10-r9", "exitCode": 0, "receiptSha256": "ece1521b55b4caa55ef8eb079668873af80396e14208db2888f1180167c2e1d7", "framework": "net10.0", "total": 6446, "executed": 6446, "passed": 6446, "trxSha256": "757b659ec67ed8d31fabb69d4418be0e499bf823203b74ac501e8ea7e47676bb"},
+      {"phase": "full-net8-r9", "exitCode": 0, "receiptSha256": "5b464a20c30d90dfd0c3bfa1b43cac7d77beaa26cef98cd3d79e56862d699bf6", "framework": "net8.0", "total": 6446, "executed": 6446, "passed": 6446, "trxSha256": "f097768ebe1aebbfe8c875c522d42617e7b38bbefd736b1c84141209cdb368d4"},
+      {"phase": "renderer-netstandard-r9", "exitCode": 0, "receiptSha256": "057b78653e00fadd391255d63c93440dae0ff86eecdbd761b63840d83d4d444f", "framework": "netstandard2.0"}
+    ]
+  },
+  "native": {
+    "owner": "HtmlTinkerX 3.0.5 source 366cbd06949dc1c00162a280a290e2c130ca0bea",
+    "browser": "Chromium153.0.8010.12",
+    "profiles": ["print", "screen"],
+    "viewportCssPixels": {"width": 816, "height": 900},
+    "main": {
+      "receipt": {"path": "native/final-r9-comparison.json", "sha256": "3600b1b2555e13c7c8b6376e2d8f2191c1cbdfaf7f08bc49e92d39dacabbb7fc"},
+      "summary": {"matrixCases": 34, "profiles": 2, "colorControls": 68, "nativeComputedColorPasses": 68, "managedComputedColorPasses": 68, "nativeScreenshotAndPdfColorPasses": 68, "managedDirectPdfAndSvgColorPasses": 68, "componentSemanticsPasses": 224, "componentSemanticsTotal": 224, "extraGradientStripeNativePasses": 12, "extraGradientStripeManagedPasses": 12, "extraGradientStripeTotal": 12, "originalFixtureComputedColorPasses": 8, "originalFixtureManagedPixelPasses": 8}
+    },
+    "clipOwner": {
+      "receipt": {"path": "native/final-r9-clip-owner-comparison.json", "sha256": "c910ae668ff0e99b8d23a03ef5d0321edaf2e1aa7fdf213931c64597aaa36b1f"},
+      "summary": {"cases": 2, "profiles": 2, "interiorWitnesses": 14, "nativeScreenshotAndPdfPasses": 14, "managedPdfDirectAndSvgPasses": 14}
+    },
+    "admission": {
+      "receipt": {"path": "native/final-r9-admission-comparison.json", "sha256": "ce85ab84eef2d3de4a38c4381548bc52f5ce9a5cf428b91ddbbdf29682d5bf35"},
+      "summary": {"cases": 8, "profiles": 2, "controls": 16, "computedColorPasses": 16, "nativeScreenshotAndPdfPasses": 16, "managedPdfDirectAndSvgPasses": 16}
+    },
+    "radialAdmission": {
+      "receipt": {"path": "native/final-r9-radial-comparison.json", "sha256": "df892824dd3292d91ac4578437dbc6d14cd88ab4e2a10b57039787e8e97a9a3a"},
+      "summary": {"cases": 5, "profiles": 2, "controls": 10, "computedColorAndImagePasses": 10, "nativeScreenshotAndPdfPasses": 10, "managedPdfDirectAndSvgPasses": 10}
+    },
+    "admissionClosure": [
+      {
+        "receipt": {"path": "native/final-r9-nested-comparison.json", "sha256": "e6318a8c4872a59dde344b514b27be4fb6dc9255eb6aa2eda84576aa82037856"},
+        "summary": {"cases": 8, "profiles": 2, "controls": 16, "computedColorAndImagePasses": 16, "nativeScreenshotAndPdfPasses": 16, "managedPdfDirectAndSvgPasses": 16}
+      },
+      {
+        "receipt": {"path": "native/final-r9-valid-comparison.json", "sha256": "986890ddfde2605ba04b03591b62467cf9eb83fb6fe041ddec342b082dee4fa6"},
+        "summary": {"cases": 6, "profiles": 2, "controls": 12, "computedColorAndImagePasses": 12, "nativeScreenshotAndPdfPasses": 12, "managedPdfDirectAndSvgPasses": 12}
+      }
+    ],
+    "originalAbsoluteColorControls": 8,
+    "componentSemantics": 224
+  },
+  "producer": {
+    "receipt": {"path": "native/final-r9-command-receipt.json", "sha256": "e11c6a2802fd293b47712e3ef1a5d85a465a2cb673d816cb37d646444f8bbb0e"},
+    "archive": {"path": "native/final-r9-qualified-runtime.zip", "bytes": 9002224, "sha256": "421fd3d9596c801d538bbdc8c30d950fb34701ce26baa2f823bde7db378daca2", "entries": 25, "readbackHashesMatch": true},
+    "normalTestDllCopiesUnchanged": 59,
+    "ownerDlls": [
+      {"name": "OfficeIMO.Core.dll", "sha256": "313e8dbf2674e76f5ec026620a28dbf5571ed491ba3ce8837bd40de9f0b19b49"},
+      {"name": "OfficeIMO.Html.dll", "sha256": "99cfff598e968b56888e283794da18968f8de27584db958c20d2c650029dabb4"},
+      {"name": "OfficeIMO.Html.Core.dll", "sha256": "7073296173cd626efe7586836089418282629c27b9a5104548c31dcc91be8d5c"},
+      {"name": "OfficeIMO.Html.AngleSharp.dll", "sha256": "31f6aaf0696267ea117a98c9ce597f65bd4bd5b20d9b6ef2132c9910a5f41d27"},
+      {"name": "OfficeIMO.Html.Pdf.dll", "sha256": "846a152c76fe7616e0b3acc1afb59f71face3a18398dd2d95c320afe3808fcce"},
+      {"name": "OfficeIMO.Pdf.dll", "sha256": "eb0d7e26f31421c98cbba0b958a53570e3b2cee1f8a10c9abb45c12bb91986be"},
+      {"name": "AngleSharp.dll", "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"},
+      {"name": "AngleSharp.Css.dll", "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"}
+    ]
+  },
+  "packages": {
+    "receipt": {"path": "packaged/run-result.json", "sha256": "a9eb652370041e7730f6f82f28d4a04c09a4dd80c040ec70d00f5a596726d5b0"},
+    "privateQualificationVersion": "3.4.5.1015",
+    "packageCount": 19,
+    "frameworks": ["netstandard2.0", "net8.0", "net10.0", "net472"],
+    "executedConsumers": 6,
+    "executedFrameworks": ["net10.0", "net8.0"],
+    "matchedOfficeImoDllCopies": 54,
+    "providerPins": {"anglesharp.css": "1.1.3", "anglesharp": "1.8.3"},
+    "providerAssetProof": {"path": "packaged/provider-asset-matches.json", "sha256": "6f86b7ef97918f16b5f5e6d0d0df83f0bd07a7e377dc5af6990cc12dd6b48e79"},
+    "matchedOfficialProviderDllCopies": 10,
+    "apiValidation": "Enabled; configured 3.3.0 baselines retained for Pdf, Html.Pdf, Mhtml.Pdf and Rtf.",
+    "archives": [
+      {"id": "OfficeIMO.Core", "bytes": 8318293, "sha256": "493175529bebccc7500500c534508c08b39ad8e7876de470accfd4d6e2fbbecd"},
+      {"id": "OfficeIMO.Email", "bytes": 3033972, "sha256": "e1fad9491dcfa4494afd76e05ed3238cebb827bb0cb8684ece6b50d92c1a9517"},
+      {"id": "OfficeIMO.Excel", "bytes": 9324359, "sha256": "8affa952acd1d8eb3a02548fb82c81828b06eeb05b3b08f84b7397b77faa16fe"},
+      {"id": "OfficeIMO.Excel.Html", "bytes": 249089, "sha256": "16bfd392e679182a456861d14617ff5145d7c55fdf3f142180d58ba9997707ce"},
+      {"id": "OfficeIMO.Html", "bytes": 3948716, "sha256": "3f91764fa9a557b19a404d33faec3be5267ab40cdbc6886ed56aac5a844297ec"},
+      {"id": "OfficeIMO.Html.AngleSharp", "bytes": 104872, "sha256": "4a74069c05f9cb1992d36ba027faee8e291d7b01e60041dbe11082bc3f12d410"},
+      {"id": "OfficeIMO.Html.Core", "bytes": 325493, "sha256": "3f78f38b3e8446463d16e9f0384c4531cf39080b1eaa665564af60b63c2cd4c5"},
+      {"id": "OfficeIMO.Html.Pdf", "bytes": 529730, "sha256": "9d2ce2f5f692632dffb974579ffcf9c04910dd9234f618d2de36a1c5a95f7a57"},
+      {"id": "OfficeIMO.Html.Rtf", "bytes": 415907, "sha256": "f5fecd343587396781eee7bbe486b18a956225b04872de33cfea02ed3618cfee"},
+      {"id": "OfficeIMO.Markdown", "bytes": 2290311, "sha256": "4b71c77afd197c24c538cdc4ab6921c141a8fbd512596da2ef9a0e9210138801"},
+      {"id": "OfficeIMO.Markdown.Html", "bytes": 216844, "sha256": "c1520be3b1599d7aa6870e5db04cec25d322dc03c8796ff0e90c6c06aac28dc1"},
+      {"id": "OfficeIMO.Mhtml", "bytes": 114226, "sha256": "9034023238b0691e5bdd98a10291f4706dc8f64d1b3c9d7f1bc4631517aa3a4c"},
+      {"id": "OfficeIMO.Mhtml.Pdf", "bytes": 43197, "sha256": "7e33caa1203ebd9b4ea5ab4a526d78e863cd3d836831f0d5dae8bd73478afe33"},
+      {"id": "OfficeIMO.Pdf", "bytes": 12838425, "sha256": "62c5253b48034e971d298a41809eac4c4c0de449b23585916151f491150011fd"},
+      {"id": "OfficeIMO.PowerPoint", "bytes": 4452192, "sha256": "79aa3aa0f5b2085870475ce8f2980de9334f237d753e0e6ddc526b45a28b0160"},
+      {"id": "OfficeIMO.PowerPoint.Html", "bytes": 291139, "sha256": "922b6b1bd53afe23142ddb4581441a49e9f703858ca22735c8b9797dfd05137e"},
+      {"id": "OfficeIMO.Rtf", "bytes": 1019608, "sha256": "d5417ff3c27dccf684035f0ff09dec1bab9f33730411e934238e10d4a99bc074"},
+      {"id": "OfficeIMO.Word", "bytes": 6751435, "sha256": "741232a66ef6582424faa0743e134e0685805b237f33933aa06138bb68e9439d"},
+      {"id": "OfficeIMO.Word.Html", "bytes": 823448, "sha256": "2f94ca021adc6bf97b9f09fd5b14953c07dfedc6b5e9098d605df3169c84fe2f"}
+    ]
+  },
+  "review": {
+    "receipt": {"path": "review/final-disposition.json", "sha256": "d6c89246c30103abc7a628de0e5d40a656cf937baa493b153cf6ffb6c21e15da"},
+    "disposition": "accept-as-shaped",
+    "unresolvedP0P1P2": 0
+  },
+  "remainingLimits": ["Repeating-gradient hard-stop materialization retains a separately reproduced baseline residual; whole gradient appearance is open.", "Conic triangle seams remain open; constant-color clip tests use 16 configured segments and exact interior/ring colors.", "Relative-inline absolute-descendant placement retains the existing horizontal residual; shared-interior color proof does not qualify geometry.", "Image-set uses the first URL; density/MIME selection and paint worklet output/omission diagnostics remain open.", "Windows profiling is deferred; net472 compile/pack on macOS is not Windows execution."],
+  "delivery": {"checkpointOnly": true, "packagePublished": false, "newPullRequestOpened": false, "windowsProfiling": "deferred"},
+  "storage": {
+    "receipt": {"path": "storage-result.json", "sha256": "bd7940c2e2a51866d3c932055c0166a966d7e845fbbba8adf18d48834006c901"},
+    "logicalBytesRemoved": 3675946125,
+    "retainedLogicalBytes": 227035831,
+    "retained": [
+      {"path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/background-cascade-qualification/native", "logicalBytes": 149555791, "reason": "Final and red native captures, immutable producer archives, inputs, observers and known-residual classification."},
+      {"path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/background-cascade-qualification/packaged", "logicalBytes": 55373642, "reason": "19 private package archives, six consumer sources/results and package/provider byte-match evidence; graph/cache removed."},
+      {"path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/background-cascade-qualification/framework-test-results.zip", "logicalBytes": 11070200, "reason": "Fourteen framework TRX records, including meaningful intermediate failures; every entry readback verified."},
+      {"path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/background-cascade-qualification", "logicalBytes": 11036198, "reason": "Remaining compact source seals, review/command receipts, provider reproductions and task state; excludes separately listed children."}
+    ]
+  }
+}
