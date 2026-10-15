@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-15T22:11:56.122428+00:00",
+  "source": {
+    "branch": "feature/html-engine",
+    "commit": "9ea903af6211a1c14d4c235e7219d01ec971c8b9",
+    "compileBase": "b4408addcc07be4bc7e596c70a81265dd0e571f1",
+    "contentSealSha256": "328c799a21722cfcc00c944d08b32f2cc1e50233b7aa7b3a225c8c9f8247b03b",
+    "sealedFileCount": 76,
+    "everyCommittedBlobMatchesSeal": true
+  },
+  "scope": {
+    "failure": "Floating-point calculations put adjoining cycle boundaries one ULP apart. Sorting reversed incoming/outgoing colors and produced fades inside later solid stripes.",
+    "fix": "Share exact cycle boundaries and preserve authored cycle/stop order in the existing HTML resolver.",
+    "consumers": [
+      "linear",
+      "radial",
+      "conic stop materialization"
+    ],
+    "publicApiChange": false,
+    "dependencyChange": false,
+    "preFixRegressionTests": {
+      "total": 7,
+      "failed": 6,
+      "passed": 1,
+      "receipt": {
+        "path": "focused-before-fix-command.json",
+        "sha256": "1a5224d3a8a96540419a7424f122cfd90039a740c32ee462d5d93bb5fb89dece"
+      }
+    },
+    "specification": "https://www.w3.org/TR/css-images-3/#repeating-gradients"
+  },
+  "frameworkValidation": [
+    {
+      "phase": "focused-final",
+      "framework": "net10.0",
+      "counts": {
+        "total": "86",
+        "executed": "86",
+        "passed": "86",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "receipt": {
+        "path": "focused-final-command.json",
+        "sha256": "4789270bd1f08d4fd7c3e8439911559e968b6ebdb0d310fa5b63c92cd4f2437c"
+      }
+    },
+    {
+      "phase": "full-net10",
+      "framework": "net10.0",
+      "counts": {
+        "total": "6453",
+        "executed": "6453",
+        "passed": "6453",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "receipt": {
+        "path": "full-net10-command.json",
+        "sha256": "d531d096c40eadba54f964b7686e7a32d075e709b4ab24e631cb870f052329a8"
+      }
+    },
+    {
+      "phase": "full-net8",
+      "framework": "net8.0",
+      "counts": {
+        "total": "6453",
+        "executed": "6453",
+        "passed": "6453",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "receipt": {
+        "path": "full-net8-command.json",
+        "sha256": "4164198bb1e94e5d27075723b308a09337b657b5928bfb6f3de3fa6544005c8a"
+      }
+    },
+    {
+      "phase": "renderer-netstandard2",
+      "framework": "netstandard2.0",
+      "counts": null,
+      "receipt": {
+        "path": "renderer-netstandard2-command.json",
+        "sha256": "9e3503d775241d477300207c4f5a394f07f5b29e7e6f570361ea96ddfc54dfc6"
+      }
+    }
+  ],
+  "testResultsArchive": {
+    "path": "test-results-archive.json",
+    "sha256": "0fc8e5ad13795a1466cd0264c9fb559c01401455b1566b2867fda1f6b5066e12"
+  },
+  "native": {
+    "harness": "HtmlTinkerX 3.0.5 source366cbd06949dc1c00162a280a290e2c130ca0bea",
+    "browser": "Chromium153.0.8010.12",
+    "viewportCssPixels": {
+      "width": 816,
+      "height": 900
+    },
+    "profiles": [
+      "print",
+      "screen"
+    ],
+    "cases": [
+      {
+        "id": "linear-two-position",
+        "gradientFunction": "repeating-linear-gradient(to right,rgba(255 0 0 / 50%) 0 10px,color-mix(in srgb,blue 75%,white) 10px 20px)",
+        "width": 180,
+        "height": 32
+      },
+      {
+        "id": "linear-one-position",
+        "gradientFunction": "repeating-linear-gradient(to right,rgba(255 0 0 / 50%) 0,rgba(255 0 0 / 50%) 10px,color-mix(in srgb,blue 75%,white) 10px,color-mix(in srgb,blue 75%,white) 20px)",
+        "width": 180,
+        "height": 32
+      },
+      {
+        "id": "linear-negative-origin",
+        "gradientFunction": "repeating-linear-gradient(to right,red -10px 0,blue 0 10px)",
+        "width": 180,
+        "height": 32
+      },
+      {
+        "id": "linear-percentage",
+        "gradientFunction": "repeating-linear-gradient(to right,red 0 5%,blue 5% 10%)",
+        "width": 180,
+        "height": 32
+      },
+      {
+        "id": "radial-two-position",
+        "gradientFunction": "repeating-radial-gradient(circle 180px at left center,red 0 10px,blue 10px 20px)",
+        "width": 180,
+        "height": 32
+      },
+      {
+        "id": "radial-one-position",
+        "gradientFunction": "repeating-radial-gradient(circle 180px at left center,red 0,red 10px,blue 10px,blue 20px)",
+        "width": 180,
+        "height": 32
+      }
+    ],
+    "baseline": {
+      "cases": 6,
+      "profiles": 2,
+      "fullCycleBandCenters": 220,
+      "nativeBandCenterPasses": 220,
+      "managedBandCenterPasses": 196,
+      "guardedInteriorPixels": 1720,
+      "nativeAllPlanesInteriorPassesObserved": 1576,
+      "nativePdfInteriorPasses": 1720,
+      "nativeScreenshotOpaqueInteriorPixels": 1144,
+      "nativeScreenshotOpaqueInteriorPasses": 1144,
+      "managedAllPlanesInteriorPasses": 1528,
+      "colorTolerance": 0
+    },
+    "final": {
+      "cases": 6,
+      "profiles": 2,
+      "fullCycleBandCenters": 220,
+      "nativeBandCenterPasses": 220,
+      "managedBandCenterPasses": 220,
+      "guardedInteriorPixels": 1720,
+      "nativeAllPlanesInteriorPassesObserved": 1576,
+      "nativePdfInteriorPasses": 1720,
+      "nativeScreenshotOpaqueInteriorPixels": 1144,
+      "nativeScreenshotOpaqueInteriorPasses": 1144,
+      "managedAllPlanesInteriorPasses": 1720,
+      "colorTolerance": 0
+    },
+    "savedSvgSummary": {
+      "savedSvgFiles": 2,
+      "mediaCaptures": 4,
+      "bandCenters": 440,
+      "bandCenterPasses": 440,
+      "guardedInteriorPixels": 3440,
+      "guardedInteriorPasses": 3440,
+      "colorTolerance": 0
+    },
+    "receipt": {
+      "path": "native/qualification-summary.json",
+      "sha256": "68be7f357b19c6e36a826fcaaf3d1625443d29fe620d218fc835aece53a67045"
+    },
+    "contacts": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/repeating-gradient-hard-stops/native/final-color-contact.png",
+        "bytes": 36575,
+        "sha256": "f00ff7a8be504b35afbb971d186df12b75d1be85a9df012663a28d2fb5cdb280"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/repeating-gradient-hard-stops/native/final-svg-color-contact.png",
+        "bytes": 27419,
+        "sha256": "2d0efeea73c2f237463122d085b6bf0d880af4575263811de07320ded04f1caa"
+      }
+    ],
+    "resourcesReleased": true,
+    "visualInspection": "Primary, native validator and independent reviewer inspected both final contact sheets."
+  },
+  "producer": {
+    "archive": {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/repeating-gradient-hard-stops/native/final-qualified-runtime.zip",
+      "bytes": 9002067,
+      "sha256": "3aa0fa12c4db2fe305b13f8f1823b211dfa06532765b3659495c5f54dfbedc59",
+      "entries": 25,
+      "readbackHashesMatch": true
+    },
+    "manifest": {
+      "path": "native/final-producer-tuple.json",
+      "sha256": "b2f01675cd314a050e476b97b74a6a4710f7e851bc8a783bb6ff921b71d51ffd"
+    },
+    "reportedLoadedOwners": [
+      "ShadowConsumerProbe",
+      "OfficeIMO.Html",
+      "OfficeIMO.Html.Pdf",
+      "OfficeIMO.Core",
+      "OfficeIMO.Pdf",
+      "AngleSharp.Css",
+      "AngleSharp"
+    ],
+    "actualOwnerHashesMatch": true,
+    "copiedButNotClaimedLoaded": [
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Html.AngleSharp"
+    ],
+    "normalTestDllsFrozen": 59,
+    "generatedTestAdditions": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/repeating-gradient-hard-stops/graph/bin/OfficeIMO.Html.Tests/release_net10.0/HtmlAsync/async.html",
+        "bytes": 113,
+        "sha256": "c94f7451d2f2cdba2d74a4c324bcb08864c06ebfe0dc2a165b9010b1bbffa056"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/repeating-gradient-hard-stops/graph/bin/OfficeIMO.Html.Tests/release_net10.0/HtmlAsync/sync.html",
+        "bytes": 113,
+        "sha256": "c94f7451d2f2cdba2d74a4c324bcb08864c06ebfe0dc2a165b9010b1bbffa056"
+      }
+    ]
+  },
+  "packages": {
+    "entrypoint": "Build/Test-HtmlPackages.ps1",
+    "privateQualificationVersion": "3.4.5.1015",
+    "count": 19,
+    "targets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "receipt": {
+      "path": "packaged/run-result.json",
+      "sha256": "123417cd5272049fb6aec5b046b637a1fd01c62ca5130894555c5a9d4b2bbe9a"
+    },
+    "metadata": {
+      "path": "packaged/package-metadata.json",
+      "sha256": "189370b48db8881302091f0bd4067182641224ccc04ee8cd5923258e30a547e3"
+    },
+    "focusedConsumer": {
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "casesPerFramework": 4,
+      "stripeInteriorsPerCase": 18,
+      "receipt": {
+        "path": "packaged/background-consumer-result.json",
+        "sha256": "4aba22e56795c8126b25f2c6acfffa78969977fc424853a0e34397cde4703a3f"
+      }
+    },
+    "providerAndArtifactBytes": {
+      "path": "packaged/provider-asset-matches.json",
+      "sha256": "6f86b7ef97918f16b5f5e6d0d0df83f0bd07a7e377dc5af6990cc12dd6b48e79"
+    }
+  },
+  "review": {
+    "verdict": "Accept as shaped for the bounded repeating-gradient hard-stop fix",
+    "actionableFindings": [],
+    "receipt": {
+      "path": "local-review.json",
+      "sha256": "9fd61879fdf42d89a45a05bd49a23dfa0f02fef52ddf52412a810475d37f1d62"
+    }
+  },
+  "remainingLimits": [
+    "One pixel on either side of mathematical band boundaries is excluded from guarded strip color checks.",
+    "Fractional CSS color-mix channels show native GPU63/64 dithering. Raw observations retained; exact center checks, PDFinterior checks and opaque screenshot interiors qualify stop ordering without widened tolerance.",
+    "Conic shared stop ordering is focused structural proof, not native conic segment-seam qualification.",
+    "No general browser appearance, font, runtime input, crossplatform timing or release claim.",
+    "Windows profiling deferred; bounded local static-rendering evidence only.",
+    "Conic segment seams, unfamiliar-page typography, broader accessibility and runtime/platform acceptance remain open roadmap work."
+  ],
+  "delivery": {
+    "type": "Qualified integration-branch checkpoint",
+    "newPullRequest": false,
+    "releaseOrPackagePublication": false,
+    "htmlCorrectnessWorkflowPushBranches": [
+      "master"
+    ],
+    "hostedHtmlCorrectnessCiClaim": false
+  },
+  "storage": {
+    "root": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/repeating-gradient-hard-stops",
+    "result": {
+      "path": "storage-result.json",
+      "sha256": "9a93f0f03c493726dd369cf058bf99c315a5c8734b5376f1b55d0e999e99becf"
+    }
+  }
+}
