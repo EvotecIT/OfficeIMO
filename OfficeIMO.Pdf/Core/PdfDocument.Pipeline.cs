@@ -63,19 +63,27 @@ public sealed partial class PdfDocument {
             case "Insert":
             case "Import":
             case "ImportPages":
+                return PdfMutationOperation.ImportPages;
             case "MergeWith":
                 return PdfMutationOperation.MergeDocuments;
             case "Delete":
             case "Reorder":
             case "Duplicate":
             case "Move":
-            case "Rotate":
+                return PdfMutationOperation.OrganizePages;
             case "Crop":
             case "Resize":
-            case "SetPageBox":
             case "CropAndTranslate":
             case "DestructiveCrop":
                 return PdfMutationOperation.ModifyPageTree;
+            case "Rotate":
+            case "RotateBy":
+                return PdfMutationOperation.RotatePages;
+            case "SetPageBox":
+            case "ApplyAttributes":
+                return PdfMutationOperation.ModifyPageAttributes;
+            case "NormalizeRotation":
+                return PdfMutationOperation.NormalizePageRotation;
             case "Text":
             case "TextWatermark":
             case "Image":

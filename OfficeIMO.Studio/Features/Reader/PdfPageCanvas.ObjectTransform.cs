@@ -6,6 +6,9 @@ using OfficeIMO.Studio.Features.Editor;
 namespace OfficeIMO.Studio.Features.Reader;
 
 public sealed partial class PdfPageCanvas {
+    public static readonly StyledProperty<int> ViewRotationDegreesProperty =
+        AvaloniaProperty.Register<PdfPageCanvas, int>(nameof(ViewRotationDegrees));
+    public int ViewRotationDegrees { get => GetValue(ViewRotationDegreesProperty); set => SetValue(ViewRotationDegreesProperty, value); }
     private PdfEditorSelection? _transformSelection;
     private Point _transformStart;
     private Point _transformPointerStart;
@@ -15,6 +18,56 @@ public sealed partial class PdfPageCanvas {
     private double? _alignmentX;
     private double? _alignmentY;
     internal event Action<PdfObjectTransformGesture>? ObjectTransformCompleted;
+
+    /// <summary>
+    /// The keyboard alternative to dragging: Ctrl+arrow keys move the selected image or annotation by one point (ten with
+    /// Shift), and Ctrl+Alt+arrow keys resize it from its right or bottom edge. Several selected annotations move together.
+    /// </summary>
+    private bool HandleObjectNudge(KeyEventArgs e) {
+        if (e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down)) return false;
+        if ((e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Meta)) == 0) return false;
+        if (SelectedObject is not { Kind: PdfEditorSelectionKind.Image or PdfEditorSelectionKind.Annotation } selected ||
+            SelectionMode is not (PdfEditorSelectionMode.PageContent or PdfEditorSelectionMode.Annotations)) return false;
+        bool resize = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
+        if (resize && SelectedAnnotations.Count > 1) return false;
+        double amount = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? 10D : 1D;
+        (double dx, double dy) = e.Key switch { Key.Left => (-amount, 0D), Key.Right => (amount, 0D), Key.Up => (0D, -amount), _ => (0D, amount) };
+        var bounds = selected.Bounds;
+        PdfEditorVisualBounds target;
+        if (resize) {
+            PdfEditorVisualBounds visual = TurnKeyboardBounds(bounds, ViewRotationDegrees);
+            PdfEditorVisualBounds resized = KeyboardResize(visual, dx, dy, keepAspect: selected.Kind == PdfEditorSelectionKind.Image);
+            target = TurnKeyboardBounds(resized, -ViewRotationDegrees);
+        } else {
+            (dx, dy) = TurnKeyboardPoint(dx, dy, -ViewRotationDegrees);
+            target = new PdfEditorVisualBounds(bounds.Left + dx, bounds.Top + dy, bounds.Right + dx, bounds.Bottom + dy);
+        }
+        ObjectTransformCompleted?.Invoke(new(selected, target, SelectedAnnotations.ToArray(), KeepSelection: true));
+        return true;
+    }
+
+    private static (double X, double Y) TurnKeyboardPoint(double x, double y, int degrees) => ((degrees % 360 + 360) % 360) switch {
+        90 => (-y, x), 180 => (-x, -y), 270 => (y, -x), _ => (x, y)
+    };
+
+    private static PdfEditorVisualBounds TurnKeyboardBounds(PdfEditorVisualBounds bounds, int degrees) {
+        var a = TurnKeyboardPoint(bounds.Left, bounds.Top, degrees);
+        var b = TurnKeyboardPoint(bounds.Right, bounds.Bottom, degrees);
+        return new PdfEditorVisualBounds(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
+    }
+
+    /// <summary>
+    /// Resizes from the right or bottom edge. Images keep their proportions, as with the pointer handles, so the other
+    /// dimension follows the one the arrow key changes.
+    /// </summary>
+    internal static PdfEditorVisualBounds KeyboardResize(PdfEditorVisualBounds bounds, double dx, double dy, bool keepAspect) {
+        double width = Math.Max(1D, bounds.Width + dx), height = Math.Max(1D, bounds.Height + dy);
+        if (keepAspect && bounds.Width > 0D && bounds.Height > 0D) {
+            if (dx != 0D) height = Math.Max(1D, bounds.Height * width / bounds.Width);
+            else width = Math.Max(1D, bounds.Width * height / bounds.Height);
+        }
+        return new PdfEditorVisualBounds(bounds.Left, bounds.Top, bounds.Left + width, bounds.Top + height);
+    }
 
     private bool BeginObjectTransform(PointerPressedEventArgs e) {
         if (IsAdditive(e.KeyModifiers)) return false;

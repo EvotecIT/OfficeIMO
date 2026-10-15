@@ -12,6 +12,18 @@ public sealed class PdfDocumentForms {
         _document = document;
     }
 
+    /// <summary>Reads the fields and widgets needed to display and fill a form, without extracting page content.</summary>
+    /// <remarks>Requires content-copy, form-filling, or form-authoring authorization. Reading this metadata does not authorize a mutation.</remarks>
+    public PdfFormInteractionInfo GetForInteraction() {
+        PdfLoadOptions options = _document.ReadOptions;
+        PdfReadDocument source = _document.GetReadDocument(options);
+        if (!PdfPermissionAuthorization.CanReadFormMetadata(source.Security, options.PermissionPolicy)) {
+            throw new PdfPermissionDeniedException(PdfStandardPermissions.FillForms, source.Security.PasswordAuthenticationRole,
+                "Reading form fields requires content-copy, form-filling, or form-authoring authorization.");
+        }
+        return new PdfFormInteractionInfo(source.UncheckedFormFields, source.UncheckedAcroFormXfa is not null);
+    }
+
     /// <summary>
     /// Creates a new PDF with simple form fields filled.
     /// </summary>

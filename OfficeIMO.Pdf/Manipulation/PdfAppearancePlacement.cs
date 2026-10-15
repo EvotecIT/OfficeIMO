@@ -2,8 +2,14 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Fits the transformed appearance bounding box into an annotation rectangle.</summary>
 internal static class PdfAppearancePlacement {
-    internal static Matrix2D Read(PdfDictionary dictionary, Func<PdfObject, PdfObject?> resolve,
-        double x, double y, double width, double height, out Matrix2D matrix) {
+    /// <summary>
+    /// Returns false when the appearance or the rectangle encloses no area. Such an appearance is clipped to its empty
+    /// bounding box and paints nothing; PDF producers such as macOS PDFKit write them for empty widget states.
+    /// Malformed geometry still throws.
+    /// </summary>
+    internal static bool TryRead(PdfDictionary dictionary, Func<PdfObject, PdfObject?> resolve,
+        double x, double y, double width, double height, out Matrix2D placement, out Matrix2D matrix) {
+        placement = Matrix2D.Identity;
         matrix = Matrix2D.Identity;
         if (dictionary.Items.TryGetValue("Matrix", out var matrixValue)) {
             double[] values = ReadNumbers(matrixValue, 6, resolve);
@@ -20,13 +26,20 @@ internal static class PdfAppearancePlacement {
         double minY = Math.Min(Math.Min(p1.Y, p2.Y), Math.Min(p3.Y, p4.Y));
         double maxX = Math.Max(Math.Max(p1.X, p2.X), Math.Max(p3.X, p4.X));
         double maxY = Math.Max(Math.Max(p1.Y, p2.Y), Math.Max(p3.Y, p4.Y));
-        double sx = width / (maxX - minX), sy = height / (maxY - minY);
+        if (!Finite(x) || !Finite(y) || !Finite(width) || !Finite(height) ||
+            !Finite(minX) || !Finite(minY) || !Finite(maxX) || !Finite(maxY))
+            throw new InvalidOperationException("The transformed appearance geometry is not finite.");
+        if (width <= 0 || height <= 0 || maxX <= minX || maxY <= minY) return false;
+        double extentX = maxX - minX, extentY = maxY - minY;
+        if (!Finite(extentX) || !Finite(extentY))
+            throw new InvalidOperationException("The transformed appearance extents are not finite.");
+        double sx = width / extentX, sy = height / extentY;
         double tx = x - minX * sx, ty = y - minY * sy;
-        if (width <= 0 || height <= 0 || maxX <= minX || maxY <= minY || sx <= 0 || sy <= 0 ||
-            !Finite(sx) || !Finite(sy) || !Finite(tx) || !Finite(ty))
-            throw new InvalidOperationException("The appearance cannot be placed in a finite, nonempty rectangle.");
+        if (sx <= 0 || sy <= 0 || !Finite(sx) || !Finite(sy) || !Finite(tx) || !Finite(ty))
+            throw new InvalidOperationException("The appearance placement cannot be represented by finite positive scales.");
         // The Do operator applies the appearance's own Matrix after this outer transform.
-        return new Matrix2D(sx, 0, 0, sy, tx, ty);
+        placement = new Matrix2D(sx, 0, 0, sy, tx, ty);
+        return true;
     }
 
     private static double[] ReadNumbers(PdfObject value, int count, Func<PdfObject, PdfObject?> resolve) {

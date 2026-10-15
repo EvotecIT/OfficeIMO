@@ -3,7 +3,11 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Studio.Features.Editor;
 
 internal static class PdfEditorCommandExecutor {
-    internal static byte[] Apply(byte[] pdf, PdfEditorCommand command) {
+    internal static byte[] Apply(byte[] pdf, PdfEditorCommand command) => Apply(PdfDocument.Load(pdf), command);
+    internal static PdfVerifiedRedactionResult ApplyVerifiedRedaction(byte[] pdf, PdfEditorCommand command, string? removedTextMarker = null) =>
+        ApplyVerifiedRedaction(PdfDocument.Load(pdf), command, removedTextMarker);
+
+    internal static byte[] Apply(PdfDocument pdf, PdfEditorCommand command) {
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(command);
         return command.Tool switch {
@@ -13,7 +17,7 @@ internal static class PdfEditorCommandExecutor {
         };
     }
 
-    internal static PdfAnnotationEditResult ApplyAnnotation(byte[] pdf, PdfEditorCommand command) {
+    internal static PdfAnnotationEditResult ApplyAnnotation(PdfDocument pdf, PdfEditorCommand command) {
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(command);
         return command.Tool switch {
@@ -37,7 +41,7 @@ internal static class PdfEditorCommandExecutor {
     }
 
     internal static PdfVerifiedRedactionResult ApplyVerifiedRedaction(
-        byte[] pdf,
+        PdfDocument pdf,
         PdfEditorCommand command,
         string? removedTextMarker = null) {
         if (command.Tool != PdfEditorTool.Redact) throw new ArgumentException("A redaction command is required.", nameof(command));
@@ -46,14 +50,14 @@ internal static class PdfEditorCommandExecutor {
     }
 
     internal static PdfVerifiedRedactionResult ApplyVerifiedRedaction(
-        byte[] pdf,
+        PdfDocument pdf,
         PdfRedactionPlan plan,
         string? removedTextMarker = null,
         PdfSanitizationOptions? sanitizationOptions = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(plan);
-        PdfDocument source = PdfDocument.Load(pdf);
+        PdfDocument source = pdf;
         var applyOptions = new PdfRedactionApplyOptions {
             CancellationToken = cancellationToken,
             PaintUnmatchedAreas = true,
@@ -79,7 +83,7 @@ internal static class PdfEditorCommandExecutor {
         return new PdfVerifiedRedactionResult(applied.Pdf, plan, applied.Evidence, applied.Evidence.CreateShareableSummary());
     }
 
-    internal static PdfRedactionPlan PlanRedaction(byte[] pdf, PdfEditorCommand command) {
+    internal static PdfRedactionPlan PlanRedaction(PdfDocument pdf, PdfEditorCommand command) {
         if (command.Tool != PdfEditorTool.Redact) throw new ArgumentException("A redaction command is required.", nameof(command));
         var area = new PdfRedactionArea(
             command.PageNumber,
@@ -88,23 +92,25 @@ internal static class PdfEditorCommandExecutor {
             command.Bounds.Width,
             command.Bounds.Height,
             "OfficeIMO Studio area redaction");
-        return PdfDocument.Load(pdf).Redactions.Plan(new[] { area });
+        return pdf.Redactions.Plan(new[] { area });
     }
 
     private static PdfAnnotationEditResult AddAnnotation(
-        byte[] pdf,
+        PdfDocument pdf,
         PdfEditorCommand command,
         string subtype,
         string? iconName = null,
         bool createPopup = false) {
         PdfPageRectangle bounds = command.Bounds;
-        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = pdf.Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = subtype,
             Rectangle = Rectangle(bounds),
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
+            BorderWidth = command.Properties.StrokeWidth,
             IconName = iconName,
             CreatePopup = createPopup,
             PopupOpen = false,
@@ -113,9 +119,9 @@ internal static class PdfEditorCommandExecutor {
         return result;
     }
 
-    private static PdfAnnotationEditResult AddMarkup(byte[] pdf, PdfEditorCommand command, string subtype) {
+    private static PdfAnnotationEditResult AddMarkup(PdfDocument pdf, PdfEditorCommand command, string subtype) {
         PdfPageRectangle bounds = command.Bounds;
-        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = pdf.Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = subtype,
             Rectangle = Rectangle(bounds),
@@ -129,37 +135,41 @@ internal static class PdfEditorCommandExecutor {
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
             GenerateAppearance = true
         });
         return result;
     }
 
-    private static PdfAnnotationEditResult AddLine(byte[] pdf, PdfEditorCommand command) {
+    private static PdfAnnotationEditResult AddLine(PdfDocument pdf, PdfEditorCommand command) {
         PdfPagePoint start = command.Path.Count > 0
             ? command.Path[0]
             : new PdfPagePoint(command.Bounds.Left, command.Bounds.Bottom);
         PdfPagePoint end = command.Path.Count > 1
             ? command.Path[^1]
             : new PdfPagePoint(command.Bounds.Right, command.Bounds.Top);
-        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = pdf.Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = "Line",
             Rectangle = Rectangle(command.Bounds),
             Line = new[] { start.X, start.Y, end.X, end.Y },
+            LineEndEnding = command.Properties.LineEndEnding,
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
+            BorderWidth = command.Properties.StrokeWidth,
             GenerateAppearance = true
         });
         return result;
     }
 
     // A freehand outline becomes a closed polygon; long paths are thinned so the vertex list stays small.
-    private static PdfAnnotationEditResult AddPolygon(byte[] pdf, PdfEditorCommand command) {
+    private static PdfAnnotationEditResult AddPolygon(PdfDocument pdf, PdfEditorCommand command) {
         if (command.Path.Count < 3) throw new InvalidOperationException("Draw an outline with at least three points to create a polygon.");
         int step = Math.Max(1, command.Path.Count / 48);
         double[] vertices = command.Path.Where((_, index) => index % step == 0).SelectMany(point => new[] { point.X, point.Y }).ToArray();
-        return PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        return pdf.Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = "Polygon",
             Rectangle = Rectangle(command.Bounds),
@@ -167,13 +177,15 @@ internal static class PdfEditorCommandExecutor {
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
+            BorderWidth = command.Properties.StrokeWidth,
             GenerateAppearance = true
         });
     }
 
-    private static PdfAnnotationEditResult AddInk(byte[] pdf, PdfEditorCommand command) {
+    private static PdfAnnotationEditResult AddInk(PdfDocument pdf, PdfEditorCommand command) {
         if (command.Strokes is { Count: > 0 } strokes) {
-            return PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+            return pdf.Annotations.Add(new PdfAnnotationCreateOptions {
                 PageNumber = command.PageNumber,
                 Subtype = "Ink",
                 Rectangle = Rectangle(command.Bounds),
@@ -182,11 +194,13 @@ internal static class PdfEditorCommandExecutor {
                 Contents = command.Properties.Text,
                 Title = command.Properties.Author,
                 Color = Color(command.Properties.Color),
+                Opacity = command.Properties.Opacity,
+                BorderWidth = command.Properties.StrokeWidth,
                 GenerateAppearance = true
             });
         }
         if (command.Path.Count < 2) throw new InvalidOperationException("Ink requires a pointer path with at least two points.");
-        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = pdf.Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = "Ink",
             Rectangle = Rectangle(command.Bounds),
@@ -194,14 +208,16 @@ internal static class PdfEditorCommandExecutor {
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
+            BorderWidth = command.Properties.StrokeWidth,
             GenerateAppearance = true
         });
         return result;
     }
 
-    private static byte[] AddText(byte[] pdf, PdfEditorCommand command) {
+    private static byte[] AddText(PdfDocument pdf, PdfEditorCommand command) {
         PdfPageRectangle bounds = command.Bounds;
-        return PdfDocument.Load(pdf).Stamp.Text(command.Properties.Text, new PdfTextStampOptions {
+        return pdf.Stamp.Text(command.Properties.Text, new PdfTextStampOptions {
             PageNumbers = new[] { command.PageNumber },
             X = bounds.Left,
             Y = bounds.Bottom,
@@ -210,11 +226,11 @@ internal static class PdfEditorCommandExecutor {
         }).ToBytes();
     }
 
-    private static byte[] AddImage(byte[] pdf, PdfEditorCommand command) {
+    private static byte[] AddImage(PdfDocument pdf, PdfEditorCommand command) {
         byte[] image = command.Properties.ImageBytes
             ?? throw new InvalidOperationException("Choose an image before drawing its placement.");
         PdfPageRectangle bounds = command.Bounds;
-        return PdfDocument.Load(pdf).Stamp.Image(image, new PdfImageStampOptions {
+        return pdf.Stamp.Image(image, new PdfImageStampOptions {
             PageNumbers = new[] { command.PageNumber },
             X = bounds.Left,
             Y = bounds.Bottom,
@@ -223,8 +239,8 @@ internal static class PdfEditorCommandExecutor {
         }).ToBytes();
     }
 
-    private static PdfAnnotationEditResult AddLink(byte[] pdf, PdfEditorCommand command) {
-        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+    private static PdfAnnotationEditResult AddLink(PdfDocument pdf, PdfEditorCommand command) {
+        PdfAnnotationEditResult result = pdf.Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = "Link",
             Rectangle = Rectangle(command.Bounds),

@@ -45,7 +45,12 @@ $scenarios = @(
     [ordered]@{ id = 'iwork-pdf'; group = 'iwork'; title = 'Composed iWork PDF workflows, portable fonts and atomic rejection'; project = 'OfficeIMO.Workflows.IWork.AotSmoke/OfficeIMO.Workflows.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
     [ordered]@{ id = 'reader-all'; group = 'surfaces'; title = 'Reader all-formats registration and representative extraction'; project = 'OfficeIMO.Reader.All.AotSmoke/OfficeIMO.Reader.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
     [ordered]@{ id = 'html-pdf-image'; group = 'surfaces'; title = 'HTML to SVG, PNG, and searchable PDF'; project = 'OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj' },
-    [ordered]@{ id = 'officeimo-tool'; group = 'surfaces'; title = 'Unified production CLI startup and command discovery'; project = 'OfficeIMO.Tool/OfficeIMO.Tool.csproj'; targetFramework = 'net10.0'; aotValidation = $true; runArguments = @('--help') }
+    [ordered]@{ id = 'officeimo-tool'; group = 'surfaces'; title = 'Unified production CLI startup and command discovery'; project = 'OfficeIMO.Tool/OfficeIMO.Tool.csproj'; targetFramework = 'net10.0'; aotValidation = $true; runArguments = @('--help') },
+    [ordered]@{ id = 'studio-engine-library'; group = 'surfaces'; title = 'Studio engine shared library: open, render, rotate, undo, redo and save through its C interface'; project = 'OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj'; targetFramework = 'net10.0'; nativeLibrary = 'OfficeIMOStudioEngine'; journey = 'OfficeIMO.Studio.Native/Test-NativeEngine.ps1'; fixtures = @(
+        'OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf',
+        'OfficeIMO.TestAssets/MultilingualLayout/latin-0-native.pdf',
+        'OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf'
+    ); blockedBlankPageFixtures = @('OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf') }
 )
 
 if (@($scenarios | Where-Object { $_.group -notin @('libraries', 'iwork', 'surfaces') }).Count -gt 0) {
@@ -164,12 +169,34 @@ try {
 
         if ($publishExit -eq 0) {
             $projectName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
-            $executablePath = Join-Path $publishPath ($projectName + $(if ($RuntimeIdentifier -like 'win-*') { '.exe' } else { '' }))
-            $executableSha256 = (Get-FileHash -LiteralPath $executablePath -Algorithm SHA256).Hash
-            Write-Host "[$($scenarioDefinition.id)] execute native binary" -ForegroundColor Cyan
-            $runArguments = @($scenarioDefinition.runArguments)
-            $runOutput = @(& $executablePath @runArguments 2>&1)
-            $runExit = $LASTEXITCODE
+            if ($scenarioDefinition.nativeLibrary) {
+                # A shared library has no entry point: a host drives its exported C interface instead.
+                $extension = if ($RuntimeIdentifier -like 'win-*') { '.dll' } elseif ($RuntimeIdentifier -like 'osx-*') { '.dylib' } else { '.so' }
+                $executablePath = Join-Path $publishPath ($scenarioDefinition.nativeLibrary + $extension)
+                $executableSha256 = (Get-FileHash -LiteralPath $executablePath -Algorithm SHA256).Hash
+                Write-Host "[$($scenarioDefinition.id)] drive the native library through its C interface" -ForegroundColor Cyan
+                $runOutput = @()
+                $runExit = 0
+                foreach ($fixture in $scenarioDefinition.fixtures) {
+                    $fixtureName = [System.IO.Path]::GetFileNameWithoutExtension($fixture)
+                    $journeyArguments = @('-NoLogo', '-NoProfile', '-File', (Join-Path $RepositoryRoot $scenarioDefinition.journey),
+                        '-Library', $executablePath, '-Pdf', (Join-Path $RepositoryRoot $fixture),
+                        '-WorkDirectory', (Join-Path $artifactRoot ($scenarioDefinition.id + '-journey-' + $fixtureName)))
+                    if ($fixture -in $scenarioDefinition.blockedBlankPageFixtures) {
+                        $journeyArguments += @('-ExpectedBlankPageInsertion', 'Blocked')
+                    }
+                    $runOutput += "Fixture: $fixture"
+                    $runOutput += @(& ([Environment]::ProcessPath) @journeyArguments 2>&1)
+                    if ($LASTEXITCODE -ne 0) { $runExit = $LASTEXITCODE }
+                }
+            } else {
+                $executablePath = Join-Path $publishPath ($projectName + $(if ($RuntimeIdentifier -like 'win-*') { '.exe' } else { '' }))
+                $executableSha256 = (Get-FileHash -LiteralPath $executablePath -Algorithm SHA256).Hash
+                Write-Host "[$($scenarioDefinition.id)] execute native binary" -ForegroundColor Cyan
+                $runArguments = @($scenarioDefinition.runArguments)
+                $runOutput = @(& $executablePath @runArguments 2>&1)
+                $runExit = $LASTEXITCODE
+            }
             $status = if ($runExit -eq 0) { 'passed' } else { 'runtime-failed' }
             $runOutput | ForEach-Object { Write-Host $_ }
         } else {
@@ -197,7 +224,7 @@ try {
         # rendering graphs. Each result is complete once its executable exits,
         # so release that scenario before starting the next one instead of
         # making the final linker compete with every previous publish.
-        foreach ($scenarioArtifactPath in @($publishPath, $sdkArtifactsPath)) {
+        foreach ($scenarioArtifactPath in @($publishPath, $sdkArtifactsPath, (Join-Path $artifactRoot ($scenarioDefinition.id + '-journey')))) {
             Remove-AotArtifactDirectory -Path $scenarioArtifactPath
         }
     }

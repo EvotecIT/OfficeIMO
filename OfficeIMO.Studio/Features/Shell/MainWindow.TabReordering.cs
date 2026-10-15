@@ -17,6 +17,17 @@ public sealed partial class MainWindow {
 
     private void InitializeDocumentTabInteractions() {
         ((MenuFlyout)DocumentListButton.Flyout!).ItemsSource = _documentMenuItems;
+        // The list follows the tabs, so opening it by pointer, keyboard or an accessibility tool always shows the open
+        // documents. Native popups take their size from the items present when they open, so presses refresh it too.
+        TabHost.Tabs.CollectionChanged += (_, _) => RefreshDocumentListMenu();
+        TabHost.PropertyChanged += (_, change) => {
+            if (change.PropertyName is nameof(StudioDocumentTabHost.SelectedTab) or nameof(StudioDocumentTabHost.HasTabs)) RefreshDocumentListMenu();
+        };
+        RefreshDocumentListMenu();
+        DocumentListButton.AddHandler(PointerPressedEvent, (_, _) => RefreshDocumentListMenu(), RoutingStrategies.Tunnel, handledEventsToo: true);
+        DocumentListButton.AddHandler(KeyDownEvent, (_, e) => {
+            if (e.Key is Key.Enter or Key.Space) RefreshDocumentListMenu();
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
         DocumentTabs.AddHandler(ContextRequestedEvent, OnDocumentTabContextRequested, RoutingStrategies.Tunnel);
         DocumentTabs.AddHandler(KeyDownEvent, OnDocumentTabsKeyDown, RoutingStrategies.Tunnel);
         DocumentTabs.AddHandler(PointerPressedEvent, OnTabDragPressed, RoutingStrategies.Tunnel);

@@ -206,13 +206,18 @@ try {
         SynchronizeMetadata = 'FullRewrite'
         Sanitize = 'FullRewrite'
         ModifyJavaScript = 'FullRewrite'
+        ModifyPageAttributes = 'FullRewrite'
+        NormalizePageRotation = 'FullRewrite'
+        OrganizePages = 'FullRewrite'
+        ImportPages = 'FullRewrite'
+        RotatePages = 'FullRewrite'
     }
     if ($pdfRecord.Count -ne 1 -or $null -eq $pdfRecord[0].pdfEvidence -or
         -not $pdfRecord[0].pdfEvidence.allStagesSucceeded -or
         $pdfRecord[0].pdfEvidence.stages.Count -ne 7 -or
         $pdfRecord[0].pdfEvidence.renderSucceededPages -ne 1 -or
-        $pdfRecord[0].pdfEvidence.mutationPlanCount -ne 21 -or
-        $mutationModeProperties.Count -ne 21 -or
+        $pdfRecord[0].pdfEvidence.mutationPlanCount -ne $expectedMutationPlanModes.Count -or
+        $mutationModeProperties.Count -ne $expectedMutationPlanModes.Count -or
         @($mutationModeValues | Where-Object { $_ -eq 'fullRewrite' }).Count -ne $pdfRecord[0].pdfEvidence.fullRewriteMutationPlanCount -or
         @($mutationModeValues | Where-Object { $_ -eq 'appendOnly' }).Count -ne $pdfRecord[0].pdfEvidence.appendOnlyMutationPlanCount -or
         @($mutationModeValues | Where-Object { $_ -eq 'blocked' }).Count -ne $pdfRecord[0].pdfEvidence.blockedMutationPlanCount -or
@@ -231,13 +236,13 @@ try {
         $formatReport.totals.pdfDeepStages -ne 7 -or
         $formatReport.totals.pdfDeepStagesPassed -ne 7 -or
         $formatReport.totals.pdfRenderedPages -ne 1 -or
-        $formatReport.totals.pdfMutationPlans -ne 21 -or
+        $formatReport.totals.pdfMutationPlans -ne $expectedMutationPlanModes.Count -or
         $formatReport.totals.pdfClaimableComplianceClaims -ne 0) {
         throw 'The aggregate PDF quality scorecard did not match the measured deep probe.'
     }
     $formatMarkdownText = Get-Content -LiteralPath $formatMarkdown -Raw
     if ($formatMarkdownText -notmatch 'PDF quality depth' -or
-        $formatMarkdownText -notmatch '\| 1 \| 7 \| 7 \| 1 \| 21 \|') {
+        $formatMarkdownText -notmatch "\| 1 \| 7 \| 7 \| 1 \| $($expectedMutationPlanModes.Count) \|") {
         throw 'The real-world Markdown scorecard omitted PDF quality depth evidence.'
     }
 

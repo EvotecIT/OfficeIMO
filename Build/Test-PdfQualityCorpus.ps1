@@ -86,9 +86,9 @@ $memoryBudgetFailures = @($report.cases | Where-Object {
 if ($memoryBudgetFailures.Count -ne 0) {
     throw "PDF quality corpus exceeded its worker memory budget for $($memoryBudgetFailures.Count) case(s)."
 }
-$incompleteMutationPortfolios = @($report.cases | Where-Object { $_.metrics.mutationPlanCount -ne 21 })
+$incompleteMutationPortfolios = @($report.cases | Where-Object { $_.metrics.mutationPlanCount -ne 26 })
 if ($incompleteMutationPortfolios.Count -ne 0) {
-    throw "PDF quality corpus did not assess all 21 preservation-safe mutation operations for $($incompleteMutationPortfolios.Count) case(s)."
+    throw "PDF quality corpus did not assess all 26 preservation-safe mutation operations for $($incompleteMutationPortfolios.Count) case(s)."
 }
 $unprovenComplianceClaims = @($report.cases | Where-Object { $_.metrics.claimableComplianceClaimCount -ne 0 })
 if ($unprovenComplianceClaims.Count -ne 0) {

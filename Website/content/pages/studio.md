@@ -10,7 +10,7 @@ meta.application: "studio"
 
 Open PDFs in tabs, switch between reading layouts, and find individual text matches on the page. Use light or dark application appearance without changing the document's own colors.
 
-Studio brings the OfficeIMO document engines into a desktop workspace. It works with supported PDF content directly; reconstructing an original Word document from a PDF is a separate conversion task.
+Studio brings the OfficeIMO document engines into a desktop workspace on Windows and Linux. Native apps for Mac, iPad and iPhone use the same engines; see [what Studio does on each system](#features). It works with supported PDF content directly; reconstructing an original Word document from a PDF is a separate conversion task.
 
 Read the [Studio privacy policy](/studio/privacy/) for details about local document processing, saved application data, and optional document assistant connections.
 
@@ -31,7 +31,7 @@ Read the [Studio privacy policy](/studio/privacy/) for details about local docum
 | Remove sensitive content | Mark redactions and review permanent removal | Save a separate output and inspect the verification evidence |
 | Compare revisions | Compare PDFs and open the resulting report | A visual comparison does not establish semantic equivalence |
 | Reduce document overhead | Run supported lossless optimization | Scan image downsampling is a separate capability |
-| Prepare printed output | Preview planned sheets and page placement | Native printer submission is not available |
+| Print | Preview sheets and page placement, then print to an installed printer | Printer-specific paper and duplex options are planned |
 
 Open any screenshot at full size to inspect the workspace. For immediate use without building the desktop app, try the [browser PDF tools](/pdf/). Their focused operations and limits are described on each task page.
 

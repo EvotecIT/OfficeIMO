@@ -9,6 +9,47 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class BookWorkbenchTests {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task FolderSelectedBookOutputsSaveAndReopenWithoutAProviderFile(bool export, bool existing) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            string root = Path.Combine(((App)Avalonia.Application.Current!).Services.Paths.Root, "book-outputs");
+            Directory.CreateDirectory(root);
+            using var storage = new StudioStorageAccess();
+            string folder = (await storage.RegisterFolderAsync([TestLocalOutputFolder.Create(root)], default))!;
+            string destination = storage.SelectLocalFileDestination(folder, export ? "book.epub" : "book.oibook");
+            if (existing) File.WriteAllText(destination, "Previous destination");
+            var dialogs = new Dialogs { Save = destination };
+            using var book = new BookWorkbenchViewModel(() => dialogs, storage, null, () => Task.FromResult(UnsavedChangesDecision.Discard));
+            await book.NewBookCommand.ExecuteAsync(null);
+            book.BookTitle = "Folder-selected book";
+            if (export) await book.ExportBookCommand.ExecuteAsync(null);
+            else await book.SaveProjectCommand.ExecuteAsync(null);
+            Assert.True(File.Exists(destination), book.Status);
+            byte[] result = File.ReadAllBytes(destination);
+            if (export) Assert.Equal("Folder-selected book", EpubDocument.Load(new MemoryStream(result)).Title);
+            else {
+                Assert.False(book.IsDirty, book.Status);
+                Assert.Equal("Folder-selected book", BookProject.LoadProject(result).Publication.Title);
+                book.BookTitle = "Saved again";
+                await book.SaveProjectCommand.ExecuteAsync(null);
+                Assert.False(book.IsDirty, book.Status);
+                Assert.Equal("Saved again", BookProject.LoadProject(File.ReadAllBytes(destination)).Publication.Title);
+                File.WriteAllBytes(destination, BookProject.Create("External edits").ToProjectBytes());
+                book.BookTitle = "Pending edits";
+                await book.SaveProjectCommand.ExecuteAsync(null);
+                Assert.True(book.IsDirty);
+                Assert.Equal("External edits", BookProject.LoadProject(File.ReadAllBytes(destination)).Publication.Title);
+            }
+            Assert.Single(Directory.GetFiles(root));
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Fact]
     public async Task OpeningAProjectWithStylesDoesNotCreateDraftEdits() {
         using var storage = new StudioStorageAccess();

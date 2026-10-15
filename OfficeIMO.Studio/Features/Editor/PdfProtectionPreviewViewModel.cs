@@ -68,12 +68,12 @@ public sealed partial class PdfProtectionPreviewViewModel : ObservableObject {
     [RelayCommand(CanExecute = nameof(CanOpenOutput))]
     private async Task OpenOutputAsync() {
         if (!CanOpenOutput) return;
-        try { await _open(OutputPath!).ConfigureAwait(true); } catch (Exception error) { ErrorMessage = error.Message; }
+        try { await _open(OutputPath!).ConfigureAwait(true); } catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
     [RelayCommand(CanExecute = nameof(CanRevealOutput))]
     private async Task RevealOutputAsync() {
         if (!CanRevealOutput) return;
         try { await _reveal!(OfficeStorageIdentity.GetLocalPath(OutputPath!)!).ConfigureAwait(true); }
-        catch (Exception error) { ErrorMessage = error.Message; }
+        catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
 }

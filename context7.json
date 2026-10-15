@@ -1,0 +1,19 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "OfficeIMO",
+  "description": ".NET libraries, a CLI and an MCP server for creating, reading and converting Word, Excel, PowerPoint, PDF, Visio, OpenDocument, email, Markdown and other documents without Microsoft Office.",
+  "excludeFolders": [
+    "Artefacts",
+    "Assets",
+    "Benchmarks",
+    "Build",
+    "Website/themes",
+    "Website/static"
+  ],
+  "rules": [
+    "Install only the package for the format you work with, such as OfficeIMO.Word, OfficeIMO.Excel, OfficeIMO.PowerPoint or OfficeIMO.Pdf. OfficeIMO doesn't need Microsoft Office, COM automation or a license key.",
+    "Create documents inside a using statement, for example using var document = WordDocument.Create(\"report.docx\") or using var workbook = ExcelDocument.Create(\"sales.xlsx\"), and call Save() when done.",
+    "For agents that work with local files, use the OfficeIMO.Tool MCP server: dotnet dnx OfficeIMO.Tool mcp serve --stdio, with OFFICEIMO_MCP_ALLOWED_ROOTS naming the folders it may read and write.",
+    "Each package's README in its project folder is the current API guide; Docs/ROADMAP.md lists open work, not shipped features."
+  ]
+}

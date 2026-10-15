@@ -75,11 +75,35 @@ public static class TesseractRuntime {
     }
 
     /// <summary>Returns only the example package-manager command, allowing hosts to localize the surrounding instructions.</summary>
-    /// <remarks>The Linux example uses apt-get; use the appropriate package manager for the actual distribution.</remarks>
+    /// <remarks>On Linux the example follows the distribution family reported by <c>/etc/os-release</c> and falls back to apt-get.</remarks>
     public static string GetInstallationCommand() {
         if (IsWindows()) return "winget install --id UB-Mannheim.TesseractOCR --exact";
         if (IsMacOS()) return "brew install tesseract";
+        return GetLinuxInstallationCommand(ReadOsReleaseFamily());
+    }
+
+    internal static string GetLinuxInstallationCommand(string? family) {
+        string value = family ?? string.Empty;
+        bool Is(string id) => value.Split(' ').Any(part => string.Equals(part, id, StringComparison.OrdinalIgnoreCase));
+        if (Is("fedora") || Is("rhel") || Is("centos")) return "dnf install tesseract";
+        if (Is("arch")) return "pacman -S tesseract";
+        if (Is("suse") || Is("opensuse")) return "zypper install tesseract-ocr";
         return "apt-get install tesseract-ocr";
+    }
+
+    // ID and ID_LIKE identify the distribution family, for example "ubuntu debian" or "rocky rhel centos fedora".
+    private static string? ReadOsReleaseFamily() {
+        try {
+            if (!File.Exists("/etc/os-release")) return null;
+            var values = new List<string>();
+            foreach (string line in File.ReadLines("/etc/os-release").Take(64)) {
+                if (!line.StartsWith("ID=", StringComparison.Ordinal) && !line.StartsWith("ID_LIKE=", StringComparison.Ordinal)) continue;
+                values.Add(line.Substring(line.IndexOf('=') + 1).Trim().Trim('"'));
+            }
+            return string.Join(" ", values);
+        } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
+            return null;
+        }
     }
 
     private static bool TryCreate(string candidate, TesseractRuntimeSource source, out TesseractRuntimeInfo? runtime) {
@@ -167,7 +191,7 @@ public static class TesseractRuntime {
             if (Directory.Exists(nested)) return nested;
             if (Directory.Exists(direct)) return direct;
         }
-        foreach (string candidate in new[] { "/usr/share/tesseract-ocr/5/tessdata", "/usr/share/tesseract-ocr/4.00/tessdata", "/usr/share/tessdata" }) {
+        foreach (string candidate in new[] { "/usr/share/tesseract-ocr/5/tessdata", "/usr/share/tesseract-ocr/4.00/tessdata", "/usr/share/tesseract/tessdata", "/usr/share/tessdata" }) {
             if (Directory.Exists(candidate)) return candidate;
         }
         return null;

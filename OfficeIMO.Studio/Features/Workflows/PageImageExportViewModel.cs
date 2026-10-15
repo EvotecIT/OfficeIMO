@@ -18,8 +18,6 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
     private readonly StudioStorageAccess? _storage;
-    private readonly OfficeWorkflowOutputRecoveryStore? _recoveryStore;
-    private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private CancellationTokenSource? _cancellation;
 
     public PageImageExportViewModel(
@@ -34,16 +32,13 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         IStudioLocalizer? localizer = null,
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
-        StudioStorageAccess? storage = null,
-        OfficeWorkflowOutputRecoveryStore? recoveryStore = null, Func<string, Task<bool>>? confirmProviderWrite = null) {
+        StudioStorageAccess? storage = null) {
         _pickPdf = pickPdf;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
         _jobHistory = jobHistory;
         _storage = storage;
-        _recoveryStore = recoveryStore;
-        _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
         _localizer = localizer ?? StudioLocalization.Current;
         Formats = [
             Format(OfficeImageExportFormat.Png, "PNG", "Lossless raster pages with transparency support."),
@@ -114,9 +109,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         InputPath = path;
         if (string.IsNullOrWhiteSpace(OutputDirectory) && _storage?.UsesProviderPublication(path) != true &&
             OfficeStorageIdentity.GetLocalPath(path) is { } localPath) {
-            OutputDirectory = Path.Combine(
-                Path.GetDirectoryName(localPath)!,
-                Path.GetFileNameWithoutExtension(localPath) + " pages");
+            OutputDirectory = Path.GetDirectoryName(localPath)!;
         }
     }
 
@@ -144,30 +137,22 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         OnPropertyChanged(nameof(HasOutput));
         StudioJobRecord? job = null;
         bool ownerStarted = false;
-        StudioStorageAccess.DirectoryOutputSession? directoryOutput = null;
 
         try {
-            string destination = OutputDirectory;
-            if (_storage?.UsesProviderPublication(destination) == true) {
-                if (!await _confirmProviderWrite(destination).ConfigureAwait(true)) {
-                    Status = T("Status.Cancelled", "Page export cancelled");
-                    return;
-                }
-                operation.Token.ThrowIfCancellationRequested();
-                directoryOutput = _storage.CreateDirectoryOutput(destination, _recoveryStore
-                    ?? throw new IOException("Workflow recovery storage is unavailable."));
-            }
+            string destination = StudioStorageAccess.RequireLocalOutputFolder(OutputDirectory, _localizer);
+            string name = OfficeIMO.Core.Internal.OfficePortableFileName.SanitizeBaseName(
+                Path.GetFileNameWithoutExtension(OfficeStorageIdentity.GetFileName(InputPath)), maximumLength: 80);
+            destination = Path.Combine(destination, (name.Length == 0 ? "document" : name) + "-pages");
             var request = new PdfPageImageExportRequest {
                 InputPath = InputPath,
                 InputStream = _storage?.CreateWorkflowInput(InputPath),
                 OutputDirectory = destination,
-                DirectoryOutput = directoryOutput?.Output,
                 Pages = string.IsNullOrWhiteSpace(Pages) ? null : Pages,
                 Format = SelectedFormat.Value,
                 TargetDpi = TargetDpi,
                 MaximumDimension = MaximumDimension > 0 ? MaximumDimension : null,
                 PublicationGuard = _publicationGuard,
-                ConflictPolicy = directoryOutput is null ? OfficeWorkflowConflictPolicy.Rename : OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
             };
             job = _jobHistory?.Start(T("Job.Title", "Page image export"), request.InputPath, request.OutputDirectory, operation.Cancel);
             using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
@@ -200,8 +185,6 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
             Status = exception.Message;
             job?.Unconfirmed(exception.Message);
         } finally {
-            try { directoryOutput?.Dispose(); }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status += " " + error.Message; }
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;
         }

@@ -19,13 +19,18 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
     private readonly Button _wait;
     private readonly Button _cancel;
     private readonly IStudioLocalizer _localizer;
+    private readonly Workflows.StudioJobHistory? _jobs;
+    private readonly StackPanel _running = new() { Spacing = 8 };
+    private readonly ScrollViewer _runningList;
     private bool _closeWhenIdle;
     private bool _closed;
     private bool _cancelRequested;
 
     internal ActiveOperationsDialogContent(IEnumerable<MainWindowViewModel> documents, IStudioLocalizer localizer,
-        StudioDocumentTabHost? host = null, StudioSessionController? session = null) {
+        StudioDocumentTabHost? host = null, StudioSessionController? session = null, Workflows.StudioJobHistory? jobs = null) {
         _documents = documents.ToHashSet();
+        _jobs = jobs;
+        _runningList = new ScrollViewer { Name = "RunningWork", Content = _running, MaxHeight = 220, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto };
         _host = host;
         _session = session;
         _localizer = localizer;
@@ -46,6 +51,7 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
             Children = {
                 new TextBlock { Text = Title, FontSize = 20, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
                 _status,
+                _runningList,
                 new TextBlock { Text = Text("Outputs", "Outputs already saved are kept. Cancellation does not undo them. Job history lasts only for this session and work will not resume after restarting."), TextWrapping = TextWrapping.Wrap },
                 new WrapPanel { Orientation = Orientation.Horizontal, Children = { keep, _wait, _cancel } }
             }
@@ -54,13 +60,52 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
         foreach (MainWindowViewModel document in _documents) document.PropertyChanged += OnDocumentChanged;
         if (_host is not null) _host.Tabs.CollectionChanged += OnTabsChanged;
         if (_session is not null) _session.PropertyChanged += OnSessionChanged;
+        if (_jobs is not null) {
+            foreach (Workflows.StudioJobRecord record in _jobs.Entries) record.PropertyChanged += OnJobChanged;
+            ((INotifyCollectionChanged)_jobs.Entries).CollectionChanged += OnJobsChanged;
+        }
+        ShowRunningWork();
         Opened += (_, _) => keep.Focus();
         Closed += (_, _) => {
             _closed = true;
             foreach (MainWindowViewModel document in _documents) document.PropertyChanged -= OnDocumentChanged;
             if (_host is not null) _host.Tabs.CollectionChanged -= OnTabsChanged;
             if (_session is not null) _session.PropertyChanged -= OnSessionChanged;
+            if (_jobs is not null) {
+                foreach (Workflows.StudioJobRecord record in _jobs.Entries) record.PropertyChanged -= OnJobChanged;
+                ((INotifyCollectionChanged)_jobs.Entries).CollectionChanged -= OnJobsChanged;
+            }
         };
+    }
+
+    // The decision is about specific work: list what is running so waiting or cancelling is an informed choice.
+    private void ShowRunningWork() {
+        _running.Children.Clear();
+        foreach (MainWindowViewModel document in _documents.Where(document => document.CanCancelOperation))
+            _running.Children.Add(Row(document.DocumentName.TrimEnd(' ', '*'), document.OperationStatus ?? Text("Working", "Working…"), null));
+        foreach (Workflows.StudioJobRecord record in _jobs?.Entries.Where(record => record.IsActive) ?? [])
+            _running.Children.Add(Row(record.Title + " · " + System.IO.Path.GetFileName(record.InputLabel), record.Status, record.Progress));
+        _runningList.IsVisible = _running.Children.Count > 0;
+    }
+
+    private static Control Row(string title, string status, double? progress) {
+        var row = new StackPanel { Spacing = 2 };
+        row.Children.Add(new TextBlock { Text = title, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        row.Children.Add(new TextBlock { Text = status, TextWrapping = TextWrapping.Wrap, Classes = { "muted" } });
+        if (progress is { } value) row.Children.Add(new ProgressBar { Minimum = 0, Maximum = 1, Value = value, Height = 6, MinWidth = 0 });
+        return row;
+    }
+
+    private void OnJobChanged(object? sender, PropertyChangedEventArgs args) {
+        if (args.PropertyName is nameof(Workflows.StudioJobRecord.IsActive) or nameof(Workflows.StudioJobRecord.Status) or nameof(Workflows.StudioJobRecord.Progress))
+            this.Dispatcher.Post(CheckIdle);
+    }
+
+    // Work started while the dialog is open is listed, and the window waits for it too.
+    private void OnJobsChanged(object? sender, NotifyCollectionChangedEventArgs args) {
+        foreach (Workflows.StudioJobRecord record in args.OldItems?.OfType<Workflows.StudioJobRecord>() ?? []) record.PropertyChanged -= OnJobChanged;
+        foreach (Workflows.StudioJobRecord record in args.NewItems?.OfType<Workflows.StudioJobRecord>() ?? []) record.PropertyChanged += OnJobChanged;
+        this.Dispatcher.Post(CheckIdle);
     }
 
     private string Text(string key, string fallback) => _localizer.GetOrDefault("Dialog.ActiveOperations." + key, fallback);
@@ -76,6 +121,7 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
             _cancel.IsEnabled = false;
             _session?.CancelActiveOperation();
             foreach (MainWindowViewModel document in _documents.ToArray()) document.CancelCurrentOperation();
+            CancelJobs();
         }
         CheckIdle();
     }
@@ -101,11 +147,19 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
     }
 
     private void CheckIdle() {
-        if (_closed || !_closeWhenIdle) return;
+        if (_closed) return;
+        ShowRunningWork();
+        if (!_closeWhenIdle) return;
         if (_cancelRequested) {
             _session?.CancelActiveOperation();
             foreach (MainWindowViewModel document in _documents.Where(document => document.CanCancelOperation).ToArray()) document.CancelCurrentOperation();
+            CancelJobs();
         }
-        if (_session?.IsBusy != true && _documents.All(document => !document.CanCancelOperation)) Close(true);
+        if (_session?.IsBusy != true && _documents.All(document => !document.CanCancelOperation) && _jobs?.HasActive != true) Close(true);
+    }
+
+    private void CancelJobs() {
+        foreach (Workflows.StudioJobRecord record in _jobs?.Entries.Where(record => record.IsActive).ToArray() ?? [])
+            if (record.CancelCommand.CanExecute(null)) record.CancelCommand.Execute(null);
     }
 }

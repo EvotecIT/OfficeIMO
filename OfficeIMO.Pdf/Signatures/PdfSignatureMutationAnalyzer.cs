@@ -126,9 +126,9 @@ internal static class PdfSignatureMutationAnalyzer {
         if (before.ObjectNumber != after.ObjectNumber || before.FieldObjectNumber != after.FieldObjectNumber) return false;
         int comparedNodes = 0;
         var visitedReferences = new HashSet<string>(StringComparer.Ordinal);
-        if (!TryCompareObjectGraph(before.ObjectNumber, beforeObjects, afterObjects, visitedReferences, 0, ref comparedNodes, ignorePageBacklink: false)) return false;
+        if (!TryCompareObjectGraph(before.ObjectNumber, beforeObjects, afterObjects, visitedReferences, 0, ref comparedNodes, fieldHierarchy: false)) return false;
         return !before.FieldObjectNumber.HasValue ||
-            TryCompareObjectGraph(before.FieldObjectNumber.Value, beforeObjects, afterObjects, visitedReferences, 0, ref comparedNodes, ignorePageBacklink: true);
+            TryCompareObjectGraph(before.FieldObjectNumber.Value, beforeObjects, afterObjects, visitedReferences, 0, ref comparedNodes, fieldHierarchy: true);
     }
 
     private static bool TryCompareObjectGraph(
@@ -138,11 +138,11 @@ internal static class PdfSignatureMutationAnalyzer {
         ISet<string> visitedReferences,
         int depth,
         ref int comparedNodes,
-        bool ignorePageBacklink) {
+        bool fieldHierarchy) {
         if (!beforeObjects.TryGetValue(objectNumber, out PdfIndirectObject? before) ||
             !afterObjects.TryGetValue(objectNumber, out PdfIndirectObject? after) ||
             before.Generation != after.Generation) return false;
-        return TryCompareObjectGraph(before.Value, after.Value, beforeObjects, afterObjects, visitedReferences, depth, ref comparedNodes, ignorePageBacklink);
+        return TryCompareObjectGraph(before.Value, after.Value, beforeObjects, afterObjects, visitedReferences, depth, ref comparedNodes, fieldHierarchy);
     }
 
     private static bool TryCompareObjectGraph(
@@ -153,7 +153,7 @@ internal static class PdfSignatureMutationAnalyzer {
         ISet<string> visitedReferences,
         int depth,
         ref int comparedNodes,
-        bool ignorePageBacklink = false) {
+        bool fieldHierarchy = false) {
         if (depth > 64 || ++comparedNodes > 4096 || before.GetType() != after.GetType()) return false;
         if (before is PdfNull) return true;
         if (before is PdfNumber beforeNumber && after is PdfNumber afterNumber) return beforeNumber.Value.Equals(afterNumber.Value);
@@ -165,36 +165,37 @@ internal static class PdfSignatureMutationAnalyzer {
         if (before is PdfReference beforeReference && after is PdfReference afterReference) {
             if (beforeReference.ObjectNumber != afterReference.ObjectNumber || beforeReference.Generation != afterReference.Generation) return false;
             string key = beforeReference.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
-                beforeReference.Generation.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            return !visitedReferences.Add(key) || TryCompareObjectGraph(beforeReference.ObjectNumber, beforeObjects, afterObjects, visitedReferences, depth + 1, ref comparedNodes, ignorePageBacklink: false);
+                beforeReference.Generation.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                (fieldHierarchy ? ":field" : ":definition");
+            return !visitedReferences.Add(key) || TryCompareObjectGraph(beforeReference.ObjectNumber, beforeObjects, afterObjects, visitedReferences, depth + 1, ref comparedNodes, fieldHierarchy);
         }
         if (before is PdfArray beforeArray && after is PdfArray afterArray) {
             if (beforeArray.Items.Count != afterArray.Items.Count) return false;
             for (int index = 0; index < beforeArray.Items.Count; index++) {
-                if (!TryCompareObjectGraph(beforeArray.Items[index], afterArray.Items[index], beforeObjects, afterObjects, visitedReferences, depth + 1, ref comparedNodes, ignorePageBacklink: false)) return false;
+                if (!TryCompareObjectGraph(beforeArray.Items[index], afterArray.Items[index], beforeObjects, afterObjects, visitedReferences, depth + 1, ref comparedNodes, fieldHierarchy)) return false;
             }
             return true;
         }
         if (before is PdfDictionary beforeDictionary && after is PdfDictionary afterDictionary) {
-            if (CountOwnedDictionaryEntries(beforeDictionary, ignorePageBacklink) != CountOwnedDictionaryEntries(afterDictionary, ignorePageBacklink)) return false;
+            if (beforeDictionary.Items.Count != afterDictionary.Items.Count) return false;
             foreach (KeyValuePair<string, PdfObject> entry in beforeDictionary.Items) {
-                if (ignorePageBacklink && IsContextBacklink(entry.Key)) continue;
-                if (!afterDictionary.Items.TryGetValue(entry.Key, out PdfObject? afterValue) ||
-                    !TryCompareObjectGraph(entry.Value, afterValue, beforeObjects, afterObjects, visitedReferences, depth + 1, ref comparedNodes, ignorePageBacklink: false)) return false;
+                if (!afterDictionary.Items.TryGetValue(entry.Key, out PdfObject? afterValue)) return false;
+                if (fieldHierarchy && entry.Key == "P" && entry.Value is PdfReference pageReference && afterValue is PdfReference afterPageReference) {
+                    // The widget owns its page identity, not the page's content or attributes.
+                    if (pageReference.ObjectNumber != afterPageReference.ObjectNumber || pageReference.Generation != afterPageReference.Generation) return false;
+                    continue;
+                }
+                bool childFieldHierarchy = fieldHierarchy && (entry.Key == "Kids" || entry.Key == "Parent");
+                if (!TryCompareObjectGraph(entry.Value, afterValue, beforeObjects, afterObjects, visitedReferences, depth + 1, ref comparedNodes, childFieldHierarchy)) return false;
             }
             return true;
         }
         if (before is PdfStream beforeStream && after is PdfStream afterStream) {
             if (beforeStream.Data.Length > 1_048_576 || !beforeStream.Data.SequenceEqual(afterStream.Data)) return false;
-            return TryCompareObjectGraph(beforeStream.Dictionary, afterStream.Dictionary, beforeObjects, afterObjects, visitedReferences, depth + 1, ref comparedNodes, ignorePageBacklink: false);
+            return TryCompareObjectGraph(beforeStream.Dictionary, afterStream.Dictionary, beforeObjects, afterObjects, visitedReferences, depth + 1, ref comparedNodes, fieldHierarchy: false);
         }
         return false;
     }
-
-    private static int CountOwnedDictionaryEntries(PdfDictionary dictionary, bool ignorePageBacklink) =>
-        dictionary.Items.Count - (ignorePageBacklink && dictionary.Items.ContainsKey("P") ? 1 : 0);
-
-    private static bool IsContextBacklink(string key) => string.Equals(key, "P", StringComparison.Ordinal);
 
     private static int[] FindRevisionEnds(byte[] pdf) {
         byte[] marker = Encoding.ASCII.GetBytes("%%EOF");

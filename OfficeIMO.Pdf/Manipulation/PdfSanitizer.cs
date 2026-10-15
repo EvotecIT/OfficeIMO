@@ -136,10 +136,11 @@ internal static partial class PdfSanitizer {
                 preservationOptions.ExcludedActionUris.Add(before.Findings[i].Detail);
             }
         }
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreservedForMutation(
             pdf,
             sanitized,
             preservationOptions,
+            plan,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 

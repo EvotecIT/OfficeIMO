@@ -45,5 +45,28 @@
       { "name": "Portable archives", "detail": "Standalone binaries for each platform", "state": "Planned" },
       { "name": "WinGet", "detail": "Managed installation of the standalone CLI", "state": "Planned" }
     ]
+  },
+  "agents": {
+    "eyebrow": "MCP server, plugin and skills",
+    "headlineLead": "Give your AI agent",
+    "headlineAccent": "real document tools.",
+    "summary": "Claude, Codex, GitHub Copilot, Cursor and other agents inspect, search and convert your Word, Excel, PowerPoint, PDF and mail files through OfficeIMO, on your own computer.",
+    "primaryLabel": "Install for your agent",
+    "primaryUrl": "#install",
+    "secondaryLabel": "View the plugin",
+    "secondaryUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools",
+    "availability": "Runs locally with the .NET SDK · Only the folders you allow · MIT licensed",
+    "facts": ["15 MCP tools", "2 Agent Skills", "Local and read-first"],
+    "terminalTitle": "Agents · OfficeIMO",
+    "terminal": [
+      { "comment": "Claude Code", "command": "claude plugin marketplace add EvotecIT/OfficeIMO" },
+      { "comment": "Codex", "command": "codex plugin marketplace add EvotecIT/OfficeIMO --ref master --sparse .agents/plugins" },
+      { "comment": "Any other MCP client", "command": "dotnet dnx OfficeIMO.Tool@{version} mcp serve --stdio" }
+    ],
+    "channels": [
+      { "name": "Plugin marketplace", "detail": "Claude Code and Codex install the plugin straight from this repository", "state": "Available", "url": "https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools", "label": "Open the plugin" },
+      { "name": "NuGet", "detail": "The MCP server ships in OfficeIMO.Tool and starts with dotnet dnx", "state": "Available", "url": "https://www.nuget.org/packages/OfficeIMO.Tool", "label": "Open NuGet" },
+      { "name": "Agent directories", "detail": "The MCP Registry and the Claude, OpenAI and Cursor directories", "state": "Planned", "url": "#directories", "label": "See each directory" }
+    ]
   }
 }

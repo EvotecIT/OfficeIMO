@@ -25,6 +25,15 @@ public sealed partial class MainWindowViewModel {
     public bool CanApplyFormDrafts => !IsWorkspaceBusy && _workspace?.CanFillForms == true && HasFormDrafts &&
         !HasUnassignedFormDrafts && FormFields.Where(entry => entry.HasDraft).All(entry => entry.CanApplyValue);
 
+    /// <summary>Puts every field back to its saved value, the Cancel of the forms inspector; applied values stay undoable.</summary>
+    [RelayCommand]
+    private void DiscardFormDrafts() {
+        foreach (PdfFormFieldViewModel field in FormFields.Where(field => field.HasDraft).ToArray()) field.ResetDraftCommand.Execute(null);
+        UnassignedFormDrafts.Clear();
+        ClearFormPreview();
+        NotifyFormDraftState();
+    }
+
     private void NotifyFormDraftState() {
         _assistant?.CheckSource();
         NotifyFormOcrState();
@@ -47,14 +56,14 @@ public sealed partial class MainWindowViewModel {
         }
         var drafts = FormFields.Where(field => field.HasDraft).ToArray();
         if (drafts.Length > 0 && _workspace?.CanFillForms != true) {
-            ErrorMessage = "This document does not permit applying form values.";
+            ErrorMessage = UiText("Forms.ApplyNotPermitted");
             return null;
         }
         var invalid = drafts.FirstOrDefault(field => !field.CanApplyValue);
         if (invalid is not null) {
             SelectedFormField = invalid;
             ErrorMessage = invalid.DisplayName + ": " + (invalid.HasDraftConflict
-                ? "The saved field changed. Choose whether to keep your draft or reset it."
+                ? UiText("Forms.DraftConflict")
                 : invalid.ValidationSummary);
             return null;
         }

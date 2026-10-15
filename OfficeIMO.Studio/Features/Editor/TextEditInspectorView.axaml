@@ -5,12 +5,12 @@
              xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              x:Class="OfficeIMO.Studio.Features.Editor.TextEditInspectorView"
              x:DataType="shell:MainWindowViewModel">
-  <StackPanel Spacing="7">
+  <StackPanel Spacing="{StaticResource StudioSpaceS}">
     <ListBox ItemsSource="{Binding ReplacementMatches}" SelectedItem="{Binding SelectedReplacementMatch}" IsVisible="{Binding HasReplacementMatches}" MaxHeight="160"
              AutomationProperties.Name="{loc:Loc TextEdit.Matches}">
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="editor:PdfTextReplacementMatchViewModel">
-          <StackPanel Orientation="Horizontal" Spacing="6">
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}">
             <CheckBox IsChecked="{Binding IsIncluded}" Content="{loc:Loc TextEdit.Include}" />
             <TextBlock Text="{Binding PageNumber}" VerticalAlignment="Center" />
             <TextBlock Text="{Binding Text}" MaxWidth="140" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
@@ -21,7 +21,7 @@
     <ContentControl Content="{Binding TextEditDraft}">
       <ContentControl.ContentTemplate>
         <DataTemplate x:DataType="editor:PdfTextDraftViewModel">
-          <StackPanel Spacing="6">
+          <StackPanel Spacing="{StaticResource StudioSpaceSM}">
             <TextBlock Text="{Binding SourceStyle}" TextWrapping="Wrap" Classes="muted" />
             <TextBox Text="{Binding Text}" AcceptsReturn="True" MinHeight="64" MaxHeight="140" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc TextEdit.Replacement}" />
             <TextBlock Text="{loc:Loc TextEdit.Font}" />
@@ -41,7 +41,7 @@
       </ContentControl.ContentTemplate>
     </ContentControl>
     <TextBlock Text="{Binding TextPreviewSummary}" TextWrapping="Wrap" />
-    <StackPanel IsVisible="{Binding HasTextPreview}" Spacing="6">
+    <StackPanel IsVisible="{Binding HasTextPreview}" Spacing="{StaticResource StudioSpaceSM}">
       <CheckBox IsChecked="{Binding TextPreviewFullPage}" Content="{loc:Loc TextEdit.FullPage}" />
       <TextBlock Text="{loc:Loc TextEdit.Before}" />
       <editor:TextEditPreview Source="{Binding TextPreviewBefore}" Region="{Binding TextPreviewRegion}" Height="170" />

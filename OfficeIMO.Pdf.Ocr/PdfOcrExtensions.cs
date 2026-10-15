@@ -6,7 +6,7 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Pdf.Ocr;
 
 /// <summary>Optional OCR operations for loaded PDF documents.</summary>
-public static class PdfOcrExtensions {
+public static partial class PdfOcrExtensions {
     /// <summary>Previews one page using the same region, perspective, and scan preparation as OCR, without invoking a provider.
     /// Provider orientation detection is not performed. Source bytes remain unchanged.</summary>
     public static Task<PdfScanPreview> PreviewScanAsync(this PdfDocument document, int pageNumber,

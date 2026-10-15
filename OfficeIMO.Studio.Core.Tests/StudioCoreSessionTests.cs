@@ -100,6 +100,51 @@ public sealed class StudioCoreSessionTests {
         Assert.True(second.Document.PresentationActive);
     }
 
+    [Fact]
+    public async Task ApplicationDocumentTakesPartInWindowLifecycleWithoutBecomingATab() {
+        var application = new TestDocument();
+        var tabs = new StudioDocumentTabs<TestDocument, TestTab>(_ => new(), _ => { }, (document, _) => new(document), applicationDocument: application);
+        await tabs.OpenDocumentAsync(Path.Combine(Path.GetTempPath(), "window-owned-first.pdf"));
+        Assert.DoesNotContain(tabs.Tabs, tab => ReferenceEquals(tab.Document, application));
+        Assert.Contains(application, tabs.OperationDocuments);
+
+        Assert.False(tabs.HasBusyDocuments);
+        application.CanCancelOperation = true;
+        Assert.True(tabs.HasBusyDocuments);
+        application.HasUnsavedAuxiliaryWork = true;
+        Assert.True(tabs.HasDirtyDocuments);
+
+        // Output reserved by window-level work cannot be claimed by a document save.
+        string reserved = Path.Combine(Path.GetTempPath(), "window-owned-book.epub");
+        application.OwnedPath = reserved;
+        Assert.False(tabs.CanPublishPath(reserved));
+
+        tabs.CancelAllOperations();
+        Assert.Equal(1, application.Cancellations);
+
+        application.AllowClose = false;
+        Assert.False(await tabs.RequestCloseAllAsync());
+        Assert.Single(tabs.Tabs);
+        application.AllowClose = true;
+
+        // A tab that refuses to close also releases the window-level document's preparation.
+        TestDocument tabDocument = tabs.Tabs[0].Document;
+        tabDocument.AllowClose = false;
+        int cancelled = application.CancelledCloses;
+        Assert.False(await tabs.RequestCloseAllAsync());
+        Assert.Equal(cancelled + 1, application.CancelledCloses);
+        Assert.Equal(0, application.Commits);
+        tabDocument.AllowClose = true;
+
+        Assert.True(await tabs.RequestCloseAllAsync());
+        Assert.Equal(1, application.Commits);
+        Assert.Equal(1, application.CompletedCloses);
+        Assert.Equal(3, application.CloseRequests);
+
+        tabs.Dispose();
+        Assert.True(application.Disposed);
+    }
+
     private static StudioDocumentTabs<TestDocument, TestTab> CreateTabs() =>
         new(_ => new(), _ => { }, (document, _) => new(document));
 
@@ -117,11 +162,16 @@ public sealed class StudioCoreSessionTests {
         public string? LastClosedDocumentPath => null;
         public bool HasDocument => DocumentPath is not null;
         public bool IsDirty => false;
-        public bool HasUnsavedAuxiliaryWork => false;
-        public bool CanCancelOperation => false;
+        public bool HasUnsavedAuxiliaryWork { get; set; }
+        public bool CanCancelOperation { get; set; }
+        internal int Cancellations { get; private set; }
+        internal int CloseRequests { get; private set; }
+        internal bool AllowClose { get; set; } = true;
+        internal bool Disposed { get; private set; }
+        internal string? OwnedPath { get; set; }
         public string? ErrorMessage { get; set; }
-        public IEnumerable<string> OwnedOutputLocations => [];
-        public bool OwnsOutputPath(string path) => false;
+        public IEnumerable<string> OwnedOutputLocations => OwnedPath is null ? [] : [OwnedPath];
+        public bool OwnsOutputPath(string path) => OwnedPath is not null && string.Equals(Path.GetFullPath(OwnedPath), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase);
         public void Deactivate() { }
         internal bool PresentationActive { get; private set; }
         public void SetPresentationActive(bool active) => PresentationActive = active;
@@ -138,12 +188,15 @@ public sealed class StudioCoreSessionTests {
         public StudioSessionDocument CaptureSessionDocument() => new(DocumentPath!, new string('A', 64), _view);
         public void RestoreSessionViewState(StudioDocumentViewState state) => SetView(state);
         public Task<bool> RequestCloseDocumentAsync() => Task.FromResult(true);
-        public Task<bool> PrepareCloseDocumentAsync() => Task.FromResult(true);
-        public Task<bool> CommitPreparedDiscardAsync() => Task.FromResult(true);
-        public void CancelPreparedClose() { }
-        public void CompletePreparedClose() { }
-        public void CancelCurrentOperation() { }
-        public void Dispose() { }
+        public Task<bool> PrepareCloseDocumentAsync() { CloseRequests++; return Task.FromResult(AllowClose); }
+        public Task<bool> CommitPreparedDiscardAsync() { Commits++; return Task.FromResult(true); }
+        public void CancelPreparedClose() => CancelledCloses++;
+        public void CompletePreparedClose() => CompletedCloses++;
+        internal int Commits { get; private set; }
+        internal int CancelledCloses { get; private set; }
+        internal int CompletedCloses { get; private set; }
+        public void CancelCurrentOperation() => Cancellations++;
+        public void Dispose() => Disposed = true;
     }
 
     private sealed class TestEnvironment(string root) : IStudioSessionEnvironment {

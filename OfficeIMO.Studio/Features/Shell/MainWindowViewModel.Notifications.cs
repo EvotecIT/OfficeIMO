@@ -61,9 +61,23 @@ public sealed partial class MainWindowViewModel {
         if (!IsWorkspaceBusy) _activeNotificationScope = null;
     }
 
+    private string? _dismissedSecurityWarning;
+
+    /// <summary>A restriction notice offers a way back to reading when the current task cannot run.</summary>
+    public bool CanReturnToReading => HasDocument && DocumentMode != StudioDocumentMode.View;
+
+    // Dismissing hides this restriction for the document until a different one applies.
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void DismissSecurityWarning() {
+        _dismissedSecurityWarning = SecurityWarning;
+        OnPropertyChanged(nameof(HasSecurityWarning));
+    }
+
     private void NotifyVisibleNotifications() {
+        OnPropertyChanged(nameof(CanReturnToReading));
         OnPropertyChanged(nameof(HasVisibleError));
         OnPropertyChanged(nameof(HasVisibleOperationStatus));
         OnPropertyChanged(nameof(IsQuietOperationStatus));
+        OnPropertyChanged(nameof(HasRenderingNotice));
     }
 }

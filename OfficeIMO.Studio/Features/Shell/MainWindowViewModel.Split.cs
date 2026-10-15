@@ -24,16 +24,12 @@ public sealed partial class MainWindowViewModel {
         try {
             string? folder = await _pickOutputFolder(cancellationToken).ConfigureAwait(true);
             if (string.IsNullOrWhiteSpace(folder) || !IsReviewedCopyCurrent(workspace, revision)) return;
-            bool provider = _services.Storage.UsesProviderPublication(folder);
-            string destination = provider ? folder : Path.Combine(OfficeStorageIdentity.GetLocalPath(folder)
-                ?? throw new IOException("Choose an accessible output folder."), "Split PDFs");
+            string destination = Path.Combine(StudioStorageAccess.RequireLocalOutputFolder(folder, _localizer), "Split PDFs");
             PdfSplitStart[] starts = Bookmarks.Where(bookmark => bookmark.Level == 1 && bookmark.PageNumber.HasValue)
                 .Select(bookmark => new PdfSplitStart(bookmark.PageNumber!.Value, bookmark.Title)).ToArray();
-            var preview = new PageSplitPreviewViewModel(workspace.Pages.Count, pagesPerPart, destination, provider, _localizer,
+            var preview = new PageSplitPreviewViewModel(workspace.Pages.Count, pagesPerPart, destination, false, _localizer,
                 path => _openDocumentInTab is null ? _openUri(new Uri(path)) : _openDocumentInTab(path, CancellationToken.None), starts);
             if (!await _reviewPageSplit(preview).ConfigureAwait(true) || !preview.CanApply) return;
-            if (!IsReviewedCopyCurrent(workspace, revision) || !CanExtractPages) return;
-            if (provider && !await _confirmProviderWrite(destination).ConfigureAwait(true)) return;
             if (!IsReviewedCopyCurrent(workspace, revision) || !CanExtractPages) return;
             int selectedPartSize = preview.PartSize;
             PdfSplitPlan? selectedPlan = preview.Plan;
@@ -41,10 +37,8 @@ public sealed partial class MainWindowViewModel {
             PdfSplitWorkflowResult? result = null;
             await RunStandaloneAsync(async token => {
                 StudioJobRecord? job = null;
-                StudioStorageAccess.DirectoryOutputSession? directory = null;
                 bool ownerStarted = false;
                 try {
-                    directory = provider ? _services.Storage.CreateDirectoryOutput(destination, _services.WorkflowRecovery) : null;
                     job = _services.Jobs.Start(UiText("Organizer.SplitTitle"), workspace.Path, destination, CancelCurrentOperation);
                     using IDisposable execution = await _services.Jobs.EnterAsync(token).ConfigureAwait(true);
                     if (!IsReviewedCopyCurrent(workspace, revision)) throw new InvalidOperationException(ErrorMessage);
@@ -54,9 +48,9 @@ public sealed partial class MainWindowViewModel {
                         job.Report(new OfficeWorkflowProgress("split", "split", update.Stage, update.Fraction, update.Fraction));
                     });
                     ownerStarted = true;
-                    result = await workspace.SplitAsync(destination, selectedPartSize, token, progress, directory?.Output, _publicationGuard, selectedPlan).ConfigureAwait(true);
-                    string? publishedOutput = result.Files.Count == 0 ? null : provider ? result.Files[0].Path : Path.GetDirectoryName(result.Files[0].Path);
-                    job.CompleteBatch(result.Status, publishedOutput, result.Summary, result.OutputRecoveries, result.Files.Count > 0, isDirectoryOutput: !provider);
+                    result = await workspace.SplitAsync(destination, selectedPartSize, token, progress, null, _publicationGuard, selectedPlan).ConfigureAwait(true);
+                    string? publishedOutput = result.Files.Count == 0 ? null : Path.GetDirectoryName(result.Files[0].Path);
+                    job.CompleteBatch(result.Status, publishedOutput, result.Summary, result.OutputRecoveries, result.Files.Count > 0, isDirectoryOutput: true);
                 } catch (OperationCanceledException) when (token.IsCancellationRequested) {
                     // The runner returns typed cancellation/uncertainty after starting; an escaping cancellation
                     // comes from admission to the jobs or workspace CPU gate before output work starts.
@@ -66,7 +60,7 @@ public sealed partial class MainWindowViewModel {
                     if (ownerStarted) job?.Unconfirmed(error.Message);
                     else job?.Complete(OfficeWorkflowStatus.Failed, null, error.Message);
                     throw;
-                } finally { directory?.Dispose(); }
+                }
             }, cancellationToken).ConfigureAwait(true);
             if (result is not null && !_disposed && ReferenceEquals(workspace, _workspace)) {
                 OperationStatus = result.Summary;
@@ -75,7 +69,7 @@ public sealed partial class MainWindowViewModel {
             }
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             OperationStatus = UiText("Workspace.OperationCancelled");
-        } catch (Exception error) { ErrorMessage = error.Message; }
+        } catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
         finally { _reviewingPageSplit = false; }
     }
 }

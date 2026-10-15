@@ -15,6 +15,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null,
         long? maximumOutputBytes = null,
         bool preserveSourceEncryption = true,
+        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null,
         CancellationToken cancellationToken = default) => RewriteCore(
             sourcePdf,
             sourceDocument: null,
@@ -22,7 +23,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             outputEncryption,
             mutateObjectGraph,
             maximumOutputBytes,
-            preserveSourceEncryption, cancellationToken);
+            preserveSourceEncryption, captureObjectNumbers, cancellationToken);
 
     internal static byte[] Rewrite(
         byte[] sourcePdf,
@@ -32,6 +33,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null,
         long? maximumOutputBytes = null,
         bool preserveSourceEncryption = true,
+        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null,
         CancellationToken cancellationToken = default) => RewriteCore(
             sourcePdf,
             sourceDocument,
@@ -39,7 +41,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             outputEncryption,
             mutateObjectGraph,
             maximumOutputBytes,
-            preserveSourceEncryption, cancellationToken);
+            preserveSourceEncryption, captureObjectNumbers, cancellationToken);
 
     private static byte[] RewriteCore(
         byte[] sourcePdf,
@@ -48,7 +50,8 @@ internal static class PdfDocumentObjectGraphRewriter {
         PdfStandardEncryptionOptions? outputEncryption,
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph,
         long? maximumOutputBytes,
-        bool preserveSourceEncryption, CancellationToken cancellationToken) {
+        bool preserveSourceEncryption, Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers,
+        CancellationToken cancellationToken) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         cancellationToken.ThrowIfCancellationRequested();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
@@ -93,7 +96,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         cancellationToken.ThrowIfCancellationRequested();
         rootObjectNumber = RequireRootObjectNumber(security, objects);
 
-        var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken);
+        var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken, undefinedReferencesAreNull: true);
         PdfIndirectObject root = objects[rootObjectNumber];
         collector.CollectObjectGraph(new PdfReference(root.ObjectNumber, root.Generation));
         if (infoObjectNumber.HasValue) {
@@ -123,7 +126,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, minimumVersion);
             if (root.Value is PdfDictionary catalog && catalog.Items.ContainsKey("Version")) {
                 catalog.Items["Version"] = new PdfName(PdfFileAssembler.GetHeaderVersion(minimumVersion));
-                collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken);
+                collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken, undefinedReferencesAreNull: true);
                 collector.CollectObjectGraph(new PdfReference(root.ObjectNumber, root.Generation));
                 if (infoObjectNumber.HasValue) {
                     PdfIndirectObject info = objects[infoObjectNumber.Value];
@@ -137,6 +140,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             cancellationToken.ThrowIfCancellationRequested();
             numberMap[reachableObjectNumbers[i]] = i + 1;
         }
+        captureObjectNumbers?.Invoke(new System.Collections.ObjectModel.ReadOnlyDictionary<int, int>(numberMap));
 
         var context = new PdfPageExtractor.SerializationContext(
             numberMap,
@@ -144,7 +148,8 @@ internal static class PdfDocumentObjectGraphRewriter {
             new Dictionary<int, Dictionary<string, PdfObject>>(),
             objects,
             preserveRawStringBytes: true,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            undefinedObjectNumbers: collector.UndefinedObjectNumbers);
         if (maximumOutputBytes.HasValue) {
             byte[] bounded = RewriteBounded(
                 objects,

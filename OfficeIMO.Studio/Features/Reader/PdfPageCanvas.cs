@@ -28,6 +28,10 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     public static readonly StyledProperty<PdfEditorSelectionMode> SelectionModeProperty =
         AvaloniaProperty.Register<PdfPageCanvas, PdfEditorSelectionMode>(nameof(SelectionMode));
 
+    /// <summary>Where a pending change would put the selected object, outlined before it is applied.</summary>
+    public static readonly StyledProperty<Rect?> PendingObjectPreviewProperty =
+        AvaloniaProperty.Register<PdfPageCanvas, Rect?>(nameof(PendingObjectPreview));
+
     public static readonly StyledProperty<IReadOnlyList<Rect>> PendingRedactionAreasProperty =
         AvaloniaProperty.Register<PdfPageCanvas, IReadOnlyList<Rect>>(nameof(PendingRedactionAreas), Array.Empty<Rect>());
 
@@ -58,7 +62,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             CommentAnchorObjectNumberProperty,
             FormAnchorFieldNameProperty,
             SelectionModeProperty,
-            PendingRedactionAreasProperty);
+            PendingRedactionAreasProperty,
+            PendingObjectPreviewProperty);
     }
 
     public PdfPageCanvas() {
@@ -89,6 +94,11 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     public PdfEditorSelectionMode SelectionMode {
         get => GetValue(SelectionModeProperty);
         set => SetValue(SelectionModeProperty, value);
+    }
+
+    public Rect? PendingObjectPreview {
+        get => GetValue(PendingObjectPreviewProperty);
+        set => SetValue(PendingObjectPreviewProperty, value);
     }
 
     public IReadOnlyList<Rect> PendingRedactionAreas {
@@ -189,6 +199,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         DrawCommentAnchor(context);
         DrawFormAnchor(context);
         DrawPendingRedaction(context);
+        DrawPendingObjectPreview(context);
         DrawEditorPreview(context);
     }
 
@@ -340,7 +351,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnKeyDown(KeyEventArgs e) {
         base.OnKeyDown(e);
-        if (HandleAnnotationKey(e)) { e.Handled = true; return; }
+        if (PlaceWithKeyboard(e) || HandleObjectNudge(e) || HandleAnnotationKey(e)) { e.Handled = true; return; }
         if (e.Key == Key.C &&
             (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) &&
             !string.IsNullOrEmpty(SelectedText)) {
@@ -626,6 +637,12 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         }
     }
 
+    private void DrawPendingObjectPreview(DrawingContext context) {
+        if (PendingObjectPreview is not { Width: > 0D, Height: > 0D } area) return;
+        var stroke = new Pen(new SolidColorBrush(PageAccent), 1.5D, new DashStyle([4D, 3D], 0D));
+        context.DrawRectangle(null, stroke, area);
+    }
+
     private void DrawPendingRedaction(DrawingContext context) {
         foreach (Rect area in PendingRedactionAreas) DrawPendingRedactionArea(context, area);
     }
@@ -675,6 +692,22 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         double right = _editorPath.Max(static point => point.X);
         double bottom = _editorPath.Max(static point => point.Y);
         return new Rect(left, top, Math.Max(0D, right - left), Math.Max(0D, bottom - top));
+    }
+
+    /// <summary>
+    /// The keyboard alternative to clicking a placement: with a placing tool active, Enter puts a new note, text, stamp,
+    /// image, signature or link in the middle of the page, where the keyboard or the pointer can then move it.
+    /// </summary>
+    private bool PlaceWithKeyboard(KeyEventArgs e) {
+        if (e.Key != Key.Enter || e.KeyModifiers != KeyModifiers.None || Scene is null || _editing) return false;
+        if (EditorTool is not (PdfEditorTool.Note or PdfEditorTool.FreeText or PdfEditorTool.Stamp or PdfEditorTool.AddText or
+            PdfEditorTool.AddImage or PdfEditorTool.Link or PdfEditorTool.SignatureAppearance)) return false;
+        Rect size = EnsureUsableBounds(default, EditorTool);
+        _editorPath.Clear();
+        _editorPath.Add(new Point(Math.Max(0D, (Scene.Drawing.Width - size.Width) / 2D), Math.Max(0D, (Scene.Drawing.Height - size.Height) / 2D)));
+        EmitEditorGesture();
+        _editorPath.Clear();
+        return true;
     }
 
     private static Rect EnsureUsableBounds(Rect bounds, PdfEditorTool tool) {

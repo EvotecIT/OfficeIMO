@@ -18,11 +18,13 @@ public sealed partial class ConversionWorkbenchView : UserControl {
     }
 
     private void OnWorkbenchChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
-        if (e.PropertyName == nameof(ConversionWorkbenchViewModel.HasJobs)) UpdateDetailsVisibility();
+        if (e.PropertyName != nameof(ConversionWorkbenchViewModel.HasJobs)) return;
+        if (Bounds.Width > 0) ApplyResponsiveLayout(Bounds.Width);
+        else UpdateDetailsVisibility();
     }
 
-    // In small windows the details only appear once there is a job to describe, leaving room for the queue.
-    private void UpdateDetailsVisibility() => DetailsPanel.IsVisible = _phoneLayout || !IsCompactLayout || _workbench?.HasJobs == true;
+    // Details only appear once there is a job to describe, so an empty queue gets the full width.
+    private void UpdateDetailsVisibility() => DetailsPanel.IsVisible = _phoneLayout || _workbench?.HasJobs == true;
 
     internal bool IsCompactLayout { get; private set; }
 
@@ -50,7 +52,8 @@ public sealed partial class ConversionWorkbenchView : UserControl {
         CompactTabs.IsVisible = phone;
         IsCompactLayout = width < 1100D;
         WorkspaceGrid.ColumnDefinitions[0].Width = new GridLength(phone ? 0 : IsCompactLayout ? 238D : Math.Clamp(width * .2D, 270D, 360D));
-        WorkspaceGrid.ColumnDefinitions[2].Width = new GridLength(IsCompactLayout ? 0D : Math.Clamp(width * .25D, 320D, 480D));
+        bool showDetailsColumn = !IsCompactLayout && _workbench?.HasJobs == true;
+        WorkspaceGrid.ColumnDefinitions[2].Width = new GridLength(showDetailsColumn ? Math.Clamp(width * .25D, 320D, 480D) : 0D);
         Grid.SetRow(DetailsPanel, IsCompactLayout ? 1 : 0);
         Grid.SetColumn(DetailsPanel, IsCompactLayout ? 1 : 2);
         Grid.SetColumnSpan(DetailsPanel, 1);

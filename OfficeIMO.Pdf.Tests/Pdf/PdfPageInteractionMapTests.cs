@@ -6,6 +6,18 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageInteractionMapTests {
+    [Theory]
+    [InlineData("first ", "second")]
+    [InlineData("first", " second")]
+    public void SelectionPreservesLineBoundariesBesideAuthoredSpaces(string first, string second) {
+        byte[] source = BuildSinglePagePdf("BT /F1 12 Tf 20 150 Td (" + first + ") Tj 0 -30 Td (" + second + ") Tj ET");
+        var map = PdfPageInteractionMap.Create(source, 1);
+        string copied = map.GetSelectedText(0, 0, map.Width, map.Height);
+        Assert.Contains(Environment.NewLine, copied);
+        Assert.Equal("first", copied.Split(new[] { Environment.NewLine }, StringSplitOptions.None)[0].Trim());
+        Assert.Equal("second", copied.Split(new[] { Environment.NewLine }, StringSplitOptions.None)[1].Trim());
+    }
+
     [Fact]
     public void InteractionKind_PreservesPublishedNumericValues() {
         Assert.Equal(0, (int) PdfInteractionKind.Text);
@@ -221,8 +233,8 @@ public class PdfPageInteractionMapTests {
 
     [Theory]
     [InlineData(0, 30D, 60D, 80D, 110D)]
-    [InlineData(90, 60D, 80D, 110D, 130D)]
-    [InlineData(270, 10D, 30D, 60D, 80D)]
+    [InlineData(90, 10D, 30D, 60D, 80D)]
+    [InlineData(270, 60D, 80D, 110D, 130D)]
     public void InteractionMap_ClipsImageUsingSourceCoordinatesOnOffsetRotatedCrop(
         int rotation,
         double expectedLeft,

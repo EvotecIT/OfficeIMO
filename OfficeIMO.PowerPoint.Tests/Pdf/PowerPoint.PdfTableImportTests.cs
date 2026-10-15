@@ -343,10 +343,16 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Theory]
-    [InlineData(90, 270)]
-    [InlineData(180, 180)]
-    [InlineData(270, 90)]
+    [InlineData(0, 0, 0)]
+    [InlineData(0, 90, 90)]
+    [InlineData(0, 180, 180)]
+    [InlineData(0, 270, 270)]
+    [InlineData(90, 0, 90)]
+    [InlineData(90, 90, 180)]
+    [InlineData(90, 180, 270)]
+    [InlineData(90, 270, 0)]
     public void PdfDocument_ToPowerPointPresentation_EditableTextUsesVisualPageRotation(
+        int sourceTextRotation,
         int pageRotation,
         int expectedPowerPointRotation) {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
@@ -359,6 +365,10 @@ public class PowerPointPdfTableImportTests {
             })
             .Paragraph(p => p.Text("Rotation probe"))
             .ToBytes();
+        if (sourceTextRotation != 0) {
+            source = PdfCore.PdfDocument.Load(source).Pages.Rotate(sourceTextRotation)
+                .Pages.NormalizeRotation().ToBytes();
+        }
         byte[] rotated = PdfCore.PdfDocument.Load(source).Pages.Rotate(pageRotation, "1").ToBytes();
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(rotated)
             .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
@@ -369,7 +379,9 @@ public class PowerPointPdfTableImportTests {
         P.Shape shape = Assert.Single(
             package.PresentationPart!.SlideParts.Single().Slide.Descendants<P.Shape>(),
             candidate => candidate.TextBody?.InnerText == "Rotation probe");
-        Assert.Equal(expectedPowerPointRotation * 60000, shape.ShapeProperties?.Transform2D?.Rotation?.Value);
+        A.Transform2D transform = shape.ShapeProperties!.Transform2D!;
+        Assert.Equal(expectedPowerPointRotation * 60000, transform.Rotation?.Value ?? 0);
+        Assert.True(transform.Extents!.Cx!.Value > transform.Extents.Cy!.Value);
     }
 
     [Fact]
@@ -518,8 +530,10 @@ public class PowerPointPdfTableImportTests {
         }
     }
 
-    [Fact]
-    public void PdfDocument_ToPowerPointPresentation_HybridMapsRotatedTableBoundsToVisualCoordinates() {
+    [Theory]
+    [InlineData(90)]
+    [InlineData(270)]
+    public void PdfDocument_ToPowerPointPresentation_HybridMapsRotatedTableBoundsToVisualCoordinates(int rotation) {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 300,
@@ -537,7 +551,7 @@ public class PowerPointPdfTableImportTests {
                 ColumnWidthPoints = new List<double?> { 140, 80 }
             })
             .ToBytes();
-        byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, 90, 1);
+        byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, rotation, 1);
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(rotated)
             .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateHybrid());
@@ -553,7 +567,9 @@ public class PowerPointPdfTableImportTests {
         long pictureHeight = picture.ShapeProperties.Transform2D.Extents!.Cy!.Value;
         long tableTop = frame.Transform!.Offset!.Y!.Value;
 
-        Assert.True(tableTop > pictureTop + pictureHeight / 2L);
+        // A clockwise quarter turn puts the source's left-side table near the top; the opposite turn puts it near the bottom.
+        if (rotation == 90) Assert.True(tableTop < pictureTop + pictureHeight / 2L);
+        else Assert.True(tableTop > pictureTop + pictureHeight / 2L);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
     }
 

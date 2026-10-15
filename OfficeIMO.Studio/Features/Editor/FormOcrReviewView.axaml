@@ -2,7 +2,7 @@
              xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
              x:Class="OfficeIMO.Studio.Features.Editor.FormOcrReviewView" x:DataType="editor:FormOcrReviewViewModel">
-  <StackPanel Spacing="8">
+  <StackPanel Spacing="{StaticResource StudioSpaceS}">
     <TextBlock Text="{Binding ReviewHintLabel}" TextWrapping="Wrap" />
     <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
     <TextBlock IsVisible="{Binding !HasProposals}" Text="{Binding NoProposalsLabel}" TextWrapping="Wrap" Classes="muted" />
@@ -11,7 +11,7 @@
               AutomationProperties.Name="{Binding ChooseProposalLabel}">
       <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:FormOcrProposalViewModel"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
     </ComboBox>
-    <StackPanel DataContext="{Binding SelectedProposal}" x:DataType="editor:FormOcrProposalViewModel" Spacing="6">
+    <StackPanel DataContext="{Binding SelectedProposal}" x:DataType="editor:FormOcrProposalViewModel" Spacing="{StaticResource StudioSpaceSM}">
       <TextBlock Text="{Binding Evidence}" TextWrapping="Wrap" Classes="muted" />
       <TextBlock Text="{Binding OriginalText}" TextWrapping="Wrap" />
       <TextBlock Text="{Binding Choices}" TextWrapping="Wrap" Classes="muted" />

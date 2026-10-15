@@ -20,9 +20,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     private readonly IStudioLocalizer _localizer;
     private readonly StudioStorageAccess? _storage;
     private readonly StudioJobHistory? _jobs;
-    private readonly OfficeWorkflowOutputRecoveryStore? _recovery;
     private readonly IOfficeWorkflowPublicationGuard? _guard;
-    private readonly Func<string, Task<bool>> _confirmProvider;
     private readonly Func<string, CancellationToken, Task>? _openOutput;
     private CancellationTokenSource? _cancellation;
     private bool _disposed;
@@ -30,13 +28,11 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     internal OcrSessionViewModel(Func<CancellationToken, Task<IReadOnlyList<string>>> pickFiles,
         Func<CancellationToken, Task<string?>> pickOutputFolder, IStudioLocalizer localizer,
         StudioStorageAccess? storage = null, StudioJobHistory? jobs = null,
-        OfficeWorkflowOutputRecoveryStore? recovery = null, IOfficeWorkflowPublicationGuard? guard = null,
-        Func<string, Task<bool>>? confirmProvider = null,
+        IOfficeWorkflowPublicationGuard? guard = null,
         Func<TesseractOcrLanguage, bool, CancellationToken, Task<IOcrEngine>>? createEngine = null,
         Func<string, CancellationToken, Task>? openOutput = null) {
         _pickFiles = pickFiles; _pickOutputFolder = pickOutputFolder; _localizer = localizer;
-        _storage = storage; _jobs = jobs; _recovery = recovery; _guard = guard;
-        _confirmProvider = confirmProvider ?? (_ => Task.FromResult(false));
+        _storage = storage; _jobs = jobs; _guard = guard;
         _createEngine = createEngine ?? CreateEngineAsync;
         RecognitionUnavailableReason = createEngine is null ? StudioOcrProvider.UnavailableReason : null;
         _openOutput = openOutput;
@@ -73,7 +69,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     public bool HasImageReview => ImageReview is not null;
     public bool HasSelectedOutput => SelectedItem?.HasOutput == true;
     public bool CanRemoveSelected => !_disposed && !IsBusy && SelectedItem is not null;
-    public bool CanChooseConflictPolicy => string.IsNullOrWhiteSpace(OutputFolder) || _storage?.UsesProviderPublication(OutputFolder) != true;
+    public bool CanChooseConflictPolicy => string.IsNullOrWhiteSpace(OutputFolder) || OfficeStorageIdentity.GetLocalPath(OutputFolder) is not null;
     partial void OnSelectedItemChanged(OcrSessionItem? oldValue, OcrSessionItem? newValue) {
         if (oldValue is not null) oldValue.PropertyChanged -= SelectedItemChanged;
         if (newValue is not null) newValue.PropertyChanged += SelectedItemChanged;
@@ -82,7 +78,24 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     }
     private void SelectedItemChanged(object? sender, PropertyChangedEventArgs args) => OnPropertyChanged(nameof(HasSelectedOutput));
     public string? RecognitionUnavailableReason { get; }
-    public bool IsRecognitionAvailable => RecognitionUnavailableReason is null;
+
+    /// <summary>Shared check for the recognition engine, shown above the queue.</summary>
+    private OcrReadinessViewModel? _readiness;
+    public OcrReadinessViewModel? Readiness {
+        get => _readiness;
+        internal set {
+            if (_readiness is not null) _readiness.PropertyChanged -= ReadinessChanged;
+            _readiness = value;
+            if (_readiness is not null) _readiness.PropertyChanged += ReadinessChanged;
+            ReadinessChanged(this, new PropertyChangedEventArgs(nameof(OcrReadinessViewModel.IsReady)));
+        }
+    }
+    private void ReadinessChanged(object? sender, PropertyChangedEventArgs args) {
+        if (args.PropertyName != nameof(OcrReadinessViewModel.IsReady)) return;
+        OnPropertyChanged(nameof(IsRecognitionAvailable));
+        NotifyCommands();
+    }
+    public bool IsRecognitionAvailable => RecognitionUnavailableReason is null && Readiness?.IsReady != false;
     public bool CanRun => IsRecognitionAvailable && !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
         Languages.Any(item => item.IsSelected) && Items.Any(item => item.Status is null);
     public bool CanRetry => IsRecognitionAvailable && !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
@@ -144,7 +157,6 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
         if (IsBusy || _disposed || candidates.Length == 0) return;
         using var operation = new CancellationTokenSource();
         _cancellation = operation; IsBusy = true;
-        StudioStorageAccess.DirectoryOutputSession? directory = null;
         var history = new Dictionary<string, StudioJobRecord>();
         bool dispatched = false;
         foreach (var item in candidates) item.ResetAttempt();
@@ -152,26 +164,20 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
             var languages = Languages.Where(item => item.IsSelected).Aggregate((TesseractOcrLanguage)0, (value, item) => value | item.Value);
             bool provision = ProvisionMissingLanguageData;
             bool replace = ReplaceExisting;
-            string folder = OutputFolder;
-            if (_storage?.UsesProviderPublication(folder) == true) {
-                if (!await _confirmProvider(folder).ConfigureAwait(true)) operation.Cancel();
-                operation.Token.ThrowIfCancellationRequested();
-                directory = _storage.CreateDirectoryOutput(folder, _recovery ?? throw new IOException("Workflow recovery storage is unavailable."));
-            }
+            string folder = StudioStorageAccess.RequireLocalOutputFolder(OutputFolder, _localizer);
             var requests = new List<OfficeOcrSessionRequest>();
             foreach (var item in candidates) {
-                var destination = directory is null ? null : await directory.ResolveAsync(item.OutputName, operation.Token).ConfigureAwait(true);
-                string output = destination?.Location ?? Path.Combine(Path.GetFullPath(folder), item.OutputName);
-                var policy = destination is not null || replace ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail;
+                string output = Path.Combine(folder, item.OutputName);
+                var policy = replace ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail;
                 if (item.IsPdf) requests.Add(new(item.Id, new PdfSearchableWorkflowRequest {
                     InputPath = item.InputPath, InputStream = _storage?.CreateWorkflowInput(item.InputPath),
-                    OutputPath = output, OutputStream = destination?.Output, ConflictPolicy = policy,
+                    OutputPath = output, ConflictPolicy = policy,
                     PublicationGuard = _guard, Ocr = new() { Language = languages.ToTesseractExpression() },
                     ReviewCorrectionsAsync = (evidence, token) => ReviewPdfAsync(item, evidence, operation, token)
                 }));
                 else requests.Add(new(item.Id, new ImageOcrWorkflowRequest {
                     InputPath = item.InputPath, InputStream = _storage?.CreateWorkflowInput(item.InputPath),
-                    OutputPath = output, OutputStream = destination?.Output, ConflictPolicy = policy,
+                    OutputPath = output, ConflictPolicy = policy,
                     PublicationGuard = _guard, Ocr = new() { Language = languages.ToTesseractExpression() },
                     ReviewAsync = (evidence, token) => ReviewImageAsync(item, evidence, operation, token)
                 }));
@@ -189,7 +195,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
             void Apply(OfficeOcrSessionResult result) {
                 var item = candidates.First(entry => entry.Id == result.Id);
                 item.Apply(result);
-                if (history.TryGetValue(item.Id, out var record)) record.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
+                if (history.TryGetValue(item.Id, out var record)) record.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery, hasNotes: item.HasNotes);
             }
             var completed = new Progress<OfficeOcrSessionResult>(result => {
                 if (ReferenceEquals(_cancellation, operation) && !_disposed) Apply(result);
@@ -211,8 +217,6 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
             Status = error is OperationCanceledException ? T("Cancelled", "OCR session cancelled. Completed outputs were retained.") : error.Message;
         } finally {
             PdfReview?.Dispose(); PdfReview = null; ImageReview?.Dispose(); ImageReview = null;
-            try { directory?.Dispose(); }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status += " " + error.Message; }
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;
             IsBusy = false; NotifyCommands();
         }
@@ -229,6 +233,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     public void Dispose() {
         if (_disposed) return;
         _disposed = true; _cancellation?.Cancel(); PdfReview?.Dispose(); ImageReview?.Dispose();
+        if (_readiness is not null) _readiness.PropertyChanged -= ReadinessChanged;
         if (SelectedItem is not null) SelectedItem.PropertyChanged -= SelectedItemChanged;
         foreach (var language in Languages) language.PropertyChanged -= LanguageChanged;
     }

@@ -22,9 +22,9 @@ public partial class PdfTextEditorTests {
             var original = baseline[i]; var match = matches[i];
             double x = original.X - 20, y = original.Y - 30, w = original.Width, h = original.Height;
             var expected = rotation switch {
-                270 => (Left: y, Top: x, Width: h, Height: w),
+                90 => (Left: y, Top: x, Width: h, Height: w),
                 180 => (Left: 560 - x - w, Top: y, Width: w, Height: h),
-                90 => (Left: 750 - y - h, Top: 560 - x - w, Width: h, Height: w),
+                270 => (Left: 750 - y - h, Top: 560 - x - w, Width: h, Height: w),
                 _ => (Left: x, Top: 750 - y - h, Width: w, Height: h)
             };
             Assert.Equal(expected.Left * 2, match.VisualBounds.Left, 5);
@@ -367,6 +367,27 @@ public partial class PdfTextEditorTests {
             "secret",
             new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true }));
         Assert.True(hidden.IsTextRenderingMode3);
+    }
+
+    [Fact]
+    public void SearchFindsTextInsideAClipThatContainsItButNotTextAClipCuts() {
+        // Word and other producers set a page-sized clip before drawing; it hides nothing.
+        byte[] pageClip = BuildRawTextPdf("q 0 0 600 800 re W n BT /F1 12 Tf 50 700 Td (page clip needle) Tj ET Q\n");
+        byte[] cutClip = BuildRawTextPdf("q 0 0 600 800 re W n q 50 690 30 30 re W n BT /F1 12 Tf 50 700 Td (cut needle) Tj ET Q Q\n");
+
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(pageClip).Text.Find("needle"));
+        Assert.Equal(1, match.PageNumber);
+        Assert.Empty(PdfDocument.Load(cutClip).Text.Find("needle"));
+        // Editing keeps refusing text under a clip, whose state it cannot recreate.
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(pageClip).Text.Replace(match, "pin"));
+
+        // Text turned to read across a rotated page, as an OCR layer writes it, follows the same rule.
+        byte[] turnedPageClip = BuildRawTextPdf("q 0 0 600 800 re W n BT /F1 12 Tf 0 1 -1 0 300 200 Tm (turned needle) Tj ET Q\n",
+            pageEntries: "/Rotate 90");
+        byte[] turnedCutClip = BuildRawTextPdf("q 0 0 600 800 re W n q 290 190 20 20 re W n BT /F1 12 Tf 0 1 -1 0 300 200 Tm (turned needle) Tj ET Q Q\n",
+            pageEntries: "/Rotate 90");
+        Assert.Single(PdfDocument.Load(turnedPageClip).Text.Find("needle"));
+        Assert.Empty(PdfDocument.Load(turnedCutClip).Text.Find("needle"));
     }
 
     [Fact]

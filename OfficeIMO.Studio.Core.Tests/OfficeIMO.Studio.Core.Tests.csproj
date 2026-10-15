@@ -5,13 +5,18 @@
     <IsTestProject>true</IsTestProject>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <ProjectReference Include="../OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj" />
+    <ProjectReference Include="../OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj" />
     <None Include="../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf"
           Link="Fixtures/openpreserve-pdfa1b-text.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/MultilingualLayout/latin-0-native.pdf"
+          Link="Fixtures/latin-0-native.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/OcrQuality/fw9.pdf" Link="Fixtures/fw9.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

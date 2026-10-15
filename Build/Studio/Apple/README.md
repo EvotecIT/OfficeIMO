@@ -111,7 +111,8 @@ A public artifact requires all of the following on a trusted macOS builder:
 ## Mac App Store
 
 `AppStore.entitlements` enables the App Sandbox, user-selected document read/write,
-app-scoped bookmarks, outbound connections, and JIT support. Store builds use
+app-scoped bookmarks, outbound connections, a loopback listener for the ChatGPT sign-in
+callback, and JIT support. Store builds use
 `OfficeIMOStudioDistribution=MacAppStore`: app data stays in the Apple container,
 external Tesseract discovery and printer command execution are blocked with a
 contextual explanation. In-process document conversions and print-PDF preparation

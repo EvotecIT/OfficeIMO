@@ -429,6 +429,9 @@ public sealed partial class PdfDocumentPreflight {
         if (Probe.HasSignatures || _documentInfo?.AcroFormSignaturesExist == true) {
             AddDistinct(messages, "Signed PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
             AddRange(messages, SignatureMutationDiagnostics);
+            if (operation == PdfMutationOperation.FillFormFields && CanAppendFormFieldRevision) {
+                AddDistinct(messages, "A full rewrite would invalidate the existing signature; fill the form through an append-only form-field revision instead.");
+            }
         }
 
         for (int i = 0; i < RewriteBlockers.Count; i++) {

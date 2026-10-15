@@ -20,7 +20,8 @@ public sealed class InvoiceWorkbenchTests {
             using var shell = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             shell.Commands["Invoices"].Execute(null);
             Assert.True(shell.IsInvoiceMode); Assert.False(shell.HasDocument);
-            var model = shell.InvoiceWorkbench; model.InputPath = input;
+            // Sandboxed builds write only to a chosen folder, never beside a picked file.
+            var model = shell.InvoiceWorkbench; model.InputPath = input; model.OutputFolder = services.Paths.Root;
             model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.EditSource);
             model.EditNumber = "EDITED-42"; model.EditDueDate = "2026-11-30";
             await model.RunCommand.ExecuteAsync(null);
@@ -89,7 +90,7 @@ public sealed class InvoiceWorkbenchTests {
     public async Task CancellationReachesInvoiceRunnerAndCapturesRenderingChoicesBeforeAwait() {
         var runner = new RecordingRunner();
         using var model = new InvoiceWorkbenchViewModel(_ => Task.FromResult<string?>(null), _ => Task.FromResult<string?>(null), runner) {
-            InputPath = Path.Combine(Path.GetTempPath(), "input.xml")
+            InputPath = Path.Combine(Path.GetTempPath(), "input.xml"), OutputFolder = Path.GetTempPath()
         };
         model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.RenderPresentationPdf);
         model.SelectedTarget = model.Targets.First(t => t.Options.Syntax == InvoiceSyntax.Cii);
@@ -105,42 +106,53 @@ public sealed class InvoiceWorkbenchTests {
         Assert.True(runner.Token.IsCancellationRequested); Assert.False(model.IsBusy); Assert.False(model.HasOutput);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ProviderPublicationUsesConfirmedCapturedEditsAndRecoveryBeforeCreatingAFile(bool consent) {
+    [Fact]
+    public async Task ProviderFolderOutputIsRejectedBeforePublishingInvoice() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "source.xml");
             byte[] original = InvoiceSample.Create(); File.WriteAllBytes(source, original);
-            var folder = new StudioProviderOutputFolderTests.OutputFolder {
-                BeforeCreate = () => Assert.NotEmpty(Directory.GetFiles(services.WorkflowRecovery.DirectoryPath, "record.json", SearchOption.AllDirectories))
-            };
+            var folder = new StudioProviderOutputFolderTests.OutputFolder();
             string location = (await services.Storage.RegisterFolderAsync([folder.Item], default))!;
-            InvoiceWorkbenchViewModel? model = null;
-            using var shell = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
-                confirmProviderWrite: _ => {
-                    // A confirmation callback can yield while other host code changes observable properties.
-                    model!.EditNumber = "CHANGED-DURING-CONSENT"; model.InputPath = "changed.xml";
-                    model.OutputFolder = "changed-folder"; model.SelectedOperation = model.Operations[0];
-                    return Task.FromResult(consent);
-                });
-            model = shell.InvoiceWorkbench; model.InputPath = source; model.OutputFolder = location;
-            model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.EditSource);
-            model.EditNumber = "CAPTURED";
+            using var shell = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            var model = shell.InvoiceWorkbench;
+            model.InputPath = source; model.OutputFolder = location;
+            model.SelectedOperation = model.Operations.Single(item => item.Value == OfficeInvoiceWorkflowOperation.EditSource);
+            model.EditNumber = "INV-EDITED";
             await model.RunCommand.ExecuteAsync(null);
-            Assert.Equal(consent ? 1 : 0, folder.Creations); Assert.Equal(consent, model.HasOutput);
-            if (consent) {
-                var file = Assert.Single(folder.Files).Value;
-                Assert.Equal("CAPTURED", InvoiceSourceDocument.Load(file.Bytes).Number);
-                Assert.Equal("source.edited.xml", file.Name); Assert.Equal(file.Location.AbsoluteUri, model.OutputPath);
-                Assert.Equal(OfficeWorkflowStatus.Completed, Assert.Single(services.Jobs.Entries).Outcome);
-            } else Assert.Empty(services.Jobs.Entries);
-            Assert.Equal(original, File.ReadAllBytes(source)); Assert.Empty(services.WorkflowRecovery.GetRecoveries());
+            Assert.Equal(services.Localizer.Get("Output.LocalFolderRequired"), model.Status);
+            Assert.Equal(0, folder.Creations);
+            Assert.Empty(folder.Files);
+            Assert.Empty(services.Jobs.Entries);
+            Assert.Equal(original, File.ReadAllBytes(source));
             return true;
         }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task FontPickedFromAProviderIsReadThroughStorage() {
+        // A font chosen in Files or a sandboxed folder has no path Studio may open directly.
+        byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Fonts", "OpenSans-Bold.ttf"));
+        using var storage = new OfficeIMO.Studio.Infrastructure.StudioStorageAccess();
+        var provider = new TestStorageFile("content://fonts/open-sans", font, "OpenSans-Bold.ttf");
+        string fontLocation = await storage.RegisterAsync(provider.Item, CancellationToken.None);
+        var runner = new RecordingRunner();
+        using var model = new InvoiceWorkbenchViewModel(_ => Task.FromResult<string?>(null), _ => Task.FromResult<string?>(null), runner,
+            localizer: null, storage: storage, pickFont: _ => Task.FromResult<string?>(fontLocation)) {
+            InputPath = Path.Combine(Path.GetTempPath(), "input.xml"), OutputFolder = Path.GetTempPath()
+        };
+        Assert.True(model.CanChooseFont);
+        await model.ChooseFontCommand.ExecuteAsync(null);
+        Assert.Equal(fontLocation, model.FontPath);
+        model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.RenderPresentationPdf);
+        model.SelectedTarget = model.Targets.First(t => t.Options.Syntax == InvoiceSyntax.Cii);
+        var running = model.RunCommand.ExecuteAsync(null);
+        await runner.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.NotNull(runner.Request!.PdfOptions);
+        model.CancelCommand.Execute(null);
+        await running.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Theory]

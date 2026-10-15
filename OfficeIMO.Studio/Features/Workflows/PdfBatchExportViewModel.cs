@@ -33,8 +33,9 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
     [ObservableProperty] private decimal _tabSize = 8;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string _status = string.Empty;
-    public string? UnavailableReason => OperatingSystem.IsIOS()
-        ? "Folder PDF export needs persistent filesystem access and is not available on iPad or iPhone. Use Add files and Run pending to convert multiple documents from Files."
+    /// <summary>The batch runner walks and resumes whole folders by path, which sandboxed and mobile builds cannot reach.</summary>
+    public string? UnavailableReason => Infrastructure.StudioDistributionPolicy.RequiresPickedLocations
+        ? _localizer.GetOrDefault("Conversion.BatchExport.Unavailable", "Folder PDF export needs ongoing access to whole folders, which this edition of Studio does not have. Use Add files and Run pending to convert several documents.")
         : null;
     public bool IsAvailable => UnavailableReason is null;
     public bool CanEdit => IsAvailable && !_disposed && !IsBusy && !_otherWorkBusy();

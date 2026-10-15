@@ -29,4 +29,6 @@ public sealed class OfficeDrawingRasterRenderOptions {
     /// <summary>Cancellation observed between drawing elements and nested render stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
     internal OfficeRasterTransformedTextBudget? TransformedTextBudget { get; set; }
+    /// <summary>Decoded and prefiltered images kept between renders of the same drawing.</summary>
+    internal OfficeRasterImageCache? ImageCache { get; set; }
 }

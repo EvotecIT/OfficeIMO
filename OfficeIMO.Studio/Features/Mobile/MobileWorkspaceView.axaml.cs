@@ -41,7 +41,10 @@ public sealed partial class MobileWorkspaceView : UserControl {
         AttachedToVisualTree += (_, _) => ObserveDocument();
         DetachedFromVisualTree += (_, _) => {
             CompleteCloseDecision(UnsavedChangesDecision.Cancel);
-            if (_observedDocument is not null) _observedDocument.PropertyChanged -= OnDocumentChanged;
+            if (_observedDocument is not null) {
+                _observedDocument.PropertyChanged -= OnDocumentChanged;
+                _observedDocument.OcrReadiness.SetUpRequested -= OnOcrSetUpRequested;
+            }
             _observedDocument = null;
         };
         KeyDown += OnWorkspaceKeyDown;
@@ -53,6 +56,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
         if (!ReferenceEquals(_observedDocument, Document)) CommandPalette.Dismiss();
         if (_observedDocument is not null) {
             _observedDocument.PropertyChanged -= OnDocumentChanged;
+            if (_observedDocument.OcrReadiness is { } previousReadiness) previousReadiness.SetUpRequested -= OnOcrSetUpRequested;
             _noteDrafts[_observedDocument] = NoteText.Text ?? string.Empty;
         }
         _observedDocument = Document;
@@ -63,9 +67,12 @@ public sealed partial class MobileWorkspaceView : UserControl {
         UpdateActiveViewport();
         if (_observedDocument is null) return;
         _observedDocument.PropertyChanged += OnDocumentChanged;
+        if (_observedDocument.OcrReadiness is { } readiness) readiness.SetUpRequested += OnOcrSetUpRequested;
         UpdateDocumentStatus();
         if (_configuredDocuments.Add(_observedDocument)) FitNewDocument();
     }
+
+    private void OnOcrSetUpRequested(object? sender, EventArgs e) => Document?.ShowTextRecognitionSetup();
 
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(MainWindowViewModel.DocumentMode) && Document is { } active)
@@ -154,7 +161,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
 
     private void OnNoteClick(object? sender, RoutedEventArgs e) {
         if (Document?.CanEditAnnotations != true) {
-            if (Document is { } document) document.ErrorMessage = "Annotations are unavailable for this document.";
+            if (Document is { } document) document.ErrorMessage = Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.AnnotationsUnavailable");
             return;
         }
         ShowSheet("New note", NotePanel, sender as Control);
@@ -222,7 +229,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
             _submittingNote = false;
             DismissSheet();
         } catch (Exception error) {
-            document.ErrorMessage = error.Message;
+            document.ErrorMessage = Infrastructure.StudioMessages.Describe(error);
         } finally {
             _submittingNote = false;
             NotePanel.IsEnabled = SheetDone.IsEnabled = true;
@@ -232,14 +239,14 @@ public sealed partial class MobileWorkspaceView : UserControl {
     private async void OnShareClick(object? sender, RoutedEventArgs e) {
         if (ShareDocumentAsync is null || Document?.IsWorkspaceBusy == true) return;
         try { await ShareDocumentAsync(); }
-        catch (Exception error) { if (Document is { } document) document.ErrorMessage = error.Message; }
+        catch (Exception error) { if (Document is { } document) document.ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
 
     private async void OnSampleClick(object? sender, RoutedEventArgs e) {
         if (_openSampleAsync is null || !SampleButton.IsEnabled) return;
         SampleButton.IsEnabled = false;
         try { await _openSampleAsync(); }
-        catch (Exception error) { if (Document is { } document) document.ErrorMessage = error.Message; }
+        catch (Exception error) { if (Document is { } document) document.ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
         finally { SampleButton.IsEnabled = true; }
     }
 }

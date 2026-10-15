@@ -21,11 +21,6 @@ public partial class PdfReadStreamTests {
         AssertOutline(PdfStamper.StampText(outline, "STAMP"));
 
         static void AssertOutline(byte[] output) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/Outlines ", text, StringComparison.Ordinal);
-            Assert.Contains("/Type /Outlines", text, StringComparison.Ordinal);
-            Assert.Contains("/Title (Executive summary)", text, StringComparison.Ordinal);
-
             PdfDocumentInfo info = PdfInspector.Inspect(output);
             PdfOutlineItem item = Assert.Single(info.Outlines);
             Assert.Equal("Executive summary", item.Title);
@@ -34,15 +29,14 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_DropSimpleOutlinesWhenDestinationPagesAreNotCopied() {
+    public void RewriteApis_RetainSurvivingOutlinesWhenOtherDestinationPagesAreDeleted() {
         byte[] outline = BuildTwoPageOutlinePdf();
 
         byte[] output = PdfPageEditor.DeletePages(outline, 2);
 
-        string text = System.Text.Encoding.ASCII.GetString(output);
-        Assert.DoesNotContain("/Outlines ", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("/PageMode /UseOutlines", text, StringComparison.Ordinal);
-        Assert.Empty(PdfInspector.Inspect(output).Outlines);
+        var item = Assert.Single(PdfInspector.Inspect(output).Outlines);
+        Assert.Equal("Executive summary", item.Title);
+        Assert.Equal(1, item.PageNumber);
     }
 
     [Fact]
@@ -127,11 +121,6 @@ public partial class PdfReadStreamTests {
         AssertOutline(PdfStamper.StampText(outline, "STAMP"));
 
         static void AssertOutline(byte[] output) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/Outlines ", text, StringComparison.Ordinal);
-            Assert.Contains("/A << /S /GoTo /D [", text, StringComparison.Ordinal);
-            Assert.Contains("/Title (Chapter 1)", text, StringComparison.Ordinal);
-
             PdfOutlineItem item = Assert.Single(PdfInspector.Inspect(output).Outlines);
             Assert.Equal("Chapter 1", item.Title);
             Assert.Equal(1, item.PageNumber);
@@ -191,7 +180,6 @@ public partial class PdfReadStreamTests {
 
         AssertOutline(() => PdfPageExtractor.ExtractPages(outline, 1));
         AssertOutline(() => PdfPageExtractor.SplitPages(outline));
-        AssertOutline(() => PdfPageEditor.DeletePages(outline, 1));
         AssertOutline(() => PdfMetadataEditor.UpdateMetadata(outline, title: "Updated"));
         AssertOutline(() => PdfMerger.Merge(outline));
         AssertOutline(() => PdfStamper.StampText(outline, "STAMP"));

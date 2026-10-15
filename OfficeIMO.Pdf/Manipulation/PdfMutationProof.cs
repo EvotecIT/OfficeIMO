@@ -54,5 +54,8 @@ public enum PdfMutationProof {
     SanitizationReadback,
 
     /// <summary>Named scripts, exact source text, and untouched name-tree entry/action graphs must match after readback.</summary>
-    JavaScriptReadback
+    JavaScriptReadback,
+
+    /// <summary>Structure elements, marked-content and annotation ownership, parent-tree keys, IDs and roles must remain consistent.</summary>
+    TaggedStructureReadback
 }

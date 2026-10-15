@@ -7,6 +7,34 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioFileActivationTests {
     [Fact]
+    public async Task Accepted_forwarded_files_wait_for_the_active_document_and_open_in_order() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            string root = Path.Combine(Path.GetTempPath(), "studio-forwarding-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            string first = Path.Combine(root, "first.pdf"), second = Path.Combine(root, "second.pdf");
+            File.WriteAllBytes(first, StudioProviderDocumentTests.CreatePdf());
+            File.WriteAllBytes(second, StudioProviderDocumentTests.CreatePdf());
+            var window = new MainWindow(((App)Application.Current!).Services);
+            try {
+                window.Show();
+                await window.OpenForwardedPathsAsync([]);
+                window.ViewModel.IsOpening = true;
+                Task queued = window.OpenForwardedPathsAsync([first, second]);
+                Assert.False(queued.IsCompleted);
+                window.ViewModel.IsOpening = false;
+                await queued;
+                Assert.Equal(new[] { first, second }, window.TabHost.Tabs.Select(tab => tab.Document.DocumentPath));
+            } finally {
+                window.ViewModel.IsOpening = false;
+                window.Close();
+                Directory.Delete(root, true);
+            }
+            return true;
+        }, default);
+    }
+
+    [Fact]
     public async Task Activation_waits_for_startup_and_serializes_PDF_tabs_and_Apple_intake_with_provider_access() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
@@ -26,9 +54,9 @@ public sealed class StudioFileActivationTests {
                 Assert.False(window.IsStartingUp);
                 Assert.Equal(2, window.TabHost.Tabs.Count);
                 Assert.Equal("Second.pdf", window.ViewModel.DocumentName);
-                // Conversion work belongs to the tab where it was accepted; switching tabs must not lose it.
-                var queue = window.TabHost.OperationDocuments.SelectMany(document => document.ConversionWorkbench.Jobs);
-                var job = Assert.Single(queue);
+                // The conversion queue belongs to the window, so every tab shows the accepted work.
+                Assert.All(window.TabHost.OperationDocuments, document => Assert.Same(window.ViewModel.ConversionWorkbench, document.ConversionWorkbench));
+                var job = Assert.Single(window.ViewModel.ConversionWorkbench.Jobs);
                 Assert.Equal("numbers-xlsx", job.Route.Route.Id);
                 Assert.Equal(numbers.Bookmark, services.Storage.Describe(job.InputPath).Bookmark);
                 Assert.Equal(0, numbers.Disposals);

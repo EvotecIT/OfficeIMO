@@ -31,6 +31,22 @@ internal static partial class PdfStandardSecurityWriter {
     private const int Revision = 3;
     private const int KeyLengthBytes = 16;
 
+    /// <summary>Compares the effective credentials using the same normalization as output encryption.</summary>
+    internal static bool PasswordsAreEquivalent(string first, string second, PdfStandardEncryptionAlgorithm algorithm,
+        CancellationToken cancellationToken) {
+        byte[] left = algorithm == PdfStandardEncryptionAlgorithm.Aes256
+            ? PdfModernPasswordNormalizer.Normalize(first, cancellationToken) : PadPassword(first, cancellationToken);
+        byte[]? right = null;
+        try {
+            right = algorithm == PdfStandardEncryptionAlgorithm.Aes256
+                ? PdfModernPasswordNormalizer.Normalize(second, cancellationToken) : PadPassword(second, cancellationToken);
+            return left.SequenceEqual(right);
+        } finally {
+            Array.Clear(left, 0, left.Length);
+            if (right != null) Array.Clear(right, 0, right.Length);
+        }
+    }
+
     internal static PdfEncryptionAssembly Encrypt(
         IReadOnlyList<byte[]> sourceObjects,
         PdfStandardEncryptionOptions options,

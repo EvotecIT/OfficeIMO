@@ -159,6 +159,19 @@ PdfSearchableOcrResult searchable = review.ApplyAll();
 
 Orientation detection uses the provider's optional orientation capability and the same timeout, cancellation, and concurrency gate as recognition. Missing or low-confidence evidence retains the source orientation and produces a diagnostic. Tesseract needs its `osd` trained data. An explicit `ClockwiseQuarterTurns` value can supply a caller-reviewed correction; it combines with any accepted provider correction.
 
+To correct the PDF's saved page orientation, prepare a separate whole-page review. Detection leaves the PDF unchanged. Each proposal carries the original effective rotation, a clockwise correction, provider-specific confidence, and bounded diagnostics. Open its before/after preview and choose which proposals to accept:
+
+```csharp
+PdfPageOrientationReview orientation = await document.PrepareOrientationReviewAsync(
+    engine, new PdfOcrMergeOptions { Dpi = 150 });
+PdfPageOrientationProposal proposal = orientation.Pages[0];
+PdfScanPreview preview = await orientation.PreviewAsync(proposal);
+// Show preview.GetSourcePng() and preview.GetPreparedPng(), then collect explicit choices.
+PdfDocument corrected = orientation.ApplyResult(document, acceptedProposals).RequireValue();
+```
+
+No proposal is automatically selected. `IsRecommended` applies the requested confidence threshold; a reviewer can still accept valid lower-confidence evidence. Missing or invalid evidence and zero corrections cannot be applied. Accepted corrections use one atomic relative-rotation batch and retain the PDF engine's signature, certification, and encryption rules. The reviewed source bytes must still match the current document; repeat detection after any change. The preview uses bounded scan processing and fails explicitly when it cannot render the correction within its pixel or working-memory budget; lower `Dpi` for very large pages. Review supports selected whole pages without region crops, perspective correction, or scan preprocessing. It does not infer arbitrary-angle deskew or mutate native page content.
+
 Deskew searches a bounded range of small angles; `StraightenDegrees` supplies a manual correction from -15 to 15 degrees. Background normalization estimates local paper brightness. `BlackPoint`, `WhitePoint`, and `Gamma` adjust tonal levels before optional bilevel conversion. Downsampling never enlarges a scan. Blank-page detection reports a suggestion and keeps the page. Curved-page dewarping remains unsupported.
 
 `ScanProcessing` reports applied and skipped operations, buffer estimates, and forward/inverse pixel transforms. Its pixel, buffer, and analysis-work limits reject optional cleanup with an `ocr-scan-limit` diagnostic and retain the original OCR raster; cancellation still propagates. Buffer accounting covers the managed image operation, while encoded PDF/raster and provider-process limits remain separate. `PdfRecognizedWord.Geometry` retains all four corners on the original page, so the invisible text layer follows the original scan's angle after deskew or a quarter-turn. `X`, `Y`, `Width`, and `Height` remain its enclosing visual bounds.

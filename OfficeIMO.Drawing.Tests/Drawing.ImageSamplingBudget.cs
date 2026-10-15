@@ -4,6 +4,27 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingImageSamplingBudgetTests {
+    [Fact]
+    public void CachedPrefilterStillConsumesTheNewRendersWorkingBudget() {
+        var source = new OfficeRasterImage(16, 16, OfficeColor.Red);
+        var cache = new OfficeRasterImageCache(4096);
+        var projection = new OfficeImageProjection(new OfficeImagePlacement(0, 0, 8, 8));
+        var first = new OfficeRasterCanvas(new OfficeRasterImage(8, 8)) { ImageCache = cache };
+        first.DrawImage(source, projection);
+        Assert.Equal(256, cache.UsedBytes);
+
+        var limited = new OfficeRasterCanvas(new OfficeRasterImage(8, 8)) { ImageCache = cache };
+        limited.ChargeIntermediateSurfacePixels(256, 319);
+        Assert.Throws<OfficeImageExportLimitException>(() => limited.DrawImage(source, projection));
+
+        var output = new OfficeRasterImage(8, 8);
+        var exact = new OfficeRasterCanvas(output) { ImageCache = cache };
+        exact.ChargeIntermediateSurfacePixels(256, 320);
+        exact.DrawImage(source, projection);
+        Assert.Equal(320, exact.TransformedTextBudget.IntermediatePixels);
+        Assert.Equal(OfficeColor.Red, output.GetPixel(4, 4));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

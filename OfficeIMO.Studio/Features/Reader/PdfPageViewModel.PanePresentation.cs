@@ -3,6 +3,7 @@ namespace OfficeIMO.Studio.Features.Reader;
 public sealed partial class PdfPageViewModel {
     /// <summary>Mirrors canonical edit/search/field state without sharing viewport attachment, images or zoom.</summary>
     internal void MirrorInteractionState(PdfPageViewModel source, bool active) {
+        SetViewRotation(source.ViewRotationDegrees);
         EditorTool = source.EditorTool;
         SelectionMode = source.SelectionMode;
         IsNightMode = source.IsNightMode;
@@ -11,6 +12,7 @@ public sealed partial class PdfPageViewModel {
         SelectedAnnotations = source.SelectedAnnotations;
         CommentAnchorObjectNumber = source.CommentAnchorObjectNumber;
         PendingRedactionAreas = source.PendingRedactionAreas;
+        PendingObjectPreview = source.PendingObjectPreview;
         SearchHighlights = source.SearchHighlights;
         ActiveSearchHighlight = source.ActiveSearchHighlight;
         ActiveSearchHighlights = source.ActiveSearchHighlights;

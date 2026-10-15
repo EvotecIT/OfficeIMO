@@ -101,7 +101,14 @@ public partial class PdfInspectorTests {
 
     private static void AssertIncompleteMutationBlocked(byte[] pdf) {
         var preflight = PdfInspector.Preflight(pdf);
-        Assert.Contains(preflight.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.IncompleteObjectGraph);
+        var incomplete = Assert.Single(preflight.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.IncompleteObjectGraph);
+        Assert.False(preflight.CanAppendOnlyMutate);
+        Assert.False(preflight.CanAppendMetadataRevision);
+        Assert.False(preflight.CanAppendFormFieldRevision);
+        Assert.False(preflight.CanPrepareExternalSignatureRevision);
+        if (preflight.RequiresAppendOnlyMutation) {
+            Assert.Contains(incomplete.Message, preflight.AppendOnlyMutationDiagnostics);
+        }
         Assert.False(PdfMutationPlanner.Plan(preflight, PdfMutationOperation.ChangeEncryption).CanExecute);
         Assert.ThrowsAny<Exception>(() => PdfDocument.Load(pdf).Security.Encrypt(new("open") { OwnerPassword = "owner" }));
     }

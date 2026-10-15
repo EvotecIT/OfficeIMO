@@ -1,3 +1,4 @@
+using OfficeIMO.Studio.Infrastructure.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Provenance.C2pa;
@@ -5,38 +6,39 @@ using OfficeIMO.Provenance.C2pa;
 namespace OfficeIMO.Studio.Features.Workflows;
 
 public sealed partial class ProvenanceWorkbenchViewModel {
-    /// <summary>External executables are configured only by desktop hosts with local paths.</summary>
-    public bool CanConfigureProvider => !UsesWorkingCopies && !OperatingSystem.IsAndroid() && !OperatingSystem.IsIOS() && !OperatingSystem.IsBrowser();
+    /// <summary>External executables are configured only by desktop distributions that may run them, with local paths.</summary>
+    public bool CanConfigureProvider => Infrastructure.StudioDistributionPolicy.ExternalToolsAllowed && !UsesWorkingCopies && !OperatingSystem.IsAndroid() && !OperatingSystem.IsBrowser();
     [ObservableProperty] private string _c2paToolPath = "";
     [ObservableProperty] private string _trustAnchorsPath = "";
     [ObservableProperty] private string _allowedListPath = "";
-    [ObservableProperty] private string _providerStatus = "No verifier configured. Assessment remains available without it.";
+    [ObservableProperty] private string _providerStatus = L("Provenance.Provider.NotConfigured");
     partial void OnC2paToolPathChanged(string value) => InvalidateProvider();
     partial void OnTrustAnchorsPathChanged(string value) => InvalidateProvider();
     partial void OnAllowedListPathChanged(string value) => InvalidateProvider();
     private void InvalidateProvider() {
         _cancellation?.Cancel();
         OnInputPathChanged(InputPath);
-        ProviderStatus = "Configuration changed. Check the executable, then assess the file again.";
+        ProviderStatus = L("Provenance.Provider.Changed");
         OnPropertyChanged(nameof(CanCreateCopy));
     }
     [RelayCommand] private async Task CheckProviderAsync() {
         if (_disposed || IsBusy || !CanConfigureProvider) return;
-        if (string.IsNullOrWhiteSpace(C2paToolPath)) { ProviderStatus = "Enter the path to a trusted c2patool executable."; return; }
+        if (string.IsNullOrWhiteSpace(C2paToolPath)) { ProviderStatus = L("Provenance.Provider.EnterPath"); return; }
         string executable = C2paToolPath.Trim();
         int revision = _revision;
         using var cancellation = new CancellationTokenSource();
         _cancellation = cancellation; IsBusy = true;
-        ProviderStatus = "Checking executable and process containment…";
+        ProviderStatus = L("Provenance.Provider.Checking");
         try {
             C2paToolAvailability result = await Task.Run(() => new C2paToolProvenanceVerifier(executable)
                 .CheckAvailability(cancellationToken: cancellation.Token), cancellation.Token);
             if (!_disposed && revision == _revision)
-                ProviderStatus = $"{(result.Available ? "Available" : "Unavailable")} · {result.Version ?? "unknown version"} · {result.Diagnostic}";
+                ProviderStatus = F(result.Available ? "Provenance.Provider.Available" : "Provenance.Provider.Unavailable",
+                    result.Version ?? L("Provenance.Provider.UnknownVersion"), result.Diagnostic);
         } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
-            if (!_disposed && revision == _revision) ProviderStatus = "Provider check cancelled.";
+            if (!_disposed && revision == _revision) ProviderStatus = L("Provenance.Provider.Cancelled");
         } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
-            if (!_disposed && revision == _revision) ProviderStatus = "Provider check failed: " + error.Message;
+            if (!_disposed && revision == _revision) ProviderStatus = F("Provenance.Provider.Failed", error.Message);
         } finally { _cancellation = null; IsBusy = false; }
     }
 }

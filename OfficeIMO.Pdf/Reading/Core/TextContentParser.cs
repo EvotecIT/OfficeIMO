@@ -1184,7 +1184,7 @@ internal static partial class TextContentParser {
                 Matrix2D spanTextMatrix = textMatrix;
                 IReadOnlyList<double>? spanCharacterAdvances = string.Equals(spanText, paintedText, StringComparison.Ordinal)
                     ? transformedCharacterAdvances
-                    : null;
+                    : GetTrailingTrimmedAdvances(paintedText, spanText, transformedCharacterAdvances);
                 List<int> spanGlyphCharacterLengths = decodedGlyphCharacterLengths;
                 List<byte[]> spanGlyphBytes = decodedGlyphBytes;
                 List<string> spanLogicalGlyphTexts = decodedGlyphLogicalTexts;
@@ -1662,6 +1662,18 @@ internal static partial class TextContentParser {
                 lastGlyph--;
             }
             return painted.Substring(leadingCharacters, end - leadingCharacters);
+        }
+
+        // A logical run keeps its origin and whole advance when only trailing whitespace was trimmed from its text, but
+        // its characters measure just the glyphs they name: in a run such as "e " the "e" keeps its own width and the
+        // space stays a gap between words for selection and hit testing.
+        static IReadOnlyList<double>? GetTrailingTrimmedAdvances(string painted, string kept, IReadOnlyList<double>? advances) {
+            if (advances is null || advances.Count != painted.Length || kept.Length == 0 || kept.Length >= painted.Length ||
+                string.CompareOrdinal(painted, 0, kept, 0, kept.Length) != 0) return null;
+            for (int index = kept.Length; index < painted.Length; index++) {
+                if (!char.IsWhiteSpace(painted[index])) return null;
+            }
+            return advances.Take(kept.Length).ToArray();
         }
 
         static string NormalizeShatteredSpan(string s) {

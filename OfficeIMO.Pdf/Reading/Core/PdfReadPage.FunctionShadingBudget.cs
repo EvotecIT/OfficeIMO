@@ -6,7 +6,19 @@ public sealed partial class PdfReadPage {
     internal sealed partial class PageContentBudget {
         private long _functionShadingWork;
         private long _functionShadingPixels;
-        internal double FunctionShadingScale { get; set; } = 1D;
+        private double _functionShadingScale = 1D;
+
+        /// <summary>The scale function shadings are sampled for. Reading it marks the page as drawn for that scale.</summary>
+        internal double FunctionShadingScale {
+            get {
+                UsesFunctionShadingScale = true;
+                return _functionShadingScale;
+            }
+            set => _functionShadingScale = value;
+        }
+
+        /// <summary>Whether the content read <see cref="FunctionShadingScale"/>, so a drawing for another scale differs.</summary>
+        internal bool UsesFunctionShadingScale { get; private set; }
         internal long MaximumFunctionPixels { get; set; } = OfficeImageExportOptions.DefaultMaximumRasterPixels;
 
         internal bool ChargeFunctionShadingWork(int work) {

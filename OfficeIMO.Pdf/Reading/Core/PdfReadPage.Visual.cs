@@ -135,7 +135,9 @@ public sealed partial class PdfReadPage {
     }
 
     // Used only by the raster display path; never return this drawing through a public viewing API.
-    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels) {
+    // reportScaleDependence receives whether the drawing depends on functionShadingScale; one that does not serves any scale.
+    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
+        Action<bool>? reportScaleDependence = null) {
         cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputIntentRendering(cancellationToken);
         (double Width, double Height) size = GetVisualPageSize();
@@ -177,6 +179,7 @@ public sealed partial class PdfReadPage {
             registeredFonts: registeredFonts, paintedGlyphMaps: paintedGlyphMaps);
         cancellationToken.ThrowIfCancellationRequested();
 
+        reportScaleDependence?.Invoke(pageContentBudget.UsesFunctionShadingScale);
         return drawing;
     }
 
@@ -2763,11 +2766,12 @@ public sealed partial class PdfReadPage {
                 preserveExistingFaces: true);
             cancellationToken.ThrowIfCancellationRequested();
             string appearanceContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(appearanceStream)), appearanceStream.Dictionary);
-            if (appearanceContent.Length == 0) {
+            if (appearanceContent.Length == 0 ||
+                !TryCreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary, out Matrix2D placementTransform)) {
                 continue;
             }
 
-            Matrix2D appearanceTransform = Matrix2D.Multiply(pageTransform, CreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary));
+            Matrix2D appearanceTransform = Matrix2D.Multiply(pageTransform, placementTransform);
             var elements = new List<PdfPageDrawingElement>();
             var primitives = new List<PdfPageVisualPrimitive>();
             var renderedType3PaintOrders = new RenderedType3TextTracker();
@@ -2964,10 +2968,15 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private Matrix2D CreateAnnotationAppearanceTransform((double X1, double Y1, double X2, double Y2) rectangle, PdfDictionary appearanceDictionary) {
-        Matrix2D placement = PdfAppearancePlacement.Read(appearanceDictionary, value => ResolveObject(value),
-            rectangle.X1, rectangle.Y1, rectangle.X2 - rectangle.X1, rectangle.Y2 - rectangle.Y1, out Matrix2D matrix);
-        return Matrix2D.Multiply(placement, matrix);
+    /// <summary>Returns false for an appearance that encloses no area and so paints nothing.</summary>
+    private bool TryCreateAnnotationAppearanceTransform((double X1, double Y1, double X2, double Y2) rectangle, PdfDictionary appearanceDictionary,
+        out Matrix2D transform) {
+        transform = Matrix2D.Identity;
+        if (!PdfAppearancePlacement.TryRead(appearanceDictionary, value => ResolveObject(value),
+                rectangle.X1, rectangle.Y1, rectangle.X2 - rectangle.X1, rectangle.Y2 - rectangle.Y1, out Matrix2D placement, out Matrix2D matrix))
+            return false;
+        transform = Matrix2D.Multiply(placement, matrix);
+        return true;
     }
 
     private double ReadMatrixNumber(PdfArray matrix, int index, double fallback) =>
