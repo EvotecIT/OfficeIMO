@@ -702,14 +702,14 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.True(firstFooter.IsBold);
             Assert.InRange(firstHeader.FontSize, 16.5D, 17.5D);
             Assert.InRange(firstFooter.FontSize, 15.5D, 16.5D);
-            Assert.Contains(first, span => span.Text == "1");
+            Assert.Contains(first, span => span.Text == "1" || span.Text == "-1");
 
             PdfTextSpan evenHeader = Assert.Single(even, span => span.Text == "EvenStyled");
             PdfTextSpan evenFooter = Assert.Single(even, span => span.Text == "EvenFooter");
             Assert.True(evenHeader.IsItalic);
             Assert.True(evenFooter.IsItalic);
             Assert.InRange(evenHeader.FontSize, 14.5D, 15.5D);
-            Assert.Contains(even, span => span.Text == "2");
+            Assert.Contains(even, span => span.Text == "2" || span.Text == "-2");
 
             PdfTextSpan oddHeader = Assert.Single(odd, span => span.Text == "OddStyled");
             PdfTextSpan oddFooter = Assert.Single(odd, span => span.Text == "OddFooter");

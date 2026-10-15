@@ -114,13 +114,13 @@ public sealed partial class WordListMarkerSemanticsTests {
         tenItem.Text = "TableTen";
         AttachToList(tenItem, list.NumberId);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
-        PdfTextSpan nine = Assert.Single(spans, span => span.Text == "9.");
-        PdfTextSpan ten = Assert.Single(spans, span => span.Text == "10.");
-        PdfTextSpan nineText = Assert.Single(spans, span => span.Text == "TableNine");
-        PdfTextSpan tenText = Assert.Single(spans, span => span.Text == "TableTen");
-        Assert.InRange(Math.Abs((nine.X + nine.Advance) - (ten.X + ten.Advance)), 0D, 1D);
-        Assert.InRange(Math.Abs(nineText.X - tenText.X), 0D, 1D);
+        byte[] pdf = document.ToPdfBytes();
+        (double Start, double End) nine = PdfLetterRun(pdf, "9.");
+        (double Start, double End) ten = PdfLetterRun(pdf, "10.");
+        (double Start, double End) nineText = PdfLetterRun(pdf, "TableNine");
+        (double Start, double End) tenText = PdfLetterRun(pdf, "TableTen");
+        Assert.InRange(Math.Abs(nine.End - ten.End), 0D, 1D);
+        Assert.InRange(Math.Abs(nineText.Start - tenText.Start), 0D, 1D);
     }
 
     [Fact]
@@ -984,10 +984,20 @@ public sealed partial class WordListMarkerSemanticsTests {
         cell.Text = "SuffixCell";
         AttachToList(cell, list.NumberId);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
-        PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
-        PdfTextSpan content = Assert.Single(spans, span => span.Text == "SuffixCell");
-        Assert.InRange(content.X - marker.X - marker.Advance, minimumGap, maximumGap);
+        byte[] pdf = document.ToPdfBytes();
+        (double Start, double End) marker = PdfLetterRun(pdf, "*");
+        (double Start, double End) content = PdfLetterRun(pdf, "SuffixCell");
+        Assert.InRange(content.Start - marker.End, minimumGap, maximumGap);
+    }
+
+    // A line's marker and text can share one PDF show operator, so they are located by their letters.
+    private static (double Start, double End) PdfLetterRun(byte[] pdf, string text) {
+        using var document = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        var letters = document.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToList();
+        string joined = string.Concat(letters.Select(letter => letter.Value));
+        int index = joined.IndexOf(text, StringComparison.Ordinal);
+        Assert.True(index >= 0 && joined.IndexOf(text, index + 1, StringComparison.Ordinal) < 0, "Expected one '" + text + "' in '" + joined + "'.");
+        return (letters[index].StartBaseLine.X, letters[index + text.Length - 1].EndBaseLine.X);
     }
 
     private static double RenderImageBodyListMarkerOffset(WordListLevelSuffix suffix) {

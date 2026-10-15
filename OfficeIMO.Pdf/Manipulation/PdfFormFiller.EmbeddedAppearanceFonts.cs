@@ -198,7 +198,7 @@ internal static partial class PdfFormFiller {
         int descendantFontObjectNumber,
         int toUnicodeObjectNumber,
         int type0FontObjectNumber) {
-        byte[] fontData = fontProgram.BuildSubsetFontFile();
+        byte[] fontData = fontProgram.BuildIdentitySubsetFontFile();
         objects[fontFileObjectNumber] = new PdfIndirectObject(fontFileObjectNumber, 0, CreateEmbeddedFontFileStream(fontData));
         objects[descriptorObjectNumber] = new PdfIndirectObject(descriptorObjectNumber, 0, CreateTrueTypeFontDescriptor(fontProgram, fontFileObjectNumber));
         objects[descendantFontObjectNumber] = new PdfIndirectObject(descendantFontObjectNumber, 0, CreateCidFontType2Descendant(fontProgram, descriptorObjectNumber));

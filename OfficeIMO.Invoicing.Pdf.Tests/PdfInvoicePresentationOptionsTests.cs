@@ -26,7 +26,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
         var options = Options(); options.PageWidth = 842; options.PageHeight = 595;
         byte[] pdf = snapshot.ToPdfBytes(options);
         WriteEvidence(modern ? "presentation-modern" : "presentation-classic", pdf);
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         foreach (string label in new[] { "Numer", "pozycji", "Line ID", "Opis", "Description", "C62", "sztuka", "piece" }) Assert.Contains(label, text);
         Assert.Contains("Przelew SEPA / SEPA credit transfer", text);
         foreach (string value in new[] { "DescriptionMarker", "project-cost", "service-1", "buyer-service-1", "0721-880X", "Line discount", "Pay within thirty days.", "prior-invoice" }) Assert.Contains(value, text);
@@ -54,7 +54,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
         PdfReadDocument document = PdfReadDocument.Open(pdf);
         Assert.True(document.Pages.Count > 2);
         for (int index = 0; index < document.Pages.Count; index++) {
-            string text = document.Pages[index].ExtractText();
+            string text = document.Pages[index].ExtractUnwrappedText();
             Assert.Contains(invoice.Number, text);
             Assert.Contains("Strona " + (index + 1) + " / " + document.Pages.Count, text);
             Assert.Contains(index == 0 ? "FIRST-HEADER" : index % 2 == 1 ? "EVEN-HEADER" : "RUNNING-HEADER", text);
@@ -89,7 +89,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
             InvoicePdfLineColumn.BuyerItem, InvoicePdfLineColumn.StandardItem, InvoicePdfLineColumn.AccountingReference, priceColumn,
             InvoicePdfLineColumn.NetAmount }) layout.LineColumns.Add(column);
         var options = Options(); options.PageWidth = 1191; options.PageHeight = 842;
-        string text = PdfReadDocument.Open(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(options)).ExtractText();
+        string text = PdfReadDocument.Open(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(options)).ExtractUnwrappedText();
         foreach (string value in new[] { "SELLERKEY", "BUYERKEY", "1234567890128", "project-cost", "2026-08-31", "2026-09-10", price }) Assert.Contains(value, text);
         Assert.Equal(1, text.Split(new[] { "SELLERKEY" }, StringSplitOptions.None).Length - 1);
         Assert.Equal(1, text.Split(new[] { "BUYERKEY" }, StringSplitOptions.None).Length - 1);
@@ -107,7 +107,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
         invoice.Payments[0].MeansCode = "999"; invoice.Payments[0].MeansText = "AUTHORED-MEANS-MARKER";
         var layout = new InvoicePdfLayoutOptions { UnitCodeDisplay = InvoicePdfCodeDisplay.Description, PaymentCodeDisplay = InvoicePdfCodeDisplay.Description };
         layout.Languages.Clear(); layout.Languages.Add(pack);
-        string text = PdfReadDocument.Open(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(Options())).ExtractText();
+        string text = PdfReadDocument.Open(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(Options())).ExtractUnwrappedText();
         Assert.Contains("CustomUnit", text);
         Assert.Contains("999 AUTHORED-MEANS-MARKER", text);
     }

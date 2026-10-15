@@ -9,7 +9,7 @@ public sealed partial class PdfOptions {
                 if (TryGetEmbeddedStandardFontProgramForGeneration(entry.Key, out _, out PdfTrueTypeFontProgram? target) && target != null) {
                     foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
-                    target.MergeAsciiCharacterUsageFrom(entry.Value);
+                    target.MergeTextPinsFrom(entry.Value);
                 }
             }
         }
@@ -18,6 +18,7 @@ public sealed partial class PdfOptions {
                 if (TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(entry.Key, out _, out PdfOpenTypeCffFontProgram? target) && target != null) {
                     foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
+                    target.MergeTextPinsFrom(entry.Value);
                 }
             }
         }
@@ -26,7 +27,7 @@ public sealed partial class PdfOptions {
                 if (TryGetNamedFontProgramForGeneration(entry.Key, out PdfTrueTypeFontProgram? target) && target != null) {
                     foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
-                    target.MergeAsciiCharacterUsageFrom(entry.Value);
+                    target.MergeTextPinsFrom(entry.Value);
                 }
             }
         }
@@ -35,6 +36,7 @@ public sealed partial class PdfOptions {
                 if (TryGetNamedOpenTypeCffFontProgramForGeneration(entry.Key, out PdfOpenTypeCffFontProgram? target) && target != null) {
                     foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
+                    target.MergeTextPinsFrom(entry.Value);
                 }
             }
         }

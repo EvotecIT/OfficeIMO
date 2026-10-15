@@ -15,6 +15,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         "post"
     };
 
+    private static readonly string[] CidKeyedCffTables = { "CFF " };
+
     private static readonly HashSet<string> OpenTypeLayoutTables = new HashSet<string>(StringComparer.Ordinal) {
         "BASE",
         "GDEF",
@@ -27,10 +29,32 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     internal byte[] BuildCompactOpenTypeFontFile() =>
         BuildCompactOpenTypeFontFilePlan().Data;
 
-    internal PdfOpenTypeCffCompactFontFile BuildCompactOpenTypeFontFilePlan() {
+    /// <summary>Plans the embedded font file.</summary>
+    /// <param name="allowCidKeyedCff">
+    /// True to prefer a compact CID-keyed bare CFF program (<c>CIDFontType0C</c>) holding only the used glyphs,
+    /// falling back to the OpenType wrapper when the charstrings cannot be proven complete.
+    /// </param>
+    internal PdfOpenTypeCffCompactFontFile BuildCompactOpenTypeFontFilePlan(bool allowCidKeyedCff = false) {
         var tables = new List<SubsetTable>();
         IReadOnlyList<int> usedGlyphIds = GetUsedGlyphIds();
         PdfCffCharStringSubset? charStringSubset = null;
+        if (allowCidKeyedCff && _tables.TryGetValue("CFF ", out TableRecord cffTable)) {
+            byte[] cff = CopyTableData(cffTable);
+            PdfCffCharStringSubset? cidSubset = PdfCffCidSubsetter.TryCreate(cff, usedGlyphIds, GlyphCount);
+            if (cidSubset != null && cidSubset.Data.Length < cff.Length) {
+                string[] sourceTables = _tables.Keys.OrderBy(tag => tag, StringComparer.Ordinal).ToArray();
+                string[] droppedTables = sourceTables.Where(tag => !string.Equals(tag, "CFF ", StringComparison.Ordinal)).ToArray();
+                return new PdfOpenTypeCffCompactFontFile(
+                    cidSubset.Data,
+                    isCompact: true,
+                    sourceTables,
+                    CidKeyedCffTables,
+                    droppedTables,
+                    droppedTables.Where(tag => OpenTypeLayoutTables.Contains(tag)).ToArray(),
+                    cidSubset,
+                    PdfOpenTypeCffCompactFontFile.CidFontType0CSubtype);
+            }
+        }
         foreach (KeyValuePair<string, TableRecord> table in _tables.OrderBy(entry => entry.Key, StringComparer.Ordinal)) {
             if (!CompactOpenTypeCffTables.Contains(table.Key)) {
                 continue;
@@ -232,8 +256,10 @@ internal sealed class PdfOpenTypeCffCompactFontFile {
         IReadOnlyList<string> embeddedTables,
         IReadOnlyList<string> removedTables,
         IReadOnlyList<string> removedLayoutTables,
-        PdfCffCharStringSubset? charStringSubset) {
+        PdfCffCharStringSubset? charStringSubset,
+        string fontFileSubtype = OpenTypeSubtype) {
         Data = data ?? throw new ArgumentNullException(nameof(data));
+        FontFileSubtype = fontFileSubtype;
         IsCompact = isCompact;
         OriginalTables = originalTables?.ToArray() ?? throw new ArgumentNullException(nameof(originalTables));
         EmbeddedTables = embeddedTables?.ToArray() ?? throw new ArgumentNullException(nameof(embeddedTables));
@@ -249,4 +275,10 @@ internal sealed class PdfOpenTypeCffCompactFontFile {
     public IReadOnlyList<string> RemovedTables { get; }
     public IReadOnlyList<string> RemovedLayoutTables { get; }
     public PdfCffCharStringSubset? CharStringSubset { get; }
+
+    /// <summary>The <c>/FontFile3</c> subtype: <c>OpenType</c>, or <c>CIDFontType0C</c> for a bare CID-keyed CFF program.</summary>
+    public string FontFileSubtype { get; }
+
+    internal const string OpenTypeSubtype = "OpenType";
+    internal const string CidFontType0CSubtype = "CIDFontType0C";
 }

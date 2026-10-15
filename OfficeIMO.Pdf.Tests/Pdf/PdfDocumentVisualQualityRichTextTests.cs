@@ -24,9 +24,9 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text("After"))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
-        int redText = content.IndexOf("<526564>", StringComparison.Ordinal);
-        int afterText = content.IndexOf("<4166746572>", StringComparison.Ordinal);
+        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        int redText = content.IndexOf("526564", StringComparison.Ordinal);
+        int afterText = content.IndexOf("4166746572", StringComparison.Ordinal);
 
         Assert.True(redText >= 0, "Expected encoded 'Red' text in the generated PDF content stream.");
         Assert.True(afterText > redText, "Expected encoded 'After' text after the red run.");
@@ -53,10 +53,10 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text("Normal"))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
-        int smallText = content.IndexOf("<536D616C6C>", StringComparison.Ordinal);
-        int largeText = content.IndexOf("<4C61726765>", StringComparison.Ordinal);
-        int normalText = content.IndexOf("<4E6F726D616C>", StringComparison.Ordinal);
+        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        int smallText = content.IndexOf("536D616C6C", StringComparison.Ordinal);
+        int largeText = content.IndexOf("4C61726765", StringComparison.Ordinal);
+        int normalText = content.IndexOf("4E6F726D616C", StringComparison.Ordinal);
 
         Assert.True(smallText >= 0, "Expected encoded 'Small' text in the generated PDF content stream.");
         Assert.True(largeText > smallText, "Expected encoded 'Large' text after the default-sized run.");
@@ -82,9 +82,9 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text("After"))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
-        int markedText = content.IndexOf("<4D61726B6564>", StringComparison.Ordinal);
-        int afterText = content.IndexOf("<4166746572>", StringComparison.Ordinal);
+        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        int markedText = content.IndexOf("4D61726B6564", StringComparison.Ordinal);
+        int afterText = content.IndexOf("4166746572", StringComparison.Ordinal);
 
         Assert.True(markedText >= 0, "Expected encoded 'Marked' text in the generated PDF content stream.");
         Assert.True(afterText > markedText, "Expected encoded 'After' text after the highlighted run.");
@@ -108,9 +108,9 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text(" After"))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
-        int markedText = content.IndexOf("<4D61726B6564>", StringComparison.Ordinal);
-        int wordsText = content.IndexOf("<576F726473>", StringComparison.Ordinal);
+        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        int markedText = content.IndexOf("4D61726B6564", StringComparison.Ordinal);
+        int wordsText = content.IndexOf("576F726473", StringComparison.Ordinal);
 
         Assert.True(markedText >= 0, "Expected encoded 'Marked' text in the generated PDF content stream.");
         Assert.True(wordsText > markedText, "Expected encoded 'Words' text after the first highlighted word.");
@@ -144,11 +144,11 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
-        int redText = content.IndexOf("<43656C6C526564>", StringComparison.Ordinal);
-        int boldText = content.IndexOf("<43656C6C426F6C64>", StringComparison.Ordinal);
-        int markedText = content.IndexOf("<43656C6C4D61726B6564>", StringComparison.Ordinal);
-        int largeText = content.IndexOf("<43656C6C4C61726765>", StringComparison.Ordinal);
+        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        int redText = content.IndexOf("43656C6C526564", StringComparison.Ordinal);
+        int boldText = content.IndexOf("43656C6C426F6C64", StringComparison.Ordinal);
+        int markedText = content.IndexOf("43656C6C4D61726B6564", StringComparison.Ordinal);
+        int largeText = content.IndexOf("43656C6C4C61726765", StringComparison.Ordinal);
 
         Assert.True(redText >= 0, "Expected encoded rich table cell red text in the PDF content stream.");
         Assert.True(boldText > redText, "Expected encoded bold table cell text after the red run.");

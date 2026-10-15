@@ -563,7 +563,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
-        Assert.Contains("/BaseFont /Scoped", rawPdf, StringComparison.Ordinal);
+        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("Scoped"), rawPdf);
         Assert.True(
             rawPdf.Contains("/BaseFont /Times-Roman", StringComparison.Ordinal)
             || rawPdf.Contains("/BaseFont /Helvetica", StringComparison.Ordinal),
@@ -678,8 +678,8 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Contains("/BaseFont /Times-Roman", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /Courier", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /WebOne-Regular", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /WebTwo-Regular", rawPdf, StringComparison.Ordinal);
+        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("WebOne-Regular"), rawPdf);
+        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("WebTwo-Regular"), rawPdf);
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
     }
 
@@ -719,7 +719,7 @@ public sealed partial class HtmlRenderingTests {
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         foreach (string family in families) {
-            Assert.Contains("/BaseFont /" + family + "-Regular", rawPdf, StringComparison.Ordinal);
+            Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape(family + "-Regular"), rawPdf);
             Assert.Contains(family, extracted, StringComparison.Ordinal);
         }
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
@@ -757,8 +757,8 @@ public sealed partial class HtmlRenderingTests {
         string rawPdf = Encoding.ASCII.GetString(pdf);
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
-        Assert.Contains("/BaseFont /WithinBudget-Regular", rawPdf, StringComparison.Ordinal);
-        Assert.DoesNotContain("/BaseFont /BeyondBudget-Regular", rawPdf, StringComparison.Ordinal);
+        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("WithinBudget-Regular"), rawPdf);
+        Assert.DoesNotMatch(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("BeyondBudget-Regular"), rawPdf);
         Assert.Contains("Embedded text", extracted, StringComparison.Ordinal);
         Assert.Contains("Fallback text", extracted, StringComparison.Ordinal);
     }

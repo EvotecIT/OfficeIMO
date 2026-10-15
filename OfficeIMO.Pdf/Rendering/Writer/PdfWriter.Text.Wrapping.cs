@@ -677,6 +677,27 @@ internal static partial class PdfWriter {
                 needed = lastLine.Count == 0
                     ? (pendingLeadingIsTab || preserveWhitespace ? pendingLeadingAdvance + wrappingWidth : wrappingWidth)
                     : pendingLeadingAdvance + wrappingWidth;
+                // A word that overflows the line end wraps at its last fitting Unicode line-break
+                // opportunity (hyphen, solidus, CJK boundary) or opt-in hyphenation point.
+                if (lineWidth + needed + boundaryAdvance > currentMaxWidth + RichTextWidthTolerance && lastLine.Count > 0
+                    && token.Length > 1 && continuation.Width <= 0D && !pendingLeadingIsTab && whitespaceMode != PdfTextWhitespaceMode.Preserve
+                    && TrySplitTokenAtLineEnd(token, currentMaxWidth + RichTextWidthTolerance - lineWidth - boundaryAdvance -
+                            (pendingLeadingSeparator ? pendingLeadingAdvance : 0D), options,
+                        part => MeasureRichText(part, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing),
+                        out string splitHead, out double splitHeadWidth, out int splitConsumed)) {
+                    bool splitLeadingSpace = pendingLeadingSeparator && lineWidth != 0D;
+                    double splitLeadingAdvance = splitLeadingSpace ? pendingLeadingAdvance : 0D;
+                    lastLine.Add(new RichSeg(splitHead, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, splitHeadWidth, splitLeadingSpace, splitLeadingAdvance, pendingLeadingIsExpandable, PdfTabLeaderStyle.None, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent, leadingUnderlineStyle: splitLeadingSpace ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, leadingDecorationColor: pendingLeadingDecorationColor, leadingDecorationFontSize: pendingLeadingDecorationFontSize, leadingDecorationTextRise: pendingLeadingDecorationTextRise, leadingSpaceCount: pendingLeadingSpaceCount));
+                    RegisterLineHeight(runFontSize);
+                    lineWidth += splitHeadWidth + splitLeadingAdvance;
+                    ResetPendingLeading();
+                    StartNewLine();
+                    token = token.Substring(splitConsumed);
+                    tokenW = MeasureRichText(token, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+                    PrepareLineFrame(RunLineHeight(runFontSize), tokenW);
+                    lastLine = lines[lines.Count - 1];
+                    needed = tokenW;
+                }
                 if (lineWidth + needed + boundaryAdvance > currentMaxWidth + RichTextWidthTolerance && lastLine.Count > 0
                     && (token.Length > 0 || whitespaceMode != PdfTextWhitespaceMode.Preserve)) {
                     if (pendingLeadingAdvance > 0D) {

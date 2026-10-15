@@ -694,7 +694,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(bytes.Length < uncompressed.Length, $"Expected compressed embedded font PDF to be smaller. Compressed: {bytes.Length}, uncompressed: {uncompressed.Length}.");
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /OfficeIMOEmbeddedArial", raw, StringComparison.Ordinal);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOEmbeddedArial"), raw);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.Contains("/FontDescriptor", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
@@ -735,9 +735,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /OfficeIMOPretty-Regular", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /OfficeIMOPretty-Bold", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /OfficeIMOPretty-Italic", raw, StringComparison.Ordinal);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOPretty-Regular"), raw);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOPretty-Bold"), raw);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOPretty-Italic"), raw);
         Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
         AssertSubsetLength1(raw, fontData.Length);
         Assert.Contains("Pretty regular pretty bold pretty italic", text, StringComparison.Ordinal);

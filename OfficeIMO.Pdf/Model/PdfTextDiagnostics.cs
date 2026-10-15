@@ -8,7 +8,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 internal static partial class PdfTextDiagnostics {
     private const string WinAnsiEncodingDescription = "PDF WinAnsiEncoding";
-    private const string WinAnsiGlyphRemediation = "Embedded Unicode fonts are required for this text.";
+    private const string WinAnsiGlyphRemediation = "Embedded Unicode fonts are required for this text: call PdfOptions.UseTextFallbacks() (add PdfTextFallbackFeatures.MultilingualFonts for CJK and complex scripts) or UseFontFamily(...).";
     private const string ControlCharacterEncodingDescription = "PDF text output";
     private const string ControlCharacterRemediation = "Use paragraphs, line breaks, tables, or spacing primitives for layout instead of literal control characters.";
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfEmbeddedFontFallbackCandidate, EmbeddedFontFallbackProgramBox> FallbackProgramCache = new();

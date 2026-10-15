@@ -217,8 +217,8 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1));
-        int text = content.IndexOf("<426F7264657254657874>", StringComparison.Ordinal);
+        string content = PdfTestContentText.JoinTextArrays(string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1)));
+        int text = content.IndexOf("426F7264657254657874", StringComparison.Ordinal);
         int borderColor = content.LastIndexOf("1 0 0 RG", StringComparison.Ordinal);
         int stroke = borderColor < 0 ? -1 : content.IndexOf(" S", borderColor, StringComparison.Ordinal);
 
@@ -253,8 +253,8 @@ public partial class PdfDocumentVisualQualityTests {
             }, 24, 24, 160, 60, style))
             .ToBytes();
 
-        string content = string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1));
-        int text = content.IndexOf("<4669786564426F7264657254657874>", StringComparison.Ordinal);
+        string content = PdfTestContentText.JoinTextArrays(string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1)));
+        int text = content.IndexOf("4669786564426F7264657254657874", StringComparison.Ordinal);
         int borderColor = content.LastIndexOf("1 0 0 RG", StringComparison.Ordinal);
         int stroke = borderColor < 0 ? -1 : content.IndexOf(" S", borderColor, StringComparison.Ordinal);
 

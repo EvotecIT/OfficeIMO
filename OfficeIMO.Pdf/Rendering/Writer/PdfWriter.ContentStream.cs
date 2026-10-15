@@ -13,6 +13,7 @@ internal sealed partial class ContentStreamBuilder {
 
     public ContentStreamBuilder SaveState() {
         _textStates.Push((_textScale, _textLeading, _textWordSpacing, _textCharacterSpacing, _syntheticOblique));
+        InvalidateTextStateCache();
         _sb.Append("q\n");
         return this;
     }
@@ -24,6 +25,7 @@ internal sealed partial class ContentStreamBuilder {
             _textCharacterSpacing = state.CharacterSpacing;
             _syntheticOblique = state.SyntheticOblique;
         }
+        InvalidateTextStateCache();
         _sb.Append("Q\n");
         return this;
     }
@@ -36,16 +38,24 @@ internal sealed partial class ContentStreamBuilder {
             _sb.Append('/').Append(resourceName);
         }
 
+        // An ExtGState can select a font.
+        InvalidateTextStateCache();
         _sb.Append(" gs\n");
         return this;
     }
 
     public ContentStreamBuilder FillColor(PdfColor color) {
+        if (SyncTextState() && _fillColor.HasValue && _fillColor.Value.Equals(color)) return this;
         _sb.Append(F(color.R)).Append(' ').Append(F(color.G)).Append(' ').Append(F(color.B)).Append(" rg\n");
+        if (_inText) {
+            _fillColor = color;
+            OwnWrite();
+        }
         return this;
     }
 
     public ContentStreamBuilder FillGray(double gray) {
+        _fillColor = null;
         _sb.Append(F(gray)).Append(" g\n");
         return this;
     }
@@ -219,21 +229,36 @@ internal sealed partial class ContentStreamBuilder {
 
     public ContentStreamBuilder BeginText() {
         ResetTrackedTextMatrix();
+        InvalidateTextStateCache();
+        _showEnd = -1;
         _sb.Append("BT\n");
+        _inText = true;
+        _ownedLength = _sb.Length;
         return this;
     }
 
     public ContentStreamBuilder EndText() {
+        _inText = false;
+        _showEnd = -1;
+        InvalidateTextStateCache();
         _sb.Append("ET\n");
         return this;
     }
 
     public ContentStreamBuilder Font(string resourceName, double size, bool syntheticOblique = false, bool preserveLogicalPrecision = false) {
         Guard.NotNullOrWhiteSpace(resourceName, nameof(resourceName));
+        if (SyncTextState() && _syntheticOblique == syntheticOblique && _fontSize == size &&
+            _fontPrecise == preserveLogicalPrecision && string.Equals(_fontResource, resourceName, StringComparison.Ordinal)) return this;
         _sb.Append('/').Append(resourceName).Append(' ');
         if (preserveLogicalPrecision) _sb.Append(MatrixNumber(size));
         else _sb.Append(F(size));
         _sb.Append(" Tf\n");
+        if (_inText) {
+            _fontResource = resourceName;
+            _fontSize = size;
+            _fontPrecise = preserveLogicalPrecision;
+            OwnWrite();
+        }
         if (_syntheticOblique != syntheticOblique) {
             double previousShear = _syntheticOblique ? SyntheticObliqueShear : 0D;
             _syntheticOblique = syntheticOblique;
@@ -250,7 +275,9 @@ internal sealed partial class ContentStreamBuilder {
 
     public ContentStreamBuilder TextLeading(double leading) {
         _textLeading = leading;
+        SyncTextState();
         _sb.Append(F(leading)).Append(" TL\n");
+        OwnWrite();
         return this;
     }
 
@@ -264,13 +291,16 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     private ContentStreamBuilder TextMatrixApplied(double a, double b, double c, double d, double e, double f) {
-        TrackTextMatrix(a, b, c, d, e, f);
+        if (SyncTextState() && TryFoldTextMatrix(a, b, c, d, e, f)) return this;
+        // Track the serialized matrix: later TJ moves are relative to what viewers read.
+        TrackTextMatrix(Serialized(a), Serialized(b), Serialized(c), Serialized(d), Serialized(e), Serialized(f));
         _sb.Append(F(a)).Append(' ')
             .Append(F(b)).Append(' ')
             .Append(F(c)).Append(' ')
             .Append(F(d)).Append(' ')
             .Append(F(e)).Append(' ')
             .Append(F(f)).Append(" Tm\n");
+        OwnWrite();
         return this;
     }
 
@@ -281,7 +311,9 @@ internal sealed partial class ContentStreamBuilder {
         if (_isolatedText || _syntheticOblique) return TextMatrixApplied(_textA, _textB, _textC, _textD, _lineE + xAdvance, _lineF + yAdvance);
         _lineE += xAdvance; _lineF += yAdvance;
         _textE = _lineE; _textF = _lineF;
+        SyncTextState();
         _sb.Append(F(x)).Append(' ').Append(F(y)).Append(" Td\n");
+        OwnWrite();
         return this;
     }
 
@@ -289,13 +321,20 @@ internal sealed partial class ContentStreamBuilder {
         if (_isolatedText || _syntheticOblique) return MoveText(0, -_textLeading);
         _lineE -= _textC * _textLeading; _lineF -= _textD * _textLeading;
         _textE = _lineE; _textF = _lineF;
+        SyncTextState();
         _sb.Append("T*\n");
+        OwnWrite();
         return this;
     }
 
     public ContentStreamBuilder WordSpacing(double spacing) {
+        if (SyncTextState() && _wordSpacingKnown && _textWordSpacing == spacing) return this;
         _textWordSpacing = spacing;
         _sb.Append(F(spacing)).Append(" Tw\n");
+        if (_inText) {
+            _wordSpacingKnown = true;
+            OwnWrite();
+        }
         return this;
     }
 
@@ -303,8 +342,13 @@ internal sealed partial class ContentStreamBuilder {
         if (double.IsNaN(spacing) || double.IsInfinity(spacing)) {
             throw new ArgumentOutOfRangeException(nameof(spacing), "PDF character spacing must be finite.");
         }
+        if (SyncTextState() && _characterSpacingKnown && _textCharacterSpacing == spacing) return this;
         _textCharacterSpacing = spacing;
         _sb.Append(F(spacing)).Append(" Tc\n");
+        if (_inText) {
+            _characterSpacingKnown = true;
+            OwnWrite();
+        }
         return this;
     }
 
@@ -314,12 +358,16 @@ internal sealed partial class ContentStreamBuilder {
         }
 
         _textScale = percentage / 100D;
+        SyncTextState();
         _sb.Append(F(percentage)).Append(" Tz\n");
+        OwnWrite();
         return this;
     }
 
     public ContentStreamBuilder TextRise(double rise) {
+        SyncTextState();
         _sb.Append(F(rise)).Append(" Ts\n");
+        OwnWrite();
         return this;
     }
 
@@ -328,12 +376,23 @@ internal sealed partial class ContentStreamBuilder {
             throw new ArgumentOutOfRangeException(nameof(mode), "PDF text rendering mode must be between 0 and 7.");
         }
 
+        SyncTextState();
         _sb.Append(mode.ToString(CultureInfo.InvariantCulture)).Append(" Tr\n");
+        OwnWrite();
+        return this;
+    }
+
+    /// <summary>Ends text-show coalescing so the next text matrix is written explicitly (tab stops, leaders).</summary>
+    public ContentStreamBuilder BreakTextRun() {
+        _showEnd = -1;
         return this;
     }
 
     public ContentStreamBuilder ShowHexText(string hexText) {
         Guard.NotNull(hexText, nameof(hexText));
+        // The caller owns positioning for raw show strings.
+        _showEnd = -1;
+        _positionKnown = false;
         _sb.Append('<').Append(hexText).Append("> Tj\n");
         return this;
     }
@@ -344,27 +403,42 @@ internal sealed partial class ContentStreamBuilder {
             throw new ArgumentOutOfRangeException(nameof(fontSize), "PDF text font size must be positive and finite.");
         }
 
+        SyncTextState();
         if (!suppressActualText && command.LogicalGlyphs is { } logicalGlyphs) {
-            WriteIsolatedLogicalGlyphs(logicalGlyphs, command, fontSize, currentTextRise);
+            if (command.IsolatedRightToLeft) _showEnd = -1;
+            WriteLogicalGlyphs(logicalGlyphs, command, fontSize, currentTextRise);
+            if (command.IsolatedRightToLeft) _showEnd = -1;
             return this;
         }
 
-        if (!suppressActualText && command.ActualText != null) {
+        bool marked = !suppressActualText && command.ActualText != null;
+        if (marked) {
             _sb.Append("/Span << /ActualText ")
-                .Append(PdfSyntaxEscaper.TextString(command.ActualText))
+                .Append(PdfSyntaxEscaper.TextString(command.ActualText!))
                 .Append(" >> BDC\n");
         }
 
         if (!command.HasPositioning) {
-            ShowHexText(command.GlyphHex);
+            OpenShow(fontSize);
+            if (command.SimpleFontKerning is { } kerning) {
+                string hex = command.GlyphHex;
+                for (int index = 0; index < kerning.Length && index * 2 + 1 < hex.Length; index++) {
+                    ShowHexElement(hex.Substring(index * 2, 2));
+                    if (kerning[index] != 0) ShowNumberElement(-kerning[index]);
+                }
+            } else {
+                ShowHexElement(command.GlyphHex);
+            }
+            CloseShow();
         } else {
             double tracking1000 = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D) * 1000D / command.UnitsPerEm;
             AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize, currentTextRise,
                 command.NegativeTracking ? -tracking1000 : tracking1000, command.TrackingBoundaries);
         }
 
-        if (!suppressActualText && command.ActualText != null) {
+        if (marked) {
             _sb.Append("EMC\n");
+            OwnWrite();
         }
 
         if (command.AdvanceWidth1000.HasValue) {
@@ -372,6 +446,8 @@ internal sealed partial class ContentStreamBuilder {
                 * fontSize / command.UnitsPerEm * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
             AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D
                 + (command.NegativeTracking ? -trackingAdvance : trackingAdvance) + command.WordSpaceCount * _textWordSpacing + command.GlyphCount * _textCharacterSpacing);
+        } else {
+            _positionKnown = false;
         }
         return this;
     }
@@ -379,34 +455,39 @@ internal sealed partial class ContentStreamBuilder {
     private void AppendPositionedGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double baseTextRise,
         double tracking1000 = 0D, bool[]? trackingBoundaries = null) {
         int currentOffsetY1000 = 0;
+        bool open = false;
         for (int index = 0; index < glyphs.Count; index++) {
             PdfGlyphInfo glyph = glyphs[index];
             if (glyph.OffsetY1000 != currentOffsetY1000) {
+                if (open) {
+                    CloseShow();
+                    open = false;
+                }
                 _sb.Append(F(baseTextRise + glyph.OffsetY1000 * fontSize / 1000D)).Append(" Ts\n");
                 currentOffsetY1000 = glyph.OffsetY1000;
             }
-
-            int preAdjustment = -glyph.OffsetX1000;
-            double postAdjustment = glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000
-                - (trackingBoundaries?[index] == true ? tracking1000 : 0D);
-            _sb.Append('[');
-            if (preAdjustment != 0) {
-                _sb.Append(F(preAdjustment)).Append(' ');
+            if (!open) {
+                OpenShow(fontSize);
+                open = true;
             }
 
-            _sb.Append('<')
-                .Append(glyph.GlyphId.ToString("X4", CultureInfo.InvariantCulture))
-                .Append('>');
-            if (postAdjustment != 0) {
-                _sb.Append(' ').Append(F(postAdjustment));
-            }
-
-            _sb.Append("] TJ\n");
+            if (glyph.OffsetX1000 != 0) ShowNumberElement(-glyph.OffsetX1000);
+            ShowGlyphElement(glyph.GlyphId);
+            ShowNumberElement(glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000
+                - (trackingBoundaries?[index] == true ? tracking1000 : 0D));
         }
 
+        if (open) CloseShow();
         if (currentOffsetY1000 != 0) {
             _sb.Append(F(baseTextRise)).Append(" Ts\n");
+            OwnWrite();
         }
+    }
+
+    private static double Serialized(double value) {
+        if (Math.Abs(value) < 0.0005D) return 0D;
+        double rounded = Math.Round(value, 3, MidpointRounding.AwayFromZero);
+        return double.IsNaN(rounded) || double.IsInfinity(rounded) ? value : rounded;
     }
 
 #if NET6_0_OR_GREATER

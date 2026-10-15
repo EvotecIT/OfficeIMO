@@ -7,28 +7,55 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeManagedTextShapingProvider {
     // Default Latin consumers can project the canonical substituted tokens directly. These
     // tokens include continuation ownership and logical clusters, not just nominal cmap glyphs.
+    // Default Latin shaping also applies the font's default pair kerning (GPOS kern feature,
+    // with the legacy kern table as fallback). Positions are null when no pair adjusts the run.
     internal bool TryShapeDefaultLatinTokens(OfficeTextShapingRequest request,
-        out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out OfficeTextDirection direction) {
+        out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out OfficeTextDirection direction,
+        out OfficeOpenTypeGlyphPositioning[]? positions) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         tokens = null!;
+        positions = null;
         direction = request.Direction;
-        return request.ApplyDefaultLatinLigatures && request.FeatureSettings.IsDefault &&
-            TryShapeTokens(request, out _, out tokens, out direction);
+        if (!request.ApplyDefaultLatinLigatures || !request.FeatureSettings.IsDefault ||
+            !TryShapeTokens(request, out IOfficeFontProgram font, out tokens, out direction)) return false;
+        positions = PositionDefaultTokens(font, tokens, request.CancellationToken);
+        return true;
     }
 
-    // Default Latin shaping uses nominal advances and no positioning. Width consumers can
-    // visit the same substituted tokens without allocating public shaped glyphs and clusters.
-    // Explicit features and providers retain the complete shaping-result contract.
-    internal bool TryMeasureDefaultLatinText(OfficeTextShapingRequest request, Func<int, string, int> measureGlyph, out int advance) {
+    // Width consumers can visit the same substituted and kerned tokens without allocating public
+    // shaped glyphs and clusters. scaleAdjustment converts font-unit kerning into the consumer's
+    // units with the same rounding its drawing path uses.
+    internal bool TryMeasureDefaultLatinText(OfficeTextShapingRequest request, Func<int, string, int> measureGlyph,
+        Func<int, int> scaleAdjustment, out int advance) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (measureGlyph == null) throw new ArgumentNullException(nameof(measureGlyph));
+        if (scaleAdjustment == null) throw new ArgumentNullException(nameof(scaleAdjustment));
         advance = 0;
-        if (!TryShapeDefaultLatinTokens(request, out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out _)) return false;
-        foreach (OfficeOpenTypeSubstitution.GlyphToken token in tokens) {
+        if (!TryShapeDefaultLatinTokens(request, out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out _,
+            out OfficeOpenTypeGlyphPositioning[]? positions)) return false;
+        for (int index = 0; index < tokens.Count; index++) {
             request.CancellationToken.ThrowIfCancellationRequested();
+            OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
             advance = checked(advance + measureGlyph(token.GlyphId, token.UnicodeText));
+            if (positions != null && positions[index].XAdvance != 0) advance = checked(advance + scaleAdjustment(positions[index].XAdvance));
         }
         return true;
+    }
+
+    private static OfficeOpenTypeGlyphPositioning[]? PositionDefaultTokens(IOfficeFontProgram font,
+        List<OfficeOpenTypeSubstitution.GlyphToken> tokens, System.Threading.CancellationToken cancellationToken) {
+        if (tokens.Count < 2) return null;
+        var glyphIds = new int[tokens.Count];
+        var scalars = new int[tokens.Count];
+        for (int index = 0; index < tokens.Count; index++) {
+            glyphIds[index] = tokens[index].GlyphId;
+            scalars[index] = tokens[index].Scalar;
+        }
+        OfficeOpenTypeGlyphPositioning[] positions = PositionGlyphRun(font, glyphIds, scalars, cancellationToken);
+        foreach (OfficeOpenTypeGlyphPositioning position in positions) {
+            if (position.XAdvance != 0 || position.XPlacement != 0) return positions;
+        }
+        return null;
     }
 
     private bool TryShapeTokens(OfficeTextShapingRequest request, out IOfficeFontProgram font,

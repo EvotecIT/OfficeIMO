@@ -193,7 +193,9 @@ public partial class PdfPageImageRendererTests {
         string drawingText = string.Concat(drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
         Assert.Contains("Managed raster page", drawingText, StringComparison.Ordinal);
         Assert.Contains(drawing.Images, image => image.ContentType == "image/png" && image.Bytes.Length > 8);
-        string svgText = Encoding.UTF8.GetString(svg);
+        // Kerned glyph runs project as separately positioned SVG text fragments.
+        string svgText = string.Concat(System.Text.RegularExpressions.Regex.Matches(Encoding.UTF8.GetString(svg), "<text[^>]*>([^<]*)</text>")
+            .Cast<System.Text.RegularExpressions.Match>().Select(match => match.Groups[1].Value));
         Assert.Contains("Managed", svgText, StringComparison.Ordinal);
         Assert.Contains("raster", svgText, StringComparison.Ordinal);
         Assert.Contains("page", svgText, StringComparison.Ordinal);

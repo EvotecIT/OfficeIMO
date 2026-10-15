@@ -115,4 +115,31 @@ internal static partial class PdfWriter {
         yield return tokenLength;
     }
 
+
+    // Largest prefix ending at a UAX #14 opportunity (or a hyphenation point, which adds a hyphen)
+    // that fits the space left on the line.
+    private static bool TrySplitTokenAtLineEnd(string token, double available, PdfOptions? options, Func<string, double> measure,
+        out string head, out double headWidth, out int consumed) {
+        head = string.Empty;
+        headWidth = 0D;
+        consumed = 0;
+        if (available <= 0D) return false;
+        var candidates = new SortedDictionary<int, bool>();
+        foreach (int position in OfficeTextLineBreaks.GetBreakPositions(token)) candidates[position] = false;
+        foreach (int position in GetValidHyphenationBreakpoints(token, options)) {
+            if (!candidates.ContainsKey(position)) candidates[position] = true;
+        }
+        foreach (KeyValuePair<int, bool> candidate in candidates.Reverse()) {
+            if (candidate.Key <= 0 || candidate.Key >= token.Length) continue;
+            string text = token.Substring(0, candidate.Key);
+            if (candidate.Value) text += "-";
+            double width = measure(text);
+            if (width > available) continue;
+            head = text;
+            headWidth = width;
+            consumed = candidate.Key;
+            return true;
+        }
+        return false;
+    }
 }
