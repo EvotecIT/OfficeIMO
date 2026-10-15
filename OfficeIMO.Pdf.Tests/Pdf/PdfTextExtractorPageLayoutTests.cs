@@ -55,7 +55,8 @@ public partial class PdfTextExtractorPageTests {
         const string text = "\u201CWait\u201D\u2014ok\u2026";
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
-                DefaultFontSize = 10
+                DefaultFontSize = 10,
+                TextKerning = false
             })
             .Paragraph(p => p.Text(text))
             .ToBytes();

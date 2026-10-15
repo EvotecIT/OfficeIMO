@@ -20,7 +20,7 @@ internal sealed class PdfFontUnitLayoutMetrics {
         OfficeTextShapingResult? source = run.SourceShapingResult;
         for (int index = 0; index < run.Glyphs.Count; index++) {
             int nominal = reader.AdvanceWidth(run.Glyphs[index].GlyphId);
-            int positioned = source == null ? nominal
+            int positioned = source == null ? checked(nominal + (run.DesignAdvanceAdjustments?[index] ?? 0))
                 : checked((source.Glyphs[index].AdvanceWidth ?? nominal) + source.GetAdvanceAdjustment(index));
             // Horizontal character scaling is resolved in design units. Keep
             // the original metric when no scaling was requested.

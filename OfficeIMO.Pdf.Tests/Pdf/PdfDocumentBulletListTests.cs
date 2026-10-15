@@ -220,10 +220,10 @@ public class PdfDocumentBulletListTests {
             })
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
-        int boldText = content.IndexOf("<426F6C64>", StringComparison.Ordinal);
-        int redText = content.IndexOf("<526564>", StringComparison.Ordinal);
-        int markedText = content.IndexOf("<4D61726B6564>", StringComparison.Ordinal);
+        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        int boldText = content.IndexOf("426F6C64", StringComparison.Ordinal);
+        int redText = content.IndexOf("526564", StringComparison.Ordinal);
+        int markedText = content.IndexOf("4D61726B6564", StringComparison.Ordinal);
 
         using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {
             Assert.Contains("Plain Bold Red Marked Linked", pdf.GetPage(1).Text, StringComparison.Ordinal);

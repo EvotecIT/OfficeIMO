@@ -42,7 +42,7 @@ public class MarkdownSaveAsPdfOptionsTests {
         string raw = Encoding.ASCII.GetString(bytes);
 
         Assert.True(
-            raw.Contains("/BaseFont /Georgia-Regular", StringComparison.Ordinal) ||
+            System.Text.RegularExpressions.Regex.IsMatch(raw, PdfTestContentText.BaseFontPattern("Georgia-Regular")) ||
             raw.Contains("/BaseFont /Times-Roman", StringComparison.Ordinal),
             "Expected Markdown font-family export to use an installed Georgia TrueType font or the mapped Times standard family.");
     }

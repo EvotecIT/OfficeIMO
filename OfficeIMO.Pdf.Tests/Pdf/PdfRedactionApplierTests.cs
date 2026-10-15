@@ -314,15 +314,20 @@ public partial class PdfRedactionApplierTests {
         PdfTextSpan[] spans = PdfReadDocument.Open(source).Pages[0].GetTextSpans().ToArray();
         Assert.Equal(text, string.Concat(spans.Select(span => span.Text)));
         int sourceOffset = 0;
-        var secretSpans = new List<PdfTextSpan>();
+        var secretGlyphs = new List<PdfTextGlyph>();
         foreach (PdfTextSpan span in spans) {
-            if (sourceOffset >= "Alpha office ".Length && sourceOffset < "Alpha office secret".Length) secretSpans.Add(span);
+            Assert.True(span.TryGetGlyphs(out var glyphs));
+            foreach (PdfTextGlyph glyph in glyphs) {
+                int glyphOffset = sourceOffset + glyph.TextStart;
+                if (glyphOffset >= "Alpha office ".Length && glyphOffset < "Alpha office secret".Length) secretGlyphs.Add(glyph);
+            }
             sourceOffset += span.Text.Length;
         }
-        Assert.Equal("secret", string.Concat(secretSpans.Select(span => span.Text)));
-        PdfTextSpan first = secretSpans[0], last = secretSpans[secretSpans.Count - 1];
-        PdfRedactionArea area = new(1, first.X + 0.1D, first.Y - first.FontSize + 0.1D,
-            last.X + last.Advance - first.X - 0.2D, first.FontSize * 1.5D - 0.2D, "secret");
+        Assert.Equal("secret", string.Concat(secretGlyphs.Select(glyph => glyph.Text)));
+        PdfTextGlyph first = secretGlyphs[0], last = secretGlyphs[secretGlyphs.Count - 1];
+        double fontSize = spans[0].FontSize;
+        PdfRedactionArea area = new(1, first.X + 0.1D, first.Y - fontSize + 0.1D,
+            last.X + last.Advance - first.X - 0.2D, fontSize * 1.5D - 0.2D, "secret");
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string extracted = PdfTextExtractor.ExtractAllText(redacted);

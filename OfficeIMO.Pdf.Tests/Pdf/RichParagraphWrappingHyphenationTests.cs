@@ -90,7 +90,7 @@ public class RichParagraphWrappingHyphenationTests {
             .Paragraph(paragraph => paragraph.Text("typographymilestone"))
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(callbackCalls > 0);
@@ -166,11 +166,12 @@ public class RichParagraphWrappingHyphenationTests {
 
         Assert.Contains("INV-", lines);
         Assert.Contains("DNS-", lines);
-        Assert.Contains("LOCA", lines);
-        Assert.Contains("TOR-", lines);
         Assert.Contains("001", lines);
         Assert.DoesNotContain("INV-D", lines);
         Assert.DoesNotContain("NS-LO", lines);
+        // The oversized LOCATOR- chunk wraps by characters at a metric-dependent position.
+        Assert.Equal("INV-DNS-LOCATOR-001", string.Concat(lines));
+        Assert.True(lines.Length >= 5);
     }
 
     [Fact]

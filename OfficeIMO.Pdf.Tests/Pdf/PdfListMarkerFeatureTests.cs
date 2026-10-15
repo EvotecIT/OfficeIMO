@@ -36,8 +36,8 @@ public sealed class PdfListMarkerFeatureTests {
     [InlineData(true, 0, 10D)]
     [InlineData(false, 1, 9.2D)]
     [InlineData(true, 1, 9.2D)]
-    [InlineData(false, -1, 10D)]
-    [InlineData(true, -1, 10D)]
+    [InlineData(false, -1, 9.2D)]
+    [InlineData(true, -1, 9.2D)]
     public void MarkerFeaturesRemainConsistentInFlowAndRowColumns(bool inRow, int kerning, double advance) {
         var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
@@ -66,8 +66,8 @@ public sealed class PdfListMarkerFeatureTests {
         var v = Assert.Single(letters, letter => letter.Value == "V");
         var body = Assert.Single(letters, letter => letter.Value == "b");
         Assert.Equal(advance, v.StartBaseLine.X - a.StartBaseLine.X, 3);
-        // This fixture adjusts both placement and advance: with GPOS enabled,
-        // its final pen is 0.2 points left of PdfPig's nominal final glyph end.
-        Assert.Equal(kerning == 1 ? 11.8D : 12D, body.StartBaseLine.X - v.EndBaseLine.X, 3);
+        // This fixture adjusts both placement and advance: with GPOS enabled (explicitly or
+        // by default), its final pen is 0.2 points left of PdfPig's nominal final glyph end.
+        Assert.Equal(kerning != 0 ? 11.8D : 12D, body.StartBaseLine.X - v.EndBaseLine.X, 3);
     }
 }

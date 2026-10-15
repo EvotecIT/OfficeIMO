@@ -23,10 +23,10 @@ public partial class PdfFontFamilyTests {
         Assert.Contains("marker", extracted, StringComparison.Ordinal);
         var spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans();
         Assert.Equal("Invoicemarker", string.Concat(spans
-            .Where(span => span.BaseFont == "OfficeIMOPrimary" && !string.IsNullOrWhiteSpace(span.Text))
+            .Where(span => PdfTestContentText.WithoutSubsetTag(span.BaseFont) == "OfficeIMOPrimary" && !string.IsNullOrWhiteSpace(span.Text))
             .Select(span => span.Text)));
         Assert.Equal("😀", string.Concat(spans
-            .Where(span => span.BaseFont == "EmojiFallback-Regular" && !string.IsNullOrWhiteSpace(span.Text))
+            .Where(span => PdfTestContentText.WithoutSubsetTag(span.BaseFont) == "EmojiFallback-Regular" && !string.IsNullOrWhiteSpace(span.Text))
             .Select(span => span.Text)));
     }
 
@@ -185,6 +185,6 @@ public partial class PdfFontFamilyTests {
 
     private static void AssertRegistrationFonts(byte[] bytes, params string[] names) {
         string raw = Encoding.ASCII.GetString(bytes);
-        foreach (string name in names) Assert.Contains("/BaseFont /" + name, raw, StringComparison.Ordinal);
+        foreach (string name in names) Assert.Matches(PdfTestContentText.BaseFontPattern(name), raw);
     }
 }

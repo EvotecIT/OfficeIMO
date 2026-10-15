@@ -61,10 +61,22 @@ public class PdfOpenTypeDefaultLigatureTests {
     public void TwoByteLogicalGlyphCodesIgnorePdfWordSpacing() {
         var glyphs = new[] { new PdfGlyphInfo(32, " ", 0, 600, 600, 0, 0, 0), new PdfGlyphInfo(33, "A", 1, 600, 600, 0, 0, 0) };
         var output = new System.Text.StringBuilder();
+        // Tw never advances two-byte codes, so the run ends at 40 + 2 * 6 and the
+        // following same-line move needs neither a text matrix nor a TJ adjustment.
         new ContentStreamBuilder(output).BeginText().TextMatrix(40, 400).WordSpacing(20)
-            .ShowText(new PdfGlyphRun(glyphs, System.Array.Empty<PdfTextEncodingDiagnostic>(), preserveGlyphUnicode: true).ToTextShowCommand(), 10).EndText();
-        Assert.Contains("1 0 0 1 46 400 Tm", output.ToString());
-        Assert.DoesNotContain("1 0 0 1 66 400 Tm", output.ToString());
+            .ShowText(new PdfGlyphRun(glyphs, System.Array.Empty<PdfTextEncodingDiagnostic>(), preserveGlyphUnicode: true)
+                .ToTextShowCommand().WithPinner(new IdentityPinner()), 10)
+            .TextMatrix(52, 400).EndText();
+        Assert.Contains("<00200021> Tj", output.ToString());
+        Assert.DoesNotContain("52 400 Tm", output.ToString());
+        Assert.DoesNotContain("TJ", output.ToString());
+    }
+
+    private sealed class IdentityPinner : IPdfGlyphTextPinner {
+        public bool TryResolveCode(int glyphId, string unicodeText, out int code) {
+            code = glyphId;
+            return true;
+        }
     }
 
     [Fact]
@@ -195,17 +207,16 @@ public class PdfOpenTypeDefaultLigatureTests {
     [Theory]
     [InlineData("\u0628\u062A")]
     [InlineData("\u05D0\u05D1")]
-    public void AutomaticLatinModePreservesNonLatinScalarSequence(string text) {
+    public void AutomaticModeShapesRightToLeftTextLikeTheManagedProvider(string text) {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(0x0628, 0x062A, 0xFE91, 0xFE96, 0x05D0, 0x05D1);
         var font = PdfTrueTypeFontProgram.Parse(data, "Test");
-        var scalar = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.UnicodeScalar));
         var automatic = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
-        Assert.Equal(scalar.Glyphs.Select(glyph => glyph.GlyphId), automatic.Glyphs.Select(glyph => glyph.GlyphId));
-        Assert.Equal(text, string.Concat(automatic.Glyphs.Select(glyph => glyph.UnicodeText)));
-        Assert.Equal(scalar.TotalAdvanceWidth1000, automatic.TotalAdvanceWidth1000);
         var explicitManaged = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures,
             shapingProvider: OfficeManagedTextShapingProvider.Instance));
-        Assert.NotEqual(automatic.Glyphs.Select(glyph => glyph.GlyphId).ToArray(), explicitManaged.Glyphs.Select(glyph => glyph.GlyphId).ToArray());
+        Assert.Equal(explicitManaged.Glyphs.Select(glyph => glyph.GlyphId), automatic.Glyphs.Select(glyph => glyph.GlyphId));
+        // Glyphs are in visual (right-to-left) order; their text reads back logically.
+        Assert.Equal(text, string.Concat(automatic.Glyphs.Reverse().Select(glyph => glyph.UnicodeText)));
+        Assert.Equal(explicitManaged.TotalAdvanceWidth1000, automatic.TotalAdvanceWidth1000);
     }
     [Fact]
     public void RedactingMixedWhitespaceLigaturePreservesFollowingWord() {
@@ -215,8 +226,10 @@ public class PdfOpenTypeDefaultLigatureTests {
         var spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans();
         var first = spans.First(span => span.Text.Contains("A"));
         Assert.Contains("B", PdfTextExtractor.ExtractAllText(pdf));
+        Assert.True(first.TryGetGlyphs(out var glyphs));
+        PdfTextGlyph cluster = glyphs.First(glyph => glyph.Text.Contains("A"));
         byte[] redacted = PdfRedactionApplier.Apply(pdf, new[] { new PdfRedactionArea(1,
-            first.X, first.Y - first.FontSize * 1.5, first.Advance - 0.1, first.FontSize * 2, "cluster") });
+            cluster.X, first.Y - first.FontSize * 1.5, cluster.Advance - 0.1, first.FontSize * 2, "cluster") });
         string extracted = PdfTextExtractor.ExtractAllText(redacted);
         Assert.DoesNotContain("A", extracted);
         Assert.Contains("B", extracted);
@@ -240,6 +253,12 @@ public class PdfOpenTypeDefaultLigatureTests {
         string text = "fi " + char.ConvertFromUtf32(neighbor);
         var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateMixedLatinLigatureFont(neighbor), "Test");
         var run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        // A run mixing Latin with Arabic joining goes to the managed Arabic path (this font has no joining
+        // forms, so it falls back to nominal glyphs); other scripts keep the default Latin ligature.
+        if (neighbor == 0x0627) {
+            Assert.Equal("fi", string.Concat(run.Glyphs.Take(2).Select(glyph => glyph.UnicodeText)));
+            return;
+        }
         Assert.Equal(3, run.Glyphs.Count);
         Assert.Contains(run.Glyphs, glyph => glyph.GlyphId == 5 && glyph.UnicodeText == "fi");
         Assert.Equal(text, run.ActualText);

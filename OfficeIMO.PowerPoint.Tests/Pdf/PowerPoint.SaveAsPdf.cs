@@ -2345,7 +2345,10 @@ public class PowerPointSaveAsPdfTests {
 
     private static void AssertRawPdfContainsAnyBaseFont(string rawPdf, params string[] fontNameParts) {
         Assert.True(
-            fontNameParts.Any(fontNamePart => rawPdf.Contains("/BaseFont /" + fontNamePart, StringComparison.OrdinalIgnoreCase)),
+            // Embedded subsets carry a six-letter tag (ABCDEF+) before the font name.
+            fontNameParts.Any(fontNamePart => System.Text.RegularExpressions.Regex.IsMatch(rawPdf,
+                "/BaseFont /(?:[A-Z]{6}\\+)?" + System.Text.RegularExpressions.Regex.Escape(fontNamePart),
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant)),
             "Expected raw PDF to contain one of these BaseFont names: " + string.Join(", ", fontNameParts));
     }
 }

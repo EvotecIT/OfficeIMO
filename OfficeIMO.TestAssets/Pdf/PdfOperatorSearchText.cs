@@ -7,7 +7,8 @@ namespace OfficeIMO.Tests;
 /// <summary>
 /// Builds assertion text from both PDF syntax and decoded page/form content streams.
 /// Rendering tests can therefore inspect operators without coupling production output
-/// to an uncompressed serialization choice.
+/// to an uncompressed serialization choice. Embedded-subset tags (<c>ABCDEF+</c>) are removed
+/// from font names so assertions can name the font itself.
 /// </summary>
 internal static class PdfOperatorSearchText {
     internal static string From(byte[] pdf) {
@@ -40,8 +41,11 @@ internal static class PdfOperatorSearchText {
             AppendDecodedStream(text, objects, stream, latin1);
         }
 
-        return text.ToString();
+        return SubsetTag.Replace(text.ToString(), "/$1 /");
     }
+
+    private static readonly System.Text.RegularExpressions.Regex SubsetTag = new(
+        @"/(BaseFont|FontName) /[A-Z]{6}\+", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     internal static string Decode(PdfStream stream, Dictionary<int, PdfIndirectObject> objects) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));

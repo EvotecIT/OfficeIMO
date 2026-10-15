@@ -480,11 +480,11 @@ public partial class PdfDocumentVisualQualityTests {
             }, 24, 24, 160, 60, style))
             .ToBytes();
 
-        string content = string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1));
+        string content = PdfTestContentText.JoinTextArrays(string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1)));
         int fill = content.IndexOf("0.42 0.18 0.66 rg", StringComparison.Ordinal);
         int dataBar = content.IndexOf("0.12 0.34 0.56 rg", StringComparison.Ordinal);
         int icon = content.IndexOf("0.75 0.25 0.1 rg", StringComparison.Ordinal);
-        int text = content.IndexOf("<4669786564496E64696361746F7254657874>", StringComparison.Ordinal);
+        int text = content.IndexOf("4669786564496E64696361746F7254657874", StringComparison.Ordinal);
 
         using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
             Assert.Contains("FixedIndicatorText", pdf.GetPage(1).Text, StringComparison.Ordinal);

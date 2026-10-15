@@ -54,9 +54,7 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-            PdfTextShowCommand command = !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
-                fontProgram.TryCreateAsciiTextShowCommand(glyphRun, out PdfTextShowCommand asciiCommand) ? asciiCommand
-                : fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
+            PdfTextShowCommand command = fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
             return options.UseFontUnitTextLayout ? command.WithFontUnitLayoutAdvance(
                 fontProgram.MeasureFontUnitAdvanceWidth1000(glyphRun, layoutHorizontalScaling)) : command;
         }
@@ -79,7 +77,7 @@ internal static partial class PdfWriter {
                 featureSettings,
                 textDirection));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
-            PdfTextShowCommand command = glyphRun.ToTextShowCommand();
+            PdfTextShowCommand command = cffFontProgram.ToTextShowCommand(glyphRun);
             return options.UseFontUnitTextLayout ? command.WithFontUnitLayoutAdvance(
                 cffFontProgram.MeasureFontUnitAdvanceWidth1000(glyphRun, layoutHorizontalScaling)) : command;
         }
@@ -90,8 +88,34 @@ internal static partial class PdfWriter {
             options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
         }
 
-        return new PdfTextShowCommand(EncodeWinAnsiHex(text), advanceWidth1000: EstimateSimpleTextWidth(text, font, 1000),
-            wordSpaceCount: text.Count(character => character == ' '));
+        int kerningTotal = 0;
+        int[]? kerning = options != null && IsKerningEnabled(featureSettings)
+            ? GetStandardFontKerning(text, font, out kerningTotal) : null;
+        return new PdfTextShowCommand(EncodeWinAnsiHex(text), advanceWidth1000: EstimateSimpleTextWidth(text, font, 1000) + (kerning == null ? 0 : kerningTotal),
+            wordSpaceCount: text.Count(character => character == ' '), simpleFontKerning: kerning);
+    }
+
+    // Kerning is a default font feature; only an explicit kern=0 disables it.
+    private static bool IsKerningEnabled(OfficeTextFeatureSettings? featureSettings) =>
+        featureSettings == null || !featureSettings.TryGetValue("kern", out int kerning) || kerning != 0;
+
+    // Standard-font AFM pair kerning, aligned to the single-byte WinAnsi codes of the text.
+    private static int[]? GetStandardFontKerning(string text, PdfStandardFont font, out int total) {
+        total = 0;
+        int[]? kerning = null;
+        for (int index = 0; index + 1 < text.Length; index++) {
+            int value = PdfStandardFontWidths.GetKerning1000(font, text[index], text[index + 1]);
+            if (value == 0) continue;
+            (kerning ??= new int[text.Length])[index] = value;
+            total += value;
+        }
+        return kerning;
+    }
+
+    private static double GetStandardFontKerningWidth(string? text, PdfStandardFont font, double fontSize) {
+        if (string.IsNullOrEmpty(text)) return 0D;
+        GetStandardFontKerning(text!, font, out int total);
+        return total * fontSize / 1000D;
     }
 
     private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfOptions options, int count = 1) {
@@ -143,9 +167,7 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-            PdfTextShowCommand command = !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
-                fontProgram.TryCreateAsciiTextShowCommand(glyphRun, out PdfTextShowCommand asciiCommand) ? asciiCommand
-                : fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
+            PdfTextShowCommand command = fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
             return options.UseFontUnitTextLayout ? command.WithFontUnitLayoutAdvance(
                 fontProgram.MeasureFontUnitAdvanceWidth1000(glyphRun, layoutHorizontalScaling)) : command;
         }
@@ -172,7 +194,7 @@ internal static partial class PdfWriter {
                 featureSettings,
                 textDirection));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
-            PdfTextShowCommand command = glyphRun.ToTextShowCommand();
+            PdfTextShowCommand command = cffFontProgram.ToTextShowCommand(glyphRun);
             return options.UseFontUnitTextLayout ? command.WithFontUnitLayoutAdvance(
                 cffFontProgram.MeasureFontUnitAdvanceWidth1000(glyphRun, layoutHorizontalScaling)) : command;
         }

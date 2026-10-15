@@ -254,7 +254,9 @@ public sealed class OfficeConversionBatchTests {
     public async Task CorrectedFailedSourceCanRetryWithoutInvalidatingItsResourceConfiguration(string extension) {
         using var scope = new BatchDirectory();
         string input = Path.Combine(scope.Input, "page" + extension);
-        File.WriteAllText(input, string.Join("\n", Enumerable.Repeat("<p>A long source that exceeds the bounded PDF output.</p>", 1000)));
+        // Distinct paragraphs keep the compressed PDF above the bound; repeated text compresses below it.
+        File.WriteAllText(input, string.Join("\n", Enumerable.Range(0, 3000).Select(index =>
+            "<p>A long source " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + " that exceeds the bounded PDF output.</p>")));
         var request = new OfficeConversionBatchRequest { InputPaths = [input], InputDirectory = scope.Input,
             OutputDirectory = scope.Output, CheckpointDirectory = scope.State, MaximumOutputBytes = 16 * 1024,
             ConversionOptions = new() { Markdown = new() { BaseDirectory = scope.Input,
