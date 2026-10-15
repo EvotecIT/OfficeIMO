@@ -28,5 +28,10 @@ public sealed class OfficeDrawingRasterRenderOptions {
     public long MaximumRasterPixels { get; set; } = OfficeImageExportOptions.DefaultMaximumRasterPixels;
     /// <summary>Cancellation observed between drawing elements and nested render stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
+    /// <summary>
+    /// Applies the raster conventions PDF viewers share: stroke adjustment, whole-pixel text baselines and
+    /// PDF image sampling (box-filtered downscaling, filtered upscaling below 400% and pixel-snapped edges).
+    /// </summary>
+    internal bool PdfRasterConventions { get; set; }
     internal OfficeRasterTransformedTextBudget? TransformedTextBudget { get; set; }
 }

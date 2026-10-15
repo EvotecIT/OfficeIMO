@@ -32,7 +32,7 @@ internal static partial class ResourceResolver {
             };
         }
         return (bytes, maximum) => {
-            bool supportedEncoding = font.Encoding is "StandardEncoding" or "MacRomanEncoding" ||
+            bool supportedEncoding = font.Encoding is "StandardEncoding" or "MacRomanEncoding" or "SymbolEncoding" or "ZapfDingbatsEncoding" ||
                 font.HasDeclaredEncoding && font.Encoding == "WinAnsiEncoding";
             if (!useWinAnsiFallback && !supportedEncoding) {
                 var text = new StringBuilder();
@@ -103,6 +103,10 @@ internal static partial class ResourceResolver {
     }
 
     private static System.Func<byte[], int, string> BuildBudgetedBaseEncodingDecoder(string encoding) {
+        if (PdfSymbolicFontEncoding.IsSymbolicEncoding(encoding)) {
+            return (bytes, maximumCharacters) => PdfSymbolicFontEncoding.Decode(encoding, bytes, maximumCharacters);
+        }
+
         if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {
             return static (bytes, maximumCharacters) => PdfStandardEncoding.Decode(bytes, maximumCharacters);
         }
@@ -115,6 +119,10 @@ internal static partial class ResourceResolver {
     }
 
     private static System.Func<byte[], string> BuildBaseEncodingDecoder(string encoding, int maxDecodedTextCharacters) {
+        if (PdfSymbolicFontEncoding.IsSymbolicEncoding(encoding)) {
+            return bytes => PdfSymbolicFontEncoding.Decode(encoding, bytes, maxDecodedTextCharacters);
+        }
+
         if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {
             return bytes => PdfStandardEncoding.Decode(bytes, maxDecodedTextCharacters);
         }

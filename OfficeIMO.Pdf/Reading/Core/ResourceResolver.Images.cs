@@ -58,8 +58,6 @@ internal static partial class ResourceResolver {
                 CanAllocateProjectedImageBuffer(dictionary, channels: 4, maxDecodedStreamBytes);
         }
 
-        if (PdfImageMaskSemantics.HasUnsupportedSoftMaskMatte(dictionary, objects)) return false;
-
         PdfObject? authoredColorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
             ? colorSpaceObject
             : null;
@@ -113,7 +111,8 @@ internal static partial class ResourceResolver {
                 : CanAllocateDecodedImageBuffer(dictionary, components: 1, bitsPerComponent, maxDecodedStreamBytes);
         }
         string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
-        if (bitsPerComponent != 8 && !IsPackedGray(colorSpaceName, bitsPerComponent)) return false;
+        // 1, 2, 4 and 16-bit samples of every non-indexed colour space are normalized to 8 bits before projection.
+        if (bitsPerComponent is not (1 or 2 or 4 or 8 or 16) || isDctFilterChain && bitsPerComponent != 8) return false;
         if (!PdfImageColorSpaceNormalization.TryResolve(
                 effectiveColorSpace,
                 colorSpaceName,
@@ -566,10 +565,8 @@ internal static partial class ResourceResolver {
                     rgbPalette[target + 2] = lookupBytes[source];
                     break;
                 case IndexedBaseColorSpace.DeviceCmyk:
-                    byte black = lookupBytes[source + 3];
-                    rgbPalette[target] = ConvertCmykComponent(lookupBytes[source], black);
-                    rgbPalette[target + 1] = ConvertCmykComponent(lookupBytes[source + 1], black);
-                    rgbPalette[target + 2] = ConvertCmykComponent(lookupBytes[source + 2], black);
+                    OfficeColorSpaceConverter.FromCmykBytes(lookupBytes[source], lookupBytes[source + 1], lookupBytes[source + 2],
+                        lookupBytes[source + 3], out rgbPalette[target], out rgbPalette[target + 1], out rgbPalette[target + 2]);
                     break;
                 default:
                     return false;

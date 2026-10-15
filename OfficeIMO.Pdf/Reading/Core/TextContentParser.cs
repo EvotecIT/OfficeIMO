@@ -1299,6 +1299,9 @@ internal static partial class TextContentParser {
                     span.MarkUnresolvedPaint();
                 }
                 if (usesVisibleStroke && ApplyTextOpacity(strokeColor, true).A > 3) {
+                    // Text strokes use the user-space line width of the CTM, not the text matrix.
+                    span.SetOutlineStroke(ApplyTextOpacity(strokeColor, true),
+                        Math.Abs(strokeWidth) * Math.Sqrt(Math.Abs((ctm.A * ctm.D) - (ctm.B * ctm.C))));
                     double scaleEnvelope = Math.Max(Math.Abs(ctm.A) + Math.Abs(ctm.C), Math.Abs(ctm.B) + Math.Abs(ctm.D));
                     double joinEnvelope = strokeLineJoin == 0 ? Math.Max(1D, miterLimit) : 1D;
                     span.SetVisibleStrokePadding(Math.Max(0.5D, Math.Abs(strokeWidth)) * scaleEnvelope * joinEnvelope / 2D);

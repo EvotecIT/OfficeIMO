@@ -12,9 +12,10 @@ internal sealed class PdfFunctionShading {
     private readonly Func<int, bool> _consumeWork;
     private readonly CancellationToken _cancellationToken;
     private readonly OfficeTransform _inverse;
+    private readonly OfficeTransform _forward;
     private readonly double[] _domain;
     private readonly double[]? _bounds;
-    private readonly int _evaluationCost;
+    private int _evaluationCost;
 
     internal PdfFunctionShading(PdfColorFunction[] functions, PdfPageColorSpace colorSpace,
         double[] domain, OfficeTransform matrix, double[]? bounds,
@@ -24,6 +25,7 @@ internal sealed class PdfFunctionShading {
         RasterScale = rasterScale; ChargePixels = chargePixels;
         _functions = (PdfColorFunction[])functions.Clone();
         _colorSpace = colorSpace; _domain = (double[])domain.Clone();
+        _forward = matrix;
         _inverse = matrix.Invert(); _bounds = bounds == null ? null : (double[])bounds.Clone();
         _intent = intent; _outputIntent = outputIntent; _consumeWork = consumeWork;
         _cancellationToken = cancellationToken;
@@ -32,7 +34,40 @@ internal sealed class PdfFunctionShading {
         _evaluationCost = (int)Math.Min(int.MaxValue, cost);
     }
 
+    /// <summary>A parametric or mesh shading field in shading space, optionally clipped by BBox and backed by Background.</summary>
+    internal PdfFunctionShading(IPdfShadingFieldSampler sampler, PdfPageColorSpace colorSpace, double[]? bounds, double[]? background,
+        OfficeIccRenderingIntent intent, PdfOutputIntentColorTransform? outputIntent,
+        Func<int, bool> consumeWork, CancellationToken cancellationToken, double rasterScale = 1D, Action<long>? chargePixels = null,
+        PdfDictionary? sourceDictionary = null)
+        : this(Array.Empty<PdfColorFunction>(), colorSpace, new[] { double.NegativeInfinity, double.PositiveInfinity, double.NegativeInfinity, double.PositiveInfinity },
+            OfficeTransform.Identity, bounds, intent, outputIntent, consumeWork, cancellationToken, rasterScale, chargePixels, sourceDictionary) {
+        _sampler = sampler;
+        _background = background == null ? null : (double[])background.Clone();
+        _evaluationCost = Math.Max(1, sampler.EvaluationCost);
+    }
+
+    private readonly IPdfShadingFieldSampler? _sampler;
+    private readonly double[]? _background;
+
     internal PdfDictionary? SourceDictionary { get; }
+
+    /// <summary>Shading-space bounds of the painted field (BBox, mesh extent or the function domain), or null when unbounded.</summary>
+    internal double[]? PaintBounds {
+        get {
+            double[]? bounds = _bounds;
+            double[]? sampled = _sampler?.PaintBounds;
+            if (_sampler == null && !double.IsInfinity(_domain[0])) {
+                var corners = new[] {
+                    _forward.TransformPoint(new OfficePoint(_domain[0], _domain[2])), _forward.TransformPoint(new OfficePoint(_domain[1], _domain[2])),
+                    _forward.TransformPoint(new OfficePoint(_domain[0], _domain[3])), _forward.TransformPoint(new OfficePoint(_domain[1], _domain[3]))
+                };
+                sampled = new[] { corners.Min(static p => p.X), corners.Min(static p => p.Y), corners.Max(static p => p.X), corners.Max(static p => p.Y) };
+            }
+            if (bounds == null) return sampled;
+            if (sampled == null) return bounds;
+            return new[] { Math.Max(bounds[0], sampled[0]), Math.Max(bounds[1], sampled[1]), Math.Min(bounds[2], sampled[2]), Math.Min(bounds[3], sampled[3]) };
+        }
+    }
 
     internal CancellationToken CancellationToken => _cancellationToken;
     internal double RasterScale { get; }
@@ -47,6 +82,14 @@ internal sealed class PdfFunctionShading {
         if (double.IsNaN(x) || double.IsInfinity(x) || double.IsNaN(y) || double.IsInfinity(y) ||
             input.Length < 2 || components.Length < ComponentCount) return false;
         if (_bounds != null && (x < _bounds[0] || y < _bounds[1] || x > _bounds[2] || y > _bounds[3])) return true;
+        if (_sampler != null) {
+            if (!_consumeWork(_evaluationCost)) return false;
+            if (!_sampler.TrySampleComponents(x, y, input, components)) {
+                if (_background == null) return true;
+                Array.Copy(_background, components, Math.Min(_background.Length, components.Length));
+            }
+            return TryConvert(components, out color);
+        }
         var point = _inverse.TransformPoint(new OfficePoint(x, y));
         if (point.X < _domain[0] || point.X > _domain[1] || point.Y < _domain[2] || point.Y > _domain[3]) return true;
         input[0] = point.X; input[1] = point.Y;
@@ -54,6 +97,10 @@ internal sealed class PdfFunctionShading {
         for (int index = 0; index < _functions.Length; index++) {
             if (!_functions[index].TryEvaluate(input, components, _functions.Length == 1 ? 0 : index)) return false;
         }
+        return TryConvert(components, out color);
+    }
+
+    private bool TryConvert(double[] components, out OfficeColor color) {
         if (_outputIntent != null && _outputIntent.TryApplyDirect(_colorSpace, components, _intent, out color)) return true;
         if (!_colorSpace.TryConvertColor(components, _intent, out color)) return false;
         if (_outputIntent != null) color = _outputIntent.Apply(color, _intent);

@@ -13,7 +13,7 @@ namespace OfficeIMO.Pdf;
 /// Unicode subtable cannot resolve the glyph; a program with one can resolve a different glyph.
 /// This helper maps each code's decoded text to the glyph that code paints and rebuilds the cmap.
 /// </remarks>
-internal static class PdfTrueTypeUnicodeCmap {
+internal static partial class PdfTrueTypeUnicodeCmap {
     // Private provenance for inked glyph zero aliases. Ordinary font cmaps can map a missing
     // character to glyph zero too; only PDF-selected aliases may paint that outline.
     private const string PaintedNotdefTable = "pG00";
@@ -100,8 +100,9 @@ internal static class PdfTrueTypeUnicodeCmap {
             bodies.Add((PaintedNotdefTable, provenance.ToArray()));
         }
         bodies.Sort(static (left, right) => string.CompareOrdinal(left.Tag, right.Tag));
-        byte[] rebuilt = Assemble(bodies);
-        return OfficeTrueTypeFont.TryLoad(rebuilt) == null ? null : rebuilt;
+        bool cff = ReadUInt32(program, 0) == OpenTypeCffFlavor;
+        byte[] rebuilt = Assemble(bodies, cff ? OpenTypeCffFlavor : 0x00010000U);
+        return IsLoadable(rebuilt, cff) ? rebuilt : null;
     }
 
     private static SortedDictionary<int, int> CreateSimpleMappings(PdfFontResource font, byte[] program, int? symbolic, int? macintosh, int? unicode,
@@ -217,7 +218,7 @@ internal static class PdfTrueTypeUnicodeCmap {
         tables = new List<(string Tag, int Offset, int Length)>();
         if (data.Length < 12) return false;
         uint version = ReadUInt32(data, 0);
-        if (version != 0x00010000 && version != 0x74727565) return false;
+        if (version != 0x00010000 && version != 0x74727565 && version != OpenTypeCffFlavor) return false;
         int count = ReadUInt16(data, 4);
         // Match the core font reader's table ceiling. Every table is copied when the drawing
         // cmap is rebuilt, so overlapping or repeated records must not amplify a small input.
@@ -453,7 +454,7 @@ internal static class PdfTrueTypeUnicodeCmap {
         return output.ToArray();
     }
 
-    private static byte[] Assemble(List<(string Tag, byte[] Body)> tables) {
+    private static byte[] Assemble(List<(string Tag, byte[] Body)> tables, uint flavor = 0x00010000U) {
         int count = tables.Count;
         int power = 1;
         int entrySelector = 0;
@@ -462,7 +463,7 @@ internal static class PdfTrueTypeUnicodeCmap {
             entrySelector++;
         }
         using var output = new MemoryStream();
-        WriteUInt32(output, 0x00010000);
+        WriteUInt32(output, flavor);
         WriteUInt16(output, (ushort)count);
         WriteUInt16(output, (ushort)(power * 16));
         WriteUInt16(output, (ushort)entrySelector);

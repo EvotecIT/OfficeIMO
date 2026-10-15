@@ -222,6 +222,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        ApplyStrokeStyle(shape, primitive);
         var source = new OfficeDrawing(sourceWidth, sourceHeight);
         source.AddShape(shape, 0D, 0D);
         rawMask.AddDrawingForClippedRendering(source, primitive.X - fitted.X, primitive.Y - fitted.Y, null);

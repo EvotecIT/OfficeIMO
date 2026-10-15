@@ -209,7 +209,7 @@ public sealed partial class PdfReadPage {
 
     private static string? GetOperatorCapabilityId(string op) {
         switch (op) {
-            case "M": return PdfRenderCapabilities.MiterLimitId;
+            case "M": return null;
             case "ri": return null;
             case "i": return PdfRenderCapabilities.FlatnessId;
             case "MP":
@@ -1194,7 +1194,7 @@ public sealed partial class PdfReadPage {
             PdfDictionary? pattern = ResolveDictionary(patternValueObject);
             if (TryReadInteger(pattern?.Items.TryGetValue("PatternType", out PdfObject? typeValue) == true ? typeValue : null) != 2) continue;
             if (pattern?.Items.TryGetValue("Shading", out PdfObject? shading) == true) {
-                CollectOneShadingCapabilityDiagnostic(shading, name, diagnostics, seen, pageContentBudget, allowFunctionShading: false);
+                CollectOneShadingCapabilityDiagnostic(shading, name, diagnostics, seen, pageContentBudget);
             } else {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedShadingId, name);
             }
@@ -1207,7 +1207,7 @@ public sealed partial class PdfReadPage {
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         PageContentBudget pageContentBudget, bool allowFunctionShading = true) {
-        PdfDictionary? shading = ResolveDictionary(value);
+        PdfDictionary? shading = ResolveDictionary(value) ?? (ResolveObject(value) as PdfStream)?.Dictionary;
         if (shading == null || !shading.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
             !TryReadColorSpaceResource(
                 colorSpaceObject,
@@ -1398,6 +1398,10 @@ public sealed partial class PdfReadPage {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.XObjectId, entry.Key + ":" + (subtype ?? "unknown"));
                 continue;
             }
+            if (ResolveObject(stream.Dictionary.Items.TryGetValue("Group", out PdfObject? groupObject) ? groupObject : null) is PdfDictionary group &&
+                ResolveObject(group.Items.TryGetValue("K", out PdfObject? knockoutObject) ? knockoutObject : null) is PdfBoolean { Value: true }) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.KnockoutGroupId, entry.Key);
+            }
 
             if (!statesByName.TryGetValue(invokedName, out List<PdfPageXObjectInvocation>? states)) {
                 states = new List<PdfPageXObjectInvocation>();
@@ -1479,6 +1483,27 @@ public sealed partial class PdfReadPage {
         }
     }
 
+    // Filters without a managed decoder, and JBIG2 features the decoder rejects, omit the image when it is painted.
+    private void CollectImageEncodingCapabilityDiagnostic(
+        PdfDictionary image,
+        List<PdfRenderCapabilityDiagnostic> diagnostics,
+        HashSet<string> seen,
+        string imageName,
+        PdfStream? imageStream) {
+        List<string> unsupportedFilters = Filters.StreamDecoder.GetUnsupportedFilters(image, _objects);
+        // DCT and JPEG 2000 are image codecs rather than stream filters, and Crypt is resolved by decryption.
+        unsupportedFilters.RemoveAll(static name => name is "DCTDecode" or "DCT" or "JPXDecode" or "Crypt");
+        if (unsupportedFilters.Count != 0) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedImageId, imageName + ":" + unsupportedFilters[0]);
+            return;
+        }
+        string? jbig2Feature = imageStream == null ? null :
+            Filters.StreamDecoder.FindUnsupportedJbig2Feature(imageStream, _objects, _limits.MaxDecodedStreamBytes);
+        if (jbig2Feature != null) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedImageId, imageName + ":JBIG2-" + jbig2Feature);
+        }
+    }
+
     private void CollectImageColorSpaceCapabilityDiagnostic(
         PdfDictionary image,
         PdfDictionary? resources,
@@ -1487,6 +1512,7 @@ public sealed partial class PdfReadPage {
         string imageName,
         PageContentBudget pageContentBudget,
         PdfStream? imageStream = null) {
+        CollectImageEncodingCapabilityDiagnostic(image, diagnostics, seen, imageName, imageStream);
         if (!image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
             return;
         }

@@ -14,6 +14,7 @@ internal readonly struct PdfPageShadingPatternResource {
 
     public Matrix2D Matrix { get; }
 
+    /// <summary>True when the shading projects to a drawing gradient; colour-field shadings paint through function paint.</summary>
     public bool IsSupported { get; }
 
     public bool HasExactMatrix { get; }

@@ -183,10 +183,8 @@ internal sealed class PdfImageColorSpaceNormalization {
             byte magenta = ToByte(ClipComponentToRange(components[1], 1));
             byte yellow = ToByte(ClipComponentToRange(components[2], 2));
             byte black = ToByte(ClipComponentToRange(components[3], 3));
-            color = OfficeColor.FromRgb(
-                ConvertDeviceCmykComponentToRgb(cyan, black),
-                ConvertDeviceCmykComponentToRgb(magenta, black),
-                ConvertDeviceCmykComponentToRgb(yellow, black));
+            OfficeColorSpaceConverter.FromCmykBytes(cyan, magenta, yellow, black, out byte red, out byte green, out byte blue);
+            color = OfficeColor.FromRgb(red, green, blue);
             return true;
         }
         return _colorSpace.TryConvertColor(components, out color);
@@ -783,8 +781,4 @@ internal sealed class PdfImageColorSpaceNormalization {
     private static byte ToByte(double value) =>
         (byte)Math.Round((value < 0D ? 0D : value > 1D ? 1D : value) * 255D);
 
-    private static byte ConvertDeviceCmykComponentToRgb(byte colorant, byte black) {
-        int ink = colorant + black;
-        return (byte)(255 - (ink > 255 ? 255 : ink));
-    }
 }

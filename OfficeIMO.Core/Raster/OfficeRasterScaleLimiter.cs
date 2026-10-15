@@ -67,13 +67,23 @@ public static class OfficeRasterScaleLimiter {
         pixelWidth = 0;
         pixelHeight = 0;
         if (scale < 0D || double.IsNaN(scale) || double.IsInfinity(scale)) return false;
-        double scaledWidth = Math.Max(1D, Math.Ceiling(width * scale));
-        double scaledHeight = Math.Max(1D, Math.Ceiling(height * scale));
+        double scaledWidth = Math.Max(1D, CeilingPixels(width * scale));
+        double scaledHeight = Math.Max(1D, CeilingPixels(height * scale));
         if (double.IsNaN(scaledWidth) || double.IsInfinity(scaledWidth) || scaledWidth > int.MaxValue ||
             double.IsNaN(scaledHeight) || double.IsInfinity(scaledHeight) || scaledHeight > int.MaxValue) return false;
         pixelWidth = (int)scaledWidth;
         pixelHeight = (int)scaledHeight;
         return pixelWidth <= maximumDimension && pixelHeight <= maximumDimension && pixelWidth <= maximumPixels / pixelHeight;
+    }
+
+    /// <summary>
+    /// Rounds a scaled extent up to whole pixels, ignoring floating-point noise. A 792pt page at 150 DPI is
+    /// 1650.0000000000002 pixels in binary arithmetic and must allocate 1650 rows, not 1651.
+    /// </summary>
+    internal static double CeilingPixels(double value) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) return value;
+        double nearest = Math.Round(value);
+        return Math.Abs(value - nearest) <= 1e-9D * Math.Max(1D, Math.Abs(value)) ? nearest : Math.Ceiling(value);
     }
 
     private static void ValidatePositive(double value, string name) {

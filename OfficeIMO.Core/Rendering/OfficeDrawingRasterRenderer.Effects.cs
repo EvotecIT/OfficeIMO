@@ -71,6 +71,7 @@ public static partial class OfficeDrawingRasterRenderer {
             DiagnosticSink = canvas.DiagnosticSink,
             DiagnosticSource = canvas.DiagnosticSource,
             TransformedTextBudget = canvas.TransformedTextBudget,
+            PdfRasterConventions = canvas.PdfRasterConventions,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         }, scaleX, scaleY, allocationPlan, canvas.Fonts);
@@ -358,6 +359,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }, scaleX, scaleY, maskPlan, fonts);
         OfficeRasterImage result = new OfficeRasterImage(source.Width, source.Height);
         double backdrop = GetMaskFactor(softMask.BackdropColor, softMask.Mode, softMask.LuminosityStandard);
+        byte[]? transfer = softMask.TransferTable;
         for (int y = 0; y < source.Height; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < source.Width; x++) {
@@ -365,6 +367,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 OfficeColor maskPixel = mask.GetPixel(x, y);
                 double maskAlpha = maskPixel.A / 255D;
                 double coverage = GetMaskFactor(maskPixel, softMask.Mode, softMask.LuminosityStandard) + ((1D - maskAlpha) * backdrop);
+                if (transfer != null) coverage = transfer[(int)System.Math.Round(System.Math.Max(0D, System.Math.Min(1D, coverage)) * 255D)] / 255D;
                 result.SetPixel(x, y, OfficeColor.FromRgba(sourcePixel.R, sourcePixel.G, sourcePixel.B, (byte)System.Math.Round(sourcePixel.A * coverage)));
             }
         }

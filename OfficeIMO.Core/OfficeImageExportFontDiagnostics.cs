@@ -76,11 +76,13 @@ public static class OfficeImageExportFontDiagnostics {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         int remainingLookups = MaximumDiagnosticLookups;
         int remainingElements = MaximumDiagnosticElements;
-        AppendDrawing(drawing, diagnostics, seen, source, ref remainingLookups, ref remainingElements, depth: 0);
+        AppendDrawing(drawing, drawing.Fonts, diagnostics, seen, source, ref remainingLookups, ref remainingElements, depth: 0);
     }
 
+    // Nested drawings render on the root canvas and resolve text through the root font collection.
     private static void AppendDrawing(
         OfficeDrawing drawing,
+        OfficeFontFaceCollection fonts,
         ICollection<OfficeImageExportDiagnostic> diagnostics,
         HashSet<string> seen,
         string? source,
@@ -94,7 +96,7 @@ public static class OfficeImageExportFontDiagnostics {
                 case OfficeDrawingText text:
                     remainingLookups--;
                     Append(
-                        drawing.Fonts.CreateSubstitutionDiagnostic(
+                        fonts.CreateSubstitutionDiagnostic(
                             text.RasterText,
                             text.Font.FamilyName,
                             text.Font.Style,
@@ -109,7 +111,7 @@ public static class OfficeImageExportFontDiagnostics {
                             (run.Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) |
                             (run.Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
                         Append(
-                            drawing.Fonts.CreateSubstitutionDiagnostic(
+                            fonts.CreateSubstitutionDiagnostic(
                                 run.Text,
                                 run.FontFamily,
                                 style,
@@ -119,19 +121,19 @@ public static class OfficeImageExportFontDiagnostics {
                     }
                     break;
                 case OfficeDrawingGroup group:
-                    AppendDrawing(group.InnerDrawing, diagnostics, seen, source,
+                    AppendDrawing(group.InnerDrawing, fonts, diagnostics, seen, source,
                         ref remainingLookups, ref remainingElements, depth + 1);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
-                    AppendDrawing(effectGroup.InnerDrawing, diagnostics, seen, source,
+                    AppendDrawing(effectGroup.InnerDrawing, fonts, diagnostics, seen, source,
                         ref remainingLookups, ref remainingElements, depth + 1);
                     if (effectGroup.SoftMask != null) {
-                        AppendDrawing(effectGroup.SoftMask.InnerDrawing, diagnostics, seen, source,
+                        AppendDrawing(effectGroup.SoftMask.InnerDrawing, fonts, diagnostics, seen, source,
                             ref remainingLookups, ref remainingElements, depth + 1);
                     }
                     break;
                 case OfficeDrawingTilingPattern pattern:
-                    AppendDrawing(pattern.InnerTile, diagnostics, seen, source,
+                    AppendDrawing(pattern.InnerTile, fonts, diagnostics, seen, source,
                         ref remainingLookups, ref remainingElements, depth + 1);
                     break;
             }

@@ -64,6 +64,17 @@ public sealed partial class OfficeDrawing {
     }
 
     /// <summary>Keeps editable logical text while the raster path paints the PDF glyph names.</summary>
+    internal void SetLastTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed) {
+        if (Elements.Count == 0) return;
+        OfficeDrawingElement last = Elements[Elements.Count - 1];
+        if (last is OfficeDrawingGroup group && group.InnerDrawing.Elements.Count > 0)
+            last = group.InnerDrawing.Elements[group.InnerDrawing.Elements.Count - 1];
+        if (last is not OfficeDrawingText text) return;
+        text.OutlineStrokeColor = color;
+        text.OutlineStrokeWidth = width;
+        text.FillSuppressed = fillSuppressed;
+    }
+
     internal void SetLastTextPaintedProjection(string logicalText, string paintedText) {
         if (Elements.Count == 0) return;
         OfficeDrawingElement last = Elements[Elements.Count - 1];

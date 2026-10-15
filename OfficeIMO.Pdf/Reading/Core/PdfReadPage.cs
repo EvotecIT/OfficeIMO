@@ -23,6 +23,7 @@ public sealed partial class PdfReadPage {
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
     private readonly PdfPageOptionalContentVisibility.DocumentState _optionalContentVisibilityState;
     private readonly PdfReadCache<bool> _hasOutputIntentCompositionInteraction = new();
+    private readonly PdfReadCache<PdfDictionary?> _acroForm = new();
 
     internal PdfDictionary PageDictionary => _pageDict;
 

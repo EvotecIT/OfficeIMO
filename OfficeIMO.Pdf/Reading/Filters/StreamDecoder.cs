@@ -12,7 +12,8 @@ internal static partial class StreamDecoder {
         Ascii85,
         RunLength,
         Lzw,
-        Fax
+        Fax,
+        Jbig2
     }
 
     public static byte[] Decode(
@@ -77,6 +78,9 @@ internal static partial class StreamDecoder {
                         break;
                     case DecodeFilterKind.Fax:
                         current = DecodeFax(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
+                        break;
+                    case DecodeFilterKind.Jbig2:
+                        current = DecodeJbig2(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
                     case DecodeFilterKind.Lzw:
                         int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes, cancellationToken);
@@ -366,6 +370,10 @@ internal static partial class StreamDecoder {
                         current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
                         current = DecodeFax(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
+                    case DecodeFilterKind.Jbig2:
+                        current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
+                        current = DecodeJbig2(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
+                        break;
                     case DecodeFilterKind.Lzw:
                         current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
                         int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes, cancellationToken);
@@ -524,6 +532,8 @@ internal static partial class StreamDecoder {
             case "CCITTFaxDecode":
             case "CCF":
                 return DecodeFilterKind.Fax;
+            case "JBIG2Decode":
+                return DecodeFilterKind.Jbig2;
             default:
                 return DecodeFilterKind.Unsupported;
         }
@@ -731,6 +741,12 @@ internal static partial class StreamDecoder {
                 DecodeFilterKind filterKind = GetFilterKind(filterNames[filterIndex]);
                 if (filterKind == DecodeFilterKind.Fax) {
                     ValidateFaxParameters(decodeParms, objects, cancellationToken);
+                    continue;
+                }
+                if (filterKind == DecodeFilterKind.Jbig2) {
+                    // JBIG2Globals is the filter's only parameter; it must name a stream when present.
+                    if (decodeParms.Items.TryGetValue("JBIG2Globals", out PdfObject? globals) &&
+                        ResolveObject(globals, objects, cancellationToken) is not (PdfStream or PdfNull)) return false;
                     continue;
                 }
                 if (filterKind != DecodeFilterKind.Flate && filterKind != DecodeFilterKind.Lzw) {

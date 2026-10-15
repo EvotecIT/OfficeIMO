@@ -18,6 +18,10 @@ public sealed partial class OfficeRasterCanvas {
         child.ShareTransformedTextBudget(_transformedTextBudget);
         child._clipRegion = _clipRegion;
         child.PreservePaintedGlyphOrder = PreservePaintedGlyphOrder;
+        child.StrokeAdjustment = StrokeAdjustment;
+        child.SnapTextBaselines = SnapTextBaselines;
+        child.PdfImageSampling = PdfImageSampling;
+        child.AntialiasedClipping = AntialiasedClipping;
         return child;
     }
 }

@@ -662,6 +662,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        ApplyStrokeStyle(shape, primitive);
         shape.FillOpacity = primitive.FillOpacity;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;
@@ -673,6 +674,12 @@ public sealed partial class PdfReadPage {
         if (HasPositiveArea(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
             drawing.AddShape(shape, primitive.X, primitive.Y);
         }
+    }
+
+    private static void ApplyStrokeStyle(OfficeShape shape, PdfPageVisualPrimitive primitive) {
+        double miterLimit = primitive.StrokeMiterLimit;
+        if (miterLimit >= 1D && !double.IsInfinity(miterLimit)) shape.StrokeMiterLimit = miterLimit;
+        shape.StrokeHairline = primitive.IsHairlineStroke;
     }
 
     private static void AddLine(OfficeDrawing drawing, PdfPageVisualPrimitive primitive, bool allowRedundantPageClipRemoval = true) {
@@ -695,6 +702,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        ApplyStrokeStyle(shape, primitive);
         shape.StrokeOpacity = primitive.StrokeOpacity;
         PdfPageClipPath? clipPath = GetEffectivePageClip(primitive.ClipPath, left - strokeHalf, top - strokeHalf, right - left + (strokeHalf * 2D), bottom - top + (strokeHalf * 2D), drawing.Width, drawing.Height);
         if (TryAddClippedShape(drawing, shape, left, top, clipPath, allowRedundantPageClipRemoval)) {
@@ -723,6 +731,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        ApplyStrokeStyle(shape, primitive);
         shape.FillOpacity = primitive.FillOpacity;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;
@@ -1647,9 +1656,19 @@ public sealed partial class PdfReadPage {
         OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PageContentBudget? pageContentBudget = null) {
         shading = default;
-        PdfDictionary? dictionary = ResolveDictionary(value);
-        if (dictionary != null && TryReadInteger(dictionary.Items.TryGetValue("ShadingType", out var type) ? type : null) == 1)
+        // Mesh shadings (types 4 to 7) are streams; their dictionary carries the shading entries.
+        PdfDictionary? dictionary = ResolveDictionary(value) ?? (ResolveObject(value) as PdfStream)?.Dictionary;
+        int? declaredType = dictionary == null ? null : TryReadInteger(dictionary.Items.TryGetValue("ShadingType", out var type) ? type : null);
+        if (dictionary != null && declaredType == 1)
             return TryReadFunctionShading(dictionary, renderingIntent, pageContentBudget ?? new PageContentBudget(this), out shading);
+        if (dictionary != null && declaredType is >= 4 and <= 7) {
+            pageContentBudget ??= new PageContentBudget(this);
+            return dictionary.Items.TryGetValue("ColorSpace", out PdfObject? meshColorSpaceObject) &&
+                TryReadColorSpaceResource(meshColorSpaceObject, pageContentBudget.TryConsumeColorFunctionEvaluation,
+                    pageContentBudget.ColorFunctionResolutionContext, out PdfPageColorSpace meshColorSpace) &&
+                TryReadShadingField(dictionary, ResolveObject(value) as PdfStream, declaredType.Value, meshColorSpace, null,
+                    MeshParameterDomain, false, false, renderingIntent, pageContentBudget, out shading);
+        }
         if (dictionary == null ||
             !dictionary.Items.TryGetValue("Coords", out PdfObject? coordsObject)) {
             return false;
@@ -1685,14 +1704,18 @@ public sealed partial class PdfReadPage {
              shadingDomain[0] == shadingDomain[1])) return false;
 
         bool extendsBothEnds = false;
+        bool extendsStart = false, extendsEnd = false;
         if (dictionary.Items.TryGetValue("Extend", out PdfObject? extendObject) &&
             ResolveObject(extendObject) is not PdfNull) {
             PdfArray? extend = ResolveArray(extendObject);
             if (extend == null || extend.Items.Count != 2 ||
                 ResolveObject(extend.Items[0]) is not PdfBoolean extendStart ||
                 ResolveObject(extend.Items[1]) is not PdfBoolean extendEnd) return false;
+            extendsStart = extendStart.Value;
+            extendsEnd = extendEnd.Value;
             extendsBothEnds = extendStart.Value && extendEnd.Value;
         }
+
 
         PdfObject? functionObject = dictionary.Items.TryGetValue("Function", out PdfObject? authoredFunction) ? authoredFunction : null;
         pageContentBudget ??= new PageContentBudget(this);
@@ -1700,6 +1723,18 @@ public sealed partial class PdfReadPage {
             return false;
         }
         exactColorInterpolation &= HasExactType3FunctionComponentRange(functionObject, colorSpace.ComponentCount);
+
+        // Drawing gradients pad both ends over the whole plane. Unextended ends, a BBox, a Background,
+        // or radial circles that do not nest need the exact PDF colour field.
+        bool hasBackground = dictionary.Items.TryGetValue("Background", out PdfObject? backgroundObject) &&
+            ResolveObject(backgroundObject) is not PdfNull;
+        bool nestedCircles = shadingType != 3 || coords.Count >= 6 &&
+            Math.Sqrt((coords[3] - coords[0]) * (coords[3] - coords[0]) + (coords[4] - coords[1]) * (coords[4] - coords[1])) +
+            Math.Min(coords[2], coords[5]) <= Math.Max(coords[2], coords[5]) + 1e-9D;
+        if ((shadingType is 2 or 3) && (!extendsBothEnds || hasShadingBoundingBox || hasBackground || !nestedCircles)) {
+            if (TryReadShadingField(dictionary, ResolveObject(value) as PdfStream, shadingType.Value, colorSpace, coords,
+                    shadingDomain, extendsStart, extendsEnd, renderingIntent, pageContentBudget, out shading)) return true;
+        }
 
         if (shadingType == 2) {
             bool exactAxialFamily = hasExactCoordinates;
@@ -2130,7 +2165,7 @@ public sealed partial class PdfReadPage {
             bool hasUnsupportedType = state.Items.TryGetValue("Type", out PdfObject? typeObject) &&
                 ResolveEffectObject(typeObject) is not PdfNull and not PdfName { Name: "ExtGState" };
             bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (
-                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask" or "RI" or "Font")) ||
+                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "ML" or "BM" or "SMask" or "RI" or "Font")) ||
                 hasUnsupportedType ||
                 hasInvalidRenderingIntent ||
                 hasInvalidFont ||
@@ -2139,6 +2174,7 @@ public sealed partial class PdfReadPage {
                 HasInvalidStrictNumber(state, "LW", static value => value >= 0D) ||
                 HasInvalidStrictInteger(state, "LC", 0, 2) ||
                 HasInvalidStrictInteger(state, "LJ", 0, 2) ||
+                HasInvalidStrictNumber(state, "ML", static value => value >= 1D) ||
                 !HasExactlyRepresentableStrokeDash(state);
             bool? softMaskEnabled = ReadSoftMaskEnabled(state);
             PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
@@ -2163,7 +2199,8 @@ public sealed partial class PdfReadPage {
                 strokeDashPattern: strokeDashPattern,
                 fontResource: fontResource,
                 fontSize: fontSize,
-                imagePaintEffectOverrides: imagePaintEffectOverrides);
+                imagePaintEffectOverrides: imagePaintEffectOverrides,
+                strokeMiterLimit: ReadStrokeMiterLimit(state));
         }
 
         return result;
@@ -2701,6 +2738,12 @@ public sealed partial class PdfReadPage {
         }
     }
 
+    private double? ReadStrokeMiterLimit(PdfDictionary dictionary) =>
+        dictionary.Items.TryGetValue("ML", out PdfObject? value) &&
+        ResolveEffectObject(value) is PdfNumber number && IsFinite(number.Value) && number.Value >= 1D
+            ? number.Value
+            : null;
+
     private OfficeStrokeLineJoin? ReadStrokeLineJoin(PdfDictionary dictionary) {
         int? lineJoin = TryReadInteger(dictionary.Items.TryGetValue("LJ", out PdfObject? value) ? value : null);
         switch (lineJoin) {
@@ -2899,14 +2942,36 @@ public sealed partial class PdfReadPage {
         PdfDictionary annotation,
         out PdfStream stream,
         out bool synthesized) {
+        bool isWidget = string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "Widget", StringComparison.Ordinal);
+        PdfDictionary? acroForm = isWidget ? GetAcroForm() : null;
+        // NeedAppearances asks viewers to regenerate variable-text widget appearances from the field values.
+        if (acroForm != null && ResolveObject(acroForm.Items.TryGetValue("NeedAppearances", out PdfObject? needAppearances) ? needAppearances : null) is PdfBoolean { Value: true } &&
+            PdfFormFiller.IsVariableTextWidget(_objects, annotation) &&
+            PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream)) {
+            synthesized = true;
+            return true;
+        }
+
         if (TryGetNormalAppearanceStream(annotation, out stream)) {
             synthesized = false;
             return true;
         }
 
+        // A widget whose appearance dictionary lacks the current state intentionally paints nothing.
+        if (isWidget) {
+            synthesized = !annotation.Items.ContainsKey("AP") &&
+                PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream);
+            return synthesized;
+        }
+
         synthesized = PdfAnnotationFlattener.TryCreateSyntheticAppearanceStream(_objects, annotation, out stream);
         return synthesized;
     }
+
+    private PdfDictionary? GetAcroForm() =>
+        _acroForm.GetOrCreate(this, static (page, cancellationToken) => page.ResolveDictionary(
+            PdfSyntax.FindCatalog(page._objects, cancellationToken: cancellationToken) is PdfDictionary catalog &&
+            catalog.Items.TryGetValue("AcroForm", out PdfObject? acroForm) ? acroForm : null));
 
     private bool TryGetNormalAppearanceStream(PdfDictionary annotation, out PdfStream stream) {
         stream = null!;
