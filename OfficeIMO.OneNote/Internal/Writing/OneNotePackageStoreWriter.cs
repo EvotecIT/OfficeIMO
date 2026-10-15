@@ -109,7 +109,7 @@ internal static class OneNotePackageStoreWriter {
             data.Add(ObjectData(propertySet.ObjectReferences, propertySet.CellReferences, propertySet.Data));
             if (item.Blob != null) {
                 OneNoteExtendedGuid blobElementId = ids.New();
-                packageElements.Add(DataElement(blobElementId, 0x0A, new[] { Simple(0x02, item.Blob) }));
+                packageElements.Add(DataElement(blobElementId, 0x0A, new[] { Simple(0x02, BinaryItem(item.Blob)) }));
                 declarations.Add(BlobDeclaration(item.Id, blobElementId));
                 data.Add(ObjectBlobReference(blobElementId));
             }
@@ -163,6 +163,7 @@ internal static class OneNotePackageStoreWriter {
         return new FssHttpWriteObject(0x01, Data(stream => { WriteExtended(stream, id); stream.WriteByte(0); FssHttpStreamObjectWriter.WriteCompactUInt64(stream, type); }), children);
     }
     private static FssHttpWriteObject Simple(int type, byte[] data) => new FssHttpWriteObject(type, data);
+    private static byte[] BinaryItem(byte[] payload) => Data(stream => { FssHttpStreamObjectWriter.WriteCompactUInt64(stream, (ulong)payload.Length); stream.Write(payload, 0, payload.Length); });
     private static byte[] Data(Action<Stream> writer) { using (var stream = new MemoryStream()) { writer(stream); return stream.ToArray(); } }
     private static void WriteExtended(Stream stream, OneNoteExtendedGuid value) => FssHttpStreamObjectWriter.WriteExtendedGuid(stream, value);
     private static void WriteCellId(Stream stream, FssHttpCellId value) { WriteExtended(stream, value.First); WriteExtended(stream, value.Second); }
