@@ -50,6 +50,42 @@ public sealed class XlsbUtf8TextTests {
     }
 
     [Theory]
+    [InlineData("Schema")]
+    [InlineData("Converter")]
+    public void BorrowedXlsbText_LiveProjectionBeforeCanonicalAccessKeepsCopyFallbackAndHeldSpan(string projection) {
+        const string expected = "first Żółw 🐢";
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Text");
+        sheet.CellValue(2, 1, expected);
+        sheet.CellValue(3, 1, "following");
+        sheet.CellValue(4, 1, "after");
+        var options = new ExcelReadOptions();
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, false), options);
+        Assert.True(reader.Read());
+        Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> held));
+        if (projection == "Schema") options.InferSchema = true;
+        else options.CellValueConverter = static _ => default;
+        Assert.False(reader.TryGetUtf8Text(0, out _));
+        AssertCopy(reader, 0, expected);
+        Assert.Equal(expected, Assert.IsType<string>(reader.GetValue(0)));
+        Assert.Equal(Encoding.UTF8.GetBytes(expected), held.ToArray());
+        options.InferSchema = false;
+        options.CellValueConverter = null;
+        AssertBorrowed(reader, 0, expected);
+        if (projection == "Schema") options.InferSchema = true;
+        else options.CellValueConverter = static context => new ExcelCellValue("converted:" + context.InlineText);
+        Assert.True(reader.Read());
+        Assert.False(reader.TryGetUtf8Text(0, out _));
+        AssertCopy(reader, 0, projection == "Converter" ? "converted:following" : "following");
+        options.InferSchema = false;
+        options.CellValueConverter = null;
+        Assert.True(reader.Read());
+        AssertBorrowed(reader, 0, "after");
+        Assert.False(reader.Read());
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void BorrowedXlsbText_PreservesCanonicalStringsAndOrdinaryTypedValues(bool sharedStrings) {
@@ -114,6 +150,51 @@ public sealed class XlsbUtf8TextTests {
         Assert.Equal("value-257", Encoding.UTF8.GetString(collision));
         Assert.Equal(large, Encoding.UTF8.GetString(oversized));
         Assert.Equal("value-1", Encoding.UTF8.GetString(restored));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BorrowedXlsbText_MultipleRowsResizeFieldsWithoutChangingOtherBorrowedText(bool sharedStrings) {
+        const int columns = 72;
+        string[][] values = Enumerable.Range(0, 3).Select(row => Enumerable.Range(0, columns)
+            .Select(column => $"row-{row}-column-{column} Żółw 🐢").ToArray()).ToArray();
+        values[0][1] = values[2][1] = string.Empty;
+        values[1][0] = new string('λ', 3000) + " 🐢";
+        values[1][1] = new string('Ż', 5000) + " 🐢";
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        for (int column = 0; column < columns; column++) {
+            sheet.CellValue(1, column + 1, "Column" + column);
+            for (int row = 0; row < values.Length; row++) sheet.CellValue(row + 2, column + 1, values[row][column]);
+        }
+        // Distinct headers and row text produce more than 256 shared-string items.
+        var retainedStrings = new string[values.Length];
+        var retainedCopies = new byte[values.Length][];
+        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, sharedStrings))) {
+            Assert.Equal(columns, reader.FieldCount);
+            for (int row = 0; row < values.Length; row++) {
+                Assert.True(reader.Read());
+                if (row == 1) Assert.Equal(values[row][0], Assert.IsType<string>(reader.GetValue(0)));
+                Assert.True(reader.TryGetUtf8Text(columns - 1, out ReadOnlySpan<byte> last));
+                Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> first));
+                Assert.True(reader.TryGetUtf8Text(1, out ReadOnlySpan<byte> second));
+                AssertBorrowed(reader, 0, values[row][0]);
+                AssertBorrowed(reader, 1, values[row][1]);
+                AssertBorrowed(reader, columns - 1, values[row][columns - 1]);
+                Assert.Equal(values[row][columns - 1], Encoding.UTF8.GetString(last));
+                Assert.Equal(values[row][0], Encoding.UTF8.GetString(first));
+                Assert.Equal(values[row][1], Encoding.UTF8.GetString(second));
+                Assert.False(reader.IsDBNull(1));
+                retainedStrings[row] = reader.GetString(0);
+                retainedCopies[row] = first.ToArray();
+            }
+            Assert.False(reader.Read());
+        }
+        for (int row = 0; row < values.Length; row++) {
+            Assert.Equal(values[row][0], retainedStrings[row]);
+            Assert.Equal(Encoding.UTF8.GetBytes(values[row][0]), retainedCopies[row]);
+        }
     }
 
     [Theory]

@@ -6,7 +6,11 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     internal static class XlsbStringStorageValidation {
         // MS-XLSB 2.1.4 framing and 2.3.2 record enumeration. This bounded inspection
         // does not decode workbook values; independent readers validate those separately.
-        internal static void Validate(ZipArchive package, int rows, string engine, bool? sharedStrings) {
+        internal static void Validate(ZipArchive package, int rows, string engine, bool? sharedStrings) =>
+            Validate(package, engine, sharedStrings, checked(rows + 4), Math.Min(rows, 8) + 4);
+
+        internal static void Validate(ZipArchive package, string engine, bool? sharedStrings,
+            int textCells, int uniqueStrings) {
             ZipArchiveEntry? table = package.GetEntry("xl/sharedStrings.bin");
             int items = 0;
             uint? total = null, unique = null;
@@ -26,11 +30,10 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                     references++;
                 }
             });
-            int textCells = checked(rows + 4);
             if (inline + references != textCells || (table != null && (total == null || unique != items)))
                 throw new InvalidDataException("XLSB text-cell/table counts differ from the complete fixture.");
             if (sharedStrings == true && (inline != 0 || references != textCells || total != textCells
-                || items != Math.Min(rows, 8) + 4)) throw new InvalidDataException("Requested XLSB shared-string policy differs.");
+                || items != uniqueStrings)) throw new InvalidDataException("Requested XLSB shared-string policy differs.");
             if (sharedStrings == false && (inline != textCells || references != 0))
                 throw new InvalidDataException("Requested XLSB inline-string policy differs.");
             Console.WriteLine($"XLSB storage={engine}; configured={(sharedStrings?.ToString() ?? "default")}; "

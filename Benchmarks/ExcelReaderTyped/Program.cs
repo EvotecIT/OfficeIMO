@@ -60,6 +60,15 @@ if (args is ["--validate-bdn"]) {
     return;
 }
 
+if (args is ["--validate-native-xlsb-controls"]) {
+#if OFFICEIMO_BENCHMARK_NEW_APIS
+    NativeXlsbSaveControlQualification.Run();
+    return;
+#else
+    throw new InvalidOperationException("Native XLSB save controls require -p:OfficeIMOBenchmarkNewApis=true.");
+#endif
+}
+
 if (args is ["--validate-ado"]) {
     foreach (int rows in new AdoReadBenchmarks().RowCounts())
         foreach (AdoAccess access in Enum.GetValues<AdoAccess>())
@@ -118,7 +127,15 @@ if (args is ["--validate-shared-stages"]) {
 }
 
 #if OFFICEIMO_BENCHMARK_CSV
+if (args is ["--validate-csv-struct"]) {
+    CsvBenchmarkQualification.ValidateTypedStruct();
+    return;
+}
 #if OFFICEIMO_BENCHMARK_NEW_APIS
+if (args is ["--validate-csv-borrowed-async"]) {
+    await CsvBenchmarkQualification.ValidateBorrowedAsyncReadAsync();
+    return;
+}
 if (args is ["--validate-csv-direct-aggregate-scale"]) {
     await CsvBenchmarkQualification.ValidateDirectAggregateScaleAsync();
     return;
@@ -230,6 +247,20 @@ if (args is ["--validate-write-records"]) {
 }
 
 #if OFFICEIMO_BENCHMARK_NEW_APIS
+if (args is ["--validate-public-utf8"]) {
+    foreach (int rows in new BorrowedRawReadBenchmarks().RowCounts())
+        foreach (RawWorkbookFormat format in new[] { RawWorkbookFormat.Xlsx, RawWorkbookFormat.Xlsb })
+            await new BorrowedRawReadBenchmarks { RowCount = rows, Format = format }.SetupAsync();
+    foreach (ComparisonWorkbookFormat format in new[] {
+        ComparisonWorkbookFormat.Xlsx, ComparisonWorkbookFormat.Xlsm, ComparisonWorkbookFormat.Xlsb })
+        new BorrowedRealDataReadBenchmarks { Format = format }.Setup();
+    foreach (int rows in new SharedStringUtf8ReadBenchmarks().RowCounts())
+        foreach (ComparisonWorkbookFormat format in new[] { ComparisonWorkbookFormat.Xlsx, ComparisonWorkbookFormat.Xlsb })
+            await new SharedStringUtf8ReadBenchmarks {
+                RowCount = rows, Format = format, Storage = SharedStringZipStorage.Deflated,
+            }.SetupAsync();
+    return;
+}
 if (args is ["--validate-write-styled-rows"]) {
     StyledRowWriterBenchmarks workload = new StyledRowWriterBenchmarks();
     try { workload.Setup(); workload.SaveQualifiedArtifacts(); } finally { workload.Cleanup(); }
@@ -327,7 +358,7 @@ if (string.Equals(csv, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkCsv=true"));
 if (string.Equals(arrow, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkArrow=true"));
-Job benchmarkJob = Job.Default.WithArguments(buildArguments.ToArray());
+Job benchmarkJob = Job.Default.DontEnforcePowerPlan().WithArguments(buildArguments.ToArray());
 string? affinityMask = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_AFFINITY_MASK");
 if (!string.IsNullOrEmpty(affinityMask)) {
     if (args.Any(argument => argument == "--affinity" || argument.StartsWith("--affinity=", StringComparison.Ordinal)))

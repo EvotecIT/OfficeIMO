@@ -65,15 +65,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             ValidateDirectTabularWorkbook(document, sheets, source.SheetName);
             cancellationToken.ThrowIfCancellationRequested();
+            // Keep date cells and workbook metadata on the same policy for this save.
+            ExcelDateSystem dateSystem = document.DateSystem;
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
             if (!XlsbDirectTabularPlan.CanCapture(source)) {
-                return TryWriteStagedDirectTabularPackage(document, sheet, source, destination,
+                return TryWriteStagedDirectTabularPackage(document, dateSystem, sheet, source, destination,
                     sharedStrings, cancellationToken);
             }
 
             XlsbDirectTabularPlan? plan = null;
             try {
-                if (!XlsbDirectTabularPlan.TryCreate(document, sheet, source, sharedStrings, cancellationToken, out plan)) return false;
+                if (!XlsbDirectTabularPlan.TryCreate(dateSystem, sheet, source, sharedStrings, cancellationToken, out plan)) return false;
 
                 // Validate temporal styles and shared strings before touching the destination.
                 Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
@@ -81,7 +83,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
-                WriteDirectTabularPackage(document, destination, source.SheetName, stylesPart,
+                WriteDirectTabularPackage(dateSystem, destination, source.SheetName, stylesPart,
                     sharedStringsPart, plan, cancellationToken);
                 if (destination.CanSeek) destination.SetLength(destination.Position);
                 return true;
@@ -92,6 +94,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static bool TryWriteStagedDirectTabularPackage(
             ExcelDocument document,
+            ExcelDateSystem dateSystem,
             ExcelSheet sheet,
             ExcelDirectTabularSource source,
             Stream destination,
@@ -105,7 +108,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 entry.LastWriteTime = ReproducibleEntryTime;
                 using (Stream output = entry.Open()) {
                     if (!XlsbWorksheetPartWriter.TryWriteDirectTabular(
-                        document, sheet, source, output, cancellationToken, sharedStrings)) return false;
+                        dateSystem, sheet, source, output, cancellationToken, sharedStrings)) return false;
                 }
 
                 // Dates can add styles and text can populate the shared-string table
@@ -114,7 +117,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out _);
                 ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                WriteDirectTabularWorkbookEntries(archive, document, source.SheetName,
+                WriteDirectTabularWorkbookEntries(archive, dateSystem, source.SheetName,
                     stylesPart != null, sharedStringsPart.HasValue);
                 if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart, CompressionLevel.Fastest);
                 if (sharedStringsPart.HasValue) WriteEntry(archive, "xl/sharedStrings.bin", sharedStringsPart.Value, CompressionLevel.Fastest);
@@ -128,7 +131,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void WriteDirectTabularPackage(
-            ExcelDocument document,
+            ExcelDateSystem dateSystem,
             Stream destination,
             string sheetName,
             byte[]? stylesPart,
@@ -140,7 +143,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 : new ExcelPositionReportingWriteStream(destination);
             Stream packageDestination = positionReportingDestination ?? destination;
             using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
-                WriteDirectTabularWorkbookEntries(archive, document, sheetName,
+                WriteDirectTabularWorkbookEntries(archive, dateSystem, sheetName,
                     stylesPart != null, sharedStringsPart.HasValue);
                 ZipArchiveEntry entry = archive.CreateEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest);
                 entry.LastWriteTime = ReproducibleEntryTime;
@@ -154,7 +157,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static void WriteDirectTabularWorkbookEntries(
             ZipArchive archive,
-            ExcelDocument document,
+            ExcelDateSystem dateSystem,
             string sheetName,
             bool hasStyles,
             bool hasSharedStrings) {
@@ -162,7 +165,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteEntry(archive, "_rels/.rels", RootRelationships, CompressionLevel.Fastest);
             WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.CreateDirectTabular(
                 sheetName,
-                document.DateSystem == ExcelDateSystem.NineteenFour), CompressionLevel.Fastest);
+                dateSystem == ExcelDateSystem.NineteenFour), CompressionLevel.Fastest);
             WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings), CompressionLevel.Fastest);
         }
 

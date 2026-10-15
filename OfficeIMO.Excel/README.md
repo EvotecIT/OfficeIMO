@@ -441,6 +441,13 @@ For eligible plain ASCII shared-string tables, string-cache pages are allocated 
 After disposal, one cleared offset/length index can remain available for later readers, capped at 2 MiB of entry payload plus fixed object overhead.
 The retained index contains no workbook text or references to package bytes; it trades idle managed memory for lower allocation on repeated opens.
 
+Native XLSB reading also validates the complete shared-string table before
+returning the reader, including unused entries. Eligible tables retain validated
+encoded text and create managed strings as values are requested. Borrowed UTF-8
+reads can encode that text without first creating a managed string. Larger tables
+use eager decoding when the encoded-text or entry-index optimization limits are
+exceeded; the public validation limits and canonical Unicode values are the same.
+
 On .NET 8 and later, `TryGetUtf8Text` can borrow plain UTF-8
 worksheet text, normalized shared-string text, and XLSB string cells:
 

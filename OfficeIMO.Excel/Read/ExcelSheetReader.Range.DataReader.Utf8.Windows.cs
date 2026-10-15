@@ -115,10 +115,12 @@ namespace OfficeIMO.Excel {
             }
 
             private void IndexQualifiedWindowRow(int physicalRow, int rowOffset, CancellationToken ct) {
-                InitializeMetadataRow(rowOffset);
                 int contentStart = _rowContentStarts![physicalRow];
                 int contentEnd = _rowContentEnds![physicalRow];
-                if (contentStart == contentEnd) return; // An empty row start tag.
+                if (contentStart == contentEnd) {
+                    InitializeMetadataRow(rowOffset);
+                    return; // An empty row start tag.
+                }
 
                 int position = contentStart;
                 int rowIndex = _rowIndexes![physicalRow];

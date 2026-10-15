@@ -5,10 +5,10 @@ using System.Buffers;
 namespace OfficeIMO.CSV;
 
 /// <summary>Owns decoded field text and metadata while the source reader advances.</summary>
-internal sealed class CsvRecordTextBatch : IDisposable
+internal sealed partial class CsvRecordTextBatch : IDisposable
 {
-    private const int MaximumPooledTextLength = 64 * 1024;
-    private readonly string?[] _values;
+    private readonly int _maximumPooledTextLength;
+    private string?[]? _values;
     private readonly CapturedField[] _fields;
     private char[]? _text;
     private int _textLength;
@@ -32,13 +32,13 @@ internal sealed class CsvRecordTextBatch : IDisposable
     {
         const int maximumElements = 4 * 1024 * 1024;
         RowCapacity = fieldCount == 0 ? 1 : Math.Max(1, Math.Min(preferredRows, maximumElements / fieldCount));
+        // Scale owned text with the effective batch size while retaining a fixed upper bound.
+        _maximumPooledTextLength = Math.Max(256, Math.Min(RowCapacity, 1024)) * 256;
         FieldCount = fieldCount;
         Culture = culture;
         DateTimeFormats = dateFormats;
         int length = Math.Max(1, checked(RowCapacity * fieldCount));
-        _values = ArrayPool<string?>.Shared.Rent(length);
-        try { _fields = ArrayPool<CapturedField>.Shared.Rent(length); }
-        catch { ArrayPool<string?>.Shared.Return(_values, clearArray: true); throw; }
+        _fields = ArrayPool<CapturedField>.Shared.Rent(length);
     }
 
     internal int RowCapacity { get; }
@@ -46,6 +46,20 @@ internal sealed class CsvRecordTextBatch : IDisposable
     internal int Count { get; private set; }
     internal CultureInfo Culture { get; }
     internal IReadOnlyList<string>? DateTimeFormats { get; }
+
+    /// <summary>Reuses owned storage after the prior worker and its ordered merge have completed.</summary>
+    internal void Reset()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_values is not null) Array.Clear(_values, 0, Count * FieldCount);
+        // Capture initializes metadata for every visible row; only cached strings retain objects.
+        Count = 0;
+        _row = -1;
+        _textLength = 0;
+        _rawDelimiter = default;
+        _rawTrim = false;
+        _rawNullValue = null;
+    }
 
     internal void CaptureRow(CsvDataReader reader)
     {
@@ -55,31 +69,59 @@ internal sealed class CsvRecordTextBatch : IDisposable
             bool missing = reader.IsCurrentFieldMissing(ordinal);
             ReadOnlySpan<char> value = reader.GetCurrentSourceSpan(ordinal, out string? materialized);
             byte flags = (byte)((missing ? 1 : 0) | (!missing && reader.IsCurrentFieldNull(ordinal) ? 2 : 0));
-            int start = _textLength;
-            if (materialized is null)
-            {
-                if (value.IsEmpty) materialized = string.Empty;
-                else if (EnsureTextCapacity(value.Length))
-                {
-                    value.CopyTo(_text.AsSpan(_textLength));
-                    _textLength += value.Length;
-                }
-                else materialized = value.ToString();
-            }
-            _values[offset + ordinal] = materialized;
-            _fields[offset + ordinal] = new CapturedField(start, value.Length, flags);
+            CaptureField(offset + ordinal, value, materialized, flags);
         }
         Count++;
+    }
+
+    /// <summary>Detaches already-aligned raw fields without repeating reader getter validation.</summary>
+    internal void CaptureRow(CsvIncrementalRowSource source, string? nullValue)
+    {
+        int offset = Count * FieldCount;
+        for (int ordinal = 0; ordinal < FieldCount; ordinal++)
+        {
+            bool missing = source.IsMissing(ordinal);
+            ReadOnlySpan<char> value = source.GetSpan(ordinal, out string? materialized);
+            bool isNull = !missing && nullValue is not null && value.SequenceEqual(nullValue.AsSpan());
+            CaptureField(offset + ordinal, value, materialized, (byte)((missing ? 1 : 0) | (isNull ? 2 : 0)));
+        }
+        Count++;
+    }
+
+    private void CaptureField(int index, ReadOnlySpan<char> value, string? materialized, byte flags)
+    {
+        int start = _textLength;
+        if (materialized is null && !value.IsEmpty)
+        {
+            if (EnsureTextCapacity(value.Length))
+            {
+                value.CopyTo(_text.AsSpan(_textLength));
+                _textLength += value.Length;
+            }
+            else materialized = value.ToString();
+        }
+        if (materialized is { Length: > 0 }) EnsureValues()[index] = materialized;
+        else if (_values is not null) _values[index] = materialized;
+        _fields[index] = new CapturedField(start, value.Length, flags);
+    }
+
+    // Span-only batches need no string cache. Clear a late rental for all previously captured slots.
+    private string?[] EnsureValues()
+    {
+        if (_values is not null) return _values;
+        string?[] values = ArrayPool<string?>.Shared.Rent(Math.Max(1, checked(RowCapacity * FieldCount)));
+        Array.Clear(values, 0, values.Length);
+        return _values = values;
     }
 
     // Large records keep an owned string instead of expanding pooled storage without a bound.
     // This is a storage choice, not a field-size limit.
     private bool EnsureTextCapacity(int fieldLength)
     {
-        if (fieldLength > MaximumPooledTextLength - _textLength) return false;
+        if (fieldLength > _maximumPooledTextLength - _textLength) return false;
         int required = _textLength + fieldLength;
         if (_text is not null && required <= _text.Length) return true;
-        int capacity = Math.Min(MaximumPooledTextLength, Math.Max(required, (_text?.Length ?? 2048) * 2));
+        int capacity = Math.Min(_maximumPooledTextLength, Math.Max(required, (_text?.Length ?? 2048) * 2));
         char[] next = ArrayPool<char>.Shared.Rent(capacity);
         if (_text is not null)
         {
@@ -94,20 +136,23 @@ internal sealed class CsvRecordTextBatch : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _row++;
-        return _row < Count;
+        if (_row >= Count) return false;
+        IndexRawRecord();
+        return true;
     }
 
     internal string GetString(int ordinal)
     {
         int index = GetIndex(ordinal);
-        if (_values[index] is { } value) return value;
+        if (_values is not null && _values[index] is { } value) return value;
         var field = _fields[index];
-        return _values[index] = _text.AsSpan(field.Start, field.Length).ToString();
+        if (field.Length == 0) return string.Empty;
+        return EnsureValues()[index] = _text.AsSpan(field.Start, field.Length).ToString();
     }
     internal ReadOnlySpan<char> GetSpan(int ordinal)
     {
         int index = GetIndex(ordinal);
-        if (_values[index] is { } value) return value.AsSpan();
+        if (_values is not null && _values[index] is { } value) return value.AsSpan();
         var field = _fields[index];
         return _text.AsSpan(field.Start, field.Length);
     }
@@ -126,7 +171,7 @@ internal sealed class CsvRecordTextBatch : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        ArrayPool<string?>.Shared.Return(_values, clearArray: true);
+        if (_values is not null) ArrayPool<string?>.Shared.Return(_values, clearArray: true);
         ArrayPool<CapturedField>.Shared.Return(_fields);
         if (_text is not null) ArrayPool<char>.Shared.Return(_text, clearArray: true);
     }

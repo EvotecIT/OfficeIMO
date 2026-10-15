@@ -646,7 +646,6 @@ namespace OfficeIMO.Excel {
                             if (rowSupportsFastValidation && rowIndex >= firstRow && rowIndex <= lastRow) {
                                 EnsureRowCapacity(_rowCount + 1);
                                 int provisionalRowOffset = GetQualificationRowOffset(_rowCount);
-                                InitializeMetadataRow(provisionalRowOffset);
                                 rowAlreadyIndexed = TryIndexCanonicalImplicitDenseRow(
                                     ref position, rowIndex, provisionalRowOffset, ct);
                             }
@@ -1081,9 +1080,10 @@ namespace OfficeIMO.Excel {
                 GrowCellKindArray(nextCellCapacity, currentCellCount);
             }
 
-            private void InitializeMetadataRow(int rowOffset) {
+            // Preserve an already indexed prefix when only absent trailing cells need clearing.
+            private void InitializeMetadataRow(int rowOffset, int firstOrdinal = 0) {
                 int end = rowOffset + _fieldCount;
-                for (int i = rowOffset; i < end; i++) {
+                for (int i = rowOffset + firstOrdinal; i < end; i++) {
                     _cellKinds![i] = (byte)Utf8CellKind.Missing;
                     _valueStarts![i] = 0;
                     _valueLengths![i] = -1;

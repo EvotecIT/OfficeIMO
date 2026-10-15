@@ -112,6 +112,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _logicalRowBudget = logicalRowBudget ?? throw new ArgumentNullException(nameof(logicalRowBudget));
             _cancellationToken = cancellationToken;
             _activeReadCancellationToken = cancellationToken;
+            _sharedStringOwner = sharedStrings as XlsbSharedStringTable;
             if (worksheetPart == null) {
                 throw new ArgumentNullException(nameof(worksheetPart));
             }
@@ -121,6 +122,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int actualFirstDataRow = -1;
             int actualLastDataRow = -1;
             try {
+                AcquireSharedStringReference();
                 DiscoverDataColumns(
                     worksheetPart,
                     limits,
@@ -138,6 +140,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     out _validatedRowPlan);
             } catch {
                 worksheetPart.Dispose();
+                ReleaseSharedStringReference();
                 throw;
             }
 
@@ -232,6 +235,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     : null;
             } catch {
                 worksheetPart.Dispose();
+                ReleaseSharedStringReference();
                 throw;
             }
         }
@@ -284,6 +288,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private bool ReadSourceRow() {
+            ResetUtf8TextState();
             if (!_hasPendingRow) {
                 if (_reachedEndSheetData) {
                     return false;
@@ -295,7 +300,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             Array.Clear(_kinds, 0, _kinds.Length);
             Array.Clear(_strings, 0, _strings.Length);
-            ResetUtf8TextState();
             if (_options.CellValueConverter != null) {
                 Array.Clear(_customValues, 0, _customValues.Length);
             }
@@ -338,6 +342,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _closed = true;
             ReleaseUtf8TextState();
             _worksheetPart.Dispose();
+            ReleaseSharedStringReference();
             _schemaRows?.Clear();
         }
 

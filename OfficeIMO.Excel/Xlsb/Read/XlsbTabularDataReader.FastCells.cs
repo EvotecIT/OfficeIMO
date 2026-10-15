@@ -50,19 +50,18 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     break;
                 case BrtCellSt:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = ReadValidatedWideString(bytes, position);
+                    StoreInlineText(ordinal, bytes, position);
                     break;
                 case BrtCellIsst: {
                     uint sharedStringIndex = BinaryPrimitives.ReadUInt32LittleEndian(
                         bytes.AsSpan(position, sizeof(uint)));
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = _sharedStrings[checked((int)sharedStringIndex)];
-                    TrackUtf8SharedStringCell(ordinal, (int)sharedStringIndex);
+                    StoreSharedStringText(ordinal, checked((int)sharedStringIndex));
                     break;
                 }
                 case BrtCellRString:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = ReadValidatedWideString(bytes, position + 1);
+                    StoreInlineText(ordinal, bytes, position + 1);
                     break;
                 case BrtFmlaString:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
@@ -119,8 +118,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             uint sharedStringIndex = Unsafe.ReadUnaligned<uint>(
                 ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
             _kinds[ordinal] = XlsbTabularValueKind.Text;
-            _strings[ordinal] = _sharedStrings[(int)sharedStringIndex];
-            TrackUtf8SharedStringCell(ordinal, (int)sharedStringIndex);
+            StoreSharedStringText(ordinal, (int)sharedStringIndex);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -147,8 +145,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             uint sharedStringIndex = Unsafe.ReadUnaligned<uint>(
                 ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
             _kinds[ordinal] = XlsbTabularValueKind.Text;
-            _strings[ordinal] = _sharedStrings[(int)sharedStringIndex];
-            TrackUtf8SharedStringCell(ordinal, (int)sharedStringIndex);
+            StoreSharedStringText(ordinal, (int)sharedStringIndex);
         }
 
         private static string ReadValidatedWideString(byte[] bytes, int position) {
