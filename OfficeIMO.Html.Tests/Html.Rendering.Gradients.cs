@@ -311,18 +311,56 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("circle 20%")]
     [InlineData("ellipse 12px")]
     [InlineData("circle 10px 20px")]
+    [InlineData("circle -10px")]
+    [InlineData("circle calc(10% + 2px)")]
     [InlineData("ellipse -10px 20px")]
     [InlineData("circle at")]
-    public void HtmlRadialGradient_DiagnosesInvalidShapeAndSizeCombinations(string descriptor) {
-        string html = "<div style='width:40px;height:20px;background:radial-gradient(" + descriptor + ",red,blue)'></div>";
+    public void HtmlRadialGradient_InvalidShapesAreIgnoredAndInvalidSubstitutionResetsPaint(string descriptor) {
+        foreach (bool stylesheet in new[] { true, false }) {
+            foreach (bool variable in new[] { true, false }) {
+                string gradient = "radial-gradient(" + descriptor + ",red,blue)";
+                string declarations = "width:40px;height:20px;background:red;"
+                    + (variable ? "--invalid:" + gradient + ";background:var(--invalid)" : "background:" + gradient);
+                string html = "<style>html,body{margin:0}" + (stylesheet ? "#target{" + declarations + "}" : "")
+                    + "</style><div id='target'" + (stylesheet ? "" : " style='" + declarations + "'") + "></div>";
+                HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+                HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("#target")!];
+                Assert.Equal(variable ? OfficeColor.Transparent : OfficeColor.Red, OfficeColor.ParseCss(style.GetValue("background-color")));
+                Assert.Equal("none", style.GetValue("background-image"));
+                HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, new HtmlRenderOptions {
+                    ViewportWidth = 80D, Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.White
+                });
+                Assert.Equal(variable ? OfficeColor.White : OfficeColor.Red,
+                    OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()).GetPixel(20, 10));
+            }
+        }
+    }
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
-            ViewportWidth = 80D,
-            Margins = HtmlRenderMargins.All(8D)
-        });
-
-        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.FillRadialGradient != null);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    [Theory]
+    [InlineData("circle calc(10vw - 20px)", 61.6D, 61.6D)]
+    [InlineData("circle calc(1em - 20px)", 20D, 20D)]
+    [InlineData("ellipse calc(10vw - 20px) calc(1em - 20px)", 61.6D, 20D)]
+    public void HtmlRadialGradient_CalculatedRadiiResolveUsingTheActualViewportAndFont(string descriptor, double radiusX, double radiusY) {
+        foreach (bool stylesheet in new[] { true, false }) {
+            foreach (bool variable in new[] { true, false }) {
+                string image = "radial-gradient(" + descriptor + ",red,blue)";
+                string declarations = "width:40px;height:20px;font-size:40px;background:red;"
+                    + (variable ? "--paint:" + image + " blue;background:var(--paint)" : "background:" + image + " blue");
+                string html = "<style>html,body{margin:0}" + (stylesheet ? "#target{" + declarations + "}" : "")
+                    + "</style><div id='target'" + (stylesheet ? "" : " style='" + declarations + "'") + "></div>";
+                HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+                HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("#target")!];
+                Assert.Equal(image, style.GetValue("background-image"));
+                Assert.Equal(OfficeColor.Blue, OfficeColor.ParseCss(style.GetValue("background-color")));
+                HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, new HtmlRenderOptions {
+                    Mode = HtmlRenderMode.Continuous, ViewportWidth = 816D, Margins = HtmlRenderMargins.All(0D)
+                });
+                OfficeRadialGradient gradient = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+                    shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
+                Assert.Equal(radiusX / 40D, gradient.EndRadiusX, 6);
+                Assert.Equal(radiusY / 20D, gradient.EndRadiusY, 6);
+            }
+        }
     }
 
     [Theory]

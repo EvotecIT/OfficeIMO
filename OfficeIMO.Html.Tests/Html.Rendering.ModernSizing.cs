@@ -119,7 +119,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_ContainerRangeQueriesAcceptCompactComparisonOperators() {
-        const string html = "<style>@container (width>=300px){#minimum{background:red}}@container (300px<=width<400px){#range{background:red}}@container (width<300px){#outside{background:red}}</style><section style='width:360px;container-type:inline-size'><div id='minimum' style='width:20px;height:20px;background:blue'></div><div id='range' style='width:20px;height:20px;background:blue'></div><div id='outside' style='width:20px;height:20px;background:blue'></div></section>";
+        const string html = "<style>#minimum,#range,#outside{background:blue}@container (width>=300px){#minimum{background:red}}@container (300px<=width<400px){#range{background:red}}@container (width<300px){#outside{background:red}}</style><section style='width:360px;container-type:inline-size'><div id='minimum' style='width:20px;height:20px'></div><div id='range' style='width:20px;height:20px'></div><div id='outside' style='width:20px;height:20px'></div></section>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 420D });
 
@@ -148,10 +148,10 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_NestedContainerUnitsUseTheNearestEligibleAncestorForGeometryAndFont() {
-        const string html = "<style>@container (width:96px) and (height:36px) and (width > 4em){#item{background:red}}</style>"
+        const string html = "<style>#item{background:blue}@container (width:96px) and (height:36px) and (width > 4em){#item{background:red}}</style>"
             + "<section style='width:200px;height:100px;container-type:size'>"
             + "<div style='box-sizing:border-box;width:75cqw;height:80cqh;padding:5cqw 10cqw;border:1cqw solid black;min-width:60cqw;max-width:70cqw;min-height:50cqh;max-height:60cqh;font-size:10cqw;container-type:size'>"
-            + "<div id='item' style='width:20px;height:20px;background:blue'></div></div></section>";
+            + "<div id='item' style='width:20px;height:20px'></div></div></section>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 1000D, ViewportHeight = 500D });
 
@@ -160,11 +160,11 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_ContainerUnitsSelectTheNearestEligibleAncestorPerAxis() {
-        const string html = "<style>@container (width:50px) and (height:50px){#axis-item{background:red}}</style>"
+        const string html = "<style>#axis-item{background:blue}@container (width:50px) and (height:50px){#axis-item{background:red}}</style>"
             + "<section style='width:200px;height:100px;container-type:size'>"
             + "<div style='width:100px;container-type:inline-size'>"
             + "<div style='width:50cqw;height:50cqh;container-type:size'>"
-            + "<div id='axis-item' style='width:20px;height:20px;background:blue'></div></div></div></section>";
+            + "<div id='axis-item' style='width:20px;height:20px'></div></div></div></section>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 1000D, ViewportHeight = 500D });
 
@@ -173,7 +173,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_ContainerAspectRatioQueriesAcceptRatiosOnly() {
-        const string html = "<style>@container (aspect-ratio:2){#ratio{background:red}}@container (aspect-ratio:2px){#length{background:red}}</style><section style='width:200px;height:100px;container-type:size'><div id='ratio' style='width:20px;height:20px;background:blue'></div><div id='length' style='width:20px;height:20px;background:blue'></div></section>";
+        const string html = "<style>#ratio,#length{background:blue}@container (aspect-ratio:2){#ratio{background:red}}@container (aspect-ratio:2px){#length{background:red}}</style><section style='width:200px;height:100px;container-type:size'><div id='ratio' style='width:20px;height:20px'></div><div id='length' style='width:20px;height:20px'></div></section>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D, ViewportHeight = 200D });
 
@@ -183,7 +183,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_SquareSizeContainerUsesPortraitOrientation() {
-        const string html = "<style>@container (orientation:portrait){#item{background:red}}@container (orientation:landscape){#item{background:blue}}</style><section style='width:100px;height:100px;container-type:size'><div id='item' style='width:20px;height:20px;background:black'></div></section>";
+        const string html = "<style>#item{background:black}@container (orientation:portrait){#item{background:red}}@container (orientation:landscape){#item{background:blue}}</style><section style='width:100px;height:100px;container-type:size'><div id='item' style='width:20px;height:20px'></div></section>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 200D, ViewportHeight = 200D });
 
@@ -192,7 +192,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_GroupedContainerConditionsReevaluateLogicalOperators() {
-        const string html = "<style>@container ((width > 100px) or (height > 100px)){#item{background:red}}</style><section style='width:120px;height:40px;container-type:size'><div id='item' style='width:20px;height:20px;background:blue'></div></section>";
+        const string html = "<style>#item{background:blue}@container ((width > 100px) or (height > 100px)){#item{background:red}}</style><section style='width:120px;height:40px;container-type:size'><div id='item' style='width:20px;height:20px'></div></section>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D, ViewportHeight = 200D });
 
@@ -213,18 +213,19 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_ContainerQueryEmAndRemUnitsUseContainerAndRootFonts() {
         const string html = """
             <style>
+              #em,#rem,#relative{background:blue}
               html { font-size:24px; }
               @container (width > 10em) { #em { background:red; } }
               @container (width > 7rem) { #rem { background:red; } }
               @container (width > 2em) { #relative { background:red; } }
             </style>
             <section style="width:180px;font-size:20px;container-type:inline-size">
-              <div id="em" style="width:20px;height:20px;background:blue"></div>
-              <div id="rem" style="width:20px;height:20px;background:blue"></div>
+              <div id="em" style="width:20px;height:20px"></div>
+              <div id="rem" style="width:20px;height:20px"></div>
             </section>
             <div style="font-size:20px">
               <section style="width:70px;font-size:2em;container-type:inline-size">
-                <div id="relative" style="width:20px;height:20px;background:blue"></div>
+                <div id="relative" style="width:20px;height:20px"></div>
               </section>
             </div>
             """;
@@ -240,11 +241,12 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_ContainerGeometryUsesComputedRootFontForRemLengths() {
         const string html = """
             <style>
+              #item{background:blue}
               html { font-size:20px; }
               @container (width:120px) { #item { background:red; } }
             </style>
             <section style="box-sizing:border-box;width:10rem;padding:1rem;border:1rem solid black;container-type:inline-size">
-              <div id="item" style="width:20px;height:20px;background:blue"></div>
+              <div id="item" style="width:20px;height:20px"></div>
             </section>
             """;
 
@@ -306,9 +308,9 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRendering_ContainerStyleQueriesCompareResolvedCustomPropertyValues() {
         const string html = """
-            <style>@container theme style(--tone:red) { #item { background:red; } }</style>
+            <style>#item{background:blue}@container theme style(--tone:red) { #item { background:red; } }</style>
             <section style="container-name:theme;--base:red;--tone:var(--base)">
-              <div id="item" style="width:40px;height:20px;background:blue"></div>
+              <div id="item" style="width:40px;height:20px"></div>
             </section>
             """;
 
@@ -321,12 +323,13 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_ContainerStyleQueriesPreserveWhitespaceInsideStringTokens() {
         const string html = """
             <style>
+              #different,#same{background:blue}
               @container theme style(--label:"a  b") { #different { background:red; } }
               @container theme style(--label:"a b") { #same { background:lime; } }
             </style>
             <section style='container-name:theme;--label:"a b"'>
-              <div id="different" style="width:20px;height:20px;background:blue"></div>
-              <div id="same" style="width:20px;height:20px;background:blue"></div>
+              <div id="different" style="width:20px;height:20px"></div>
+              <div id="same" style="width:20px;height:20px"></div>
             </section>
             """;
 
@@ -340,16 +343,17 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_CustomPropertyNamesRemainCaseSensitiveInStyleQueriesAndVarResolution() {
         const string html = """
             <style>
+              #exact,#wrong-case,#resolved{background:blue}
               @container theme style(--Theme:red) { #exact { background:lime; } }
               @container theme style(--theme:red) { #wrong-case { background:red; } }
               @container theme style(--resolved:red) { #resolved { background:lime; } }
             </style>
             <section style="container-name:theme;--Theme:red">
-              <div id="exact" style="width:20px;height:20px;background:blue"></div>
-              <div id="wrong-case" style="width:20px;height:20px;background:blue"></div>
+              <div id="exact" style="width:20px;height:20px"></div>
+              <div id="wrong-case" style="width:20px;height:20px"></div>
             </section>
             <section style="container-name:theme;--theme:red;--Theme:var(--theme);--resolved:var(--Theme)">
-              <div id="resolved" style="width:20px;height:20px;background:blue"></div>
+              <div id="resolved" style="width:20px;height:20px"></div>
             </section>
             """;
 
@@ -364,9 +368,9 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("2em")]
     [InlineData("200%")]
     public void HtmlRendering_ContainerStyleQueriesResolveRelativeFontSizeFromTheParent(string relativeFontSize) {
-        const string html = "<style>@container style(font-size:32px) { #item { background:red; } }</style>"
+        const string html = "<style>#item{background:blue}@container style(font-size:32px) { #item { background:red; } }</style>"
             + "<div style='font-size:16px'><section style='font-size:RELATIVE;container-name:theme'>"
-            + "<div id='item' style='width:40px;height:20px;background:blue'></div></section></div>";
+            + "<div id='item' style='width:40px;height:20px'></div></section></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.Replace("RELATIVE", relativeFontSize), new HtmlRenderOptions());
 
@@ -375,7 +379,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_NameOnlyContainerShorthandParticipatesInStyleQueries() {
-        const string html = "<style>@container theme style(--tone:red) { #item { background:red; } }</style><section style='container:theme;--tone:red'><div id='item' style='width:40px;height:20px;background:blue'></div></section>";
+        const string html = "<style>#item{background:blue}@container theme style(--tone:red) { #item { background:red; } }</style><section style='container:theme;--tone:red'><div id='item' style='width:40px;height:20px'></div></section>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
 
@@ -414,9 +418,9 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRendering_StyleQueriesDoNotTreatCustomPropertyNamesAsSizeFeatures() {
         const string html = """
-            <style>@container theme style(--width: compact) { #item { background:red; } }</style>
+            <style>#item{background:blue}@container theme style(--width: compact) { #item { background:red; } }</style>
             <section style="container-name:theme;--width:compact">
-              <div id="item" style="width:40px;height:20px;background:blue"></div>
+              <div id="item" style="width:40px;height:20px"></div>
             </section>
             """;
 
@@ -428,9 +432,9 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRendering_ContainerQueriesMeasureTheContentBox() {
         const string html = """
-            <style>@container (width:140px) { #item { background:red; } }</style>
+            <style>#item{background:blue}@container (width:140px) { #item { background:red; } }</style>
             <section style="box-sizing:border-box;width:200px;padding:20px;border:10px solid black;container-type:inline-size">
-              <div id="item" style="width:20px;height:20px;background:blue"></div>
+              <div id="item" style="width:20px;height:20px"></div>
             </section>
             """;
 
@@ -443,22 +447,23 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_ContainerQueriesApplyMinAndMaxWidthConstraintsToTheContentBox() {
         const string html = """
             <style>
+              #maximum,#minimum,#border-box,#conflict{background:blue}
               @container (width:200px) { #maximum { background:red; } }
               @container (width:300px) { #minimum { background:red; } }
               @container (width:180px) { #border-box { background:red; } }
               @container (width:300px) { #conflict { background:red; } }
             </style>
             <section style="max-width:200px;container-type:inline-size">
-              <div id="maximum" style="width:20px;height:20px;background:blue"></div>
+              <div id="maximum" style="width:20px;height:20px"></div>
             </section>
             <section style="width:100px;min-width:300px;container-type:inline-size">
-              <div id="minimum" style="width:20px;height:20px;background:blue"></div>
+              <div id="minimum" style="width:20px;height:20px"></div>
             </section>
             <section style="box-sizing:border-box;max-width:240px;padding:20px;border:10px solid black;container-type:inline-size">
-              <div id="border-box" style="width:20px;height:20px;background:blue"></div>
+              <div id="border-box" style="width:20px;height:20px"></div>
             </section>
             <section id="width-conflict" style="width:100px;min-width:300px;max-width:200px;container-type:inline-size;background:lime">
-              <div id="conflict" style="width:20px;height:20px;background:blue"></div>
+              <div id="conflict" style="width:20px;height:20px"></div>
             </section>
             """;
 
@@ -475,22 +480,23 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_ContainerQueriesApplyMinAndMaxHeightConstraintsToTheContentBox() {
         const string html = """
             <style>
+              #maximum,#minimum,#border-box,#conflict-height{background:blue}
               @container (height:100px) { #maximum { background:red; } }
               @container (height:300px) { #minimum { background:red; } }
               @container (height:180px) { #border-box { background:red; } }
               @container (height:300px) { #conflict-height { background:red; } }
             </style>
             <section style="width:200px;height:200px;max-height:100px;container-type:size">
-              <div id="maximum" style="width:20px;height:20px;background:blue"></div>
+              <div id="maximum" style="width:20px;height:20px"></div>
             </section>
             <section style="width:200px;height:100px;min-height:300px;container-type:size">
-              <div id="minimum" style="width:20px;height:20px;background:blue"></div>
+              <div id="minimum" style="width:20px;height:20px"></div>
             </section>
             <section style="box-sizing:border-box;width:200px;height:300px;max-height:240px;padding:20px;border:10px solid black;container-type:size">
-              <div id="border-box" style="width:20px;height:20px;background:blue"></div>
+              <div id="border-box" style="width:20px;height:20px"></div>
             </section>
             <section id="height-conflict" style="width:200px;height:100px;min-height:300px;max-height:200px;container-type:size;background:lime">
-              <div id="conflict-height" style="width:20px;height:20px;background:blue"></div>
+              <div id="conflict-height" style="width:20px;height:20px"></div>
             </section>
             """;
 
@@ -507,14 +513,15 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_AutoHeightSizeContainerUsesItsDefiniteMinimumForQueries() {
         const string html = """
             <style>
+              #content-box,#border-box{background:blue}
               @container (height:100px) { #content-box { background:red; } }
               @container (height:70px) { #border-box { background:red; } }
             </style>
             <section style="width:200px;min-height:100px;container-type:size">
-              <div id="content-box" style="width:20px;height:20px;background:blue"></div>
+              <div id="content-box" style="width:20px;height:20px"></div>
             </section>
             <section style="box-sizing:border-box;width:200px;min-height:100px;padding:10px;border:5px solid black;container-type:size">
-              <div id="border-box" style="width:20px;height:20px;background:blue"></div>
+              <div id="border-box" style="width:20px;height:20px"></div>
             </section>
             """;
 
@@ -538,10 +545,10 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRendering_SizeContainerPercentageHeightUsesItsDefiniteContainingBlock() {
         const string html = """
-            <style>@container (height:100px) { #item { background:red; } }</style>
+            <style>#item{background:blue}@container (height:100px) { #item { background:red; } }</style>
             <section style="height:200px">
               <div style="width:120px;height:50%;container-type:size">
-                <div id="item" style="width:40px;height:20px;background:blue"></div>
+                <div id="item" style="width:40px;height:20px"></div>
               </div>
             </section>
             """;
@@ -556,14 +563,15 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_SizeContainerDerivesItsContentHeightFromWidthAndAspectRatio() {
         const string html = """
             <style>
+              #content-box,#border-box{background:blue}
               @container (height:100px) { #content-box { background:red; } }
               @container (height:70px) { #border-box { background:red; } }
             </style>
             <section style="width:200px;aspect-ratio:2;container-type:size">
-              <div id="content-box" style="width:20px;height:20px;background:blue"></div>
+              <div id="content-box" style="width:20px;height:20px"></div>
             </section>
             <section style="box-sizing:border-box;width:200px;aspect-ratio:2;padding:10px;border:5px solid black;container-type:size">
-              <div id="border-box" style="width:20px;height:20px;background:blue"></div>
+              <div id="border-box" style="width:20px;height:20px"></div>
             </section>
             """;
 

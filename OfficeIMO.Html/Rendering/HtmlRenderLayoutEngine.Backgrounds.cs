@@ -84,11 +84,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0) {
             BackgroundPaintBox colorBox = ResolveBackgroundBox(
                 style.BackgroundColorClip, x, y, width, height, borderInsets, style, radii);
-            OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
-            fill.FillColor = style.BackgroundColor;
-            fill.StrokeWidth = 0D;
-            visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
-                canExtendFragmentBackground: CanExtendBoxBackgroundThroughFragmentSlack(style, fill)));
+            if (colorBox.Width > 0D && colorBox.Height > 0D) {
+                OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
+                fill.FillColor = style.BackgroundColor;
+                fill.StrokeWidth = 0D;
+                visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
+                    canExtendFragmentBackground: CanExtendBoxBackgroundThroughFragmentSlack(style, fill)));
+            }
         }
 
         AddBackgroundImages(visuals, style, x, y, width, height, borderInsets, radii, source, diagnosticSourceDescription, visualSourceDescription);
@@ -177,6 +179,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string layerVisualSource = visualSourceDescription + ":background-image" + layerSuffix;
         BackgroundPaintBox originBox = ResolveBackgroundBox(layer.Origin, x, y, width, height, borderInsets, style, radii);
         BackgroundPaintBox clipBox = ResolveBackgroundBox(layer.Clip, x, y, width, height, borderInsets, style, radii);
+        if (clipBox.Width <= 0D || clipBox.Height <= 0D) return;
         double areaX = originBox.X;
         double areaY = originBox.Y;
         double areaWidth = originBox.Width;
@@ -190,6 +193,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeConversionLossKind.Approximation);
         }
         if (layer.LinearGradient != null || layer.RadialGradient != null || layer.ConicGradient != null) {
+            if (areaWidth <= 0D || areaHeight <= 0D) return;
             AddGradientBackground(
                 visuals,
                 style,
@@ -431,8 +435,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             left += style.PaddingLeft;
         }
 
-        double boxWidth = Math.Max(0.01D, width - left - right);
-        double boxHeight = Math.Max(0.01D, height - top - bottom);
+        double boxWidth = Math.Max(0D, width - left - right);
+        double boxHeight = Math.Max(0D, height - top - bottom);
         return new BackgroundPaintBox(
             x + left,
             y + top,
