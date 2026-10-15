@@ -10,6 +10,8 @@ Publish and verify the matching signed NuGet tool before distributing a plugin t
 
 The Agent Plugin Package workflow verifies the public package version and embedded ownership marker before attaching the ZIP and SHA-256 sidecar. It also publishes the verified ZIP contents at the root of the generated `agent-plugin` branch through PowerForge's shared publication action. The product branch owns the sources; do not edit the generated branch. Publication preserves branch history, rejects version rollback or changed same-version payloads, and treats an identical retry as complete. Qualify client installation separately; an attached ZIP establishes artifact availability.
 
+The release gate also verifies the NuGet signature against Evotec's author certificate SHA-256 fingerprint. When changing the release signing certificate, update that public fingerprint in the workflow and qualify the signed package before publication. Routine validation reads certificate metadata and uses existing signed packages; it does not access a private signing key.
+
 Verify the following on the stable candidate:
 
 - PowerForge `agent-plugin validate` and `pack` against `OfficeIMO.Tool.csproj`, plus an independent checksum and archive-content check.

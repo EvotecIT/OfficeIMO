@@ -77,6 +77,8 @@ jobs:
           curl --fail --silent --show-error --location --max-time 120 --retry 3 --output "$package" \
             "https://api.nuget.org/v3-flatcontainer/officeimo.tool/$version/officeimo.tool.$version.nupkg"
           python Build/validate_mcp_registry.py package "$package" --expected-version "$version"
+          dotnet nuget verify "$package" --all \
+            --certificate-fingerprint D13C03BFEEC0CBF7FD0E0E7FFAF3F3D2076E62B1AF64665E806917B9191CFFDE
       - name: Validate and package the plugin
         env:
           PLUGIN_OUTPUT: ${{ runner.temp }}/officeimo-agent-plugin
