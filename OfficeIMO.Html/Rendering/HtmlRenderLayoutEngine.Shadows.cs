@@ -25,7 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double shadowWidth = width + layer.SpreadRadius * 2D;
             double shadowHeight = height + layer.SpreadRadius * 2D;
             if (shadowWidth <= 0.0001D || shadowHeight <= 0.0001D) continue;
-            HtmlResolvedBorderRadii shadowRadii = radii.Expand(layer.SpreadRadius, shadowWidth, shadowHeight);
+            HtmlResolvedBorderRadii shadowRadii = radii.ExpandShadow(layer.SpreadRadius, shadowWidth, shadowHeight);
             OfficeShape carrier = CreateBoxShape(shadowWidth, shadowHeight, shadowRadii);
             carrier.FillColor = null;
             carrier.StrokeColor = null;
@@ -172,7 +172,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var commands = new List<OfficePathCommand>();
         AppendRoundedContour(commands, 0D, 0D, width, height, radii.Normalize(width, height));
         if (innerWidth > 0.0001D && innerHeight > 0.0001D) {
-            HtmlResolvedBorderRadii innerRadii = radii.Inset(inset, inset, inset, inset, innerWidth, innerHeight);
+            HtmlResolvedBorderRadii innerRadii = inset < 0D
+                ? radii.ExpandShadow(-inset, innerWidth, innerHeight)
+                : radii.Inset(inset, inset, inset, inset, innerWidth, innerHeight);
             AppendRoundedContour(commands, innerX, innerY, innerWidth, innerHeight, innerRadii);
         }
 
