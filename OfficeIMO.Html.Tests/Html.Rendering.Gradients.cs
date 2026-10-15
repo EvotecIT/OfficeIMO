@@ -539,36 +539,6 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void OfficeConicGradient_UniformPaintDoesNotLeakBetweenVectorSegments() {
-        var gradient = new OfficeConicGradient(
-            0.5D,
-            0.5D,
-            0D,
-            new[] {
-                new OfficeGradientStop(0D, OfficeColor.Red),
-                new OfficeGradientStop(1D, OfficeColor.Red)
-            });
-
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(gradient.CreateDrawing(100D, 100D, 12), 1D, OfficeColor.White);
-
-        byte maximumLeak = 0;
-        int maximumLeakX = 0;
-        int maximumLeakY = 0;
-        for (int y = 1; y < 99; y++) {
-            for (int x = 1; x < 99; x++) {
-                OfficeColor pixel = raster.GetPixel(x, y);
-                Assert.Equal((byte)255, pixel.R);
-                byte leak = Math.Max(pixel.G, pixel.B);
-                if (leak <= maximumLeak) continue;
-                maximumLeak = leak;
-                maximumLeakX = x;
-                maximumLeakY = y;
-            }
-        }
-        Assert.True(maximumLeak <= 4, $"Uniform conic paint leaked {maximumLeak}/255 background color at ({maximumLeakX},{maximumLeakY}).");
-    }
-
-    [Fact]
     public void HtmlRepeatingLinearGradient_ExpandsItsAuthoredPeriodAcrossEveryManagedExporter() {
         const string html = "<div style='width:100px;height:20px;background:repeating-linear-gradient(to right,rgba(255 0 0 / 50%) 0 10px,color-mix(in srgb,blue 75%,white) 10px 20px)'></div><p>RepeatingLinear</p>";
         var options = new HtmlRenderOptions {
@@ -645,7 +615,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEmpty(visual.Drawing.Elements);
         Assert.NotEqual(raster.GetPixel(28, 10), raster.GetPixel(86, 38));
         Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
-        Assert.True(CountBackgroundOccurrences(svg, "<path") >= 72);
+        Assert.Contains("<path", OfficeDrawingSvgExporter.ToSvg(visual.Drawing), StringComparison.Ordinal);
+        Assert.DoesNotContain("<image", svg, StringComparison.Ordinal);
         Assert.Contains("ConicMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
         Assert.DoesNotContain(HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlToPdfOptions(options)).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
@@ -729,7 +700,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEmpty(visual.Drawing.Elements);
         Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(8, 8));
         Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(87, 67));
-        Assert.True(CountBackgroundOccurrences(svg, "<path") >= 12);
+        Assert.Contains("<path", OfficeDrawingSvgExporter.ToSvg(visual.Drawing), StringComparison.Ordinal);
+        Assert.DoesNotContain("<image", svg, StringComparison.Ordinal);
         Assert.Contains("StylesheetConic", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }

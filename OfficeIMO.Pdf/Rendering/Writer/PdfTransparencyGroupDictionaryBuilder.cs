@@ -14,7 +14,8 @@ internal static class PdfTransparencyGroupDictionaryBuilder {
         IReadOnlyList<(string Name, int Id)> xObjects,
         IReadOnlyList<(string Name, int Id)> graphicsStates,
         IReadOnlyList<(string Name, int Id)> shadings,
-        int? structParents = null) {
+        int? structParents = null,
+        bool deviceRgbColorSpace = false) {
         ValidateFinite(left, nameof(left));
         ValidateFinite(bottom, nameof(bottom));
         ValidateFinite(right, nameof(right));
@@ -30,9 +31,10 @@ internal static class PdfTransparencyGroupDictionaryBuilder {
         string structureEntry = structParents.HasValue
             ? " /StructParents " + structParents.Value.ToString(CultureInfo.InvariantCulture)
             : string.Empty;
+        string colorSpaceEntry = deviceRgbColorSpace ? " /CS /DeviceRGB" : string.Empty;
         return "<< /Type /XObject /Subtype /Form /FormType 1 /BBox ["
             + Format(left) + " " + Format(bottom) + " " + Format(right) + " " + Format(top)
-            + "] /Group << /S /Transparency /I true /K false >> /Resources <<"
+            + "] /Group << /S /Transparency /I true /K false" + colorSpaceEntry + " >> /Resources <<"
             + resources + " >>" + structureEntry + " /Length " + contentLength.ToString(CultureInfo.InvariantCulture) + " >>";
     }
 

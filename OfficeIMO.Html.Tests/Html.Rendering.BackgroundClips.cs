@@ -92,8 +92,7 @@ public sealed partial class HtmlRenderingTests {
         ViewportWidth = 120D,
         ViewportHeight = 100D,
         Margins = HtmlRenderMargins.All(0D),
-        BackgroundColor = OfficeColor.White,
-        ConicGradientQualitySegments = 16
+        BackgroundColor = OfficeColor.White
     };
 
     private static void AssertBackgroundClipPixels(OfficeRasterImage raster) {

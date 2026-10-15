@@ -587,6 +587,7 @@ internal static partial class PdfWriter {
                     ? GetPrintColorTransform(pageOpts)
                     : null;
                 foreach (var shading in page.Shadings) {
+                    PdfPrintColorTransform? resourceColorTransform = shading.IsOpacityData ? null : shadingColorTransform;
                     string shadingObject = shading.SpreadMode != OfficeGradientSpreadMode.Pad ? string.Empty : shading.IsRadial
                         ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
                             shading.X0,
@@ -596,21 +597,21 @@ internal static partial class PdfWriter {
                             shading.Y1,
                             shading.R1,
                             shading.Stops,
-                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation)
+                            resourceColorTransform, colorInterpolation: shading.ColorInterpolation)
                         : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
                             shading.X0,
                             shading.Y0,
                             shading.X1,
                             shading.Y1,
                             shading.Stops,
-                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation);
+                            resourceColorTransform, colorInterpolation: shading.ColorInterpolation);
                     int shadingId;
                     if (shading.SpreadMode != OfficeGradientSpreadMode.Pad) {
-                        shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false, shadingColorTransform);
+                        shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false, resourceColorTransform);
                     } else shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                     AddGradientAlphaResources(objects, shading, graphicsStates);
-                    AddRadialPadResources(objects, shading, shadingId, xobjects, shadingColorTransform, cancellationToken);
+                    AddRadialPadResources(objects, shading, shadingId, xobjects, resourceColorTransform, cancellationToken);
                 }
             }
 
@@ -631,12 +632,12 @@ internal static partial class PdfWriter {
                 for (int i = 0; i < page.Images.Count; i++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     var img = page.Images[i];
-                    ApplyPlacementAwareImageOptimization(img, opts, optimizedImageCache, cancellationToken);
+                    if (!img.IsOpacityData) ApplyPlacementAwareImageOptimization(img, opts, optimizedImageCache, cancellationToken);
                     if (!TryBuildImageStream(img, out var imageStream, out string? unsupportedReason)) {
                         throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
                     }
 
-                    PdfPrintColorTransform? imageColorTransform = pageOpts.ConvertRasterImagesToPdfXPrintCondition
+                    PdfPrintColorTransform? imageColorTransform = pageOpts.ConvertRasterImagesToPdfXPrintCondition && !img.IsOpacityData
                         ? GetPrintColorTransform(pageOpts)
                         : null;
                     if (imageColorTransform != null) {
@@ -672,15 +673,18 @@ internal static partial class PdfWriter {
                 for (int effectIndex = 0; effectIndex < page.EffectGroups.Count; effectIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     PageEffectGroup effect = page.EffectGroups[effectIndex];
-                    if (effect.AlphaMask != null) {
-                        int maskStateId = AddObject(objects, "<< /Type /ExtGState /ca 1 /CA 1 /BM /Normal /SMask << /S /Alpha /G " +
-                            effect.AlphaMask.ObjectId.ToString(CultureInfo.InvariantCulture) + " 0 R >> >>");
+                    if (effect.SoftMask != null) {
+                        bool luminosityMask = effect.SoftMaskMode == OfficeSoftMaskMode.Luminosity;
+                        int maskStateId = AddObject(objects, "<< /Type /ExtGState /ca 1 /CA 1 /BM /Normal /SMask << /S /" +
+                            (luminosityMask ? "Luminosity" : "Alpha") + " /G " +
+                            effect.SoftMask.ObjectId.ToString(CultureInfo.InvariantCulture) + " 0 R" +
+                            (luminosityMask ? " /BC [0 0 0]" : string.Empty) + " >> >>");
                         effect.MaskGraphicsStateName = "GM" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
                         graphicsStates.Add(("/" + effect.MaskGraphicsStateName, maskStateId));
                     }
                     string effectContent = ReplaceInlineImageDrawTokens(layout.ReadContent(effect.Content), page.Images);
                     effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
-                    PdfPrintColorTransform? effectColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
+                    PdfPrintColorTransform? effectColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition && !effect.IsOpacityData
                         ? GetPrintColorTransform(pageOpts)
                         : null;
                     if (effectColorTransform != null) {
@@ -702,7 +706,8 @@ internal static partial class PdfWriter {
                         FilterPdfResources(effectContent, xobjects),
                         FilterPdfResources(effectContent, graphicsStates),
                         FilterPdfResources(effectContent, shadings),
-                        effect.StructParentIndex);
+                        effect.StructParentIndex,
+                        deviceRgbColorSpace: effect.IsOpacityData);
                     int effectId = AddStreamObject(objects, dictionary, effectBytes);
                     effect.Name = "/Fx" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
                     effect.ObjectId = effectId;

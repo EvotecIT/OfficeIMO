@@ -75,9 +75,14 @@ internal static partial class HtmlPdfRenderedConverter {
     private static bool TryGetRasterizedDrawingEffectReason(OfficeDrawing drawing, out string reason) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
             if (element is OfficeDrawingEffectGroup effectGroup) {
-                if (effectGroup.SoftMask != null) {
-                    reason = "a vector soft mask";
-                    return true;
+                if (effectGroup.SoftMask is OfficeDrawingSoftMask mask) {
+                    if (mask.Mode != OfficeSoftMaskMode.Luminosity ||
+                        mask.LuminosityStandard != OfficeSoftMaskLuminosityStandard.PdfDeviceRgb ||
+                        mask.BackdropColor.A != 0) {
+                        reason = "a vector soft mask";
+                        return true;
+                    }
+                    if (TryGetRasterizedDrawingEffectReason(mask.Drawing, out reason)) return true;
                 }
                 if (effectGroup.BlendMode != OfficeBlendMode.Normal) {
                     reason = "the " + effectGroup.BlendMode + " blend mode";
