@@ -116,6 +116,18 @@
       "minimumSsim": 0.973
     },
     {
+      "id": "widgets",
+      "description": "Form widgets without appearance streams and a stale appearance regenerated under NeedAppearances.",
+      "pdf": "widgets.pdf",
+      "pdfSha256": "89d3869c670d30b1e4ff9c3a054b39ee91c4c9428011430f41a8ee7c52b99747",
+      "baseline": "widgets.poppler.png",
+      "baselineSha256": "b88ceea633587d336860d9ab8bd087c6613e076d6d8b29e048843bf72f8d4fbe",
+      "measuredPsnr": 19.48,
+      "measuredSsim": 0.9269,
+      "minimumPsnr": 18.98,
+      "minimumSsim": 0.922
+    },
+    {
       "id": "strokes",
       "description": "Hairlines, sub-pixel rules, caps, joins, miter limits, dashes, rectangles and skewed pens.",
       "pdf": "strokes.pdf",

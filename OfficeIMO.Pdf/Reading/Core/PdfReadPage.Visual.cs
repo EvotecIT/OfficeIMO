@@ -2942,14 +2942,36 @@ public sealed partial class PdfReadPage {
         PdfDictionary annotation,
         out PdfStream stream,
         out bool synthesized) {
+        bool isWidget = string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "Widget", StringComparison.Ordinal);
+        PdfDictionary? acroForm = isWidget ? GetAcroForm() : null;
+        // NeedAppearances asks viewers to regenerate variable-text widget appearances from the field values.
+        if (acroForm != null && ResolveObject(acroForm.Items.TryGetValue("NeedAppearances", out PdfObject? needAppearances) ? needAppearances : null) is PdfBoolean { Value: true } &&
+            PdfFormFiller.IsVariableTextWidget(_objects, annotation) &&
+            PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream)) {
+            synthesized = true;
+            return true;
+        }
+
         if (TryGetNormalAppearanceStream(annotation, out stream)) {
             synthesized = false;
             return true;
         }
 
+        // A widget whose appearance dictionary lacks the current state intentionally paints nothing.
+        if (isWidget) {
+            synthesized = !annotation.Items.ContainsKey("AP") &&
+                PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream);
+            return synthesized;
+        }
+
         synthesized = PdfAnnotationFlattener.TryCreateSyntheticAppearanceStream(_objects, annotation, out stream);
         return synthesized;
     }
+
+    private PdfDictionary? GetAcroForm() =>
+        _acroForm.GetOrCreate(this, static (page, cancellationToken) => page.ResolveDictionary(
+            PdfSyntax.FindCatalog(page._objects, cancellationToken: cancellationToken) is PdfDictionary catalog &&
+            catalog.Items.TryGetValue("AcroForm", out PdfObject? acroForm) ? acroForm : null));
 
     private bool TryGetNormalAppearanceStream(PdfDictionary annotation, out PdfStream stream) {
         stream = null!;

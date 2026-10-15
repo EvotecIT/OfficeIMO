@@ -102,7 +102,7 @@ public sealed class PdfRendererFidelityTests {
         byte[] pdf = BuildPdf("0 0 1 rg 0 0 612 792 re f", "<< >>", mediaBox: "0 0 612 792");
         OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0]
             .ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 150D });
-        OfficeRasterImage image = PdfRendererQualitySupport.Decode(result.Bytes);
+        OfficeRasterImage image = PdfRendererQualitySupport.Decode(result.Bytes!);
         Assert.Equal((1275, 1650), (image.Width, image.Height));
         AssertColor(image, 1274, 1649, 0, 0, 255);
     }
@@ -112,6 +112,58 @@ public sealed class PdfRendererFidelityTests {
         byte[] pdf = BuildPdf("BT /F1 12 Tf 10 50 Td (abg\\245) Tj ET",
             "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Symbol >> >> >>");
         Assert.Contains("αβγ∞", PdfReadDocument.Open(pdf).Pages[0].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WidgetsWithoutAppearancesAreSynthesizedFromTheirFields() {
+        PdfPageRenderResult result = RenderWidgets(needAppearances: false,
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (name) /V (Hello) /Rect [10 60 90 80] /P 3 0 R " +
+            "/DA (/Helv 12 Tf 0 0 1 rg) /MK << /BG [1 1 0] /BC [1 0 0] >> >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Btn /T (check) /V /Yes /AS /Yes /Rect [10 10 40 40] /P 3 0 R /MK << /BC [0 0 0] >> >>");
+        OfficeRasterImage image = PdfRendererQualitySupport.Decode(result.Bytes!);
+
+        AssertColor(image, 85, 100 - 63, 255, 255, 0);
+        Assert.True(CountPixels(image, 12, 20, 60, 40, color => color.B > 128 && color.R < 128) > 20, "Expected blue field text.");
+        Assert.True(CountPixels(image, 14, 62, 36, 86, color => Luma(color) < 96D) > 20, "Expected a check mark.");
+        Assert.Contains(result.CapabilityDiagnostics, static diagnostic =>
+            diagnostic.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId && diagnostic.Subject == "Widget[0]");
+        Assert.DoesNotContain(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == PdfRenderCapabilities.AnnotationAppearanceId);
+    }
+
+    [Fact]
+    public void NeedAppearancesRegeneratesStaleTextWidgetAppearances() {
+        PdfPageRenderResult result = RenderWidgets(needAppearances: true,
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (name) /V (Hello) /Rect [10 60 90 80] /P 3 0 R " +
+            "/DA (/Helv 12 Tf 0 g) /AP << /N 7 0 R >> >>");
+        OfficeRasterImage image = PdfRendererQualitySupport.Decode(result.Bytes!);
+
+        AssertColor(image, 85, 100 - 63, 255, 255, 255);
+        Assert.True(CountPixels(image, 12, 20, 60, 40, color => Luma(color) < 96D) > 20, "Expected regenerated field text.");
+        Assert.Contains(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId);
+    }
+
+    private static PdfPageRenderResult RenderWidgets(bool needAppearances, params string[] widgets) {
+        var objects = new List<(string, byte[])>();
+        var references = new StringBuilder();
+        foreach (string widget in widgets) {
+            references.Append(' ').Append((5 + objects.Count).ToString(CultureInfo.InvariantCulture)).Append(" 0 R");
+            objects.Add((widget, Array.Empty<byte>()));
+        }
+        // A stale appearance that would paint the whole field red.
+        while (objects.Count < 2) objects.Add(("<< >>", Array.Empty<byte>()));
+        byte[] stale = Encoding.ASCII.GetBytes("1 0 0 rg 0 0 80 20 re f");
+        objects.Add(("<< /Type /XObject /Subtype /Form /BBox [0 0 80 20] /Length " + stale.Length.ToString(CultureInfo.InvariantCulture) + " >>", stale));
+        string acroForm = "/AcroForm << /Fields [" + references + " ] /DA (/Helv 0 Tf 0 g) " +
+            "/DR << /Font << /Helv << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >> >> >>" +
+            (needAppearances ? " /NeedAppearances true" : string.Empty) + " >>";
+        byte[] pdf = BuildPdf(string.Empty, "<< >>", objects: objects, catalogEntries: acroForm, pageEntries: "/Annots [" + references + " ]");
+        return Assert.Single(PdfPageImageRenderer.RenderPages(pdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72D }));
+    }
+
+    private static int CountPixels(OfficeRasterImage image, int left, int top, int right, int bottom, Func<OfficeColor, bool> predicate) {
+        int count = 0;
+        for (int y = top; y < bottom; y++) for (int x = left; x < right; x++) if (predicate(image.GetPixel(x, y))) count++;
+        return count;
     }
 
     private static OfficeRasterImage Image(int width, int height, string colorSpace, int bits, byte[] data,
@@ -141,18 +193,22 @@ public sealed class PdfRendererFidelityTests {
     }
 
     private static byte[] BuildPdf(string content, string resources, string mediaBox = "0 0 100 100",
-        IReadOnlyList<(string Dictionary, byte[] Data)>? objects = null) {
+        IReadOnlyList<(string Dictionary, byte[] Data)>? objects = null, string catalogEntries = "", string pageEntries = "") {
         using var pdf = new MemoryStream();
         void Ascii(string text) => pdf.Write(Encoding.ASCII.GetBytes(text));
-        Ascii("%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        Ascii("%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R " + catalogEntries + " >>\nendobj\n");
         Ascii("2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [" + mediaBox + "] >>\nendobj\n");
-        Ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources " + resources + " /Contents 4 0 R >>\nendobj\n");
+        Ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources " + resources + " /Contents 4 0 R " + pageEntries + " >>\nendobj\n");
         Ascii("4 0 obj\n<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + content + "\nendstream\nendobj\n");
         if (objects != null) {
             for (int index = 0; index < objects.Count; index++) {
-                Ascii((5 + index).ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + objects[index].Dictionary + "\nstream\n");
-                pdf.Write(objects[index].Data);
-                Ascii("\nendstream\nendobj\n");
+                Ascii((5 + index).ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + objects[index].Dictionary);
+                if (objects[index].Data.Length > 0) {
+                    Ascii("\nstream\n");
+                    pdf.Write(objects[index].Data);
+                    Ascii("\nendstream");
+                }
+                Ascii("\nendobj\n");
             }
         }
         Ascii("trailer\n<< /Root 1 0 R >>\n%%EOF\n");

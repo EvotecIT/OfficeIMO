@@ -467,6 +467,40 @@ def page_jbig2(path):
     pdf.write(path, root)
 
 
+def page_widgets(path):
+    pdf = Pdf()
+    ttf = fonts.font_bytes(fonts.build_ttf('OIMOTestTT'))
+    program = pdf.stream(ttf, '/Length1 %d' % len(ttf))
+    descriptor = pdf.add('<< /Type /FontDescriptor /FontName /OIMOTestTT /Flags 32 /FontBBox [0 -50 760 900] '
+                         '/ItalicAngle 0 /Ascent 900 /Descent -200 /CapHeight 700 /StemV 100 /FontFile2 %d 0 R >>' % program)
+    win = {code: name for name, code in CODES.items() if name not in ('acute', 'Aacute')}
+    font = pdf.add('<< /Type /Font /Subtype /TrueType /BaseFont /OIMOTestTT /FirstChar 32 /LastChar 90 /Widths %s '
+                   '/Encoding /WinAnsiEncoding /FontDescriptor %d 0 R >>' % (simple_widths(32, 90, win), descriptor))
+    content_ref = pdf.stream('0.85 0.85 0.85 RG 1 w 10 10 340 220 re S')
+    pages = pdf.reserve()
+    page = pdf.reserve()
+    stale = pdf.stream('0.9 0.1 0.1 rg 0 0 200 30 re f', '/Type /XObject /Subtype /Form /BBox [0 0 200 30]')
+    widgets = [
+        # No appearance: value, default appearance and /MK colours.
+        '/FT /Tx /T (total) /V (TOTAL 12.) /Rect [24 180 224 210] /DA (/F1 14 Tf 0 0 0.6 rg) '
+        '/MK << /BG [1 1 0.8] /BC [0.8 0 0] >>',
+        # No appearance, right-aligned, inherited DA from the AcroForm.
+        '/FT /Tx /T (code) /V (HOLD 21) /Q 2 /Rect [24 130 224 160] /MK << /BC [0 0 0] >>',
+        # A stale appearance that NeedAppearances replaces.
+        '/FT /Tx /T (stale) /V (DATE) /Rect [24 80 224 110] /DA (/F1 12 Tf 0 g) /AP << /N %d 0 R >>' % stale,
+    ]
+    refs = []
+    for body in widgets:
+        refs.append(pdf.add('<< /Type /Annot /Subtype /Widget /F 4 /P %d 0 R %s >>' % (page, body)))
+    annots = ' '.join('%d 0 R' % ref for ref in refs)
+    pdf.add('<< /Type /Page /Parent %d 0 R /MediaBox [0 0 360 240] /Contents %d 0 R /Resources << >> /Annots [%s] >>'
+            % (pages, content_ref, annots), page)
+    pdf.add('<< /Type /Pages /Kids [%d 0 R] /Count 1 >>' % page, pages)
+    root = pdf.add('<< /Type /Catalog /Pages %d 0 R /AcroForm << /Fields [%s] /NeedAppearances true '
+                   '/DA (/F1 12 Tf 0 g) /DR << /Font << /F1 %d 0 R >> >> >> >>' % (pages, annots, font))
+    pdf.write(path, root)
+
+
 PAGES = [
     ('fonts-type1', page_type1, 'Embedded Type 1 (FontFile): eexec, subrs, flex, hint replacement, div, seac, built-in encoding and Differences.'),
     ('fonts-type1c', page_type1c, 'Embedded CFF (FontFile3 Type1C) with WinAnsi and Differences, and as a CIDFontType0C program.'),
@@ -477,6 +511,7 @@ PAGES = [
     ('images', page_images, 'Image sampling and formats: downscaled fine patterns, magnification with and without Interpolate, 1/2/4/16-bit RGB and CMYK, resized soft masks, Matte and rotation.'),
     ('jbig2', page_jbig2, 'JBIG2 generic regions (templates 0 to 3, typical prediction, adaptive pixels), MMR, and a text region over a global symbol dictionary.'),
     ('shadings', page_shadings, 'Shading types 1 to 7 with Extend, BBox, non-nested radial circles, Gouraud, lattice, Coons and tensor meshes.'),
+    ('widgets', page_widgets, 'Form widgets without appearance streams and a stale appearance regenerated under NeedAppearances.'),
     ('strokes', page_strokes, 'Hairlines, sub-pixel rules, caps, joins, miter limits, dashes, rectangles and skewed pens.'),
 ]
 
@@ -529,7 +564,7 @@ def main():
             'baselineSha256': png_hash,
         }
         old = previous.get(page_id, {})
-        for key in ('minimumPsnr', 'minimumSsim', 'measuredPsnr', 'measuredSsim'):
+        for key in ('measuredPsnr', 'measuredSsim', 'minimumPsnr', 'minimumSsim'):
             if key in old and old.get('pdfSha256') == pdf_hash:
                 entry[key] = old[key]
         pages.append(entry)

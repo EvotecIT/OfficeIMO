@@ -161,7 +161,7 @@ public static class PdfRenderCapabilities {
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfRenderCapability> BuildRegistry() {
         var entries = new[] {
             Entry("render.annotation.appearance", "annotation", "Annotation appearance streams", PdfRenderSupportLevel.Supported, "Annotation appearance streams are projected when present."),
-            Entry(SynthesizedAnnotationAppearanceId, "annotation", "Synthesized annotation appearances", PdfRenderSupportLevel.Simplified, "A bounded appearance was synthesized from supported annotation geometry and style because the annotation did not provide a usable appearance stream."),
+            Entry(SynthesizedAnnotationAppearanceId, "annotation", "Synthesized annotation appearances", PdfRenderSupportLevel.Simplified, "A bounded appearance was synthesized from supported annotation geometry and style, or from a form field's value, default appearance and border colours, because the annotation did not provide a usable appearance stream or the AcroForm sets NeedAppearances."),
             Entry(AnnotationAppearanceId, "annotation", "Annotations without appearance streams", PdfRenderSupportLevel.Unsupported, "The annotation is skipped because it has no usable appearance stream."),
             Entry("render.colorspace.device", "color", "DeviceGray, DeviceRGB, and DeviceCMYK", PdfRenderSupportLevel.Supported, "Device color spaces are projected to shared Drawing colors."),
             Entry("render.colorspace.calibrated", "color", "CalGray, CalRGB, and Lab color spaces", PdfRenderSupportLevel.Simplified, "Calibrated colors are projected through managed device-color approximations."),
