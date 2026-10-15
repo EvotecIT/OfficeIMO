@@ -200,6 +200,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         shape.StrokeColor = color;
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = MapStrokeDashStyle(style);
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
         visuals.Add(new HtmlRenderShape(shape, x - expansion, y - expansion, visuals.Count, source: source));
     }
 
