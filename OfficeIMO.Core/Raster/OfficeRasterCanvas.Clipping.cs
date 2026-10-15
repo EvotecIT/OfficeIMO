@@ -106,7 +106,7 @@ public sealed partial class OfficeRasterCanvas {
     // Renders contours into an alpha mask covering the given device bounds with the canvas's own coverage filler.
     private byte[] RasterizeClipMask(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule,
         int left, int top, int width, int height) {
-        _transformedTextBudget.ChargeIntermediateSurfacePixels((long)width * height);
+        // The mask lies within the canvas, so its transient surface is bounded by the output allocation.
         var image = new OfficeRasterImage(width, height);
         var maskCanvas = new OfficeRasterCanvas(image, font: null, fonts: null, cancellationToken: _cancellationToken);
         var shifted = new List<IReadOnlyList<OfficePoint>>(contours.Count);
@@ -219,6 +219,25 @@ public sealed partial class OfficeRasterCanvas {
         private byte[]? _mask;
         private int _maskLeft, _maskTop, _maskWidth, _maskHeight;
         private bool _maskBuilt;
+        private OfficeRasterClipRectangle? _maskRectangle;
+
+        private static bool TryGetAxisAlignedRectangle(IReadOnlyList<IReadOnlyList<OfficePoint>> contours,
+            out double left, out double top, out double right, out double bottom) {
+            left = top = right = bottom = 0D;
+            if (contours.Count != 1) return false;
+            IReadOnlyList<OfficePoint> points = contours[0];
+            int count = points.Count;
+            if (count == 5 && points[0].X == points[4].X && points[0].Y == points[4].Y) count = 4;
+            if (count != 4) return false;
+            left = right = points[0].X; top = bottom = points[0].Y;
+            for (int index = 0; index < 4; index++) {
+                OfficePoint current = points[index], next = points[(index + 1) % 4];
+                if (current.X != next.X && current.Y != next.Y) return false;
+                left = Math.Min(left, current.X); right = Math.Max(right, current.X);
+                top = Math.Min(top, current.Y); bottom = Math.Max(bottom, current.Y);
+            }
+            return right > left && bottom > top;
+        }
 
         private OfficeRasterClipRegion(OfficeRasterClipRectangle? rectangle, IReadOnlyList<IReadOnlyList<OfficePoint>>? contours, OfficeFillRule fillRule, OfficeRasterClipRegion? previous) {
             _rectangle = rectangle;
@@ -277,6 +296,7 @@ public sealed partial class OfficeRasterCanvas {
             if (previous <= 0D) return 0D;
             if (_rectangle.HasValue) return previous * _rectangle.Value.Coverage(x, y);
             if (!_maskBuilt) BuildMask(canvas);
+            if (_maskRectangle.HasValue) return previous * _maskRectangle.Value.Coverage(x, y);
             if (_mask == null) return 0D;
             int column = x - _maskLeft, row = y - _maskTop;
             if ((uint)column >= (uint)_maskWidth || (uint)row >= (uint)_maskHeight) return 0D;
@@ -286,6 +306,10 @@ public sealed partial class OfficeRasterCanvas {
         private void BuildMask(OfficeRasterCanvas canvas) {
             _maskBuilt = true;
             if (_contours == null || _contours.Count == 0) return;
+            if (TryGetAxisAlignedRectangle(_contours, out double rectLeft, out double rectTop, out double rectRight, out double rectBottom)) {
+                _maskRectangle = OfficeRasterClipRectangle.FromFractionalBounds(rectLeft, rectTop, rectRight - rectLeft, rectBottom - rectTop);
+                return;
+            }
             double left = double.PositiveInfinity, top = double.PositiveInfinity, right = double.NegativeInfinity, bottom = double.NegativeInfinity;
             foreach (IReadOnlyList<OfficePoint> contour in _contours) {
                 if (contour.Count < 3) continue;

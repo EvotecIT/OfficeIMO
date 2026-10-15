@@ -12,6 +12,7 @@ internal sealed class PdfFunctionShading {
     private readonly Func<int, bool> _consumeWork;
     private readonly CancellationToken _cancellationToken;
     private readonly OfficeTransform _inverse;
+    private readonly OfficeTransform _forward;
     private readonly double[] _domain;
     private readonly double[]? _bounds;
     private int _evaluationCost;
@@ -24,6 +25,7 @@ internal sealed class PdfFunctionShading {
         RasterScale = rasterScale; ChargePixels = chargePixels;
         _functions = (PdfColorFunction[])functions.Clone();
         _colorSpace = colorSpace; _domain = (double[])domain.Clone();
+        _forward = matrix;
         _inverse = matrix.Invert(); _bounds = bounds == null ? null : (double[])bounds.Clone();
         _intent = intent; _outputIntent = outputIntent; _consumeWork = consumeWork;
         _cancellationToken = cancellationToken;
@@ -48,6 +50,24 @@ internal sealed class PdfFunctionShading {
     private readonly double[]? _background;
 
     internal PdfDictionary? SourceDictionary { get; }
+
+    /// <summary>Shading-space bounds of the painted field (BBox, mesh extent or the function domain), or null when unbounded.</summary>
+    internal double[]? PaintBounds {
+        get {
+            double[]? bounds = _bounds;
+            double[]? sampled = _sampler?.PaintBounds;
+            if (_sampler == null && !double.IsInfinity(_domain[0])) {
+                var corners = new[] {
+                    _forward.TransformPoint(new OfficePoint(_domain[0], _domain[2])), _forward.TransformPoint(new OfficePoint(_domain[1], _domain[2])),
+                    _forward.TransformPoint(new OfficePoint(_domain[0], _domain[3])), _forward.TransformPoint(new OfficePoint(_domain[1], _domain[3]))
+                };
+                sampled = new[] { corners.Min(static p => p.X), corners.Min(static p => p.Y), corners.Max(static p => p.X), corners.Max(static p => p.Y) };
+            }
+            if (bounds == null) return sampled;
+            if (sampled == null) return bounds;
+            return new[] { Math.Max(bounds[0], sampled[0]), Math.Max(bounds[1], sampled[1]), Math.Min(bounds[2], sampled[2]), Math.Min(bounds[3], sampled[3]) };
+        }
+    }
 
     internal CancellationToken CancellationToken => _cancellationToken;
     internal double RasterScale { get; }

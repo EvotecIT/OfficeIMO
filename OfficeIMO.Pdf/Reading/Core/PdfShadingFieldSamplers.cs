@@ -7,6 +7,9 @@ internal interface IPdfShadingFieldSampler {
 
     /// <summary>Writes the colour components at a point; returns false where the shading paints nothing.</summary>
     bool TrySampleComponents(double x, double y, double[] input, double[] components);
+
+    /// <summary>Shading-space bounds outside which nothing paints, or null for an unbounded field.</summary>
+    double[]? PaintBounds { get; }
 }
 
 /// <summary>Evaluates a parametric shading's colour functions at t.</summary>
@@ -50,6 +53,8 @@ internal sealed class PdfAxialShadingSampler : IPdfShadingFieldSampler {
 
     public int EvaluationCost => _functions.EvaluationCost;
 
+    public double[]? PaintBounds => null;
+
     public bool TrySampleComponents(double x, double y, double[] input, double[] components) {
         if (_lengthSquared <= 0D) return false;
         double s = ((x - _x0) * _dx + (y - _y0) * _dy) / _lengthSquared;
@@ -83,6 +88,8 @@ internal sealed class PdfRadialShadingSampler : IPdfShadingFieldSampler {
     }
 
     public int EvaluationCost => _functions.EvaluationCost;
+
+    public double[]? PaintBounds => null;
 
     public bool TrySampleComponents(double x, double y, double[] input, double[] components) {
         double px = x - _x0, py = y - _y0;
@@ -138,6 +145,7 @@ internal sealed class PdfMeshShadingSampler : IPdfShadingFieldSampler {
         int side = Math.Max(1, Math.Min(256, (int)Math.Sqrt(Math.Max(1, triangleCount))));
         _columns = side; _rows = side;
         _left = left; _top = top;
+        PaintBounds = new[] { left, top, right, bottom };
         _cellWidth = Math.Max((right - left) / _columns, 1e-9D);
         _cellHeight = Math.Max((bottom - top) / _rows, 1e-9D);
         var counts = new int[_columns * _rows];
@@ -167,6 +175,8 @@ internal sealed class PdfMeshShadingSampler : IPdfShadingFieldSampler {
     }
 
     public int EvaluationCost { get; }
+
+    public double[]? PaintBounds { get; }
 
     internal int TriangleCount => _triangles.Length / 3;
 
