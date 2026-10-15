@@ -108,4 +108,4 @@ public abstract partial class HtmlRenderVisual {
     }
 }
 
-internal enum HtmlRenderPaintPhase { Content, BlockBackground, Float, Atomic }
+internal enum HtmlRenderPaintPhase { Content, BlockBackground, Float, Atomic, Outline }
