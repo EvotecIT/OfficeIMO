@@ -449,7 +449,7 @@
         },
         {
           "id": "languages",
-          "title": "English, Polish, German and French",
+          "title": "English, Polish, German, French, Spanish, Italian and Brazilian Portuguese",
           "detail": "The interface in each language",
           "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
         },
@@ -469,8 +469,8 @@
   ],
   "roadmap": [
     {
-      "title": "The Apple apps catch up with the desktop",
-      "detail": "Bookmarks, shapes and comments, split and crop, conversion from PDF, form authoring, redaction, validation and document health, through the same engine.",
+      "title": "More native Apple document tools",
+      "detail": "Comment threads, document comparison, text and image editing, form-field authoring, visible certificate signatures and the document assistant.",
       "platforms": ["mac", "ipad", "iphone"],
       "anchor": "phase-7-native-apple-apps"
     },

@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define OFFICEIMO_ABI_VERSION 1
+#define OFFICEIMO_ABI_VERSION 2
 
 typedef enum officeimo_status {
     OFFICEIMO_OK = 0,
@@ -338,7 +338,8 @@ int32_t officeimo_document_acknowledge_save(officeimo_document document, const c
  * Writes the open revision with a password to open it, described as JSON:
  * { "path", "userPassword", "ownerPassword", "currentOwnerPassword", "allowPrinting", "allowCopying", "allowChanges" }
  * ownerPassword, when given, unlocks the permissions; the allow flags default to true. An empty userPassword writes the
- * document without the password it has instead. currentOwnerPassword is needed when the document was opened with its
+ * document without password protection. allowCopying=false disables both content copying and accessibility text extraction.
+ * currentOwnerPassword is needed when the document was opened with its
  * user password and its permissions forbid changing security. The document itself keeps its protection and location.
  */
 int32_t officeimo_document_save_protected_copy_json(officeimo_document document, const char *request,
@@ -426,11 +427,13 @@ int32_t officeimo_document_check_json(officeimo_document document, const char *r
  * Redaction, described as JSON naming exactly one of:
  *   "find": { "text", "regex", "matchCase", "pages" } -> { "marks": [ { "page", "bounds", "preview" } ] }: the found text's
  *     own glyphs, in points of the page as displayed; the document is unchanged.
- *   "apply": { "areas": [ { "page", "bounds" } ], "find", "include", "removedText", "sanitize" } -> { "verification":
+ *   "apply": { "revision", "areas": [ { "page", "bounds" } ], "find", "include", "removedText", "sanitize" } -> { "verification":
  *     { "verified", "removed", "residual", "inconclusive", "pages" } }: removes the text, images and drawings under each
  *     drawn area and each match of find (all of them, or the marks listed by index in include), paints them black and
  *     checks that the content is gone, as one undoable change. find is searched again on the same revision, so it keeps
- *     the exact glyphs. removedText, when given, must be absent afterwards; sanitize also removes metadata,
+ *     the exact glyphs. revision is required: use the find result's revision, or the document facts revision on which
+ *     drawn areas were reviewed. A missing or stale revision is rejected before mutation, including after undo/redo.
+ *     removedText, when given, must be absent afterwards; sanitize also removes metadata,
  *     attachments, actions and markup.
  * Returns { "abiVersion", "revision" } with marks or verification.
  */

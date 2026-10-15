@@ -268,8 +268,8 @@ struct RedactSheet: View {
             defer { isSearching = false }
             do {
                 let found = try await session.findRedactions(request.find)
-                guard request.matches(find, revision: session.revision) else { return }
-                marks = found
+                guard found.revision == request.revision, request.matches(find, revision: session.revision) else { return }
+                marks = found.marks ?? []
                 included = Set(marks.indices)
                 searched = request
             } catch {
@@ -280,7 +280,7 @@ struct RedactSheet: View {
 
     private func apply() {
         guard let searched, searched.matches(find, revision: session.revision) else { return }
-        session.redact(.init(find: searched.find, include: included.sorted(), removedText: searched.find.regex ? nil : searched.find.text, sanitize: sanitize))
+        session.redact(.init(revision: searched.revision, find: searched.find, include: included.sorted(), removedText: searched.find.regex ? nil : searched.find.text, sanitize: sanitize))
         dismiss()
     }
 }

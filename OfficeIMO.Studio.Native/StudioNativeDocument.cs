@@ -482,7 +482,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             } else {
                 PdfStandardPermissions allowed = PdfStandardPermissions.All;
                 if (!request.AllowPrinting) allowed &= ~(PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint);
-                if (!request.AllowCopying) allowed &= ~PdfStandardPermissions.CopyContents;
+                if (!request.AllowCopying) allowed &= ~(PdfStandardPermissions.CopyContents | PdfStandardPermissions.Accessibility);
                 if (!request.AllowChanges) {
                     allowed &= ~(PdfStandardPermissions.ModifyContents | PdfStandardPermissions.ModifyAnnotations |
                         PdfStandardPermissions.FillForms | PdfStandardPermissions.AssembleDocument);

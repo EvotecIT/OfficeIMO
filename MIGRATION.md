@@ -1,5 +1,9 @@
 # Upgrading OfficeIMO
 
+## Studio native redaction requests
+
+The native engine ABI is version 2. Redaction `apply` requests must include `revision`: use the revision returned by `find`, or the document facts revision on which drawn areas were reviewed. Requests without a revision or with a stale revision are rejected. After editing, reordering, undoing or redoing the document, find or mark the content again before applying redaction. Rebuild native hosts against the matching engine header and check `officeimo_abi_version()` at startup.
+
 ## Excel worksheet persistence and wrapping
 
 Worksheet layout, merges, filters, comments, table settings, formulas, headers/footers, conditional-formatting, view options, protection and text-replacement edits are committed by `ExcelDocument.Save(...)` or configured save-on-dispose. Call `Save` before reading the underlying package streams through the low-level Open XML API. Setters with an explicit `save` argument still honor it; pass `save: false` when applying row or column outlines repeatedly.

@@ -196,7 +196,8 @@ public sealed class StudioNativeReviewTests : IDisposable {
         StudioNativeRectangle name = Assert.Single((await document.RedactAsync(
             new(Find: new("Alex")), default)).Marks!).Bounds!;
         StudioNativeRedactionVerification result = (await document.RedactAsync(new(Apply: new(
-            [new(1, name with { X = name.X - 2, Y = name.Y - 2, Width = name.Width + 4, Height = name.Height + 4 })])), default)).Verification!;
+            [new(1, name with { X = name.X - 2, Y = name.Y - 2, Width = name.Width + 4, Height = name.Height + 4 })],
+            Revision: (await document.GetInfoAsync(default)).Revision)), default)).Verification!;
         Assert.True(result.Verified);
         Assert.DoesNotContain("Alex", await PageTextAsync(document, 1));
         Assert.Contains("Account", await PageTextAsync(document, 1));
@@ -215,7 +216,8 @@ public sealed class StudioNativeReviewTests : IDisposable {
         Assert.Equal(1, mark.Page);
 
         StudioNativeRedactionVerification verification = (await document.RedactAsync(new StudioNativeRedactionRequest(
-            Apply: new StudioNativeRedactionApply(Find: new StudioNativeRedactionFind("4111 1111"), Include: [0], RemovedText: "4111 1111")), default)).Verification!;
+            Apply: new StudioNativeRedactionApply(Find: new StudioNativeRedactionFind("4111 1111"), Include: [0], RemovedText: "4111 1111",
+                Revision: (await document.GetInfoAsync(default)).Revision)), default)).Verification!;
 
         Assert.True(verification.Verified);
         Assert.Equal([1], verification.Pages);
@@ -229,17 +231,21 @@ public sealed class StudioNativeReviewTests : IDisposable {
         StudioNativeRectangle name = Assert.Single((await document.RedactAsync(
             new StudioNativeRedactionRequest(Find: new StudioNativeRedactionFind("Alex")), default)).Marks!).Bounds!;
         StudioNativeRedactionVerification drawn = (await document.RedactAsync(new StudioNativeRedactionRequest(Apply: new StudioNativeRedactionApply(
-            [new StudioNativeRedactionMark(1, name with { X = name.X - 2, Y = name.Y - 2, Width = name.Width + 4, Height = name.Height + 4 })])), default)).Verification!;
+            [new StudioNativeRedactionMark(1, name with { X = name.X - 2, Y = name.Y - 2, Width = name.Width + 4, Height = name.Height + 4 })],
+            Revision: (await document.GetInfoAsync(default)).Revision)), default)).Verification!;
         Assert.True(drawn.Verified);
         text = await PageTextAsync(document, 1);
         Assert.DoesNotContain("Alex", text);
         Assert.Contains("Account", text);
         await document.UndoAsync(default);
 
+        long currentRevision = (await document.GetInfoAsync(default)).Revision;
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.RedactAsync(new StudioNativeRedactionRequest(
-            Apply: new StudioNativeRedactionApply([new StudioNativeRedactionMark(1, new StudioNativeRectangle(10, 10, 0, 5))])), default));
+            Apply: new StudioNativeRedactionApply([new StudioNativeRedactionMark(1, new StudioNativeRectangle(10, 10, 0, 5))],
+                Revision: currentRevision)), default));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.RedactAsync(new StudioNativeRedactionRequest(
-            Apply: new StudioNativeRedactionApply(Find: new StudioNativeRedactionFind("4111 1111"), Include: [3])), default));
+            Apply: new StudioNativeRedactionApply(Find: new StudioNativeRedactionFind("4111 1111"), Include: [3],
+                Revision: currentRevision)), default));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.RedactAsync(new StudioNativeRedactionRequest(), default));
     }
 }

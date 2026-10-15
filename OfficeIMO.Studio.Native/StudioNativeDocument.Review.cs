@@ -164,6 +164,9 @@ internal sealed partial class StudioNativeDocument {
             StudioNativeRedactionApply apply = request.Apply!;
             IReadOnlyList<StudioNativeRedactionMark> areas = apply.Areas ?? [];
             if (areas.Count == 0 && apply.Find is null) throw new ArgumentException("Mark at least one area to redact.", nameof(request));
+            long expectedRevision = apply.Revision ?? throw new ArgumentException("Include the revision on which the redaction was reviewed.", nameof(request));
+            if (expectedRevision != _workspace.Revision)
+                throw new InvalidOperationException("The document changed after this redaction was reviewed. Find or mark the content again before applying it.");
             if (!_workspace.CanRedact) throw new NotSupportedException("This document's pages can't be redacted.");
             PdfDocument snapshot = _workspace.CreateDocumentSnapshot();
             var planned = new List<PdfRedactionArea>(areas.Count);
@@ -193,7 +196,7 @@ internal sealed partial class StudioNativeDocument {
                 ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata | PdfSanitizationContentKind.EmbeddedFiles |
                     PdfSanitizationContentKind.Actions | PdfSanitizationContentKind.CommentsAndMarkup
             } : null;
-            PdfVerifiedRedactionResult verified = await _workspace.ApplyVerifiedRedactionAsync(plan, _workspace.Revision,
+            PdfVerifiedRedactionResult verified = await _workspace.ApplyVerifiedRedactionAsync(plan, expectedRevision,
                 string.IsNullOrWhiteSpace(apply.RemovedText) ? null : apply.RemovedText, cancellationToken, sanitizationOptions: sanitization).ConfigureAwait(false);
             PdfRedactionEvidenceReport evidence = verified.Evidence;
             return new StudioNativeRedactionResult(StudioNativeAbi.Version, _workspace.Revision, Verification: new StudioNativeRedactionVerification(
@@ -234,9 +237,9 @@ internal sealed record StudioNativeRedactionFind(string? Text, bool Regex = fals
 /// <summary>An area to redact, in points of the page as displayed; <c>preview</c> is the text a search found there.</summary>
 internal sealed record StudioNativeRedactionMark(int Page, StudioNativeRectangle? Bounds, string? Preview = null);
 
-/// <summary>Areas to redact: drawn <c>areas</c>, and the text <c>find</c> finds, all of it or the matches listed in <c>include</c>.</summary>
+/// <summary>Areas or search matches reviewed on the required <c>revision</c>; a stale selection is rejected before planning.</summary>
 internal sealed record StudioNativeRedactionApply(IReadOnlyList<StudioNativeRedactionMark>? Areas = null, StudioNativeRedactionFind? Find = null,
-    IReadOnlyList<int>? Include = null, string? RemovedText = null, bool Sanitize = false);
+    IReadOnlyList<int>? Include = null, string? RemovedText = null, bool Sanitize = false, long? Revision = null);
 
 internal sealed record StudioNativeRedactionRequest(StudioNativeRedactionFind? Find = null, StudioNativeRedactionApply? Apply = null);
 

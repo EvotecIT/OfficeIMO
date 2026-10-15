@@ -201,11 +201,12 @@ extension DocumentSession {
         if task != .read { task = .read }
         textSelection = nil
         redactionAreas = []
+        redactionAreasRevision = revision
     }
 
     /// Marks an area dragged across a page, in its displayed points; a click on a marked area unmarks it.
     func markRedaction(page: Int, from start: CGPoint, to end: CGPoint) {
-        guard var areas = redactionAreas else { return }
+        guard var areas = redactionAreas, redactionAreasRevision == revision else { return }
         if hypot(end.x - start.x, end.y - start.y) < 4 {
             areas.removeAll { $0.page == page && $0.bounds.cgRect.contains(start) }
         } else {
@@ -218,9 +219,10 @@ extension DocumentSession {
 
     /// Removes everything under the marked areas as one change.
     func redactMarkedAreas() {
-        guard let areas = redactionAreas, !areas.isEmpty else { return }
+        guard let areas = redactionAreas, !areas.isEmpty, let expected = redactionAreasRevision, expected == revision else { return }
         redactionAreas = nil
-        redact(.init(areas: areas))
+        redactionAreasRevision = nil
+        redact(.init(revision: expected, areas: areas))
     }
 
     /// A rectangle from a drag, or a standard size around the point of a click, kept on the page.

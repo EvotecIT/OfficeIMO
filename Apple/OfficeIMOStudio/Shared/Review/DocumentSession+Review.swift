@@ -29,14 +29,14 @@ extension DocumentSession {
     }
 
     /// Finds the areas that would redact text, without changing the document.
-    func findRedactions(_ find: RedactionFind) async throws -> [RedactionMark] {
-        guard let engine else { return [] }
-        return try await engine.redact(RedactionRequest(find: find)).marks ?? []
+    func findRedactions(_ find: RedactionFind) async throws -> RedactionResult {
+        guard let engine else { throw CancellationError() }
+        return try await engine.redact(RedactionRequest(find: find))
     }
 
     /// Redacts as one undoable change and reports how the removal was verified.
     func redact(_ apply: RedactionRequest.Apply, name: String = String(localized: "Redact")) {
-        guard canRedact else { return }
+        guard canRedact, apply.revision == revision else { return }
         let box = VerificationBox()
         edit(name, { engine in
             box.value = try await engine.redact(RedactionRequest(apply: apply)).verification
@@ -55,7 +55,7 @@ extension DocumentSession {
         guard let selection = textSelection else { return }
         let marks = selectionRects.map { RedactionMark(page: selection.page, bounds: .init(x: $0.minX, y: $0.minY, width: $0.width, height: $0.height)) }
         guard !marks.isEmpty else { return }
-        redact(.init(areas: marks))
+        redact(.init(revision: selection.revision, areas: marks))
     }
 
     /// Makes the selected text a link to a web or mail address or to a page, one link per line of the selection.

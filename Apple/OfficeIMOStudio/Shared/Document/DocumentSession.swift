@@ -161,6 +161,7 @@ final class DocumentSession {
     var pendingTextBox: PendingTextBox?
     /// Areas marked on the pages to redact together; nil when not marking.
     var redactionAreas: [RedactionMark]?
+    var redactionAreasRevision: Int64?
     /// The pending drawing's own history, which Undo and Redo act on before the window's.
     @ObservationIgnored weak var markupUndoManager: UndoManager?
     /// The middle of the page view, in the current page's displayed points, where a new note goes.
@@ -531,6 +532,7 @@ final class DocumentSession {
                 currentPage = min(max(currentPage, 1), max(pageCount, 1))
                 selection = selection.filter { (1...max(pageCount, 1)).contains($0) }
                 if textSelection?.revision != revision { textSelection = nil }
+                if redactionAreasRevision != revision { redactionAreas = nil; redactionAreasRevision = nil }
                 document.objectWillChange.send()
                 succeeded?(self)
                 if searchResult != nil { runSearch() }

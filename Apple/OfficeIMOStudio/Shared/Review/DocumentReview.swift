@@ -98,6 +98,7 @@ struct RedactionMark: Codable, Sendable, Hashable {
 /// Finds text to redact, or redacts; exactly one field is set.
 struct RedactionRequest: Encodable, Sendable {
     struct Apply: Encodable, Sendable {
+        var revision: Int64
         var areas: [RedactionMark]?
         var find: RedactionFind?
         var include: [Int]?

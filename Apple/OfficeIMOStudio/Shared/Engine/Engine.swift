@@ -27,8 +27,8 @@ struct EngineError: LocalizedError, Sendable {
 enum Engine {
     private static let queue = DispatchQueue(label: "OfficeIMO.Engine", qos: .userInitiated)
 
-    /// The ABI this app was compiled against.
-    static let expectedAbiVersion = Int32(OFFICEIMO_ABI_VERSION)
+    /// The ABI required by this host's JSON requests, independent of a previously built framework's header.
+    static let expectedAbiVersion: Int32 = 2
 
     /// Reads the library's ABI version; the first call into the library also starts its runtime.
     static func abiVersion() async -> Int32 {
