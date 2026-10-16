@@ -38,7 +38,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int fillCount = content.Split(new[] { "0.11 0.22 0.33 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(2, fillCount);
@@ -75,7 +75,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string contentStream = Encoding.ASCII.GetString(bytes);
+        string contentStream = PdfTestContentText.ReadDecoded(bytes);
         int fillCount = contentStream.Split(new[] { "0.11 0.22 0.33 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(2, fillCount);
@@ -106,7 +106,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int fillCount = content.Split(new[] { "0.19 0.29 0.39 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, fillCount);
@@ -141,7 +141,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int fillCount = content.Split(new[] { "0.19 0.29 0.39 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, fillCount);
@@ -170,7 +170,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int fillCount = content.Split(new[] { "0.21 0.31 0.41 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, fillCount);
@@ -204,7 +204,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int fillCount = content.Split(new[] { "0.21 0.31 0.41 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, fillCount);
@@ -234,7 +234,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int fillCount = content.Split(new[] { "0.42 0.18 0.66 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, fillCount);
@@ -270,7 +270,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string contentStream = Encoding.ASCII.GetString(bytes);
+        string contentStream = PdfTestContentText.ReadDecoded(bytes);
         int fillCount = contentStream.Split(new[] { "0.42 0.18 0.66 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, fillCount);
@@ -304,7 +304,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.12 0.34 0.56 rg", content, StringComparison.Ordinal);
         using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {
@@ -345,7 +345,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string contentStream = Encoding.ASCII.GetString(bytes);
+        string contentStream = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.12 0.34 0.56 rg", contentStream, StringComparison.Ordinal);
         using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {
@@ -387,7 +387,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.12 0.34 0.56 rg", content, StringComparison.Ordinal);
         Assert.Contains(" c ", content, StringComparison.Ordinal);
@@ -434,7 +434,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string contentStream = Encoding.ASCII.GetString(bytes);
+        string contentStream = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.12 0.34 0.56 rg", contentStream, StringComparison.Ordinal);
         Assert.Contains(" l ", contentStream, StringComparison.Ordinal);

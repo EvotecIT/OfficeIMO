@@ -20,7 +20,24 @@ public sealed partial class OfficeRasterCanvas {
     // cancellation and bounded intersection work without allocating a surface.
     internal static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
         MeasureNominalFilledContourBounds(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
-            IReadOnlyList<OfficeTextInkClip>? clips = null, CancellationToken cancellationToken = default) {
+            IReadOnlyList<OfficeTextInkClip>? clips = null, CancellationToken cancellationToken = default) =>
+        MeasureNominalFilledContourBoundsCore(contours, rule, clips, 0, cancellationToken);
+
+    /// <summary>Reports loss only for filled ink admitted by the prefix clips and rejected by later clips.</summary>
+    internal static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
+        MeasureNominalAdditionalInkLoss(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
+            IReadOnlyList<OfficeTextInkClip> clips, int admittedClipCount, CancellationToken cancellationToken = default) {
+        if (admittedClipCount < 0 || admittedClipCount > clips.Count) throw new ArgumentOutOfRangeException(nameof(admittedClipCount));
+        // This overload receives filled clip geometry. Half-plane clips are applied by the
+        // caller before inspection, as in the existing positioned-text inspection route.
+        foreach (OfficeTextInkClip clip in clips)
+            if (clip.FilledContours == null) throw new ArgumentException("Additional-loss inspection requires filled clip contours.", nameof(clips));
+        return MeasureNominalFilledContourBoundsCore(contours, rule, clips, admittedClipCount, cancellationToken);
+    }
+
+    private static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
+        MeasureNominalFilledContourBoundsCore(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
+            IReadOnlyList<OfficeTextInkClip>? clips, int admittedClipCount, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var edges = new List<InkBoundEdge>();
         var boundaries = new List<double>();
@@ -84,7 +101,7 @@ public sealed partial class OfficeRasterCanvas {
                 if ((work -= rules.Count) < 0) return Unmeasured();
                 bool subjectInside = IsInside(0), inside = subjectInside;
                 for (int group = 1; group < rules.Count && inside; group++) inside &= IsInside(group);
-                if (subjectInside && !inside && previousEdge >= 0 && crossing.X > previousX) isClipped = true;
+                if (subjectInside && !inside && WasAdmitted() && previousEdge >= 0 && crossing.X > previousX) isClipped = true;
                 if (inside && previousEdge >= 0 && crossing.X > previousX) {
                     InkBoundEdge a = edges[previousEdge], b = edges[crossing.Edge];
                     double x1 = a.XAt(low), x2 = a.XAt(high), x3 = b.XAt(low), x4 = b.XAt(high);
@@ -103,6 +120,10 @@ public sealed partial class OfficeRasterCanvas {
         }
         return (left, top, right, bottom, hasInk, true, isClipped);
 
+        bool WasAdmitted() {
+            for (int group = 1; group <= admittedClipCount; group++) if (!IsInside(group)) return false;
+            return true;
+        }
         bool IsInside(int group) => rules[group] == OfficeFillRule.NonZero ? winding[group] != 0 : (winding[group] & 1) != 0;
 
         bool AddContours(IEnumerable<IReadOnlyList<OfficePoint>> source, int group) {

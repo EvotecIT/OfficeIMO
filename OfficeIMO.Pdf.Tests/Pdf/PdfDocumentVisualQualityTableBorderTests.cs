@@ -39,7 +39,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int borderColorCount = content.Split(new[] { "0.12 0.34 0.56 RG" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, borderColorCount);
@@ -84,7 +84,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("1 0 0 RG", content);
         Assert.Contains("2 w", content);
@@ -131,7 +131,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("[3 1.5] 0 d", content, StringComparison.Ordinal);
         Assert.Contains("[1.5 2.25] 0 d", content, StringComparison.Ordinal);
@@ -183,7 +183,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.267 0.333 0.4 RG", content, StringComparison.Ordinal);
         Assert.Contains("0.157 0.471 0.314 RG", content, StringComparison.Ordinal);
@@ -298,7 +298,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int borderColorCount = content.Split(new[] { "0.12 0.34 0.56 RG" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, borderColorCount);
@@ -335,7 +335,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int borderColorCount = content.Split(new[] { "0.2 0.3 0.4 RG" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, borderColorCount);
@@ -368,7 +368,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int bodySeparatorCount = content.Split(new[] { "0.12 0.34 0.56 RG" }, StringSplitOptions.None).Length - 1;
         int headerSeparatorCount = content.Split(new[] { "0.7 0.2 0.1 RG" }, StringSplitOptions.None).Length - 1;
 
@@ -442,7 +442,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int bodySeparatorCount = content.Split(new[] { "0.12 0.34 0.56 RG" }, StringSplitOptions.None).Length - 1;
         int headerSeparatorCount = content.Split(new[] { "0.7 0.2 0.1 RG" }, StringSplitOptions.None).Length - 1;
 
@@ -480,7 +480,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int footerSeparatorCount = content.Split(new[] { "0.2 0.7 0.3 RG" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, footerSeparatorCount);
@@ -520,7 +520,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         int footerSeparatorCount = content.Split(new[] { "0.2 0.7 0.3 RG" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(1, footerSeparatorCount);

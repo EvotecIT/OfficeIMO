@@ -538,7 +538,7 @@ public class PdfAIdentificationMetadataTests {
             .Paragraph(p => p.Text("Tagged catalog markers are groundwork, not certification."))
             .ToBytes();
 
-        string raw = Encoding.UTF8.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         PdfDocumentProbe probe = PdfInspector.Probe(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfOptions clone = options.Clone();

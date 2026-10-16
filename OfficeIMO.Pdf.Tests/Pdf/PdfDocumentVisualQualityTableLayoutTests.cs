@@ -314,7 +314,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(captionY > alphaY + 14, $"Expected the table caption above the first row. Caption y: {captionY:0.##}, Alpha y: {alphaY:0.##}.");
         Assert.True(captionX > alphaX + 120, $"Expected the right-aligned caption to render near the table's right edge. Caption x: {captionX:0.##}, Alpha x: {alphaX:0.##}.");
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("0.314 0.353 0.392 rg", content);
     }
 
@@ -361,7 +361,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(captionY > alphaY + 14, $"Expected the row-column table caption above the first row. Caption y: {captionY:0.##}, Alpha y: {alphaY:0.##}.");
         Assert.True(captionX > alphaX + 120, $"Expected the right-aligned row-column caption to render near the table's right edge. Caption x: {captionX:0.##}, Alpha x: {alphaX:0.##}.");
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("0.314 0.353 0.392 rg", content);
     }
 

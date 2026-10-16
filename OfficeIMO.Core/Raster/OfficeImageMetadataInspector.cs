@@ -22,8 +22,10 @@ internal static partial class OfficeImageMetadataInspector {
         if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = new OfficeImageMetadataSnapshot();
-        if (OfficeImageOrientationNormalizer.TryRead(data, cancellationToken, out OfficeImageOrientation orientation) &&
-            orientation != OfficeImageOrientation.Normal) snapshot.Kinds |= OfficeImageMetadataKinds.Orientation;
+        if (OfficeImageOrientationNormalizer.TryRead(data, cancellationToken, out OfficeImageOrientation orientation)) {
+            snapshot.Orientation = orientation;
+            if (orientation != OfficeImageOrientation.Normal) snapshot.Kinds |= OfficeImageMetadataKinds.Orientation;
+        }
         switch (format) {
             case OfficeImageFormat.JpegXr:
                 InspectJpegXr(data, snapshot, cancellationToken);
@@ -415,9 +417,9 @@ internal static partial class OfficeImageMetadataInspector {
         cancellationToken.ThrowIfCancellationRequested();
         snapshot.Kinds |= OfficeImageMetadataKinds.Exif;
         if (OfficeImageOrientationNormalizer.TryReadExifOrientationPayload(
-                exif, payloadOffset, payloadLength, out OfficeImageOrientation orientation) &&
-            orientation != OfficeImageOrientation.Normal) {
-            snapshot.Kinds |= OfficeImageMetadataKinds.Orientation;
+                exif, payloadOffset, payloadLength, out OfficeImageOrientation orientation)) {
+            snapshot.Orientation = orientation;
+            if (orientation != OfficeImageOrientation.Normal) snapshot.Kinds |= OfficeImageMetadataKinds.Orientation;
         }
         if (payloadOffset < 0 || payloadLength < 0 || payloadOffset > exif.Length - payloadLength) return;
         int payloadEnd = payloadOffset + payloadLength;

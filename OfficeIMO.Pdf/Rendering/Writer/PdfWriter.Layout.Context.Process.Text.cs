@@ -439,6 +439,13 @@ internal static partial class PdfWriter {
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                 int? markedContentId = RegisterTextStructureElement("P");
                 MarkRichFonts(rpb.Runs);
+                ReportRichPaintDiagnostics("Paragraph", "PdfParagraph", rpb, sliceLines, sliceHeights,
+                    FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, textFrame.X, textFrame.Width,
+                    new TableCellContentFrame(textFrame.X, currentOpts.PageHeight, textFrame.Width, currentOpts.PageHeight), clipsToFrame: false,
+                    offsets: floatingLineOffsets?.GetRange(lineIndex, take), widths: floatingLineWidths?.GetRange(lineIndex, take),
+                    firstLineX: sliceStartsAtFirstLine ? textFrame.FirstLineX : null,
+                    firstLineWidth: sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null,
+                    topGaps: floatingLineGaps?.GetRange(lineIndex, take));
                 WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, "P", markedContentId, currentPage,
                     lineXOffsets: floatingLineOffsets?.GetRange(lineIndex, take), lineWidths: floatingLineWidths?.GetRange(lineIndex, take), lineTopGaps: floatingLineGaps?.GetRange(lineIndex, take));
                 y -= heightSum;

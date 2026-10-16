@@ -94,19 +94,11 @@ internal static partial class PdfStamper {
         string imageResourceName = GetAvailableXObjectResourceName(objects, pageObjectNumbers);
         return PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (rewrittenObjects, security) => {
             int nextObjectNumber = rewrittenObjects.Count == 0 ? 1 : rewrittenObjects.Keys.Max() + 1;
-            int? softMaskObjectNumber = null;
-            if (imageStream.SoftMask != null) {
-                softMaskObjectNumber = nextObjectNumber++;
-                rewrittenObjects[softMaskObjectNumber.Value] = new PdfIndirectObject(
-                    softMaskObjectNumber.Value,
-                    0,
-                    PdfWriter.BuildImageXObject(imageStream.SoftMask));
-            }
-            int imageObjectNumber = nextObjectNumber++;
-            rewrittenObjects[imageObjectNumber] = new PdfIndirectObject(
-                imageObjectNumber,
-                0,
-                PdfWriter.BuildImageXObject(imageStream, softMaskObjectNumber));
+            int imageObjectNumber = PdfWriter.AddImageXObjectResource(imageStream, stream => {
+                int number = nextObjectNumber++;
+                rewrittenObjects[number] = new PdfIndirectObject(number, 0, stream);
+                return number;
+            }, PdfFileAssembler.ResolveFileVersion(PdfSyntax.GetHeaderVersion(pdf), document.CatalogVersion));
 
             for (int i = 0; i < document.Pages.Count; i++) {
                 int pageNumber = i + 1;
@@ -123,8 +115,9 @@ internal static partial class PdfStamper {
                         imageResourceName,
                         size.Width,
                         size.Height,
-                        imageStream.PixelWidth,
-                        imageStream.PixelHeight,
+                        imageStream.LayoutPixelWidth,
+                        imageStream.LayoutPixelHeight,
+                        imageStream.Orientation,
                         effectiveOptions,
                         watermarkDefaults));
                 Dictionary<string, PdfObject> pageOverrides = BuildImagePageOverrides(

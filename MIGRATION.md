@@ -20,6 +20,16 @@ Visible text appearances require `PdfVisibleSignatureAppearanceOptions.Font` wit
 
 For B-T, provide `CmsSigningOptions.SignatureTimestampProvider`, for example `Rfc3161TimestampClient.GetTimestamp`. The client accepts caller-owned HTTP transport and trust policy, checks nonce, imprint and TSA signature, and returns the token for the CMS unsigned attribute. Optional evidence fetching uses `PdfLongTermValidationEnricher.EnrichAsync`; existing caller-supplied DSS/VRI enrichment remains available. Embedded certificates and revocation data alone do not establish a complete trusted B-LT validation path.
 
+## PDF graphics, images and stream compression
+
+Direct PDF authoring compresses page content with Flate by default. Set `PdfOptions.CompressContentStreams = false` when a tool needs plain page operators. ICC profiles, embedded files and widget appearances are compressed independently; XMP packets remain uncompressed. Tools inspecting PDF streams must decode their declared filters before reading their content. `PdfAttachmentInfo.SizeBytes` remains the encoded stream size; use `DeclaredSizeBytes` for the original size declared in attachment parameters, or extract the payload when its actual decoded size is required.
+
+Image authoring applies EXIF rotation and mirroring through placement matrices. Previously unoriented images can rotate or mirror, and their intrinsic dimensions and resolution axes can swap. JPEG DCT payloads, PNG sample depth, ICC profiles, transparency masks and image sharing are retained through orientation changes. Supported PNG and JPEG ICC profiles use ICCBased colour spaces; indexed PNGs keep their palettes. Sixteen-bit PNG samples are retained in PDF 1.5 and newer. PDF 1.4 output rounds them to eight bits. Crops and authored mirrors or rotations compose around the target frame. Visible signature images now follow the same resource-allocation and target-version rules.
+
+Authored-layout reports now include glyph and inline paint overhang, rotated and viewport cells, paragraph frames and free-text boxes. Existing report consumers can receive warnings for previously silent clipping. Enlarge the affected frame or adjust its content; geometry that cannot be inspected within the bounded contract is reported as unassessed. Enabling these diagnostics does not change PDF text emission.
+
+Supported SVG images embedded in drawings retain vector paths, gradients, clipping and text. Tiling patterns use reusable PDF pattern cells. Expanded link annotations count against a shared generation budget derived from the existing pattern `maximumTileCount` limits, including nested and running content. Canvas gradients interpolate premultiplied colour channels, avoiding dark fringes beside transparent stops; imported SVG/XPS gradients retain their producer's separate colour/alpha interpolation. Regenerate image baselines that relied on the earlier rasterized SVG or canvas-gradient appearance.
+
 ## PDF text output and embedded fonts
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.

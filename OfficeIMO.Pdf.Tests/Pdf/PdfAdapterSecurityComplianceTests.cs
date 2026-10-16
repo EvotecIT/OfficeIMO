@@ -63,7 +63,7 @@ public class PdfAdapterSecurityComplianceTests {
                 TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
             });
 
-        Assert.False(new PdfCore.PdfOptions().CompressContentStreams);
+        Assert.True(new PdfCore.PdfOptions().CompressContentStreams);
         Assert.Contains("/Filter /FlateDecode", Encoding.ASCII.GetString(compressed), StringComparison.Ordinal);
         Assert.DoesNotContain("/Filter /FlateDecode", Encoding.ASCII.GetString(uncompressed), StringComparison.Ordinal);
         Assert.Contains("CONTENT-COMPRESSION-PROOF", PdfCore.PdfReadDocument.Open(compressed).ExtractText(), StringComparison.Ordinal);

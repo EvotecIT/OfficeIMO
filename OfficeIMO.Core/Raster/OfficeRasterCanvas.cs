@@ -721,7 +721,7 @@ public sealed partial class OfficeRasterCanvas {
 
     private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) {
         return double.IsNaN(ratio) ? gradient.OutsideColor ?? OfficeColor.Transparent
-            : InterpolateGradientStops(gradient.Stops, ratio, gradient.InterpolateAlphaSeparately || gradient.SpreadMode != OfficeGradientSpreadMode.Pad || gradient.OutsideColor != null || gradient.StartRadius > gradient.EndRadius, gradient.ColorInterpolation);
+            : InterpolateGradientStops(gradient.Stops, ratio, gradient.InterpolateAlphaSeparately, gradient.ColorInterpolation);
     }
 
     internal static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false, OfficeGradientColorInterpolation interpolation = OfficeGradientColorInterpolation.Srgb) {
@@ -736,9 +736,9 @@ public sealed partial class OfficeRasterCanvas {
                 double span = next.Offset - previous.Offset;
                 double localRatio = span <= double.Epsilon ? 0D : (ratio - previous.Offset) / span;
                 localRatio = Clamp(localRatio, 0D, 1D);
-                // Native XPS radial paint interpolates color and alpha separately,
-                // consistently with paths, strokes, SVG composition and PDF.
-                if (interpolation == OfficeGradientColorInterpolation.LinearRgb) return OfficeGradientColors.Interpolate(previous.Color, next.Color, localRatio, interpolation);
+                // Imported SVG/XPS retains separate alpha interpolation; canvas
+                // gradients interpolate premultiplied channels in either color space.
+                if (interpolation == OfficeGradientColorInterpolation.LinearRgb) return OfficeGradientColors.Interpolate(previous.Color, next.Color, localRatio, interpolation, separateAlpha);
                 if (separateAlpha) return OfficeColor.FromRgba(
                     InterpolateByte(previous.Color.R, next.Color.R, localRatio),
                     InterpolateByte(previous.Color.G, next.Color.G, localRatio),

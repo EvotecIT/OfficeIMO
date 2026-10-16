@@ -22,7 +22,7 @@ public sealed partial class PdfOptions {
             _maxGeneratedOutputBytes = value;
         }
     }
-    /// <summary>When true, generated page content streams are written with Flate compression.</summary>
+    /// <summary>When true (the default), generated page content streams are written with Flate compression.</summary>
     public bool CompressContentStreams {
         get => _compressContentStreams;
         set {
@@ -30,7 +30,7 @@ public sealed partial class PdfOptions {
             _compressContentStreamsExplicitlyConfigured = true;
         }
     }
-    private bool _compressContentStreams;
+    private bool _compressContentStreams = true;
     private bool _compressContentStreamsExplicitlyConfigured;
 
     /// <summary>Enables compression for conversion output unless the caller explicitly selected a value.</summary>

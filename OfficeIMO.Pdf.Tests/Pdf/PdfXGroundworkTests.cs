@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Filters;
 using OfficeIMO.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
@@ -540,12 +541,7 @@ public class PdfXGroundworkTests {
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
                 "FOGRA51");
         byte[] pdf = PdfDocument.Create(options).ToBytes();
-        int signatureOffset = FindAscii(pdf, "acsp");
-        Assert.True(signatureOffset >= 20);
-        pdf[signatureOffset - 20] = (byte)'R';
-        pdf[signatureOffset - 19] = (byte)'G';
-        pdf[signatureOffset - 18] = (byte)'B';
-        pdf[signatureOffset - 17] = (byte)' ';
+        pdf = RewriteOutputIntentProfile(pdf, profile => WriteAscii(profile, 16, "RGB "));
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
 
@@ -560,14 +556,7 @@ public class PdfXGroundworkTests {
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
                 "FOGRA51");
         byte[] pdf = PdfDocument.Create(options).ToBytes();
-        int signatureOffset = FindAscii(pdf, "acsp");
-        Assert.True(signatureOffset >= 36);
-        int tagCountOffset = signatureOffset - 36 + 128;
-        Assert.True(tagCountOffset + 3 < pdf.Length);
-        pdf[tagCountOffset] = 0;
-        pdf[tagCountOffset + 1] = 0;
-        pdf[tagCountOffset + 2] = 0;
-        pdf[tagCountOffset + 3] = 0;
+        pdf = RewriteOutputIntentProfile(pdf, profile => Array.Clear(profile, 128, 4));
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
 
@@ -1405,9 +1394,7 @@ public class PdfXGroundworkTests {
             "FOGRA51",
             PdfTrappingStatus.False);
         byte[] pdf = PdfDocument.Create(options).ToBytes();
-        int signatureOffset = FindAscii(pdf, "acsp");
-        Assert.True(signatureOffset >= 36);
-        WriteAscii(pdf, signatureOffset - 24, "scnr");
+        pdf = RewriteOutputIntentProfile(pdf, profile => WriteAscii(profile, 12, "scnr"));
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
 
@@ -1519,22 +1506,25 @@ public class PdfXGroundworkTests {
         Assert.True(replacements > 0, "Expected metadata value was not found in the generated PDF.");
     }
 
-    private static int FindAscii(byte[] bytes, string text) {
-        byte[] needle = Encoding.ASCII.GetBytes(text);
-        for (int index = 0; index <= bytes.Length - needle.Length; index++) {
-            bool match = true;
-            for (int needleIndex = 0; needleIndex < needle.Length; needleIndex++) {
-                if (bytes[index + needleIndex] != needle[needleIndex]) {
-                    match = false;
-                    break;
-                }
-            }
-
-            if (match) return index;
-        }
-
-        return -1;
-    }
+    private static byte[] RewriteOutputIntentProfile(byte[] pdf, Action<byte[]> mutate) =>
+        PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values,
+                item => item.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Catalog").Value);
+            PdfArray intents = Assert.IsType<PdfArray>(PdfObjectLookup.ResolveChain(objects, catalog.Items["OutputIntents"]));
+            PdfDictionary intent = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, Assert.Single(intents.Items)));
+            PdfReference profileReference = Assert.IsType<PdfReference>(intent.Items["DestOutputProfile"]);
+            PdfStream profile = Assert.IsType<PdfStream>(PdfObjectLookup.ResolveChain(objects, profileReference));
+            byte[] decoded = StreamDecoder.DecodeRequired(profile, objects);
+            Assert.True(decoded.Length >= 132);
+            Assert.Equal("acsp", Encoding.ASCII.GetString(decoded, 36, 4));
+            mutate(decoded);
+            profile.Dictionary.Items.Remove("Filter");
+            profile.Dictionary.Items.Remove("DecodeParms");
+            profile.Dictionary.Items.Remove("Length");
+            objects[profileReference.ObjectNumber] = new PdfIndirectObject(profileReference.ObjectNumber,
+                profileReference.Generation, new PdfStream(profile.Dictionary, decoded));
+            return security.InfoObjectNumber;
+        });
 
     private static byte[] BuildInspectionPdf(
         string content,

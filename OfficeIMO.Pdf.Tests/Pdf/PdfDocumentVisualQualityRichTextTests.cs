@@ -24,7 +24,7 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text("After"))
             .ToBytes();
 
-        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        string content = PdfTestContentText.JoinTextArrays(PdfTestContentText.ReadDecoded(bytes));
         int redText = content.IndexOf("526564", StringComparison.Ordinal);
         int afterText = content.IndexOf("4166746572", StringComparison.Ordinal);
 
@@ -53,7 +53,7 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text("Normal"))
             .ToBytes();
 
-        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        string content = PdfTestContentText.JoinTextArrays(PdfTestContentText.ReadDecoded(bytes));
         int smallText = content.IndexOf("536D616C6C", StringComparison.Ordinal);
         int largeText = content.IndexOf("4C61726765", StringComparison.Ordinal);
         int normalText = content.IndexOf("4E6F726D616C", StringComparison.Ordinal);
@@ -82,7 +82,7 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text("After"))
             .ToBytes();
 
-        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        string content = PdfTestContentText.JoinTextArrays(PdfTestContentText.ReadDecoded(bytes));
         int markedText = content.IndexOf("4D61726B6564", StringComparison.Ordinal);
         int afterText = content.IndexOf("4166746572", StringComparison.Ordinal);
 
@@ -108,7 +108,7 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text(" After"))
             .ToBytes();
 
-        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        string content = PdfTestContentText.JoinTextArrays(PdfTestContentText.ReadDecoded(bytes));
         int markedText = content.IndexOf("4D61726B6564", StringComparison.Ordinal);
         int wordsText = content.IndexOf("576F726473", StringComparison.Ordinal);
 
@@ -144,7 +144,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .ToBytes();
 
-        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
+        string content = PdfTestContentText.JoinTextArrays(PdfTestContentText.ReadDecoded(bytes));
         int redText = content.IndexOf("43656C6C526564", StringComparison.Ordinal);
         int boldText = content.IndexOf("43656C6C426F6C64", StringComparison.Ordinal);
         int markedText = content.IndexOf("43656C6C4D61726B6564", StringComparison.Ordinal);
@@ -212,7 +212,7 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text("End"))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("/URI (https://example.com/sup)", content);
         Assert.Contains("4.9 Ts", content);
         Assert.Contains("-2.52 Ts", content);

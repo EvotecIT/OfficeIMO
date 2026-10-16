@@ -260,24 +260,24 @@ public sealed class PdfDrawingTextOpacityTests {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         });
         document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));
-        string raw = System.Text.Encoding.GetEncoding(28591).GetString(document.ToBytes());
-        var forms = System.Text.RegularExpressions.Regex.Matches(raw,
-            @"(?s)/Subtype /Form(?<dictionary>.*?)stream\r?\n(?<content>.*?)\r?\nendstream");
-        var form = Assert.Single(forms.Cast<System.Text.RegularExpressions.Match>());
-        Assert.Contains("/I true", form.Groups["dictionary"].Value);
-        // Isolated transparency Forms reset alpha; a caller gs cannot express separate
-        // glyph/decorative alpha. Verify the state used by the inner paint, not our reader.
-        var states = System.Text.RegularExpressions.Regex.Matches(form.Groups["content"].Value, @"/(?<name>GS\d+) gs");
+        byte[] bytes = document.ToBytes();
+        var (objects, _) = PdfSyntax.ParseObjects(bytes);
+        var form = Assert.Single(objects.Values.Select(value => value.Value).OfType<PdfStream>()
+            .Where(stream => stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form"));
+        var group = Assert.IsType<PdfDictionary>(form.Dictionary.Items["Group"]);
+        Assert.True(Assert.IsType<PdfBoolean>(group.Items["I"]).Value);
+        string content = PdfEncoding.Latin1GetString(OfficeIMO.Pdf.Filters.StreamDecoder.Decode(form.Dictionary, form.Data, objects));
+        // Isolated transparency Forms reset alpha; inspect the state selected by
+        // inner paint rather than assuming the stream's compression or object id.
+        var states = System.Text.RegularExpressions.Regex.Matches(content, @"/(?<name>GS\d+) gs");
         Assert.NotEmpty(states.Cast<System.Text.RegularExpressions.Match>());
         string name = states[0].Groups["name"].Value;
-        var reference = System.Text.RegularExpressions.Regex.Match(form.Groups["dictionary"].Value,
-            "/" + name + @" (?<id>\d+) 0 R");
-        Assert.True(reference.Success);
-        var state = System.Text.RegularExpressions.Regex.Match(raw,
-            reference.Groups["id"].Value + @" 0 obj\s*<< /Type /ExtGState /ca (?<fill>[\d.]+) /CA (?<stroke>[\d.]+)");
-        Assert.True(state.Success);
-        Assert.Equal(glyphAlpha / 255D, double.Parse(state.Groups["fill"].Value, System.Globalization.CultureInfo.InvariantCulture), 3);
-        Assert.Equal(strokeAlpha / 255D, double.Parse(state.Groups["stroke"].Value, System.Globalization.CultureInfo.InvariantCulture), 3);
+        var resources = Assert.IsType<PdfDictionary>(form.Dictionary.Items["Resources"]);
+        var graphicsStates = Assert.IsType<PdfDictionary>(resources.Items["ExtGState"]);
+        var reference = Assert.IsType<PdfReference>(graphicsStates.Items[name]);
+        var state = Assert.IsType<PdfDictionary>(objects[reference.ObjectNumber].Value);
+        Assert.Equal(glyphAlpha / 255D, Assert.IsType<PdfNumber>(state.Items["ca"]).Value, 3);
+        Assert.Equal(strokeAlpha / 255D, Assert.IsType<PdfNumber>(state.Items["CA"]).Value, 3);
     }
 
 }

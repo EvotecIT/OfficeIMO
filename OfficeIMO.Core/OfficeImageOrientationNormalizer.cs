@@ -116,6 +116,14 @@ public static class OfficeImageOrientationNormalizer {
         return true;
     }
 
+    /// <summary>Copies encoded JPEG/TIFF bytes and resets only their orientation fields without recompressing pixels.</summary>
+    internal static bool TryCreateOrientationNeutralCopy(byte[] source, CancellationToken cancellationToken, out byte[] neutralized) {
+        neutralized = CloneWithCancellation(source, cancellationToken);
+        if (TryNeutralizeOrientation(neutralized, cancellationToken)) return true;
+        neutralized = Array.Empty<byte>();
+        return false;
+    }
+
     private static bool SwapsPhysicalAxes(OfficeImageOrientation orientation) =>
         orientation == OfficeImageOrientation.Transpose
         || orientation == OfficeImageOrientation.Rotate90Clockwise

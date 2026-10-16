@@ -148,22 +148,14 @@ internal static partial class PdfIncrementalUpdater {
             cancellationToken.ThrowIfCancellationRequested();
 
             imageStream = preparedStream;
-            int? softMaskObjectNumber = null;
-            if (preparedStream.SoftMask is not null) {
-                softMaskObjectNumber = nextObjectNumber++;
-                objects[softMaskObjectNumber.Value] = new PdfIndirectObject(
-                    softMaskObjectNumber.Value,
-                    0,
-                    PdfWriter.BuildImageXObject(preparedStream.SoftMask));
-                changedObjects.Add(softMaskObjectNumber.Value);
-            }
-
-            imageObjectNumber = nextObjectNumber++;
-            objects[imageObjectNumber.Value] = new PdfIndirectObject(
-                imageObjectNumber.Value,
-                0,
-                PdfWriter.BuildImageXObject(preparedStream, softMaskObjectNumber));
-            changedObjects.Add(imageObjectNumber.Value);
+            int nextImageObjectNumber = nextObjectNumber;
+            imageObjectNumber = PdfWriter.AddImageXObjectResource(preparedStream, stream => {
+                int number = nextImageObjectNumber++;
+                objects[number] = new PdfIndirectObject(number, 0, stream);
+                changedObjects.Add(number);
+                return number;
+            }, PdfFileAssembler.ResolveFileVersion(PdfSyntax.GetHeaderVersion(sourcePdf), document.CatalogVersion));
+            nextObjectNumber = nextImageObjectNumber;
         }
 
         PdfReference? fontReference = null;
@@ -270,8 +262,8 @@ internal static partial class PdfIncrementalUpdater {
             }
 
             OfficeImageRenderPlan plan = OfficeImageRenderPlan.CreateBottomLeft(
-                imageStream.PixelWidth,
-                imageStream.PixelHeight,
+                imageStream.LayoutPixelWidth,
+                imageStream.LayoutPixelHeight,
                 options.ImagePadding,
                 options.ImagePadding,
                 innerWidth,
@@ -285,10 +277,9 @@ internal static partial class PdfIncrementalUpdater {
                     .Append(Format(innerWidth)).Append(' ')
                     .Append(Format(innerHeight)).Append(" re W n\n");
             }
-            content.Append(Format(placement.Width)).Append(" 0 0 ")
-                .Append(Format(placement.Height)).Append(' ')
-                .Append(Format(placement.X)).Append(' ')
-                .Append(Format(placement.Y)).Append(" cm\n/Im1 Do\nQ\n");
+            new ContentStreamBuilder(content)
+                .TransformMatrix(PdfWriter.GetImagePlacementTransform(imageStream, placement))
+                .XObject("Im1").RestoreState();
         }
 
         if (options.ShowText) {

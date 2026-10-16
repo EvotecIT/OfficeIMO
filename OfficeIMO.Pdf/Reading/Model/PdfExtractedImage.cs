@@ -8,7 +8,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Represents an image XObject extracted from a parsed PDF page.
 /// </summary>
-public sealed class PdfExtractedImage {
+public sealed partial class PdfExtractedImage {
     private readonly byte[] _bytes;
 
     internal PdfExtractedImage(

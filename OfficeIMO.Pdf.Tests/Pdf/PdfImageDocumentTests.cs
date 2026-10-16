@@ -161,8 +161,13 @@ public sealed class PdfImageDocumentTests {
         Assert.Equal(PageSizes.A4.Width, info.Pages[0].Width, 2);
         Assert.Equal(PageSizes.A4.Height, info.Pages[0].Height, 2);
         PdfExtractedImage extracted = Assert.Single(PdfImageExtractor.ExtractImages(document.ToBytes()));
-        Assert.Equal(1, extracted.Width);
-        Assert.Equal(2, extracted.Height);
+        Assert.Equal(2, extracted.Width);
+        Assert.Equal(1, extracted.Height);
+        Assert.Equal(image, extracted.Bytes);
+        PdfImagePlacement placement = Assert.Single(document.Images.Placements());
+        Assert.True(placement.Height > placement.Width);
+        Assert.Equal(0D, placement.A, 3);
+        Assert.Equal(0D, placement.D, 3);
     }
 
     [Fact]

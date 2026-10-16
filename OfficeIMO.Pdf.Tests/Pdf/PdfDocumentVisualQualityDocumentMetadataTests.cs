@@ -158,7 +158,14 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/Type /OutputIntent /S /GTS_PDFA1", raw, StringComparison.Ordinal);
         Assert.Contains("/DestOutputProfile", raw, StringComparison.Ordinal);
         Assert.Contains("/N 3", raw, StringComparison.Ordinal);
-        Assert.Contains("/Length 3052", raw, StringComparison.Ordinal);
+        var (objects, _) = PdfSyntax.ParseObjects(bytes);
+        var intentDictionary = Assert.Single(objects.Values.Select(value => value.Value).OfType<PdfDictionary>(),
+            dictionary => dictionary.Get<PdfName>("Type")?.Name == "OutputIntent");
+        var profileReference = Assert.IsType<PdfReference>(intentDictionary.Items["DestOutputProfile"]);
+        var profileStream = Assert.IsType<PdfStream>(objects[profileReference.ObjectNumber].Value);
+        Assert.Equal(3D, Assert.IsType<PdfNumber>(profileStream.Dictionary.Items["N"]).Value);
+        Assert.Equal(PdfIccProfiles.SrgbIec6196621,
+            OfficeIMO.Pdf.Filters.StreamDecoder.Decode(profileStream.Dictionary, profileStream.Data, objects));
         Assert.Contains("<735247422049454336313936362D322E31>", raw, StringComparison.Ordinal);
         Assert.True(info.HasOutputIntents);
         Assert.True(preflight.Probe.HasOutputIntents);
@@ -520,7 +527,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/Subtype /text#2Fplain", raw, StringComparison.Ordinal);
         Assert.Contains("/Params << /Size 55 /CheckSum <83F5425DBE5CB56CCCFFC5F749EDCAD4> >>", raw, StringComparison.Ordinal);
         Assert.Contains("/Params << /Size 24 /CheckSum <C321A4BD26D4D3AF6F40C2FC4EDDF6AE> >>", raw, StringComparison.Ordinal);
-        Assert.Contains("CrossIndustryInvoice", raw, StringComparison.Ordinal);
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(bytes);
+        Assert.Equal(invoiceXml, Assert.Single(attachments, attachment => attachment.FileName == "invoice.xml").Bytes);
+        Assert.Equal(sourceText, Assert.Single(attachments, attachment => attachment.FileName == "source.txt").Bytes);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);

@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-internal static class PdfVisualResourceDictionaryBuilder {
+internal static partial class PdfVisualResourceDictionaryBuilder {
     // Linear-light sRGB primaries and D65 white point. PDF CalRGB applies its
     // matrix after interpolation, preserving the native field without extra stops.
     internal const string LinearRgbColorSpace = "[/CalRGB << /WhitePoint [0.95047 1 1.08883] /Gamma [1 1 1] /Matrix [0.4124564 0.2126729 0.0193339 0.3575761 0.7151522 0.119192 0.1804375 0.072175 0.9503041] >>]";
@@ -51,17 +51,20 @@ internal static class PdfVisualResourceDictionaryBuilder {
         double y1,
         IReadOnlyList<OfficeGradientStop> stops,
         PdfPrintColorTransform? printColorTransform = null,
-        bool alphaOnly = false, OfficeGradientColorInterpolation colorInterpolation = OfficeGradientColorInterpolation.Srgb) {
+        bool alphaOnly = false, OfficeGradientColorInterpolation colorInterpolation = OfficeGradientColorInterpolation.Srgb, bool interpolateAlphaSeparately = true,
+        Func<string, string>? functionReferenceResolver = null) {
         ValidateFinite(x0, nameof(x0));
         ValidateFinite(y0, nameof(y0));
         ValidateFinite(x1, nameof(x1));
         ValidateFinite(y1, nameof(y1));
         ValidateStops(stops);
 
+        string function = BuildGradientFunction(stops, printColorTransform, alphaOnly, colorInterpolation, interpolateAlphaSeparately);
+        if (functionReferenceResolver != null) function = functionReferenceResolver(function);
         return
             "<< /ShadingType 2 /ColorSpace " + (alphaOnly ? "/DeviceGray" : printColorTransform != null ? "/DeviceCMYK" : colorInterpolation == OfficeGradientColorInterpolation.LinearRgb ? LinearRgbColorSpace : "/DeviceRGB") + " /Coords [" +
             PdfNumberFormatter.Precise(x0) + " " + PdfNumberFormatter.Precise(y0) + " " + PdfNumberFormatter.Precise(x1) + " " + PdfNumberFormatter.Precise(y1) +
-            "] /Function " + BuildGradientFunction(stops, printColorTransform, alphaOnly, colorInterpolation) + " /Extend [true true] >>\n";
+            "] /Function " + function + " /Extend [true true] >>\n";
     }
 
     internal static string BuildRadialShadingObject(
@@ -73,7 +76,8 @@ internal static class PdfVisualResourceDictionaryBuilder {
         double r1,
         IReadOnlyList<OfficeGradientStop> stops,
         PdfPrintColorTransform? printColorTransform = null,
-        bool alphaOnly = false, OfficeGradientColorInterpolation colorInterpolation = OfficeGradientColorInterpolation.Srgb) {
+        bool alphaOnly = false, OfficeGradientColorInterpolation colorInterpolation = OfficeGradientColorInterpolation.Srgb, bool interpolateAlphaSeparately = true,
+        Func<string, string>? functionReferenceResolver = null) {
         ValidateFinite(x0, nameof(x0));
         ValidateFinite(y0, nameof(y0));
         ValidateRadius(r0, nameof(r0));
@@ -85,19 +89,21 @@ internal static class PdfVisualResourceDictionaryBuilder {
             throw new ArgumentException("Radial PDF shading circles must be different.", nameof(r1));
         }
 
+        string function = BuildGradientFunction(stops, printColorTransform, alphaOnly, colorInterpolation, interpolateAlphaSeparately);
+        if (functionReferenceResolver != null) function = functionReferenceResolver(function);
         return
             "<< /ShadingType 3 /ColorSpace " + (alphaOnly ? "/DeviceGray" : printColorTransform != null ? "/DeviceCMYK" : colorInterpolation == OfficeGradientColorInterpolation.LinearRgb ? LinearRgbColorSpace : "/DeviceRGB") + " /Coords [" +
             PdfNumberFormatter.Precise(x0) + " " + PdfNumberFormatter.Precise(y0) + " " + PdfNumberFormatter.Precise(r0) + " " +
             PdfNumberFormatter.Precise(x1) + " " + PdfNumberFormatter.Precise(y1) + " " + PdfNumberFormatter.Precise(r1) +
-            "] /Function " + BuildGradientFunction(stops, printColorTransform, alphaOnly, colorInterpolation) + " /Extend [true true] >>\n";
+            "] /Function " + function + " /Extend [true true] >>\n";
     }
 
-    private static string BuildGradientFunction(IReadOnlyList<OfficeGradientStop> stops, PdfPrintColorTransform? printColorTransform, bool alphaOnly, OfficeGradientColorInterpolation colorInterpolation) {
+    private static string BuildGradientFunction(IReadOnlyList<OfficeGradientStop> stops, PdfPrintColorTransform? printColorTransform, bool alphaOnly, OfficeGradientColorInterpolation colorInterpolation, bool interpolateAlphaSeparately) {
         IReadOnlyList<OfficeGradientStop> normalized = HasDuplicateOffsets(stops)
             ? NormalizeGradientStops(stops)
             : stops;
-        if (printColorTransform != null && !alphaOnly) {
-            return BuildTransformedGradientFunction(normalized, printColorTransform, colorInterpolation);
+        if (!alphaOnly && (printColorTransform != null || (!interpolateAlphaSeparately && HasVaryingGradientAlpha(normalized)))) {
+            return BuildTransformedGradientFunction(normalized, printColorTransform, colorInterpolation, interpolateAlphaSeparately);
         }
         if (normalized.Count == 2) return BuildInterpolationFunction(normalized[0].Color, normalized[1].Color, printColorTransform, alphaOnly, colorInterpolation);
 
@@ -124,25 +130,38 @@ internal static class PdfVisualResourceDictionaryBuilder {
 
     internal static IReadOnlyList<TransformedGradientSample> CreateTransformedGradientSamples(
         IReadOnlyList<OfficeGradientStop> stops,
-        PdfPrintColorTransform printColorTransform, OfficeGradientColorInterpolation colorInterpolation) {
+        PdfPrintColorTransform? printColorTransform, OfficeGradientColorInterpolation colorInterpolation, bool interpolateAlphaSeparately = true) {
         ValidateStops(stops);
         if (HasDuplicateOffsets(stops)) stops = NormalizeGradientStops(stops);
         var samples = new List<TransformedGradientSample>();
         for (int index = 1; index < stops.Count; index++) {
             OfficeGradientStop start = stops[index - 1];
             OfficeGradientStop end = stops[index];
-            var startComponents = GradientComponents(start.Color, end.Color, 0D, printColorTransform, colorInterpolation);
-            var endComponents = GradientComponents(start.Color, end.Color, 1D, printColorTransform, colorInterpolation);
+            var startComponents = GradientComponents(start.Color, end.Color, 0D, printColorTransform, colorInterpolation, interpolateAlphaSeparately);
+            var endComponents = GradientComponents(start.Color, end.Color, 1D, printColorTransform, colorInterpolation, interpolateAlphaSeparately);
+            double startPosition = 0D;
             if (samples.Count == 0) samples.Add(new TransformedGradientSample(start.Offset, startComponents));
+            else if (!interpolateAlphaSeparately && start.Color.A == 0 &&
+                !samples[samples.Count - 1].Components.SequenceEqual(startComponents)) {
+                // A transparent interior stop has different limiting RGB colors
+                // on either side. Join them only where alpha is effectively zero.
+                double transitionPosition = 0.0000001D;
+                double transitionOffset = InterpolateOffset(start.Offset, end.Offset, transitionPosition);
+                if (transitionOffset > start.Offset && transitionOffset < end.Offset) {
+                    startPosition = transitionPosition;
+                    startComponents = GradientComponents(start.Color, end.Color, startPosition, printColorTransform, colorInterpolation, interpolateAlphaSeparately);
+                    AddTransformedGradientSample(samples, transitionOffset, startComponents);
+                }
+            }
             AppendAdaptiveGradientSamples(
                 start,
                 end,
-                0D,
+                startPosition,
                 1D,
                 startComponents,
                 endComponents,
                 depth: 0,
-                printColorTransform, colorInterpolation,
+                printColorTransform, colorInterpolation, interpolateAlphaSeparately,
                 samples);
         }
 
@@ -151,8 +170,8 @@ internal static class PdfVisualResourceDictionaryBuilder {
 
     private static string BuildTransformedGradientFunction(
         IReadOnlyList<OfficeGradientStop> stops,
-        PdfPrintColorTransform printColorTransform, OfficeGradientColorInterpolation colorInterpolation) {
-        var samples = CreateTransformedGradientSamples(stops, printColorTransform, colorInterpolation);
+        PdfPrintColorTransform? printColorTransform, OfficeGradientColorInterpolation colorInterpolation, bool interpolateAlphaSeparately = true) {
+        var samples = CreateTransformedGradientSamples(stops, printColorTransform, colorInterpolation, interpolateAlphaSeparately);
         if (samples.Count == 2) {
             return BuildCmykInterpolationFunction(samples[0].Components, samples[1].Components);
         }
@@ -186,14 +205,20 @@ internal static class PdfVisualResourceDictionaryBuilder {
         double[] startComponents,
         double[] endComponents,
         int depth,
-        PdfPrintColorTransform printColorTransform, OfficeGradientColorInterpolation colorInterpolation,
+        PdfPrintColorTransform? printColorTransform, OfficeGradientColorInterpolation colorInterpolation, bool interpolateAlphaSeparately,
         List<TransformedGradientSample> samples) {
         double middlePosition = (startPosition + endPosition) / 2D;
-        var middleComponents = GradientComponents(intervalStart.Color, intervalEnd.Color, middlePosition, printColorTransform, colorInterpolation);
+        var middleComponents = GradientComponents(intervalStart.Color, intervalEnd.Color, middlePosition, printColorTransform, colorInterpolation, interpolateAlphaSeparately);
 
-        bool needsSubdivision = depth < MinimumGradientSubdivisionDepth ||
+        double firstOffset = InterpolateOffset(intervalStart.Offset, intervalEnd.Offset, startPosition);
+        double middleOffset = InterpolateOffset(intervalStart.Offset, intervalEnd.Offset, middlePosition);
+        double lastOffset = InterpolateOffset(intervalStart.Offset, intervalEnd.Offset, endPosition);
+        // Once a midpoint rounds to an endpoint, no distinct PDF boundary can
+        // represent another subdivision of this floating-point interval.
+        bool canSubdivide = middleOffset > firstOffset && middleOffset < lastOffset;
+        bool needsSubdivision = canSubdivide && ((printColorTransform != null && depth < MinimumGradientSubdivisionDepth) ||
             (depth < MaximumGradientSubdivisionDepth &&
-             MaximumMidpointError(startComponents, middleComponents, endComponents) > GradientTransformTolerance);
+             MaximumMidpointError(startComponents, middleComponents, endComponents) > GradientTransformTolerance));
         if (!needsSubdivision) {
             AddTransformedGradientSample(
                 samples,
@@ -210,7 +235,7 @@ internal static class PdfVisualResourceDictionaryBuilder {
             startComponents,
             middleComponents,
             depth + 1,
-            printColorTransform, colorInterpolation,
+            printColorTransform, colorInterpolation, interpolateAlphaSeparately,
             samples);
         AppendAdaptiveGradientSamples(
             intervalStart,
@@ -220,17 +245,8 @@ internal static class PdfVisualResourceDictionaryBuilder {
             middleComponents,
             endComponents,
             depth + 1,
-            printColorTransform, colorInterpolation,
+            printColorTransform, colorInterpolation, interpolateAlphaSeparately,
             samples);
-    }
-
-    private static double[] GradientComponents(OfficeColor start, OfficeColor end, double position,
-        PdfPrintColorTransform printColorTransform, OfficeGradientColorInterpolation interpolation) {
-        var components = new double[4];
-        var color = interpolation == OfficeGradientColorInterpolation.Srgb ? InterpolateColor(start, end, position)
-            : OfficeGradientColors.Interpolate(start, end, position, interpolation);
-        printColorTransform.Convert(color, components);
-        return components;
     }
 
     private static void AddTransformedGradientSample(
@@ -241,6 +257,9 @@ internal static class PdfVisualResourceDictionaryBuilder {
             throw new InvalidOperationException("PDF gradient color conversion exceeded the bounded sample count.");
         }
 
+        if (samples.Count > 0 && offset <= samples[samples.Count - 1].Offset) {
+            throw new InvalidOperationException("PDF gradient samples require strictly increasing offsets.");
+        }
         samples.Add(new TransformedGradientSample(offset, components));
     }
 
@@ -252,17 +271,8 @@ internal static class PdfVisualResourceDictionaryBuilder {
         return maximum;
     }
 
-    private static OfficeColor InterpolateColor(OfficeColor start, OfficeColor end, double position) =>
-        OfficeColor.FromRgb(
-            InterpolateByte(start.R, end.R, position),
-            InterpolateByte(start.G, end.G, position),
-            InterpolateByte(start.B, end.B, position));
-
-    private static byte InterpolateByte(byte start, byte end, double position) =>
-        (byte)Math.Round(start + ((end - start) * position), MidpointRounding.AwayFromZero);
-
     private static double InterpolateOffset(double start, double end, double position) =>
-        start + ((end - start) * position);
+        position <= 0D ? start : position >= 1D ? end : start + ((end - start) * position);
 
     private static bool HasDuplicateOffsets(IReadOnlyList<OfficeGradientStop> stops) {
         for (int index = 1; index < stops.Count; index++) {
@@ -292,6 +302,10 @@ internal static class PdfVisualResourceDictionaryBuilder {
                 normalized.Add(new OfficeGradientStop(stops[index].Offset + epsilon, stops[end - 1].Color));
             }
             index = end;
+        }
+        for (int i = 1; i < normalized.Count; i++) {
+            if (normalized[i].Offset <= normalized[i - 1].Offset)
+                throw new InvalidOperationException("PDF gradient stop intervals are too narrow to represent their distinct colors.");
         }
         return normalized;
     }
@@ -348,8 +362,7 @@ internal static class PdfVisualResourceDictionaryBuilder {
     private static string FormatColorComponent(byte value) =>
         FormatNumber(value / 255D);
 
-    private static string FormatGradientOffset(double value) =>
-        value.ToString("0.########", CultureInfo.InvariantCulture);
+    private static string FormatGradientOffset(double value) => PdfNumberFormatter.Precise(value);
 
     private static string FormatNumber(double value) =>
         value.ToString("0.###", CultureInfo.InvariantCulture);

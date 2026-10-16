@@ -598,7 +598,7 @@ public sealed partial class PdfReadPage {
                 AddTextSpan(drawing, pageHeight, element.TextSpan!, pageContentBudget, cancellationToken);
                 break;
             case PdfPageDrawingElementKind.Image:
-                AddImagePlacement(drawing, pageHeight, element.ImagePlacement!, element.Image!);
+                AddImagePlacement(drawing, pageHeight, element.ImagePlacement!, element.Image!, cancellationToken);
                 break;
             case PdfPageDrawingElementKind.Group:
                 drawing.AddEffectDrawing(element.GroupDrawing!, element.GroupTransform);
@@ -3251,7 +3251,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private static void AddImagePlacement(OfficeDrawing drawing, double pageHeight, PdfImagePlacement placement, PdfExtractedImage image) {
+    private static void AddImagePlacement(OfficeDrawing drawing, double pageHeight, PdfImagePlacement placement, PdfExtractedImage image, CancellationToken cancellationToken = default) {
         if (placement.Width <= 0D || placement.Height <= 0D || placement.ImageOpacity <= 0D) {
             return;
         }
@@ -3273,14 +3273,15 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        if (TryAddClippedImagePlacement(drawing, placement, image, projection)) {
+        byte[] drawingBytes = image.GetDrawingBytes(cancellationToken);
+        if (TryAddClippedImagePlacement(drawing, placement, image, projection, drawingBytes)) {
             return;
         }
 
-        drawing.AddImageSharedWithInterpolation(image.EncodedBytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddImageSharedWithInterpolation(drawingBytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
     }
 
-    private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection) {
+    private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection, byte[] drawingBytes) {
         PdfPageClipPath? activeClipPath = placement.ClipPath;
         if (!activeClipPath.HasValue && projection.HasTransform) {
             (double left, double top, double right, double bottom) = projection.GetDestinationBounds();
@@ -3315,7 +3316,7 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        drawing.AddClippedImageSharedWithInterpolation(image.EncodedBytes, image.MimeType, projection, image.Interpolate, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddClippedImageSharedWithInterpolation(drawingBytes, image.MimeType, projection, image.Interpolate, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
         return true;
     }
 

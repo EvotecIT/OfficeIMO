@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
             PdfNumberFormatter.Precise(shading.AlphaBottom) + " " + PdfNumberFormatter.Precise(shading.AlphaTop);
         // Large RGB trees use separate component functions so portable PDF
         // interpreters need neither deep procedures nor oversized branch jumps.
-        var colors = PdfRadialSpreadColors.Create(shading.Stops, shading.ColorInterpolation, shading.OutsideColor, alphaOnly, printTransform);
+        var colors = PdfRadialSpreadColors.Create(shading.Stops, shading.ColorInterpolation, shading.OutsideColor, alphaOnly, printTransform, shading.InterpolateAlphaSeparately);
         // Share geometry for ordinary print gradients; bound each branch for portable consumers.
         bool separateComponents = !alphaOnly && colors.Samples.Count > (printTransform != null ? 256 : 32);
         var functionIds = new List<int>();

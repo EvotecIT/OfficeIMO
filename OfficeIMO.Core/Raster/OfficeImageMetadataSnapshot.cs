@@ -2,6 +2,7 @@ namespace OfficeIMO.Drawing;
 
 internal sealed class OfficeImageMetadataSnapshot {
     internal OfficeImageMetadataKinds Kinds { get; set; }
+    internal OfficeImageOrientation Orientation { get; set; } = OfficeImageOrientation.Normal;
     internal bool HasColorRenderingMetadata { get; set; }
     internal bool HasDeviceMultichannel { get; set; }
     internal int JpegSamplePrecision { get; set; }

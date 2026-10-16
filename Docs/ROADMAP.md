@@ -59,6 +59,8 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## PDF engine and conversion fidelity
 
+- [ ] Correct the lossless optimizer's XMP preservation handling: `MaximumCompression` rejects the representative PDF/A-2b image fixture after changing its metadata stream filter and size. Keep metadata preservation and standards validation consistent.
+
 - [ ] Qualify the DOC/DOCX/TXT archive workflow with a representative large mixed-format producer corpus, including interruption/restart, source/output integrity, diagnostics, throughput and peak memory. Keep the existing per-file limits separate from archive-capacity claims.
 - [ ] Qualify printer delivery on native macOS and physical Windows/CUPS printers, including duplex, trays, margins and driver failures. Preserve queue acceptance as a separate contract from confirmed physical delivery.
 - [ ] Add source-password admission to CLI `workflow print-plan` and `workflow print` through the existing password environment-variable binding and `PdfPrintPlanRequest.PdfPassword`. Cover printing-permitted, copying-denied user access, incorrect passwords and denied printing; preserve authenticated Studio snapshots and MCP planning.

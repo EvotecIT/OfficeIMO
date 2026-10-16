@@ -266,7 +266,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        return Encoding.ASCII.GetString(bytes);
+        return PdfTestContentText.ReadDecoded(bytes);
     }
 
     private static int CountOccurrences(string text, string value) {
@@ -730,7 +730,7 @@ public partial class PdfDocumentVisualQualityTests {
     private static void AppendContentStreams(Dictionary<int, PdfIndirectObject> objects, PdfObject contents, List<string> streams) {
         if (contents is PdfReference reference) {
             if (objects.TryGetValue(reference.ObjectNumber, out var indirect) && indirect.Value is PdfStream stream) {
-                streams.Add(Encoding.GetEncoding("ISO-8859-1").GetString(stream.Data));
+                streams.Add(Encoding.GetEncoding("ISO-8859-1").GetString(OfficeIMO.Pdf.Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects)));
             }
 
             return;

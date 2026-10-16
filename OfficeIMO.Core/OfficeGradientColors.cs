@@ -3,9 +3,14 @@ using System;
 namespace OfficeIMO.Drawing;
 
 internal static class OfficeGradientColors {
-    internal static OfficeColor Interpolate(OfficeColor start, OfficeColor end, double ratio, OfficeGradientColorInterpolation mode) {
+    internal static OfficeColor Interpolate(OfficeColor start, OfficeColor end, double ratio, OfficeGradientColorInterpolation mode, bool interpolateAlphaSeparately = true) {
         ratio = Math.Max(0, Math.Min(1, ratio));
-        byte alpha = (byte)Math.Round(start.A + (end.A - start.A) * ratio);
+        double alphaValue = start.A + (end.A - start.A) * ratio;
+        byte alpha = (byte)Math.Round(alphaValue);
+        if (!interpolateAlphaSeparately) {
+            if (alphaValue <= 0D) return OfficeColor.Transparent;
+            ratio = end.A * ratio / alphaValue;
+        }
         if (mode == OfficeGradientColorInterpolation.LinearRgb) {
             var rgb = OfficeColorSpaceConverter.FromLinearSrgb(
                 LinearChannel(start.R, end.R, ratio), LinearChannel(start.G, end.G, ratio), LinearChannel(start.B, end.B, ratio));

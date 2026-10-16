@@ -287,7 +287,8 @@ internal static partial class PdfWriter {
 
         private void DrawDrawingImageAt(OfficeDrawingImage image, double originX, double originTopY) {
             OfficeImageProjection projection = image.Projection;
-            PdfDocument.PreparedImage prepared = PrepareDrawingImage(image);
+            if (TryDrawSvgImageAt(image, originX, originTopY)) return;
+            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(image.EncodedBytes);
             var imageStyle = new PdfImageStyle {
                 Fit = OfficeImageFit.Stretch,
                 RotationAngle = -projection.RotationDegrees,
@@ -332,28 +333,6 @@ internal static partial class PdfWriter {
             sb.Append(pageImage.InlineDrawToken);
 
             pageDirty = true;
-        }
-
-        private static PdfDocument.PreparedImage PrepareDrawingImage(OfficeDrawingImage image) {
-            bool isSvg = OfficeImageInfo.FromMimeType(image.ContentType) == OfficeImageFormat.Svg ||
-                (OfficeImageReader.TryIdentifyByContent(image.EncodedBytes, null, out OfficeImageInfo imageInfo) && imageInfo.Format == OfficeImageFormat.Svg);
-            if (!isSvg) return PdfDocument.PrepareImageBytes(image.EncodedBytes);
-
-            if (!OfficeSvgDrawingReader.TryRead(image.EncodedBytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) ||
-                vector == null || unsupportedFeatureCount != 0) {
-                throw new NotSupportedException("OfficeIMO.Pdf cannot rasterize this SVG drawing image because it contains unsupported SVG features.");
-            }
-
-            const double maximumRasterPixels = 16_000_000D;
-            double desiredScale = Math.Max(
-                1D,
-                Math.Max(image.Projection.Width / vector.Width, image.Projection.Height / vector.Height));
-            double safeScale = Math.Sqrt(maximumRasterPixels / Math.Max(1D, vector.Width * vector.Height));
-            byte[] png = OfficeDrawingRasterRenderer.ToPng(
-                vector,
-                Math.Min(desiredScale, safeScale),
-                OfficeColor.Transparent);
-            return PdfDocument.PrepareImageBytes(png);
         }
 
         private static bool ChildImagesOwnDrawingAccessibility(OfficeDrawing drawing, PdfDrawingStyle style) {
