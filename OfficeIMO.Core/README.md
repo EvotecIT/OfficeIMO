@@ -503,6 +503,8 @@ pattern cells report unsupported features and preserve source geometry. Links on
 the filtered container retain their original geometry. Pass
 `OfficeSvgDrawingReaderOptions.CancellationToken` to cancel import and filter work.
 
+SVG import loads embedded `@font-face` data through the bounded font loader into the drawing's scoped font collection. Font weight, stretch, slant and Unicode ranges participate in text fallback; remote and local font sources report unsupported features. CSS `image-rendering` retains nearest-neighbor sampling when a drawing is exported and reopened.
+
 The SVG drawing reader supports a single rectangle, rounded rectangle, circle, ellipse, polygon, or
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.

@@ -103,7 +103,10 @@ public static partial class OfficeSvgDrawingReader {
         if (normalized.Length == 0) return false;
         if (normalized[0] is '\'' or '"') {
             int cursor = 0;
-            if (!TryReadSvgFontCssString(normalized, ref cursor, out family) || cursor != normalized.Length) return false;
+            if (!TryReadSvgFontCssString(normalized, ref cursor, out _) || cursor != normalized.Length) return false;
+            List<string> decoded = OfficeFontFamilyParser.Parse(normalized);
+            if (decoded.Count != 1) return false;
+            family = decoded[0];
         } else {
             if (normalized.Length > OfficeFontFamilyParser.DefaultMaximumFamilyNameLength) return false;
             if (IsSvgCssWideKeyword(normalized) || normalized.Equals("default", StringComparison.OrdinalIgnoreCase)) return false;

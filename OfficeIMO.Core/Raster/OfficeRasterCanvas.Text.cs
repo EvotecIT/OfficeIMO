@@ -38,7 +38,7 @@ public sealed partial class OfficeRasterCanvas {
             if (ShouldUseFallbackRuns(fallbackRuns, fontFamily)) {
                 double aggregate = 0D;
                 foreach (OfficeFontFallbackRun run in fallbackRuns) {
-                    aggregate += MeasureText(run.Text, size, run.FamilyName, style);
+                    aggregate += MeasureText(run.Text, size, run.FamilyRequest, style);
                 }
                 if (cache.Count >= MaxTextMeasurementCacheEntries) cache.Clear();
                 cache[key] = aggregate;
@@ -73,7 +73,7 @@ public sealed partial class OfficeRasterCanvas {
                 double aggregate = 0D;
                 foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(text!, fontFamily, style, textDirection)) {
                     aggregate += MeasurePositionedText(
-                        run.Text, size, run.FamilyName, style, featureSettings, runDirection);
+                        run.Text, size, run.FamilyRequest, style, featureSettings, runDirection);
                 }
                 return aggregate;
             }
