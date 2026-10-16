@@ -186,11 +186,8 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
 
-                if (TryGetNativeDrawingFillOpacity(shapeProperties, out double fillOpacity)) {
-                    nativeShape.FillOpacity = fillOpacity;
-                } else if (nativeShape.FillColor.HasValue && nativeShape.FillColor.Value.A < byte.MaxValue) {
-                    nativeShape.FillOpacity = nativeShape.FillColor.Value.A / 255D;
-                }
+                // DrawingML fill alpha is already carried by the solid color or
+                // gradient stops. A separate FillOpacity would apply it twice.
             }
 
             A.Outline? drawingOutline = shapeProperties?.GetFirstChild<A.Outline>();

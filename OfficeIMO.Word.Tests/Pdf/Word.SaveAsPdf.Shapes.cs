@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -307,12 +308,94 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("After gradient shape", allText);
             }
 
-            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-            Assert.Contains("/ShadingType 2", content);
-            Assert.Contains("/C0 [0.267 0.447 0.769] /C1 [0.949 0.643 0.435]", content);
-            Assert.Contains("/Type /ExtGState /ca 0.45 /CA 0.65", content);
-            Assert.Contains("0.2 0.4 0.6 RG", content);
-            Assert.Contains("/SH1 sh", content);
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            var (startRgb, endRgb) = ReadDrawingGradientEndpoints(bytes, "DeviceRGB", 3);
+            Assert.Equal(OfficeColor.FromRgb(68, 114, 196), OfficeColor.FromRgb(
+                (byte)System.Math.Round(startRgb[0] * 255D),
+                (byte)System.Math.Round(startRgb[1] * 255D),
+                (byte)System.Math.Round(startRgb[2] * 255D)));
+            Assert.Equal(OfficeColor.FromRgb(242, 164, 111), OfficeColor.FromRgb(
+                (byte)System.Math.Round(endRgb[0] * 255D),
+                (byte)System.Math.Round(endRgb[1] * 255D),
+                (byte)System.Math.Round(endRgb[2] * 255D)));
+
+            var (startAlpha, endAlpha) = ReadDrawingGradientEndpoints(bytes, "DeviceGray", 1);
+            // Drawing colors quantize alpha to a byte before PDF serialization.
+            Assert.InRange(startAlpha[0], 0.45D - 1D / 255D, 0.45D + 1D / 255D);
+            Assert.Equal(1D, endAlpha[0], precision: 6);
+
+            var primitives = PdfCore.PdfReadDocument.Open(bytes).Pages[0].GetIdentityVisualPrimitives();
+            var fill = Assert.Single(primitives, primitive => primitive.FillGradient != null || primitive.FunctionPaint != null);
+            // A second global 45% opacity would fade the opaque endpoint and square
+            // the translucent endpoint's alpha, even though the mask itself is right.
+            Assert.Equal(1D, fill.FillOpacity ?? 1D, precision: 6);
+            var stroke = Assert.Single(primitives, primitive => primitive.StrokeColor == OfficeColor.FromRgb(51, 102, 153));
+            Assert.Equal(112D, stroke.Width, precision: 3);
+            Assert.Equal(48D, stroke.Height, precision: 3);
+            Assert.Equal(1D, stroke.StrokeWidth, precision: 3);
+            Assert.Equal(0.65D, stroke.StrokeOpacity ?? 1D, precision: 3);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_DrawingML_Solid_Fill_Alpha_Once() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSolidAlphaShape.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSolidAlphaShape.pdf");
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddParagraph("Before solid alpha shape");
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112, 48);
+                document.AddParagraph("After solid alpha shape");
+                document.Save();
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(docPath, true)) {
+                Wps.ShapeProperties properties = package.MainDocumentPart!.Document.Descendants<Wps.ShapeProperties>().First();
+                A.PresetGeometry? geometry = properties.GetFirstChild<A.PresetGeometry>();
+                properties.RemoveAllChildren<A.SolidFill>();
+                properties.RemoveAllChildren<A.GradientFill>();
+                var fill = new A.SolidFill(new A.SchemeColor(new A.Alpha() { Val = 45000 }) { Val = A.SchemeColorValues.Accent1 });
+                if (geometry != null) properties.InsertAfter(fill, geometry);
+                else properties.Append(fill);
+                A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
+                if (outline.Parent == null) properties.Append(outline);
+                outline.Width = 12700;
+                outline.RemoveAllChildren();
+                outline.Append(new A.SolidFill(new A.RgbColorModelHex(new A.Alpha() { Val = 65000 }) { Val = "336699" }));
+                package.MainDocumentPart.Document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(docPath)) {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            }
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+                string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
+                Assert.Contains("Before solid alpha shape", allText);
+                Assert.Contains("After solid alpha shape", allText);
+            }
+
+            var primitives = PdfCore.PdfReadDocument.Open(File.ReadAllBytes(pdfPath)).Pages[0].GetIdentityVisualPrimitives();
+            var solid = Assert.Single(primitives, primitive => primitive.FillColor == OfficeColor.FromRgb(68, 114, 196));
+            // The PDF paint alpha must be 45%, not the ~20% obtained by applying
+            // DrawingML's color alpha again as a global fill opacity.
+            Assert.InRange(solid.FillOpacity ?? 1D, 0.45D - 1D / 255D, 0.45D + 1D / 255D);
+            Assert.Equal(112D, solid.Width, precision: 3);
+            Assert.Equal(48D, solid.Height, precision: 3);
+            Assert.Equal(OfficeColor.FromRgb(51, 102, 153), solid.StrokeColor);
+            Assert.Equal(1D, solid.StrokeWidth, precision: 3);
+            Assert.Equal(0.65D, solid.StrokeOpacity ?? 1D, precision: 3);
+        }
+
+        private static (double[] Start, double[] End) ReadDrawingGradientEndpoints(byte[] pdf, string colorSpace, int components) {
+            var (objects, _) = PdfCore.PdfSyntax.ParseObjects(pdf);
+            var shading = Assert.Single(objects.Values.Select(value => value.Value).OfType<PdfCore.PdfDictionary>(),
+                dictionary => dictionary.Get<PdfCore.PdfNumber>("ShadingType")?.Value == 2D &&
+                    dictionary.Get<PdfCore.PdfName>("ColorSpace")?.Name == colorSpace);
+            Assert.True(PdfCore.PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
+                shading.Items["Function"], components, objects, 1024 * 1024, out var function));
+            var start = new double[components];
+            var end = new double[components];
+            Assert.True(function.TryEvaluate(new[] { 0D }, start));
+            Assert.True(function.TryEvaluate(new[] { 1D }, end));
+            return (start, end);
         }
 
         [Fact]
