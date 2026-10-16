@@ -101,11 +101,22 @@ internal static partial class HtmlPdfRenderedConverter {
 
     // Image encoders use exactly the PDF font measurement and print-fitting policy.
     // Keep the original request axes and selection; only the encoder changes here.
-    internal static HtmlRenderOptions PrepareImageOptions(HtmlRenderRequest request) =>
-        PrepareRequest(request, new HtmlToPdfOptions(request.Options), allowImageEncoder: true)
-            .Request.ResolveOptions();
+    internal static HtmlRenderOptions PrepareImageOptions(HtmlRenderRequest request) {
+        HtmlRenderOptions source = request.Options;
+        var options = new HtmlToPdfOptions(source);
+        bool preserveHtmlResourcePolicy = source is not HtmlToPdfOptions;
+        if (preserveHtmlResourcePolicy) {
+            // Retained EPUB, email and site-bundle resolvers already enforce their
+            // container boundary. Preparing PDF fonts must not replace that policy.
+            options.UrlPolicy = source.UrlPolicy.Clone();
+            options.ResourceUrlPolicy = source.GetResourceUrlPolicy().Clone();
+        }
+        return PrepareRequest(request.WithOptions(options), options, allowImageEncoder: true,
+            preserveHtmlResourcePolicy: preserveHtmlResourcePolicy).Request.ResolveOptions();
+    }
 
-    private static PreparedPdfRequest PrepareRequest(HtmlRenderRequest request, HtmlToPdfOptions options, bool allowImageEncoder = false) {
+    private static PreparedPdfRequest PrepareRequest(HtmlRenderRequest request, HtmlToPdfOptions options,
+        bool allowImageEncoder = false, bool preserveHtmlResourcePolicy = false) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (request.Encoder != HtmlRenderEncoder.Pdf && !allowImageEncoder) {
@@ -126,6 +137,7 @@ internal static partial class HtmlPdfRenderedConverter {
             || !options.ResourcePolicy.AllowDocumentFontEmbedding;
         renderOptions.FallbackTextMeasurement = CreateFallbackTextMeasurement(options, measurementOptions);
         renderOptions.FallbackTextFaceMetrics = CreateFallbackTextFaceMetrics(options, measurementOptions);
+        if (preserveHtmlResourcePolicy) return new PreparedPdfRequest(request.WithOptions(renderOptions), renderOptions);
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
         HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
         ApplyResourceAccessPolicy(
@@ -349,6 +361,12 @@ internal static partial class HtmlPdfRenderedConverter {
                 || diagnostic.Severity == HtmlDiagnosticSeverity.Warning
                 || diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
             throw new HtmlConversionException(diagnostics);
+        }
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss) {
+            // Font providers can decline only when the PDF writer paints a run.
+            // Qualify that stage before returning a strict model or image scene,
+            // as well as before exposing bytes through the direct PDF routes.
+            _ = pdf.ToBytes(cancellationToken);
         }
         if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss && conversionReport.HasLoss) {
             throw new HtmlConversionException(diagnostics.Concat(conversionReport.Warnings

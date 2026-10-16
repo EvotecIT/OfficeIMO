@@ -62,8 +62,7 @@ public static class HtmlRenderResultImageExtensions {
             Pdf.HtmlPdfRenderedConverter.CreatePdf(result.Document, new Pdf.HtmlToPdfOptions(result.ResolvedOptions), cancellationToken));
 
     private static OfficeImageExportResult WithHtmlSource(OfficeImageExportResult image, int pageNumber) =>
-        new(image.Format, image.Width, image.Height, image.Bytes, "Page " + pageNumber,
-            "HTML render page " + pageNumber, image.Diagnostics);
+        image.WithIdentity("Page " + pageNumber, "HTML render page " + pageNumber);
 
     internal static OfficeImageExportFormat ResolveImageFormat(HtmlRenderEncoder encoder) => ResolveFormat(encoder);
 
