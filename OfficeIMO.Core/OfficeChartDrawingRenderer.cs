@@ -496,7 +496,8 @@ public static partial class OfficeChartDrawingRenderer {
                         horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 7D,
                         plotWidth,
                         style,
-                        layout);
+                        layout,
+                        UsesTickMarkCategoryPoints(snapshot, layout));
                 }
             }
 
@@ -1023,10 +1024,14 @@ public static partial class OfficeChartDrawingRenderer {
 
         int barSeriesCount = Math.Max(1, slotCount);
         double slot = plotWidth / categories.Count;
-        // OOXML gapWidth defaults to 150 percent of one bar. A cluster of n
-        // bars therefore occupies n / (n + 1.5) of the category slot.
-        double groupWidth = slot * barSeriesCount / (barSeriesCount + 1.5D);
-        double barWidth = Math.Max(2D, groupWidth / barSeriesCount);
+        // OOXML gapWidth is the gap between clusters in bar widths and overlap the share of a
+        // bar that neighbours cover. A cluster of n bars spans n - (n - 1) * overlap bars.
+        double gapRatio = layout.BarGapWidthPercent / 100D;
+        double overlapRatio = barSeriesCount > 1 ? layout.BarOverlapPercent / 100D : 0D;
+        double clusterBars = barSeriesCount - (barSeriesCount - 1) * overlapRatio;
+        double barStepRatio = 1D - overlapRatio;
+        double barWidth = Math.Max(2D, slot / (clusterBars + gapRatio));
+        double groupWidth = barWidth * clusterBars;
         ValueRange horizontalRange;
         ValueRange verticalRange;
         if (sharedValueAxisRange.HasValue) {
@@ -1088,11 +1093,11 @@ public static partial class OfficeChartDrawingRenderer {
 
                 if (horizontal) {
                     double categoryHeight = plotHeight / categories.Count;
-                    double rowHeight = Math.Max(2D, categoryHeight / (barSeriesCount + 1.5D));
+                    double rowHeight = Math.Max(2D, categoryHeight / (clusterBars + gapRatio));
                     int categorySlot = GetHorizontalBarCategorySlotIndex(category, categories.Count, layout);
                     int seriesSlot = barSeriesCount - 1 - layoutSlot;
                     double y = plotTop + categoryHeight * categorySlot +
-                        (categoryHeight - rowHeight * barSeriesCount) / 2D + rowHeight * seriesSlot;
+                        (categoryHeight - rowHeight * clusterBars) / 2D + rowHeight * barStepRatio * seriesSlot;
                     double visibleBaseline = ClampValueToRange(baseline, min, max);
                     double visibleValue = ClampValueToRange(seriesStacked ? baseline + plottedValue : plottedValue, min, max);
                     double x1 = ToPlotX(visibleBaseline, min, max, plotLeft, plotWidth);
@@ -1119,7 +1124,7 @@ public static partial class OfficeChartDrawingRenderer {
                         category);
                 } else {
                     int categorySlotIndex = GetCategorySlotIndex(category, categories.Count, layout);
-                    double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + barWidth * layoutSlot;
+                    double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + barWidth * barStepRatio * layoutSlot;
                     double visibleBaseline = ClampValueToRange(baseline, min, max);
                     double visibleValue = ClampValueToRange(seriesStacked ? baseline + plottedValue : plottedValue, min, max);
                     double y1 = ToPlotY(visibleBaseline, min, max, plotTop, plotHeight);
@@ -1360,6 +1365,30 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
+    // High-low lines join the highest and lowest value of all line series in each category,
+    // as stock charts draw them beneath the series markers.
+    private static void AddHighLowLines(OfficeDrawing drawing, OfficeChartSnapshot snapshot,
+        IReadOnlyList<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> lineSeries,
+        double plotLeft, double plotTop, double plotWidth, double plotHeight, ValueRange range,
+        OfficeChartStyle style, OfficeChartLayout layout) {
+        int categoryCount = snapshot.Data.Categories.Count;
+        for (int i = 0; i < categoryCount; i++) {
+            double low = double.PositiveInfinity, high = double.NegativeInfinity;
+            foreach ((OfficeChartSeries series, _, _) in lineSeries) {
+                if (!TryGetSeriesValue(series, i, out double value)) continue;
+                low = Math.Min(low, value);
+                high = Math.Max(high, value);
+            }
+            if (double.IsInfinity(low) || high <= low) continue;
+            double x = GetCartesianCategoryPointX(snapshot, plotLeft, plotWidth, i, categoryCount, layout);
+            double top = ToPlotY(ClampValueToRange(high, range.Min, range.Max), range.Min, range.Max, plotTop, plotHeight);
+            double bottom = ToPlotY(ClampValueToRange(low, range.Min, range.Max), range.Min, range.Max, plotTop, plotHeight);
+            if (bottom - top <= 0D) continue;
+            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, bottom - top), x, top, null,
+                layout.HighLowLineColor ?? style.TextColor, layout.HighLowLineWidth ?? 0.75D);
+        }
+    }
+
     private static void AddLineSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,
         double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout,
         ValueRange? sharedValueAxisRange = null, OfficeChartAxisGroup? axisGroup = null) {
@@ -1377,6 +1406,9 @@ public static partial class OfficeChartDrawingRenderer {
         var plotBounds = new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight);
         OfficeDrawing geometry = clipPlot ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         OfficeDrawing labels = clipPlot ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+        if (layout.ShowHighLowLines) {
+            AddHighLowLines(geometry, snapshot, lineSeries, plotLeft, plotTop, plotWidth, plotHeight, range, style, layout);
+        }
         var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var stackedSeriesByKind = lineSeries
