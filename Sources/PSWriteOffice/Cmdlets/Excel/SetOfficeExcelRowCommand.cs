@@ -2,25 +2,55 @@ using System;
 using System.Collections.Generic;
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Writes a row of values to the current worksheet.</summary>
+/// <summary>Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.</summary>
 /// <example>
 ///   <summary>Write a row starting at column A.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>ExcelSheet 'Data' { Set-OfficeExcelRow -Row 2 -Values 'North', 1200 }</code>
 ///   <para>Writes two values into row 2, columns A and B.</para>
 /// </example>
+/// <example>
+///   <summary>Wrap a report row and adjust its height through the worksheet pipeline.</summary>
+///   <prefix>PS&gt; </prefix>
+///   <code>$sheet | Set-OfficeExcelRow -Row 2 -WrapText $true -AutoFit</code>
+///   <para>Preserves existing cell formatting while wrapping the used row span and fitting its height. Save the workbook after editing.</para>
+/// </example>
+/// <example>
+///   <summary>Update a named worksheet through the workbook pipeline.</summary>
+///   <prefix>PS&gt; </prefix>
+///   <code>$workbook | Set-OfficeExcelRow -Sheet 'Review' -Row 2 -Values 'Identity', 'Ready'</code>
+///   <para>Selects the worksheet by name without opening a DSL scope.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelRow")]
 [Alias("ExcelRow")]
 public sealed class SetOfficeExcelRowCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
+    /// <summary>Worksheet to modify outside a DSL context.</summary>
+    [Parameter(ValueFromPipeline = true)]
+    [Alias("SheetObject")]
+    public ExcelSheet? Worksheet { get; set; }
+
+    /// <summary>Workbook to modify. Accepts pipeline input; select its worksheet with Sheet or SheetIndex.</summary>
+    [Parameter(ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
+
+    /// <summary>Worksheet name when using Document. The first worksheet is used when no selector is supplied.</summary>
+    [Parameter]
+    public string? Sheet { get; set; }
+
+    /// <summary>Zero-based worksheet index when using Document.</summary>
+    [Parameter]
+    public int? SheetIndex { get; set; }
+
     /// <summary>1-based row index.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public int Row { get; set; }
 
-    /// <summary>Values to write across the row.</summary>
+    /// <summary>Values to write across the row. Numeric, Boolean, and date values retain their native Excel types; strings remain text.</summary>
     [Parameter(Position = 1)]
     public object[]? Values { get; set; }
 
@@ -80,8 +110,7 @@ public sealed class SetOfficeExcelRowCommand : PSWriteOffice.Cmdlets.OfficeMutat
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var context = ExcelDslContext.Require(this);
-        var sheet = context.RequireSheet();
+        var sheet = ExcelSheetResolver.ResolveTarget(this, Worksheet, Document, Sheet, SheetIndex);
 
         if (Row < 1) {
             throw new ArgumentOutOfRangeException(nameof(Row), "Row index must be 1 or greater.");
@@ -100,7 +129,7 @@ public sealed class SetOfficeExcelRowCommand : PSWriteOffice.Cmdlets.OfficeMutat
         if (values.Length > 0) {
             var cells = new List<(int Row, int Column, object Value)>(values.Length);
             for (int i = 0; i < values.Length; i++) {
-                var value = values[i] ?? string.Empty;
+                var value = PowerShellObjectNormalizer.NormalizeCellValueForTable(values[i]) ?? string.Empty;
                 cells.Add((Row, StartColumn + i, value));
             }
 

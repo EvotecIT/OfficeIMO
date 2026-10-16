@@ -84,7 +84,7 @@ internal static partial class PowerShellObjectNormalizer
     public static object? NormalizeCellValueForTable(object? value, PowerShellObjectNormalizerOptions? options = null)
     {
         options ??= PowerShellObjectNormalizerOptions.Default;
-        return NormalizeCellValue(value, options);
+        return NormalizeCellValue(value is PSObject psObject ? psObject.BaseObject : value, options);
     }
 
     public static bool TryProjectItem(object? item, string[]? columns, out string[] projectedColumns, out object?[] values, PowerShellObjectNormalizerOptions? options = null)

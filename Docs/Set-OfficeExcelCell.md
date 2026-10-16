@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelCell
 ## SYNOPSIS
-Sets a cell value, formula, or number format within the current worksheet.
+Sets a cell value, formula, number format, or fill.
 
 ## SYNTAX
 ### Coordinates
@@ -89,7 +89,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to modify outside a DSL context.
+Workbook to modify outside a DSL context. Accepts pipeline input.
 
 ```yaml
 Type: ExcelDocument
@@ -100,7 +100,7 @@ Possible values:
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -249,7 +249,7 @@ Accept wildcard characters: False
 ```
 
 ### -Value
-Cell value to assign.
+Cell value to assign. Numeric, Boolean, and date values retain their native Excel types; strings remain text.
 
 ```yaml
 Type: Object
@@ -286,6 +286,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.Excel.ExcelSheet`
+- `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 

@@ -24,6 +24,19 @@ Start here when you want to create polished documents from PowerShell: workbooks
 
 Use the [scenario-driven example library](Examples/README.md) for complete Word, Excel, PowerPoint, PDF, Markdown, Visio, RTF, CSV, Reader, and multi-format scripts.
 
+Choose the shortest workflow for the job:
+
+| Your task | Start with |
+| --- | --- |
+| Export objects or query results to Excel | `$rows \| Export-OfficeExcel -Path .\Report.xlsx -AutoFit -FreezeTopRow` |
+| Compose a report with loops and conditions | `New-OfficeWord`, `New-OfficeExcel`, or `New-OfficePowerPoint` with `-NoSave`; save and close the document once |
+| Adjust workbook cells, rows, or columns | Pipe a worksheet to `Set-OfficeExcelCell`, `Set-OfficeExcelRow`, or `Set-OfficeExcelColumn` |
+| Convert documents to PDF | `Export-OfficeDocumentPdf` for a file or a mixed-format batch |
+| Find content across supported files | `Search-OfficeDocument` |
+| Check a conversion's fidelity and limits | `Get-OfficeConversionRoute` |
+
+See the [workflow guide](https://officeimo.com/docs/pswriteoffice/object-workflows/) and the [readable Excel review recipe](Examples/Excel/Recipe-Excel-ReadableReview.ps1) for complete examples, including wrapped notes and an optional PDF copy.
+
 ## Platform Areas 🧭
 
 | Area | Status | What it covers now |

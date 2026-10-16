@@ -170976,7 +170976,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:verb>Set</command:verb>
       <command:noun>OfficeExcelCell</command:noun>
       <maml:description>
-        <maml:para>Sets a cell value, formula, or number format within the current worksheet.</maml:para>
+        <maml:para>Sets a cell value, formula, number format, or fill.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
@@ -171009,10 +171009,10 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Workbook to modify outside a DSL context.</maml:para>
+            <maml:para>Workbook to modify outside a DSL context. Accepts pipeline input.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
           <dev:type>
@@ -171132,7 +171132,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Value</maml:name>
           <maml:description>
-            <maml:para>Cell value to assign.</maml:para>
+            <maml:para>Cell value to assign. Numeric, Boolean, and date values retain their native Excel types; strings remain text.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -171180,10 +171180,10 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Workbook to modify outside a DSL context.</maml:para>
+            <maml:para>Workbook to modify outside a DSL context. Accepts pipeline input.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
           <dev:type>
@@ -171291,7 +171291,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Value</maml:name>
           <maml:description>
-            <maml:para>Cell value to assign.</maml:para>
+            <maml:para>Cell value to assign. Numeric, Boolean, and date values retain their native Excel types; strings remain text.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -171351,10 +171351,10 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
         <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Workbook to modify outside a DSL context.</maml:para>
+          <maml:para>Workbook to modify outside a DSL context. Accepts pipeline input.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
         <dev:type>
@@ -171474,7 +171474,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Value</maml:name>
         <maml:description>
-          <maml:para>Cell value to assign.</maml:para>
+          <maml:para>Cell value to assign. Numeric, Boolean, and date values retain their native Excel types; strings remain text.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
         <dev:type>
@@ -171500,6 +171500,11 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:inputType>
         <dev:type>
           <maml:name>OfficeIMO.Excel.ExcelSheet</maml:name>
+        </dev:type>
+      </command:inputType>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
@@ -174625,11 +174630,11 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:verb>Set</command:verb>
       <command:noun>OfficeExcelColumn</command:noun>
       <maml:description>
-        <maml:para>Writes values or formatting to a column in the current worksheet.</maml:para>
+        <maml:para>Writes values or applies column layout to a worksheet in a DSL block or through the pipeline.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Writes values or formatting to a column in the current worksheet.</maml:para>
+      <maml:para>Writes values or applies column layout to a worksheet in a DSL block or through the pipeline.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
@@ -174670,6 +174675,18 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Workbook to modify. Accepts pipeline input; select its worksheet with Sheet or SheetIndex.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>ExcelDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Hidden</maml:name>
           <maml:description>
@@ -174695,6 +174712,30 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Sheet</maml:name>
+          <maml:description>
+            <maml:para>Worksheet name when using Document. The first worksheet is used when no selector is supplied.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SheetIndex</maml:name>
+          <maml:description>
+            <maml:para>Zero-based worksheet index when using Document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>StartRow</maml:name>
           <maml:description>
             <maml:para>Starting row index (1-based) for values.</maml:para>
@@ -174709,7 +174750,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Values</maml:name>
           <maml:description>
-            <maml:para>Values to write down the column.</maml:para>
+            <maml:para>Values to write down the column. Numeric, Boolean, and date values retain their native Excel types; strings remain text.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
           <dev:type>
@@ -174721,11 +174762,23 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Width</maml:name>
           <maml:description>
-            <maml:para>Column width to apply.</maml:para>
+            <maml:para>Column width in Excel character units.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
           <dev:type>
             <maml:name>Double</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="SheetObject">
+          <maml:name>Worksheet</maml:name>
+          <maml:description>
+            <maml:para>Worksheet to modify outside a DSL context.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelSheet</command:parameterValue>
+          <dev:type>
+            <maml:name>ExcelSheet</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -174769,6 +174822,18 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Workbook to modify. Accepts pipeline input; select its worksheet with Sheet or SheetIndex.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>ExcelDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Hidden</maml:name>
         <maml:description>
@@ -174794,6 +174859,30 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Sheet</maml:name>
+        <maml:description>
+          <maml:para>Worksheet name when using Document. The first worksheet is used when no selector is supplied.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>SheetIndex</maml:name>
+        <maml:description>
+          <maml:para>Zero-based worksheet index when using Document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>StartRow</maml:name>
         <maml:description>
           <maml:para>Starting row index (1-based) for values.</maml:para>
@@ -174808,7 +174897,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Values</maml:name>
         <maml:description>
-          <maml:para>Values to write down the column.</maml:para>
+          <maml:para>Values to write down the column. Numeric, Boolean, and date values retain their native Excel types; strings remain text.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
         <dev:type>
@@ -174820,7 +174909,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Width</maml:name>
         <maml:description>
-          <maml:para>Column width to apply.</maml:para>
+          <maml:para>Column width in Excel character units.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
         <dev:type>
@@ -174829,11 +174918,28 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="SheetObject">
+        <maml:name>Worksheet</maml:name>
+        <maml:description>
+          <maml:para>Worksheet to modify outside a DSL context.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ExcelSheet</command:parameterValue>
+        <dev:type>
+          <maml:name>ExcelSheet</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
     </command:parameters>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>None</maml:name>
+          <maml:name>OfficeIMO.Excel.ExcelSheet</maml:name>
+        </dev:type>
+      </command:inputType>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
@@ -174852,6 +174958,26 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <dev:code>ExcelSheet 'Data' { Set-OfficeExcelColumn -Column 1 -Values 'North','South' -AutoFit }</dev:code>
         <dev:remarks>
           <maml:para>Writes values into column A and adjusts the width.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Set a readable report column width through the worksheet pipeline.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$sheet | Set-OfficeExcelColumn -ColumnName C -Width 48</dev:code>
+        <dev:remarks>
+          <maml:para>Sets column C to 48 Excel character units. Save the workbook after editing.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Unhide a column in a named worksheet.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$workbook | Set-OfficeExcelColumn -Sheet 'Review' -ColumnName C -Hidden $false -AutoFit</dev:code>
+        <dev:remarks>
+          <maml:para>Uses the workbook pipeline target without an active DSL scope.</maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -185033,11 +185159,11 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:verb>Set</command:verb>
       <command:noun>OfficeExcelRow</command:noun>
       <maml:description>
-        <maml:para>Writes a row of values to the current worksheet.</maml:para>
+        <maml:para>Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Writes a row of values to the current worksheet.</maml:para>
+      <maml:para>Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
@@ -185086,6 +185212,18 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Workbook to modify. Accepts pipeline input; select its worksheet with Sheet or SheetIndex.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>ExcelDocument</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -185187,6 +185325,30 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Sheet</maml:name>
+          <maml:description>
+            <maml:para>Worksheet name when using Document. The first worksheet is used when no selector is supplied.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SheetIndex</maml:name>
+          <maml:description>
+            <maml:para>Zero-based worksheet index when using Document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>StartColumn</maml:name>
           <maml:description>
             <maml:para>Starting column index (1-based).</maml:para>
@@ -185213,11 +185375,23 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>Values</maml:name>
           <maml:description>
-            <maml:para>Values to write across the row.</maml:para>
+            <maml:para>Values to write across the row. Numeric, Boolean, and date values retain their native Excel types; strings remain text.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
           <dev:type>
             <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="SheetObject">
+          <maml:name>Worksheet</maml:name>
+          <maml:description>
+            <maml:para>Worksheet to modify outside a DSL context.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelSheet</command:parameterValue>
+          <dev:type>
+            <maml:name>ExcelSheet</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -185281,6 +185455,18 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Workbook to modify. Accepts pipeline input; select its worksheet with Sheet or SheetIndex.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>ExcelDocument</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -185382,6 +185568,30 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Sheet</maml:name>
+        <maml:description>
+          <maml:para>Worksheet name when using Document. The first worksheet is used when no selector is supplied.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>SheetIndex</maml:name>
+        <maml:description>
+          <maml:para>Zero-based worksheet index when using Document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>StartColumn</maml:name>
         <maml:description>
           <maml:para>Starting column index (1-based).</maml:para>
@@ -185408,11 +185618,23 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="1" aliases="None">
         <maml:name>Values</maml:name>
         <maml:description>
-          <maml:para>Values to write across the row.</maml:para>
+          <maml:para>Values to write across the row. Numeric, Boolean, and date values retain their native Excel types; strings remain text.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
         <dev:type>
           <maml:name>Object[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="SheetObject">
+        <maml:name>Worksheet</maml:name>
+        <maml:description>
+          <maml:para>Worksheet to modify outside a DSL context.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ExcelSheet</command:parameterValue>
+        <dev:type>
+          <maml:name>ExcelSheet</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -185433,7 +185655,12 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>None</maml:name>
+          <maml:name>OfficeIMO.Excel.ExcelSheet</maml:name>
+        </dev:type>
+      </command:inputType>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
@@ -185452,6 +185679,26 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <dev:code>ExcelSheet 'Data' { Set-OfficeExcelRow -Row 2 -Values 'North', 1200 }</dev:code>
         <dev:remarks>
           <maml:para>Writes two values into row 2, columns A and B.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Wrap a report row and adjust its height through the worksheet pipeline.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$sheet | Set-OfficeExcelRow -Row 2 -WrapText $true -AutoFit</dev:code>
+        <dev:remarks>
+          <maml:para>Preserves existing cell formatting while wrapping the used row span and fitting its height. Save the workbook after editing.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Update a named worksheet through the workbook pipeline.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$workbook | Set-OfficeExcelRow -Sheet 'Review' -Row 2 -Values 'Identity', 'Ready'</dev:code>
+        <dev:remarks>
+          <maml:para>Selects the worksheet by name without opening a DSL scope.</maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

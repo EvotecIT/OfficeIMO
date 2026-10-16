@@ -7,6 +7,7 @@ BeforeAll {
     Import-Module $ModuleManifest -Global -ErrorAction Stop
 
     $script:OfficeCommands = @(Get-Command -Module PSWriteOffice -CommandType Cmdlet)
+    $script:OfficeCommandsByName = (Get-Module PSWriteOffice).ExportedCommands
 }
 
 Describe 'PSWriteOffice public API consistency' {
@@ -444,7 +445,7 @@ Describe 'PSWriteOffice public API consistency' {
 
                     $commandName = $command.GetCommandName()
                     if ([string]::IsNullOrWhiteSpace($commandName)) { continue }
-                    $commandInfo = Get-Command $commandName -ErrorAction SilentlyContinue
+                    $commandInfo = $script:OfficeCommandsByName[$commandName]
                     if ($commandInfo -is [System.Management.Automation.AliasInfo]) {
                         $commandInfo = $commandInfo.ResolvedCommand
                     }
@@ -470,7 +471,7 @@ Describe 'PSWriteOffice public API consistency' {
                         if ($element -isnot [System.Management.Automation.Language.CommandAst]) { continue }
                         $commandName = $element.GetCommandName()
                         if ([string]::IsNullOrWhiteSpace($commandName)) { continue }
-                        $commandInfo = Get-Command $commandName -ErrorAction SilentlyContinue
+                        $commandInfo = $script:OfficeCommandsByName[$commandName]
                         if ($commandInfo -is [System.Management.Automation.AliasInfo]) {
                             $commandInfo = $commandInfo.ResolvedCommand
                         }

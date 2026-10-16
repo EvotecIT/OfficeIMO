@@ -35,6 +35,25 @@ BeforeAll {
 }
 
 Describe 'Executable recipe artifacts' {
+    It 'creates the readable review workbook and PDF in a new nested output folder' {
+        # Use the module imported by this suite instead of another installed version.
+        Mock Import-Module {} -ParameterFilter { $Name -eq 'PSWriteOffice' }
+        $folder = Join-Path $TestDrive 'New/ServiceReview'
+        Test-Path -LiteralPath $folder | Should -BeFalse
+        $files = @(& (Join-Path $examples 'Excel/Recipe-Excel-ReadableReview.ps1') -OutputDirectory $folder -IncludePdf)
+        $files.Count | Should -Be 2
+        foreach ($file in $files) {
+            $file | Should -BeOfType ([IO.FileInfo])
+            $file.Length | Should -BeGreaterThan 0
+        }
+        $rows = @(Import-OfficeExcel -Path (Join-Path $folder 'Service-Review.xlsx') -WorksheetName Review -Range A3:C6)
+        $rows.Count | Should -Be 3
+        $rows[0].Service | Should -Be 'Identity'
+        $rows[0].Availability | Should -BeOfType ([double])
+        $rows[0].Availability | Should -Be 0.9995
+        Get-OfficePdfText -Path (Join-Path $folder 'Service-Review.pdf') | Should -Match 'Service review'
+    }
+
     It 'saves calculated budget values for readers that do not recalculate formulas' {
         $dashboard = Get-RecipeWorksheetXml -Path $artifacts['Budget-Dashboard.xlsx'] -Name Dashboard
         foreach ($expected in @(@{ Cell='B3'; Value=700000 }, @{ Cell='B4'; Value=651800 }, @{ Cell='B5'; Value=-2500 })) {

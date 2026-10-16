@@ -6,16 +6,16 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelRow
 ## SYNOPSIS
-Writes a row of values to the current worksheet.
+Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficeExcelRow [-Row] <int> [[-Values] <Object[]>] [-StartColumn <int>] [-Height <Double>] [-ClearHeight] [-AutoFit] [-Hidden <Boolean>] [-Bold <Boolean>] [-Italic <Boolean>] [-Underline <Boolean>] [-WrapText <Boolean>] [-FontName <string>] [-BackgroundColor <string>] [-FirstColumn <Int32>] [-LastColumn <Int32>] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelRow [-Row] <int> [[-Values] <Object[]>] [-Worksheet <ExcelSheet>] [-Document <ExcelDocument>] [-Sheet <string>] [-SheetIndex <Int32>] [-StartColumn <int>] [-Height <Double>] [-ClearHeight] [-AutoFit] [-Hidden <Boolean>] [-Bold <Boolean>] [-Italic <Boolean>] [-Underline <Boolean>] [-WrapText <Boolean>] [-FontName <string>] [-BackgroundColor <string>] [-FirstColumn <Int32>] [-LastColumn <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Writes a row of values to the current worksheet.
+Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.
 
 ## EXAMPLES
 
@@ -25,6 +25,20 @@ PS> ExcelSheet 'Data' { Set-OfficeExcelRow -Row 2 -Values 'North', 1200 }
 ```
 
 Writes two values into row 2, columns A and B.
+
+### EXAMPLE 2
+```powershell
+PS> $sheet | Set-OfficeExcelRow -Row 2 -WrapText $true -AutoFit
+```
+
+Preserves existing cell formatting while wrapping the used row span and fitting its height. Save the workbook after editing.
+
+### EXAMPLE 3
+```powershell
+PS> $workbook | Set-OfficeExcelRow -Sheet 'Review' -Row 2 -Values 'Identity', 'Ready'
+```
+
+Selects the worksheet by name without opening a DSL scope.
 
 ## PARAMETERS
 
@@ -89,6 +103,22 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Workbook to modify. Accepts pipeline input; select its worksheet with Sheet or SheetIndex.
+
+```yaml
+Type: ExcelDocument
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -220,6 +250,38 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Sheet
+Worksheet name when using Document. The first worksheet is used when no selector is supplied.
+
+```yaml
+Type: String
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SheetIndex
+Zero-based worksheet index when using Document.
+
+```yaml
+Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -StartColumn
 Starting column index (1-based).
 
@@ -253,7 +315,7 @@ Accept wildcard characters: False
 ```
 
 ### -Values
-Values to write across the row.
+Values to write across the row. Numeric, Boolean, and date values retain their native Excel types; strings remain text.
 
 ```yaml
 Type: Object[]
@@ -265,6 +327,22 @@ Required: False
 Position: 1
 Default value: None
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Worksheet
+Worksheet to modify outside a DSL context.
+
+```yaml
+Type: ExcelSheet
+Parameter Sets: __AllParameterSets
+Aliases: SheetObject
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -289,7 +367,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `OfficeIMO.Excel.ExcelSheet`
+- `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 

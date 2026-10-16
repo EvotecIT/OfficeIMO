@@ -1349,7 +1349,7 @@ Sets the worksheet that opens as the active sheet.
 Applies a friendly AutoFilter condition by header name.
 
 ### [Set-OfficeExcelCell](Set-OfficeExcelCell.md)
-Sets a cell value, formula, or number format within the current worksheet.
+Sets a cell value, formula, number format, or fill.
 
 ### [Set-OfficeExcelChartAxis](Set-OfficeExcelChartAxis.md)
 Configures common Excel chart axis titles, formats, scale, and gridlines.
@@ -1373,7 +1373,7 @@ Applies a built-in style and color preset to an Excel chart.
 Adds or replaces an Excel chart series trendline.
 
 ### [Set-OfficeExcelColumn](Set-OfficeExcelColumn.md)
-Writes values or formatting to a column in the current worksheet.
+Writes values or applies column layout to a worksheet in a DSL block or through the pipeline.
 
 ### [Set-OfficeExcelColumnGroup](Set-OfficeExcelColumnGroup.md)
 Configures collapsible Excel outline grouping for worksheet columns.
@@ -1445,7 +1445,7 @@ Configures workbook data refresh metadata for Excel-compatible applications to r
 Sets mixed-format rich text runs in an Excel cell.
 
 ### [Set-OfficeExcelRow](Set-OfficeExcelRow.md)
-Writes a row of values to the current worksheet.
+Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.
 
 ### [Set-OfficeExcelRowGroup](Set-OfficeExcelRowGroup.md)
 Configures collapsible Excel outline grouping for worksheet rows.

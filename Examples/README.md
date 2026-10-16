@@ -27,6 +27,7 @@ Saved DSL constructors are quiet by default. Add `-PassThru` only when the next 
 | Author the complete artifact in one block | DSL | [Project status report](Word/Recipe-Word-ProjectStatus.ps1), [service invoice](Pdf/Recipe-Pdf-ServiceInvoice.ps1) |
 | Produce a report with a table and chart | DSL with paragraph spacing and cell padding | [Patch compliance report](Word/Recipe-Word-PatchCompliance.ps1) |
 | Change a supplied file | Open, target, save, close | [Word update](Word/Recipe-Word-UpdateExisting.ps1), [Excel update](Excel/Recipe-Excel-UpdateExisting.ps1), [PowerPoint update](PowerPoint/Recipe-PowerPoint-UpdateExisting.ps1) |
+| Make an Excel review easy to read | Worksheet pipeline | [Column widths, wrapped notes, typed values, and PDF delivery](Excel/Recipe-Excel-ReadableReview.ps1) |
 
 The [workflow guide](https://officeimo.com/docs/pswriteoffice/object-workflows/) explains when these surfaces fit. They use the same document engines and can coexist in a larger automation job.
 

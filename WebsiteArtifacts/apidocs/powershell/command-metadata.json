@@ -4129,8 +4129,8 @@
         "ExcelCell"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelCellCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelCellCommand.cs#L23"
+      "sourceLine": 24,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelCellCommand.cs#L24"
     },
     {
       "name": "Set-OfficeExcelChartAxis",
@@ -4203,8 +4203,8 @@
         "ExcelColumn"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelColumnCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelColumnCommand.cs#L18"
+      "sourceLine": 31,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelColumnCommand.cs#L31"
     },
     {
       "name": "Set-OfficeExcelColumnGroup",
@@ -4442,8 +4442,8 @@
         "ExcelRow"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelRowCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelRowCommand.cs#L18"
+      "sourceLine": 31,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelRowCommand.cs#L31"
     },
     {
       "name": "Set-OfficeExcelRowGroup",
