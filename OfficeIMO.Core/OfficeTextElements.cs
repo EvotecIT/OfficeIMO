@@ -210,7 +210,7 @@ public static class OfficeTextElements {
         IsInRange(scalar, 0x1E900, 0x1E95F) ||
         IsInRange(scalar, 0x1EE00, 0x1EEFF);
 
-    private static bool IsJoiningScriptScalar(int scalar) =>
+    internal static bool IsJoiningScriptScalar(int scalar) =>
         IsInRange(scalar, 0x0600, 0x08FF)
         || IsInRange(scalar, 0xFB50, 0xFDFF)
         || IsInRange(scalar, 0xFE70, 0xFEFF)
