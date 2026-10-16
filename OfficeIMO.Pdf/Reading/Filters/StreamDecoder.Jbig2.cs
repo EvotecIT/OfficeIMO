@@ -43,7 +43,7 @@ internal static partial class StreamDecoder {
             byte[] globals;
             try {
                 globals = DecodeJbig2Globals(globalsStream, objects, maximumBytes, cancellationToken);
-            } catch (Exception exception) when (exception is NotSupportedException || exception is IOException && exception is not PdfReadLimitException) {
+            } catch (Exception exception) when (exception is NotSupportedException or InvalidDataException || exception is IOException && exception is not PdfReadLimitException) {
                 return "malformed";
             }
             string? globalFeature = Jbig2Decoder.FindUnsupportedFeature(globals, cancellationToken);

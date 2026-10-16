@@ -5,6 +5,36 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class PdfRasterConventionTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NestedClipCoverageUsesTheGeometricIntersection(bool disjoint) {
+        var image = new OfficeRasterImage(1, 1);
+        var canvas = new OfficeRasterCanvas(image) { AntialiasedClipping = true };
+        var left = new[] { new OfficePoint(0, 0), new OfficePoint(.5, 0), new OfficePoint(.5, 1), new OfficePoint(0, 1) };
+        using (canvas.PushClipPolygon(left))
+        using (canvas.PushClipRectangle(disjoint ? .5 : 0, 0, .5, 1))
+            canvas.FillRectangle(0, 0, 1, 1, OfficeColor.Red);
+        Assert.Equal(disjoint ? 0 : 128, image.GetPixel(0, 0).A);
+    }
+
+    [Fact]
+    public void NestedNonrectangularClipsPreserveCoincidentCoverageAndHoles() {
+        var triangle = new[] { new OfficePoint(0, 0), new OfficePoint(1, 0), new OfficePoint(0, 1) };
+        var image = new OfficeRasterImage(1, 1);
+        var canvas = new OfficeRasterCanvas(image) { AntialiasedClipping = true };
+        using (canvas.PushClipPolygon(triangle))
+        using (canvas.PushClipPolygonsNonZero(new[] { triangle }))
+            canvas.FillRectangle(0, 0, 1, 1, OfficeColor.Red);
+        Assert.Equal(128, image.GetPixel(0, 0).A);
+        var holeImage = new OfficeRasterImage(1, 1);
+        var holeCanvas = new OfficeRasterCanvas(holeImage) { AntialiasedClipping = true };
+        using (holeCanvas.PushClipPolygon(triangle))
+        using (holeCanvas.PushClipPolygonsEvenOdd(new[] { triangle, triangle }))
+            holeCanvas.FillRectangle(0, 0, 1, 1, OfficeColor.Red);
+        Assert.Equal(0, holeImage.GetPixel(0, 0).A);
+    }
+
     [Fact]
     public void LargeFractionalExtentsStillRoundUpToTheNextPixel() {
         OfficeRasterScaleLimit limit = OfficeRasterScaleLimiter.Resolve(1000000000.4D, 1D, 1D, long.MaxValue);

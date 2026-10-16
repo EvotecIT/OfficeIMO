@@ -155,7 +155,7 @@ public sealed partial class PdfReadPage {
                 inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
                 operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
 
-            Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+            Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,

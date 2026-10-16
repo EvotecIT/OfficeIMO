@@ -1291,7 +1291,7 @@ public sealed partial class PdfReadPage {
             PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
                 content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
-            Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+            Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
             IReadOnlyList<PdfPageDrawingEffectTransition> effects = PdfPageGraphicsEffectTimelineParser.Parse(

@@ -451,7 +451,7 @@ public sealed partial class PdfReadPage {
         consumesInheritedLineState = false;
         hasMalformedStrictInvocation = false;
         var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
-        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0, registeredFonts);
+        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0, registeredFonts, cancellationToken: pageContentBudget.CancellationToken);
         ConfigureDrawingFonts(drawing, registeredFonts, pageContentBudget);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
         if (content.Length == 0) return drawing;
@@ -564,7 +564,7 @@ public sealed partial class PdfReadPage {
         var spans = new List<PdfTextSpan>();
         Dictionary<string, Func<byte[], int, string>> decoders = ResourceResolver.GetBudgetedFontDecodersForForm(stream.Dictionary, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProviders(stream.Dictionary, _objects);
-        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
         string transformedContent = WrapContentWithTransform(content, transform, out int transformedOffset);
         CollectTextAndForms(
             transformedContent,
@@ -657,7 +657,7 @@ public sealed partial class PdfReadPage {
         var stateStack = new Stack<PatternLineState>();
         bool consumesInheritedState = false;
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
-        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
         PdfContentStreamInterpreter.Interpret(
             content,
             _limits.MaxContentOperations,

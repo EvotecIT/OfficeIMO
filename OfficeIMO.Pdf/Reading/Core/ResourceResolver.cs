@@ -462,6 +462,7 @@ internal static partial class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects,
         Func<PdfStream, byte[]?>? toUnicodeDecoder = null,
         bool includeEmbeddedTrueTypeFont = true) {
+        PdfStream? cffStream = ResolveEmbeddedCffStream(fontVal, objects, out string? cffKind);
         string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
         string encoding = GetDefaultEncodingForBaseFont(baseFont);
         bool hasDeclaredEncoding = false;
@@ -486,7 +487,7 @@ internal static partial class ResourceResolver {
             } else if (resolvedEncoding is PdfDictionary encodingDict) {
                 hasDeclaredEncoding = encodingDict.Get<PdfName>("BaseEncoding") is not null;
                 encoding = encodingDict.Get<PdfName>("BaseEncoding")?.Name ?? encoding;
-                differences = BuildDifferencesMap(encodingDict.Items.TryGetValue("Differences", out var diffObj) ? diffObj : null, objects, encoding);
+                differences = BuildDifferencesMap(encodingDict.Items.TryGetValue("Differences", out var diffObj) ? diffObj : null, objects, encoding, preserveUnmappedGlyphs: cffStream != null);
             }
         }
 
@@ -515,6 +516,7 @@ internal static partial class ResourceResolver {
         PdfDictionary? descriptor = ResolveFontDescriptor(fontVal, objects, out _);
         int? fontWeight = TryReadFontDescriptorInteger(descriptor, objects, "FontWeight", 1, 1000);
         int? fontDescriptorFlags = TryReadFontDescriptorInteger(descriptor, objects, "Flags", 0, int.MaxValue);
+        embeddedProgramSubtype ??= cffKind;
         var resource = new PdfFontResource(
             resourceName,
             baseFont,
@@ -531,13 +533,21 @@ internal static partial class ResourceResolver {
             fontDescriptorFlags,
             ResolvePredefinedCMap(fontVal, objects),
             hasDeclaredEncoding);
+        if (!hasDeclaredEncoding && cffKind == "Type1" && cffStream != null) {
+            resource.SetBuiltinEncoding(() => {
+                byte[]? data = TryReadEmbeddedCffProgram(fontVal, objects, out _);
+                return data == null ? null : PdfType1FontConverter.TryReadBuiltinEncoding(data);
+            });
+        }
         if (embeddedProgram == null) {
-            if (!includeEmbeddedTrueTypeFont) return resource;
-            byte[]? cffProgram = TryReadEmbeddedCffProgram(fontVal, objects, out string? cffSubtype);
-            if (cffProgram == null) return resource;
-            // CFF and Type 1 outlines are wrapped as OpenType CFF so drawing uses the embedded glyphs.
-            PdfDrawingFontProgram? cffDrawingProgram = TryCreateCffDrawingProgram(resource, fontVal, objects, cffProgram, cffSubtype);
-            return cffDrawingProgram == null ? resource : resource.WithDrawingProgram(cffDrawingProgram);
+            if (!includeEmbeddedTrueTypeFont || cffStream == null) return resource;
+            return resource.WithDeferredDrawing(cancellationToken => {
+                byte[]? cffProgram = TryReadEmbeddedCffProgram(fontVal, objects, out string? cffSubtype, cancellationToken);
+                if (cffProgram == null) return resource;
+                // CFF and Type 1 outlines are wrapped only when a drawing caller needs them.
+                PdfDrawingFontProgram? drawing = TryCreateCffDrawingProgram(resource, fontVal, objects, cffProgram, cffSubtype);
+                return drawing == null ? resource : resource.WithDrawingProgram(drawing);
+            });
         }
         // Drawing scenes carry Unicode text. Programs that select glyphs by character code or CID
         // receive a Unicode cmap so rendering uses the embedded outlines instead of a substitute.
@@ -730,7 +740,7 @@ internal static partial class ResourceResolver {
         if (program == null && descriptor.Items.TryGetValue("FontFile3", out PdfObject? fontFile3)) {
             PdfStream? candidate = ResolveObject(fontFile3, objects) as PdfStream;
             string? subtype = candidate?.Dictionary.Get<PdfName>("Subtype")?.Name;
-            if (candidate != null && PdfFontProgramCompatibility.IsCompatible(programFontSubtype, "FontFile3", subtype)) {
+            if (candidate != null && (subtype is "OpenType" or "TrueType") && PdfFontProgramCompatibility.IsCompatible(programFontSubtype, "FontFile3", subtype)) {
                 program = candidate;
                 embeddedProgramSubtype = subtype;
             }
@@ -756,31 +766,42 @@ internal static partial class ResourceResolver {
     private const int MaxEmbeddedFontProgramBytes = 32 * 1024 * 1024;
 
     /// <summary>Reads an embedded Type 1 (FontFile) or CFF-flavoured FontFile3 program.</summary>
-    private static byte[]? TryReadEmbeddedCffProgram(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects, out string? programSubtype) {
+    private static byte[]? TryReadEmbeddedCffProgram(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects, out string? programSubtype,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfStream? program = ResolveEmbeddedCffStream(font, objects, out programSubtype);
+        if (program == null || Filters.StreamDecoder.GetUnsupportedFilters(program.Dictionary, objects).Count != 0) return null;
+        byte[] bytes;
+        try { bytes = Filters.StreamDecoder.DecodeRequired(program, objects, MaxEmbeddedFontProgramBytes, cancellationToken); }
+        catch (InvalidDataException) { return null; }
+        if (bytes.Length < 4) return null;
+        ResolveFontDescriptor(font, objects, out string? programFontSubtype);
+        if (programSubtype == "OpenType" &&
+            !PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram(programFontSubtype, bytes)) return null;
+        return bytes;
+    }
+
+    // Inspecting the carrier does not decode, decrypt or convert its embedded program.
+    private static PdfStream? ResolveEmbeddedCffStream(PdfDictionary font,
+        Dictionary<int, PdfIndirectObject> objects, out string? programSubtype) {
         programSubtype = null;
-        PdfDictionary? descriptor = ResolveFontDescriptor(font, objects, out string? programFontSubtype);
+        PdfDictionary? descriptor = ResolveFontDescriptor(font, objects, out string? fontSubtype);
         if (descriptor == null) return null;
-        PdfStream? program = null;
         if (descriptor.Items.TryGetValue("FontFile3", out PdfObject? fontFile3) &&
             ResolveObject(fontFile3, objects) is PdfStream candidate) {
             string? subtype = candidate.Dictionary.Get<PdfName>("Subtype")?.Name;
-            if (PdfFontProgramCompatibility.IsCompatible(programFontSubtype, "FontFile3", subtype) && IsCffProgramSubtype(subtype)) {
-                program = candidate;
+            if (PdfFontProgramCompatibility.IsCompatible(fontSubtype, "FontFile3", subtype) && IsCffProgramSubtype(subtype)) {
                 programSubtype = subtype;
+                return candidate;
             }
         }
-        if (program == null && descriptor.Items.TryGetValue("FontFile", out PdfObject? fontFile) &&
+        if (descriptor.Items.TryGetValue("FontFile", out PdfObject? fontFile) &&
             ResolveObject(fontFile, objects) is PdfStream type1 &&
-            PdfFontProgramCompatibility.IsCompatible(programFontSubtype, "FontFile")) {
-            program = type1;
+            PdfFontProgramCompatibility.IsCompatible(fontSubtype, "FontFile")) {
             programSubtype = "Type1";
+            return type1;
         }
-        if (program == null || Filters.StreamDecoder.GetUnsupportedFilters(program.Dictionary, objects).Count != 0) return null;
-        if (!Filters.StreamDecoder.TryDecode(program, MaxEmbeddedFontProgramBytes, out byte[] bytes, objects) || bytes.Length < 4) return null;
-        // OpenType programs with TrueType outlines are handled by the TrueType path.
-        if (string.Equals(programSubtype, "OpenType", StringComparison.Ordinal) &&
-            !PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram(programFontSubtype, bytes)) return null;
-        return bytes;
+        return null;
     }
 
     private static string GetDefaultEncodingForBaseFont(string baseFont) {
@@ -823,7 +844,7 @@ internal static partial class ResourceResolver {
         return baseFont;
     }
 
-    private static Dictionary<int, string>? BuildDifferencesMap(PdfObject? differencesObj, Dictionary<int, PdfIndirectObject> objects, string encoding) {
+    private static Dictionary<int, string>? BuildDifferencesMap(PdfObject? differencesObj, Dictionary<int, PdfIndirectObject> objects, string encoding, bool preserveUnmappedGlyphs) {
         var differences = ResolveArray(differencesObj, objects);
         if (differences is null) return null;
 
@@ -839,10 +860,12 @@ internal static partial class ResourceResolver {
                 continue;
             }
 
-            if (ResolveObject(item, objects) is PdfName glyphName &&
-                (TryDecodeGlyphName(glyphName.Name, out string? value) ||
-                 encoding == "ZapfDingbatsEncoding" && TryDecodeDingbatGlyphName(glyphName.Name, out value))) {
-                map[code] = value!;
+            if (ResolveObject(item, objects) is PdfName glyphName) {
+                bool mapped = TryDecodeGlyphName(glyphName.Name, out string? value) ||
+                    encoding == "ZapfDingbatsEncoding" && TryDecodeDingbatGlyphName(glyphName.Name, out value);
+                // An explicit unmapped override cannot silently regain the base encoding's glyph.
+                if (mapped || preserveUnmappedGlyphs || glyphName.Name == ".notdef")
+                    map[code] = mapped ? value! : string.Empty;
             }
 
             code++;

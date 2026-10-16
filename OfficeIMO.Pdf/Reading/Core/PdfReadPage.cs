@@ -891,7 +891,7 @@ public sealed partial class PdfReadPage {
     // Differences give; ToUnicode does not select what is painted. Symbolic fonts use built-in encodings
     // except where an explicit Difference replaces a code's glyph.
     private static bool PaintsSubstitutedEncodingGlyphs(PdfFontResource font) {
-        if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null ||
+        if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null || font.HasDeferredDrawing ||
             font.DrawingFontFamily != null || font.Type3 != null ||
             string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal)) return false;
         if (font.IsSymbolicSubstitute) return font.Differences is { Count: > 0 };

@@ -87,7 +87,7 @@ internal static partial class PdfFormFiller {
             }
         } catch (ArgumentException) {
             return false;
-        } catch (Exception exception) when (exception is NotSupportedException || exception is IOException && exception is not PdfReadLimitException) {
+        } catch (Exception exception) when (exception is NotSupportedException or InvalidDataException || exception is IOException && exception is not PdfReadLimitException) {
             return false;
         }
 

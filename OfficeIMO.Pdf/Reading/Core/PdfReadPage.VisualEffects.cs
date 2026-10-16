@@ -316,7 +316,7 @@ public sealed partial class PdfReadPage {
         textClippingBudget ??= new PdfTextClippingBudget();
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         bool supported = true;
-        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
@@ -1068,7 +1068,7 @@ public sealed partial class PdfReadPage {
             fallbackResources ??
             pageResources;
         var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
-        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0, registeredFonts);
+        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0, registeredFonts, cancellationToken: cancellationToken);
         ConfigureDrawingFonts(drawing, registeredFonts, pageContentBudget);
         string content = WrapFormContentWithBoundingBoxClip(
             decodedContent ?? PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
@@ -1109,7 +1109,7 @@ public sealed partial class PdfReadPage {
             ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects),
             ResourceResolver.GetBudgetedFontDecodersForForm(form.Dictionary, _objects));
         Dictionary<string, Func<byte[], double>> widthProviders = MergeWidthProviders(ResourceResolver.GetFontWidthProviders(_pageDict, _objects), ResourceResolver.GetFontWidthProviders(form.Dictionary, _objects));
-        Dictionary<string, PdfFontResource> fonts = MergeFonts(ResourceResolver.GetFontsForResources(pageResources, _objects), ResourceResolver.GetFontsForResources(resources, _objects));
+        Dictionary<string, PdfFontResource> fonts = MergeFonts(_fontResourceCache.GetFonts(pageResources, _objects, forDrawing: true, cancellationToken), _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, cancellationToken));
         string transformedContent = WrapContentWithTransform(content, transform, out int transformedOffset);
         CollectTextAndForms(
             transformedContent,

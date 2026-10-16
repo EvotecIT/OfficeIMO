@@ -8,6 +8,15 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed partial class PdfRendererFidelityTests {
+    [Fact]
+    public void TransientAppearanceRejectsCorruptToUnicodeWithoutSuppressingLimits() {
+        PdfReadDocument document = CreateTransientType0TextWidget("Identity-H", "(A)", 0, 0, "broken", "[65 [600]]");
+        PdfStream cmap = (PdfStream)document.Objects[7].Value;
+        cmap.Dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        Assert.False(PdfFormFiller.TryCreateTransientWidgetAppearance(document.Objects,
+            (PdfDictionary)document.Objects[5].Value, (PdfDictionary)document.Objects[8].Value, out _));
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

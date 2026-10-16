@@ -199,7 +199,7 @@ public sealed partial class PdfReadPage {
             diagnostics,
             seen,
             depth);
-        CollectFontCapabilityDiagnostics(resources, invokedFonts, failedType3Fonts, diagnostics, seen);
+        CollectFontCapabilityDiagnostics(resources, invokedFonts, failedType3Fonts, diagnostics, seen, pageContentBudget.CancellationToken);
         CollectShadingCapabilityDiagnostics(resources, invokedShadings, invokedPatterns, diagnostics, seen, pageContentBudget);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
         CollectGraphicsStateCapabilityDiagnostics(resources, diagnostics, seen);
@@ -1113,9 +1113,11 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private void CollectFontCapabilityDiagnostics(PdfDictionary resources, HashSet<string> invokedFonts, HashSet<string> failedType3Fonts, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
-        foreach (PdfFontResource font in _fontResourceCache.GetFonts(resources, _objects).Values) {
-            if (!invokedFonts.Contains(font.ResourceName) || font.EmbeddedTrueTypeFont != null) continue;
+    private void CollectFontCapabilityDiagnostics(PdfDictionary resources, HashSet<string> invokedFonts, HashSet<string> failedType3Fonts, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, System.Threading.CancellationToken cancellationToken) {
+        foreach (PdfFontResource metadata in _fontResourceCache.GetFonts(resources, _objects, cancellationToken: cancellationToken).Values) {
+            if (!invokedFonts.Contains(metadata.ResourceName)) continue;
+            PdfFontResource font = metadata.ForDrawing(cancellationToken);
+            if (font.EmbeddedTrueTypeFont != null) continue;
             string capabilityId;
             if (string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal)) {
                 if (font.Type3 != null && !failedType3Fonts.Contains(font.ResourceName)) continue;

@@ -58,10 +58,11 @@ internal static partial class ResourceResolver {
 
     private static int ResolveSimpleCffGlyph(PdfCffFontProgram cff, string? name, int code, string?[]? type1Encoding) {
         if (name != null) {
-            if (cff.TryGetGlyph(name, out int named) && named > 0) return named;
+            if (cff.TryGetGlyph(name, out int named)) return named;
             // Producers sometimes name a glyph by a Unicode alias the subset spells differently.
             if (TryDecodeGlyphName(name, out string? text) && text is { Length: 1 } &&
                 cff.TryGetGlyph("uni" + ((int)text[0]).ToString("X4", System.Globalization.CultureInfo.InvariantCulture), out int alias) && alias > 0) return alias;
+            return 0;
         }
         if (type1Encoding != null) {
             return type1Encoding[code] is string builtin && cff.TryGetGlyph(builtin, out int builtinGlyph) ? builtinGlyph : 0;

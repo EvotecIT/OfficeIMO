@@ -48,6 +48,7 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
         var stream = new PdfStream(dictionary, new byte[] { 0 });
         parameters.Items["JBIG2Globals"] = stream;
         Assert.False(StreamDecoder.TryDecode(dictionary, stream.Data, 1024, out _));
+        Assert.Equal("malformed", StreamDecoder.FindUnsupportedJbig2Feature(stream, null, 1024));
     }
 
     [Theory]
@@ -108,13 +109,13 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
         return output.ToArray();
     }
 
-    private static byte[] Type1(byte[] glyph) {
+    private static byte[] Type1(byte[] glyph, string encoding = "", string glyphName = "A") {
         using var privatePart = new MemoryStream();
         void Write(string text) { byte[] bytes = Encoding.ASCII.GetBytes(text); privatePart.Write(bytes, 0, bytes.Length); }
         privatePart.Write(new byte[4], 0, 4);
         Write("/lenIV -1 def /CharStrings 2 dict dup begin /.notdef 1 RD ");
         privatePart.WriteByte(14);
-        Write(" ND /A " + glyph.Length + " RD ");
+        Write(" ND /" + glyphName + " " + glyph.Length + " RD ");
         privatePart.Write(glyph, 0, glyph.Length);
         Write(" ND end");
         byte[] bytes = privatePart.ToArray();
@@ -123,7 +124,7 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
             bytes[index] ^= (byte)(state >> 8);
             state = unchecked((ushort)((bytes[index] + state) * 52845 + 22719));
         }
-        return Encoding.ASCII.GetBytes("%!PS-AdobeFont-1.0\n/FontName /Review def\ncurrentfile eexec\n" + BitConverter.ToString(bytes).Replace("-", string.Empty));
+        return Encoding.ASCII.GetBytes("%!PS-AdobeFont-1.0\n/FontName /Review def\n" + encoding + "\ncurrentfile eexec\n" + BitConverter.ToString(bytes).Replace("-", string.Empty));
     }
 
     private static byte[] Index(byte[][] values) {

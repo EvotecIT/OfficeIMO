@@ -10,7 +10,7 @@ namespace OfficeIMO.Pdf;
 /// as hint-free Type 2 outlines.
 /// </summary>
 /// <remarks>Adobe Type 1 Font Format and Technical Note 5176. All work is bounded for untrusted input.</remarks>
-internal static class PdfType1FontConverter {
+internal static partial class PdfType1FontConverter {
     private const int MaximumGlyphs = 4096;
     private const int MaximumSubroutines = 65535;
     private const int MaximumOperations = 20_000;
@@ -173,48 +173,6 @@ internal static class PdfType1FontConverter {
         int end = start + 1;
         while (end < text.Length && !char.IsWhiteSpace(text[end]) && text[end] is not ('/' or '[' or '{' or '(' or '<')) end++;
         return end > start + 1 ? text.Substring(start + 1, end - start - 1) : null;
-    }
-
-    private static string?[] ReadEncoding(string text) {
-        string?[] encoding = new string?[256];
-        int at = text.IndexOf("/Encoding", StringComparison.Ordinal);
-        if (at < 0) return encoding;
-        int cursor = at + 9;
-        while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
-        if (string.CompareOrdinal(text, cursor, "StandardEncoding", 0, 16) == 0) {
-            string?[] standard = PdfFontEncodingNames.Get("StandardEncoding")!;
-            Array.Copy(standard, encoding, 256);
-            return encoding;
-        }
-        int end = text.IndexOf("readonly def", cursor, StringComparison.Ordinal);
-        if (end < 0) end = text.Length;
-        int search = cursor;
-        while (true) {
-            int dup = text.IndexOf("dup ", search, StringComparison.Ordinal);
-            if (dup < 0 || dup > end) break;
-            int position = dup + 4;
-            while (position < text.Length && char.IsWhiteSpace(text[position])) position++;
-            int numberStart = position;
-            int code = 0;
-            while (position < text.Length && text[position] >= '0' && text[position] <= '9' && position - numberStart < 4) {
-                code = code * 10 + (text[position] - '0');
-                position++;
-            }
-            if (position == numberStart) {
-                search = dup + 4;
-                continue;
-            }
-            while (position < text.Length && char.IsWhiteSpace(text[position])) position++;
-            if (position >= text.Length || text[position] != '/') {
-                search = dup + 4;
-                continue;
-            }
-            int nameStart = ++position;
-            while (position < text.Length && !char.IsWhiteSpace(text[position]) && text[position] is not ('/' or '[' or '{' or '(' or '<')) position++;
-            if (code >= 0 && code < 256 && position > nameStart) encoding[code] = text.Substring(nameStart, position - nameStart);
-            search = position;
-        }
-        return encoding;
     }
 
     private static Dictionary<int, byte[]> ReadSubrs(byte[] data, int limit, int lenIv) {

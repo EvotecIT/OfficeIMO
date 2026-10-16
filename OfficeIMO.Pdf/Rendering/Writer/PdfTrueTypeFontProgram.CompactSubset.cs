@@ -124,62 +124,15 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return output.ToArray();
     }
 
-    // A (3,1) format 4 subtable for the subset's BMP characters keeps the program usable
-    // on its own (font extraction tools, glyph-name lookups by simple-font companions).
+    // Keep extracted subsets usable through the same bounded Unicode cmap writer as drawing fonts.
     private byte[] BuildCompactCmap(Dictionary<int, int> newGlyphIds) {
         var mappings = new SortedDictionary<int, int>();
         foreach (KeyValuePair<int, int> entry in _cmap) {
-            if (entry.Key <= 0xFFFF && entry.Key != 0xFFFF && newGlyphIds.TryGetValue(entry.Value, out int glyphId) && glyphId > 0)
+            if (entry.Key >= 0 && entry.Key <= 0x10FFFF && (entry.Key < 0xD800 || entry.Key > 0xDFFF) &&
+                newGlyphIds.TryGetValue(entry.Value, out int glyphId) && glyphId > 0)
                 mappings[entry.Key] = glyphId;
         }
-
-        var starts = new List<int>();
-        var ends = new List<int>();
-        var deltas = new List<int>();
-        foreach (KeyValuePair<int, int> mapping in mappings) {
-            int last = ends.Count - 1;
-            if (last >= 0 && ends[last] == mapping.Key - 1 && (deltas[last] & 0xFFFF) == ((mapping.Value - mapping.Key) & 0xFFFF)) {
-                ends[last] = mapping.Key;
-                continue;
-            }
-            starts.Add(mapping.Key);
-            ends.Add(mapping.Key);
-            deltas.Add(mapping.Value - mapping.Key);
-        }
-        starts.Add(0xFFFF);
-        ends.Add(0xFFFF);
-        deltas.Add(1);
-
-        int segments = starts.Count;
-        int searchRange = 2;
-        int entrySelector = 0;
-        while (searchRange * 2 <= segments * 2) {
-            searchRange *= 2;
-            entrySelector++;
-        }
-        using var subtable = new MemoryStream();
-        WriteUInt16(subtable, 4);
-        WriteUInt16(subtable, checked((ushort)(16 + segments * 8)));
-        WriteUInt16(subtable, 0);
-        WriteUInt16(subtable, checked((ushort)(segments * 2)));
-        WriteUInt16(subtable, checked((ushort)searchRange));
-        WriteUInt16(subtable, checked((ushort)entrySelector));
-        WriteUInt16(subtable, checked((ushort)(segments * 2 - searchRange)));
-        foreach (int end in ends) WriteUInt16(subtable, (ushort)end);
-        WriteUInt16(subtable, 0);
-        foreach (int start in starts) WriteUInt16(subtable, (ushort)start);
-        foreach (int delta in deltas) WriteUInt16(subtable, unchecked((ushort)delta));
-        foreach (int _ in starts) WriteUInt16(subtable, 0);
-
-        using var output = new MemoryStream();
-        WriteUInt16(output, 0);
-        WriteUInt16(output, 1);
-        WriteUInt16(output, 3);
-        WriteUInt16(output, 1);
-        WriteUInt32(output, 12);
-        byte[] data = subtable.ToArray();
-        output.Write(data, 0, data.Length);
-        return output.ToArray();
+        return PdfTrueTypeUnicodeCmap.BuildUnicodeCmap(mappings);
     }
 
     // Family, subfamily, unique, full and PostScript names (Windows Unicode, then Macintosh
