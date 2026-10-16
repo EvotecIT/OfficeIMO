@@ -65,35 +65,6 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordDocumentTraversal.ListInfo info = WordDocumentTraversal.GetListInfo(item)!.Value;
         Assert.Null(info.LevelSuffix);
         Assert.Equal("\t", WordDocumentTraversal.ResolveTextListMarkerSuffix(info.LevelSuffix));
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
-        OfficeDrawingText marker = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "*");
-        OfficeDrawingText content = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "DefaultTabSuffix");
-        Assert.True(marker.Width > 10D, $"markerWidth={marker.Width}");
-        Assert.InRange(Math.Abs(content.X - (marker.X + marker.Width)), 0D, 0.01D);
-    }
-
-    [Fact]
-    public void ImageRightJustifiedNumberingSharesMarkerAndTextColumns() {
-        using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomList();
-        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
-        WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 720;
-        level.LevelJustification = WordListLevelAlignment.Right;
-        level.LevelSuffix = WordListLevelSuffix.Nothing;
-        list.AddItem("Nine");
-        list.AddItem("Ten");
-
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
-        OfficeDrawingText nine = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "9.");
-        OfficeDrawingText ten = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "10.");
-        OfficeDrawingText nineText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Nine");
-        OfficeDrawingText tenText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Ten");
-        Assert.Equal(OfficeTextAlignment.Right, nine.Alignment);
-        Assert.Equal(OfficeTextAlignment.Right, ten.Alignment);
-        Assert.InRange(Math.Abs((nine.X + nine.Width) - (ten.X + ten.Width)), 0D, 0.01D);
-        Assert.InRange(Math.Abs(nineText.X - tenText.X), 0D, 0.01D);
     }
 
     [Fact]
@@ -365,26 +336,9 @@ public sealed partial class WordListMarkerSemanticsTests {
     }
 
     [Theory]
-    [InlineData(WordListLevelSuffix.Nothing, "*ImageSuffix")]
-    [InlineData(WordListLevelSuffix.Space, "* ImageSuffix")]
-    public void ImageTextBoxListMarkerHonorsNumberingSuffix(WordListLevelSuffix suffix, string expected) {
-        using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        Level level = list.Numbering.Levels[0].OpenXmlElement;
-        level.GetFirstChild<LevelSuffix>()?.Remove();
-        level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });
-        WordTextBox box = document.AddTextBox("ImageSuffix");
-        AttachToList(box.Paragraphs[0], list.NumberId);
-
-        OfficeDrawingRichText rich = Assert.Single(document.CreateVisualSnapshot().Drawing.Elements
-            .OfType<OfficeDrawingRichText>(), item => item.PlainText.Contains("ImageSuffix", StringComparison.Ordinal));
-        Assert.Contains(expected, rich.PlainText, StringComparison.Ordinal);
-    }
-
-    [Theory]
     [InlineData(WordListLevelAlignment.Right)]
     [InlineData(WordListLevelAlignment.Center)]
-    public void TextBoxNumberingHonorsLevelJustificationInPdfAndImage(WordListLevelAlignment alignment) {
+    public void TextBoxNumberingHonorsLevelJustificationInPdf(WordListLevelAlignment alignment) {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
@@ -414,80 +368,39 @@ public sealed partial class WordListMarkerSemanticsTests {
         double expectedBodyShift = alignment == WordListLevelAlignment.Center
             ? (pdfTen.Advance - pdfNine.Advance) / 2D : 0D;
         Assert.InRange(Math.Abs(pdfTenText.X - pdfNineText.X - expectedBodyShift), 0D, 0.05D);
-
-        OfficeDrawingRichText rich = Assert.Single(document.CreateVisualSnapshot().Drawing.Elements
-            .OfType<OfficeDrawingRichText>(), item => item.PlainText.Contains("TextBoxNine", StringComparison.Ordinal));
-        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
-            rich.Runs, rich.Width - rich.Padding.Horizontal, rich.Height - rich.Padding.Vertical, 1.25D,
-            MeasureRichTextWidth, wrap: true);
-        OfficeRichTextLine nineLine = Assert.Single(layout.Lines, line => line.Segments.Any(segment => segment.Text.Contains("TextBoxNine", StringComparison.Ordinal)));
-        OfficeRichTextLine tenLine = Assert.Single(layout.Lines, line => line.Segments.Any(segment => segment.Text.Contains("TextBoxTen", StringComparison.Ordinal)));
-        (double NineX, double NineWidth) = GetRichTextTokenBounds(nineLine, "9.");
-        (double TenX, double TenWidth) = GetRichTextTokenBounds(tenLine, "10.");
-        double nineAnchor = alignment == WordListLevelAlignment.Right ? NineX + NineWidth : NineX + NineWidth / 2D;
-        double tenAnchor = alignment == WordListLevelAlignment.Right ? TenX + TenWidth : TenX + TenWidth / 2D;
-        Assert.True(Math.Abs(nineAnchor - tenAnchor) <= 2D,
-            $"alignment={alignment}, nine={NineX}+{NineWidth}, ten={TenX}+{TenWidth}, runs={string.Join(" | ", rich.Runs.Select(run => $"'{run.Text}'/{run.ParagraphIndent?.FirstLineOffset}"))}");
-        Assert.InRange(Math.Abs(
-            GetRichTextTokenBounds(nineLine, "TextBoxNine").X -
-            GetRichTextTokenBounds(tenLine, "TextBoxTen").X), 0D, 2D);
     }
 
-    [Fact]
-    public void ImageBodyListMarkerHonorsNumberingSuffixSpacing() {
-        double nothingGap = RenderImageBodyListMarkerOffset(WordListLevelSuffix.Nothing);
-        double spaceGap = RenderImageBodyListMarkerOffset(WordListLevelSuffix.Space);
-        double tabGap = RenderImageBodyListMarkerOffset(WordListLevelSuffix.Tab);
-
-        Assert.True(spaceGap > nothingGap + 1D, $"nothing={nothingGap}, space={spaceGap}");
-        Assert.True(tabGap > spaceGap + 5D, $"space={spaceGap}, tab={tabGap}");
-    }
-
-    [Fact]
-    public void ImageWrappedListContinuationKeepsAuthoredTextIndent() {
+    [Theory]
+    [InlineData(WordListLevelSuffix.Nothing)]
+    [InlineData(WordListLevelSuffix.Space)]
+    [InlineData(WordListLevelSuffix.Tab)]
+    public void ImageListMarkersMatchTheSharedPdfPage(WordListLevelSuffix suffix) {
         using WordDocument document = WordDocument.Create();
-        WordSection section = document.Sections[0];
-        section.PageSettings.Width = 4200U;
-        section.SetMargins(WordMargin.Narrow);
         WordList list = document.AddCustomBulletList('*', "Arial", "000000");
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft = 1800;
-        level.IndentationHanging = 720;
-        level.LevelSuffix = WordListLevelSuffix.Nothing;
-        WordParagraph item = document.AddParagraph(string.Join(" ", Enumerable.Range(1, 8).Select(index => "WrapVisible" + index.ToString("00"))));
-        AttachToList(item, list.NumberId);
+        level.IndentationHanging = 360;
+        level.LevelSuffix = suffix;
+        list.AddItem("ImageSuffixBody");
+        WordTextBox box = document.AddTextBox("ImageSuffixBox");
+        AttachToList(box.Paragraphs[0], list.NumberId);
+        WordParagraph cell = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        cell.Text = "ImageSuffixCell";
+        AttachToList(cell, list.NumberId);
 
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
-        OfficeDrawingText marker = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "*");
-        OfficeDrawingText body = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(),
-            text => text.Text.StartsWith("Wrap", StringComparison.Ordinal));
-        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
-            body.Text,
-            body.Font.Size,
-            body.Width - body.Padding.Horizontal,
-            body.Height - body.Padding.Vertical,
-            body.LineHeight.GetValueOrDefault(body.Font.Size * 1.25D) / body.Font.Size,
-            1D,
-            (text, size) => (text?.Length ?? 0) * size * 0.5D,
-            wrap: true,
-            paragraphIndent: body.ParagraphIndent);
-
-        Assert.True(layout.Lines.Count > 1, string.Join(" | ", layout.Lines.Select(line => $"{line.Text}@{line.OffsetX}")));
-        Assert.Equal(0D, layout.Lines[0].OffsetX);
-        Assert.True(layout.Lines[1].OffsetX > 20D,
-            $"marker={marker.X}, body={body.X}, continuationOffset={layout.Lines[1].OffsetX}");
-        Assert.True(body.X + layout.Lines[1].OffsetX > marker.X + 30D,
-            $"marker={marker.X}, continuation={body.X + layout.Lines[1].OffsetX}");
-    }
-
-    [Fact]
-    public void ImageMarkerlessBodyListKeepsIndentAcrossSuffixes() {
-        double nothingX = RenderImageMarkerlessBodyTextX(WordListLevelSuffix.Nothing);
-        double spaceX = RenderImageMarkerlessBodyTextX(WordListLevelSuffix.Space);
-        double tabX = RenderImageMarkerlessBodyTextX(WordListLevelSuffix.Tab);
-
-        Assert.InRange(Math.Abs(nothingX - tabX), 0D, 0.01D);
-        Assert.InRange(Math.Abs(spaceX - tabX), 0D, 0.01D);
+        var layout = new WordToPdfOptions { IncludePageNumbers = false };
+        var options = new WordImageExportOptions { LayoutOptions = layout };
+        PdfReadPage pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdfBytes(layout)).Pages);
+        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+        string text = string.Concat(snapshot.TextSpans.Select(span => span.Text));
+        Assert.Contains("ImageSuffixBody", text, StringComparison.Ordinal);
+        Assert.Contains("ImageSuffixBox", text, StringComparison.Ordinal);
+        Assert.Contains("ImageSuffixCell", text, StringComparison.Ordinal);
+        Assert.Contains("*", text, StringComparison.Ordinal);
+        Assert.Equal(pdfPage.GetTextSpans().Select(span => (span.Text, span.X, span.Y, span.Advance, span.FontSize)),
+            snapshot.TextSpans.Select(span => (span.Text, span.X, span.Y, span.Advance, span.FontSize)));
+        Assert.Equal(pdfPage.ExportImage(OfficeImageExportFormat.Svg).Bytes,
+            document.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
     }
 
     [Fact]
@@ -501,35 +414,10 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordParagraph item = document.AddParagraph("MarkerlessZero");
         AttachToList(item, list.NumberId);
 
-        OfficeDrawingText[] texts = document.CreateVisualSnapshot().Drawing.Elements.OfType<OfficeDrawingText>().ToArray();
+        IReadOnlyList<PdfTextSpan> texts = document.CreateVisualSnapshot().TextSpans;
         double referenceX = Assert.Single(texts, text => text.Text == "PlainZeroReference").X;
         double markerlessX = Assert.Single(texts, text => text.Text == "MarkerlessZero").X;
         Assert.InRange(Math.Abs(referenceX - markerlessX), 0D, 0.01D);
-    }
-
-    [Fact]
-    public void ImageTextBoxTabSuffixTargetsNumberingTextPosition() {
-        using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 360;
-        level.LevelSuffix = WordListLevelSuffix.Tab;
-        WordTextBox box = document.AddTextBox("TabTextBox");
-        box.WidthCentimeters = 12D;
-        AttachToList(box.Paragraphs[0], list.NumberId);
-
-        OfficeDrawingRichText rich = Assert.Single(document.CreateVisualSnapshot().Drawing.Elements
-            .OfType<OfficeDrawingRichText>(), item => item.PlainText.Contains("TabTextBox", StringComparison.Ordinal));
-        Assert.DoesNotContain('\t', rich.PlainText);
-        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
-            rich.Runs, rich.Width - rich.Padding.Horizontal, rich.Height - rich.Padding.Vertical, 1.25D,
-            (text, size, _) => (text?.Length ?? 0) * size * 0.5D, wrap: true);
-        OfficeRichTextLine line = Assert.Single(layout.Lines);
-        int bodySegmentIndex = line.Segments.ToList().FindIndex(segment => segment.Text.Contains("TabTextBox", StringComparison.Ordinal));
-        Assert.True(bodySegmentIndex > 0);
-        double bodyOffset = line.OffsetX + line.Segments.Take(bodySegmentIndex).Sum(segment => segment.Width);
-        Assert.InRange(bodyOffset, 85D, 95D);
     }
 
     [Fact]
@@ -546,22 +434,6 @@ public sealed partial class WordListMarkerSemanticsTests {
 
         Dictionary<WordParagraph, (int Level, string Marker)> markers = WordDocumentTraversal.BuildListMarkers(document);
         Assert.Equal("*", markers[deepest].Marker);
-    }
-
-    [Fact]
-    public void ImageExportHandlesDeeplyNestedTextBoxesWithoutRecursiveTraversal() {
-        using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        WordTextBox current = document.AddTextBox("Level 0");
-        for (int depth = 1; depth <= 160; depth++) {
-            current = current.Paragraphs[0].AddTextBox("Level " + depth, WordImageTextWrapping.Square);
-        }
-
-        AttachToList(current.Paragraphs[0], list.NumberId);
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
-        Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), rich =>
-            rich.PlainText.Contains("Level 160", StringComparison.Ordinal) &&
-            rich.PlainText.Contains("*", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -594,304 +466,14 @@ public sealed partial class WordListMarkerSemanticsTests {
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
         Assert.Contains(snapshot.Diagnostics, diagnostic =>
-            diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback &&
+            diagnostic.Code == "NativePictureBulletTextFallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Contains(document.ExportImage(OfficeImageExportFormat.Svg).Diagnostics, diagnostic =>
-            diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback);
+            diagnostic.Code == "NativePictureBulletTextFallback");
     }
 
     [Fact]
-    public void PictureBulletFallbackDiagnosticIsLimitedToTheRenderedPage() {
-        using WordDocument document = WordDocument.Create();
-        document.AddParagraph("Plain first page");
-        document.AddPageBreak();
-        using var image = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg"));
-        WordList list = document.AddPictureBulletList(image, "Kulek.jpg");
-        list.AddItem("Picture item on page two");
-
-        WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0 });
-        WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1 });
-        Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback);
-        Assert.Contains(secondPage.Diagnostics, diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback);
-    }
-
-    [Fact]
-    public void PictureBulletFallbackInSplitTableRowIsReportedOnlyOnTheConsumingPage() {
-        using WordDocument document = WordDocument.Create();
-        WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 3000U;
-        section.SetMargins(WordMargin.Narrow);
-        using var image = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg"));
-        WordList list = document.AddPictureBulletList(image, "Kulek.jpg");
-        WordTable table = document.AddTable(1, 1);
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 3600;
-        table.ColumnWidthType = WordTableWidthUnit.Dxa;
-        table.ColumnWidth = new List<int> { 3600 };
-        WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Paragraphs[0].Text = "PlainCell01 with enough content to occupy a line in a split table row.";
-        for (int index = 2; index <= 6; index++) {
-            cell.AddParagraph("PlainCell" + index.ToString("00") + " with enough content to occupy a line in a split table row.");
-        }
-        WordParagraph pictureItem = cell.AddParagraph("PictureCell07 on the later table-row fragment.");
-        AttachToList(pictureItem, list.NumberId);
-
-        WordDocumentVisualSnapshot[] pages = Enumerable.Range(0, 10)
-            .Select(pageIndex => document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex }))
-            .ToArray();
-        int picturePageIndex = Array.FindIndex(pages, page => page.Drawing.Elements.OfType<OfficeDrawingRichText>().Any(text =>
-            text.PlainText.Contains("PictureCell07", StringComparison.Ordinal)));
-        Assert.True(picturePageIndex > 0,
-            "Expected the picture-bullet paragraph on a later split-row page. " +
-            string.Join(" || ", pages.Select((page, pageIndex) => pageIndex + ":" +
-                string.Join(" | ", page.Drawing.Elements.OfType<OfficeDrawingRichText>().Select(text => text.PlainText)))));
-        for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++) {
-            bool hasDiagnostic = pages[pageIndex].Diagnostics.Any(diagnostic =>
-                diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback);
-            Assert.Equal(pageIndex == picturePageIndex, hasDiagnostic);
-        }
-    }
-
-    [Fact]
-    public void ImageSplitTableRowPreservesVisibleListIndentAndHangingContinuation() {
-        using WordDocument document = WordDocument.Create();
-        WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 2600U;
-        section.SetMargins(WordMargin.Narrow);
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        list.Numbering.Levels[0].IndentationLeft = 1800;
-        list.Numbering.Levels[0].IndentationHanging = 360;
-        WordTable table = document.AddTable(1, 1);
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 3600;
-        table.ColumnWidthType = WordTableWidthUnit.Dxa;
-        table.ColumnWidth = new List<int> { 3600 };
-        WordParagraph item = table.Rows[0].Cells[0].Paragraphs[0];
-        item.Text = string.Join(" ", Enumerable.Range(1, 45).Select(index => "SplitVisible" + index.ToString("00")));
-        AttachToList(item, list.NumberId);
-
-        var allRichText = new List<(int Page, OfficeDrawingRichText Text)>();
-        for (int pageIndex = 0; pageIndex < 8; pageIndex++) {
-            WordDocumentVisualSnapshot page = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex });
-            allRichText.AddRange(page.Drawing.Elements.OfType<OfficeDrawingRichText>().Select(text => (pageIndex, text)));
-        }
-
-        List<(int Page, OfficeDrawingRichText Text)> rendered = allRichText
-            .Where(item => item.Text.PlainText.Contains("SplitVisible", StringComparison.Ordinal))
-            .ToList();
-        Assert.True(rendered.Select(item => item.Page).Distinct().Count() > 1,
-            string.Join(" | ", rendered.Select(item => $"p{item.Page}:{item.Text.X}:{item.Text.PlainText}")));
-        (int Page, OfficeDrawingRichText Text) first = rendered.OrderBy(item => item.Page).ThenBy(item => item.Text.Y).First();
-        (int Page, OfficeDrawingRichText Text) continuation = rendered.First(item => item.Page > first.Page);
-        (int Page, OfficeDrawingRichText Text) marker = Assert.Single(allRichText,
-            item => item.Text.PlainText.Contains("*", StringComparison.Ordinal));
-        Assert.Equal(first.Page, marker.Page);
-        double markerX = GetSplitRowTokenX(marker.Text, "*");
-        double firstX = GetSplitRowTokenX(first.Text, "SplitVisible");
-        double continuationX = GetSplitRowTokenX(continuation.Text, "SplitVisible");
-        Assert.True(markerX > 50D, $"markerX={markerX}");
-        Assert.True(firstX > markerX + 10D, $"markerX={markerX}, firstX={firstX}");
-        Assert.InRange(Math.Abs(continuationX - firstX), 0D, 2D);
-    }
-
-    [Theory]
-    [InlineData(WordListLevelAlignment.Right)]
-    [InlineData(WordListLevelAlignment.Center)]
-    public void ImageSplitTableRowHonorsLevelJustification(WordListLevelAlignment alignment) {
-        using WordDocument document = WordDocument.Create();
-        WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 2400U;
-        section.SetMargins(WordMargin.Narrow);
-        WordList list = document.AddCustomList();
-        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
-        WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 720;
-        level.LevelJustification = alignment;
-        level.LevelSuffix = WordListLevelSuffix.Nothing;
-        NumberingSymbolRunProperties markerProperties = level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>() ??
-            level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
-        markerProperties.Append(new Bold(), new FontSize { Val = "36" });
-        WordTable table = document.AddTable(1, 1);
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 3600;
-        table.ColumnWidthType = WordTableWidthUnit.Dxa;
-        table.ColumnWidth = new List<int> { 3600 };
-        WordTableCell cell = table.Rows[0].Cells[0];
-        WordParagraph nine = cell.Paragraphs[0];
-        nine.Text = "SplitNine";
-        AttachToList(nine, list.NumberId);
-        WordParagraph ten = cell.AddParagraph("SplitTen");
-        AttachToList(ten, list.NumberId);
-        for (int index = 0; index < 18; index++) {
-            cell.AddParagraph("Following row content " + index.ToString("00"));
-        }
-
-        var rendered = new List<OfficeDrawingRichText>();
-        for (int pageIndex = 0; pageIndex < 4; pageIndex++) {
-            rendered.AddRange(document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex })
-                .Drawing.Elements.OfType<OfficeDrawingRichText>());
-        }
-
-        OfficeDrawingRichText nineLine = Assert.Single(rendered, text => text.PlainText.StartsWith("9.", StringComparison.Ordinal));
-        OfficeDrawingRichText tenLine = Assert.Single(rendered, text => text.PlainText.StartsWith("10.", StringComparison.Ordinal));
-        OfficeRichTextRun nineMarker = nineLine.Runs[0];
-        OfficeRichTextRun tenMarker = tenLine.Runs[0];
-        double markerWidthDifference =
-            MeasureRichTextWidth(tenMarker.Text, tenMarker.FontSize, tenMarker.FontFamily, tenMarker.FontStyle) -
-            MeasureRichTextWidth(nineMarker.Text, nineMarker.FontSize, nineMarker.FontFamily, nineMarker.FontStyle);
-        double expectedStartShift = alignment == WordListLevelAlignment.Right
-            ? markerWidthDifference
-            : markerWidthDifference / 2D;
-        Assert.InRange(nineLine.X - tenLine.X, expectedStartShift - 1D, expectedStartShift + 1D);
-
-        OfficeRichTextLine nineLayout = Assert.Single(OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
-            nineLine.Runs, nineLine.Width - nineLine.Padding.Horizontal, nineLine.Height - nineLine.Padding.Vertical, 1.25D,
-            MeasureRichTextWidth, wrap: false).Lines);
-        OfficeRichTextLine tenLayout = Assert.Single(OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
-            tenLine.Runs, tenLine.Width - tenLine.Padding.Horizontal, tenLine.Height - tenLine.Padding.Vertical, 1.25D,
-            MeasureRichTextWidth, wrap: false).Lines);
-        double nineTextX = nineLine.X + GetRichTextTokenBounds(nineLayout, "SplitNine").X;
-        double tenTextX = tenLine.X + GetRichTextTokenBounds(tenLayout, "SplitTen").X;
-        Assert.InRange(Math.Abs(nineTextX - tenTextX), 0D, 2D);
-    }
-
-    [Theory]
-    [InlineData(WordListLevelSuffix.Nothing, false)]
-    [InlineData(WordListLevelSuffix.Space, false)]
-    [InlineData(WordListLevelSuffix.Nothing, true)]
-    [InlineData(WordListLevelSuffix.Space, true)]
-    public void ImagePaginatedListLinesKeepContinuationIndent(WordListLevelSuffix suffix, bool richText) {
-        using WordDocument document = WordDocument.Create();
-        WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 2400U;
-        section.SetMargins(WordMargin.Narrow);
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        list.Numbering.Levels[0].IndentationLeft = 1800;
-        list.Numbering.Levels[0].IndentationHanging = 720;
-        list.Numbering.Levels[0].LevelSuffix = suffix;
-        string firstHalf = string.Join(" ", Enumerable.Range(0, 35).Select(index => "PageWord" + index.ToString("00"))) + " ";
-        string secondHalf = string.Join(" ", Enumerable.Range(35, 35).Select(index => "PageWord" + index.ToString("00")));
-        WordParagraph item = document.AddParagraph();
-        item.Text = string.Empty;
-        if (richText) {
-            item.AddText(firstHalf);
-            item.AddText(secondHalf).SetBold();
-        } else {
-            item.AddText(firstHalf + secondHalf);
-        }
-        AttachToList(item, list.NumberId);
-
-        WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0 });
-        if (richText) {
-            OfficeDrawingRichText[] firstPageLines = firstPage.Drawing.Elements.OfType<OfficeDrawingRichText>()
-                .Where(text => text.PlainText.Contains("PageWord", StringComparison.Ordinal))
-                .ToArray();
-            Assert.True(firstPageLines.Length >= 2, $"suffix={suffix}, expected at least two rich-text lines on the first page");
-            OfficeDrawingRichText firstLine = firstPageLines[0];
-            OfficeDrawingRichText firstPageContinuation = firstPageLines[1];
-            OfficeDrawingRichText[] laterLines = Enumerable.Range(1, 6)
-                .SelectMany(pageIndex => document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex })
-                    .Drawing.Elements.OfType<OfficeDrawingRichText>())
-                .Where(text => text.PlainText.Contains("PageWord", StringComparison.Ordinal))
-                .ToArray();
-            OfficeDrawingRichText continuation = laterLines.First();
-            double firstTextX = firstLine.X + firstLine.Padding.Left + firstLine.ParagraphIndent.FirstLineOffset;
-            double firstPageContinuationTextX = firstPageContinuation.X + firstPageContinuation.Padding.Left + firstPageContinuation.ParagraphIndent.FirstLineOffset;
-            double continuationTextX = continuation.X + continuation.Padding.Left + continuation.ParagraphIndent.FirstLineOffset;
-            Assert.True(firstPageContinuationTextX > firstTextX + 15D, $"suffix={suffix}, first={firstTextX}, same-page continuation={firstPageContinuationTextX}");
-            Assert.True(continuationTextX > firstTextX + 15D, $"suffix={suffix}, first={firstTextX}, continuation={continuationTextX}");
-        } else {
-            OfficeDrawingText[] firstPageLines = firstPage.Drawing.Elements.OfType<OfficeDrawingText>()
-                .Where(text => text.Text.Contains("PageWord", StringComparison.Ordinal))
-                .ToArray();
-            Assert.True(firstPageLines.Length >= 2, $"suffix={suffix}, expected at least two text lines on the first page");
-            OfficeDrawingText firstLine = firstPageLines[0];
-            OfficeDrawingText firstPageContinuation = firstPageLines[1];
-            OfficeDrawingText continuation = Enumerable.Range(1, 6)
-                .SelectMany(pageIndex => document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex })
-                    .Drawing.Elements.OfType<OfficeDrawingText>())
-                .First(text => text.Text.Contains("PageWord", StringComparison.Ordinal));
-            double firstTextX = firstLine.X + firstLine.Padding.Left + firstLine.ParagraphIndent.FirstLineOffset;
-            double firstPageContinuationTextX = firstPageContinuation.X + firstPageContinuation.Padding.Left + firstPageContinuation.ParagraphIndent.FirstLineOffset;
-            double continuationTextX = continuation.X + continuation.Padding.Left + continuation.ParagraphIndent.FirstLineOffset;
-            Assert.True(firstPageContinuationTextX > firstTextX + 15D, $"suffix={suffix}, first={firstTextX}, same-page continuation={firstPageContinuationTextX}");
-            Assert.True(continuationTextX > firstTextX + 15D, $"suffix={suffix}, first={firstTextX}, continuation={continuationTextX}");
-        }
-    }
-
-    [Fact]
-    public void ImageTextBoxTabSuffixBoundsSynthesizedSpacing() {
-        using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        list.Numbering.Levels[0].IndentationLeft = int.MaxValue;
-        list.Numbering.Levels[0].IndentationHanging = int.MaxValue;
-        list.Numbering.Levels[0].LevelSuffix = WordListLevelSuffix.Tab;
-        WordTextBox box = document.AddTextBox("BoundedTabSpacer");
-        box.WidthCentimeters = 10_000D;
-        AttachToList(box.Paragraphs[0], list.NumberId);
-
-        OfficeDrawingRichText rich = Assert.Single(document.CreateVisualSnapshot().Drawing.Elements
-            .OfType<OfficeDrawingRichText>(), text => text.PlainText.Contains("BoundedTabSpacer", StringComparison.Ordinal));
-        OfficeRichTextRun marker = Assert.Single(rich.Runs, run => run.Text.StartsWith("*", StringComparison.Ordinal));
-        Assert.InRange(marker.Text.Length, 2, 8_193);
-    }
-
-    [Fact]
-    public void ImageSplitTableRowKeepsPostImageListTextAtContinuationIndent() {
-        using WordDocument document = WordDocument.Create();
-        WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 2400U;
-        section.SetMargins(WordMargin.Narrow);
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        list.Numbering.Levels[0].IndentationLeft = 1800;
-        list.Numbering.Levels[0].IndentationHanging = 720;
-        list.Numbering.Levels[0].LevelSuffix = WordListLevelSuffix.Tab;
-        WordTable table = document.AddTable(1, 1);
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 3600;
-        table.ColumnWidthType = WordTableWidthUnit.Dxa;
-        table.ColumnWidth = new List<int> { 3600 };
-        WordTableCell cell = table.Rows[0].Cells[0];
-        WordParagraph item = cell.Paragraphs[0];
-        item.Text = string.Empty;
-        item.AddText("BeforeInlineImage");
-        item.AddText(string.Empty).InsertImage(
-            Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), 12, 12,
-            WordImageTextWrapping.InLineWithText, "Inline continuation marker");
-        item.AddText("AfterInlineImage");
-        AttachToList(item, list.NumberId);
-        for (int index = 0; index < 18; index++) {
-            cell.AddParagraph("Following row content " + index.ToString("00"));
-        }
-
-        var rendered = new List<OfficeDrawingRichText>();
-        for (int pageIndex = 0; pageIndex < 6; pageIndex++) {
-            rendered.AddRange(document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex })
-                .Drawing.Elements.OfType<OfficeDrawingRichText>());
-        }
-
-        string renderedText = string.Join(" | ", rendered.Select(text => $"'{text.PlainText}'@{text.X}"));
-        OfficeDrawingRichText marker = Assert.Single(rendered, text => text.PlainText.StartsWith("*", StringComparison.Ordinal));
-        string paintedText = string.Concat(rendered.Select(text => text.PlainText));
-        Assert.Contains("BeforeInlineImage", paintedText, StringComparison.Ordinal);
-        Assert.Contains("AfterInlineImage", paintedText, StringComparison.Ordinal);
-        OfficeDrawingRichText before = Assert.Single(rendered, text => text.PlainText.Contains("Before", StringComparison.Ordinal));
-        OfficeDrawingRichText after = Assert.Single(rendered, text => text.PlainText.Contains("After", StringComparison.Ordinal));
-        double markerX = GetSplitRowTokenX(marker, "*");
-        double beforeX = GetSplitRowTokenX(before, "Before");
-        double afterX = GetSplitRowTokenX(after, "After");
-        Assert.InRange(Math.Abs(beforeX - afterX), 0D, 2D);
-        Assert.True(afterX > markerX + 25D, $"marker={markerX}, before={beforeX}, after={afterX}; {renderedText}");
-    }
-
-    [Fact]
-    public void TextBoxListIndentationIsKeptPerParagraphInPdfAndImageLayout() {
+    public void TextBoxListIndentationIsKeptPerParagraphInPdfLayout() {
         using WordDocument document = WordDocument.Create();
         WordList bulletList = document.AddCustomBulletList('◆', "Arial", "000000");
         bulletList.Numbering.Levels[0].IndentationLeft = 1800;
@@ -923,19 +505,6 @@ public sealed partial class WordListMarkerSemanticsTests {
         double plainX = WordX("PlainBox"), bulletX = WordX("BulletBox"), unmarkedX = WordX("UnmarkedBox");
         Assert.True(bulletX > plainX + 35D, $"plain={plainX}, bullet={bulletX}");
         Assert.True(unmarkedX > plainX + 55D, $"plain={plainX}, unmarked={unmarkedX}");
-
-        OfficeDrawingRichText rich = Assert.Single(document.CreateVisualSnapshot().Drawing.Elements
-            .OfType<OfficeDrawingRichText>(), item => item.PlainText.Contains("PlainBox", StringComparison.Ordinal));
-        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
-            rich.Runs, rich.Width - rich.Padding.Horizontal, rich.Height - rich.Padding.Vertical, 1.25D,
-            (text, size, _) => (text?.Length ?? 0) * size * 0.5D, wrap: true);
-        OfficeRichTextLine plainLine = Assert.Single(layout.Lines, line => line.Segments.Any(segment => segment.Text.Contains("PlainBox", StringComparison.Ordinal)));
-        OfficeRichTextLine bulletLine = Assert.Single(layout.Lines, line => line.Segments.Any(segment => segment.Text.Contains("BulletBox", StringComparison.Ordinal)));
-        OfficeRichTextLine unmarkedLine = Assert.Single(layout.Lines, line => line.Segments.Any(segment => segment.Text.Contains("UnmarkedBox", StringComparison.Ordinal)));
-        Assert.True(bulletLine.OffsetX > plainLine.OffsetX + 40D,
-            $"plain={plainLine.OffsetX}, bullet={bulletLine.OffsetX}, runs={string.Join(" | ", rich.Runs.Select(run => $"'{run.Text}':{run.ParagraphIndent?.FirstLineOffset}"))}");
-        Assert.True(unmarkedLine.OffsetX > plainLine.OffsetX + 70D,
-            $"plain={plainLine.OffsetX}, unmarked={unmarkedLine.OffsetX}");
     }
 
     [Fact]
@@ -954,19 +523,6 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal(1, PdfReadDocument.Open(document.ToPdfBytes()).ExtractText()
             .Split(new[] { "1." }, StringSplitOptions.None).Length - 1);
         Assert.NotNull(box);
-    }
-
-    [Fact]
-    public void EmptyMarkerlessTextBoxDoesNotCreateAnEmptyRichTextBlock() {
-        using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomList();
-        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        WordTextBox box = document.AddTextBox(string.Empty);
-        AttachToList(box.Paragraphs[0], list.NumberId);
-
-        Assert.DoesNotContain(document.CreateVisualSnapshot().Drawing.Elements,
-            element => element is OfficeDrawingRichText rich && rich.Runs.Count == 0);
-        Assert.NotEmpty(document.ExportImage(OfficeImageExportFormat.Svg).Bytes);
     }
 
     [Theory]
@@ -998,36 +554,6 @@ public sealed partial class WordListMarkerSemanticsTests {
         int index = joined.IndexOf(text, StringComparison.Ordinal);
         Assert.True(index >= 0 && joined.IndexOf(text, index + 1, StringComparison.Ordinal) < 0, "Expected one '" + text + "' in '" + joined + "'.");
         return (letters[index].StartBaseLine.X, letters[index + text.Length - 1].EndBaseLine.X);
-    }
-
-    private static double RenderImageBodyListMarkerOffset(WordListLevelSuffix suffix) {
-        using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        Level level = list.Numbering.Levels[0].OpenXmlElement;
-        level.GetFirstChild<LevelSuffix>()?.Remove();
-        level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });
-        WordParagraph item = document.AddParagraph("ImageBodySuffix");
-        AttachToList(item, list.NumberId);
-
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
-        OfficeDrawingText content = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "ImageBodySuffix");
-        OfficeDrawingText marker = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "*");
-        return content.X - marker.X;
-    }
-
-    private static double RenderImageMarkerlessBodyTextX(WordListLevelSuffix suffix) {
-        using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomList();
-        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 360;
-        level.LevelSuffix = suffix;
-        WordParagraph item = document.AddParagraph("MarkerlessBody");
-        AttachToList(item, list.NumberId);
-
-        return Assert.Single(document.CreateVisualSnapshot().Drawing.Elements.OfType<OfficeDrawingText>(),
-            text => text.Text == "MarkerlessBody").X;
     }
 
     private static double MeasureRichTextWidth(string? text, double fontSize, string? fontFamily, OfficeFontStyle style) {

@@ -86,6 +86,7 @@ public sealed class PdfConversionTypographyTests {
         string unsupportedScalar = char.ConvertFromUtf32(0x10FFFF);
         var options = new MarkdownToPdfOptions {
             ApplyDefaultTheme = false,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = CreatePdfOptions(fontPath)
         };
 
@@ -224,6 +225,7 @@ public sealed class PdfConversionTypographyTests {
 
             return document.ToPdfBytes(new WordPdf.WordToPdfOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
                 IncludePageNumbers = false
             });
         } finally {
@@ -254,11 +256,12 @@ public sealed class PdfConversionTypographyTests {
 
             var options = new ExcelToPdfOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
                 IncludeSheetHeadings = false
             };
             PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             byte[] pdf = result.ToBytes();
-            Assert.False(result.HasWarnings, string.Join("; ", result.Warnings.Select(warning => warning.Code + ": " + warning.Message)));
+            Assert.DoesNotContain(result.Warnings, warning => warning.Severity != PdfCore.PdfConversionWarningSeverity.Information);
             return pdf;
         } finally {
             if (Directory.Exists(directory)) {
@@ -270,6 +273,7 @@ public sealed class PdfConversionTypographyTests {
     private static byte[] CreateMarkdownPdf(string fontPath) {
         var options = new MarkdownToPdfOptions {
             ApplyDefaultTheme = false,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = CreatePdfOptions(fontPath)
         };
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse("""
@@ -284,7 +288,7 @@ Zażółć gęślą jaźń
 """).ToPdfDocumentResult(options);
 
         byte[] pdf = result.ToBytes();
-        Assert.False(result.HasWarnings, string.Join("; ", result.Warnings.Select(warning => warning.Code + ": " + warning.Message)));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Severity != PdfCore.PdfConversionWarningSeverity.Information);
         return pdf;
     }
 
@@ -328,15 +332,12 @@ Zażółć gęślą jaźń
         table.GetCell(2, 1).Text = "Київ";
 
         var options = new PowerPointToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = CreatePdfOptions(fontPath)
         };
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        Assert.False(
-            result.HasWarnings,
-            string.Join(
-                Environment.NewLine,
-                result.Warnings.Select(static warning => warning.Code + ": " + warning.Message)));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Severity != PdfCore.PdfConversionWarningSeverity.Information);
         return pdf;
     }
 

@@ -705,9 +705,9 @@ namespace OfficeIMO.Word.Html {
                         }
                         if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
                             string? normalizedRunBackground = NormalizeSixDigitHexColor(
-                                WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run));
+                                WordRunFormatting.ResolveRunShadingFillColorHex(run));
                             string? highlightCss = GetHighlightCss(
-                                WordDocumentImageRenderer.ResolveRunHighlight(run));
+                                WordRunFormatting.ResolveRunHighlight(run));
                             if (!string.IsNullOrEmpty(highlightCss) &&
                                 (!isHtmlMarkedText || normalizedRunBackground != null)) {
                                 inlineStyles.Add($"background-color:{highlightCss}");

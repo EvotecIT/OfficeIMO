@@ -32,10 +32,10 @@ namespace OfficeIMO.Word {
         }
 
         private void InsertSmartArt(WordSmartArtType type) {
-            var mainPart = _document._wordprocessingDocument.MainDocumentPart!;
+            OpenXmlPart owner = WordPartOwnership.Resolve(_document, _paragraph._paragraph);
 
-            // Build SmartArt parts in-memory (no external templates)
-            var (relLayout, relColors, relStyle, relData) = SmartArtBuiltIn.AddParts(mainPart, type);
+            // Relationships belong to the story containing the drawing.
+            var (relLayout, relColors, relStyle, relData) = SmartArtBuiltIn.AddParts(owner, type);
 
             var graphic = new Graphic(new GraphicData(
                 new RelationshipIds {
@@ -577,10 +577,10 @@ namespace OfficeIMO.Word {
         private WordSmartArtType? TryDetectType() {
             try {
                 var rel = _drawing.Descendants<RelationshipIds>().FirstOrDefault();
-                var main = _document._wordprocessingDocument.MainDocumentPart!;
+                OpenXmlPart owner = WordPartOwnership.Resolve(_document, _drawing);
                 var layoutIdOpt = rel?.LayoutPart?.Value;
                 if (layoutIdOpt is not { Length: > 0 } layoutId) return null;
-                var part = main.GetPartById(layoutId) as DiagramLayoutDefinitionPart;
+                var part = owner.GetPartById(layoutId) as DiagramLayoutDefinitionPart;
                 if (part?.LayoutDefinition == null) return null;
                 var uid = part.LayoutDefinition.UniqueId?.Value ?? string.Empty;
                 if (uid.EndsWith("/layout/cycle2")) return WordSmartArtType.Cycle;
@@ -617,8 +617,8 @@ namespace OfficeIMO.Word {
             var rel = _drawing.Descendants<RelationshipIds>().FirstOrDefault();
             var dataIdOpt = rel?.DataPart?.Value;
             if (dataIdOpt is not { Length: > 0 } dataId) throw new InvalidOperationException("SmartArt data relationship not found.");
-            var mainPart = _document._wordprocessingDocument.MainDocumentPart!;
-            var part = mainPart.GetPartById(dataId);
+            OpenXmlPart owner = WordPartOwnership.Resolve(_document, _drawing);
+            var part = owner.GetPartById(dataId);
             if (part is DiagramDataPart ddp) return ddp;
             throw new InvalidOperationException("DiagramDataPart not found for SmartArt.");
         }

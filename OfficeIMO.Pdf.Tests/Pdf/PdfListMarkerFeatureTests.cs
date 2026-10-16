@@ -8,6 +8,35 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfListMarkerFeatureTests {
     [Theory]
+    [InlineData(false, "■")]
+    [InlineData(true, "■")]
+    [InlineData(false, "A■")]
+    [InlineData(true, "A■")]
+    public void MarkersUseTheSameFallbackRunsForWidthAndPaint(bool inRow, string marker) {
+        const string primary = "Marker primary";
+        var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(primary, ManagedTextShapingTestAssets.CreateFont(' ', 'A')))
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
+                new PdfEmbeddedFontFallbackCandidate("Marker square", ManagedTextShapingTestAssets.CreateFont('■'))
+            }));
+        var document = PdfDocument.Create(options);
+        var items = new[] { new PdfListItem("body", marker: marker) };
+        var style = new PdfListStyle { MarkerFontFamily = primary, MarkerFontSize = 20D, MarkerGap = 12D };
+        if (inRow) document.Compose(compose => compose.Page(page => page.Content(content =>
+            content.Row(row => row.PercentColumn(100, column => column.RichBullets(items, style: style))))));
+        else document.RichBullets(items, style: style);
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal(marker + "body", pdf.GetPage(1).Text);
+        var square = Assert.Single(letters, letter => letter.Value == "■");
+        var body = Assert.Single(letters, letter => letter.Value == "b");
+        Assert.Equal(12D, body.StartBaseLine.X - square.EndBaseLine.X, 3);
+        Assert.Equal(body.StartBaseLine.Y, square.StartBaseLine.Y, 3);
+        if (marker.Length > 1)
+            Assert.Equal(body.StartBaseLine.Y, Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y, 3);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void MixedNumberingMeasuresOnlyMarkersActuallyRendered(bool inRow) {

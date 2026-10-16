@@ -265,6 +265,7 @@ public sealed partial class PdfOptions {
             if (reserved.Contains(family) && !EmbeddedFontFamilySlotMatches(family, familyName!) &&
                 !TrySelectAvailableFontFamilySlot(familyName!, reserved, out family)) return false;
             RegisterFontFamily(family, embeddedFamily);
+            ReportInstalledOfficeFontSubstitution(familyName!, embeddedFamily, namedFamily: false);
         }
 
         DefaultFont = family;
@@ -290,6 +291,7 @@ public sealed partial class PdfOptions {
             FooterFont = family;
         } else if (embedSystemFont && TryLoadOfficeFontFamily(familyName!, out PdfEmbeddedFontFamily? embeddedFamily) && embeddedFamily != null) {
             RegisterFontFamily(PdfStandardFont.Helvetica, embeddedFamily);
+            ReportInstalledOfficeFontSubstitution(familyName!, embeddedFamily, namedFamily: false);
             DefaultFont = PdfStandardFont.Helvetica;
             HeaderFont = PdfStandardFont.Helvetica;
             FooterFont = PdfStandardFont.Helvetica;
@@ -327,6 +329,7 @@ public sealed partial class PdfOptions {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
         if (embedSystemFont && TryLoadOfficeFontFamily(familyName!, out PdfEmbeddedFontFamily? embeddedFamily) && embeddedFamily != null) {
             RegisterFontFamily(normalizedFamily, embeddedFamily);
+            ReportInstalledOfficeFontSubstitution(familyName!, embeddedFamily, namedFamily: false);
         }
 
         return this;
@@ -463,6 +466,15 @@ public sealed partial class PdfOptions {
         foreach (string candidate in EnumerateOfficeFontFamilyCandidates(familyName)) {
             if (PdfEmbeddedFontFamily.TryFromSystem(candidate, out embeddedFamily) && embeddedFamily != null) {
                 return true;
+            }
+        }
+
+        // Honor every explicitly listed installed family before considering an implicit substitute.
+        foreach (string candidate in EnumerateOfficeFontFamilyCandidates(familyName)) {
+            foreach (string substitute in OfficeIMO.Drawing.OfficeDocumentFontSubstitutions.Enumerate(candidate)) {
+                if (PdfEmbeddedFontFamily.TryFromSystem(substitute, out embeddedFamily) && embeddedFamily != null) {
+                    return true;
+                }
             }
         }
 

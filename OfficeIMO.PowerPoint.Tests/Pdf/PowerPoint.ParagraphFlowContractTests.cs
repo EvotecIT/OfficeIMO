@@ -57,7 +57,9 @@ public sealed class PowerPointParagraphFlowContractTests {
         box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
         box.Paragraphs[0].LineSpacingMultiplier = 0.75D;
         box.Paragraphs[0].Runs[0].Bold = rich;
-        byte[] bytes = presentation.ToPdfBytes();
+        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        });
         Assert.Contains("20 50 240 150 re W", PdfOperatorSearchText.From(bytes), StringComparison.Ordinal);
     }
 

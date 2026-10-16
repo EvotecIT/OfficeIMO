@@ -58,17 +58,20 @@ internal static partial class PdfWriter {
                 PdfListItem item,
                 string marker,
                 TableCellTextLayout textLayout,
-                double firstLineOffset) {
+                double firstLineOffset,
+                ListMarkerFallbackLayout? markerFallback) {
                 Item = item;
                 Marker = marker;
                 TextLayout = textLayout;
                 FirstLineOffset = firstLineOffset;
+                MarkerFallback = markerFallback;
             }
 
             internal PdfListItem Item { get; }
             internal string Marker { get; }
             internal TableCellTextLayout TextLayout { get; }
             internal double FirstLineOffset { get; }
+            internal ListMarkerFallbackLayout? MarkerFallback { get; }
         }
 
         private PreparedListLayout PrepareListLayout(
@@ -85,15 +88,18 @@ internal static partial class PdfWriter {
             PdfNamedFontFace? markerNamedFont = GetListMarkerNamedFont(style, currentOpts);
 
             var markers = new string[block.RichItems.Count];
+            var markerFallbacks = new ListMarkerFallbackLayout?[markers.Length];
             // Estimate from the actual markers, including default/custom mixtures.
             // The selected font need not contain unused numbering or bullet glyphs.
             double estimatedMarkerWidth = 0D;
             for (int itemIndex = 0; itemIndex < markers.Length; itemIndex++) {
                 string marker = block.GetMarker(itemIndex);
                 markers[itemIndex] = marker;
+                markerFallbacks[itemIndex] = PrepareListMarkerFallback(marker, markerFont, markerSize, leading, style);
                 estimatedMarkerWidth = System.Math.Max(
                     estimatedMarkerWidth,
-                    EstimateSimpleTextWidthForOptions(marker, markerFont, markerNamedFont, markerSize, currentOpts, style?.MarkerFeatureSettings));
+                    markerFallbacks[itemIndex]?.Width ??
+                        EstimateSimpleTextWidthForOptions(marker, markerFont, markerNamedFont, markerSize, currentOpts, style?.MarkerFeatureSettings));
             }
 
             double markerWidth = GetListMarkerWidth(style, estimatedMarkerWidth);
@@ -126,7 +132,7 @@ internal static partial class PdfWriter {
                     PdfAlign.Right => System.Math.Max(0D, alignmentWidth - firstLineWidth),
                     _ => 0D
                 };
-                items.Add(new PreparedListItem(item, markers[itemIndex], textLayout, firstLineOffset));
+                items.Add(new PreparedListItem(item, markers[itemIndex], textLayout, firstLineOffset, markerFallbacks[itemIndex]));
             }
 
             double spacingBefore = style?.SpacingBefore ?? 0D;
@@ -159,7 +165,7 @@ internal static partial class PdfWriter {
             if (prepared.Style?.MarkerAlignsAtIndent != true)
                 return (x, prepared.MarkerWidth, align);
 
-            double width = EstimateSimpleTextWidthForOptions(item.Marker, prepared.MarkerFont,
+            double width = item.MarkerFallback?.Width ?? EstimateSimpleTextWidthForOptions(item.Marker, prepared.MarkerFont,
                 prepared.MarkerNamedFont, prepared.MarkerSize, currentOpts, prepared.Style?.MarkerFeatureSettings);
             x -= align switch {
                 PdfAlign.Right => width,

@@ -27,7 +27,7 @@ public sealed class ReaderBlockFragmentProjectionTests {
     [Theory]
     [InlineData(5)]
     [InlineData(1200)]
-    public void WordParagraphRetainsComputedPageTextAndGeometry(int words) {
+    public void WordPageLinesRetainSharedLayoutTextAndGeometry(int words) {
         using var stream = new MemoryStream();
         using (var word = OfficeIMO.Word.WordDocument.Create(stream)) {
             word.AddParagraph(string.Join(" ", Enumerable.Range(0, words).Select(index => "word" + index)));
@@ -35,15 +35,49 @@ public sealed class ReaderBlockFragmentProjectionTests {
         }
         stream.Position = 0;
         var source = OfficeIMO.Reader.Tests.ReaderTestReaders.Word(includePageLocations: true).ReadDocument(stream, "paragraph.docx");
+        stream.Position = 0;
+        using var rendered = OfficeIMO.Word.WordDocument.Load(stream);
+        var snapshots = rendered.CreateVisualSnapshots();
         var fragments = source.Pages.SelectMany(page => page.Blocks).Where(block => !string.IsNullOrWhiteSpace(block.Text)).ToArray();
-        if (words > 5) Assert.True(fragments.Length > 1);
-        else Assert.Single(fragments);
-        Assert.Single(fragments.Select(block => block.Id).Distinct());
+        Assert.Equal(snapshots.Count, source.Pages.Count);
+        if (words > 5) Assert.True(source.Pages.Count > 1);
+        var spans = snapshots.SelectMany(page => page.TextSpans)
+            .Where(span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text)).ToArray();
+        Assert.NotEmpty(spans);
+        Assert.Equal(string.Concat(spans.Select(span => span.Text)).Replace(" ", ""),
+            string.Concat(fragments.Select(block => block.Text)).Replace(" ", ""));
+        Assert.Equal(Enumerable.Range(0, words).Select(index => "word" + index),
+            string.Join(" ", fragments.Select(block => block.Text)).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Equal(fragments.Length, fragments.Select(block => block.Id).Distinct().Count());
+        Assert.All(fragments, block => Assert.Equal("text-line", block.Kind));
+        Assert.All(fragments, block => {
+            Assert.True(block.Region!.Width > 0D);
+            Assert.Equal(0D, block.Region.Height);
+        });
+        Assert.NotEmpty(source.Search("word0", new OfficeDocumentSearchOptions { WholeWord = true }).PageNumbers);
+        Assert.NotEmpty(source.Search("word" + (words - 1), new OfficeDocumentSearchOptions { WholeWord = true }).PageNumbers);
         foreach (var document in new[] { source, OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) }) {
             var blocks = document.EnumerateBlocks().Where(block => !string.IsNullOrWhiteSpace(block.Text)).ToArray();
             Assert.Equal(fragments.Select(block => block.Text), blocks.Select(block => block.Text));
             Assert.Equal(fragments.Select(block => block.Location!.Page), blocks.Select(block => block.Location!.Page));
             Assert.All(blocks, block => Assert.NotNull(block.Region));
+        }
+    }
+
+    [Fact]
+    public void WordPageSearchPreservesWordsAndPhrasesAcrossFormattingRuns() {
+        using var stream = new MemoryStream();
+        using (var word = OfficeIMO.Word.WordDocument.Create(stream)) {
+            var paragraph = word.AddParagraph("Search");
+            paragraph.Bold = true;
+            paragraph.AddText("able phrase").Italic = true;
+            word.Save();
+        }
+        stream.Position = 0;
+        var document = OfficeIMO.Reader.Tests.ReaderTestReaders.Word(includePageLocations: true)
+            .ReadDocument(stream, "styled-phrase.docx");
+        foreach (var result in new[] { document, OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(document)) }) {
+            Assert.Equal(new[] { 1 }, result.Search("Searchable phrase").PageNumbers);
         }
     }
 

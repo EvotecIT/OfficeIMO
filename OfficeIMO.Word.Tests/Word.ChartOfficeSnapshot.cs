@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
 using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -376,7 +378,6 @@ public sealed class WordChartOfficeSnapshotTests {
         string before = chart.ChartPart.ChartSpace.OuterXml;
         Assert.False(chart.TryGetOfficeSnapshot(out _));
         Assert.Equal(before, chart.ChartPart.ChartSpace.OuterXml);
-        Assert.Contains(document.CreateVisualSnapshot().Diagnostics, diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedChart);
     }
     [Fact]
     public void OfficeSnapshot_PreservesReferencedAxisFormatsAndLimitsAfterResize() {
@@ -412,10 +413,18 @@ public sealed class WordChartOfficeSnapshotTests {
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Columns", new[] { 100d, 200d }),
                 new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true, renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
         document.AddChart(bubble ? OfficeChartKind.Bubble : OfficeChartKind.ColumnClustered, data, "Shared projection");
-        var page = document.CreateVisualSnapshot();
-        Assert.DoesNotContain(page.Diagnostics, diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedChart);
-        Assert.Contains(page.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Shared projection");
-        Assert.Contains(page.Drawing.Shapes, shape => shape.Shape.FillColor == OfficeColor.Parse("#224466") || shape.Shape.StrokeColor == OfficeColor.Parse("#224466"));
+        var layout = new WordToPdfOptions { IncludePageNumbers = false };
+        var options = new WordImageExportOptions { LayoutOptions = layout };
+        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(layout);
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        PdfReadPage pdfPage = Assert.Single(PdfReadDocument.Open(conversion.ToBytes()).Pages);
+        var page = document.CreateVisualSnapshot(options);
+        Assert.DoesNotContain(page.Diagnostics, diagnostic => diagnostic.Code == "NativeBodyChartUnsupported");
+        string text = string.Concat(page.TextSpans.Select(span => span.Text));
+        Assert.Contains("Shared projection", text, StringComparison.Ordinal);
+        Assert.Contains(bubble ? "Measured" : "Ratio", text, StringComparison.Ordinal);
+        Assert.Equal(pdfPage.ExportImage(OfficeImageExportFormat.Svg).Bytes,
+            document.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
     }
     public static IEnumerable<object[]> SupportedKinds() => Enum.GetValues(typeof(OfficeChartKind)).Cast<OfficeChartKind>().Select(kind => new object[] { kind });
 

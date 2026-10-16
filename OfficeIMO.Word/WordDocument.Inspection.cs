@@ -312,7 +312,7 @@ namespace OfficeIMO.Word {
                     RunShadingPattern = ((run.IsHyperLink ? run.Hyperlink?._runProperties : run._runProperties)
                         ?.Shading?.Val?.Value).ToOfficeEnum(),
                     VerticalTextAlignment = NormalizeOpenXmlEnumValue(run.VerticalTextAlignment),
-                    CapsStyle = WordDocumentImageRenderer.ResolveEffectiveCapsStyle(run) is WordCapsStyle effectiveCaps
+                    CapsStyle = run.ResolveEffectiveCapsStyle() is WordCapsStyle effectiveCaps
                         && effectiveCaps != WordCapsStyle.None
                             ? effectiveCaps.ToString()
                             : null,

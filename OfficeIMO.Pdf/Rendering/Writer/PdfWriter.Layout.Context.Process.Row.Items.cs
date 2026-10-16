@@ -66,6 +66,7 @@ internal static partial class PdfWriter {
                             Lines = layout.Lines,
                             Heights = layout.LineHeights,
                             Marker = preparedItem.Marker,
+                            MarkerFallback = preparedItem.MarkerFallback,
                             MarkerFont = prepared.MarkerFont,
                             MarkerNamedFont = prepared.MarkerNamedFont,
                             MarkerFeatureSettings = prepared.Style?.MarkerFeatureSettings,

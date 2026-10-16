@@ -40,6 +40,22 @@ JPEG enables optimized Huffman tables by default. Quality 85, 4:4:4 sampling, an
 
 SVG non-interpolated images are embedded rasters with sampling hints instead of pixel rectangles. Consumers that inspect SVG structure must accept `<image>` and data URIs. Supported already-painted text can become paths; opt into eligible ordinary text paths with `SvgTextAsPaths`. Paths preserve appearance and logical accessibility labels but are not selectable SVG text.
 
+## Office conversion fonts and Word page images
+
+The balanced PDF resource policy embeds installed document fonts by default for Word, Excel and PowerPoint. Fonts supplied by installed Office applications on macOS are discoverable. Output sizes, line breaks and pagination can change as source fonts replace standard Helvetica fallbacks. Review substitution diagnostics and the `font-embedding-cost` entries for the actual font payload cost. Set `ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()` or supply a fixed rendering profile when output must not depend on host fonts.
+
+Word image export (`ToPng`, `ToJpeg`, `ToSvg`, `ExportImages`, and their fluent builders) now uses the same page layout and font policy as Word-to-PDF. Regenerate preview baselines: page counts, line breaks, styles and borders can change, and the preview renderer no longer shortens text with an ellipsis. Set `WordImageExportOptions.LayoutOptions` to the same `WordToPdfOptions` used for PDF export when customizing layout.
+
+`OfficeIMO.Word` now references `OfficeIMO.Pdf`, which depends only on `OfficeIMO.Core`; no external runtime dependency is added. Forward conversion APIs and `WordToPdfOptions` move from the `OfficeIMO.Word.Pdf` assembly to `OfficeIMO.Word`, retaining their namespace. Recompile consumers; PDF-to-Word import still requires `OfficeIMO.Word.Pdf`.
+
+`WordDocumentVisualSnapshot.Fragments` and the guessed source-block fragment/region types are removed. Use `TextSpans` for text and geometry from the actual laid-out page, in PDF user-space coordinates. `IncludeDocumentContent`, builder `IncludeContent`/`WithoutContent`, and preview-specific `WordImageExportDiagnosticCodes` are removed. Export diagnostics now carry the same conversion and rendering codes as the PDF-backed route. Skipped unsupported objects are classified as omissions, so `RequireNoOmissions` rejects them on both routes; font, wrapping and appearance fallbacks remain approximations. An out-of-range page index throws `ArgumentOutOfRangeException` instead of producing an empty preview.
+
+With Reader Word `IncludePageLocations`, `Pages` and normalized `Blocks` now contain visible page text lines with PDF user-space baseline extents, rather than source paragraph/table fragments. Their IDs are page/line-specific; logical text remains in `Chunks` and authored tables/links remain at document scope. Page search and Markdown follow the rendered lines. This projection reports `officeimo.reader.word.rich-v5` and remains opt-in.
+
+Inline header and footer pictures retain their height and reserve body space. Empty table paragraphs retain their mark's minimum line height, including explicit cell margins. Supported non-wrapping floating pictures retain paragraph/margin anchors and signed offsets. Pictures extending beyond a page retain their placement and report clipping instead of entering document flow.
+
+Header/footer SmartArt authoring and reading now use relationships on the containing story for diagram data, layout, colours, quick style and cached drawing. Regenerate DOCX files whose header/footer diagrams were authored with relationships only on the main document part; saving an existing malformed file does not relocate those parts automatically. Body diagrams retain their existing relationship ownership.
+
 ## PDF text output and embedded fonts
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.

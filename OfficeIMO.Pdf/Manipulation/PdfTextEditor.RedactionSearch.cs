@@ -102,7 +102,8 @@ internal static partial class PdfTextEditor {
                     }
                     if (!areaKeys.Add((hit.PageNumber, left, bottom, right, top))) continue;
                     // A phrase may cross adjacent native text shows (including explicit spaces).
-                    // Join only touching rectangles with the same vertical extent, never gaps or different lines.
+                    // Join one match's touching/overlapping glyph runs and small typographic
+                    // gaps (positive kerning), but not separate placements or different lines.
                     // The unselected-glyph sweep above still checks the complete resulting geometry.
                     if (areas.Count > firstArea && CanJoin(areas[areas.Count - 1], hit.PageNumber, left, bottom, right, top)) {
                         PdfRedactionArea previous = areas[areas.Count - 1];
@@ -123,7 +124,11 @@ internal static partial class PdfTextEditor {
         bool CanJoin(PdfRedactionArea previous, int page, double left, double bottom, double right, double top) =>
             previous.PageNumber == page && Math.Abs(previous.Y - bottom) < 0.0000001D &&
             Math.Abs(previous.Top - top) < 0.0000001D &&
-            (Math.Abs(previous.Right - left) < 0.0000001D || Math.Abs(right - previous.X) < 0.0000001D);
+            left <= previous.Right + JoinTolerance(previous, bottom, top) &&
+            right >= previous.X - JoinTolerance(previous, bottom, top);
+
+        double JoinTolerance(PdfRedactionArea previous, double bottom, double top) =>
+            Math.Max(0.0000001D, Math.Min(previous.Height, top - bottom) * 0.1D);
 
         bool IntersectsAreas(IEnumerable<PdfRedactionArea> candidates, PdfTextSpanBounds bounds) {
             foreach (PdfRedactionArea area in candidates) {
