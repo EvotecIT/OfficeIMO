@@ -31,6 +31,27 @@ PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conve
 
 `OfficeColorSpaceConverter.FromCmyk` interpolates between SWOP process-colour solids instead of computing `255 × (1 − c) × (1 − k)`. Pure cyan becomes RGB (0, 173, 239) and 100% black becomes (35, 31, 32). Update code that compares exact DeviceCMYK conversion results.
 
+## Native chart and SmartArt rendering
+
+Word, Excel and PowerPoint charts whose series or slices store no colour now render with the colours Office gives them, instead of being skipped (PowerPoint, Word images) or drawn with OfficeIMO's fallback palette (Excel, Word PDF). The colour comes from the classic `c:style` number (2 when absent) and the theme accents; from the seventh series on, Office's darker and lighter variations apply. Charts authored through OfficeIMO APIs that store no series colour change colour accordingly. A palette passed in `PowerPointToPdfOptions.ChartStyle` or `ExcelToPdfOptions.ChartStyle` still replaces these automatic colours.
+
+Office does not consult the `cs:chartStyle` and `cs:colorStyle` parts when it draws a chart, so they no longer prevent Word charts from rendering and no longer change exported colours. An `ExcelChartStylePreset` colour style no longer reorders the exported automatic pie palette.
+
+Other native chart geometry now follows Office, so chart renders and baselines change:
+
+- Line and scatter series without a stored marker draw Office's automatic markers (size 7 diamond, square, triangle, and so on), even when the line group sets `c:marker` to 0.
+- Horizontal bar charts draw the first category at the bottom unless the category axis is reversed (`maxMin`). Charts authored with an explicit `minMax` orientation were previously drawn top-down.
+- Line and area points sit in the middle of each category, where the category labels are. `OfficeChartLayout.WithCategoryPointsOnTickMarks(true)` restores tick-mark placement for snapshots you build yourself; native charts with `c:crossBetween val="midCat"` set it automatically.
+- Native `c:gapWidth` and `c:overlap` set bar spacing (`OfficeChartLayout.WithBarGeometry`), and stock charts draw high-low lines (`OfficeChartLayout.WithHighLowLines`).
+- Date category axes format their cached serial numbers with the axis or source-linked number format, such as `m/d/yyyy`.
+- Charts that set `c:plotVisOnly` but carry no workbook at all render from their cached values, as Office does. Charts whose workbook link is external or unresolved still return `false`.
+
+3-D, pie-of-pie and surface charts still render as flat 2-D projections, and now say so: PowerPoint PDF export reports `chart-projected`, image export reports `powerpoint-chart-projected`, Word PDF reports `NativeBodyChartSimplified`, and Excel PDF reports `chart-approximation`. Excel PDF export now draws stock and surface charts this way instead of skipping them. A skipped PowerPoint chart's `unsupported-chart` warning names the actual reason. Reading a chart snapshot no longer hides unexpected exceptions; only document content that cannot be projected returns `false`.
+
+PowerPoint SmartArt now renders from the drawing Office caches with the diagram (`ppt/diagrams/drawing*.xml`), so producer layouts keep their shapes, colours and text positions in PDF and image export. When that drawing is missing or no longer matches the diagram text, the existing semantic layout is used; if neither applies, `unsupported-smartart` names both reasons. Worksheet SmartArt is reported as `WorksheetSmartArt` in Excel PDF export instead of being omitted silently.
+
+DrawingML `hueOff`, `hueMod`, `satOff` and `satMod` colour transforms are applied, so colours that use them, common in SmartArt, no longer prevent a chart or shape from rendering.
+
 ## Studio native interface and protected copies
 
 The native engine ABI is version 3. Redaction `apply` requests must include `revision`: use the revision returned by `find`, or the document facts revision on which drawn areas were reviewed. Requests without a revision or with a stale revision are rejected. After editing, reordering, undoing or redoing the document, find or mark the content again before applying redaction. Rebuild native hosts against the matching engine header and check `officeimo_abi_version()` at startup.

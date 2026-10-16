@@ -222,9 +222,18 @@ supplied `IOfficeSecurityProvider` for OPC creation and cryptographic validation
 Imported 3-D bar, line, area, and pie charts, of-pie charts, stock charts, and
 surface charts support in-place data updates when their referenced caches and
 embedded workbook can be changed consistently. `InspectImportedContent()`
-reports the native family and export boundary. Image and PDF export use an
-explicit 2-D semantic projection for these families; producer-specific storage
-or chart groups that do not have a safe model remain preservation-only.
+reports the native family and export boundary. Image and PDF export draw these
+families as an explicit flat 2-D projection and report what it leaves out
+(`chart-projected` in PDF, `powerpoint-chart-projected` in images);
+producer-specific storage or chart groups that do not have a safe model remain
+preservation-only. Series and slices that store no colour or marker take the
+colours and markers PowerPoint gives them, from the chart's classic style
+number and the theme.
+
+Image and PDF export draw SmartArt from the shapes PowerPoint caches with the
+diagram, so producer layouts keep their geometry, colours and text. When that
+drawing is missing or no longer matches the diagram text, export falls back to
+the supported semantic layouts.
 
 `PowerPointSmartArt.TryGetTopology(...)` exposes text, sibling order, and parent
 connections only when the imported layout can be represented safely.
