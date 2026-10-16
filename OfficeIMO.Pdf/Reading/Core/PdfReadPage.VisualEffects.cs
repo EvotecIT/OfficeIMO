@@ -1169,6 +1169,7 @@ public sealed partial class PdfReadPage {
             cancellationToken.ThrowIfCancellationRequested();
             AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, allowRedundantPageClipRemoval: false, cancellationToken);
         }
+        ApplyPaintedGlyphMappings(drawing, registeredFonts, pageContentBudget.PaintedGlyphMaps);
         return drawing;
     }
 }
