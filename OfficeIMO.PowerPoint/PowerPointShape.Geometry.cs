@@ -119,8 +119,8 @@ namespace OfficeIMO.PowerPoint {
         internal bool TryGetExportBoundsPoints(out double left, out double top, out double width, out double height) {
             bool found = TryGetBoundsPoints(out left, out top, out width, out height);
             if (found && width > 0D && height > 0D) return true;
-            if (OwnerSlide != null && ShapePlaceholderType.HasValue) {
-                PowerPointLayoutBox? bounds = OwnerSlide.GetLayoutPlaceholderBounds(ShapePlaceholderType.Value, ShapePlaceholderIndex);
+            if (OwnerSlide != null && GetPlaceholderShape() is { } placeholder) {
+                PowerPointLayoutBox? bounds = OwnerSlide.GetExportPlaceholderBounds(placeholder);
                 if (bounds.HasValue) {
                     left = bounds.Value.LeftPoints;
                     top = bounds.Value.TopPoints;
