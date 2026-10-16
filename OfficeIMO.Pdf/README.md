@@ -399,7 +399,8 @@ content must fit a complete frame, including padding. Otherwise allow splitting.
 - Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding. Eight/sixteen-bit Huffman lossless JPEG inputs normalize to PNG before embedding; supported one/three-component eight-bit DCT JPEGs retain their compressed payload. Lossless JPEGs with embedded ICC profiles are rejected when normalization cannot retain their color contract.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
-- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven Arabic-script/TrueType subset (core and extended Persian/Urdu letters). The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
+- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. Generated text applies pair kerning by default, and right-to-left and Arabic text is shaped and ordered automatically. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider explicitly. The shared `IOfficeTextShapingProvider` contract remains the extension point for Indic, Thai, and other complex scripts and for full shaping engines.
+- Renders embedded TrueType, CFF, Type1C, CIDFontType0C, OpenType/CFF, and Type 1 fonts from their own outlines when reading PDFs, with PDF viewer stroke defaults, one-device-pixel hairlines, filtered image downscaling, anti-aliased clipping, function-based and mesh shadings, and JBIG2 images. Unsupported images and knockout groups are reported as `render.resource.image-unsupported` and `render.resource.knockout-group-simplified`.
 - Projects authored annotation appearance streams into page images. When a supported free-text, text-markup, shape, line, ink, path, stamp, or caret annotation has no usable normal appearance, the renderer reuses the bounded annotation synthesizer and reports `render.annotation.appearance-synthesized` as an approximation.
 - Shares managed CMYK, Lab, XYZ, calibrated-color conversion, bounded sampled, exponential, stitching, and Type 4 calculator color functions, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`. Catalog destination output profiles with supported RGB matrix/TRC or ICC mBA transforms soft-proof vector, text, form, pattern, and image colors through the same rendering-intent pipeline. ICC LUT-composed and output-profile-composed shadings remain fail-closed unless their final interpolation can be certified. Pages with explicit transparency retain authored colors and report `render.colorspace.icc-output-intent-transparency-simplified` until output conversion can run after composition. Color-managed DCT/JPEG images use the ICC, `/Decode`, Indexed-palette, and transparency pipeline, while simple DeviceGray/DeviceRGB JPEGs without required color management remain lossless pass-through payloads. DeviceCMYK JPEGs normalize through the PDF image pipeline so that Adobe markers cannot override authored or implicit identity `/Decode` polarity.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. `PdfSaveResult.Serialization` records limits, peak retained bytes, spill decisions, final buffering, and passthrough without claiming forward-only layout. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
@@ -765,6 +766,11 @@ that optional feature; the language system's required feature remains enabled.
 `LatinLigatures` remains available for the presentation-character
 substitutions supported by that mode.
 
+Pair kerning is on by default for embedded fonts (OpenType GPOS or `kern`
+pairs) and for the standard Helvetica and Times fonts (Adobe AFM pairs). Set
+`PdfOptions.TextKerning = false` for nominal advances; runs with explicit
+feature settings keep their own `kern` value.
+
 See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resources-fonts-and-trust)
 for supported substitutions and limits. Use `TextShapingProvider` when a full
 OpenType shaping provider is needed.
@@ -953,6 +959,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 ```
 
 Inline elements participate in normal line wrapping. In tagged output, image and box alternative text is carried into the structure tree.
+
+Lines wrap at Unicode line-break opportunities (UAX #14), including after hyphens and slashes and between CJK characters. For pattern-based hyphenation without a word list, use `new PdfOptions().UseAutomaticHyphenation("en-US")`. The embedded patterns cover US English (`en-US`) and reformed German (`de-DE`); other languages are not hyphenated. Automatic hyphenation and `UseTextHyphenationDictionary` share one hyphenation hook, so the last one configured applies.
 
 ### Logical text for positioned canvas paint
 
