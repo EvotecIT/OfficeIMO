@@ -75,7 +75,7 @@ internal sealed class StudioSingleInstance : IDisposable {
         using var deadline = new CancellationTokenSource(timeout > TimeSpan.Zero ? timeout : TimeSpan.FromMilliseconds(1));
         try {
             return ForwardAsync(payload, deadline.Token).GetAwaiter().GetResult();
-        } catch (Exception error) when (error is IOException or TimeoutException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException) {
+        } catch (Exception error) when (error is IOException or TimeoutException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or ArgumentOutOfRangeException) {
             return false;
         }
     }
@@ -111,7 +111,8 @@ internal sealed class StudioSingleInstance : IDisposable {
             try {
                 server = new NamedPipeServerStream(Name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
                     PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-            } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            } catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentOutOfRangeException) {
+                // An unavailable or overlong Unix pipe path must also permit an independent launch.
                 // Another owner holds the name; later launches will fall back to their own process.
                 return;
             }

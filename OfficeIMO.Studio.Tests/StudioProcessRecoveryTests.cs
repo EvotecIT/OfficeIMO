@@ -3,7 +3,7 @@ using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Studio.Tests;
 
-public sealed class StudioProcessRecoveryTests {
+public sealed partial class StudioProcessRecoveryTests {
     [Theory]
     [InlineData("restore")]
     [InlineData("recover-missing")]
@@ -44,10 +44,11 @@ public sealed class StudioProcessRecoveryTests {
         } finally { Directory.Delete(root, recursive: true); }
     }
 
-    private static Process Start(string mode, string root) {
+    private static Process Start(string mode, string root, string? tempDirectory = null) {
         var info = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet") {
             UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true
         };
+        if (tempDirectory is not null) info.Environment["TMPDIR"] = tempDirectory;
         info.ArgumentList.Add(typeof(StudioProcessProbe).Assembly.Location);
         info.ArgumentList.Add("--studio-process-probe");
         info.ArgumentList.Add(mode);

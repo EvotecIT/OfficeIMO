@@ -117,16 +117,22 @@ public sealed class StudioSigningPreviewTests {
             var services = ((App)Application.Current!).Services; Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "source.pdf"), output = Path.Combine(services.Paths.Root, "signed.pdf");
             CreatePdf().Save(source); byte[] original = File.ReadAllBytes(source);
-            using var certificate = CreateCertificate(); int loads = 0;
+            using var certificate = CreateCertificate(); int loads = 0, appearanceFonts = 0;
             MainWindowViewModel? model = null; PdfSigningPreviewViewModel? result = null;
             using (model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services, supportsFolderNavigation: folderNavigation,
                 pickSavePdf: _ => { model!.SignatureFieldName = "Later"; model.SignaturePageNumber = 100; return Task.FromResult<string?>(output); },
-                reviewSigning: async preview => { Assert.Equal(0, loads); Assert.NotNull(preview.PreviewImage); if (stale) await model!.RotateRightCommand.ExecuteAsync(null); return true; },
+                reviewSigning: async preview => { Assert.Equal(0, loads); Assert.Equal(1, appearanceFonts); Assert.NotNull(preview.PreviewImage); if (stale) await model!.RotateRightCommand.ExecuteAsync(null); return true; },
                 showSigningResult: preview => { result = preview; return Task.CompletedTask; },
-                loadSigningCertificate: _ => { loads++; return new X509Certificate2(certificate); })) {
+                loadSigningCertificate: _ => { loads++; return new X509Certificate2(certificate); },
+                loadSigningAppearanceFont: () => {
+                    appearanceFonts++;
+                    return new PdfEmbeddedFont(PdfStandardFont.Helvetica,
+                        File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Fonts", "OpenSans-Bold.ttf")));
+                })) {
                 await model.OpenDocumentAsync(source); SelectCertificate(model, certificate);
                 model.SetOrganizerSelection([model.OrganizerPages[0]]); await model.DuplicateSelectedCommand.ExecuteAsync(null);
                 await model.ApplyCertificateSignatureCommand.ExecuteAsync(null);
+                Assert.Equal(1, appearanceFonts);
                 Assert.Equal(original, File.ReadAllBytes(source)); Assert.True(model.IsDirty); Assert.Equal(3, model.Pages.Count);
                 Assert.Equal("Later", model.SignatureFieldName);
                 if (stale) { Assert.Equal(0, loads); Assert.Empty(services.Jobs.Entries); Assert.Null(result); Assert.False(File.Exists(output)); }
