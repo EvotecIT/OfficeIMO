@@ -20,7 +20,7 @@ public sealed class HtmlCommandTests {
         string? fontPath = explicitUnicodeFont ? Path.GetTempFileName() : null;
         string[] fontArguments = Array.Empty<string>();
         if (fontPath != null) {
-            File.WriteAllBytes(fontPath, OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont(
+            File.WriteAllBytes(fontPath, OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
                 "First łSecond0123456789 /".Distinct().Select(character => (int)character).ToArray()));
             fontArguments = new[] { "--font-family", "Tool Unicode", "--font-regular", fontPath };
         }
