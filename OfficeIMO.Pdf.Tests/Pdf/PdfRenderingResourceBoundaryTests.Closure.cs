@@ -67,6 +67,29 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Jbig2DiagnosticUsesItsOwnGlobalsAfterAnEarlierFilter(bool brokenPrefix) {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfArray { Items = { new PdfName(brokenPrefix ? "FlateDecode" : "ASCIIHexDecode"), new PdfName("JBIG2Decode") } };
+        var parameters = new PdfDictionary();
+        // Unsupported halftone header belongs to JBIG2's second DecodeParms entry.
+        parameters.Items["JBIG2Globals"] = new PdfStream(new PdfDictionary(), new byte[] { 0, 0, 0, 1, 22, 0, 1, 0, 0, 0, 0 });
+        dictionary.Items["DecodeParms"] = new PdfArray { Items = { PdfNull.Instance, parameters } };
+        var stream = new PdfStream(dictionary, brokenPrefix ? new byte[] { 0x78, 0x9c, 7, 0, 0, 0, 0 } : Encoding.ASCII.GetBytes(">"));
+        Assert.Empty(StreamDecoder.GetUnsupportedFilters(dictionary));
+        Assert.Equal(brokenPrefix ? "malformed" : "halftone", StreamDecoder.FindUnsupportedJbig2Feature(stream, null, 1024));
+    }
+
+    [Fact]
+    public void Jbig2DiagnosticPrefixCannotBypassTheCallerDecodedByteLimit() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfArray { Items = { new PdfName("ASCIIHexDecode"), new PdfName("JBIG2Decode") } };
+        var stream = new PdfStream(dictionary, Encoding.ASCII.GetBytes("0000>"));
+        Assert.Throws<PdfReadLimitException>(() => StreamDecoder.FindUnsupportedJbig2Feature(stream, null, 1));
+    }
+
+    [Theory]
     [InlineData(1, "exclamsmall", 33)]
     [InlineData(2, "dollaroldstyle", 36)]
     public void PredefinedCffExpertCharsetsAndEncodingSelectTheCorrectGlyph(int charset, string glyph, int code) {

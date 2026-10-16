@@ -81,13 +81,17 @@ public sealed class PdfRendererQualityGateTests {
         }
     }
 
-    [Fact]
-    public void UnsupportedJbig2SegmentsReportTheOmittedImage() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnsupportedJbig2SegmentsReportTheOmittedImage(bool asciiHexPrefix) {
         var jbig2 = new MemoryStream();
         // Page information (type 48), then a halftone region (type 22), which the decoder does not implement.
         WriteBytes(jbig2, new byte[] { 0, 0, 0, 0, 48, 0, 1, 0, 0, 0, 19, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
         WriteBytes(jbig2, new byte[] { 0, 0, 0, 1, 22, 0, 1, 0, 0, 0, 0 });
-        byte[] pdf = BuildImagePdf(jbig2.ToArray(), "/Filter /JBIG2Decode");
+        byte[] data = jbig2.ToArray();
+        if (asciiHexPrefix) data = Encoding.ASCII.GetBytes(BitConverter.ToString(data).Replace("-", string.Empty) + ">");
+        byte[] pdf = BuildImagePdf(data, asciiHexPrefix ? "/Filter [/ASCIIHexDecode /JBIG2Decode]" : "/Filter /JBIG2Decode");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         Assert.Contains(result.CapabilityDiagnostics, static diagnostic =>

@@ -29,15 +29,33 @@ internal static partial class StreamDecoder {
     }
 
     /// <summary>
-    /// Names the first JBIG2 feature the managed decoder rejects when JBIG2Decode is the stream's first filter,
-    /// scanning segment headers of the data and its JBIG2Globals without decoding regions.
+    /// Names the first rejected JBIG2 feature, decoding preceding filters through the bounded
+    /// stream pipeline before scanning segment headers and JBIG2Globals without decoding regions.
     /// </summary>
     internal static string? FindUnsupportedJbig2Feature(PdfStream stream, Dictionary<int, PdfIndirectObject>? objects, int maximumBytes,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!TryGetDeclaredFilterNames(stream.Dictionary, objects, out IReadOnlyList<string> filters) || filters.Count == 0 ||
-            GetFilterKind(filters[0]) != DecodeFilterKind.Jbig2) return null;
-        PdfDictionary? parameters = GetDecodeParms(stream.Dictionary, 0, objects, cancellationToken);
+        if (!stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? declared) ||
+            !TryGetFilterNames(declared, objects, out List<string> filters, cancellationToken)) return null;
+        for (int index = 0; index < filters.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (GetFilterKind(filters[index]) != DecodeFilterKind.Jbig2) continue;
+            byte[] data;
+            if (index == 0) data = stream.GetData(cancellationToken);
+            else if (!TryDecodeCore(stream, maximumBytes, out data, out PdfReadLimitException? limit, objects,
+                         cancellationToken, stopBeforeFilter: index)) {
+                if (limit != null) throw limit;
+                return "malformed";
+            }
+            string? feature = InspectJbig2Headers(stream.Dictionary, index, data, objects, maximumBytes, cancellationToken);
+            if (feature != null) return feature;
+        }
+        return null;
+    }
+
+    private static string? InspectJbig2Headers(PdfDictionary dictionary, int filterIndex, byte[] data,
+        Dictionary<int, PdfIndirectObject>? objects, int maximumBytes, CancellationToken cancellationToken) {
+        PdfDictionary? parameters = GetDecodeParms(dictionary, filterIndex, objects, cancellationToken);
         if (parameters != null && parameters.Items.TryGetValue("JBIG2Globals", out PdfObject? globalsObject)) {
             if (ResolveObject(globalsObject, objects, cancellationToken) is not PdfStream globalsStream) return "malformed";
             byte[] globals;
@@ -49,6 +67,6 @@ internal static partial class StreamDecoder {
             string? globalFeature = Jbig2Decoder.FindUnsupportedFeature(globals, cancellationToken);
             if (globalFeature != null) return globalFeature;
         }
-        return Jbig2Decoder.FindUnsupportedFeature(stream.Data, cancellationToken);
+        return Jbig2Decoder.FindUnsupportedFeature(data, cancellationToken);
     }
 }
