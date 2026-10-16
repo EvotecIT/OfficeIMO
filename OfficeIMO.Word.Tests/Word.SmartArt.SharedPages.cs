@@ -1,9 +1,7 @@
 using System;
 using System.Linq;
 using System.Text;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
@@ -125,40 +123,45 @@ public sealed class WordSmartArtSharedPageTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void HeaderAndFooterSmartArtEnterSharedRunningContent(bool footer) {
+    [InlineData(false, WordSmartArtType.BasicProcess, "NativeSmartArtLayoutApproximated")]
+    [InlineData(true, WordSmartArtType.BasicProcess, "NativeSmartArtLayoutApproximated")]
+    [InlineData(false, WordSmartArtType.CustomSmartArt1, "NativeSmartArtPersistedLayout")]
+    [InlineData(true, WordSmartArtType.CustomSmartArt1, "NativeSmartArtPersistedLayout")]
+    [InlineData(false, WordSmartArtType.CustomSmartArt2, "NativeSmartArtPersistedLayout")]
+    [InlineData(true, WordSmartArtType.CustomSmartArt2, "NativeSmartArtPersistedLayout")]
+    public void HeaderAndFooterSmartArtEnterSharedRunningContent(bool footer, WordSmartArtType type, string warningCode) {
         using WordDocument document = WordDocument.Create();
         WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
-        WordSmartArt smartArt = story.AddParagraph().AddSmartArt(WordSmartArtType.BasicProcess);
-        while (smartArt.NodeCount < 3) smartArt.AddNode("Node");
+        WordSmartArt smartArt = story.AddParagraph().AddSmartArt(type);
+        if (type == WordSmartArtType.BasicProcess)
+            while (smartArt.NodeCount < 3) smartArt.AddNode("Node");
         string[] labels = SetNodeLabels(smartArt);
-        // The Word authoring API stores diagram parts on the main part. Give the
-        // story the same relationships so its drawing also has a valid local carrier.
-        OpenXmlPart owner = smartArt._drawing.Ancestors<OpenXmlPartRootElement>().First().OpenXmlPart!;
-        RelationshipIds relationships = smartArt._drawing.Descendants<RelationshipIds>().Single();
-        foreach (string id in new[] { relationships.DataPart!.Value!, relationships.LayoutPart!.Value!,
-                     relationships.StylePart!.Value!, relationships.ColorPart!.Value! })
-            owner.AddPart(document.MainDocumentPartRoot.GetPartById(id), id);
         DW.Extent extent = smartArt._drawing.Inline!.Extent!;
         extent.Cx = 2_743_200L;
         extent.Cy = 914_400L;
         document.AddParagraph("Body page one");
         document.AddPageBreak();
         document.AddParagraph("Body page two");
-        var conversion = document.ToPdfDocumentResult();
+        using WordDocument reopened = WordDocument.Load(new System.IO.MemoryStream(document.ToBytes()));
+        var conversion = reopened.ToPdfDocumentResult();
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "NativeHeaderFooterSmartArtUnsupported");
-        Assert.Contains(conversion.Warnings, warning => warning.Code == "NativeSmartArtLayoutApproximated");
+        Assert.Contains(conversion.Warnings, warning => warning.Code == warningCode);
         var read = PdfReadDocument.Open(conversion.ToBytes());
         Assert.Equal(2, read.Pages.Count);
         Assert.All(read.Pages, page => {
             string text = string.Concat(page.GetTextSpans(includeArtifactText: true).Select(span => span.Text));
             Assert.All(labels, label => Assert.Contains(label, text, StringComparison.Ordinal));
         });
-        Assert.All(document.CreateVisualSnapshots(), page => {
+        Assert.All(reopened.CreateVisualSnapshots(), page => {
             string text = string.Concat(page.TextSpans.Select(span => span.Text));
             Assert.All(labels, label => Assert.Contains(label, text, StringComparison.Ordinal));
         });
+        foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Png, OfficeImageExportFormat.Svg }) {
+            var expected = conversion.ExportImages(format, new PdfImageExportOptions { Scale = .5D });
+            var actual = reopened.ExportImages(format, new WordImageExportOptions { Scale = .5D });
+            Assert.Equal(expected.Count, actual.Count);
+            for (int index = 0; index < expected.Count; index++) Assert.Equal(expected[index].Bytes, actual[index].Bytes);
+        }
     }
 
     private static string[] SetNodeLabels(WordSmartArt smartArt) {
