@@ -572,12 +572,13 @@ namespace OfficeIMO.Tests {
                 string svg = range.ToSvg(options);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
-                Assert.Equal("FF96B3D7", drawingObject.FillColorArgb);
+                // Accent1 4F81BD, lumMod=60000 then lumOff=40000, rounded after both HSL operations.
+                Assert.Equal("FF95B3D7", drawingObject.FillColorArgb);
                 Assert.Equal("FFC0504D", drawingObject.StrokeColorArgb);
                 Assert.Equal("FF9BBB59", drawingObject.TextColorArgb);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
                 Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
-                Assert.Contains("#96B3D7", svg, StringComparison.Ordinal);
+                Assert.Contains("#95B3D7", svg, StringComparison.Ordinal);
                 Assert.Contains("#C0504D", svg, StringComparison.Ordinal);
                 Assert.Contains("#9BBB59", svg, StringComparison.Ordinal);
 
