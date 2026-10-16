@@ -835,7 +835,7 @@ document.ToImage()
     .Save("page-1.jpg");
 ```
 
-For page images that must match Word-to-PDF pagination and fonts, use the [PDF-backed page-image route](../OfficeIMO.Word.Pdf/README.md#page-images-with-pdf-pagination). This standalone API provides a separate preview layout and can estimate a different page count.
+For page images that must match Word-to-PDF pagination and fonts, use the [PDF-backed page-image route](../OfficeIMO.Word.Pdf/README.md#page-images-with-pdf-pagination). This standalone API provides a separate preview layout, can estimate a different page count and can shorten long text to fit preview frames.
 
 The document package owns Word pagination and diagnostics; `OfficeIMO.Drawing` owns sizing, pixels, and encoding. The same fit limit applies to SVG and raster output. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` are thin convenience wrappers over the same builder.
 

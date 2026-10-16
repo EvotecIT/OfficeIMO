@@ -149,7 +149,7 @@ Use `.AsJpeg()` or `.AsSvg()` for those formats, or `conversion.ExportImages(for
 
 High-resolution nearest-neighbour pictures can exceed the SVG rectangle-vectorization budget. Use PNG or JPEG for those pages until bounded SVG image fallback is supported.
 
-The standalone `OfficeIMO.Word` image API uses its own preview layout. It retains inherited heading typography and direct table borders, but its estimated pagination can differ from PDF. The PDF-backed route above preserves one layout without adding a PDF dependency to the Word model package.
+The standalone `OfficeIMO.Word` image API uses its own preview layout. It retains inherited heading typography and direct table borders, but its estimated pagination can differ from PDF and long text can be shortened to fit preview frames. Use the PDF-backed route above for complete page text and shared pagination.
 
 Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
 
