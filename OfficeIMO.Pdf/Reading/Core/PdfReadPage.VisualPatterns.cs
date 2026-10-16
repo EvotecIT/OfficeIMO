@@ -561,6 +561,7 @@ public sealed partial class PdfReadPage {
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();
+        var actualTextScopes = new List<TextContentParser.DrawingActualTextScope>();
         Dictionary<string, Func<byte[], int, string>> decoders = ResourceResolver.GetBudgetedFontDecodersForForm(stream.Dictionary, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProviders(stream.Dictionary, _objects);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
@@ -582,7 +583,9 @@ public sealed partial class PdfReadPage {
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root,
             contentOrderOffset: -transformedOffset,
-            initialRenderingIntent: renderingIntent);
+            initialRenderingIntent: renderingIntent,
+            cancellationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+            onCompletedDrawingActualText: actualTextScopes.Add);
         PdfPaintedGlyphRuns.SplitComplexRuns(spans, pageContentBudget.ChargePositionedTextWorkCharacters,
             pageContentBudget.CancellationToken);
         PdfArabicPaintedForms.Apply(spans, pageContentBudget.CancellationToken);
@@ -638,9 +641,9 @@ public sealed partial class PdfReadPage {
             pageContentBudget, pageContentBudget.CancellationToken);
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();
-        for (int i = 0; i < elements.Count; i++) {
-            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
-        }
+        ReplayDrawingElements(drawing, elements, actualTextScopes, (destination, element) =>
+            AddDrawingElement(destination, height, transform, element, softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget,
+                cancellationToken: pageContentBudget.CancellationToken), pageContentBudget.CancellationToken);
         ApplyPaintedGlyphMappings(drawing, registeredFonts, pageContentBudget.PaintedGlyphMaps);
         return drawing;
     }

@@ -46,6 +46,7 @@ public sealed partial class PdfReadPage {
             initialTextState: textState, inheritedFontResources: fonts);
 
         var spans = new List<PdfTextSpan>();
+        var actualTextScopes = new List<TextContentParser.DrawingActualTextScope>();
         string textContent = WrapContentWithTransform(content, transform, out int textOffset);
         CollectTextAndForms(textContent, resources, fonts.Decoders, fonts.WidthProviders, fonts.Fonts, spans, activeForms, height,
             invocation.PaintOrder, paintOrderScale * .000000001D, -textOffset,
@@ -56,7 +57,8 @@ public sealed partial class PdfReadPage {
             textOutputBudget: textOutputBudget, textClippingBudget: invocationClipping, pageContentBudget: budget,
             contentOrderPrefix: orderPrefix, contentOrderOffset: -textOffset,
             initialRenderingIntent: invocation.RenderingIntent, initialTextState: textState,
-            initialTextRenderingMode: textState.TextRenderingMode, cancellationCheck: budget.CancellationToken.ThrowIfCancellationRequested);
+            initialTextRenderingMode: textState.TextRenderingMode, cancellationCheck: budget.CancellationToken.ThrowIfCancellationRequested,
+            onCompletedDrawingActualText: actualTextScopes.Add);
         PdfPaintedGlyphRuns.SplitComplexRuns(spans, budget.ChargePositionedTextWorkCharacters, budget.CancellationToken);
         PdfArabicPaintedForms.Apply(spans, budget.CancellationToken);
         foreach (var span in spans) {
@@ -95,8 +97,10 @@ public sealed partial class PdfReadPage {
         var masks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
         var activeMasks = new HashSet<PdfStream>();
         var outputBudget = textOutputBudget ?? CreateTextOutputBudget();
-        foreach (var element in elements) AddDrawingElement(drawing, height, transform, element, masks, activeMasks,
-            outputBudget, budget, type3GlyphBudget, invocationClipping, patternClipping, cancellationToken: budget.CancellationToken);
+        ReplayDrawingElements(drawing, elements, actualTextScopes, (destination, element) =>
+            AddDrawingElement(destination, height, transform, element, masks, activeMasks,
+                outputBudget, budget, type3GlyphBudget, invocationClipping, patternClipping, cancellationToken: budget.CancellationToken),
+            budget.CancellationToken);
         ApplyPaintedGlyphMappings(drawing, registeredFonts, budget.PaintedGlyphMaps);
         double opacity = invocation.FillOpacity ?? 1D;
         if (opacity == 1D) return drawing;

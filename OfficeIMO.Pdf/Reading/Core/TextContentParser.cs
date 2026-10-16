@@ -356,7 +356,8 @@ internal static partial class TextContentParser {
         Action<int, MarkedContentState>? onActualTextForm = null,
         bool preserveGlyphText = false,
         bool requireMappedText = false,
-        Func<string, byte[], PdfTextDecodingEvidence>? decodingEvidenceForResource = null) {
+        Func<string, byte[], PdfTextDecodingEvidence>? decodingEvidenceForResource = null,
+        Action<DrawingActualTextScope>? onCompletedDrawingActualText = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -463,6 +464,8 @@ internal static partial class TextContentParser {
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             currentContentOrderKey = contentOrderPrefix?.Append(operation.OperatorOffset + contentOrderOffset);
             string op = operation.Name;
+            if (onCompletedDrawingActualText != null && !HasActiveHiddenContent() && IsDrawingPaintOperator(op))
+                GetActiveDrawingActualTextState()?.ObserveDrawingPaint();
             if (string.Equals(op, "BT", StringComparison.Ordinal)) {
                 currentTextObjectOrderKey = currentContentOrderKey;
                 textObjectFirstSpanIndex = spans.Count;
@@ -795,6 +798,9 @@ internal static partial class TextContentParser {
                     if (useLogicalTextFilters && args.Count >= 1 && GetActiveActualTextState() is { } formActualText) {
                         formActualText.RejectLogicalPaintExtent();
                         onActualTextForm?.Invoke(operation.OperatorOffset, formActualText);
+                    } else if (onCompletedDrawingActualText != null && args.Count >= 1 &&
+                        !HasActiveHiddenContent() && GetActiveDrawingActualTextState() is { } drawingActualText) {
+                        onActualTextForm?.Invoke(operation.OperatorOffset, drawingActualText);
                     }
                     args.Clear();
                     break;
@@ -808,6 +814,12 @@ internal static partial class TextContentParser {
                         IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null),
                         HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null));
                     if (markedState.HasActualText) GetActiveActualTextState()?.RejectLogicalPaintExtent();
+                    if (onCompletedDrawingActualText != null && markedState.HasActualText) {
+                        var origin = ctm.Transform(0D, 0D);
+                        markedState.BeginDrawingScope(currentContentOrderKey, GetActiveDrawingActualTextState(),
+                            markedState.IsHidden || HasActiveHiddenContent() || markedState.IsArtifact ||
+                                initialArtifactContent || HasActiveArtifact(), origin.X, pageHeight - origin.Y);
+                    }
                     markedContentStack.Push(markedState);
                     args.Clear();
                     break;
@@ -821,7 +833,9 @@ internal static partial class TextContentParser {
                     break;
                 case "EMC":
                     if (markedContentStack.Count > 0) {
-                        markedContentStack.Pop().CompleteLogicalPaintExtent(spans);
+                        MarkedContentState completed = markedContentStack.Pop();
+                        completed.CompleteLogicalPaintExtent(spans);
+                        completed.CompleteDrawingScope(currentContentOrderKey, textOutputBudget, onCompletedDrawingActualText);
                     }
 
                     args.Clear();
@@ -1117,13 +1131,15 @@ internal static partial class TextContentParser {
             OfficeColor paintColor = useStrokePaint ? strokeColor : fillColor;
             OfficeColor visibleColor = ApplyTextOpacity(paintColor, useStrokePaint);
             PdfPageClipPath? spanClipPath = clipPath;
+            if (onCompletedDrawingActualText != null && !isHidden)
+                GetActiveDrawingActualTextState()?.ObserveDrawingText(isVisibleText,
+                    textRenderingMode == 3 && string.IsNullOrWhiteSpace(paintedRun), dx, pageHeight - dy);
             if (isHidden) {
                 // Hidden optional-content still advances text state but should not emit visible/logical spans.
             } else if (isArtifact) {
                 // Artifact content is visual decoration, not logical page text.
             } else if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
-                textOut = actualTextState.DecodeActualText(textOutputBudget);
-                textOutputBudget.ChargeActualText(textOut.Length);
+                textOut = actualTextState.ReadAndChargeActualText(textOutputBudget);
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
                     AddTextSpan(textOut);
@@ -1367,6 +1383,11 @@ internal static partial class TextContentParser {
             }
 
             return null;
+        }
+
+        MarkedContentState? GetActiveDrawingActualTextState() {
+            foreach (MarkedContentState state in markedContentStack) if (state.HasActualText) return state;
+            return inheritedActualTextState;
         }
 
         bool HasActiveArtifact() {
