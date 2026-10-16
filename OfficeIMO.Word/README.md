@@ -820,6 +820,26 @@ and report unsupported per-point styling. Imported native point overrides remain
 in the editable chart package.
 See the [shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
 
+## SmartArt in headers and footers
+
+Create diagrams through a paragraph in the containing story:
+
+```csharp
+WordSmartArt diagram = document.HeaderDefaultOrCreate.AddParagraph()
+    .AddSmartArt(WordSmartArtType.BasicProcess);
+diagram.SetNodeText(0, "Review");
+diagram.AddNode("Approve");
+```
+
+Use `FooterDefaultOrCreate` for a footer. DOCX diagram data, layout, colours,
+quick style and any cached drawing use relationships owned by that header or
+footer. Reopening and editing resolve those local relationships independently
+of diagrams in the body, even when relationship IDs are reused.
+
+PDF and page images repeat the diagram with the containing story. Supported
+cached preset geometry is used when present; unsupported appearance still
+carries the [SmartArt projection limits](../OfficeIMO.Word.Pdf/README.md#page-images-with-pdf-pagination).
+
 ## Managed image export
 
 Word pages use the shared Word-to-PDF layout and Drawing renderer and can be returned as PNG, JPEG, TIFF, lossless WebP, or SVG without Office automation:

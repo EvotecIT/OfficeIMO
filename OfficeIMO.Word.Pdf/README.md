@@ -151,7 +151,7 @@ High-resolution nearest-neighbour pictures can exceed the SVG rectangle-vectoriz
 
 `document.ToPng()`, `ToJpeg()`, `ToSvg()` and `ExportImages(...)` use this same layout and page renderer. Set `WordImageExportOptions.LayoutOptions` when sharing customized conversion settings. The forward Word page adapter and options live in `OfficeIMO.Word`; this package also provides PDF-to-Word import.
 
-SmartArt uses the same drawing projection for PDF and Word images. Supported persisted preset shapes retain node positions; process, cycle and hierarchy diagrams have node-text fallbacks. These projections report their approximation because native diagram styles, effects and complete connector geometry are not reconstructed.
+SmartArt uses the same drawing projection for PDF and Word images. Supported persisted preset shapes retain node positions; process, cycle and hierarchy diagrams have node-text fallbacks. Header and footer diagrams resolve their parts and cached drawings from the containing story and repeat with its running content. These projections report their approximation because native diagram styles, effects and complete connector geometry are not reconstructed.
 
 Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
 

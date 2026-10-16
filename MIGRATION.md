@@ -14,6 +14,8 @@ With Reader Word `IncludePageLocations`, `Pages` and normalized `Blocks` now con
 
 Inline header and footer pictures retain their height and reserve body space. Empty table paragraphs retain their mark's minimum line height, including explicit cell margins. Supported non-wrapping floating pictures retain paragraph/margin anchors and signed offsets. Pictures extending beyond a page retain their placement and report clipping instead of entering document flow.
 
+Header/footer SmartArt authoring and reading now use relationships on the containing story for diagram data, layout, colours, quick style and cached drawing. Regenerate DOCX files whose header/footer diagrams were authored with relationships only on the main document part; saving an existing malformed file does not relocate those parts automatically. Body diagrams retain their existing relationship ownership.
+
 ## PDF text output and embedded fonts
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.
