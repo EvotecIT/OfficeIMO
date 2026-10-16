@@ -14,7 +14,8 @@ internal static class OfficeFontFamilyParser {
     internal static List<string> Parse(
         string? familyNames,
         int maximumCandidates = DefaultMaximumCandidates,
-        int maximumFamilyNameLength = DefaultMaximumFamilyNameLength) {
+        int maximumFamilyNameLength = DefaultMaximumFamilyNameLength,
+        bool allowSemicolonSeparators = false) {
         var families = new List<string>();
         if (string.IsNullOrEmpty(familyNames) || maximumCandidates < 1 || maximumFamilyNameLength < 1) {
             return families;
@@ -38,7 +39,7 @@ internal static class OfficeFontFamilyParser {
                     if (current == quote) quote = '\0';
                 } else if (current == '\'' || current == '"') {
                     quote = current;
-                } else if (current == ',') {
+                } else if (current == ',' || (allowSemicolonSeparators && current == ';')) {
                     break;
                 }
                 segmentEnd++;

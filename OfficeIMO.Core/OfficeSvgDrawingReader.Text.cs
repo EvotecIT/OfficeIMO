@@ -40,7 +40,7 @@ public static partial class OfficeSvgDrawingReader {
             }
         }
         ApplyTextAnchors(runs);
-        ApplyTextPaths(runs, textPaths, references, viewX, viewY, observer: null, ref unsupported);
+        ApplyTextPaths(runs, textPaths, references, drawing.Fonts, viewX, viewY, observer: null, ref unsupported);
         foreach (SvgTextRun run in runs) {
             AddTextRun(
                 drawing,

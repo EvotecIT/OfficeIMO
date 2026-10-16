@@ -4,8 +4,6 @@ using System.Linq;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
-    private static readonly char[] OfficeFontFamilySeparators = { ',', ';' };
-    private static readonly char[] OfficeFontFamilyTrimChars = { ' ', '\t', '"', '\'' };
     private static readonly PdfStandardFont[] AdditionalFontFamilySlotPreference = {
         PdfStandardFont.TimesRoman,
         PdfStandardFont.Courier,
@@ -482,12 +480,6 @@ public sealed partial class PdfOptions {
         return false;
     }
 
-    private static System.Collections.Generic.IEnumerable<string> EnumerateOfficeFontFamilyCandidates(string familyName) {
-        foreach (string value in familyName.Split(OfficeFontFamilySeparators)) {
-            string candidate = value.Trim(OfficeFontFamilyTrimChars);
-            if (!string.IsNullOrWhiteSpace(candidate)) {
-                yield return candidate;
-            }
-        }
-    }
+    private static System.Collections.Generic.List<string> EnumerateOfficeFontFamilyCandidates(string familyName) =>
+        OfficeIMO.Drawing.OfficeFontFamilyParser.Parse(familyName, allowSemicolonSeparators: true);
 }

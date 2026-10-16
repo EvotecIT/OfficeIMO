@@ -6,7 +6,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class DrawingSvgMixedRangeFontTests {
+public sealed partial class DrawingSvgMixedRangeFontTests {
     [Theory]
     [InlineData("start", "fill='black'")]
     [InlineData("end", "fill='black'")]

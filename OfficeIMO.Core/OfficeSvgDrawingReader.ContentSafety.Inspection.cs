@@ -502,7 +502,7 @@ public static partial class OfficeSvgDrawingReader {
                     throw new InvalidDataException("The SVG exceeds the bounded text-run inspection limit.");
                 }
                 ApplyTextAnchors(runs);
-                ApplyTextPaths(runs, paths, references, childViewX, childViewY, observer, ref unsupported);
+                ApplyTextPaths(runs, paths, references, fonts, childViewX, childViewY, observer, ref unsupported);
                 observer.FinalizeRuns(runs);
                 continue;
             }

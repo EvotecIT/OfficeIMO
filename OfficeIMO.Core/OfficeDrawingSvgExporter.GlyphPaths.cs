@@ -33,7 +33,7 @@ public static partial class OfficeDrawingSvgExporter {
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = metrics.Fonts.PlanFallbackRuns(
             text.RasterText, text.Font.FamilyName, text.Font.Face);
         if (fallbackRuns.Count != 1) return false;
-        if (!metrics.Fonts.TryResolveFaceForText(text.RasterText, fallbackRuns[0].FamilyName,
+        if (!metrics.Fonts.TryResolveFaceForText(text.RasterText, fallbackRuns[0].FamilyRequest,
                 text.Font.Face, size, out OfficeFontFace? face) || face == null ||
             face.Program is not IOfficeBoundedFontProgram font ||
             face.Style != OfficeFontFace.NormalizeStyle(text.Font.Style)) return false;

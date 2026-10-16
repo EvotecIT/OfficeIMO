@@ -27,6 +27,22 @@ public partial class DrawingSvgFontImportTests {
         Assert.Equal(OfficeDrawingRasterRenderer.Render(plain).GetPixels(), OfficeDrawingRasterRenderer.Render(aliased).GetPixels());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PunctuatedScopedFamilyRetainsEligibleSvgOutlineExport(bool painted) {
+        const string family = "SVG Fixture, \"Sans\" & Co";
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 4, 4, 90, 30, new OfficeFontInfo(OfficeFontFamilyParser.Quote(family), 14));
+        if (painted) drawing.MarkLastTextAsPaintedGlyphs();
+        else drawing.SvgTextAsPaths = true;
+
+        var svg = System.Xml.Linq.XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+        Assert.Single(svg.Descendants().Where(element => element.Name.LocalName == "path"));
+        Assert.DoesNotContain(svg.Descendants(), element => element.Name.LocalName == "text");
+    }
+
     [Fact]
     public void SupplementaryCssEscapeNamesMatchDeclarationsAndTextReferences() {
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "Carlito-Regular.ttf"));
