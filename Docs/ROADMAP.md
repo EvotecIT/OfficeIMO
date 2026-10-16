@@ -61,7 +61,8 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 - [ ] Extend authoring overflow diagnostics to free-text annotation boxes, rotated and viewport table cells, paragraph-specific horizontal frames, and glyph/inline paint overhang in ordinary rows and fixed boxes. Preserve the distinction between admitted content, ordinary page continuation, preserved overflow and actual clipping.
 - [ ] Route visible signature appearance images through the shared image-resource allocator so supported ICC profiles and target-version sample depth are retained with their dependent resources.
-- [ ] Preserve JPEG DCT payloads while applying EXIF orientation through shared PDF image placement. The shared raster normalizer currently emits lossless PNG for transformed images; qualify crops, mirrors, stamps and running content before replacing that path.
+- [ ] Preserve image sample precision and JPEG DCT payloads while applying EXIF orientation through shared PDF image placement. The shared raster normalizer currently emits eight-bit lossless PNG for transformed images; qualify crops, mirrors, stamps and running content before replacing that path.
+- [ ] Correct the lossless optimizer's XMP preservation handling: `MaximumCompression` rejects the representative PDF/A-2b image fixture after changing its metadata stream filter and size. Keep metadata preservation and standards validation consistent.
 
 - [ ] Qualify the DOC/DOCX/TXT archive workflow with a representative large mixed-format producer corpus, including interruption/restart, source/output integrity, diagnostics, throughput and peak memory. Keep the existing per-file limits separate from archive-capacity claims.
 - [ ] Qualify printer delivery on native macOS and physical Windows/CUPS printers, including duplex, trays, margins and driver failures. Preserve queue acceptance as a separate contract from confirmed physical delivery.

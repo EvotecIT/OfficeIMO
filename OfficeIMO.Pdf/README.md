@@ -17,8 +17,9 @@ tables; compact object/xref streams remain available through `Optimization`.
 
 Supported PNG/JPEG ICC profiles are retained as ICCBased image resources. Indexed PNGs
 keep their palette and transparency mask. EXIF orientation is applied once during shared
-image preparation. Sixteen-bit PNG colour and alpha samples are retained with PDF 1.5+
-output; PDF 1.4 rounds them to eight bits. JPEG DCT pass-through and repeated-image
+image preparation through the existing eight-bit RGB(A) normalizer. Untransformed
+sixteen-bit PNG colour and alpha samples are retained with PDF 1.5+ output; PDF 1.4
+rounds them to eight bits. JPEG DCT pass-through and repeated-image
 sharing remain available when no orientation or other pixel transform is required.
 
 ## Header and footer content

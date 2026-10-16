@@ -15,27 +15,35 @@ internal sealed class PdfVisualResourceCache {
         body.StartsWith("<< /FunctionType ", StringComparison.Ordinal);
 
     internal static bool ShouldCompressStream(string dictionary) =>
-        dictionary.IndexOf("/Filter ", StringComparison.Ordinal) < 0 &&
+        !ContainsOrdinal(dictionary, "/Filter ") &&
         (dictionary.StartsWith("<< /Type /EmbeddedFile ", StringComparison.Ordinal) ||
          dictionary.StartsWith("<< /N ", StringComparison.Ordinal) ||
-         dictionary.Contains(" /Subtype /Form ", StringComparison.Ordinal));
+         ContainsOrdinal(dictionary, " /Subtype /Form "));
 
     internal static bool IsShareableStream(string dictionary) =>
-        dictionary.IndexOf("/StructParent", StringComparison.Ordinal) < 0 &&
+        !ContainsOrdinal(dictionary, "/StructParent") &&
         (IsAnonymousContentStream(dictionary) ||
          dictionary.StartsWith("<< /N ", StringComparison.Ordinal) ||
-         dictionary.Contains(" /Type /Pattern ", StringComparison.Ordinal) ||
-         dictionary.Contains(" /FunctionType ", StringComparison.Ordinal) ||
-         dictionary.Contains(" /Subtype /Image ", StringComparison.Ordinal) ||
-         dictionary.Contains(" /Subtype /Form ", StringComparison.Ordinal));
+         ContainsOrdinal(dictionary, " /Type /Pattern ") ||
+         ContainsOrdinal(dictionary, " /FunctionType ") ||
+         ContainsOrdinal(dictionary, " /Subtype /Image ") ||
+         ContainsOrdinal(dictionary, " /Subtype /Form "));
 
     // Identical page programs can share storage while each invocation still resolves
     // names and marked-content ids in its own page resource/structure context.
     private static bool IsAnonymousContentStream(string dictionary) =>
         dictionary.StartsWith("<< /Length ", StringComparison.Ordinal) &&
-        !dictionary.Contains(" /Type ", StringComparison.Ordinal) &&
-        !dictionary.Contains(" /Subtype ", StringComparison.Ordinal) &&
-        !dictionary.Contains(" /Length1 ", StringComparison.Ordinal);
+        !ContainsOrdinal(dictionary, " /Type ") &&
+        !ContainsOrdinal(dictionary, " /Subtype ") &&
+        !ContainsOrdinal(dictionary, " /Length1 ");
+
+    private static bool ContainsOrdinal(string value, string candidate) {
+#if NETSTANDARD2_0 || NETFRAMEWORK
+        return value.IndexOf(candidate, StringComparison.Ordinal) >= 0;
+#else
+        return value.Contains(candidate, StringComparison.Ordinal);
+#endif
+    }
 
     internal static string Hash(string dictionary, byte[]? data = null) {
         using SHA256 hash = SHA256.Create();
