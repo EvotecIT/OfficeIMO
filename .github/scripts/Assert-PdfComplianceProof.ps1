@@ -155,6 +155,7 @@ $measuredPaths = @(
     'global.json',
     '.github/scripts/Assert-PdfComplianceProof.ps1',
     '.github/scripts/Validate-PdfStandardsProof.py',
+    '.github/scripts/Validate-PdfOptimizerProof.py',
     '.github/scripts/verapdf-cli-install.xml',
     '.github/workflows/pdf-compliance-proof.yml',
     'Build/Export-PdfComplianceProof.ps1',
@@ -419,5 +420,10 @@ foreach ($key in $expectedStandardsRows) {
         Assert-Condition ($row.details.signatureTimestampValid -eq ($row.profile -eq 'pades-bt')) "Signature timestamp result is wrong: $key."
     }
 }
+
+# Recheck the complete optimizer matrix and exact file/diagnostic bindings without
+# rerunning external tools or loading another project's build output.
+& python (Join-Path $PSScriptRoot 'Validate-PdfOptimizerProof.py') --proof $resolvedProofPath --assert-only
+Assert-Condition ($LASTEXITCODE -eq 0) 'Optimizer compliance proof is incomplete, stale or failed.'
 
 Write-Host "PDF compliance proof is valid: $resolvedProofPath"

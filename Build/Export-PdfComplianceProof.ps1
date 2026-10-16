@@ -2,6 +2,8 @@ param(
     [string] $OutputDirectory = "artifacts/pdf-compliance-proof",
     [string] $Configuration = "Debug",
     [string] $Framework = "net8.0",
+    [ValidateRange(1, 64)]
+    [int] $MaxCpuCount = 4,
     [string] $VeraPdfPath = "",
     [string] $VeraPdfArgs = "",
     [string] $PdfUaValidatorPath = "",
@@ -751,7 +753,7 @@ try {
         '--framework', $Framework,
         '--filter', 'FullyQualifiedName~PdfComplianceGateTests',
         '--verbosity', 'minimal',
-        '-m:4',
+        "-m:$MaxCpuCount",
         '-p:WarningLevel=0'
     )
 
@@ -839,7 +841,7 @@ $lines.Add('')
 $lines.Add('Command:')
 $lines.Add('')
 $lines.Add('```powershell')
-$commandLine = "Build/Export-PdfComplianceProof.ps1 -OutputDirectory `"$OutputDirectory`" -Configuration `"$Configuration`" -Framework `"$Framework`""
+$commandLine = "Build/Export-PdfComplianceProof.ps1 -OutputDirectory `"$OutputDirectory`" -Configuration `"$Configuration`" -Framework `"$Framework`" -MaxCpuCount $MaxCpuCount"
 if ($NoRestore) {
     $commandLine += ' -NoRestore'
 }

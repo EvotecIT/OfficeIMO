@@ -303,7 +303,7 @@ jobs:
               --filter 'FullyQualifiedName~PdfExternalEngineProofTests' \
               --verbosity minimal
 
-      - name: Generate standards and real invoice proof fixtures
+      - name: Generate standards real invoice and optimizer proof fixtures
         shell: bash
         run: |
           set -euo pipefail
@@ -314,7 +314,7 @@ jobs:
             --verbosity minimal
           dotnet test OfficeIMO.Invoicing.Pdf.Tests/OfficeIMO.Invoicing.Pdf.Tests.csproj \
             --configuration "${BUILD_CONFIGURATION}" --framework net8.0 --no-restore -m:4 \
-            --filter 'FullyQualifiedName~PdfInvoiceExternalProofTests' --verbosity minimal
+            --filter 'FullyQualifiedName~PdfInvoiceExternalProofTests|FullyQualifiedName~PdfOptimizerExternalProofTests' --verbosity minimal
 
       - name: Validate exact standards profiles invoices and timestamps
         shell: bash
@@ -324,6 +324,10 @@ jobs:
         run: |
           set -euo pipefail
           python .github/scripts/Validate-PdfStandardsProof.py \
+            --proof "${PROOF_PATH}" \
+            --verapdf "${VERAPDF_PATH:-${OFFICEIMO_VERAPDF_CLI:-}}" \
+            --mustang "${MUSTANG_PATH:-${OFFICEIMO_MUSTANG_JAR:-}}"
+          python .github/scripts/Validate-PdfOptimizerProof.py \
             --proof "${PROOF_PATH}" \
             --verapdf "${VERAPDF_PATH:-${OFFICEIMO_VERAPDF_CLI:-}}" \
             --mustang "${MUSTANG_PATH:-${OFFICEIMO_MUSTANG_JAR:-}}"
@@ -444,6 +448,19 @@ jobs:
           }
           $lines.Add('')
           $lines.Add('Signature trust uses ephemeral test roots and does not establish public trust or revocation status.')
+          $optimizer = Get-Content -LiteralPath '${{ env.PROOF_PATH }}/optimizer/measurements.json' -Raw | ConvertFrom-Json
+          $lines.Add('')
+          $lines.Add('### Optimizer sizes and compliance preservation')
+          $lines.Add('')
+          $lines.Add('| Source | Setting | Before bytes | Candidate bytes | Returned bytes | Delta bytes | Returned original |')
+          $lines.Add('| --- | --- | ---: | ---: | ---: | ---: | --- |')
+          foreach ($row in $optimizer.rows) {
+            $lines.Add("| $($row.source) | $($row.setting) | $($row.originalLengthBytes) | $($row.candidateLengthBytes) | $($row.optimizedLengthBytes) | $($row.sizeDeltaBytes) | $($row.returnedOriginal) |")
+          }
+          $lines.Add('')
+          $lines.Add("Optimizer refusal checks: $(@($optimizer.refusals).Count); signed inputs and prohibited PDF/A-1 stream layouts preserve existing destinations and create no output.")
+          $optimizerProof = Get-Content -LiteralPath '${{ env.PROOF_PATH }}/optimizer/proof.json' -Raw | ConvertFrom-Json
+          $lines.Add("Independent optimizer checks: $(@($optimizerProof.validations).Count); all passed: $($optimizerProof.allPassed).")
           $lines | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
 
       - name: Upload PDF compliance proof
@@ -470,3 +487,4 @@ jobs:
             ${{ env.PROOF_PATH }}/standards/*.pem
             ${{ env.PROOF_PATH }}/standards/*.json
             ${{ env.PROOF_PATH }}/standards/*.txt
+            ${{ env.PROOF_PATH }}/optimizer/**

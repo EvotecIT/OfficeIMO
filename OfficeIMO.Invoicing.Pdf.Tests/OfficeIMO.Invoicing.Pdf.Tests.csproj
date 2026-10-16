@@ -11,6 +11,7 @@
     <ProjectReference Include="../OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj" />
     <ProjectReference Include="../OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj" />
     <ProjectReference Include="../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="../OfficeIMO.Security/OfficeIMO.Security.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />

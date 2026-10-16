@@ -433,6 +433,8 @@ enforces the same `PdfLoadOptions` limits before buffering, snapshots caller
 input once, and reuses one parsed document across read, inspection, preflight,
 diagnostic, optimization, signature, and compliance operations.
 
+Lossless optimization through `document.Optimization.Apply(...)` keeps XMP packets uncompressed and unchanged, preserves embedded XML and its associated-file relationships, and retains output intents and ICC profiles. It preserves an absent Info dictionary for PDF/A-4. `MaximumCompression` uses object and cross-reference streams and rejects PDF/A-1; choose `Balanced`, `Archival` or `Web` for that profile. Filtered XMP inputs are rejected before writing output. Optimize before signing: a signed input is refused because a full rewrite would invalidate its signatures. The compliance fixture gate validates representative PDF/A-2b, PDF/A-3b with PDF/UA-1 invoices, PDF/A-4 and PDF/UA-2 before and after each optimizer profile; conformance claims still require validation of the exact output artifact.
+
 ### Read and edit named document JavaScript
 
 ```csharp

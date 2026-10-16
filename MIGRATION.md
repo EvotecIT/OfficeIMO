@@ -8,6 +8,10 @@ PDF/A-4, PDF/A-4e, PDF/A-4f and PDF/UA-2 use PDF 2.0. PDF/A-4 metadata lives in 
 
 Hybrid invoice generation supports only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally combined with PDF/UA-1, and preserves those configured profiles. Replace PDF/A-4, PDF/A-4e or PDF/A-4f hybrid options with a supported PDF/A-3 profile, and replace PDF/UA-2 with PDF/UA-1 for hybrids. Use presentation-only output when invoice XML is not required; general PDF/A-4, PDF/A-4e and PDF/A-4f output remains available. Saved PDF/A-4f attachments cannot satisfy Factur-X/ZUGFeRD compliance proof.
 
+## Lossless PDF optimization
+
+The optimizer preserves XMP packets, embedded-file streams and output-intent ICC streams without changing their encoding or contents, and retains the source Info dictionary only when it exists. PDF/A-1 inputs reject object-stream or xref-stream settings; use `Balanced`, `Archival` or `Web`, or set `UseObjectStreams = false` and `XrefFormat = ClassicTable`. Inputs with filtered XMP metadata are rejected before output is written because the optimizer cannot both remove its filter and preserve the packet encoding. Signed files remain blocked: optimize before signing.
+
 ## PAdES signatures and visible text
 
 `PdfCmsExternalSigner` honors the prepared subfilter. `CadesDetached` creates PAdES baseline CMS with a signing-certificate-v2 attribute and without CMS signing-time; SHA-1 and encapsulated content are rejected for this profile. RSA and ECDSA signing use platform key handles. `DetachedCms` retains its CMS signing-time behavior. Document timestamps require an RFC 3161 signer rather than the detached CMS adapter.
