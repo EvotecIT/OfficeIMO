@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word.Pdf)](https://www.nuget.org/packages/OfficeIMO.Word.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Word.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word.Pdf)
 
-`OfficeIMO.Word.Pdf` exports `OfficeIMO.Word` documents to PDF through the first-party `OfficeIMO.Pdf` engine and imports parser-supported PDF logical content into editable Word documents. It is the adapter layer: Word stays responsible for the `.docx` model, while PDF layout, reading, diagnostics, and writing stay in `OfficeIMO.Pdf`.
+Word-to-PDF conversion and page images share the adapter in `OfficeIMO.Word`. This package adds import of parser-supported PDF logical content into editable Word documents and references the Word and PDF packages. Forward conversion APIs keep the `OfficeIMO.Word.Pdf` namespace; PDF layout, reading, diagnostics and writing stay in `OfficeIMO.Pdf`.
 
 ## Legacy DOC to PDF
 
@@ -149,7 +149,9 @@ Use `.AsJpeg()` or `.AsSvg()` for those formats, or `conversion.ExportImages(for
 
 High-resolution nearest-neighbour pictures can exceed the SVG rectangle-vectorization budget. Use PNG or JPEG for those pages until bounded SVG image fallback is supported.
 
-The standalone `OfficeIMO.Word` image API uses its own preview layout. It retains inherited heading typography and direct table borders, but its estimated pagination can differ from PDF and long text can be shortened to fit preview frames. Use the PDF-backed route above for complete page text and shared pagination.
+`document.ToPng()`, `ToJpeg()`, `ToSvg()` and `ExportImages(...)` use this same layout and page renderer. Set `WordImageExportOptions.LayoutOptions` when sharing customized conversion settings. The forward Word page adapter and options live in `OfficeIMO.Word`; this package also provides PDF-to-Word import.
+
+SmartArt uses the same drawing projection for PDF and Word images. Supported persisted preset shapes retain node positions; process, cycle and hierarchy diagrams have node-text fallbacks. These projections report their approximation because native diagram styles, effects and complete connector geometry are not reconstructed.
 
 Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
 
