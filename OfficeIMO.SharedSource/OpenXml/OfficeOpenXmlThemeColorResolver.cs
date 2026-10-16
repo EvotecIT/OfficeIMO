@@ -234,9 +234,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
                 color = ResolveSchemeColor(colorScheme, scheme == null ? null : MapSchemeColor(scheme, colorMap));
             }
         } else if (colorElement is A.PresetColor presetColor) {
-            color = OfficeColor.TryParse(presetColor.Val?.Value.ToString(), out OfficeColor preset)
-                ? preset
-                : (OfficeColor?)null;
+            color = ParsePreset(presetColor.Val?.InnerText);
         } else {
             color = null;
         }
@@ -369,6 +367,16 @@ internal static class OfficeOpenXmlThemeColorResolver {
             colorScheme: null, placeholderColor: null);
     }
 
+    /// <summary>Reads the DrawingML token, whose dk/lt/med prefixes abbreviate CSS color names.</summary>
+    private static OfficeColor? ParsePreset(string? token) {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        string name = token!;
+        if (name.StartsWith("dk", StringComparison.OrdinalIgnoreCase)) name = "dark" + name.Substring(2);
+        else if (name.StartsWith("lt", StringComparison.OrdinalIgnoreCase)) name = "light" + name.Substring(2);
+        else if (name.StartsWith("med", StringComparison.OrdinalIgnoreCase)) name = "medium" + name.Substring(3);
+        return OfficeColor.TryParse(name, out OfficeColor color) ? color : (OfficeColor?)null;
+    }
+
     private static OfficeColor? ParseRgb(string? value) =>
         OfficeColor.TryParseHex(value, out OfficeColor color) ? color : (OfficeColor?)null;
 
@@ -430,7 +438,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
         string? attribute = schemeColor?.GetAttribute("val", string.Empty).Value;
         return !string.IsNullOrWhiteSpace(attribute)
             ? attribute
-            : schemeColor?.Val?.Value.ToString();
+            : schemeColor?.Val?.InnerText;
     }
 
     private static bool IsPlaceholderScheme(string? scheme) =>

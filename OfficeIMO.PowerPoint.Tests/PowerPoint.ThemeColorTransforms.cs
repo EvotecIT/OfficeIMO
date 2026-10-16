@@ -33,6 +33,23 @@ public partial class PowerPoint {
         Assert.Equal(OfficeColor.FromRgba(204, 207, 210, 128), OfficeOpenXmlThemeColorResolver.ResolveColor(shadeThenTint, null));
     }
 
+    [Theory]
+    [InlineData("red", 255, 0, 0)]
+    [InlineData("dkBlue", 0, 0, 139)]
+    [InlineData("dkGray", 169, 169, 169)]
+    [InlineData("ltGoldenrodYellow", 250, 250, 210)]
+    [InlineData("medVioletRed", 199, 21, 133)]
+    [InlineData("gray", 128, 128, 128)]
+    public void ThemeColorResolver_DecodesPresetTokensAndDrawingMlAbbreviations(string token, byte red, byte green, byte blue) {
+        var color = new PresetColor(new Alpha { Val = 50000 });
+        color.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("val", string.Empty, token));
+        Assert.Equal(OfficeColor.FromRgba(red, green, blue, 128),
+            OfficeOpenXmlThemeColorResolver.ResolveColor(color, null));
+        var scheme = new ColorScheme(new Accent1Color((PresetColor)color.CloneNode(true))) { Name = "Preset theme" };
+        Assert.Equal(OfficeColor.FromRgba(red, green, blue, 128),
+            OfficeOpenXmlThemeColorResolver.ResolveColor(new SchemeColor { Val = SchemeColorValues.Accent1 }, scheme));
+    }
+
     [Fact]
     public void ThemeColorResolver_DistinguishesComplementFromChannelInverse() {
         var complement = new RgbColorModelHex(new Complement()) { Val = "336699" };
