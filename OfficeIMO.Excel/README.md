@@ -562,7 +562,7 @@ rows can still be faster sequentially.
 
 Inspect named table definitions with `document.GetTables()` for the workbook or `sheet.GetTables()` for one worksheet. The snapshots include names, ranges, columns, filters and table-style metadata. An ordinary cell grid or named range is not a named Excel table.
 
-If saving reloads the package, obtain a current worksheet from `document.Sheets` before inspecting it. A stale or removed worksheet handle raises `InvalidOperationException` rather than returning an empty table snapshot.
+Worksheet handles remain usable after saving, including when the save rebuilds the underlying package. You can keep an `ExcelSheet`, save the workbook, then continue editing or inspecting that worksheet. Removed worksheet handles still raise `InvalidOperationException` when inspected and cannot become handles to replacement sheets. Picture handles and captured mutation plans retain their separate package-lifetime checks.
 
 ```csharp
 using var document = ExcelDocument.Load("sales.xlsx");

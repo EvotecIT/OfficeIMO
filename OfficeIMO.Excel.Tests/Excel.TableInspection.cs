@@ -23,7 +23,7 @@ public sealed class ExcelWorksheetTableInspectionTests {
     }
 
     [Fact]
-    public void SavedPackageRejectsStaleWorksheetInspectionAndFreshHandleKeepsMetadata() {
+    public void SavedPackageRetainsWorksheetInspectionAndFreshHandleKeepsMetadata() {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-TableInspection-" + System.Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using var workbook = ExcelDocument.Create();
@@ -32,7 +32,7 @@ public sealed class ExcelWorksheetTableInspectionTests {
             sheet.CellValue(2, 1, "Alpha");
             sheet.AddTable("A1:A2", true, "OrderItems", ExcelTableStyle.TableStyleMedium9);
             workbook.Save(path);
-            Assert.Throws<System.InvalidOperationException>(() => sheet.GetTables());
+            Assert.Equal("OrderItems", Assert.Single(sheet.GetTables()).Name);
             Assert.Equal("OrderItems", Assert.Single(workbook.Sheets[0].GetTables()).Name);
             Assert.Equal("OrderItems", Assert.Single(workbook.GetTables()).Name);
         } finally {
