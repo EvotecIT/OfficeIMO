@@ -349,7 +349,9 @@ officeimo html render report.html --encoder png --output report-pages.zip --max-
 
 The HTML commands accept HTML, MHTML and ZIP site bundles. Local and remote
 resource reads are disabled by default; bounded data URIs and archive resources
-remain available. `--max-input-bytes` changes the input-size ceiling while
+remain available. PDF and page-image archives use print pagination by default.
+Use `html render --profile screen-full-page` for a single continuous screenshot.
+`--max-input-bytes` changes the input-size ceiling while
 preserving the untrusted DOM, CSS, selector and responsive-image limits. ZIP entry
 and decoded-byte budgets remain separate from the encoded input limit. Use
 `officeimo html help` for the profile, page-selection and archive-limit options.

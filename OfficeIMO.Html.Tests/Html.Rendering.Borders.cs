@@ -107,6 +107,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='clone' style='background:#ccffee;border:1px solid blue;padding:1px;box-decoration-break:clone'>alpha beta gamma delta epsilon</span></p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D),
@@ -168,6 +169,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='invert' style='width:24px;height:12px;background:#123456;outline:2px solid invert'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -186,6 +188,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlBorders_DashedBorderAndDottedOutlineFlowThroughAllBackends() {
         const string html = "<div id='styled-strokes' style='width:30px;height:16px;margin:5px;color:#ff0000;border:2px dashed currentColor;border-radius:4px;outline:2px dotted #0000ff;outline-offset:3px;background:#ffffff;font-size:6px;line-height:8px'>StrokePdf</div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 35D,
             Margins = HtmlRenderMargins.All(0D),
@@ -234,6 +237,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='double-border' style='width:30px;height:20px;margin:0;border:6px double #008000;border-radius:6px'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 35D,
             Margins = HtmlRenderMargins.All(0D),
@@ -262,6 +266,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='next-box' style='width:30px;height:10px;margin:0;background:#0000ff'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -283,6 +288,7 @@ public sealed partial class HtmlRenderingTests {
             + "</tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -302,6 +308,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='groove-border' style='width:20px;height:10px;border-left:2px groove red'></div>"
             + "<div id='groove-outline' style='width:20px;height:10px;outline:2px groove blue'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 70D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D),
@@ -372,6 +379,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='inset' style='width:24px;height:12px;border:6px inset #808080'>Inset</div>"
             + "<div id='outset' style='width:24px;height:12px;border:6px outset #808080'>OutsetPdf</div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 60D,
             ViewportHeight = 120D,
             Margins = HtmlRenderMargins.All(2D),
@@ -405,7 +413,11 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(shapes, shape => shape.Shape.StrokeColor == light);
             Assert.All(shapes, shape => Assert.Equal(OfficeStrokeDashStyle.Solid, shape.Shape.StrokeDashStyle));
         });
-        Assert.Contains("<path", svg, StringComparison.Ordinal);
+        OfficeDrawing svgDrawing = HtmlSvgPaintAssertions.Read(Encoding.UTF8.GetBytes(svg));
+        Assert.Empty(DrawingTestTraversal.Elements(svgDrawing).OfType<OfficeDrawingImage>());
+        OfficeRasterImage svgRaster = OfficeDrawingRasterRenderer.Render(svgDrawing);
+        Assert.True(ContainsColor(svgRaster, pixel => pixel == dark));
+        Assert.True(ContainsColor(svgRaster, pixel => pixel == light));
         Assert.Contains("OutsetPdf", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported
@@ -416,6 +428,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlBorders_UniformRadiusFlowsThroughPngSvgAndSearchablePdf() {
         const string html = "<div id='rounded' style='width:40px;height:20px;margin:0;border:2px solid #0000ff;border-radius:6px;background:#ff0000;font-size:6px;line-height:8px'>RoundedPdf</div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -449,7 +462,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(6D, border.Shape.ClipPath.CornerRadius, 3);
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(0, 0));
         Assert.Equal((byte)255, raster.GetPixel(20, 15).R);
-        Assert.Contains("rx=\"6\" ry=\"6\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(0, 0));
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(20, 15));
+        Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(20, 1));
         Assert.Contains("RoundedPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
@@ -459,6 +475,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlBorders_AsymmetricEllipticalRadiusFlowsThroughSharedPathBackends() {
         const string html = "<div id='asymmetric' style='width:40px;height:24px;margin:3px;border:2px dashed #0000ff;outline:2px dotted #008000;outline-offset:1px;border-radius:12px 3px 8px 5px / 4px 9px 2px 7px;background-color:#ffffff;background-image:linear-gradient(90deg,#ff0000,#00ff00);box-shadow:2px 1px 0 #000000;font-size:6px;line-height:8px'>PathPdf</div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 35D,
             Margins = HtmlRenderMargins.All(0D),
@@ -500,6 +517,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='invalid-radius' style='width:30px;height:20px;margin:0;border-radius:calc(6px);background:#ff0000'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -520,6 +538,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<section style='width:200px;height:80px;container-type:size'><div id='container-radius' style='width:100px;height:60px;border-radius:10cqw / 5cqh;background:red'></div></section>";
 
         HtmlRenderShape shape = Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 1000D,
             ViewportHeight = 800D,
             Margins = HtmlRenderMargins.All(0D)
@@ -535,6 +554,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='normalized-radius' style='width:40px;height:20px;margin:0;border-radius:30px 20px 10px 5px / 20px 20px 10px 5px;background:#ff0000'></div>";
 
         HtmlRenderShape shape = Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 45D,
             ViewportHeight = 25D,
             Margins = HtmlRenderMargins.All(0D)

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
@@ -25,8 +24,7 @@ public sealed partial class HtmlRenderingTests {
         XElement text = Assert.Single(XDocument.Parse(document.ToSvg(options))
             .Descendants(), node => node.Name.LocalName == "text");
 
-        Assert.Equal(24D + expectedBaseline, double.Parse(text.Attribute("y")!.Value,
-            CultureInfo.InvariantCulture), 3);
+        Assert.Equal(24D + expectedBaseline, HtmlSvgTestCoordinates.CssValue(text, "y"), 3);
         Assert.Equal("Hgyp", text.Value);
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
         var page = pdf.GetPage(1);
@@ -46,8 +44,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(4, text.Length);
         for (int index = 0; index < text.Length; index++) {
-            Assert.Equal(39D + index * 20D, double.Parse(text[index].Attribute("y")!.Value,
-                CultureInfo.InvariantCulture), 3);
+            Assert.Equal(39D + index * 20D, HtmlSvgTestCoordinates.CssValue(text[index], "y"), 3);
             Assert.Equal("Hgyp", text[index].Value.Trim());
         }
     }
@@ -61,8 +58,7 @@ public sealed partial class HtmlRenderingTests {
             .Descendants().Where(node => node.Name.LocalName == "text").ToArray();
 
         Assert.Equal(2, text.Length);
-        Assert.All(text, node => Assert.Equal(47D, double.Parse(node.Attribute("y")!.Value,
-            CultureInfo.InvariantCulture), 3));
+        Assert.All(text, node => Assert.Equal(47D, HtmlSvgTestCoordinates.CssValue(node, "y"), 3));
     }
 
     [Theory]
@@ -78,9 +74,9 @@ public sealed partial class HtmlRenderingTests {
             .Descendants().Where(node => node.Name.LocalName == "text").ToArray();
 
         Assert.Equal(2, text.Length);
-        Assert.Equal(47D, double.Parse(text[0].Attribute("y")!.Value, CultureInfo.InvariantCulture), 3);
+        Assert.Equal(47D, HtmlSvgTestCoordinates.CssValue(text[0], "y"), 3);
         Assert.Equal(relativePaint ? 54D : 47D,
-            double.Parse(text[1].Attribute("y")!.Value, CultureInfo.InvariantCulture), 3);
+            HtmlSvgTestCoordinates.CssValue(text[1], "y"), 3);
     }
 
     [Theory]

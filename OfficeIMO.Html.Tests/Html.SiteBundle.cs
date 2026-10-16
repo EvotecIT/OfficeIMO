@@ -1,7 +1,6 @@
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Tests.Pdf;
@@ -35,8 +34,11 @@ public sealed class HtmlSiteBundleTests {
             ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, bundle.CreateRenderRequest(original))
             : HtmlRenderEngine.Execute(bundle.HtmlDocument, bundle.CreateRenderRequest(original));
         string svg = Encoding.UTF8.GetString(rendered.ExportImage().Bytes);
-        XDocument parsedSvg = XDocument.Parse(svg);
-        Assert.Single(parsedSvg.Descendants(), element => element.Name.LocalName == "image");
+        var svgDrawing = HtmlSvgPaintAssertions.Read(Encoding.UTF8.GetBytes(svg));
+        var imageVisual = Assert.Single(rendered.Document.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        var raster = OfficeIMO.Drawing.OfficeDrawingRasterRenderer.Render(svgDrawing);
+        Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(0x1F, 0x1D, 0x1E),
+            raster.GetPixel((int)imageVisual.X + 6, (int)imageVisual.Y + 6));
         Assert.Contains("#123456", svg, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
         Assert.Null(original.Options.ResourceResolver);

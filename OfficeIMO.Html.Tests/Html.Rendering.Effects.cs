@@ -14,6 +14,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='scaled' style='width:100px;height:50px;margin:0;background:red;scale:.97'></div>"
             + "<div id='following' style='width:100px;height:10px;margin:0;background:blue'></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D),
@@ -35,6 +36,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>body{margin:0}</style>"
             + "<div id='composed' style='width:20px;height:20px;margin:0;background:red;transform-origin:0 0;scale:50% 80%;transform:translateX(10px)'></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -55,6 +57,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='literal' style='width:20px;height:20px;background:red;scale:.97;scale:97px'></div>"
             + "<div id='variable' style='--factor:95%;width:20px;height:20px;background:blue;scale:var(--factor)'></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -72,6 +75,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='block' style='width:20px;height:20px;background:red;scale:.8;transform:rotateX(20deg)'></div>"
             + "<p style='margin:0'><span id='inline' style='display:inline-block;scale:.5;transform:rotateX(20deg)'>Inline</span></p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D)
@@ -90,6 +94,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='translated' style='width:20px;height:20px;margin:0;background:#ff0000;transform-origin:0 0;transform:translate(30px,10px)'></div>"
             + "<div id='following' style='width:20px;height:20px;margin:0;background:#0000ff'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D),
@@ -113,6 +118,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlTransform_ComposesFunctionsAndOriginInCssOrder() {
         const string html = "<div id='composed' style='width:10px;height:10px;margin:0;background:#00ff00;transform-origin:0 0;transform:translate(10px,5px) scale(2,1.5)'></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -138,6 +144,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='scaled' style='width:20px;height:20px;margin:0;background:blue;transform-origin:10cqw 10cqh;transform:scale(2)'></div>"
             + "</section>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 1000D,
             ViewportHeight = 500D,
             Margins = HtmlRenderMargins.All(0D),
@@ -159,6 +166,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='position:absolute;left:0;top:0;width:20px;height:20px;background:#ff0000'></div>"
             + "<div style='position:absolute;left:0;top:0;width:20px;height:20px;background:#ff0000'></div></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -179,6 +187,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlOpacity_AppliesOnceToGradientPaint() {
         const string html = "<div style='width:20px;height:20px;margin:0;background:linear-gradient(#ff0000,#ff0000);opacity:.5'></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -196,6 +205,7 @@ public sealed partial class HtmlRenderingTests {
         const string link = "https://example.com/effect";
         const string html = "<div style='width:90px;height:20px;margin:0;background:#ff0000;font-size:10px;line-height:10px;transform-origin:0 0;transform:translate(20px,5px);opacity:.75'><a href='https://example.com/effect'>EffectPdfMarker</a></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 140D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D),
@@ -235,6 +245,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='position:absolute;left:0;top:0;width:20px;height:20px;background:#ff0000'></div>"
             + "</div><div style='position:absolute;left:0;top:24px;font-size:6px;line-height:7px'>NestedEffectMarker</div></div>";
         var renderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D),
@@ -290,6 +301,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:60px;margin:0;font-size:10px;line-height:20px'>"
             + "<span id='atomic-effect' style='display:inline-block;width:10px;height:10px;margin:0;background:#ff0000;transform-origin:0 0;transform:translateX(10px);opacity:.5'></span>X</div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 60D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -312,6 +324,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='invalid-effect' style='transform:warp(2);opacity:opaque'>Block</div>"
             + "<p><span id='invalid-inline-effect' style='display:inline-block;transform:warp(2);opacity:opaque;clip-path:url(#missing)'>Inline</span></p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -337,6 +350,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:20px'>Before "
             + "<span id='inline-effect' style='background:#ff0000;transform-origin:0 0;transform:translateX(4px);opacity:.5;clip-path:inset(0 2px)'>InlineEffectMarker</span> after</p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D),
@@ -368,6 +382,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlEffects_NonAtomicInlineStackingPreservesAuthoredTextOrder(string effect) {
         string html = "<p style='margin:0'><span style='" + effect + "'>A</span>B</p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -392,6 +407,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='circle' style='width:20px;height:20px;margin:0;background:green;clip-path:circle(8px at 50% 50%)'></div>"
             + "<div id='ellipse' style='width:20px;height:20px;margin:0;background:purple;clip-path:ellipse(40% 25% at center)'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 30D,
             ViewportHeight = 90D,
             Margins = HtmlRenderMargins.All(0D),
@@ -427,6 +443,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='polygon' style='width:20px;height:20px;margin:0;background:blue;clip-path:polygon(-10px 0,20px 0,20px 20px)'></div>"
             + "<div id='circle' style='width:20px;height:20px;margin:0;background:green;clip-path:circle(5px at -2px 10px)'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 30D,
             ViewportHeight = 70D,
             Margins = HtmlRenderMargins.All(0D),
@@ -458,6 +475,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlClipPath_SignedInsetCrossingFarPageEdgesConvertsToPdfBytes() {
         const string html = "<x-box id='far-edge' style='display:block;width:20px;height:20px;margin:15px 0 0 15px;background:red;clip-path:inset(-5px)'></x-box>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -501,6 +519,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='border' style='" + shared + "clip-path:inset(0) border-box'></div>"
             + "<div id='margin' style='" + shared + "clip-path:margin-box'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D),
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
@@ -534,6 +553,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='polygon-empty' style='width:20px;height:20px;margin:0;background:purple;clip-path:polygon(0 0,0 0,0 0)'>PolygonMarker</div>"
             + "<div id='polygon-collinear-empty' style='width:20px;height:20px;margin:0;background:orange;clip-path:polygon(0 0,10px 10px,20px 20px)'>CollinearMarker</div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 30D,
             ViewportHeight = 110D,
             Margins = HtmlRenderMargins.All(0D),
@@ -591,6 +611,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='circle-default' style='width:20px;height:20px;margin:0;background:red;clip-path:circle()'></div>"
             + "<div id='ellipse-default' style='width:20px;height:20px;margin:0;background:blue;clip-path:ellipse()'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 30D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D),
@@ -629,6 +650,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='width:40px;height:20px;background:red;clip-path:ellipse(closest-side at -5px 10px)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             Margins = HtmlRenderMargins.All(0D),
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss

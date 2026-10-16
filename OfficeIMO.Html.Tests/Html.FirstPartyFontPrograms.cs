@@ -81,7 +81,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         Assert.False(first.HasLoss, FormatWarnings(first));
         HtmlPdfAccessibilityValidationResult validation = HtmlPdfAccessibilityValidator.Validate(source, firstPdf);
         Assert.True(validation.IsValid, string.Join(" | ", validation.Issues.Select(issue => issue.Code + ": " + issue.Message)));
-        var outlineShapes = PdfCore.PdfDocument.Load(firstPdf).Render.Drawing(1).Shapes;
+        OfficeDrawingShape[] outlineShapes = PaintedShapes(firstPdf).ToArray();
         Assert.NotEmpty(outlineShapes);
         Assert.All(outlineShapes, shape => Assert.Equal(OfficeFillRule.NonZero, shape.Shape.FillRule));
     }
@@ -97,7 +97,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string raw = System.Text.Encoding.GetEncoding(28591).GetString(pdf);
-        OfficeShape[] glyphs = PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes
+        OfficeShape[] glyphs = PaintedShapes(pdf)
             .Select(item => item.Shape)
             .Where(shape => shape.FillColor.HasValue)
             .ToArray();
@@ -127,7 +127,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
             warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined
             && warning.Details.TryGetValue("StaticPdfEmbeddable", out string? staticEmbeddable)
             && staticEmbeddable == "false");
-        Assert.NotEmpty(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes);
+        Assert.NotEmpty(PaintedShapes(pdf));
         Assert.True(HtmlPdfAccessibilityValidator.Validate(source, pdf).IsValid);
     }
 
@@ -152,7 +152,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
             warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined
             && warning.Details.TryGetValue("Representation", out string? representation)
             && representation == "vector-outlines-plus-actual-text");
-        Assert.NotEmpty(DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1)).OfType<OfficeDrawingShape>());
+        Assert.NotEmpty(PaintedShapes(pdf));
     }
 
     [Fact]
@@ -185,11 +185,9 @@ public sealed class HtmlFirstPartyFontProgramTests {
 
         byte[] unshapedPdf = source.ToPdfDocumentResult(unshapedOptions).ToBytes();
         byte[] shapedPdf = source.ToPdfDocumentResult(shapedOptions).ToBytes();
-        int unshapedCommandCount = PdfCore.PdfDocument.Load(unshapedPdf)
-            .Render.Drawing(1).Shapes
+        int unshapedCommandCount = PaintedShapes(unshapedPdf)
             .Sum(shape => shape.Shape.PathCommands.Count);
-        int shapedCommandCount = PdfCore.PdfDocument.Load(shapedPdf)
-            .Render.Drawing(1).Shapes
+        int shapedCommandCount = PaintedShapes(shapedPdf)
             .Sum(shape => shape.Shape.PathCommands.Count);
 
         Assert.True(shapedCommandCount < unshapedCommandCount);
@@ -300,9 +298,9 @@ public sealed class HtmlFirstPartyFontProgramTests {
         HtmlConversionDocument requested = HtmlConversionDocument.Parse(prefix + ";font-weight:700;font-style:italic}</style><p>Ω</p></html>");
 
         IReadOnlyList<OfficePathCommand> regularCommands = Assert.Single(
-            PdfCore.PdfDocument.Load(regular.ToPdfDocumentResult().ToBytes()).Render.Drawing(1).Shapes).Shape.PathCommands;
+            PaintedShapes(regular.ToPdfDocumentResult().ToBytes())).Shape.PathCommands;
         IReadOnlyList<OfficePathCommand> requestedCommands = Assert.Single(
-            PdfCore.PdfDocument.Load(requested.ToPdfDocumentResult().ToBytes()).Render.Drawing(1).Shapes).Shape.PathCommands;
+            PaintedShapes(requested.ToPdfDocumentResult().ToBytes())).Shape.PathCommands;
 
         Assert.Equal(regularCommands.Count * 2, requestedCommands.Count);
         Assert.True(OutlinedPathWidth(requestedCommands) > OutlinedPathWidth(regularCommands));
@@ -374,7 +372,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var options = new HtmlToPdfOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
         byte[] firstPdf = HtmlConversionDocument.Parse(firstHtml).ToPdfDocumentResult(options).ToBytes();
-        int firstCommands = PdfCore.PdfDocument.Load(firstPdf).Render.Drawing(1).Shapes
+        int firstCommands = PaintedShapes(firstPdf)
             .Sum(shape => shape.Shape.PathCommands.Count);
         Assert.True(firstCommands > 0);
 
@@ -508,8 +506,11 @@ public sealed class HtmlFirstPartyFontProgramTests {
         }
     }
 
+    private static IEnumerable<OfficeDrawingShape> PaintedShapes(byte[] pdf) =>
+        DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1)).OfType<OfficeDrawingShape>();
+
     private static double OutlinedPathWidth(byte[] pdf) => OutlinedPathWidth(Assert.Single(
-        PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes).Shape.PathCommands);
+        PaintedShapes(pdf)).Shape.PathCommands);
 
     private static double OutlinedPathWidth(IReadOnlyList<OfficePathCommand> commands) {
         double minimum = commands.Where(command => command.Kind != OfficePathCommandKind.Close).Min(command => command.Point.X);

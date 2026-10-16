@@ -69,7 +69,7 @@ from snapshots. An explicitly supplied render resolver remains the fallback;
 missing resources produce the existing conversion diagnostics. Resource requests
 still use the renderer's URL, byte, count and timeout limits.
 
-For PDF output use the [site-bundle adapter in OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md#zip-site-bundles),
+For PDF output use the [HTML site-bundle conversion API](PDF.md#zip-site-bundles),
 which also enforces the PDF embedded-package resource policy. MHTML uses the
 separate [OfficeIMO.Mhtml](../OfficeIMO.Mhtml/README.md) MIME reader and CID resolver.
 
@@ -950,6 +950,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 2 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 1 | 0 | 0 | 0 | 0 | 0 |
 | Remove | 1 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 1 | 0 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Html` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

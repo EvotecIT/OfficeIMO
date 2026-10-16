@@ -179,10 +179,10 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(OfficeTextBaseline.Superscript, drawingSuper.Baseline);
         Assert.Equal(OfficeTextDecorationStyle.Double, drawingSuper.UnderlineStyle);
 
-        string svg = Encoding.UTF8.GetString(document.ExportImage(OfficeImageExportFormat.Svg).Bytes);
-        Assert.Contains("text-decoration-style=\"wavy\"", svg, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("text-decoration-style=\"double\"", svg, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Styled", svg, StringComparison.Ordinal);
+        OfficeDrawing svgDrawing = HtmlSvgPaintAssertions.Read(document.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        HtmlSvgPaintAssertions.WavyStrokes(svgDrawing, OfficeColor.FromRgb(0x33, 0x66, 0x99), 2);
+        HtmlSvgPaintAssertions.DoubleStroke(svgDrawing, OfficeColor.FromRgb(0x33, 0x66, 0x99));
+        Assert.Contains(DrawingTestTraversal.Elements(svgDrawing).OfType<OfficeDrawingText>(), item => item.Text == "Styled");
 
         foreach (OfficeImageExportFormat format in new[] {
                      OfficeImageExportFormat.Png,

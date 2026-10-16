@@ -55,6 +55,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>body{display:none}</style><body><p>HiddenRootMarker</p></body>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -69,6 +70,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='height:30px;visibility:" + visibility + "'>HiddenMarker</div><div>VisibleMarker</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -83,6 +85,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<img id='malformed' src='data:image/png,%ZZ' width='20' height='10' alt='invalid'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -96,6 +99,7 @@ public sealed partial class HtmlRenderingTests {
         var requested = new List<Uri>();
         const string html = "<style>@media (max-width:500px){.hero{width:20px;height:20px;background-image:url('https://assets.example.test/hero.png')}}</style><div class='hero'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D),
@@ -118,6 +122,7 @@ public sealed partial class HtmlRenderingTests {
         var requested = new List<Uri>();
         const string html = "<picture><source media='(max-width:500px)' srcset='https://assets.example.test/active.png'><img src='https://assets.example.test/fallback.png' width='40' height='30' alt='candidate'></picture>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D),
@@ -141,6 +146,7 @@ public sealed partial class HtmlRenderingTests {
         var requested = new List<Uri>();
         const string html = "<picture><source media='(prefers-color-scheme:dark)' srcset='https://assets.example.test/dark.png'><img src='https://assets.example.test/light.png' width='40' height='30' alt='candidate'></picture>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D),
@@ -182,6 +188,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<table style='border-spacing:0'><tbody id='group' style='background:#0000ff'><tr id='row' style='background:#ff0000'><td style='background:transparent'>Cell</td></tr></tbody></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -195,6 +202,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task HtmlRenderAsync_UsesRenderDimensionsWhenExpandingStylesheetImports() {
         var requested = new List<string>();
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             ViewportHeight = 200D,
             Margins = HtmlRenderMargins.All(0D),
@@ -222,6 +230,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<table><tr style='display:none'><td>HiddenRowMarker</td></tr><tr><td>VisibleRowMarker</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -247,6 +256,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='target' style=\"width:40px;height:20px;background:#fee url('missing.png') no-repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -352,6 +362,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='contents' style='display:contents;background:#ff0000;padding:20px'><div id='child' style='background:#0000ff'>ContentsMarker</div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -366,6 +377,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<ul style='list-style:none'><li>MarkerlessItem</li></ul>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -382,6 +394,7 @@ public sealed partial class HtmlRenderingTests {
             + "'><img src='data:image/png;base64," + Convert.ToBase64String(fallback) + "' width='30' height='30'></picture>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             ViewportHeight = 200D,
             Margins = HtmlRenderMargins.All(0D)

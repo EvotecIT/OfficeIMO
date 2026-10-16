@@ -495,7 +495,11 @@ Connector geometry in saved files now uses its native local transform. Consumers
 
 `HtmlRenderOptions.Mode` defaults to `Paged`. Default HTML image exports return print pages with `@page` margin boxes and the same fonts and layout as HTML-to-PDF. Request `Mode = HtmlRenderMode.Continuous`, `.Continuous()`, or the `ScreenFullPage` profile explicitly to retain one long screenshot.
 
+`officeimo html render` also defaults to print pages and uses the same portable font/resource policy as `html convert`. Pass `--profile screen-full-page` for its previous continuous screenshot behavior.
+
 HTML-to-PDF types and extensions now live in the `OfficeIMO.Html` assembly and retain the `OfficeIMO.Html.Pdf` namespace. Rebuild consumers against the updated packages; `OfficeIMO.Html.Pdf` remains the package for PDF-to-HTML conversion. `OfficeIMO.Html` directly references the first-party `OfficeIMO.Pdf` owner.
+
+Image export uses the PDF writer's glyph-coverage contract. An uncovered character fails with a structured encoding diagnostic; `AllowDiagnosedLoss` does not override that failure. Supply complete fonts through `Fonts`, a fallback pack or `@font-face`, and a shaping provider for scripts outside the managed subset. Installed-font fallback remains platform-dependent.
 
 Tables with `break-inside:auto` can split at legal row boundaries even when the entire table would fit on a new page. Author `break-inside:avoid` on the table when keeping it together is required.
 

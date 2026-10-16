@@ -4,6 +4,9 @@ namespace OfficeIMO.Epub.Image;
 
 /// <summary>HTML-backed EPUB chapter image-export options.</summary>
 public sealed class EpubImageExportOptions : HtmlRenderOptions {
+    /// <summary>Creates one continuous preview per chapter; paged output remains available through the shared mode setting.</summary>
+    public EpubImageExportOptions() => Mode = HtmlRenderMode.Continuous;
+
     /// <summary>Zero-based first chapter to export.</summary>
     public int ChapterIndex { get; set; }
 
