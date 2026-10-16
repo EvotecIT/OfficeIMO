@@ -212,6 +212,7 @@ public sealed partial class PdfOptions {
         clone._pageSizeConfigurationVersion = _pageSizeConfigurationVersion;
         clone._pageNumberStart = _pageNumberStart;
         clone._hasExplicitPageNumberStart = _hasExplicitPageNumberStart;
+        if (_automaticHyphenation) clone.UseAutomaticHyphenation(_automaticHyphenationLanguage);
         return clone;
     }
 

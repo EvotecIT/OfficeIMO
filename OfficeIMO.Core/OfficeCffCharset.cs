@@ -5,7 +5,7 @@ using System.IO;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Validated CFF1 charset lookup used by Type 2 seac-compatible endchar programs.</summary>
-internal static class OfficeCffCharset {
+internal static partial class OfficeCffCharset {
     private static readonly ushort[] StandardEncodingSids = {
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
         1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
@@ -38,19 +38,30 @@ internal static class OfficeCffCharset {
         int tableEnd,
         int charsetValue,
         int glyphCount) {
-        ushort[] sids = charsetValue switch {
+        return BuildEncodingGlyphMap(ReadSids(data, tableOffset, tableEnd, charsetValue, glyphCount), expert: false);
+    }
+
+    /// <summary>Reads validated CFF1 charset SIDs within the containing table.</summary>
+    internal static ushort[] ReadSids(byte[] data, int tableOffset, int tableEnd, int charsetValue, int glyphCount) {
+        if (glyphCount < 1 || tableOffset < 0 || tableEnd > data.Length || tableEnd < tableOffset)
+            throw new InvalidDataException("Invalid CFF charset bounds.");
+        return charsetValue switch {
             0 => BuildIsoAdobeCharset(glyphCount),
             1 => CopyPredefined(ExpertCharset, glyphCount),
             2 => CopyPredefined(ExpertSubsetCharset, glyphCount),
             _ => ReadCustomCharset(data, checked(tableOffset + charsetValue), tableEnd, glyphCount)
         };
+    }
+
+    /// <summary>Maps predefined CFF Standard or Expert encoding codes to charset glyph indices.</summary>
+    internal static int[] BuildEncodingGlyphMap(ushort[] sids, bool expert) {
         var glyphBySid = new Dictionary<ushort, int>(sids.Length);
         for (int glyph = 1; glyph < sids.Length; glyph++) {
             if (!glyphBySid.ContainsKey(sids[glyph])) glyphBySid.Add(sids[glyph], glyph);
         }
         var result = new int[256];
         for (int code = 0; code < result.Length; code++) {
-            ushort sid = StandardEncodingSids[code];
+            ushort sid = expert ? ExpertEncodingSids[code] : StandardEncodingSids[code];
             result[code] = sid != 0 && glyphBySid.TryGetValue(sid, out int glyph) ? glyph : -1;
         }
         return result;

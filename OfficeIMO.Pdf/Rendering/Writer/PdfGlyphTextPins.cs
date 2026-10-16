@@ -160,12 +160,17 @@ internal sealed class PdfCanonicalGlyphText {
 
     // Presentation forms describe how text is drawn; extraction should recover the source letters.
     private static string ToSourceText(int scalar) {
-        string text = char.ConvertFromUtf32(scalar);
-        if (scalar >= 0xFB00 && scalar <= 0xFB06) {
-            string decomposed = text.Normalize(System.Text.NormalizationForm.FormKD);
-            if (decomposed.Length > 1) return decomposed;
-        }
-        return OfficeArabicTextShaper.ToLogicalText(text);
+        // These seven Unicode compatibility decompositions are fixed. FormKD is unavailable
+        // in browser globalization and must not make an otherwise usable font fail to load.
+        return scalar switch {
+            0xFB00 => "ff",
+            0xFB01 => "fi",
+            0xFB02 => "fl",
+            0xFB03 => "ffi",
+            0xFB04 => "ffl",
+            0xFB05 or 0xFB06 => "st",
+            _ => OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(scalar))
+        };
     }
 
     private static bool IsTextScalar(int scalar) =>

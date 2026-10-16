@@ -32,21 +32,23 @@ internal static partial class StreamDecoder {
     /// Names the first JBIG2 feature the managed decoder rejects when JBIG2Decode is the stream's first filter,
     /// scanning segment headers of the data and its JBIG2Globals without decoding regions.
     /// </summary>
-    internal static string? FindUnsupportedJbig2Feature(PdfStream stream, Dictionary<int, PdfIndirectObject>? objects, int maximumBytes) {
+    internal static string? FindUnsupportedJbig2Feature(PdfStream stream, Dictionary<int, PdfIndirectObject>? objects, int maximumBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!TryGetDeclaredFilterNames(stream.Dictionary, objects, out IReadOnlyList<string> filters) || filters.Count == 0 ||
             GetFilterKind(filters[0]) != DecodeFilterKind.Jbig2) return null;
-        PdfDictionary? parameters = GetDecodeParms(stream.Dictionary, 0, objects, CancellationToken.None);
+        PdfDictionary? parameters = GetDecodeParms(stream.Dictionary, 0, objects, cancellationToken);
         if (parameters != null && parameters.Items.TryGetValue("JBIG2Globals", out PdfObject? globalsObject)) {
-            if (ResolveObject(globalsObject, objects, CancellationToken.None) is not PdfStream globalsStream) return "malformed";
+            if (ResolveObject(globalsObject, objects, cancellationToken) is not PdfStream globalsStream) return "malformed";
             byte[] globals;
             try {
-                globals = DecodeJbig2Globals(globalsStream, objects, maximumBytes, CancellationToken.None);
+                globals = DecodeJbig2Globals(globalsStream, objects, maximumBytes, cancellationToken);
             } catch (Exception exception) when (exception is NotSupportedException || exception is IOException && exception is not PdfReadLimitException) {
                 return "malformed";
             }
-            string? globalFeature = Jbig2Decoder.FindUnsupportedFeature(globals);
+            string? globalFeature = Jbig2Decoder.FindUnsupportedFeature(globals, cancellationToken);
             if (globalFeature != null) return globalFeature;
         }
-        return Jbig2Decoder.FindUnsupportedFeature(stream.Data);
+        return Jbig2Decoder.FindUnsupportedFeature(stream.Data, cancellationToken);
     }
 }

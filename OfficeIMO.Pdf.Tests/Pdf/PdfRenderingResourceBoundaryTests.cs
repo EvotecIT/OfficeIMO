@@ -11,7 +11,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PdfRenderingResourceBoundaryTests {
+public sealed partial class PdfRenderingResourceBoundaryTests {
     [Fact]
     public void Type1SetCurrentPointDoesNotLeakOperandsIntoTheNextOutlineOperator() {
         byte[] start = { 139, 248, 136, 13, 159, 159, 21 }; // 0 500 hsbw, 20 20 rmoveto

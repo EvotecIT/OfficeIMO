@@ -1,11 +1,10 @@
 using OfficeIMO.Pdf.Filters;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
     private const string DefaultAppearanceFontName = "Helv";
-    private const int MaxInheritedCidWidthEntries = 65536;
-    private const int MaxInheritedCidWidthRangeEntries = 4096;
 
     private static PdfDictionary? TryReadDefaultResources(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
         if (!dictionary.Items.TryGetValue("DR", out PdfObject? defaultResourcesObject)) {
@@ -128,7 +127,9 @@ internal static partial class PdfFormFiller {
         string fontResourceName,
         PdfObject fontResourceObject,
         string displayValue,
-        out TextAppearanceFontPlan? fontPlan) {
+        out TextAppearanceFontPlan? fontPlan, int maximumDecodedBytes = 256 * 1024 * 1024,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         fontPlan = null;
         if (ResolveDictionary(objects, fontResourceObject) is not PdfDictionary font ||
             font.Get<PdfName>("Subtype")?.Name != "Type0" ||
@@ -137,7 +138,7 @@ internal static partial class PdfFormFiller {
             return false;
         }
 
-        byte[] toUnicodeData = StreamDecoder.Decode(toUnicodeStream, objects);
+        byte[] toUnicodeData = StreamDecoder.Decode(toUnicodeStream, objects, maximumDecodedBytes, cancellationToken);
         if (!ToUnicodeCMap.TryParse(toUnicodeData, out ToUnicodeCMap? cmap) ||
             cmap is null ||
             !TryCreateTextSegmentEncoder(cmap, displayValue, out string? mappedHex, out Func<string, string?>? segmentEncoder)) {
@@ -149,98 +150,32 @@ internal static partial class PdfFormFiller {
 
         var resources = new PdfDictionary();
         resources.Items["Font"] = appearanceFonts;
-        TryCreateInheritedType0TextMeasure(objects, font, cmap, out Func<string, double, double>? measureTextSegmentWidth);
+        if (!TryCreateInheritedType0TextMeasure(objects, resources, fontResourceName, cmap,
+            out Func<string, double, double>? measureTextSegmentWidth, maximumDecodedBytes, cancellationToken)) return false;
         fontPlan = new TextAppearanceFontPlan(fontResourceName, resources, mappedHex, segmentEncoder, measureTextSegmentWidth, encodeTextSegments: null, materialize: null);
         return true;
     }
 
-    private static bool TryCreateInheritedType0TextMeasure(Dictionary<int, PdfIndirectObject> objects, PdfDictionary font, ToUnicodeCMap cmap, out Func<string, double, double>? measureTextSegmentWidth) {
+    private static bool TryCreateInheritedType0TextMeasure(Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary resources, string fontName, ToUnicodeCMap cmap, out Func<string, double, double>? measureTextSegmentWidth,
+        int maximumDecodedBytes, CancellationToken cancellationToken) {
         measureTextSegmentWidth = null;
-        if (!font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantFontsObject) ||
-            ResolveObject(objects, descendantFontsObject) is not PdfArray descendantFonts ||
-            descendantFonts.Items.Count == 0 ||
-            ResolveDictionary(objects, descendantFonts.Items[0]) is not PdfDictionary descendantFont) {
-            return false;
-        }
-
-        double defaultWidth = descendantFont.Get<PdfNumber>("DW")?.Value ?? 1000D;
-        var widths = new Dictionary<int, double>();
-        if (ResolveObject(objects, descendantFont.Items.TryGetValue("W", out PdfObject? widthsObject) ? widthsObject : null) is PdfArray widthArray &&
-            !TryReadCidWidths(widthArray, widths)) {
-            return false;
-        }
-
+        PdfFontResource? resolvedFont = null;
+        Dictionary<string, Func<byte[], double>> widths = ResourceResolver.GetFontWidthProvidersForResources(resources, objects,
+            (name, font, sourceObjects) => resolvedFont = ResourceResolver.CreateFontResource(name, font, sourceObjects,
+                stream => StreamDecoder.Decode(stream, sourceObjects, maximumDecodedBytes, cancellationToken), includeEmbeddedTrueTypeFont: false));
+        if (resolvedFont == null || resolvedFont.IsVerticalWriting ||
+            resolvedFont.Encoding != "Identity-H" && resolvedFont.PredefinedCMap == null ||
+            !widths.TryGetValue(fontName, out Func<byte[], double>? widthProvider)) return false;
         measureTextSegmentWidth = (text, fontSize) => {
-            if (!cmap.TryEncodeTextCodes(text, out IReadOnlyList<string> codeHexValues)) {
-                throw new InvalidOperationException("The inherited appearance font cannot encode the text segment for measurement.");
-            }
-
-            double width = 0D;
-            foreach (string codeHex in codeHexValues) {
-                int code = Convert.ToInt32(codeHex, 16);
-                width += (widths.TryGetValue(code, out double glyphWidth) ? glyphWidth : defaultWidth) * fontSize / 1000D;
-            }
-
-            return width;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!cmap.TryEncodeText(text, out string encodedHex))
+                throw new InvalidOperationException("The inherited appearance font cannot encode the displayed text for measurement.");
+            byte[] bytes = PdfTextString.DecodeHexBytes(encodedHex, 0, encodedHex.Length, cancellationToken);
+            return widthProvider(bytes) * fontSize / 1000D;
         };
         return true;
     }
-
-    private static bool TryReadCidWidths(PdfArray widthArray, Dictionary<int, double> widths) {
-        for (int index = 0; index < widthArray.Items.Count;) {
-            if (widthArray.Items[index++] is not PdfNumber firstNumber) {
-                return false;
-            }
-
-            int firstCode = (int)firstNumber.Value;
-            if (index >= widthArray.Items.Count) {
-                return false;
-            }
-
-            PdfObject widthSpec = widthArray.Items[index++];
-            if (widthSpec is PdfArray explicitWidths) {
-                int count = Math.Min(explicitWidths.Items.Count, MaxInheritedCidWidthEntries - widths.Count);
-                for (int offset = 0; offset < count; offset++) {
-                    if (explicitWidths.Items[offset] is not PdfNumber widthNumber) {
-                        return false;
-                    }
-
-                    widths[firstCode + offset] = widthNumber.Value;
-                }
-
-                if (widths.Count >= MaxInheritedCidWidthEntries) {
-                    break;
-                }
-
-                continue;
-            }
-
-            if (widthSpec is not PdfNumber lastNumber ||
-                index >= widthArray.Items.Count ||
-                widthArray.Items[index++] is not PdfNumber rangeWidthNumber) {
-                return false;
-            }
-
-            int lastCode = (int)lastNumber.Value;
-            int rangeLength = lastCode >= firstCode ? lastCode - firstCode + 1 : 0;
-            if (rangeLength <= 0) {
-                continue;
-            }
-
-            int rangeCount = Math.Min(rangeLength, MaxInheritedCidWidthRangeEntries);
-            rangeCount = Math.Min(rangeCount, MaxInheritedCidWidthEntries - widths.Count);
-            for (int offset = 0; offset < rangeCount; offset++) {
-                widths[firstCode + offset] = rangeWidthNumber.Value;
-            }
-
-            if (widths.Count >= MaxInheritedCidWidthEntries) {
-                break;
-            }
-        }
-
-        return true;
-    }
-
     private static bool TryCreateTextSegmentEncoder(ToUnicodeCMap cmap, string displayValue, out string? encodedTextHex, out Func<string, string?>? encodeTextSegmentHex) {
         encodedTextHex = null;
         encodeTextSegmentHex = segment => cmap.TryEncodeText(segment, out string segmentHex) ? segmentHex : null;

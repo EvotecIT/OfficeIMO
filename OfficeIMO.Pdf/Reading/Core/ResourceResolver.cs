@@ -86,8 +86,10 @@ internal static partial class ResourceResolver {
         return GetFontWidthProviders(dict, objects, fonts);
     }
 
-    internal static Dictionary<string, System.Func<byte[], double>> GetFontWidthProvidersForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects) {
-        Dictionary<string, PdfFontResource> fonts = GetFontsForResources(resources, objects);
+    internal static Dictionary<string, System.Func<byte[], double>> GetFontWidthProvidersForResources(PdfDictionary resources,
+        Dictionary<int, PdfIndirectObject> objects,
+        Func<string, PdfDictionary, Dictionary<int, PdfIndirectObject>, PdfFontResource>? fontFactory = null) {
+        Dictionary<string, PdfFontResource> fonts = GetFontsForResources(resources, objects, fontFactory);
         return GetFontWidthProviders(resources, objects, fonts);
     }
 

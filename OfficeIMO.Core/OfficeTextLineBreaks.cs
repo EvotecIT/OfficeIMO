@@ -51,7 +51,8 @@ public static class OfficeTextLineBreaks {
             if (scalars[index - 1] == 0x00AD) continue;
             int boundary = scalarStarts[index];
             if (Array.BinarySearch(elementStarts, boundary) < 0) continue;
-            if (!allowCjkBreaks && !IsExplicitBreakAfter(scalars[index - 1]) && !IsExplicitBreakBefore(scalars[index])) continue;
+            if (!allowCjkBreaks && actions[index] != OfficeUnicodeLineBreaker.BreakAction.Mandatory &&
+                !IsExplicitBreakAfter(scalars[index - 1]) && !IsExplicitBreakBefore(scalars[index])) continue;
             positions.Add(boundary);
         }
 

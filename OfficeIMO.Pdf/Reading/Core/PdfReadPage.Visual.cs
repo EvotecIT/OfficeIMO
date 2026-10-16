@@ -2800,7 +2800,7 @@ public sealed partial class PdfReadPage {
             if (annotation == null ||
                 !TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
                 IsHiddenAnnotation(annotation) ||
-                !TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream appearanceStream, out _)) {
+                !TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream appearanceStream, out _, cancellationToken)) {
                 continue;
             }
 
@@ -2945,13 +2945,14 @@ public sealed partial class PdfReadPage {
     private bool TryGetRenderableAnnotationAppearanceStream(
         PdfDictionary annotation,
         out PdfStream stream,
-        out bool synthesized) {
+        out bool synthesized, CancellationToken cancellationToken) {
         bool isWidget = string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "Widget", StringComparison.Ordinal);
         PdfDictionary? acroForm = isWidget ? GetAcroForm() : null;
         // NeedAppearances asks viewers to regenerate variable-text widget appearances from the field values.
         if (acroForm != null && ResolveObject(acroForm.Items.TryGetValue("NeedAppearances", out PdfObject? needAppearances) ? needAppearances : null) is PdfBoolean { Value: true } &&
             PdfFormFiller.IsVariableTextWidget(_objects, annotation) &&
-            PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream)) {
+            PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream,
+                _limits.MaxDecodedStreamBytes, cancellationToken)) {
             synthesized = true;
             return true;
         }
@@ -2964,7 +2965,8 @@ public sealed partial class PdfReadPage {
         // A widget whose appearance dictionary lacks the current state intentionally paints nothing.
         if (isWidget) {
             synthesized = !annotation.Items.ContainsKey("AP") &&
-                PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream);
+                PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream,
+                    _limits.MaxDecodedStreamBytes, cancellationToken);
             return synthesized;
         }
 

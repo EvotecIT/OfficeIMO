@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -81,7 +83,7 @@ internal sealed class PdfCffFontProgram {
     internal static PdfCffFontProgram? TryParse(byte[] data) {
         try {
             return Parse(data);
-        } catch (Exception exception) when (exception is InvalidDataException or IndexOutOfRangeException or ArgumentException or OverflowException) {
+        } catch (Exception exception) when (exception is InvalidDataException or IndexOutOfRangeException or ArgumentException or OverflowException or NotSupportedException) {
             return null;
         }
     }
@@ -340,38 +342,8 @@ internal sealed class PdfCffFontProgram {
         return System.Text.Encoding.ASCII.GetString(slice.Data, slice.Offset, slice.Length);
     }
 
-    private static int[] ReadCharset(byte[] data, int offset, int glyphCount) {
-        var result = new int[glyphCount];
-        if (offset == 0) {
-            // ISOAdobe: SIDs 1..228 are glyphs 1..228 in order.
-            for (int glyph = 1; glyph < glyphCount; glyph++) result[glyph] = glyph <= 228 ? glyph : 0;
-            return result;
-        }
-        if (offset == 1 || offset == 2) return result; // Expert charsets name no PDF-encoded glyphs.
-        if (offset < 0 || offset >= data.Length) throw new InvalidDataException("Invalid CFF charset offset.");
-        int cursor = offset;
-        int format = data[cursor++];
-        int gid = 1;
-        if (format == 0) {
-            for (; gid < glyphCount; gid++) {
-                if (cursor + 2 > data.Length) throw new InvalidDataException("Truncated CFF charset.");
-                result[gid] = ReadUInt16(data, cursor);
-                cursor += 2;
-            }
-        } else if (format == 1 || format == 2) {
-            while (gid < glyphCount) {
-                int rangeSize = format == 1 ? 3 : 4;
-                if (cursor + rangeSize > data.Length) throw new InvalidDataException("Truncated CFF charset.");
-                int first = ReadUInt16(data, cursor);
-                int left = format == 1 ? data[cursor + 2] : ReadUInt16(data, cursor + 2);
-                cursor += rangeSize;
-                for (int index = 0; index <= left && gid < glyphCount; index++) result[gid++] = first + index;
-            }
-        } else {
-            throw new InvalidDataException("Unsupported CFF charset format.");
-        }
-        return result;
-    }
+    private static int[] ReadCharset(byte[] data, int offset, int glyphCount) =>
+        OfficeCffCharset.ReadSids(data, 0, data.Length, offset, glyphCount).Select(static sid => (int)sid).ToArray();
 
     private static byte[] ReadFdSelect(byte[] data, int offset, int glyphCount) {
         if (offset <= 0 || offset >= data.Length) throw new InvalidDataException("Invalid CFF FDSelect offset.");
@@ -400,12 +372,8 @@ internal sealed class PdfCffFontProgram {
     private static void ReadEncoding(byte[] data, Dictionary<int, double[]> top, int[] charset, string[] glyphNames, int[] encoding) {
         int offset = top.TryGetValue(16, out double[]? value) && value.Length > 0 ? CheckedInt(value[0]) : 0;
         if (offset == 0 || offset == 1) {
-            string?[] names = PdfFontEncodingNames.Get("StandardEncoding")!;
-            var glyphByName = new Dictionary<string, int>(StringComparer.Ordinal);
-            for (int glyph = glyphNames.Length - 1; glyph > 0; glyph--) glyphByName[glyphNames[glyph]] = glyph;
-            for (int code = 0; code < 256; code++) {
-                if (names[code] is string name && glyphByName.TryGetValue(name, out int glyph)) encoding[code] = glyph;
-            }
+            int[] map = OfficeCffCharset.BuildEncodingGlyphMap(charset.Select(static sid => (ushort)sid).ToArray(), offset == 1);
+            for (int code = 0; code < encoding.Length; code++) if (map[code] > 0) encoding[code] = map[code];
             return;
         }
         if (offset < 0 || offset >= data.Length) return;

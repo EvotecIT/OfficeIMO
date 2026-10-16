@@ -232,7 +232,11 @@ public sealed partial class OfficeRasterCanvas {
             left = right = points[0].X; top = bottom = points[0].Y;
             for (int index = 0; index < 4; index++) {
                 OfficePoint current = points[index], next = points[(index + 1) % 4];
-                if (current.X != next.X && current.Y != next.Y) return false;
+                OfficePoint after = points[(index + 2) % 4];
+                bool horizontal = current.Y == next.Y, vertical = current.X == next.X;
+                if (horizontal == vertical || horizontal == (next.Y == after.Y)) return false;
+                for (int prior = 0; prior < index; prior++)
+                    if (current.X == points[prior].X && current.Y == points[prior].Y) return false;
                 left = Math.Min(left, current.X); right = Math.Max(right, current.X);
                 top = Math.Min(top, current.Y); bottom = Math.Max(bottom, current.Y);
             }

@@ -7,6 +7,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class RichParagraphWrappingHyphenationTests {
     [Fact]
+    public void AutomaticHyphenationClonesUseTheirOwnLanguageAndCanBeOverridden() {
+        var original = new PdfOptions { Language = "en-US" }.UseAutomaticHyphenation();
+        PdfOptions clone = original.Clone();
+        clone.Language = "zz";
+        Assert.Empty(clone.TextHyphenationCallback!("hyphenation"));
+        Assert.NotEmpty(original.TextHyphenationCallback!("hyphenation"));
+        clone.Language = "en-US";
+        original.Language = "zz";
+        Assert.NotEmpty(clone.TextHyphenationCallback!("hyphenation"));
+        clone.SetTextHyphenation(_ => new[] { 1 });
+        Assert.Equal(new[] { 1 }, clone.Clone().TextHyphenationCallback!("hyphenation"));
+    }
+
+    [Fact]
     public void HyphenationDictionary_NormalizesEntriesAndHonorsPrefixSuffixLimits() {
         var dictionary = new PdfHyphenationLexicon(new[] {
             "ty-pog-ra-phy",

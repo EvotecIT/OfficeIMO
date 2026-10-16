@@ -12,6 +12,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 /// <summary>Default text output: pair kerning, run-level show operators, compact subsets, bidi and line breaking.</summary>
 public class PdfTextQualityTests {
+    [Theory]
+    [InlineData(0xFB00, "ff")]
+    [InlineData(0xFB01, "fi")]
+    [InlineData(0xFB02, "fl")]
+    [InlineData(0xFB03, "ffi")]
+    [InlineData(0xFB04, "ffl")]
+    [InlineData(0xFB05, "st")]
+    [InlineData(0xFB06, "st")]
+    public void CanonicalLigatureGlyphTextRetainsItsSourceLetters(int scalar, string expected) {
+        var canonical = new PdfCanonicalGlyphText(new System.Collections.Generic.Dictionary<int, int> { [scalar] = 1 });
+        Assert.True(canonical.TryGet(1, out string text));
+        Assert.Equal(expected, text);
+    }
+
     [Fact]
     public void HardBreaksResolveEachParagraphDirectionIndependently() {
         const string later = "123 - abc";

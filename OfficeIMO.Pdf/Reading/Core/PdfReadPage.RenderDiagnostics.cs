@@ -1489,7 +1489,7 @@ public sealed partial class PdfReadPage {
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         string imageName,
-        PdfStream? imageStream) {
+        PdfStream? imageStream, CancellationToken cancellationToken) {
         if (image.Get<PdfNumber>("BitsPerComponent")?.Value == 16D && !ResourceResolver.CanRepresentSixteenBitColorKey(image, _objects)) {
             AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedImageId, imageName + ":16-bit-color-key");
             return;
@@ -1502,7 +1502,7 @@ public sealed partial class PdfReadPage {
             return;
         }
         string? jbig2Feature = imageStream == null ? null :
-            Filters.StreamDecoder.FindUnsupportedJbig2Feature(imageStream, _objects, _limits.MaxDecodedStreamBytes);
+            Filters.StreamDecoder.FindUnsupportedJbig2Feature(imageStream, _objects, _limits.MaxDecodedStreamBytes, cancellationToken);
         if (jbig2Feature != null) {
             AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedImageId, imageName + ":JBIG2-" + jbig2Feature);
         }
@@ -1516,7 +1516,7 @@ public sealed partial class PdfReadPage {
         string imageName,
         PageContentBudget pageContentBudget,
         PdfStream? imageStream = null) {
-        CollectImageEncodingCapabilityDiagnostic(image, diagnostics, seen, imageName, imageStream);
+        CollectImageEncodingCapabilityDiagnostic(image, diagnostics, seen, imageName, imageStream, pageContentBudget.CancellationToken);
         if (!image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
             return;
         }
@@ -1606,7 +1606,7 @@ public sealed partial class PdfReadPage {
             PdfDictionary? annotation = ResolveDictionary(annotations.Items[i]);
             if (annotation == null || IsHiddenAnnotation(annotation) || HasNoVisibleAnnotationArea(annotation)) continue;
             string subtype = annotation.Get<PdfName>("Subtype")?.Name ?? "unknown";
-            if (!TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream appearance, out bool synthesized)) {
+            if (!TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream appearance, out bool synthesized, pageContentBudget.CancellationToken)) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.AnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
                 continue;
             }

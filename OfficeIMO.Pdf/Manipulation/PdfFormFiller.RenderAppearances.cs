@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
@@ -13,7 +15,8 @@ internal static partial class PdfFormFiller {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary widget,
         PdfDictionary? acroForm,
-        out PdfStream stream) {
+        out PdfStream stream, int maximumDecodedBytes = 256 * 1024 * 1024, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         stream = null!;
         if (!IsWidget(widget) || !TryReadRect(widget, out double width, out double height) || !(width > 0D) || !(height > 0D)) return false;
 
@@ -60,23 +63,21 @@ internal static partial class PdfFormFiller {
                         var lookup = ChoiceOptionLookup.Create(objects, choiceOptions);
                         text = lookup.ResolveDisplayValue(text) ?? text;
                     }
-                    if (!TryCreateDefaultAppearanceSimpleFontResources(objects, defaultAppearance, defaultResources, null, null,
-                            out string? fontResourceName, out resources)) {
-                        resources = CreateAppearanceResources();
-                        fontResourceName = "Helv";
-                    }
-                    double fontSize = ReadWidgetAppearanceFontSize(defaultAppearance, height);
-                    // Single-line text is centred the way viewers regenerate it: baseline at half height less 0.4 em.
-                    content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(width, height, text, fontSize, style,
-                        fontResourceName: fontResourceName, singleLineBaseline: Math.Max(2D, height / 2D - fontSize * 0.4D));
+                    if (!TryBuildTransientTextAppearance(objects, defaultAppearance, defaultResources, width, height,
+                            text, style, out content, out resources, maximumDecodedBytes, cancellationToken)) return false;
                     break;
                 case "Btn":
                     if ((fieldFlags & PushButtonFlag) != 0) {
-                        content = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(width, height, selected: false, style);
+                        string caption = characteristics == null ? string.Empty : TryReadText(objects, characteristics, "CA") ?? string.Empty;
+                        style.TextAlignment = PdfFormFieldTextAlignment.Center;
+                        if (!TryBuildTransientTextAppearance(objects, defaultAppearance, defaultResources, width, height,
+                                caption, style, out content, out resources, maximumDecodedBytes, cancellationToken)) return false;
                         break;
                     }
                     string? state = TryReadName(objects, widget, "AS") ?? (value as PdfName)?.Name;
                     bool selected = state != null && !string.Equals(state, "Off", StringComparison.Ordinal);
+                    if ((fieldFlags & RadioButtonFlag) != 0 &&
+                        !TryResolveTransientRadioSelection(objects, widget, value, out selected)) return false;
                     content = (fieldFlags & RadioButtonFlag) != 0
                         ? PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(width, height, selected, style)
                         : PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(width, height, selected, style);
@@ -85,6 +86,8 @@ internal static partial class PdfFormFiller {
                     return false;
             }
         } catch (ArgumentException) {
+            return false;
+        } catch (Exception exception) when (exception is NotSupportedException || exception is IOException && exception is not PdfReadLimitException) {
             return false;
         }
 

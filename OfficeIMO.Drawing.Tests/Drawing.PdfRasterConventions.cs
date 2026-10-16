@@ -6,6 +6,29 @@ namespace OfficeIMO.Tests;
 
 public class PdfRasterConventionTests {
     [Fact]
+    public void LargeFractionalExtentsStillRoundUpToTheNextPixel() {
+        OfficeRasterScaleLimit limit = OfficeRasterScaleLimiter.Resolve(1000000000.4D, 1D, 1D, long.MaxValue);
+        Assert.Equal(1000000001, limit.PixelWidth);
+    }
+
+    [Fact]
+    public void BacktrackingClipDoesNotExposeItsBoundingRectangle() {
+        var image = new OfficeRasterImage(3, 3);
+        var canvas = new OfficeRasterCanvas(image) { PdfRasterConventions = true };
+        using (canvas.PushClipPolygon(new[] { new OfficePoint(0, 0), new OfficePoint(2, 0),
+            new OfficePoint(0, 0), new OfficePoint(0, 2) }))
+            canvas.FillRectangle(0, 0, 3, 3, OfficeColor.Red);
+        Assert.Equal(0, image.GetPixel(1, 1).A);
+    }
+
+    [Theory]
+    [InlineData("a\nb", 2)]
+    [InlineData("a\r\nb", 3)]
+    [InlineData("a\u2028b", 2)]
+    public void DisablingCjkBreaksPreservesMandatoryBoundaries(string text, int boundary) =>
+        Assert.Equal(new[] { boundary }, OfficeTextLineBreaks.GetBreakPositions(text, false));
+
+    [Fact]
     public void DuplicatePointsDoNotHideAReversingStroke() {
         var image = new OfficeRasterImage(100, 100, OfficeColor.White);
         var canvas = new OfficeRasterCanvas(image) { PdfRasterConventions = true };
