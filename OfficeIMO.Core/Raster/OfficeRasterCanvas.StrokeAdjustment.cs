@@ -86,15 +86,17 @@ public sealed partial class OfficeRasterCanvas {
     /// is not axis-aligned in device space, so the caller uses the general stroker.
     /// </summary>
     private bool TryStrokeAdjustedContours(IReadOnlyList<OfficeFlattenedPathContour> contours, double width,
-        OfficeStrokeLineCap cap, IReadOnlyList<double>? pattern, OfficeTransform transform,
+        OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, IReadOnlyList<double>? pattern, OfficeTransform transform,
         Func<double, double, OfficeColor> paint) {
-        if (!StrokeAdjustment || pattern is { Count: > 0 } || width <= 0D || !IsFinite(width)) return false;
+        if (!StrokeAdjustment || pattern is { Count: > 0 } || width <= 0D || !IsFinite(width) ||
+            cap == OfficeStrokeLineCap.Round) return false;
         double sx = CoordinateScaleX, sy = CoordinateScaleY;
         if (sx <= 0D || sy <= 0D) return false;
         var rectangles = new List<(double Left, double Top, double Right, double Bottom)>();
         foreach (OfficeFlattenedPathContour contour in contours) {
             IReadOnlyList<OfficePoint> points = contour.Points;
             int count = points.Count;
+            if (join != OfficeStrokeLineJoin.Miter && (contour.Closed || count > 2)) return false;
             if (contour.Closed && count > 1 && points[0].X == points[count - 1].X && points[0].Y == points[count - 1].Y) count--;
             int segments = contour.Closed ? count : count - 1;
             for (int index = 0; index < segments; index++) {

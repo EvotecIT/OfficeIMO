@@ -311,7 +311,7 @@ public sealed class BrowserPdfImportTests {
         Assert.Equal(1200, raster.Height);
         // Pin visual output rather than platform-dependent PNG compression.
         Assert.Equal(
-            "f695e7c619d0e60fb4d394dbbf6b4e9e577ddf676605fd93712f6f98650909fa",
+            "e6d187cace2f9e9281540cd408e8bd4e4a35aa69caf2f8c884aec2d417e472f1",
             Convert.ToHexString(SHA256.HashData(raster.GetPixels())).ToLowerInvariant());
     }
 

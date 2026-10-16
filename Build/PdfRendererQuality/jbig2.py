@@ -226,7 +226,7 @@ def mmr_region(bitmap, x, y, operator=0):
     for i in range(count):
         tag, kind, n, value = struct.unpack(endian + 'HHII', tiff[offset + 2 + i * 12: offset + 14 + i * 12])
         if kind == 3 and n == 1:
-            value &= 0xFFFF if endian == '<' else value >> 16
+            value = value & 0xFFFF if endian == '<' else value >> 16
         tags[tag] = value
     if tags.get(278, height) < height:
         raise ValueError('MMR fixture must be a single strip')

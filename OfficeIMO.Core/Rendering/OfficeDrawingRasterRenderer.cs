@@ -97,6 +97,7 @@ public static partial class OfficeDrawingRasterRenderer {
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)
             : options.ImageCodec;
+        canvas.MaximumClipRasterPixels = options.MaximumRasterPixels;
         RenderElements(canvas, drawing.Elements, scale, imageCodec, options.MaximumRasterPixels, options.CancellationToken);
 
         return image;

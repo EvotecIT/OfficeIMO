@@ -106,7 +106,7 @@ public sealed partial class OfficeRasterCanvas {
     // Renders contours into an alpha mask covering the given device bounds with the canvas's own coverage filler.
     private byte[] RasterizeClipMask(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule,
         int left, int top, int width, int height) {
-        // The mask lies within the canvas, so its transient surface is bounded by the output allocation.
+        ChargeIntermediateSurfacePixels(2L * width * height, MaximumClipRasterPixels);
         var image = new OfficeRasterImage(width, height);
         var maskCanvas = new OfficeRasterCanvas(image, font: null, fonts: null, cancellationToken: _cancellationToken);
         var shifted = new List<IReadOnlyList<OfficePoint>>(contours.Count);

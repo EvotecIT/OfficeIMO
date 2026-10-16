@@ -72,6 +72,8 @@ internal static partial class PdfTextEditor {
                     workBudget?.Charge(1L);
                     IReadOnlyList<TextSourceSegment> segments = unit.GetSourceSegments(range.Start, range.Length);
                     if (segments.Count == 0) continue;
+                    if (!includeUnsafeSpans && segments.Any(segment => !AreSearchBoundsVisible(segment.Span,
+                        GetCombinedSegmentBounds(new[] { segment }), pageHeight, allowPartial: false))) continue;
                     if (hits.Count + pageHits.Count >= maximumHits)
                         throw new InvalidOperationException("Redaction search exceeded the configured candidate limit.");
                     if (hits.Count + pageHits.Count >= limits.MaxTextSearchMatches) {

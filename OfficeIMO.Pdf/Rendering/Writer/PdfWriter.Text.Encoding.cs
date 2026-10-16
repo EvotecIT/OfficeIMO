@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
                 options.Language,
                 featureSettings,
                 textDirection);
-            if (!options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
+            if (!options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures && !OfficeUnicodeBidi.ContainsRightToLeft(text)) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);
@@ -157,7 +157,7 @@ internal static partial class PdfWriter {
                 options.Language,
                 featureSettings,
                 textDirection);
-            if (!options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
+            if (!options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures && !OfficeUnicodeBidi.ContainsRightToLeft(text)) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);

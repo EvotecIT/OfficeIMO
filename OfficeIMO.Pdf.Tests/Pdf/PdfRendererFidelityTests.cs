@@ -10,7 +10,7 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 /// <summary>Pixel-level regressions for managed-rasterizer conventions that follow the PDF imaging model.</summary>
-public sealed class PdfRendererFidelityTests {
+public sealed partial class PdfRendererFidelityTests {
     [Fact]
     public void PackedTwoBitRgbSamplesExpandToFullRange() {
         // (3,0,1) and (0,2,3) packed as 2-bit components across a byte boundary.
@@ -226,7 +226,7 @@ public sealed class PdfRendererFidelityTests {
     private static byte[] BuildPdf(string content, string resources, string mediaBox = "0 0 100 100",
         IReadOnlyList<(string Dictionary, byte[] Data)>? objects = null, string catalogEntries = "", string pageEntries = "") {
         using var pdf = new MemoryStream();
-        void Ascii(string text) => pdf.Write(Encoding.ASCII.GetBytes(text));
+        void Ascii(string text) { byte[] bytes = Encoding.ASCII.GetBytes(text); pdf.Write(bytes, 0, bytes.Length); }
         Ascii("%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R " + catalogEntries + " >>\nendobj\n");
         Ascii("2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [" + mediaBox + "] >>\nendobj\n");
         Ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources " + resources + " /Contents 4 0 R " + pageEntries + " >>\nendobj\n");
@@ -236,7 +236,7 @@ public sealed class PdfRendererFidelityTests {
                 Ascii((5 + index).ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + objects[index].Dictionary);
                 if (objects[index].Data.Length > 0) {
                     Ascii("\nstream\n");
-                    pdf.Write(objects[index].Data);
+                    pdf.Write(objects[index].Data, 0, objects[index].Data.Length);
                     Ascii("\nendstream");
                 }
                 Ascii("\nendobj\n");

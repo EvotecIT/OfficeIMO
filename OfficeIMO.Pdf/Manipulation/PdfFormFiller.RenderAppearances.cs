@@ -19,12 +19,14 @@ internal static partial class PdfFormFiller {
 
         string? fieldType = null, defaultAppearance = null;
         PdfObject? value = null;
+        PdfArray? choiceOptions = null;
         PdfDictionary? defaultResources = null;
         int? flags = null, quadding = null, maxLength = null;
         var visited = new HashSet<PdfDictionary>();
         PdfDictionary? field = widget;
         for (int depth = 0; field != null && depth < MaximumFieldInheritanceDepth && visited.Add(field); depth++) {
             fieldType ??= TryReadName(objects, field, "FT");
+            choiceOptions ??= TryReadChoiceOptions(objects, field);
             defaultAppearance ??= TryReadText(objects, field, "DA");
             defaultResources ??= TryReadDefaultResources(objects, field);
             if (value == null && field.Items.TryGetValue("V", out PdfObject? valueObject)) value = ResolveObject(objects, valueObject);
@@ -54,6 +56,10 @@ internal static partial class PdfFormFiller {
                 case "Tx":
                 case "Ch":
                     string text = ReadDisplayedFieldText(objects, value);
+                    if (fieldType == "Ch" && choiceOptions != null) {
+                        var lookup = ChoiceOptionLookup.Create(objects, choiceOptions);
+                        text = string.Join("\n", text.Split('\n').Select(item => lookup.ResolveDisplayValue(item) ?? item));
+                    }
                     if (!TryCreateDefaultAppearanceSimpleFontResources(objects, defaultAppearance, defaultResources, null, null,
                             out string? fontResourceName, out resources)) {
                         resources = CreateAppearanceResources();

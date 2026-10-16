@@ -484,7 +484,7 @@ internal static partial class ResourceResolver {
             } else if (resolvedEncoding is PdfDictionary encodingDict) {
                 hasDeclaredEncoding = encodingDict.Get<PdfName>("BaseEncoding") is not null;
                 encoding = encodingDict.Get<PdfName>("BaseEncoding")?.Name ?? encoding;
-                differences = BuildDifferencesMap(encodingDict.Items.TryGetValue("Differences", out var diffObj) ? diffObj : null, objects);
+                differences = BuildDifferencesMap(encodingDict.Items.TryGetValue("Differences", out var diffObj) ? diffObj : null, objects, encoding);
             }
         }
 
@@ -821,7 +821,7 @@ internal static partial class ResourceResolver {
         return baseFont;
     }
 
-    private static Dictionary<int, string>? BuildDifferencesMap(PdfObject? differencesObj, Dictionary<int, PdfIndirectObject> objects) {
+    private static Dictionary<int, string>? BuildDifferencesMap(PdfObject? differencesObj, Dictionary<int, PdfIndirectObject> objects, string encoding) {
         var differences = ResolveArray(differencesObj, objects);
         if (differences is null) return null;
 
@@ -838,7 +838,8 @@ internal static partial class ResourceResolver {
             }
 
             if (ResolveObject(item, objects) is PdfName glyphName &&
-                TryDecodeGlyphName(glyphName.Name, out string? value)) {
+                (TryDecodeGlyphName(glyphName.Name, out string? value) ||
+                 encoding == "ZapfDingbatsEncoding" && TryDecodeDingbatGlyphName(glyphName.Name, out value))) {
                 map[code] = value!;
             }
 
@@ -846,6 +847,11 @@ internal static partial class ResourceResolver {
         }
 
         return map.Count == 0 ? null : map;
+    }
+
+    private static bool TryDecodeDingbatGlyphName(string glyphName, out string? value) {
+        value = PdfFontEncodingNames.TryGetSymbolicUnicode(glyphName, out int scalar) ? char.ConvertFromUtf32(scalar) : null;
+        return value != null;
     }
 
     internal static bool TryDecodeStandardGlyphName(string glyphName, out string? value) => TryDecodeGlyphName(glyphName, out value);
@@ -1037,7 +1043,7 @@ internal static partial class ResourceResolver {
             case "ffl": value = "ffl"; return true;
             default:
                 // Symbol and ZapfDingbats glyph names (Greek, mathematical and dingbat names).
-                if (PdfFontEncodingNames.TryGetSymbolicUnicode(glyphName, out int symbolic)) {
+                if (PdfFontEncodingNames.TryGetSymbolUnicode(glyphName, out int symbolic)) {
                     value = char.ConvertFromUtf32(symbolic);
                     return true;
                 }

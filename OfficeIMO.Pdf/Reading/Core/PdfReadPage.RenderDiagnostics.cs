@@ -1490,6 +1490,10 @@ public sealed partial class PdfReadPage {
         HashSet<string> seen,
         string imageName,
         PdfStream? imageStream) {
+        if (image.Get<PdfNumber>("BitsPerComponent")?.Value == 16D && !ResourceResolver.CanRepresentSixteenBitColorKey(image, _objects)) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedImageId, imageName + ":16-bit-color-key");
+            return;
+        }
         List<string> unsupportedFilters = Filters.StreamDecoder.GetUnsupportedFilters(image, _objects);
         // DCT and JPEG 2000 are image codecs rather than stream filters, and Crypt is resolved by decryption.
         unsupportedFilters.RemoveAll(static name => name is "DCTDecode" or "DCT" or "JPXDecode" or "Crypt");

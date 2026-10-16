@@ -287,7 +287,7 @@ internal static partial class PdfWriter {
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
                     string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
-                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds()) : cffFontProgram.FontName;
+                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds(), fontData) : cffFontProgram.FontName;
                     string fontFileExtraEntries = "/Subtype /" + compactFontFile.FontFileSubtype;
                     int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
@@ -330,7 +330,7 @@ internal static partial class PdfWriter {
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "named-font:" + pendingFont.Font.FaceKey, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
                     string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
-                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds()) : cffFontProgram.FontName;
+                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds(), fontData) : cffFontProgram.FontName;
                     string fontFileExtraEntries = "/Subtype /" + compactFontFile.FontFileSubtype;
                     int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)

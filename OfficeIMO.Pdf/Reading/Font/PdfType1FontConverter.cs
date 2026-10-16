@@ -477,6 +477,7 @@ internal static class PdfType1FontConverter {
                 case 17: Push(_postScriptStack.Count > 0 ? _postScriptStack.Pop() : 0D); return false; // pop
                 case 33: { // setcurrentpoint
                     double x = Arg(0), y = Arg(1);
+                    _stack.Clear();
                     _x = x; _y = y;
                     return false;
                 }

@@ -498,6 +498,8 @@ internal static class PdfFontEncodingNames {
     };
 
     /// <summary>Returns the Unicode scalar of a Symbol or ZapfDingbats glyph name that the standard glyph list lacks.</summary>
+    internal static bool TryGetSymbolUnicode(string glyphName, out int scalar) => SymbolUnicode.TryGetValue(glyphName, out scalar);
+
     internal static bool TryGetSymbolicUnicode(string glyphName, out int scalar) =>
         SymbolUnicode.TryGetValue(glyphName, out scalar) || ZapfDingbatsUnicode.TryGetValue(glyphName, out scalar);
 }

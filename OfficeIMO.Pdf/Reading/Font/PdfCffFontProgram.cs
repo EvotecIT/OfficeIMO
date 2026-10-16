@@ -273,7 +273,18 @@ internal sealed class PdfCffFontProgram {
             cids = charset;
         } else {
             glyphNames = new string[glyphCount];
-            for (int glyph = 0; glyph < glyphCount; glyph++) glyphNames[glyph] = ResolveString(strings, charset[glyph]);
+            var decodedNames = new Dictionary<int, string>();
+            long decodedCharacters = 0;
+            for (int glyph = 0; glyph < glyphCount; glyph++) {
+                int sid = charset[glyph];
+                if (!decodedNames.TryGetValue(sid, out string? name)) {
+                    name = ResolveString(strings, sid);
+                    decodedCharacters += name.Length;
+                    if (decodedCharacters > 1024 * 1024) throw new InvalidDataException("CFF glyph names exceed the decoded-name budget.");
+                    decodedNames.Add(sid, name);
+                }
+                glyphNames[glyph] = name;
+            }
         }
         int[] builtinEncoding = new int[256];
         if (!isCidKeyed) ReadEncoding(data, top, charset, glyphNames!, builtinEncoding);
@@ -325,6 +336,7 @@ internal sealed class PdfCffFontProgram {
         int index = sid - PdfCffStandardStrings.Count;
         if (index >= strings.Count) return "sid" + sid.ToString(System.Globalization.CultureInfo.InvariantCulture);
         CffSlice slice = strings[index];
+        if (slice.Length > 1024 * 1024) throw new InvalidDataException("CFF glyph name exceeds the decoded-name budget.");
         return System.Text.Encoding.ASCII.GetString(slice.Data, slice.Offset, slice.Length);
     }
 

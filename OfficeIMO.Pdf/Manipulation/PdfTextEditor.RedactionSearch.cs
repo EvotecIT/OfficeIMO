@@ -123,7 +123,7 @@ internal static partial class PdfTextEditor {
         bool CanJoin(PdfRedactionArea previous, int page, double left, double bottom, double right, double top) =>
             previous.PageNumber == page && Math.Abs(previous.Y - bottom) < 0.0000001D &&
             Math.Abs(previous.Top - top) < 0.0000001D &&
-            (Math.Abs(previous.Right - left) < 0.0000001D || Math.Abs(right - previous.X) < 0.0000001D);
+            left <= previous.Right + 0.0000001D && right >= previous.X - 0.0000001D;
 
         bool IntersectsAreas(IEnumerable<PdfRedactionArea> candidates, PdfTextSpanBounds bounds) {
             foreach (PdfRedactionArea area in candidates) {

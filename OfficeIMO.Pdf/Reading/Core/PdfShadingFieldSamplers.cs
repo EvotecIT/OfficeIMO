@@ -4,6 +4,7 @@ namespace OfficeIMO.Pdf;
 internal interface IPdfShadingFieldSampler {
     /// <summary>Bounded work units charged for one sample.</summary>
     int EvaluationCost { get; }
+    int GetEvaluationCost(double x, double y);
 
     /// <summary>Writes the colour components at a point; returns false where the shading paints nothing.</summary>
     bool TrySampleComponents(double x, double y, double[] input, double[] components);
@@ -52,6 +53,7 @@ internal sealed class PdfAxialShadingSampler : IPdfShadingFieldSampler {
     }
 
     public int EvaluationCost => _functions.EvaluationCost;
+    public int GetEvaluationCost(double x, double y) => EvaluationCost;
 
     public double[]? PaintBounds => null;
 
@@ -75,19 +77,25 @@ internal sealed class PdfAxialShadingSampler : IPdfShadingFieldSampler {
 /// </summary>
 internal sealed class PdfRadialShadingSampler : IPdfShadingFieldSampler {
     private readonly double _x0, _y0, _r0, _cdx, _cdy, _dr, _a;
+    private readonly bool _pointEnd;
     private readonly bool _extendStart, _extendEnd;
     private readonly PdfShadingColorFunctions _functions;
 
     internal PdfRadialShadingSampler(double x0, double y0, double r0, double x1, double y1, double r1,
         bool extendStart, bool extendEnd, PdfShadingColorFunctions functions) {
-        _x0 = x0; _y0 = y0; _r0 = r0;
-        _cdx = x1 - x0; _cdy = y1 - y0; _dr = r1 - r0;
+        // Solve from a zero-radius end to avoid subtracting almost equal large squared radii.
+        _pointEnd = r1 == 0D;
+        _x0 = _pointEnd ? x1 : x0; _y0 = _pointEnd ? y1 : y0; _r0 = _pointEnd ? r1 : r0;
+        _cdx = (x1 - x0) * (_pointEnd ? -1D : 1D);
+        _cdy = (y1 - y0) * (_pointEnd ? -1D : 1D);
+        _dr = (r1 - r0) * (_pointEnd ? -1D : 1D);
         _a = _cdx * _cdx + _cdy * _cdy - _dr * _dr;
         _extendStart = extendStart; _extendEnd = extendEnd;
         _functions = functions;
     }
 
     public int EvaluationCost => _functions.EvaluationCost;
+    public int GetEvaluationCost(double x, double y) => EvaluationCost;
 
     public double[]? PaintBounds => null;
 
@@ -96,7 +104,7 @@ internal sealed class PdfRadialShadingSampler : IPdfShadingFieldSampler {
         double b = px * _cdx + py * _cdy + _r0 * _dr;
         double c = px * px + py * py - _r0 * _r0;
         double s;
-        if (Math.Abs(_a) < 1e-12D * Math.Max(1D, Math.Abs(b))) {
+        if (_a == 0D) {
             if (b == 0D) return false;
             s = c / (2D * b);
             if (!IsValid(s)) return false;
@@ -104,18 +112,22 @@ internal sealed class PdfRadialShadingSampler : IPdfShadingFieldSampler {
             double discriminant = b * b - _a * c;
             if (discriminant < 0D) return false;
             double root = Math.Sqrt(discriminant);
-            double high = (b + root) / _a, low = (b - root) / _a;
+            double q = b + (b >= 0D ? root : -root);
+            double high = q / _a, low = q == 0D ? 0D : c / q;
             if (high < low) (high, low) = (low, high);
-            if (IsValid(high)) s = high;
-            else if (IsValid(low)) s = low;
+            double preferred = _pointEnd ? low : high, other = _pointEnd ? high : low;
+            if (IsValid(preferred)) s = preferred;
+            else if (IsValid(other)) s = other;
             else return false;
         }
+        if (_pointEnd) s = 1D - s;
         s = Math.Max(0D, Math.Min(1D, s));
         return _functions.TryEvaluate(_functions.T0 + s * (_functions.T1 - _functions.T0), input, components);
     }
 
     private bool IsValid(double s) =>
-        !double.IsNaN(s) && _r0 + s * _dr >= 0D && (s >= 0D || _extendStart) && (s <= 1D || _extendEnd);
+        !double.IsNaN(s) && _r0 + s * _dr >= 0D &&
+        (s >= 0D || (_pointEnd ? _extendEnd : _extendStart)) && (s <= 1D || (_pointEnd ? _extendStart : _extendEnd));
 }
 
 /// <summary>
@@ -179,6 +191,13 @@ internal sealed class PdfMeshShadingSampler : IPdfShadingFieldSampler {
     public double[]? PaintBounds { get; }
 
     internal int TriangleCount => _triangles.Length / 3;
+
+    public int GetEvaluationCost(double x, double y) {
+        int column = (int)Math.Floor((x - _left) / _cellWidth), row = (int)Math.Floor((y - _top) / _cellHeight);
+        if (column < 0 || row < 0 || column > _columns || row > _rows) return EvaluationCost;
+        int candidates = _cells[Math.Min(row, _rows - 1) * _columns + Math.Min(column, _columns - 1)].Length;
+        return (int)Math.Min(int.MaxValue, (long)EvaluationCost + candidates);
+    }
 
     public bool TrySampleComponents(double x, double y, double[] input, double[] components) {
         int column = (int)Math.Floor((x - _left) / _cellWidth), row = (int)Math.Floor((y - _top) / _cellHeight);

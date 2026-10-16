@@ -127,6 +127,8 @@ public sealed partial class PdfReadPage {
                 } else if (flag == 0) {
                     va = vertex;
                     pending = 2;
+                } else if (va < 0 || vb < 0 || vc < 0) {
+                    return false;
                 } else if (flag == 1) {
                     va = vb; vb = vc; vc = vertex;
                     AddTriangle(va, vb, vc);
@@ -221,14 +223,17 @@ public sealed partial class PdfReadPage {
                 px[2, 2] = CoonsInterior(px, 3, 3, 3, 2, 2, 3, 3, 0, 0, 3, 0, 2, 2, 0, 0, 0);
                 py[2, 2] = CoonsInterior(py, 3, 3, 3, 2, 2, 3, 3, 0, 0, 3, 0, 2, 2, 0, 0, 0);
             }
+            // Every patch needs at least a 3x3 vertex grid and eight triangles. Bound retention before cloning.
+            if (patches.Count >= Math.Min(MaximumMeshVertices / 9, MaximumMeshTriangles / 8))
+                throw new InvalidDataException("The mesh shading has too many patches.");
             patches.Add(((double[,])px.Clone(), (double[,])py.Clone(), new[] { colors[0], colors[1], colors[2], colors[3] }));
-            if (patches.Count * 2 > MaximumMeshTriangles) throw new InvalidDataException("The mesh shading has too many patches.");
             previousX = (double[,])px.Clone();
             previousY = (double[,])py.Clone();
             previousColors = new[] { colors[0], colors[1], colors[2], colors[3] };
         }
         if (patches.Count == 0) return;
-        int subdivision = Math.Max(2, Math.Min(MaximumPatchSubdivision, (int)Math.Sqrt(MaximumMeshTriangles / (2D * patches.Count))));
+        int subdivision = Math.Max(2, Math.Min(MaximumPatchSubdivision, Math.Min(
+            (int)Math.Sqrt(MaximumMeshTriangles / (2D * patches.Count)), (int)Math.Sqrt(MaximumMeshVertices / (double)patches.Count) - 1)));
         var bu = new double[4];
         var bv = new double[4];
         foreach (var patch in patches) {

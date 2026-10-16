@@ -19,10 +19,10 @@ public class DrawingUnicodeConformanceTests {
         int cases = 0;
         foreach (string line in DataLines("BidiCharacterTest.sample.txt")) {
             string[] fields = line.Split(';');
-            int[] scalars = fields[0].Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(static hex => Convert.ToInt32(hex, 16)).ToArray();
+            int[] scalars = fields[0].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(static hex => Convert.ToInt32(hex, 16)).ToArray();
             int direction = int.Parse(fields[1]);
-            string[] levels = fields[3].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            int[] order = fields[4].Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+            string[] levels = fields[3].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            int[] order = fields[4].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
 
             OfficeUnicodeBidi.Paragraph paragraph = OfficeUnicodeBidi.Resolve(scalars, direction == 2 ? null : direction);
             Assert.Equal(int.Parse(fields[2]), paragraph.ParagraphLevel);
@@ -44,7 +44,7 @@ public class DrawingUnicodeConformanceTests {
         foreach (string line in DataLines("LineBreakTest.sample.txt")) {
             var scalars = new List<int>();
             var breaks = new List<bool>();
-            foreach (string token in line.Split(' ', StringSplitOptions.RemoveEmptyEntries)) {
+            foreach (string token in line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 if (token == "×") breaks.Add(false);
                 else if (token == "÷") breaks.Add(true);
                 else scalars.Add(Convert.ToInt32(token, 16));

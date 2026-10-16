@@ -47,16 +47,30 @@ internal static partial class ResourceResolver {
             var scaled = new PdfArray();
             for (int index = 0; index < colorKey.Items.Count; index++) {
                 if (ResolveObject(colorKey.Items[index], objects) is not PdfNumber number || number.Value < 0 || number.Value > maximumSample) return false;
-                double value = number.Value * 255D / maximumSample;
-                scaled.Items.Add(new PdfNumber(index % 2 == 0 ? Math.Floor(value) : Math.Ceiling(value)));
+                if (number.Value != Math.Floor(number.Value)) return false;
+                int quantized = (int)Math.Floor(number.Value * 255D / maximumSample + 0.5D);
+                if (bitsPerComponent == 16 && !IsLosslessColorKeyEndpoint(number.Value, index)) return false;
+                scaled.Items.Add(new PdfNumber(quantized));
             }
             dictionary.Items["Mask"] = scaled;
         }
 
         if (ResolveStream(stream.Dictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject) ? softMaskObject : null, objects) is PdfStream softMask) {
             if (!TryNormalizeSoftMask(softMask, width, height, objects, maximumBytes, out byte[] alpha, cancellationToken)) return false;
-            if (TryReadMatte(softMask, colorCount, objects, out double[]? matte) && matte != null &&
-                !stream.Dictionary.Items.ContainsKey("Decode")) {
+            if (TryReadMatte(softMask, colorCount, objects, out double[]? matte) && matte != null) {
+                if (!PdfImageDecodeTransform.TryCreateColor(stream.Dictionary, colorCount, objects, out PdfImageDecodeTransform? decode)) return false;
+                // Decode before un-premultiplying, then remove Decode to avoid applying it twice.
+                if (decode != null) {
+                    for (int component = 0; component < colorCount; component++) {
+                        double low = decode.TransformColorComponentValue(0, component), high = decode.TransformColorComponentValue(255, component);
+                        if (low < 0D || low > 1D || high < 0D || high > 1D) return false;
+                    }
+                    for (int index = 0; index < samples.Length; index++) {
+                        if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                        samples[index] = decode.TransformColorComponent(samples[index], index % colorCount);
+                    }
+                    dictionary.Items.Remove("Decode");
+                }
                 UnpremultiplyMatte(samples, alpha, colorCount, matte);
             }
             var maskDictionary = new PdfDictionary();
@@ -70,6 +84,23 @@ internal static partial class ResourceResolver {
         }
         normalized = new PdfStream(dictionary, samples);
         return true;
+    }
+
+    internal static bool CanRepresentSixteenBitColorKey(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
+        if (!dictionary.Items.TryGetValue("Mask", out PdfObject? mask) || ResolveObject(mask, objects) is not PdfArray key) return true;
+        for (int index = 0; index < key.Items.Count; index++) {
+            if (ResolveObject(key.Items[index], objects) is not PdfNumber number || !IsLosslessColorKeyEndpoint(number.Value, index)) return false;
+        }
+        return true;
+    }
+
+    private static bool IsLosslessColorKeyEndpoint(double value, int index) {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D || value > 65535D || value != Math.Floor(value)) return false;
+        int quantized = (int)Math.Floor(value * 255D / 65535D + 0.5D);
+        double boundary = index % 2 == 0
+            ? Math.Max(0D, Math.Ceiling((quantized * 65535D - 32767D) / 255D))
+            : Math.Min(65535D, Math.Ceiling(((quantized + 1) * 65535D - 32767D) / 255D) - 1D);
+        return value == boundary;
     }
 
     private static bool TryUnpackSamples(byte[] raw, int width, int height, int colorCount, int bitsPerComponent,
@@ -133,12 +164,24 @@ internal static partial class ResourceResolver {
         }
         if ((long)width * height > int.MaxValue) return false;
         alpha = new byte[width * height];
+        bool interpolate = ResolveObject(softMask.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolation) ? interpolation : null, objects)
+            is PdfBoolean { Value: true };
         for (int row = 0; row < height; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             int sourceRow = Math.Min(maskHeight - 1, (int)((row + 0.5D) * maskHeight / height));
             for (int column = 0; column < width; column++) {
                 int sourceColumn = Math.Min(maskWidth - 1, (int)((column + 0.5D) * maskWidth / width));
-                alpha[row * width + column] = maskSamples[sourceRow * maskWidth + sourceColumn];
+                if (!interpolate) {
+                    alpha[row * width + column] = maskSamples[sourceRow * maskWidth + sourceColumn];
+                    continue;
+                }
+                double x = Math.Max(0D, Math.Min(maskWidth - 1D, (column + 0.5D) * maskWidth / width - 0.5D));
+                double y = Math.Max(0D, Math.Min(maskHeight - 1D, (row + 0.5D) * maskHeight / height - 0.5D));
+                int x0 = (int)x, y0 = (int)y, x1 = Math.Min(x0 + 1, maskWidth - 1), y1 = Math.Min(y0 + 1, maskHeight - 1);
+                double fx = x - x0, fy = y - y0;
+                double top = maskSamples[y0 * maskWidth + x0] * (1D - fx) + maskSamples[y0 * maskWidth + x1] * fx;
+                double bottom = maskSamples[y1 * maskWidth + x0] * (1D - fx) + maskSamples[y1 * maskWidth + x1] * fx;
+                alpha[row * width + column] = (byte)Math.Round(top * (1D - fy) + bottom * fy);
             }
         }
         return true;

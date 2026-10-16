@@ -3,6 +3,16 @@ using System.Threading;
 namespace OfficeIMO.Pdf.Filters;
 
 internal static partial class StreamDecoder {
+    [ThreadStatic] private static HashSet<PdfStream>? _activeJbig2Globals;
+
+    private static byte[] DecodeJbig2Globals(PdfStream stream, Dictionary<int, PdfIndirectObject>? objects,
+        int maximumBytes, CancellationToken cancellationToken) {
+        HashSet<PdfStream> active = _activeJbig2Globals ??= new HashSet<PdfStream>();
+        if (active.Count >= 32 || !active.Add(stream)) throw new InvalidDataException("Cyclic or excessively nested JBIG2Globals.");
+        try { return Decode(stream, objects, maximumBytes, cancellationToken); }
+        finally { active.Remove(stream); }
+    }
+
     private static byte[] DecodeJbig2(PdfDictionary dictionary, int index, byte[] data,
         Dictionary<int, PdfIndirectObject>? objects, int maximumBytes, CancellationToken cancellationToken) {
         PdfDictionary parameters = GetDecodeParms(dictionary, index, objects, cancellationToken) ?? new PdfDictionary();
@@ -11,7 +21,7 @@ internal static partial class StreamDecoder {
             if (ResolveObject(globalsObject, objects, cancellationToken) is not PdfStream globalsStream) {
                 throw new InvalidDataException("JBIG2Globals must be a stream.");
             }
-            globals = Decode(globalsStream, objects, maximumBytes, cancellationToken);
+            globals = DecodeJbig2Globals(globalsStream, objects, maximumBytes, cancellationToken);
         }
         int width = ReadIntegerParameter(dictionary, "Width", 0, objects, cancellationToken);
         int height = ReadIntegerParameter(dictionary, "Height", 0, objects, cancellationToken);
@@ -30,7 +40,7 @@ internal static partial class StreamDecoder {
             if (ResolveObject(globalsObject, objects, CancellationToken.None) is not PdfStream globalsStream) return "malformed";
             byte[] globals;
             try {
-                globals = Decode(globalsStream, objects, maximumBytes, CancellationToken.None);
+                globals = DecodeJbig2Globals(globalsStream, objects, maximumBytes, CancellationToken.None);
             } catch (Exception exception) when (exception is NotSupportedException || exception is IOException && exception is not PdfReadLimitException) {
                 return "malformed";
             }

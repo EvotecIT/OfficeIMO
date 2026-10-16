@@ -66,6 +66,7 @@ internal static partial class ResourceResolver {
         int width = (int)(dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
         int height = (int)(dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         if (width <= 0 || height <= 0) return false;
+        if (bitsPerComponent == 16 && !CanRepresentSixteenBitColorKey(dictionary, objects)) return false;
 
         bool isDctFilterChain = IsDctFilterChain(dictionary, objects);
         OfficeIccRenderingIntent renderingIntent = PdfRenderingIntentResolver.Read(
