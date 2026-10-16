@@ -19,7 +19,7 @@ public static partial class OfficeConditionalIconRenderer {
             throw new ArgumentNullException(nameof(canvas));
         }
 
-        if (size <= 0D) {
+        if (size <= 0D || kind == OfficeConditionalIconKind.None) {
             return;
         }
 
@@ -88,7 +88,7 @@ public static partial class OfficeConditionalIconRenderer {
             throw new ArgumentNullException(nameof(builder));
         }
 
-        if (size <= 0D) {
+        if (size <= 0D || kind == OfficeConditionalIconKind.None) {
             return builder;
         }
 

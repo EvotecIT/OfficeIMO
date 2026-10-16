@@ -184,18 +184,21 @@ for configuration and destination-preservation behavior.
 `ExcelChart.TryGetSnapshot(...)` reads bubble series from worksheet ranges,
 numeric literals, and numeric caches. Each series exposes aligned `XValues`,
 `Values`, and `BubbleSizes`. Unsupported or inconsistent triples fail snapshot
-reading. Excel image and PDF exports use the existing scatter projection and
-report that bubble sizes are not encoded visually.
+reading. PNG export uses its existing scatter projection without size encoding;
+the PDF adapter reports bubble charts as unsupported.
 
 ## Excel worksheet canvas drawings and print layout
 
 Worksheet-canvas PDF export includes supported drawing shapes and text boxes.
 `UseWorksheetImages` controls these objects along with worksheet pictures.
+Visual snapshots retain `OfficeConditionalIconKind.None` for custom `NoIcons`
+rules so value suppression survives without painted artwork or reserved icon space.
 Feature preflight accepts renderable shapes; unsupported objects and drawing
 hyperlinks remain reported. The flow-table profile reports omitted shapes.
 
 Fit-to-page planning includes retained drawing extents before choosing page
 breaks. Wide banners can therefore reduce the print scale and page count.
+Drawing text sizes retain their authored point units in both PDF and image output.
 Horizontal and vertical print centering apply within print margins, including
 page-aware PNG/SVG export with `SplitByManualPageBreaks = true`. Ordinary range
 and worksheet images remain cropped to the selected cells.

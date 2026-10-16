@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ? new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>()
                 : new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>(style.CellPaddings);
             foreach (var entry in data.ConditionalFills.Icons) {
+                if (entry.Value.Kind == OfficeConditionalIconKind.None) continue;
                 var key = entry.Key;
                 if (!TryGetWorksheetConditionalIconBounds(data, columnWidths, rowHeights, key.Row, key.Column, out var cell)) continue;
                 var bounds = OfficeConditionalIconRenderer.GetCellBounds(cell.Width / 0.75D, cell.Height / 0.75D, 0.75D * scale);
@@ -28,6 +29,7 @@ namespace OfficeIMO.Excel.Pdf {
             if (data.ConditionalFills == null) return;
             var drawings = new Dictionary<OfficeConditionalIconKind, OfficeDrawing>();
             foreach (var entry in data.ConditionalFills.Icons) {
+                if (entry.Value.Kind == OfficeConditionalIconKind.None) continue;
                 if (!TryGetWorksheetConditionalIconBounds(data, columnWidths, rowHeights, entry.Key.Row, entry.Key.Column, out var cell)) continue;
                 var bounds = OfficeConditionalIconRenderer.GetCellBounds(cell.Width / 0.75D, cell.Height / 0.75D, 0.75D * scale);
                 if (bounds.Size <= 0D) continue;

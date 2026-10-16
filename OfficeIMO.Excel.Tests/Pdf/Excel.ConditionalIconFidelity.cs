@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
@@ -73,8 +74,11 @@ public sealed class ExcelConditionalIconFidelityTests {
         }
     }
 
-    [Fact]
-    public void ImportedCustomNoIconsAndNumericThresholds_AgreeInPdfAndPng() {
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    public void ImportedCustomNoIconsAndNumericThresholds_AgreeInPdfAndPng(bool showValue, bool allNoIcons) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             ExcelSheet sheet = document.AddWorksheet("Custom");
@@ -83,7 +87,7 @@ public sealed class ExcelConditionalIconFidelityTests {
             sheet.CellValue(3, 1, 1);
             sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                 Source = ExcelConditionalFormattingSource.Office2010Extension,
-                Range = "A1:A3", Type = "IconSet", IconSet = "ThreeSymbols2", IconSetCustom = true,
+                Range = "A1:A3", Type = "IconSet", IconSet = "ThreeSymbols2", IconSetCustom = true, IconSetShowValue = showValue, Priority = 1,
                 IconSetThresholds = new[] {
                     new ExcelConditionalIconSetThreshold { Type = "Percent", Value = "0" },
                     new ExcelConditionalIconSetThreshold { Type = "Number", Value = "0" },
@@ -91,20 +95,48 @@ public sealed class ExcelConditionalIconFidelityTests {
                 },
                 CustomIcons = Enumerable.Range(0, 3).Select(index => new ExcelConditionalFormatIcon { IconSet = "ThreeSymbols2", IconId = (uint)index }).ToArray()
             });
-            // Producer-shaped x14 substitutions used by the audited workbook; authoring NoIcons is separate.
-            foreach (var icon in sheet.WorksheetPart.Worksheet.Descendants<X14.ConditionalFormattingIcon>().Take(2))
-                icon.SetAttribute(new OpenXmlAttribute("iconSet", null, "NoIcons"));
+            // A lower-priority icon set must not paint through a higher-priority NoIcons rule.
+            sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeArrows, showValue: true, reverseIconOrder: false);
             document.Save();
         }
-        using var loaded = ExcelDocument.Load(new MemoryStream(stream.ToArray()));
+        // Patch the saved package with producer-shaped records. Library save lifecycle
+        // normalization must not replace these imported substitutions or priorities.
+        using var producerBytes = new MemoryStream();
+        byte[] original = stream.ToArray();
+        producerBytes.Write(original, 0, original.Length);
+        producerBytes.Position = 0;
+        using (var producer = SpreadsheetDocument.Open(producerBytes, true)) {
+            var worksheet = producer.WorkbookPart!.WorksheetParts.Single().Worksheet;
+            foreach (var lower in worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormattingRule>()) lower.Priority = 2;
+            foreach (var higher in worksheet.Descendants<X14.ConditionalFormattingRule>()) higher.Priority = 1;
+            foreach (var icon in worksheet.Descendants<X14.ConditionalFormattingIcon>().Take(allNoIcons ? 3 : 2))
+                icon.SetAttribute(new OpenXmlAttribute("iconSet", string.Empty, "NoIcons"));
+            worksheet.Save();
+        }
+        using var loaded = ExcelDocument.Load(new MemoryStream(producerBytes.ToArray()));
         ExcelSheet imported = loaded.Sheets.Single();
         var snapshot = imported.Range("A1:A3").CreateVisualSnapshot();
-        var selected = Assert.Single(snapshot.ConditionalIcons);
-        Assert.Equal(3, selected.Row);
-        Assert.Equal(OfficeConditionalIconKind.GreenCheck, selected.Kind);
+        var visible = snapshot.ConditionalIcons.Where(icon => icon.Kind != OfficeConditionalIconKind.None).ToArray();
+        Assert.Equal(allNoIcons ? 3 : 2, snapshot.ConditionalIcons.Count(icon => icon.Kind == OfficeConditionalIconKind.None));
+        if (allNoIcons) Assert.Empty(visible);
+        else {
+            var selected = Assert.Single(visible);
+            Assert.Equal(3, selected.Row);
+            Assert.Equal(OfficeConditionalIconKind.GreenCheck, selected.Kind);
+        }
+        string svg = imported.Range("A1:A3").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+        if (!showValue) {
+            Assert.DoesNotContain(">-1<", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(">0<", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(">1<", svg, StringComparison.Ordinal);
+        }
         byte[] pdf = loaded.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 });
         Assert.True(OfficePngReader.TryDecode(PdfCore.PdfPageImageRenderer.RenderPageAsPng(pdf, scale: 2D), out var image));
-        Assert.True(FindColorBounds(image!, 2).Count > 0);
+        if (allNoIcons) {
+            Assert.Equal(0, FindColorBounds(image!, 2).Count);
+            using var read = PdfPigDocument.Open(pdf);
+            Assert.Empty(read.GetPages().SelectMany(page => page.Letters));
+        } else Assert.True(FindColorBounds(image!, 2).Count > 0);
         Assert.Equal(0, FindColorBounds(image!, 0).Count);
         Assert.Equal(0, FindColorBounds(image!, 1).Count);
     }

@@ -63,6 +63,9 @@ public partial class Excel {
                 row: 1, column: 4, widthPixels: 320, heightPixels: 180, title: "Unsupported Bubble Chart");
 
             ExcelChart chart = Assert.Single(sheet.Charts);
+            // Truncated producer data must remain an unreadable-chart diagnostic.
+            document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().DrawingsPart!.ChartParts.Single()
+                .ChartSpace.Descendants<DocumentFormat.OpenXml.Drawing.Charts.BubbleSize>().Single().Remove();
             Assert.False(chart.TryGetSnapshot(out _));
 
             document.Save();

@@ -4,6 +4,9 @@ namespace OfficeIMO.Drawing;
 /// Shared dependency-free icon shapes for conditional-formatting and table-style indicators.
 /// </summary>
 public enum OfficeConditionalIconKind {
+    /// <summary>No icon artwork; value visibility remains a separate formatting choice.</summary>
+    None = -1,
+
     /// <summary>Green upward arrow.</summary>
     GreenUpArrow = 0,
 

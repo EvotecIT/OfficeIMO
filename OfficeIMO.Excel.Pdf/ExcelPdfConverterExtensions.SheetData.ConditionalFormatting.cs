@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel.Pdf {
                     var key = (candidate.Row, candidate.Column);
                     // A higher-priority NoIcons substitution also replaces a lower-priority icon.
                     icons.Remove(key);
-                    if (kind.HasValue) icons[key] = new ConditionalIconCell(kind.Value, rule.IconSetShowValue);
+                    icons[key] = new ConditionalIconCell(kind ?? OfficeConditionalIconKind.None, rule.IconSetShowValue);
                     if (rule.IconSetShowValue) hiddenValues.Remove(key);
                     else hiddenValues.Add(key);
                 }

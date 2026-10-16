@@ -1043,7 +1043,7 @@ namespace OfficeIMO.Tests {
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic);
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline);
                 Assert.Contains("font-family=\"Aptos\"", svgText, StringComparison.Ordinal);
-                Assert.Contains("font-size=\"18\"", svgText, StringComparison.Ordinal);
+                Assert.Contains("font-size=\"24\"", svgText, StringComparison.Ordinal);
                 Assert.Contains("font-weight=\"700\"", svgText, StringComparison.Ordinal);
                 Assert.Contains("font-style=\"italic\"", svgText, StringComparison.Ordinal);
                 Assert.Contains("text-decoration=\"underline\"", svgText, StringComparison.Ordinal);

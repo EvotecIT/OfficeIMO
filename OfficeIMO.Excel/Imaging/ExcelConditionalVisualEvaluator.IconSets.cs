@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<string, int> firstStoppingPriorityByCell,
             List<OfficeImageExportDiagnostic> diagnostics) {
             var icons = new List<ExcelVisualConditionalIcon>();
+            var resolvedCells = new HashSet<string>(StringComparer.Ordinal);
             foreach (ExcelConditionalFormattingInfo rule in rules
                 .Where(rule => string.Equals(rule.Type, "IconSet", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(rule => NormalizePriority(rule.Priority))) {
@@ -38,7 +39,8 @@ namespace OfficeIMO.Excel {
                 double min = values.Min();
                 double max = values.Max();
                 foreach (ConditionalNumericCell candidate in candidates) {
-                    if (!TryResolveConditionalIcon(rule, candidate.Value, values, min, max, out OfficeConditionalIconKind? kind) || !kind.HasValue) continue;
+                    if (!TryResolveConditionalIcon(rule, candidate.Value, values, min, max, out OfficeConditionalIconKind? kind)) continue;
+                    if (!resolvedCells.Add(Key(candidate.Cell.Row, candidate.Cell.Column))) continue;
 
                     icons.Add(new ExcelVisualConditionalIcon(
                         candidate.Cell.Row,
@@ -47,7 +49,7 @@ namespace OfficeIMO.Excel {
                         candidate.Cell.Y,
                         candidate.Cell.Width,
                         candidate.Cell.Height,
-                        kind.Value,
+                        kind ?? OfficeConditionalIconKind.None,
                         rule.IconSetShowValue));
                 }
             }

@@ -20,6 +20,7 @@ public static partial class OfficeConditionalIconRenderer {
     /// <summary>Creates a vector drawing using the same artwork as SVG and raster conditional icons.</summary>
     public static OfficeDrawing CreateDrawing(OfficeConditionalIconKind kind) {
         const double size = 16D;
+        if (kind == OfficeConditionalIconKind.None) return new OfficeDrawing(size, size);
         var svg = new StringBuilder("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\">");
         AppendSvg(svg, 0D, 0D, size, kind);
         svg.Append("</svg>");

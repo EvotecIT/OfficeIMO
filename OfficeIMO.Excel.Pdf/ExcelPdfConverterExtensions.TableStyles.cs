@@ -334,6 +334,7 @@ namespace OfficeIMO.Excel.Pdf {
             int columnEnd = exportedColumns > 0 ? columnOffset + exportedColumns : int.MaxValue;
             Dictionary<(int Row, int Column), PdfCore.PdfCellIcon>? icons = null;
             foreach (KeyValuePair<(int Row, int Column), ConditionalIconCell> conditionalIcon in conditionalFills.Icons) {
+                if (conditionalIcon.Value.Kind == OfficeConditionalIconKind.None) continue;
                 int localRow = FindLocalRowIndex(rowIndexes, conditionalIcon.Key.Row);
                 if (localRow < 0 ||
                     conditionalIcon.Key.Column < columnOffset ||

@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.TestAssets;
 using System.Globalization;
@@ -431,11 +432,17 @@ public partial class Excel {
         Assert.Contains("Score", text);
         Assert.Contains("100", text);
 
-        string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("0.753 0.314 0.302 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("1 0.753 0 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.388 0.608 0.278 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains(" c ", rawPdf, StringComparison.Ordinal);
+        var expected = new[] { OfficeColor.FromRgb(220, 38, 38), OfficeColor.FromRgb(245, 158, 11), OfficeColor.FromRgb(22, 163, 74) };
+        var primitives = PdfCore.PdfReadDocument.Open(bytes).Pages[0].GetIdentityVisualPrimitives();
+        var lights = primitives.Where(item => item.FillColor is OfficeColor color &&
+            expected.Any(target => color.R == target.R && color.G == target.G && color.B == target.B)).OrderBy(item => item.Y).ToArray();
+        Assert.Equal(3, lights.Length);
+        for (int index = 0; index < lights.Length; index++) {
+            OfficeColor actual = lights[index].FillColor!.Value;
+            Assert.Equal(expected[index], actual);
+            Assert.InRange(Math.Abs(lights[index].Width - lights[index].Height), 0D, 0.01D);
+            Assert.InRange(lights[index].Width, 11.9D, 12.1D);
+        }
     }
 
 
