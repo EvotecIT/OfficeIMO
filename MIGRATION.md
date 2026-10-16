@@ -1,5 +1,13 @@
 # Upgrading OfficeIMO
 
+## Image encoding defaults
+
+PNG optimal output chooses exact grayscale, grayscale-alpha, RGB, RGBA, or indexed samples instead of requiring a fixed channel layout. Palette transparency retains every original RGBA value. Generated PNGs also declare sRGB with matching gamma and chromaticities; a supplied ICC profile replaces those declarations through `EncodeWithMetadata`. Consumers must read IHDR rather than assume RGBA. Encoded bytes and image baselines can change while decoded pixels remain identical. `EncodeScanlines` and `CreateFromCompressedScanlines` retain the caller-selected layout and do not add automatic color declarations. The public raster model remains eight-bit; use `OfficePngWriter.EncodeRgba64` to encode sixteen-bit source samples directly.
+
+JPEG enables optimized Huffman tables by default. Quality 85, 4:4:4 sampling, and sequential scans remain the defaults, and decoded pixels are unchanged by Huffman optimization. Set `OfficeJpegEncodeOptions.OptimizeHuffman = false` to retain standard tables and the lower-memory MCU-at-a-time path.
+
+SVG non-interpolated images are embedded rasters with sampling hints instead of pixel rectangles. Consumers that inspect SVG structure must accept `<image>` and data URIs. Supported already-painted text can become paths; opt into eligible ordinary text paths with `SvgTextAsPaths`. Paths preserve appearance and logical accessibility labels but are not selectable SVG text.
+
 ## PDF text output and embedded fonts
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.
@@ -522,15 +530,6 @@ Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.
 
 Native HTML rendering honors the `open` attribute on `<details>`. Closed disclosures show their first `<summary>` and omit the body from layout and PDF bookmarks; earlier native output flattened closed bodies into the document. Report producers that need the complete body in print must add `open` to the intended disclosures in their script-free export HTML. A JavaScript `beforeprint` handler is not executed by the static renderer.
 
-## PNG scan sample layout
-
-`OfficePngCompression.Optimal` encodes fully opaque black-and-white raster images as
-one-bit grayscale PNGs. Other opaque images use eight-bit RGB samples. Decoded
-pixels, dimensions, and density remain unchanged.
-Consumers that inspect samples or add color-dependent PNG chunks must read the
-IHDR bit depth and color type instead of assuming eight-bit RGBA output.
-`EncodeScanlines` retains the explicitly requested sample layout; `Stored` raster
-encoding retains eight-bit RGBA output.
 
 ## PDF editing protection and source fonts
 

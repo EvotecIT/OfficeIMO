@@ -338,14 +338,7 @@ OfficePoint sourcePoint = processed.Report.ProcessedToSource.TransformPoint(ocrP
 
 The source image stays unchanged. The report records transformations, skipped decisions, estimated managed buffers, and a blank-page suggestion; pages are never removed. Pixel, buffer, and analysis-work limits throw `OfficeScanProcessingLimitException`, allowing the caller to retain the original. The operation does not detect quarter-turn orientation itself; an OCR provider or the caller supplies that evidence.
 
-PNG encoding with `OfficePngCompression.Optimal` stores fully opaque black-and-white rasters
-as one-bit grayscale images. This reduces the encoded scan payload while preserving every
-pixel, dimensions, and requested resolution metadata. Other opaque rasters use eight-bit
-RGB samples, avoiding an alpha channel that is uniformly opaque. Transparent rasters
-retain eight-bit RGBA samples. The encoder preserves every channel value without
-thresholding or quantization.
-Byte, stream, and buffer-writer APIs use the same selection. `Stored` compression retains
-eight-bit RGBA samples.
+PNG optimal encoding preserves exact scan samples using grayscale, gray-alpha, RGB, RGBA, or palette layouts, including one-bit black/white output. It does not threshold or quantize the scan. Byte, stream, and buffer-writer APIs share the selection; read IHDR when inspecting samples. The raster-encoding section below describes color metadata and compression settings.
 
 `OfficeScanProcessor.CorrectPerspective(image, options)` creates a rectangular raster from four normalized source corners. `OfficeScanPerspectiveOptions` requires a convex, clockwise quadrilateral inside the source image. The result includes a projective mapping in both directions so consumers can place recognized text back on the original. Perspective correction is separate from the affine transform reported by ordinary scan cleanup. Curved-page dewarping remains unsupported.
 
@@ -765,11 +758,15 @@ OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Png, writer, op
 ReadOnlyMemory<byte> png = writer.WrittenMemory;
 ```
 
-The stream overload leaves the destination open. PNG's `Optimal` compression compares adaptive and unfiltered rows in the selected sample layout and writes the smaller compressed form. This preserves pixels, density metadata, cancellation and the encoded-byte ceiling. `Fastest` writes an unfiltered RGBA stream with the platform's fastest Deflate setting. `Stored` writes uncompressed zlib blocks with eight-bit RGBA samples.
+The stream overload leaves the destination open. PNG's `Optimal` compression compares adaptive and unfiltered rows in the selected sample layout and writes the smaller compressed form. This preserves pixels, density metadata, cancellation and the encoded-byte ceiling. `Fastest` uses unfiltered rows and the platform's fastest Deflate setting; `Stored` writes uncompressed zlib blocks. Both skip the color-layout search for ordinary raster output. A supplied grayscale ICC profile still requires grayscale samples.
 
-Size probes share bounded scanline scratch. An unfiltered candidate that fits in the existing 64 KiB IDAT buffer can be written directly when it wins. Ordinary byte-array exports of non-bilevel images with at least 1 MiB of RGBA pixels can also retain the adaptive candidate in their own output, avoiding recompression when it wins. Retention stops at 4 MiB of compressed payload; the output stream's capacity can exceed that payload limit. Other candidates use a final compression pass. Caller-owned streams, buffer writers and exports with an encoded-byte ceiling use the bounded scanline and IDAT-buffer path.
+PNG chooses exact grayscale (including 1-, 2-, and 4-bit samples), grayscale-alpha, RGB, RGBA, or a palette of up to 256 RGBA colors. Palette entries preserve hidden RGB under transparent pixels. Optimal encoding compares palette overhead and compressed candidates, selects each row from all five PNG filters using signed-byte absolute differences, and compares against unfiltered compression. The probes and final pass use row-sized scratch, without retaining a full filtered image. Output is deterministic for the same input, encoder build, and runtime. Optimal encoding uses the smallest-size Deflate level on .NET 8/10 and the exposed optimal level on older targets. PNG raster exports declare sRGB, gamma, and chromaticities; `EncodeWithMetadata` writes a supplied ICC profile instead and retains a compatible RGB sample layout for RGB profiles.
 
-TIFF output is a classic RGBA image with uncompressed, LZW, PackBits, or Deflate strips; LZW and Deflate use horizontal prediction by default. Use `OfficeTiffCodec.EncodePages(...)` when the output needs more than one page. JPEG uses the managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
+`OfficePngWriter.EncodeRgba64(width, height, ushortSamples)` writes 16-bit samples without reducing their precision, including exact gray/gray-alpha/RGB reductions. It accepts tightly packed straight-alpha RGBA samples and optimal compression. `OfficeRasterImage` remains an eight-bit model; decoding to it before re-encoding cannot preserve sixteen-bit source samples.
+
+TIFF output supports uncompressed, LZW, PackBits, and Deflate RGBA strips; LZW and Deflate use horizontal prediction by default. `OfficeTiffCompression.CcittGroup4` writes one-bit T.6 strips from opaque exact black/white pixels and rejects other input. It applies to single images, streams, and `OfficeTiffCodec.EncodePages(...)`. Use `OfficeRasterImageEncoder.EncodeWithMetadata` to attach ICC data through the shared metadata owner.
+
+JPEG defaults to quality 85, 4:4:4 chroma, sequential scans, and optimized Huffman tables. Huffman optimization changes entropy coding without changing decoded pixels, but retains coefficients while measuring symbol frequencies. Set `OptimizeHuffman = false` for standard tables and lower coefficient memory, `Progressive = true` for progressive scans, or `Subsampling = OfficeJpegSubsampling.Y420` for smaller output with reduced chroma resolution. JFIF carries `DpiX`/`DpiY`; `OfficeJpegMetadata` and the shared metadata-aware encoder carry ICC APP2 segments.
 
 TIFF `DpiX` and `DpiY` are physical DPI. To retain native centimeter density or a unitless aspect ratio, assign `OfficeTiffEncodeOptions.Resolution = new OfficeImageResolution(horizontal, vertical, unit)`. That immutable override applies to every encoded page and to streaming output. Meter values normalize to centimeters. The shared encoder retains the override until an explicitly assigned shared `DpiX` or `DpiY` selects physical DPI instead; `metadata.Resolution` supplies a snapshot directly from `OfficeImageMetadata`.
 
@@ -777,9 +774,27 @@ The shared encoder also writes BMP, binary PBM, TGA, and ICO with `OfficeImageEx
 
 Managed decoding accepts ASCII and binary PBM/PGM/PPM, including sixteen-bit PGM/PPM samples; indexed, grayscale, true-color, and RLE TGA; and PNG or conventional DIB icon entries. Select an ICO entry through `OfficeRasterDecodeOptions.FrameIndex`. Container inspection checks entry dimensions before allocating pixel buffers.
 
+### Portable SVG images and text
+
+SVG keeps non-interpolated images as embedded rasters with pixelated sampling hints. Crop, placement, opacity, and source-decoder policy stay with the shared Drawing pipeline. Pixel dimensions use the raster rounding rule; mask transfer tables and text outline strokes retain their paint semantics.
+
+Use registered font bytes and `SvgTextAsPaths` when eligible text should travel as outlines:
+
+```csharp
+var drawing = new OfficeDrawing(400, 100);
+drawing.Fonts.Add("Body", File.ReadAllBytes("Body.ttf"));
+drawing.AddText("Portable SVG", 8, 8, 384, 80,
+    new OfficeFontInfo("Body", 24), wrapText: false);
+var svg = drawing.ExportImage(OfficeImageExportFormat.Svg,
+    new OfficeImageExportOptions { SvgTextAsPaths = true });
+File.WriteAllBytes("preview.svg", svg.Bytes);
+```
+
+The option supports single-line horizontal ASCII text with one resolved outline face. Wrapped, decorated, vertical, complex-script, color-glyph, and mixed-font fallback runs retain `<text>` and their required fonts. Supported already-painted runs use outlines automatically. Outlines retain logical accessibility labels, but are not selectable SVG text. Fonts unused by retained text are omitted; retained font programs are not subsetted. Independent SVG and raster text placement and antialiasing can still differ.
+
 ### Choose lossless or lossy WebP
 
-WebP output defaults to lossless VP8L. The byte-array encoder chooses bounded prediction, subtract-green, LZ77, and Huffman coding when that is smaller than the literal form; direct streaming uses the literal form to reduce retained buffers. Set `Webp.Mode` to `Lossy` for VP8 output with an explicit quality:
+WebP output defaults to lossless VP8L. Byte-array and stream encoders use a bounded VP8L compressor with 32-pixel block predictors, subtract-green and cross-color transforms, an optional color cache, LZ77 references, and statistical Huffman tables. They retain one transformed pixel workspace and bounded match chains rather than a full token list. Inputs above four million pixels, or candidates whose workspace exceeds the managed-memory budget, use exact literal coding. Direct streaming retains a compressed payload when the compressor fits, without materializing a complete RIFF output. Set `Webp.Mode` to `Lossy` for VP8 output with an explicit quality:
 
 ```csharp
 var webpOptions = new OfficeRasterEncodingOptions {

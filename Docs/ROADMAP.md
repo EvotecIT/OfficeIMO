@@ -53,8 +53,16 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## Image engine
 
+- [ ] Retain native sixteen-bit samples through raster decoding, editing, and transcoding. `OfficePngWriter.EncodeRgba64` writes supplied sixteen-bit samples, but `OfficeRasterImage` is still an eight-bit model; decoding to that model first loses source precision. Coordinate the model and document-image preparation changes before expanding this contract.
+
+- [ ] Extend bounded VP8L compression beyond the four-million-pixel candidate ceiling and tighter caller-retained memory scenarios without losing cancellation or encoded-byte guarantees. Those paths retain exact literal coding; compression ratios are not uniform across all supported dimensions.
+- [ ] Subset retained SVG font programs, including shaping/fallback/color-font dependencies, widen glyph-outline export beyond the documented simple text profile, and qualify SVG/raster logical-text placement with the same registered fonts. General wrapped, decorated, vertical, and complex-script text currently retains its referenced font.
+
+- [ ] Decide the AVIF encoding boundary. The current AVIF owner decodes bounded still images; encoding requires a managed AV1 writer and container qualification rather than a small extension. Compare an owned implementation with the MIT-licensed [PeachImage still-image AVIF encoder](https://peachpdf.net/peachimage.html), including exact lossless round trips, color/profile handling, throughput, memory, .NET Standard/browser support, maintenance, and package boundaries. Any production dependency needs explicit approval; keep comparison tools outside runtime projects.
+- [ ] Decide whether HEIC/HEVC image support warrants a product and licensing investment. Separate HEIF container metadata from an HEVC pixel codec. Review the chosen implementation's copyright license and relevant [HEVC patent licensing programs](https://www.via-la.com/licensing-programs/hevc-vvc/) before adopting or distributing it; an MIT source license alone does not settle patent rights. Keep HEIC pixel decoding/encoding unsupported until that decision and independent interoperability evidence exist.
+
 - [ ] Add bounded EMF/WMF rasterization when older Office-document fixtures demonstrate a material fidelity gain. Keep ICO, PCX, BMP/GIF encoding, and uncommon or expensive codecs behind the caller-codec boundary until a first-party consumer justifies ownership.
-- [ ] Add a shared Core "clip by text runs" drawing construct so PDF text clipping render modes 4–7 clip later paths and images in raster output (glyph contours as a clip mask) and SVG output (`<clipPath>` with text). Bring the SVG exporter to the raster renderer's contract: whole-pixel sizing through `OfficeRasterScaleLimiter.CeilingPixels`, soft-mask transfer tables, and stroked text outlines.
+- [ ] Add a shared Core "clip by text runs" drawing construct so PDF text clipping render modes 4–7 clip later paths and images in raster output (glyph contours as a clip mask) and SVG output (`<clipPath>` with text).
 - [ ] Size intermediate effect layers to their content bounds instead of the page, so pages with many blend or soft-mask layers render within the default intermediate-pixel budget. Prove unchanged pixels and lower peak memory on multi-layer producer pages.
 
 ## PDF engine and conversion fidelity
