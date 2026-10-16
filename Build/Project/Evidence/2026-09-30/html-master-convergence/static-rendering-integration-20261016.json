@@ -1,0 +1,596 @@
+{
+  "schema": "officeimo.html.static-rendering-qualification",
+  "qualifiedUtc": "2026-10-16T11:18:11.590711+00:00",
+  "source": {
+    "masterBase": "3231c8d3439444bda7917d4300e26a850ef73c00",
+    "implementationHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
+    "sdk": "10.0.113",
+    "sourceInputs": 5630,
+    "sourceSealSha256": "0ee3b90b9d0b983d21495e54ba28452648753328a3eb47c075d8f3c19c2810f7",
+    "retainedProviderVersions": {
+      "AngleSharp": "1.8.3",
+      "AngleSharp.Css": "1.1.3"
+    },
+    "runtimeAndProviderForksIncluded": false
+  },
+  "host": {
+    "os": "macOS27.0.1",
+    "build": "26A434",
+    "architecture": "arm64"
+  },
+  "managed": [
+    {
+      "suite": "HTML",
+      "framework": "net10.0",
+      "sourceHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
+      "passed": 6459,
+      "skipped": 0,
+      "recordSha256": "2a510f0edce1a65bcbc5c3a683fbe9cf6a06c25afc8e909830ee76b28a572199",
+      "sourceSealMatched": true,
+      "scope": "full correctness suite excluding Category=Performance"
+    },
+    {
+      "suite": "HTML",
+      "framework": "net8.0",
+      "sourceHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
+      "passed": 6459,
+      "skipped": 0,
+      "recordSha256": "b88c26a48b83f50b6b668f5b6cd2011b3d8aadb740605ee5477d2d0eff4be194",
+      "sourceSealMatched": true,
+      "scope": "full correctness suite excluding Category=Performance"
+    },
+    {
+      "suite": "Drawing",
+      "framework": "net10.0",
+      "sourceHead": "2a34ced389fe42e39f210f8dc04021e2a9777327",
+      "passed": 5729,
+      "skipped": 4,
+      "recordSha256": "e3629d56fe9b95891cf39c9a7725a5c3e5289e9662b88e1a7f1124ca1f33cb0f",
+      "sourceSealMatched": null,
+      "scope": "full correctness suite excluding Category=Performance"
+    },
+    {
+      "suite": "Drawing",
+      "framework": "net8.0",
+      "sourceHead": "792bb00db7ad8e78db570a503f216e5671cd10d1",
+      "passed": 5729,
+      "skipped": 4,
+      "recordSha256": "04bca0a9db7f7d24dc0a17ec29e4e9598f2be40a313fa6b8ab35d60522c65afd",
+      "sourceSealMatched": true,
+      "scope": "full correctness suite excluding Category=Performance"
+    },
+    {
+      "suite": "PDF mask/effect/blend/transparency/print/drawing",
+      "framework": "net10.0",
+      "sourceHead": "2a34ced389fe42e39f210f8dc04021e2a9777327",
+      "passed": 1088,
+      "skipped": 0,
+      "recordSha256": "3511cfdcc9cb35de910c4c0c2bca3e4deddca25add5d779fb31162490676bb82",
+      "sourceSealMatched": null,
+      "scope": "named affected PDF contracts"
+    },
+    {
+      "suite": "PDF mask/effect/blend/transparency/print/drawing",
+      "framework": "net8.0",
+      "sourceHead": "792bb00db7ad8e78db570a503f216e5671cd10d1",
+      "passed": 1088,
+      "skipped": 0,
+      "recordSha256": "2cbac1b87da80eac5f32a00fa82b49b2a69ce2980562bd2e2562d86af132c41f",
+      "sourceSealMatched": true,
+      "scope": "named affected PDF contracts"
+    }
+  ],
+  "unchangedDrawingAndPdfOwnerBindings": [
+    {
+      "suite": "Drawing",
+      "framework": "net10.0",
+      "owner": "OfficeIMO.Core",
+      "testSha256": "448328df4decc92cc094ac63cbffc05e7c559b6bb245e51a69066c0c76698c96",
+      "finalHtmlRuntimeSha256": "448328df4decc92cc094ac63cbffc05e7c559b6bb245e51a69066c0c76698c96",
+      "same": true
+    },
+    {
+      "suite": "Drawing",
+      "framework": "net10.0",
+      "owner": "OfficeIMO.Excel",
+      "testSha256": "3cafd7e82af74f17524784976350e25947ba5d580a4bf21ca9f362df2866479f",
+      "finalHtmlRuntimeSha256": "3cafd7e82af74f17524784976350e25947ba5d580a4bf21ca9f362df2866479f",
+      "same": true
+    },
+    {
+      "suite": "Drawing",
+      "framework": "net10.0",
+      "owner": "OfficeIMO.Word",
+      "testSha256": "97ec0790f7e72546bbf900501970a5fb8b14b47ecf134deeff99e94c4c7b8763",
+      "finalHtmlRuntimeSha256": "97ec0790f7e72546bbf900501970a5fb8b14b47ecf134deeff99e94c4c7b8763",
+      "same": true
+    },
+    {
+      "suite": "Pdf",
+      "framework": "net10.0",
+      "owner": "OfficeIMO.Core",
+      "testSha256": "448328df4decc92cc094ac63cbffc05e7c559b6bb245e51a69066c0c76698c96",
+      "finalHtmlRuntimeSha256": "448328df4decc92cc094ac63cbffc05e7c559b6bb245e51a69066c0c76698c96",
+      "same": true
+    },
+    {
+      "suite": "Pdf",
+      "framework": "net10.0",
+      "owner": "OfficeIMO.Pdf",
+      "testSha256": "08557221b6c6f9bd8ad6125cd9f1203a1dc903a75c0aebc1d8fe3f30bdf38968",
+      "finalHtmlRuntimeSha256": "08557221b6c6f9bd8ad6125cd9f1203a1dc903a75c0aebc1d8fe3f30bdf38968",
+      "same": true
+    },
+    {
+      "suite": "Drawing",
+      "framework": "net8.0",
+      "owner": "OfficeIMO.Core",
+      "testSha256": "714be84fda315b119f5514669d336f6491d11f056f5ec56c2b5303de208b83e4",
+      "finalHtmlRuntimeSha256": "714be84fda315b119f5514669d336f6491d11f056f5ec56c2b5303de208b83e4",
+      "same": true
+    },
+    {
+      "suite": "Drawing",
+      "framework": "net8.0",
+      "owner": "OfficeIMO.Excel",
+      "testSha256": "404891b2a9981fb468d90540965e89e37a1154199734a5f05d107e7e78f4c905",
+      "finalHtmlRuntimeSha256": "404891b2a9981fb468d90540965e89e37a1154199734a5f05d107e7e78f4c905",
+      "same": true
+    },
+    {
+      "suite": "Drawing",
+      "framework": "net8.0",
+      "owner": "OfficeIMO.Word",
+      "testSha256": "3c148e61a8d9b69247cafebaa505f3cb65476b4d23df8232c2687e9a107d0bf9",
+      "finalHtmlRuntimeSha256": "3c148e61a8d9b69247cafebaa505f3cb65476b4d23df8232c2687e9a107d0bf9",
+      "same": true
+    },
+    {
+      "suite": "Pdf",
+      "framework": "net8.0",
+      "owner": "OfficeIMO.Core",
+      "testSha256": "714be84fda315b119f5514669d336f6491d11f056f5ec56c2b5303de208b83e4",
+      "finalHtmlRuntimeSha256": "714be84fda315b119f5514669d336f6491d11f056f5ec56c2b5303de208b83e4",
+      "same": true
+    },
+    {
+      "suite": "Pdf",
+      "framework": "net8.0",
+      "owner": "OfficeIMO.Pdf",
+      "testSha256": "4a8f45433f577bb3be26f0f500862478de12667fb9a92dc30d6c595d04849f3b",
+      "finalHtmlRuntimeSha256": "4a8f45433f577bb3be26f0f500862478de12667fb9a92dc30d6c595d04849f3b",
+      "same": true
+    }
+  ],
+  "frozenCorpusAndGeneratedSupportContractChecks": {
+    "passed": 68,
+    "advancedHeldOutCasesPerFramework": 8,
+    "routes": "screen PNG/SVG, print PDF/PNG/SVG, screen-snapshot PDF/PNG/SVG",
+    "appearanceBoundary": "Corpus content/resource/diagnostic checks do not establish all-page native appearance."
+  },
+  "nativeRendering": {
+    "sourceHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
+    "masterBase": "3231c8d3439444bda7917d4300e26a850ef73c00",
+    "sourceFiles": 3124,
+    "sourceSealSha256": "f647c6677428432e5c82f73702f378a899688cacc2a9ab845ed6a381be0f3e76",
+    "sourceAndEntireFrozenProducerUnchanged": true,
+    "normalProjectReferenceProducerAndTestOwnerDllsByteIdentical": 8,
+    "sdk": "10.0.113",
+    "framework": "net10.0",
+    "nativeOwner": "HtmlTinkerX3.0.5 source366cbd06949dc1c00162a280a290e2c130ca0bea / existing Chromium153.0.8010.12",
+    "authoredNativeFixtures": 33,
+    "authorProfiles": 2,
+    "managedFixtures": 32,
+    "managedProfiles": 2,
+    "emittedSvgNativeCaptures": 64,
+    "allOwnedBrowserSessionsAndServersReleased": true,
+    "backgroundCascade": {
+      "matrixCases": 34,
+      "profiles": 2,
+      "colorControls": 68,
+      "nativeComputedColorPasses": 68,
+      "managedComputedColorPasses": 68,
+      "nativeScreenshotAndPdfColorPasses": 68,
+      "managedDirectPdfAndSvgColorPasses": 68,
+      "componentSemanticsPasses": 224,
+      "componentSemanticsTotal": 224,
+      "extraGradientStripeNativePasses": 12,
+      "extraGradientStripeManagedPasses": 12,
+      "extraGradientStripeTotal": 12,
+      "originalFixtureComputedColorPasses": 8,
+      "originalFixtureManagedPixelPasses": 8
+    },
+    "backgroundValidGrammar": {
+      "cases": 6,
+      "profiles": 2,
+      "controls": 12,
+      "computedColorAndImagePasses": 12,
+      "nativeScreenshotAndPdfPasses": 12,
+      "managedPdfDirectAndSvgPasses": 12
+    },
+    "backgroundClipping": {
+      "cases": 2,
+      "profiles": 2,
+      "interiorWitnesses": 14,
+      "nativeScreenshotAndPdfPasses": 14,
+      "managedPdfDirectAndSvgPasses": 14
+    },
+    "repeatingGradient": {
+      "cases": 6,
+      "profiles": 2,
+      "fullCycleBandCenters": 220,
+      "nativeBandCenterPasses": 220,
+      "managedBandCenterPasses": 220,
+      "guardedInteriorPixels": 1720,
+      "nativeAllPlanesInteriorPassesObserved": 1576,
+      "nativePdfInteriorPasses": 1720,
+      "nativeScreenshotOpaqueInteriorPixels": 1144,
+      "nativeScreenshotOpaqueInteriorPasses": 1144,
+      "managedAllPlanesInteriorPasses": 1720,
+      "colorTolerance": 0
+    },
+    "implicitSvgFill": {
+      "cases": 8,
+      "managedEntrypoints": 2,
+      "profiles": 2,
+      "managedRoutes": 4,
+      "guardedPalettePixels": 2816272,
+      "guardedMismatchCount": 0,
+      "outerEdgeMismatchCount": 0,
+      "strokeCorridorPixels": 17920,
+      "implicitClosingStrokeMismatchCount": 0,
+      "witnesses": 192,
+      "witnessFailures": 0,
+      "guard": "Exact native stable palette eroded 2px; explicit outer4px lime edge and implicit-closing stroke corridor checks; zero numeric color tolerance."
+    },
+    "conic": {
+      "cases": 8,
+      "profiles": 2,
+      "routes": 4,
+      "uniformAndHardSectorOpacityAndGuardedPlateauFailures": 0,
+      "opaqueSmoothGreenLeakPixels": 0,
+      "smoothVariableAlphaResidualsUnchangedFromPriorQualifiedBoundary": true,
+      "residuals": [
+        {
+          "id": "smooth-variable-alpha",
+          "profile": "print",
+          "route": "managed-png",
+          "current": {
+            "greenDeficitMoreThan2Count": 1,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 1,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha",
+          "profile": "print",
+          "route": "managed-pdf",
+          "current": {
+            "greenDeficitMoreThan2Count": 17,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 2
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 17,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 2
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha",
+          "profile": "print",
+          "route": "managed-svg-print",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha",
+          "profile": "print",
+          "route": "managed-svg-screen",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha",
+          "profile": "screen",
+          "route": "managed-png",
+          "current": {
+            "greenDeficitMoreThan2Count": 1,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 1,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha",
+          "profile": "screen",
+          "route": "managed-pdf",
+          "current": {
+            "greenDeficitMoreThan2Count": 17,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 2
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 17,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 2
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha",
+          "profile": "screen",
+          "route": "managed-svg-print",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha",
+          "profile": "screen",
+          "route": "managed-svg-screen",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha-corner",
+          "profile": "print",
+          "route": "managed-png",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha-corner",
+          "profile": "print",
+          "route": "managed-pdf",
+          "current": {
+            "greenDeficitMoreThan2Count": 1,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 1,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha-corner",
+          "profile": "print",
+          "route": "managed-svg-print",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha-corner",
+          "profile": "print",
+          "route": "managed-svg-screen",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha-corner",
+          "profile": "screen",
+          "route": "managed-png",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha-corner",
+          "profile": "screen",
+          "route": "managed-pdf",
+          "current": {
+            "greenDeficitMoreThan2Count": 1,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 1,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha-corner",
+          "profile": "screen",
+          "route": "managed-svg-print",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        },
+        {
+          "id": "smooth-variable-alpha-corner",
+          "profile": "screen",
+          "route": "managed-svg-screen",
+          "current": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "prior": {
+            "greenDeficitMoreThan2Count": 0,
+            "awayBoundaryP95MaxChannelErrorVsNativeShot": 1
+          },
+          "unchanged": true
+        }
+      ]
+    },
+    "outOfFlowMarker": {
+      "cases": 8,
+      "profiles": 2,
+      "nativeSupportedControls": 12,
+      "managedInvariantPasses": 16,
+      "nativeExactFollowingTopPasses": 12,
+      "nativeRunningPositionAcceptance": false
+    },
+    "vectorPdfInspection": {
+      "pdfs": 10,
+      "imageXObjects": 0,
+      "luminosityMaskDictionaries": 4
+    },
+    "runtimeArchive": {
+      "bytes": 9100873,
+      "sha256": "bb0cb7fed7af0c52775eb3908240adefc56bcdc5f20b2b785f23cee8c9fa74ef",
+      "entryReadbackHashesMatch": true
+    },
+    "visualInspection": [
+      "font-box flow/mixed normal and short lines",
+      "selectedfont image baseline",
+      "outofflow marker followingflow",
+      "SVG image viewport and intrinsic dimensions",
+      "zeroheight outline order",
+      "square and rounded shadow corners",
+      "ordinary inline transform exclusion",
+      "repeating band interiors",
+      "conic uniform/hard/smooth opacity and implicitSVGfill fourroute contacts"
+    ],
+    "limits": [
+      "Windows profiling deferred",
+      "Runningposition managed invariant only; no native browser runningposition acceptance",
+      "Full screenshot parity is not claimed; static output contracts and region/witness guards are explicit",
+      "Relativeinline containingblock example retains preexisting+4px X geometry gap; onlybackgroundcolorinteriorqualified",
+      "Unavailablefontfallback guard hasmanaged invariant proof only; no native absolutegeometryoracle",
+      "Fractional Chromium screenshot dither outside exact repeatingband centers retained; no tolerance expansion",
+      "Conic wrap/origin variablealpha AA residuals retained and unchanged; no broad allappearance or physicalprint qualification"
+    ],
+    "finalReplayExportEquivalence": {
+      "artifacts": 256,
+      "allByteIdentical": true,
+      "nativeSvgCapturesReboundBySameOutputHash": 64
+    }
+  },
+  "packages": {
+    "status": "passed",
+    "packages": 19,
+    "packageFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "consumerExecutions": 4,
+    "consumerFrameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "consumerRuntimeDescriptions": [
+      ".NET 8.0.23",
+      ".NET 10.0.13"
+    ],
+    "matchedOfficeIMODllCopies": 42,
+    "matchedOfficialProviderDllCopies": 6,
+    "finalProductionInputsUnchangedDuringRefreshAndConsumers": true
+  },
+  "nativeAot": {
+    "status": "passed",
+    "ownerHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
+    "sdk": "10.0.113",
+    "runtimeIdentifier": "osx-arm64",
+    "scenario": "html-pdf-image",
+    "publishExitCode": 0,
+    "runExitCode": 0,
+    "executableSha256": "5CA8241593E2C51CDE0B1A9BD1ACC30CA12AA786C6DCF81D2AB9FC71CCD23EC3",
+    "compilerDiagnosticCodes": [],
+    "warningLines": [],
+    "rootFinalSourceSealMatches": true
+  },
+  "lockedRestore": {
+    "unixStudioReleaseGraph": "passed unchanged locks",
+    "windowsFrameworkGraphOnMac": "passed unchanged locks; restore surrogate only"
+  },
+  "review": {
+    "independentFullPass": 1,
+    "targetedConfirmation": 1,
+    "reproducedFindingsFixed": 2,
+    "additionalGuardClosure": "Short no-face fallback placement ignores out-of-flow BaselineOffset; 106 focused checks and 16 public fallback controls pass.",
+    "remainingValidatedFindings": 0
+  },
+  "reproduce": {
+    "correctness": [
+      "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net8.0 --filter Category!=Performance",
+      "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net10.0 --filter Category!=Performance",
+      "dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj -c Release -f net8.0 --filter Category!=Performance",
+      "dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj -c Release -f net10.0 --filter Category!=Performance"
+    ],
+    "packedConsumers": "Build/Test-HtmlPackages.ps1 with an isolated candidate feed/cache",
+    "aot": "Build/Test-AotScenarios.ps1 -Scenario html-pdf-image -RuntimeIdentifier osx-arm64",
+    "svgFixture": "OfficeIMO.TestAssets/Documents/Html/Qualification/SvgOpenPathFill/open-path-fill.svg",
+    "licensedFontFixture": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+    "fontLicense": "OfficeIMO.TestAssets/Fonts/OFL-Carlito.txt",
+    "licensedFontSha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+  },
+  "qualificationLimits": [
+    "Windows profiling deferred",
+    "Runningposition managed invariant only; no native browser runningposition acceptance",
+    "Full screenshot parity is not claimed; static output contracts and region/witness guards are explicit",
+    "Relativeinline containingblock example retains preexisting+4px X geometry gap; onlybackgroundcolorinteriorqualified",
+    "Unavailablefontfallback guard hasmanaged invariant proof only; no native absolutegeometryoracle",
+    "Fractional Chromium screenshot dither outside exact repeatingband centers retained; no tolerance expansion",
+    "Conic wrap/origin variablealpha AA residuals retained and unchanged; no broad allappearance or physicalprint qualification",
+    "Four existing Drawing opt-in evidence cases skipped on each framework.",
+    "net472 compilation/package/API validation passed; native Windows execution is separate from this macOS evidence.",
+    "No physical print, PDF/X conformance, interactive runtime, or dependency-independence claim."
+  ]
+}

@@ -83,7 +83,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 - [Image export contract](officeimo.image-export.md)
 - [Image export capability matrix](officeimo.image-export-capability-matrix.md)
-- [SVG open-path fill qualification](../Build/Project/Evidence/2026-09-30/html-master-convergence/svg-implicit-fill-qualification-20261016.json) — native controls for implicit fill closure, compound fill rules and authored open strokes across HTML, PDF, SVG and raster output.
+- [Static rendering qualification](../Build/Project/Evidence/2026-09-30/html-master-convergence/static-rendering-integration-20261016.json) — font and box geometry, CSS paint, and SVG fill controls across HTML, PDF, SVG and raster output.
 - [Browser-local conversion performance and limits](officeimo.blazor-wasm-conversion-proof.md)
 
 ## Architecture
