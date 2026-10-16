@@ -12,6 +12,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<p><span style='color:#0000ff;text-decoration-line:underline line-through;"
             + "text-decoration-style:dashed;text-decoration-color:#ff0000'>DecoratedPdf</span></p>";
         var renderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(10D)
@@ -32,7 +33,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, text.DecorationColor);
         Assert.Equal(OfficeTextDecorationStyle.Dashed, text.UnderlineStyle);
         Assert.Equal(OfficeTextDecorationStyle.Dashed, text.StrikethroughStyle);
-        Assert.Contains("text-decoration-color=\"#FF0000\"", svg, StringComparison.Ordinal);
+        OfficeDrawing svgDrawing = HtmlSvgPaintAssertions.Read(Encoding.UTF8.GetBytes(svg));
+        OfficeDrawingShape[] decorations = DrawingTestTraversal.Elements(svgDrawing).OfType<OfficeDrawingShape>()
+            .Where(shape => shape.Shape.StrokeColor == OfficeColor.Red && shape.Shape.StrokeWidth > 0D).ToArray();
+        Assert.Equal(2, decorations.Length);
+        Assert.All(decorations, shape => Assert.Equal(OfficeStrokeDashStyle.Dash, shape.Shape.StrokeDashStyle));
+        OfficeRasterImage svgRaster = OfficeDrawingRasterRenderer.Render(svgDrawing, background: OfficeColor.Transparent);
+        Assert.True(ContainsColor(svgRaster, pixel => pixel.R - pixel.G > 100 && pixel.R - pixel.B > 100));
+        Assert.True(ContainsColor(svgRaster, pixel => pixel.B > 220 && pixel.R < 40 && pixel.G < 40));
         Assert.Contains("1 0 0 RG", pdf, StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(text-decoration-color:#ff0000)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(text-decoration-color:paint(accent))"));

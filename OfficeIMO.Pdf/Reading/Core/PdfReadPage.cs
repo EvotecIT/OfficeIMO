@@ -942,7 +942,8 @@ public sealed partial class PdfReadPage {
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
         TextContentParser.MarkedContentState? inheritedActualTextState = null,
         bool preserveGlyphText = false,
-        bool requireMappedText = false) {
+        bool requireMappedText = false,
+        Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1093,7 +1094,8 @@ public sealed partial class PdfReadPage {
             initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
             initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity,
             inheritedActualTextState: inheritedActualTextState,
-            onActualTextForm: (offset, state) => actualTextForms[offset] = state));
+            onActualTextForm: (offset, state) => actualTextForms[offset] = state,
+            onCompletedDrawingActualText: onCompletedDrawingActualText));
 
         // Text interpretation has already validated the stream and its limits.
         // A missing Do token rules out forms; strings containing Do simply keep
@@ -1170,6 +1172,10 @@ public sealed partial class PdfReadPage {
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex + contentOrderOffset);
                 if (pageContentBudget.HasProjectedTransparencyGroup(formOrderPrefix)) continue;
                 bool effectiveArtifactContent = inheritedArtifactContent || invocation.IsArtifactContent;
+                TextContentParser.MarkedContentState? formActualTextState = inheritedActualTextState;
+                if (actualTextForms.TryGetValue(invocation.SourceOperatorIndex, out var invocationActualText) &&
+                    (formActualTextState == null || onCompletedDrawingActualText != null))
+                    formActualTextState = invocationActualText;
 
                 CollectTextAndForms(
                     formContent,
@@ -1212,10 +1218,10 @@ public sealed partial class PdfReadPage {
                     onTextSpan: onTextSpan,
                     initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
                     initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity,
-                    inheritedActualTextState: inheritedActualTextState ??
-                        (actualTextForms.TryGetValue(invocation.SourceOperatorIndex, out var formActualText) ? formActualText : null),
+                    inheritedActualTextState: formActualTextState,
                     preserveGlyphText: preserveGlyphText,
-                    requireMappedText: requireMappedText);
+                    requireMappedText: requireMappedText,
+                    onCompletedDrawingActualText: onCompletedDrawingActualText);
             } finally {
                 activeForms.Remove(formStream);
             }

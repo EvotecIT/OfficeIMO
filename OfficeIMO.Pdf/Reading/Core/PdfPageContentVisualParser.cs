@@ -986,7 +986,7 @@ internal static partial class PdfPageContentVisualParser {
                 out double y,
                 out double width,
                 out double height);
-            bool isSingleLine = IsSingleLinePath();
+            bool isSingleLine = TryGetSingleLinePath(out OfficePoint lineStart, out OfficePoint lineEnd);
 
             if (_requireExactType3ShadingProjection) {
                 if (PathContainsCurve()) {
@@ -1044,9 +1044,9 @@ internal static partial class PdfPageContentVisualParser {
                     paintOrder,
                     fillTilingPaint,
                     strokeTilingPaint,
-                    _state.StrokeDashPattern));
+                    GetRenderedStrokeDashPattern()));
             } else if (stroke && isSingleLine) {
-                AddLine(_path[0], _path[1], paintOrder);
+                AddLine(ToPdfPoint(lineStart), ToPdfPoint(lineEnd), paintOrder);
             } else {
                 OfficeLinearGradient? fillGradient = null;
                 OfficeRadialGradient? fillRadialGradient = null;
@@ -1088,7 +1088,7 @@ internal static partial class PdfPageContentVisualParser {
                     fill ? CreateTilingPatternPaint(_fillTilingPattern, _fillTilingTint, _fillPatternPaintTransform, _state.FillOpacity) : null,
                     stroke && _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _strokePatternPaintTransform, _state.StrokeOpacity) : null,
                     _retainPrimitiveData,
-                    _state.StrokeDashPattern,
+                    GetRenderedStrokeDashPattern(),
                     out PdfPageVisualPrimitive pathPrimitive)) {
                     AddPrimitive(pathPrimitive);
                 } else if (stroke && _state.StrokeWidth > 0D) {
@@ -1472,12 +1472,6 @@ internal static partial class PdfPageContentVisualParser {
         private static bool CoordinatesEqual(double left, double right, bool requireExactCoordinates) =>
             requireExactCoordinates ? left == right : NearlyEqual(left, right);
 
-        private bool IsSingleLinePath() =>
-            _path.Count == 2 &&
-            _pathCommands.Count == 2 &&
-            _pathCommands[0].Kind == OfficePathCommandKind.MoveTo &&
-            _pathCommands[1].Kind == OfficePathCommandKind.LineTo;
-
         private bool PathContainsCurve() {
             for (int i = 0; i < _pathCommands.Count; i++) {
                 OfficePathCommandKind kind = _pathCommands[i].Kind;
@@ -1562,7 +1556,7 @@ internal static partial class PdfPageContentVisualParser {
                 _state.ClipPath,
                 paintOrder,
                 _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _strokePatternPaintTransform, _state.StrokeOpacity) : null,
-                _state.StrokeDashPattern));
+                GetRenderedStrokeDashPattern()));
         }
 
         private void RejectUnsupportedShadingStroke(

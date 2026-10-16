@@ -155,6 +155,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='height:20px;background:#ff0000;font-size:10px;line-height:10px'>ColPdf</div>"
             + "<div style='height:20px;background:#0000ff;font-size:10px;line-height:10px'>Second</div></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -176,8 +177,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(38, 18));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(98, 18));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("<rect x=\"0\" y=\"0\" width=\"40\" height=\"20\"", svg, StringComparison.Ordinal);
-        Assert.Contains("<rect x=\"60\" y=\"0\" width=\"40\" height=\"20\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(38, 18));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(50, 18));
+        Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(98, 18));
         Assert.Contains("ColPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
@@ -244,7 +247,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(columns:wide 2)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(column-rule:wavy)"));
 
-        var options = new HtmlRenderOptions { ViewportWidth = 120D, Margins = HtmlRenderMargins.All(0D), MaxColumnCount = 2 };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 120D, Margins = HtmlRenderMargins.All(0D), MaxColumnCount = 2 };
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
             HtmlRenderTestDriver.Render("<div style='column-count:3'>Text</div>", options));
         Assert.Equal(HtmlRenderDiagnosticCodes.MultiColumnLimitExceeded, exception.Code);
@@ -263,6 +266,7 @@ public sealed partial class HtmlRenderingTests {
             </div>
             """;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(0D),
             MaxColumnCount = 2
@@ -275,7 +279,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     private static HtmlRenderDocument RenderColumns(string html, double viewportWidth) =>
-        HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
 
     private static HtmlRenderShape FindColumnShape(HtmlRenderDocument rendered, string source) =>
         Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(), shape => shape.Source == source && shape.Shape.FillColor.HasValue);

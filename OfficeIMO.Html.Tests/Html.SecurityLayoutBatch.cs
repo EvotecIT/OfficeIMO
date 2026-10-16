@@ -318,6 +318,7 @@ public sealed class HtmlSecurityLayoutBatchTests {
 
         Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), Assert.Throws<HtmlDomLimitException>(
             () => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+                Mode = HtmlRenderMode.Continuous,
                 ViewportWidth = 100,
                 Margins = HtmlRenderMargins.All(0),
                 MaxLayoutOperations = 50000,

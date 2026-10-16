@@ -52,7 +52,7 @@ public sealed class HtmlFontShorthandTests {
 
     [Theory]
     [InlineData("font:inherit", "18px", "italic")]
-    [InlineData("font:initial", "", "")]
+    [InlineData("font:initial", "", "normal")]
     [InlineData("font:bad-value", "18px", "italic")]
     public void InlineFontShorthandRespectsInheritedAndInvalidValues(string declaration, string size, string style) {
         var document = new HtmlParser().ParseDocument("<div style='font-size:18px;font-style:italic'><span id='target' style='" + declaration + "'>Text</span></div>");

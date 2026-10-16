@@ -572,7 +572,12 @@ public static partial class HtmlComputedStyleEngine {
         // Store the HTML default in the computed snapshot so an explicit
         // display:inherit can copy a parent's tag default or hidden state.
         if (!resolvedProperties.ContainsKey("display")) resolvedProperties["display"] = HtmlElementDisplay.GetDefaultValue(element);
+        MaterializeInitialFontValues(resolvedProperties, resetProperties, originRevertedProperties, cascadeTraces);
         ApplyHtmlWhiteSpaceDefaults(element, properties.ContainsKey("white-space"), resolvedProperties,
+            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
+        ApplyHtmlFontDefaults(element, properties, parentProperties, resolvedProperties,
+            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
+        ApplyHtmlTableAlignmentDefault(element, properties.ContainsKey("text-align"), parentProperties, resolvedProperties,
             inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
@@ -689,6 +694,7 @@ public static partial class HtmlComputedStyleEngine {
             includeCascadeTraces,
             customPropertyRegistrations,
             enforceResolutionLimits: budget.HasDeclarationLimit);
+        MaterializeInitialFontValues(resolvedProperties, resetProperties, originRevertedProperties, cascadeTraces);
         return HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
             specifiedProperties, cascadePriorities, cascadeTraces);

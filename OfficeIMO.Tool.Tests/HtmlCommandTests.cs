@@ -14,6 +14,57 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed class HtmlCommandTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HtmlTool_DefaultPageImagesMatchItsPdfPages(bool explicitUnicodeFont) {
+        string? fontPath = explicitUnicodeFont ? Path.GetTempFileName() : null;
+        string[] fontArguments = Array.Empty<string>();
+        if (fontPath != null) {
+            File.WriteAllBytes(fontPath, OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+                "First łSecond0123456789 /".Distinct().Select(character => (int)character).ToArray()));
+            fontArguments = new[] { "--font-family", "Tool Unicode", "--font-regular", fontPath };
+        }
+        try {
+            string html = "<style>@page{size:144px 96px;margin:8px;"
+                + "@bottom-center{content:counter(page) ' / ' counter(pages)}}"
+                + "body{margin:0;font:12px Arial}</style><p>First</p><p style='break-before:page'>Second</p>";
+            if (explicitUnicodeFont) html = html.Replace("First", "First ł", StringComparison.Ordinal);
+            await using var imageInput = new MemoryStream(Encoding.UTF8.GetBytes(html));
+            await using var imageOutput = new MemoryStream();
+            using var imageErrors = new StringWriter();
+            int imageExit = await HtmlCommand.RunAsync(new[] {
+                "render", "-", "--input-format", "html", "--output", "-"
+            }.Concat(fontArguments).ToArray(), imageInput, imageOutput, imageErrors);
+            Assert.True(imageExit == 0, imageErrors.ToString());
+
+            await using var pdfInput = new MemoryStream(Encoding.UTF8.GetBytes(html));
+            await using var pdfOutput = new MemoryStream();
+            using var pdfErrors = new StringWriter();
+            int pdfExit = await HtmlCommand.RunAsync(new[] {
+                "convert", "-", "--input-format", "html", "--output", "-"
+            }.Concat(fontArguments).ToArray(), pdfInput, pdfOutput, pdfErrors);
+            Assert.True(pdfExit == 0, pdfErrors.ToString());
+            var pdf = OfficeIMO.Pdf.PdfReadDocument.Open(pdfOutput.ToArray());
+            var expected = OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(pdf, OfficeImageExportFormat.Png,
+                new OfficeIMO.Pdf.PdfImageExportOptions { Scale = 96D / 72D });
+            Assert.Equal(2, expected.Count);
+            Assert.Contains(explicitUnicodeFont ? "First ł" : "First", pdf.ExtractText(), StringComparison.Ordinal);
+            using var archive = new ZipArchive(new MemoryStream(imageOutput.ToArray()), ZipArchiveMode.Read);
+            for (int index = 0; index < expected.Count; index++) {
+                using Stream page = archive.GetEntry($"pages/page-{index + 1:D4}.png")!.Open();
+                using var bytes = new MemoryStream();
+                page.CopyTo(bytes);
+                Assert.Equal(expected[index].Bytes, bytes.ToArray());
+            }
+            using Stream manifestStream = archive.GetEntry("manifest.json")!.Open();
+            using JsonDocument manifest = await JsonDocument.ParseAsync(manifestStream);
+            Assert.Equal("print-paged-v1", manifest.RootElement.GetProperty("request").GetProperty("profileId").GetString());
+        } finally {
+            if (fontPath != null) File.Delete(fontPath);
+        }
+    }
+
+    [Theory]
     [InlineData("convert", false, "html")]
     [InlineData("render", false, "html")]
     [InlineData("convert", true, "html")]

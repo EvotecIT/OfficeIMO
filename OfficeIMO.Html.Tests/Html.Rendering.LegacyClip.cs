@@ -184,6 +184,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     private static HtmlRenderOptions LegacyClipOptions() => new() {
+        Mode = HtmlRenderMode.Continuous,
         ViewportWidth = 120D,
         ViewportHeight = 100D,
         Margins = HtmlRenderMargins.All(0D)

@@ -143,7 +143,7 @@ public sealed partial class HtmlRenderingTests {
             + "@media print{.chip[data-state=down]{border-color:var(--tone)}}</style>"
             + "<p><span class='chip' data-state='down'>Down</span></p>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-        HtmlRenderDocument screen = HtmlRenderEngine.Render(source);
+        HtmlRenderDocument screen = HtmlRenderEngine.Render(source, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous });
         HtmlRenderDocument print = HtmlRenderEngine.Render(source,new HtmlRenderOptions { Mode=HtmlRenderMode.Paged });
         HtmlRenderShape screenBorder = Assert.Single(screen.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "span.chip" && shape.Shape.StrokeWidth > 0D);

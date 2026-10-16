@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expectedBaseline, baseline, 3);
             Assert.Equal(baseline - shift, Y(Assert.Single(svg, item => item.Value == "X")), 3);
 
-            static double Y(XElement element) => double.Parse(element.Attribute("y")!.Value, CultureInfo.InvariantCulture);
+            static double Y(XElement element) => HtmlSvgTestCoordinates.CssValue(element, "y");
         }
 
         [Fact]

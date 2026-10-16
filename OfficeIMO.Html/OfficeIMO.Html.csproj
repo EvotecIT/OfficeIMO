@@ -50,6 +50,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Core\OfficeIMO.Html.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.AngleSharp\OfficeIMO.Html.AngleSharp.csproj" />
   </ItemGroup>
@@ -66,6 +67,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Html.Rtf" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml" />
     <InternalsVisibleTo Include="OfficeIMO.Chm" />
+    <InternalsVisibleTo Include="OfficeIMO.Chm.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Email.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Email.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml.Pdf" />

@@ -130,6 +130,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:100px;height:60px;background:radial-gradient(40px circle at center,red 0,lime 20px,blue 40px)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 130D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -204,7 +205,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0.5D, gradient.EndRadiusY, 3);
         Assert.True(raster.GetPixel(48, 38).R > raster.GetPixel(48, 38).B);
         Assert.True(raster.GetPixel(167, 38).B > raster.GetPixel(167, 38).R);
-        Assert.Contains("gradientTransform=\"matrix(0.75 0 0 0.5 0.25 0.5)\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.True(svgRaster.GetPixel(48, 38).R > svgRaster.GetPixel(48, 38).B);
+        Assert.True(svgRaster.GetPixel(167, 38).B > svgRaster.GetPixel(167, 38).R);
         Assert.Contains("/ShadingType 3", pdfSource, StringComparison.Ordinal);
         Assert.Contains("/Coords [0 0 0 0 0 1]", pdfSource, StringComparison.Ordinal);
         Assert.Contains("EllipseMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
@@ -235,11 +238,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0.5D, gradient.EndRadiusY, 4);
         Assert.True(raster.GetPixel(48, 38).R > raster.GetPixel(48, 38).B);
         Assert.True(raster.GetPixel(78, 38).B > raster.GetPixel(78, 38).R);
-        var radial = System.Xml.Linq.XDocument.Parse(svg).Descendants()
-            .Single(element => element.Name.LocalName == "radialGradient");
-        double[] transform = ((string)radial.Attribute("gradientTransform")!).Substring(7).TrimEnd(')')
-            .Split(' ').Select(value => double.Parse(value, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
-        Assert.Equal(new[] { 0.1875D, 0D, 0D, 0.5D, 0.25D, 0.5D }, transform);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.True(svgRaster.GetPixel(48, 38).R > svgRaster.GetPixel(48, 38).B);
+        Assert.True(svgRaster.GetPixel(78, 38).B > svgRaster.GetPixel(78, 38).R);
         Assert.Contains("/ShadingType 3", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.Contains("CircleMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
@@ -251,6 +252,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:40px;height:20px;background:radial-gradient(circle at left,red,blue)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -270,6 +272,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:40px;height:20px;background:radial-gradient(circle closest-side at left,red,blue)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -294,6 +297,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='width:40px;height:20px;background:radial-gradient(" + descriptor + ",red,blue)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -328,6 +332,7 @@ public sealed partial class HtmlRenderingTests {
                 Assert.Equal(variable ? OfficeColor.Transparent : OfficeColor.Red, OfficeColor.ParseCss(style.GetValue("background-color")));
                 Assert.Equal("none", style.GetValue("background-image"));
                 HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, new HtmlRenderOptions {
+                    Mode = HtmlRenderMode.Continuous,
                     ViewportWidth = 80D, Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.White
                 });
                 Assert.Equal(variable ? OfficeColor.White : OfficeColor.Red,
@@ -370,6 +375,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='width:40px;height:20px;background:radial-gradient(" + descriptor + ",red,blue)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -394,6 +400,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='width:40px;height:20px;background:radial-gradient(" + descriptor + ",red,blue)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -421,6 +428,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='width:40px;height:20px;background:linear-gradient(" + direction + ",red,blue)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -441,6 +449,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='width:200px;height:100px;background:" + background + "'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -460,6 +469,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:200px;height:100px;background:linear-gradient(to bottom right,red,blue)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -478,6 +488,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:40px;height:20px;background:linear-gradient(red 20%,lime,blue 80%)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -497,6 +508,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:40px;height:20px;background:linear-gradient(red 60%,blue 40%,lime 100%)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -515,6 +527,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:100px;height:20px;background:linear-gradient(to right,red 0 50%,blue 50% 100%)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 130D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -564,7 +577,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal((byte)255, boundaryStops[0].Color.A);
         Assert.Equal((byte)128, boundaryStops[1].Color.A);
         Assert.NotEqual(raster.GetPixel(12, 15), raster.GetPixel(23, 15));
-        Assert.Contains("<linearGradient", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.NotEqual(svgRaster.GetPixel(12, 15), svgRaster.GetPixel(23, 15));
+        Assert.Equal(svgRaster.GetPixel(12, 15), svgRaster.GetPixel(32, 15));
+        Assert.Equal(svgRaster.GetPixel(23, 15), svgRaster.GetPixel(43, 15));
         Assert.Contains("RepeatingLinear", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
@@ -575,6 +591,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='width:40px;height:40px;background:" + background + "'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 70D,
             Margins = HtmlRenderMargins.All(8D),
             MaxGradientStops = 32
@@ -587,6 +604,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(1D, gradient.Stops[gradient.Stops.Count - 1].Offset, 6);
 
         HtmlRenderDocument bounded = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 70D,
             Margins = HtmlRenderMargins.All(8D),
             MaxGradientStops = 4
@@ -714,6 +732,7 @@ public sealed partial class HtmlRenderingTests {
             + "</section>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 500D,
             ViewportHeight = 300D,
             Margins = HtmlRenderMargins.All(0D)
@@ -759,6 +778,7 @@ public sealed partial class HtmlRenderingTests {
             out _));
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(8D),
             ConicGradientQualitySegments = 72
@@ -792,6 +812,7 @@ public sealed partial class HtmlRenderingTests {
         const string background = "repeating-conic-gradient(from .25turn at center,red 0 30deg,blue 30deg 60deg)";
         string html = "<div style='width:40px;height:40px;background:" + background + "'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 70D,
             Margins = HtmlRenderMargins.All(8D),
             MaxGradientStops = 64,
@@ -813,6 +834,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlLinearGradient_ClipsOutOfRangeStopsInsteadOfDroppingThePaint() {
         const string html = "<div style='width:100px;height:20px;background:linear-gradient(to right,red -50%,lime 50%,blue 150%)'></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 130D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -834,6 +856,7 @@ public sealed partial class HtmlRenderingTests {
             + "');background-size:auto,40px 20px;background-repeat:no-repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -852,6 +875,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlLinearGradient_PropagatesFromTheRootAcrossTheWholeCanvas() {
         const string html = "<style>body{background:linear-gradient(to bottom,red,blue)}</style><p>G</p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(8D)
@@ -916,6 +940,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='width:40px;height:20px;background:" + background + "'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D),
             MaxGradientStops = 2
@@ -936,6 +961,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='width:40px;height:20px;background:" + background + "'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D),
             MaxGradientStops = 8

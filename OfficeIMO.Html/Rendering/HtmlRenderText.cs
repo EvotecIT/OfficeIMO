@@ -271,6 +271,12 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
 
     internal bool BidiVisualOrderResolved { get; }
 
+    // RTL paragraph fragments already contain visual glyph order. The legacy
+    // per-glyph Arabic path also carries contextual forms that must not be isolated again.
+    // Latin text still needs normal font substitutions even inside a resolved paragraph.
+    internal bool PreservesPaintedGlyphs => BidiVisualOrderResolved && OfficeTextElements.ContainsRightToLeft(Text)
+        || Text.Length == 1 && !string.Equals(Text, OfficeArabicTextShaper.ToLogicalText(Text), StringComparison.Ordinal);
+
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
         new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor, PaintTopOverflow, IsPaintOnly, TranslateLinkBounds(offsetX, offsetY), UsesOrdinaryLineCarrier).WithWrappedLines(WrappedLines);

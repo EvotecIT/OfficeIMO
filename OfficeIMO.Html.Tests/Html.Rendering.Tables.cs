@@ -19,7 +19,7 @@ public sealed partial class HtmlRenderingTests {
             + "<table id='legacy' border='1'><tr><td id='legacy-cell'>Legacy grid</td></tr></table>"
             + "</body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
         HtmlRenderShape[] shapes = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>().ToArray();
 
         Assert.DoesNotContain(shapes, shape => shape.Source is "td#plain" or "td#zero" or "td#outer-cell");
@@ -41,7 +41,7 @@ public sealed partial class HtmlRenderingTests {
             + "<td id='content' style='background:white'>Content</td></tr></table></body>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
         HtmlRenderShape nav = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "td#nav" && shape.Shape.FillColor == OfficeColor.Blue);
 
@@ -53,7 +53,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<body style='margin:0'><marquee id='notice' style='background:yellow'>Notice</marquee>"
             + "<h1 style='margin:0'>Heading</h1></body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
 
         HtmlRenderShape notice = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "marquee#notice" && shape.Shape.FillColor == OfficeColor.Yellow);
@@ -69,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
             + "<tr><td id='tabbed' style='padding:0;background:blue;white-space:pre;tab-size:32px'><span>A\tB<br>C</span></td></tr>"
             + "</table></body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
         HtmlRenderShape tabbed = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "td#tabbed" && shape.Shape.FillColor == OfficeColor.Blue);
 
@@ -82,10 +82,10 @@ public sealed partial class HtmlRenderingTests {
         const string suffix = "</table></body>";
         HtmlRenderDocument defaults = HtmlRenderTestDriver.Render(prefix
             + "<caption>Report caption</caption><tr><th>Region heading</th></tr>" + suffix,
-            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
         HtmlRenderDocument authored = HtmlRenderTestDriver.Render(prefix
             + "<caption style='text-align:left'>Report caption</caption><tr><th style='font-weight:normal'>Region heading</th></tr>" + suffix,
-            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
 
         HtmlRenderText defaultCaption = Assert.Single(defaults.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Report caption");
         HtmlRenderText authoredCaption = Assert.Single(authored.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Report caption");
@@ -103,7 +103,7 @@ public sealed partial class HtmlRenderingTests {
             + "<table id='report' style='width:240px;box-sizing:border-box;padding:10px;margin:0 auto;background:red'>"
             + "<tr><th>Header</th></tr></table></body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
 
         HtmlRenderShape table = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "table#report" && shape.Shape.FillColor == OfficeColor.Red);
@@ -117,7 +117,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlTables_LegacyCenterAlignUsesAutoMarginsUnlessCssOverridesThem() {
         const string prefix = "<style>body{margin:0}main{width:500px}</style><main>";
         const string suffix = "<tr><td>Cell</td></tr></table></main>";
-        var options = new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) };
 
         HtmlRenderDocument auto = HtmlRenderTestDriver.Render(prefix + "<table align='center'>" + suffix, options);
         HtmlRenderDocument fixedWidth = HtmlRenderTestDriver.Render(prefix + "<table align='center' style='width:160px'>" + suffix, options);
@@ -145,7 +145,7 @@ public sealed partial class HtmlRenderingTests {
             + "<tr><td>Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon</td></tr></table>"
             + "</td></tr></table></main></body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
         HtmlRenderSemanticGroup[] tables = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
             .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Table).ToArray();
 
@@ -162,7 +162,7 @@ public sealed partial class HtmlRenderingTests {
             + "Before alpha beta gamma<table width='200'><tr><td>Inner</td></tr></table>After delta epsilon zeta"
             + "</td></tr></table></main></body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
         HtmlRenderSemanticGroup outer = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
             .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Table)
             .OrderByDescending(table => table.Width).First();
@@ -178,7 +178,7 @@ public sealed partial class HtmlRenderingTests {
             + "Before alpha beta gamma<table style='display:inline;width:200px'><tr><td>Inner</td></tr></table>After delta epsilon zeta"
             + "</td></tr></table></main></body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
         HtmlRenderSemanticGroup outer = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
             .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Table)
             .OrderByDescending(table => table.Width).First();
@@ -226,7 +226,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             HtmlConversionDocument.Parse(html),
-            new HtmlRenderOptions { ViewportWidth = 340D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 340D, Margins = HtmlRenderMargins.All(0D) });
         HtmlRenderText heading = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Action Required");
         HtmlRenderText paragraph = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Review the deployment", StringComparison.Ordinal));
         HtmlRenderText notice = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Two checks", StringComparison.Ordinal));
@@ -276,6 +276,7 @@ public sealed partial class HtmlRenderingTests {
             + "<caption id='caption' style='padding:2px;background:#ff0000'>CaptionPdf</caption>"
             + "<tr><td>CellPdf</td></tr></table></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D),
@@ -314,6 +315,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<table style='width:60px;margin:0'><caption id='caption'>CaptionOnly</caption></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -354,6 +356,7 @@ public sealed partial class HtmlRenderingTests {
             + "<td id='wide' style='background:red'>WWWWWWWWWW</td><td id='narrow' style='background:blue'>i</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -375,6 +378,7 @@ public sealed partial class HtmlRenderingTests {
             + "<tr><td>Odor</td><td>3 threshold odor number</td></tr></table></main>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 620D,
             ViewportHeight = 400D,
             Margins = HtmlRenderMargins.All(0D)
@@ -392,6 +396,7 @@ public sealed partial class HtmlRenderingTests {
             + "<caption>UnbreakableCaptionMinimumWidth</caption><tr><td>A</td><td>B</td></tr></table></main>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 620D,
             ViewportHeight = 400D,
             Margins = HtmlRenderMargins.All(0D)
@@ -412,6 +417,7 @@ public sealed partial class HtmlRenderingTests {
             + "<caption>Alpha beta gamma delta</caption><tr><td>A</td></tr></table></main>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 620D,
             ViewportHeight = 400D,
             Margins = HtmlRenderMargins.All(0D)
@@ -433,6 +439,7 @@ public sealed partial class HtmlRenderingTests {
             + captionImage + "'></caption><tr><td></td></tr></table></main>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 620D,
             ViewportHeight = 400D,
             Margins = HtmlRenderMargins.All(0D)
@@ -453,6 +460,7 @@ public sealed partial class HtmlRenderingTests {
             + "</style><main><table><caption></caption><tr><td>A</td></tr></table></main>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 620D,
             ViewportHeight = 400D,
             Margins = HtmlRenderMargins.All(0D)
@@ -488,6 +496,7 @@ public sealed partial class HtmlRenderingTests {
             + "<td id='text-cell' style='background:blue'>i</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -506,6 +515,7 @@ public sealed partial class HtmlRenderingTests {
             + "<td id='first' style='background:red'>A</td><td id='second' style='background:blue'>Long content does not resize this column</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D)
@@ -525,6 +535,7 @@ public sealed partial class HtmlRenderingTests {
             + "<tr><td id='third' style='background:lime'>C</td><td>D</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D)
@@ -544,6 +555,7 @@ public sealed partial class HtmlRenderingTests {
             + "<tr><td id='first' style='background:red'>A</td><td id='second' style='background:blue'>B</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -561,6 +573,7 @@ public sealed partial class HtmlRenderingTests {
             + "<td style='border:1px solid black;border-right:5px solid red'>LeftPdf</td>"
             + "<td style='border:1px solid black;border-left:2px solid blue'>RightPdf</td></tr></table>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 110D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -593,6 +606,7 @@ public sealed partial class HtmlRenderingTests {
             + "<td style='border:2px solid black;border-right:6px groove #808080'>LeftPdf</td>"
             + "<td style='border:2px solid black;border-left:6px ridge #808080'>RightPdf</td></tr></table>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -628,6 +642,7 @@ public sealed partial class HtmlRenderingTests {
             + "<td style='border:1px solid black;border-left:1px hidden blue'>Right</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 110D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -646,6 +661,7 @@ public sealed partial class HtmlRenderingTests {
             + "</tbody></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 110D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D)
@@ -664,6 +680,7 @@ public sealed partial class HtmlRenderingTests {
             + "<tr style='border:none;border-top:1px solid blue'><td style='border:none'>A</td><td style='border:none'>B</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 110D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -687,6 +704,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<table id='table' style='caption-side:left;table-layout:balanced;border-collapse:merge;border-spacing:-2px;width:60px;margin:0'><caption>Caption</caption><tr><td>Cell</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)

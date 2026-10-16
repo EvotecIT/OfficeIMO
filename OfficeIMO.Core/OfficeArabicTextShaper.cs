@@ -53,7 +53,7 @@ public static class OfficeArabicTextShaper {
                 category = CharUnicodeInfo.GetUnicodeCategory(value, index);
                 index++;
             }
-            if (!OfficeTextElements.IsRightToLeftScalar(scalar) || !IsLetter(category)) continue;
+            if (!OfficeTextElements.IsJoiningScriptScalar(scalar) || !IsLetter(category) || scalar == 0x0640) continue;
             if (scalar <= char.MaxValue && (Forms.ContainsKey((char)scalar) || LogicalForms.ContainsKey((char)scalar))) continue;
             return false;
         }

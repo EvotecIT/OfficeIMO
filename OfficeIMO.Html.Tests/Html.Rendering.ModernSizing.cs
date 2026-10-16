@@ -13,6 +13,7 @@ public sealed partial class HtmlRenderingTests {
             <div id="minimum" style="width:10vmin;height:5vmax;background:lime"></div>
             """;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D),
@@ -38,6 +39,7 @@ public sealed partial class HtmlRenderingTests {
             <div id="border" style="box-sizing:border-box;width:80px;aspect-ratio:2/1;padding:10px;border:2px solid blue;background:lime"></div>
             """;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 120D,
             Margins = HtmlRenderMargins.All(0D),
@@ -69,6 +71,7 @@ public sealed partial class HtmlRenderingTests {
             </section>
             """;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 420D,
             ViewportHeight = 120D,
             Margins = HtmlRenderMargins.All(0D),
@@ -121,7 +124,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_ContainerRangeQueriesAcceptCompactComparisonOperators() {
         const string html = "<style>#minimum,#range,#outside{background:blue}@container (width>=300px){#minimum{background:red}}@container (300px<=width<400px){#range{background:red}}@container (width<300px){#outside{background:red}}</style><section style='width:360px;container-type:inline-size'><div id='minimum' style='width:20px;height:20px'></div><div id='range' style='width:20px;height:20px'></div><div id='outside' style='width:20px;height:20px'></div></section>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 420D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 420D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#minimum").Shape.FillColor);
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#range").Shape.FillColor);
@@ -135,6 +138,7 @@ public sealed partial class HtmlRenderingTests {
             <section style="width:200px;container-type:inline-size"><div id="item" class="item">Container threshold</div></section>
             """;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 1000D,
             ViewportHeight = 120D,
             Margins = HtmlRenderMargins.All(0D),
@@ -153,7 +157,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='box-sizing:border-box;width:75cqw;height:80cqh;padding:5cqw 10cqw;border:1cqw solid black;min-width:60cqw;max-width:70cqw;min-height:50cqh;max-height:60cqh;font-size:10cqw;container-type:size'>"
             + "<div id='item' style='width:20px;height:20px'></div></div></section>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 1000D, ViewportHeight = 500D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 1000D, ViewportHeight = 500D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
     }
@@ -166,7 +170,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='width:50cqw;height:50cqh;container-type:size'>"
             + "<div id='axis-item' style='width:20px;height:20px'></div></div></div></section>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 1000D, ViewportHeight = 500D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 1000D, ViewportHeight = 500D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#axis-item").Shape.FillColor);
     }
@@ -175,7 +179,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_ContainerAspectRatioQueriesAcceptRatiosOnly() {
         const string html = "<style>#ratio,#length{background:blue}@container (aspect-ratio:2){#ratio{background:red}}@container (aspect-ratio:2px){#length{background:red}}</style><section style='width:200px;height:100px;container-type:size'><div id='ratio' style='width:20px;height:20px'></div><div id='length' style='width:20px;height:20px'></div></section>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D, ViewportHeight = 200D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, ViewportHeight = 200D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#ratio").Shape.FillColor);
         Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#length").Shape.FillColor);
@@ -185,7 +189,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_SquareSizeContainerUsesPortraitOrientation() {
         const string html = "<style>#item{background:black}@container (orientation:portrait){#item{background:red}}@container (orientation:landscape){#item{background:blue}}</style><section style='width:100px;height:100px;container-type:size'><div id='item' style='width:20px;height:20px'></div></section>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 200D, ViewportHeight = 200D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 200D, ViewportHeight = 200D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
     }
@@ -194,7 +198,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_GroupedContainerConditionsReevaluateLogicalOperators() {
         const string html = "<style>#item{background:blue}@container ((width > 100px) or (height > 100px)){#item{background:red}}</style><section style='width:120px;height:40px;container-type:size'><div id='item' style='width:20px;height:20px'></div></section>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D, ViewportHeight = 200D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, ViewportHeight = 200D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
     }
@@ -203,7 +207,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_BoxShorthandContainerUnitsUseTheActiveContainer() {
         const string html = "<section style='width:200px;container-type:inline-size'><div id='item' style='box-sizing:content-box;width:20px;height:20px;padding:10cqw;background:red'></div></section>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 800D, ViewportHeight = 400D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 800D, ViewportHeight = 400D });
         HtmlRenderShape item = FindShape(rendered, "div#item");
 
         Assert.Equal((60D, 60D), (item.Width, item.Height));
@@ -230,7 +234,7 @@ public sealed partial class HtmlRenderingTests {
             </div>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D });
 
         Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#em").Shape.FillColor);
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#rem").Shape.FillColor);
@@ -250,7 +254,7 @@ public sealed partial class HtmlRenderingTests {
             </section>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
     }
@@ -262,6 +266,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='probe'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D)
@@ -279,6 +284,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='probe'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D)
@@ -297,6 +303,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='container'><div id='item'></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D)
@@ -438,7 +445,7 @@ public sealed partial class HtmlRenderingTests {
             </section>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
     }
@@ -467,7 +474,7 @@ public sealed partial class HtmlRenderingTests {
             </section>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 800D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 800D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#maximum").Shape.FillColor);
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#minimum").Shape.FillColor);
@@ -500,7 +507,7 @@ public sealed partial class HtmlRenderingTests {
             </section>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 800D, ViewportHeight = 1000D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 800D, ViewportHeight = 1000D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#maximum").Shape.FillColor);
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#minimum").Shape.FillColor);
@@ -525,7 +532,7 @@ public sealed partial class HtmlRenderingTests {
             </section>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 500D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 500D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#content-box").Shape.FillColor);
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#border-box").Shape.FillColor);
@@ -552,7 +559,7 @@ public sealed partial class HtmlRenderingTests {
               </div>
             </section>
             """;
-        var options = new HtmlRenderOptions { ViewportHeight = 600D };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportHeight = 600D };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
@@ -575,7 +582,7 @@ public sealed partial class HtmlRenderingTests {
             </section>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 500D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 500D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#content-box").Shape.FillColor);
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#border-box").Shape.FillColor);
@@ -585,7 +592,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_CqhUsesTheSizeContainersContentBox() {
         const string html = "<section style='box-sizing:border-box;width:200px;height:200px;padding:20px;border:10px solid black;container-type:size'><div id='item' style='width:20px;height:50cqh;background:red'></div></section>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D, ViewportHeight = 400D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, ViewportHeight = 400D });
 
         Assert.Equal(70D, FindShape(rendered, "div#item").Height, 3);
     }

@@ -19,6 +19,7 @@ public sealed partial class HtmlRenderingTests {
             + "font-feature-settings:'ss01' 2,'dlig' off;font-palette:dark\">" + text + "</p>";
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 260D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D),
@@ -51,7 +52,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(1, visual.FeatureSettings.Features["ruby"]);
         Assert.Equal(2, visual.FeatureSettings.Features["ss01"]);
         Assert.True(request.FeatureSettings.Equals(visual.FeatureSettings));
-        Assert.Contains("font-feature-settings=\"&quot;clig&quot; 0", svg, StringComparison.Ordinal);
+        Assert.Contains(provider.Requests.Skip(1), exported =>
+            exported.Text.Contains("OfficeIMO", StringComparison.Ordinal)
+            && exported.FeatureSettings.Equals(visual.FeatureSettings));
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.True(ContainsColor(svgRaster, pixel => pixel.A > 0 && pixel.R < 40 && pixel.G < 40 && pixel.B < 40));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(font-feature-settings:'liga' 1)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(font-variant-numeric:tabular-nums)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(font-palette:dark)"));
@@ -62,6 +67,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style=\"font-kerning:none;font-feature-settings:'liga' 1\">"
             + "<span id='inherited'>fi</span><span id='overridden' style=\"font-kerning:normal;font-feature-settings:'liga' 0\">fi</span></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 180D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D)
@@ -86,6 +92,7 @@ public sealed partial class HtmlRenderingTests {
         string disabledHtml = "<style>" + fontSource
             + "p{margin:0;font:32px 'OfficeIMO Shaping Test';font-feature-settings:'liga' 0}</style><p>fi</p>";
         var renderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -95,6 +102,8 @@ public sealed partial class HtmlRenderingTests {
             .ExportImage(OfficeImageExportFormat.Png, renderOptions).Bytes;
         byte[] disabledPng = HtmlConversionDocument.Parse(disabledHtml)
             .ExportImage(OfficeImageExportFormat.Png, renderOptions).Bytes;
+        OfficeRasterImage enabledSvg = RasterizeHtmlImageSvg(HtmlConversionDocument.Parse(enabledHtml).ToSvg(renderOptions));
+        OfficeRasterImage disabledSvg = RasterizeHtmlImageSvg(HtmlConversionDocument.Parse(disabledHtml).ToSvg(renderOptions));
         var pdfOptions = new HtmlToPdfOptions(renderOptions) {
             PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
@@ -104,6 +113,7 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfReadDocument disabledRead = PdfCore.PdfReadDocument.Open(disabledPdf);
 
         Assert.NotEqual(enabledPng, disabledPng);
+        Assert.NotEqual(enabledSvg.GetPixels(), disabledSvg.GetPixels());
         Assert.Equal(1, enabledRead.Pages[0].GetTextSpans().Where(span => span.IsVisible)
             .Sum(span => span.GlyphBytes?.Count ?? 0));
         Assert.Equal(2, disabledRead.Pages[0].GetTextSpans().Where(span => span.IsVisible)
@@ -116,6 +126,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_FontPaletteSelectsManagedColorGlyphPalette() {
         byte[] font = ManagedTextShapingTestAssets.CreateColorFont('A');
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 90D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -134,7 +145,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(OfficePngReader.TryDecode(dark.ExportImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? darkImage));
         string darkSvg = Encoding.UTF8.GetString(dark.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         byte[] darkPdf = dark.ToPdfBytes(new HtmlToPdfOptions(options));
-        OfficeColor[] pdfPaints = PdfCore.PdfDocument.Load(darkPdf).Render.Drawing(1).Shapes
+        OfficeColor[] pdfPaints = DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(darkPdf).Render.Drawing(1))
+            .OfType<OfficeDrawingShape>()
             .Select(shape => shape.Shape.FillColor ?? OfficeColor.Transparent)
             .ToArray();
 
@@ -144,7 +156,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(ContainsColor(lightImage!, pixel => pixel.B > 220 && pixel.R < 40 && pixel.G < 40));
         Assert.True(ContainsColor(darkImage!, pixel => pixel.R > 220 && pixel.G > 220 && pixel.B < 40));
         Assert.True(ContainsColor(darkImage!, pixel => pixel.G > 90 && pixel.R < 40 && pixel.B < 40));
-        Assert.Contains("font-palette=\"dark\"", darkSvg, StringComparison.Ordinal);
+        OfficeRasterImage darkSvgImage = RasterizeHtmlImageSvg(darkSvg);
+        Assert.True(ContainsColor(darkSvgImage, pixel => pixel.R > 220 && pixel.G > 220 && pixel.B < 40));
+        Assert.True(ContainsColor(darkSvgImage, pixel => pixel.G > 90 && pixel.R < 40 && pixel.B < 40));
         Assert.Contains(OfficeColor.Yellow, pdfPaints);
         Assert.Contains(OfficeColor.FromRgb(0, 128, 0), pdfPaints);
         Assert.Equal("A", PdfCore.PdfReadDocument.Open(darkPdf).ExtractText().Trim());

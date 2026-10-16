@@ -60,10 +60,12 @@ const string embeddedSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0
     + "<rect x='1' y='1' width='12' height='12' fill='orange' filter='url(#s)'/>"
     + "<foreignObject x='17' y='1' width='20' height='14'><div xmlns='http://www.w3.org/1999/xhtml' "
     + "style='font:8px/12px Arial;color:navy;background:lime'>FxAot</div></foreignObject></svg>";
+byte[] markerPng = MarkerImageContract.CreateFixture();
+string markerUri = "data:image/png;base64," + Convert.ToBase64String(markerPng);
 string advancedHtml = "<style>@page{size:4in 4in;margin:24px;bleed:4px;marks:crop}"
     + "body,p,ul,h2{margin:0}"
     + "h2{text-shadow:1px 1px 1px #99a;writing-mode:vertical-rl;height:80px}"
-    + "li::marker,.note::footnote-marker{content:'[' url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=\") ']';color:green}"
+    + "li::marker,.note::footnote-marker{content:'[' url(\"" + markerUri + "\") ']';color:green}"
     + ".note{float:footnote;font-size:8px;line-height:10px}</style>"
     + "<h2>VerticalAot</h2><ul><li>MarkerAot</li></ul><p>Call<span class='note'>FootnoteAot</span></p>"
     + embeddedSvg.Replace("<svg ", "<svg aria-label='Advanced vector proof' style='width:160px;height:72px' ", StringComparison.Ordinal);
@@ -100,9 +102,7 @@ if (advancedRender.Pages.Count != 1
         $"The NativeAOT advanced packet lost its one-page CSS production contract: pages={advancedRender.Pages.Count}, "
         + $"marks={advancedRender.Pages[0].PrintProduction?.Marks}, bleed={advancedRender.Pages[0].PrintProduction?.Bleed}.");
 }
-if (!advancedSvg.Contains("data:image/png;base64", StringComparison.Ordinal)) {
-    throw new InvalidOperationException("The NativeAOT advanced packet lost its generated marker image.");
-}
+MarkerImageContract.Verify(advancedRender, advancedSvg, advancedSource.ToPng(advancedOptions), markerPng);
 
 if (OfficeProtectionCapabilityCatalog.Current.SchemaVersion != 2
     || OfficeProtectionCapabilityCatalog.Current.Capabilities.Count == 0) {

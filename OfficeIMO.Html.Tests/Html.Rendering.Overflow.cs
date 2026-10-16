@@ -12,6 +12,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlViewportOverflow_DocumentRootClipsSharedContinuousAndPdfContent() {
         const string html = "<style>html{overflow:hidden}body{overflow:visible}</style><div style='width:100px;height:12px;margin:0;font-size:6px;line-height:8px'>RootPdf</div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -47,6 +48,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>html{overflow:visible}body{overflow-x:clip;overflow-y:visible}</style><div style='width:80px;height:10px;margin:0'>Body overflow</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 25D,
             Margins = HtmlRenderMargins.All(0D),
@@ -64,6 +66,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='clip' style='position:relative;width:40px;height:30px;margin:0;overflow:hidden'>"
             + "<div id='overflowing' style='position:absolute;left:20px;top:10px;width:40px;height:40px;background:#ff0000;color:#ff0000'>ClippedPdfMarker</div></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -100,6 +103,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='position:relative;width:40px;height:30px;margin:0;overflow:visible'>"
             + "<div style='position:absolute;left:20px;top:10px;width:40px;height:40px;background:#ff0000'></div></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -118,6 +122,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='offset-clip' style='position:relative;width:40px;height:30px;margin:0 0 0 20px;overflow:hidden'>"
             + "<div style='position:absolute;left:20px;top:0;width:40px;height:30px;background:#ff0000'></div></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D)
@@ -140,6 +145,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='clip-x' style='position:relative;width:40px;height:30px;margin:0;overflow-x:clip;overflow-y:visible'>"
             + "<div style='position:absolute;left:20px;top:20px;width:40px;height:30px;background:#ff0000'></div></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -164,6 +170,7 @@ public sealed partial class HtmlRenderingTests {
             + visualBox + " 4px'>X</div></body>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 60D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D)
@@ -183,6 +190,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='position:absolute;left:-4px;top:0;width:3px;height:20px;background:red'></span></div></body>";
         const string hiddenHtml = "<body style='margin:0'><div id='hidden' style='width:20px;height:20px;margin:10px;overflow:hidden;overflow-clip-margin:5px'>X</div></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -219,6 +227,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='position:absolute;left:20px;top:10px;width:40px;height:40px;background:#ff0000'></div></div>";
         const string fittingHtml = "<div id='auto-fit' style='width:40px;height:30px;margin:0;overflow:auto'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -237,6 +246,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='scroll-box' style='width:40px;height:30px;margin:0;overflow:scroll'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -253,6 +263,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='inner-clip' style='position:absolute;left:20px;top:20px;width:40px;height:40px;overflow:hidden'>"
             + "<div style='position:absolute;left:10px;top:10px;width:30px;height:30px;background:#0000ff'></div></div></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D)
@@ -261,6 +272,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D)
@@ -280,6 +292,7 @@ public sealed partial class HtmlRenderingTests {
         };
         foreach (string html in documents) {
             HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+                Mode = HtmlRenderMode.Continuous,
                 ViewportWidth = 80D,
                 ViewportHeight = 40D,
                 Margins = HtmlRenderMargins.All(0D)
@@ -319,6 +332,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='invalid-overflow' style='overflow:sideways banana'>Text</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -340,6 +354,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='invalid-clip-margin' style='overflow:clip;overflow-clip-margin:border-box -2px'>Text</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(0D)
         });

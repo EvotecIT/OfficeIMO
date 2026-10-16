@@ -181,7 +181,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : ResolveDisplay(element, computed);
         bool propagatedUnderline = parent != null && parent.UnderlineStyle != OfficeTextDecorationStyle.None
             && CanReceiveTextDecoration(display, computed.GetValue("position"), computed.GetValue("float"));
-        OfficeFontStyle fontStyle = ResolveFontStyle(fontTag, computed);
+        OfficeFontStyle fontStyle = ResolveTextDecorations(fontTag, computed);
         bool defaultLink = !pseudoElement && tag == "a" && element.HasAttribute("href");
         if (defaultLink && !HasAuthoredValue(computed, "text-decoration-line") && !HasAuthoredValue(computed, "text-decoration")) {
             fontStyle |= OfficeFontStyle.Underline;
@@ -691,19 +691,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             : parentFontSize;
     }
 
-    private static OfficeFontStyle ResolveFontStyle(string tag, HtmlComputedStyle computed) {
+    private static OfficeFontStyle ResolveTextDecorations(string tag, HtmlComputedStyle computed) {
         OfficeFontStyle result = OfficeFontStyle.Regular;
-        string weight = computed.GetValue("font-weight");
-        bool heading = tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6';
-        if (heading || tag == "b" || tag == "strong" || string.Equals(weight, "bold", StringComparison.OrdinalIgnoreCase) || TryFontWeight(weight, out int numericWeight) && numericWeight >= 600) {
-            result |= OfficeFontStyle.Bold;
-        }
-
-        string style = computed.GetValue("font-style");
-        if (tag == "i" || tag == "em" || style.StartsWith("italic", StringComparison.OrdinalIgnoreCase) || style.StartsWith("oblique", StringComparison.OrdinalIgnoreCase)) {
-            result |= OfficeFontStyle.Italic;
-        }
-
         string decoration = computed.GetValue("text-decoration-line");
         if (tag == "u" || decoration.IndexOf("underline", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Underline;
         if (tag == "s" || tag == "strike" || tag == "del" || decoration.IndexOf("line-through", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Strikethrough;
@@ -724,7 +713,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         _ => OfficeTextDecorationStyle.Single
     };
 
-    private static bool TryFontWeight(string value, out int weight) => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out weight);
 
     private static double ResolveDefaultTagFontSize(string tag, double inherited) {
         switch (tag) {

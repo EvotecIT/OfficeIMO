@@ -148,7 +148,8 @@
           "AngleSharp.Css": "[1.1.3, )",
           "OfficeIMO.Core": "[3.5.1, )",
           "OfficeIMO.Html.AngleSharp": "[3.5.1, )",
-          "OfficeIMO.Html.Core": "[3.5.1, )"
+          "OfficeIMO.Html.Core": "[3.5.1, )",
+          "OfficeIMO.Pdf": "[3.5.1, )"
         }
       },
       "officeimo.html.anglesharp": {
@@ -533,7 +534,8 @@
           "AngleSharp.Css": "[1.1.3, )",
           "OfficeIMO.Core": "[3.5.1, )",
           "OfficeIMO.Html.AngleSharp": "[3.5.1, )",
-          "OfficeIMO.Html.Core": "[3.5.1, )"
+          "OfficeIMO.Html.Core": "[3.5.1, )",
+          "OfficeIMO.Pdf": "[3.5.1, )"
         }
       },
       "officeimo.html.anglesharp": {

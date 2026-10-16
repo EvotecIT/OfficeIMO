@@ -67,6 +67,7 @@ public static class HtmlRenderCapabilityGalleryExtensions {
 
         PdfCore.PdfDocumentConversionResult conversion = HtmlPdfConverterExtensions.CreateResult(pdfResult);
         byte[] pdf = conversion.ToBytes(cancellationToken);
+        PdfCore.PdfReadDocument previewPages = PdfCore.PdfReadDocument.Open(pdf, options: null, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         string pdfPath = Path.Combine(directory, prefix + ".pdf");
         WriteBytes(pdfPath, pdf);
@@ -89,8 +90,9 @@ public static class HtmlRenderCapabilityGalleryExtensions {
         OfficeImageExportBatchProcessor.ForEachOrdered(
             previews,
             renderOptions.MaximumDegreeOfParallelism,
-            (preview, _, token) => HtmlImageExportExtensions.RenderPage(
-                rendered.Pages[preview.PageIndex], preview.Format, renderOptions, rendered.DiagnosticReport, token),
+            (preview, _, token) => PdfCore.PdfImageExportEngine.Export(
+                previewPages.Pages[preview.PageIndex], preview.Format, renderOptions.ToPdfImageOptions(),
+                preview.PageIndex + 1, PdfCore.PdfImageExportEngine.MapConversionDiagnostics(conversion), token),
             image => {
                 cancellationToken.ThrowIfCancellationRequested();
                 int pageIndex = previews[previewIndex++].PageIndex;

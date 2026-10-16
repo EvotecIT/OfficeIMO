@@ -31,7 +31,8 @@ public sealed partial class HtmlRenderPage {
             if (visual is HtmlRenderText original && original.Text.Length > 0 && original.TextAdvanceWidth is double measuredAdvance) {
                 measurement ??= new OfficeRasterCanvas(new OfficeRasterImage(1, 1), font: null, fonts: fonts, cancellationToken: cancellationToken);
                 HtmlRenderText text = original.ResolveBaselineForPainting();
-                string value = text.BidiVisualOrderResolved ? "\u202D" + text.Text + "\u202C" : text.Text;
+                string value = text.BidiVisualOrderResolved && !text.PreservesPaintedGlyphs ? "\u202D" + text.Text + "\u202C" : text.Text;
+                measurement.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
                 double advance = text.TextPaintWidth ?? (measuredAdvance > 0D ? measuredAdvance : text.Width);
                 var ink = measurement.MeasurePositionedTextBounds(value, text.X, text.Y,
                     text.Width, text.Height, text.Font.Size, text.Font, advance, text.Alignment,

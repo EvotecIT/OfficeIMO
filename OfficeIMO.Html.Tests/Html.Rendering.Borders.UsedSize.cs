@@ -26,6 +26,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>*{margin:0;padding:0;box-sizing:border-box}</style><div style='" + parent + "'>"
             + "<div id='divider' style='margin:8px;background:white;" + display + css + "'></div></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 140D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D),
@@ -44,7 +45,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlBorders_MaximumBorderBoxSizesCannotRemoveBorderAndPaddingInsets() {
         const string html = "<style>*{margin:0;padding:0;box-sizing:border-box}</style>"
             + "<div id='minimum' style='width:0;height:0;max-width:0;max-height:0;padding:3px;border:2px solid red;background:white'></div>";
-        var options = new HtmlRenderOptions { ViewportWidth = 20D, ViewportHeight = 20D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 20D, ViewportHeight = 20D, Margins = HtmlRenderMargins.All(0D) };
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderShape background = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "div#minimum" && shape.Shape.FillColor == OfficeColor.White);
@@ -59,7 +60,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlBorders_ZeroSizeControlsPreserveBorderAndPaddingInsets() {
         const string html = "<style>*{margin:0;padding:0;box-sizing:border-box}</style>"
             + "<input id='control' type='text' style='margin:8px;width:0;height:0;max-width:0;max-height:0;padding:3px;border:2px solid red;background:white'>";
-        var options = new HtmlRenderOptions { ViewportWidth = 40D, ViewportHeight = 40D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 40D, ViewportHeight = 40D, Margins = HtmlRenderMargins.All(0D) };
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderFormField field = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderFormField>(),
             visual => visual.Source == "input#control");
@@ -77,6 +78,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>*{margin:0;padding:0;box-sizing:border-box}</style>"
             + "<div id='rounded-band' style='margin:8px;width:60px;height:40px;background:white;border:10px solid #808080;border-radius:" + radius + "'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D),

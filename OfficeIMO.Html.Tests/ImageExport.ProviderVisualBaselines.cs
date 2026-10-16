@@ -129,6 +129,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
             """;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             MaximumOutputWidth = 360,
             MaximumOutputHeight = 360
         };

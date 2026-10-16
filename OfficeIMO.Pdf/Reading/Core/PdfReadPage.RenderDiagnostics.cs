@@ -1603,6 +1603,9 @@ public sealed partial class PdfReadPage {
             if (annotation == null || IsHiddenAnnotation(annotation) || HasNoVisibleAnnotationArea(annotation)) continue;
             string subtype = annotation.Get<PdfName>("Subtype")?.Name ?? "unknown";
             if (!TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream appearance, out bool synthesized)) {
+                // A borderless link is only an interactive hit area. Its page
+                // content already paints the label, so no appearance is omitted.
+                if (IsNonPaintingLinkWithoutAppearance(annotation, subtype)) continue;
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.AnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
                 continue;
             }

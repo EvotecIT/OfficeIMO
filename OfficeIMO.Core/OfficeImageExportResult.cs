@@ -245,6 +245,12 @@ public sealed class OfficeImageExportResult {
             sequenceCount: sequenceCount);
     }
 
+    /// <summary>Changes adapter labels without discarding the encoded payload or batch metadata.</summary>
+    internal OfficeImageExportResult WithIdentity(string? name, string? source) => new OfficeImageExportResult(
+        Format, Width, Height, _bytes, name, source, Diagnostics, SavedPath,
+        validateAndClone: false, dpiX: DpiX, dpiY: DpiY,
+        sequenceIndex: SequenceIndex, sequenceCount: SequenceCount);
+
     /// <summary>Creates an immutable result copy with replacement diagnostics while preserving payload and batch metadata.</summary>
     public OfficeImageExportResult WithDiagnostics(IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) =>
         new OfficeImageExportResult(

@@ -148,6 +148,7 @@ public sealed partial class HtmlRenderingTests {
 
     private static HtmlRenderOptions ScopedMathRenderOptions() {
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 360D, ViewportHeight = 160D, Margins = HtmlRenderMargins.All(0D),
             AllowSystemFontFallback = false
         };
