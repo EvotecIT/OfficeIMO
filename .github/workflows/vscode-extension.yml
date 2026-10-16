@@ -74,7 +74,12 @@ jobs:
         shell: pwsh
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+          REUSE_PRE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' && inputs.pre_release }}
         run: |
+          if ($env:REUSE_PRE_RELEASE -eq 'true') {
+            throw 'When reusing a released VSIX, leave pre_release disabled; the artifact already owns its release channel.'
+          }
+
           if ($env:RELEASE_TAG -notmatch '^OfficeIMO-v\d{14}$') {
             throw "OfficeIMO VS Code Marketplace publishing only accepts normal OfficeIMO release tags named OfficeIMO-vYYYYMMDDHHMMSS. Current tag: $env:RELEASE_TAG. Example: OfficeIMO-v20260507115122"
           }
