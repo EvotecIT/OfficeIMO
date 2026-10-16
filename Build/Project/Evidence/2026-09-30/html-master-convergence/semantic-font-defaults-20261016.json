@@ -1,0 +1,385 @@
+{
+  "schemaVersion": 1,
+  "subject": "HTML semantic font defaults and inheritance",
+  "qualifiedBase": "a861ba765a9fd2b8edcf82e319593c84d6d74d5d",
+  "productionCommit": "7d4de5185b27d40724dba6cb189eb5c0f36ccfc9",
+  "source": {
+    "workingInputs": 6266,
+    "sourceSealSha256": "212b14bf210dee50e1253e12ef93528f64546ab5f97b9f388bedb74cd91c563c",
+    "ownerInputCount": 3133,
+    "ownerManifestSha256": "3e5c61c4b852c4cc1917233e36c7482cc2beab2b57e629e7999a3081a0295ee7"
+  },
+  "behavior": [
+    "HTML semantic slant and weight defaults enter computed styles before descendant inheritance",
+    "b/strong use relative bolder weight; headings/th use bold",
+    "Explicit inherit, unset, initial and origin/layer rollback preserve CSS intent",
+    "Initial font values remain in computed snapshots for inline SVG projection and descendants",
+    "Editable semantic rich text uses canonical computed font state"
+  ],
+  "evidence": {
+    "redSemanticSlant": {
+      "cases": 16,
+      "failed": 10,
+      "passed": 6
+    },
+    "redConsumerGaps": {
+      "cases": 20,
+      "failed": 11,
+      "passed": 9
+    },
+    "focusedRemediation": {
+      "cases": 105,
+      "passed": 105
+    },
+    "fullHtml": {
+      "net8.0": {
+        "total": 6521,
+        "passed": 6521,
+        "failed": 0,
+        "notExecuted": 0
+      },
+      "net10.0": {
+        "total": 6521,
+        "passed": 6521,
+        "failed": 0,
+        "notExecuted": 0
+      }
+    },
+    "native": {
+      "fixtureCount": 8,
+      "profiles": [
+        "print",
+        "screen"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "checks": {
+        "fixtures": 8,
+        "profiles": [
+          "print",
+          "screen"
+        ],
+        "frameworks": [
+          "net8.0",
+          "net10.0"
+        ],
+        "whitespaceRows": 64,
+        "maxNativeSpaceAdvanceDeltaCssPx": 0.047526666666669826,
+        "existingToleranceCssPx": 0.25,
+        "italicControls": 40,
+        "fontDefaultNodes": 80,
+        "visualFontFlagChecks": 804,
+        "linkAnnotationChecks": 32,
+        "preservedLinkAnnotations": 16,
+        "mathArtifactsDecodedIdenticalToBaseline": 32,
+        "mathArtifactsByteIdenticalToBaseline": 24,
+        "crossFrameworkDecodedPayloadMatches": 64,
+        "crossFrameworkByteMatches": 32,
+        "nativeEmittedSvgCaptures": 16,
+        "nativeOriginalControls": 8,
+        "consoleErrors": 0,
+        "nativeOriginalReusedOnlyOnExactInputFontHash": 7,
+        "freshNativeOriginalSvgResetControl": 1,
+        "printScreenRgbaPixelMatches": 32
+      },
+      "observedConclusions": [
+        "Semantic em/i and nested strong/em are italic with both font shorthand and longhand parents.",
+        "Strong/b match native bolder defaults for parent weights 300 and 900; explicit inherit/unset/initial and descendant resets match native computed weights.",
+        "cite/dfn/var/address paint italic.",
+        "Inline SVG inherited text uses BoldItalic; direct text and nested tspan initial resets use Regular; adjacent emphasized text stays BoldItalic.",
+        "Word gaps, wrap points, whitespace-only nodes and link destinations preserve native behavior in wide and narrow controls.",
+        "Math outputs preserve the pre-fix payload; this milestone does not close radical construction width or fraction line-advance acceptance."
+      ],
+      "runtimeBindings": [
+        {
+          "framework": "net8.0",
+          "ownerDllSha256": {
+            "OfficeIMO.Core.dll": "d6520b73f5555fae1f533b1d8f63ad84f04e0febf438ba44035c44ba7b2d19e8",
+            "OfficeIMO.Html.dll": "ea509c08dc8c42d71c0bc9bd318ba2281a4c0ea3217563601bdede3067c01d9f",
+            "OfficeIMO.Html.Core.dll": "083baba50f717ddd34cc36c9f219fb2158cc332cc9c83883de8308357e228ea2",
+            "OfficeIMO.Html.AngleSharp.dll": "23c5bd9dbcf4ac735044d8ee7ce04066256648a0fde8a7e3a0bd74782aaa86e2",
+            "OfficeIMO.Html.Pdf.dll": "f0bb2f6375d285616230c9add17896c22e845541275a71b76278b8b60a76fbc4",
+            "OfficeIMO.Pdf.dll": "99323ad650eb6ea7b2fdb83b26da9cb0d6c71cffd08f9c26fa915a2679439478",
+            "AngleSharp.dll": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7",
+            "AngleSharp.Css.dll": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+          },
+          "ownerTupleSha256": "b1e42d8931eeb4e86f53f967818f4733ec7cbd79f3e66b79c8a00cd87ed0e058",
+          "normalProjectReferences": true,
+          "allEightMatchAcceptedRootTests": true,
+          "runtimeArchiveSha256": "28efd155771e2c9c0135eae768bc3fede6e96020a6b10440412a7bcc686c057a"
+        },
+        {
+          "framework": "net10.0",
+          "ownerDllSha256": {
+            "OfficeIMO.Core.dll": "caaec8ff95533da5c4ee03b66f1303d76ad5180b200a35cff455cc94fe537bdd",
+            "OfficeIMO.Html.dll": "302d61a48262d291373b4fd4ef1f7e947e1afc5dd02a4e6a85f54a5d6a6253ed",
+            "OfficeIMO.Html.Core.dll": "cdabed9861c7bba21d9a5318e8620650b2a9df3f408a2bed6bd730f893060888",
+            "OfficeIMO.Html.AngleSharp.dll": "aedabf488f2954ea8478df15cd0f54e40ac83feb4da03f7e968e15d996c3897e",
+            "OfficeIMO.Html.Pdf.dll": "f47a4d18574a1436d091ba88df3fd7889b2148dd01a96c8ea3bfa534d07984ea",
+            "OfficeIMO.Pdf.dll": "9c07957e2a53cc2a9e7472bc72d8712c420543f8068b30c4a438a58e0118877c",
+            "AngleSharp.dll": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911",
+            "AngleSharp.Css.dll": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+          },
+          "ownerTupleSha256": "1576fee89fd3ddc4f78d729b92b487c3298330daed01d7462a4f9bf1e784e9a1",
+          "normalProjectReferences": true,
+          "allEightMatchAcceptedRootTests": true,
+          "runtimeArchiveSha256": "1eb078f322a8b89efd7c1479412ef241b55c820537e663dbe5364870f4aeeabc"
+        }
+      ],
+      "baselineSourceCommit": "f77fdce2144e1ea30be640e01ae7e632b58600ae",
+      "baselineSourceInputs": 3124,
+      "baselineRuntimeArchiveSha256": "50f6532e43a24a11c8b0915ff55b7391cf926c0a403adb60e9b0d9e901fd1b7f",
+      "comparisonSha256": "305213fdb481b3ee407b00372515507314176d19ba0a4290dabc487b10f16e85",
+      "galleries": [
+        {
+          "path": "galleries/whitespace-wide-print-four-route.png",
+          "sha256": "a712afb946a84c6033c7389fcc79b4dbc6b611ec8a31c819087ee7f2d7846087"
+        },
+        {
+          "path": "galleries/whitespace-128-wrap-print-four-route.png",
+          "sha256": "0b7f74613f74658b1ea3d13894e128ac08cef155f9414ba267d3b94a22805a4d"
+        },
+        {
+          "path": "galleries/math-wide-print-four-route.png",
+          "sha256": "27da6bbfce418482ec4cb6bc715e7ec2949379909289039d9799e9efcd1a2f05"
+        },
+        {
+          "path": "galleries/math-110-wrap-print-four-route.png",
+          "sha256": "9e715efd58d14e9b6b58531adbdfae47d4b214b02e77f21388d91378e881aece"
+        },
+        {
+          "path": "galleries/italic-shorthand-wide-print-four-route.png",
+          "sha256": "4115d077fb01cb131cd3f84963eede703885f714aa76926de39c286db94559ec"
+        },
+        {
+          "path": "galleries/italic-longhand-wide-print-four-route.png",
+          "sha256": "4115d077fb01cb131cd3f84963eede703885f714aa76926de39c286db94559ec"
+        },
+        {
+          "path": "galleries/font-defaults-native-wide-print-four-route.png",
+          "sha256": "93b0d2a43b3671c5d9f9136acca837536d1619be2e008c1307f1a1ad1b699a86"
+        },
+        {
+          "path": "galleries/svg-semantic-font-initial-wide-print-four-route.png",
+          "sha256": "7093368bc6a83f9910e39c000963fc5cf65a2ad514f133f916206ee221f67bf0"
+        },
+        {
+          "path": "galleries/svg-semantic-font-initial-wide-screen-four-route.png",
+          "sha256": "7093368bc6a83f9910e39c000963fc5cf65a2ad514f133f916206ee221f67bf0"
+        }
+      ],
+      "appearanceLimits": {
+        "mathRadicalWidthCssPx": {
+          "native": 18.625,
+          "managed": 22.65234375
+        },
+        "mathFractionLineAdvanceCssPx": {
+          "native": 26.265625,
+          "managed": 25.31435546875
+        },
+        "mathNote": "Formula neighbors already share their alphabetic baseline; radical glyph/bar construction and accumulated fraction descent remain open.",
+        "svgPdfNativeReserializationText": "Pre-existing downstream SVG-to-Chromium-PDF text-extraction boundary with cause unattributed. Direct OfficeIMO PDF and authored SVG Unicode remain content oracles; native SVG-PDF capture qualifies appearance only.",
+        "svgExistingGeometry": "The focused SVG reset control retains small existing SVG/neighbor paint-position differences; style/reset conformance is qualified, not full-browser layout parity.",
+        "semanticIrExcel": "Parent-owned consumer tests; this probe inspects positioned visual Font.Style rather than SemanticDocument IR.",
+        "windowsProfiling": "deferred"
+      },
+      "containerByteBoundary": "Across frameworks native PNG/PDF compression bytes differ; every PNG RGBA pixel and every decoded PDF object matches exactly. SVG and PDF-raster PNG bytes match. .NET10 Math has all16 artifact bytes identical to baseline; net8 preserves exact payload.",
+      "sessionsReleased": true,
+      "finalSummarySha256": "e913b1877e1587344210ec102ef7a3c7b4cf2ddd710d9d12b13d6ed0780e0ec7",
+      "archive": {
+        "bytes": 24314957,
+        "sha256": "3b8991354d1771bc8ddc70ea272711998ed10b87741eae5e02fc93a48923ce9a",
+        "entryCount": 527,
+        "allReadbackHashesMatch": true
+      },
+      "nativeSvgTextExtractionNoteSha256": "dc414311a4a8261b5b440764e2424c540bd443a7ea0c25e1156786a1ed3d1364"
+    },
+    "packages": {
+      "packages": 19,
+      "reusedExactArchives": 18,
+      "freshHtmlFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "standardConsumers": 4,
+      "realSemanticFontConsumers": 2,
+      "matchedOfficeImoDllCopies": 54,
+      "matchedOfficialProviderDllCopies": 10,
+      "sceneCasesPerRuntime": 9,
+      "semanticIrCasesPerRuntime": 2,
+      "inlineSvgResetCasesPerRuntime": 2,
+      "realSvgExportsPerRuntime": 13,
+      "searchablePdfExportsPerRuntime": 13,
+      "netstandard2AndNet472Boundary": "Compile/API asset proof only; no Windows execution claimed",
+      "archiveManifest": [
+        {
+          "id": "OfficeIMO.Core",
+          "version": "3.5.1.1016",
+          "sha256": "eafe162d7fe1b6b21d68ce333e9d631cdcd4fc499f0895592b7ebce1d2b856f0",
+          "size": 8440697
+        },
+        {
+          "id": "OfficeIMO.Email",
+          "version": "3.5.1.1016",
+          "sha256": "4fa2b2ec1f1b6bf9cf008be5fe4b36a5afc829b6acf4d65679929e495dba718a",
+          "size": 3033854
+        },
+        {
+          "id": "OfficeIMO.Excel",
+          "version": "3.5.1.1016",
+          "sha256": "b76d2ddaababe982cd523a344961a6f8498fe04fb6e3a24a0f901a8d8bd667d4",
+          "size": 9378694
+        },
+        {
+          "id": "OfficeIMO.Excel.Html",
+          "version": "3.5.1.1016",
+          "sha256": "7859f2314b7cbda0fdf986ca0e3b3240d14ed00e268483f6e8dfc4592d3ed2bd",
+          "size": 248846
+        },
+        {
+          "id": "OfficeIMO.Html.AngleSharp",
+          "version": "3.5.1.1016",
+          "sha256": "b8502a6bcbe098f543bf1c2b3781b7be018ae0ab0da887dac79cd0289b392797",
+          "size": 104152
+        },
+        {
+          "id": "OfficeIMO.Html.Core",
+          "version": "3.5.1.1016",
+          "sha256": "da6e5328b9695cd032793679a7e7b49187eb55adcd44bb3e5c68e3448f5312d6",
+          "size": 325276
+        },
+        {
+          "id": "OfficeIMO.Html.Pdf",
+          "version": "3.5.1.1016",
+          "sha256": "8c0c325b64596fb1b404f3cc9980c7221f89fa9a1d60a15d57d96418789c1da0",
+          "size": 528365
+        },
+        {
+          "id": "OfficeIMO.Html.Rtf",
+          "version": "3.5.1.1016",
+          "sha256": "17f83bd7cbac946718c635a09693d7435d06efee668d3dfc3b3057f5cf2ad376",
+          "size": 415648
+        },
+        {
+          "id": "OfficeIMO.Markdown",
+          "version": "3.5.1.1016",
+          "sha256": "1ffd3b6773d17b7edb4d618da32b5849e290f8ac60a3c976ef794e3f6212b47f",
+          "size": 2290103
+        },
+        {
+          "id": "OfficeIMO.Markdown.Html",
+          "version": "3.5.1.1016",
+          "sha256": "86e8639d7a2b9c79ac72e8d9954f2075dee1de178fd73e84dcd4fcf97fca79f3",
+          "size": 216757
+        },
+        {
+          "id": "OfficeIMO.Mhtml",
+          "version": "3.5.1.1016",
+          "sha256": "523d3528cdf0a52b0be5d48423eaa048d2a9483eb75cd6b6ed5d7273497ee2e1",
+          "size": 114009
+        },
+        {
+          "id": "OfficeIMO.Mhtml.Pdf",
+          "version": "3.5.1.1016",
+          "sha256": "8f7bbd9ab20d784fdbdc6942a901d730e16570204978ced96c90edd17624a650",
+          "size": 42969
+        },
+        {
+          "id": "OfficeIMO.Pdf",
+          "version": "3.5.1.1016",
+          "sha256": "a03fa8fc87b485a87e876393e3452a0e9799c75967c3d4be2952b6376fa82d6d",
+          "size": 13017048
+        },
+        {
+          "id": "OfficeIMO.PowerPoint",
+          "version": "3.5.1.1016",
+          "sha256": "943eef84d25ecbed595fc8c6585ee99e555a206fe5cd8123b72f816382225e33",
+          "size": 4476600
+        },
+        {
+          "id": "OfficeIMO.PowerPoint.Html",
+          "version": "3.5.1.1016",
+          "sha256": "f7ccf5ebd096a39b5dc416372699ef630dfe094a87414e66530a354f983ee679",
+          "size": 290933
+        },
+        {
+          "id": "OfficeIMO.Rtf",
+          "version": "3.5.1.1016",
+          "sha256": "d0625d58a24bae837bf78d719fe50d546f48aef1e2c43ff6433a619b9d8cbfe3",
+          "size": 1044638
+        },
+        {
+          "id": "OfficeIMO.Word",
+          "version": "3.5.1.1016",
+          "sha256": "6d5bd5243fd43d70786f2977e12796608f2e0a378fc3115e6cc0ca0df132210c",
+          "size": 6762405
+        },
+        {
+          "id": "OfficeIMO.Word.Html",
+          "version": "3.5.1.1016",
+          "sha256": "abbfd00e14c0df18ba18253394faa97a418b1879a94256b961ffaaafb4c0627c",
+          "size": 823179
+        },
+        {
+          "id": "OfficeIMO.Html",
+          "version": "3.5.1.1016",
+          "sha256": "1e9e49867b2226ad0a3aea1cd8e1e2dfa6cfef568a6e4a5c395451b5199b162a",
+          "size": 3948511
+        }
+      ]
+    },
+    "nativeAot": {
+      "runtimeIdentifier": "osx-arm64",
+      "targetFramework": "net10.0",
+      "status": "passed",
+      "diagnosticCodes": [],
+      "executableSha256": "F2ECEF497304AD47B5AEFF6816195CAE3B20E3EC0F680C16E01E8B2A474FD1D0"
+    },
+    "localReview": {
+      "fullPass": "Two reproduced P2 consumer gaps",
+      "targetedConfirmation": "Both addressed; no remaining findings",
+      "publicApi": "No new symbols or production dependency role"
+    },
+    "actualTestResults": {
+      "archiveSha256": "5f3f31494fa3fa31a2c5ed5ca256e834a6392579aefb4336d3bc77585d4c407d",
+      "retained": "Eleven actual TRX files, including reproduced failures and final successes; every archived entry SHA-256 readback verified"
+    },
+    "integrationBranch": {
+      "branch": "feature/html-engine",
+      "codeCommit": "a431ffbd2baa1a36691156edac1006bcc1fe09e7",
+      "protectedObjectsUnchanged": 118,
+      "selectedFilesByteEqualToQualifiedStaticCommit": 10,
+      "sdk": "10.0.303",
+      "focusedTests": {
+        "net8.0": {
+          "total": 192,
+          "passed": 192,
+          "failed": 0
+        },
+        "net10.0": {
+          "total": 192,
+          "passed": 192,
+          "failed": 0
+        }
+      },
+      "scope": "Selected static font contract; not whole runtime/provider qualification"
+    }
+  },
+  "limits": [
+    "Native controls qualify selected font, media and content classes only",
+    "Fallback MathML radical construction/width and fraction descent/line advance remain open",
+    "Conic interpolation at wrap rays and near the origin remains separately qualified work",
+    "Manual accessibility, unfamiliar-page and cross-platform resource acceptance remain open",
+    "Runtime/provider forks stay on feature/html-engine; Windows profiling deferred",
+    "No package publication performed"
+  ],
+  "nativeInputs": {
+    "manifest": "semantic-font-native-inputs/manifest.json",
+    "reconstruction": "Eight templates exactly reconstruct qualified data-URL inputs using five repository font files; all reconstructed input bytes verified"
+  },
+  "postQualificationDocs": "The code files are unchanged from the qualified source commit. README, roadmap, index and compact native-input templates were added after runtime/package validation; package evidence qualifies its framework assets and consumer behavior."
+}
