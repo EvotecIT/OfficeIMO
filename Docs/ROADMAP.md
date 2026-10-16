@@ -403,7 +403,7 @@ Keep the frozen archives and predeclared held-out pages. Pages used to guide fix
 
 ## HTML, RTF, and lightweight markup
 
-- [ ] Close the HTML rendering gaps exposed by the feature showcases: preserve spaces across mixed inline emphasis, qualify conic interpolation at authored wrap rays and near the center beyond the [paint-once coverage contract](../Build/Project/Evidence/2026-09-30/html-master-convergence/conic-gradient-qualification-20261016.json) and [repeating-stop ordering](../Build/Project/Evidence/2026-09-30/html-master-convergence/repeating-gradient-hard-stops-qualification-20261016.json), align inline MathML fractions and roots with adjacent text, and fill implicitly closed SVG paths. Add small reproducible fixtures and inspect PDF, SVG, and raster output at normal reading size.
+- [ ] Close the HTML rendering gaps exposed by the feature showcases: preserve spaces across mixed inline emphasis, qualify conic interpolation at authored wrap rays and near the center beyond the [paint-once coverage contract](../Build/Project/Evidence/2026-09-30/html-master-convergence/conic-gradient-qualification-20261016.json) and [repeating-stop ordering](../Build/Project/Evidence/2026-09-30/html-master-convergence/repeating-gradient-hard-stops-qualification-20261016.json), and align inline MathML fractions and roots with adjacent text. Add small reproducible fixtures and inspect PDF, SVG, and raster output at normal reading size.
 
 ### Report export fidelity (H3-H4)
 
