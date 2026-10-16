@@ -153,50 +153,25 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            A.RgbColorModelHex? rgb = owner.GetFirstChild<A.RgbColorModelHex>();
-            if (rgb?.Val?.Value is string rgbValue && OfficeColor.TryParseHex(rgbValue, out color)) {
-                color = ApplyNativeDrawingColorTransforms(color, rgb);
-                return true;
+            A.SchemeColor? scheme = owner as A.SchemeColor ?? owner.GetFirstChild<A.SchemeColor>();
+            if (scheme != null) {
+                string? schemeName = GetNativeDrawingEnumAttributeValue(scheme, "val");
+                if (scheme.Val?.Value != null && themeColors != null &&
+                    themeColors.TryGetValue(scheme.Val.Value, out color) ||
+                    TryGetNativeDefaultThemeColor(schemeName, out color)) {
+                    color = ApplyNativeDrawingColorTransforms(color, scheme);
+                    return true;
+                }
+                return false;
             }
 
-            A.SystemColor? system = owner.GetFirstChild<A.SystemColor>();
-            if (system?.LastColor?.Value is string systemValue && OfficeColor.TryParseHex(systemValue, out color)) {
-                color = ApplyNativeDrawingColorTransforms(color, system);
-                return true;
+            // Non-scheme decoding, including linear scRGB, belongs to the shared resolver.
+            OfficeColor? resolved = OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ResolveColor(owner, colorScheme: null);
+            if (!resolved.HasValue) {
+                return false;
             }
-
-            A.SchemeColor? scheme = owner.GetFirstChild<A.SchemeColor>();
-            string? schemeName = scheme != null ? GetNativeDrawingEnumAttributeValue(scheme, "val") : null;
-            if (scheme?.Val?.Value != null &&
-                themeColors != null &&
-                themeColors.TryGetValue(scheme.Val.Value, out color)) {
-                color = ApplyNativeDrawingColorTransforms(color, scheme);
-                return true;
-            }
-
-            if (scheme != null && TryGetNativeDefaultThemeColor(schemeName, out color)) {
-                color = ApplyNativeDrawingColorTransforms(color, scheme);
-                return true;
-            }
-
-            A.RgbColorModelPercentage? percentage = owner.GetFirstChild<A.RgbColorModelPercentage>();
-            if (percentage != null) {
-                color = OfficeColor.FromRgb(
-                    ConvertNativeDrawingPercentageToByte(percentage.RedPortion?.Value),
-                    ConvertNativeDrawingPercentageToByte(percentage.GreenPortion?.Value),
-                    ConvertNativeDrawingPercentageToByte(percentage.BluePortion?.Value));
-                color = ApplyNativeDrawingColorTransforms(color, percentage);
-                return true;
-            }
-
-            A.PresetColor? preset = owner.GetFirstChild<A.PresetColor>();
-            string? presetName = preset != null ? GetNativeDrawingEnumAttributeValue(preset, "val") : null;
-            if (preset != null && TryGetNativeDrawingPresetColor(presetName, out color)) {
-                color = ApplyNativeDrawingColorTransforms(color, preset);
-                return true;
-            }
-
-            return false;
+            color = resolved.Value;
+            return true;
         }
 
         private static IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> GetNativeDrawingThemeColors(OpenXmlPart? sourcePart) {
@@ -238,68 +213,6 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeDrawingThemeAlias(Dictionary<A.SchemeColorValues, OfficeColor> colors, A.SchemeColorValues alias, A.SchemeColorValues target) {
             if (!colors.ContainsKey(alias) && colors.TryGetValue(target, out OfficeColor color)) {
                 colors[alias] = color;
-            }
-        }
-
-        private static bool TryGetNativeDrawingPresetColor(string? presetName, out OfficeColor color) {
-            color = default;
-            if (string.IsNullOrWhiteSpace(presetName)) {
-                return false;
-            }
-
-            switch (presetName!.Trim().ToLowerInvariant()) {
-                case "black":
-                    color = OfficeColor.Black;
-                    return true;
-                case "white":
-                    color = OfficeColor.White;
-                    return true;
-                case "red":
-                    color = OfficeColor.FromRgb(255, 0, 0);
-                    return true;
-                case "green":
-                    color = OfficeColor.FromRgb(0, 128, 0);
-                    return true;
-                case "blue":
-                    color = OfficeColor.FromRgb(0, 0, 255);
-                    return true;
-                case "yellow":
-                    color = OfficeColor.FromRgb(255, 255, 0);
-                    return true;
-                case "cyan":
-                    color = OfficeColor.FromRgb(0, 255, 255);
-                    return true;
-                case "magenta":
-                    color = OfficeColor.FromRgb(255, 0, 255);
-                    return true;
-                case "gray":
-                case "grey":
-                    color = OfficeColor.Gray;
-                    return true;
-                case "dkgray":
-                case "darkgray":
-                case "darkgrey":
-                    color = OfficeColor.FromRgb(128, 128, 128);
-                    return true;
-                case "ltgray":
-                case "lightgray":
-                case "lightgrey":
-                    color = OfficeColor.LightGray;
-                    return true;
-                case "orange":
-                    color = OfficeColor.FromRgb(255, 165, 0);
-                    return true;
-                case "purple":
-                    color = OfficeColor.FromRgb(128, 0, 128);
-                    return true;
-                case "brown":
-                    color = OfficeColor.FromRgb(165, 42, 42);
-                    return true;
-                case "pink":
-                    color = OfficeColor.FromRgb(255, 192, 203);
-                    return true;
-                default:
-                    return OfficeColor.TryParse(presetName, out color);
             }
         }
 
@@ -359,119 +272,8 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static OfficeColor ApplyNativeDrawingColorTransforms(OfficeColor color, OpenXmlElement colorElement) {
-            double red = color.R;
-            double green = color.G;
-            double blue = color.B;
-            double alpha = color.A;
-
-            foreach (OpenXmlElement transform in colorElement.ChildElements) {
-                int? value = GetNativeDrawingColorTransformValue(transform);
-                if (!value.HasValue) {
-                    continue;
-                }
-
-                double amount = Math.Max(0D, Math.Min(100000D, value.Value)) / 100000D;
-                switch (transform.LocalName) {
-                    case "tint":
-                        red = red + (255D - red) * amount;
-                        green = green + (255D - green) * amount;
-                        blue = blue + (255D - blue) * amount;
-                        break;
-                    case "shade":
-                    case "lumMod":
-                        ApplyNativeDrawingLuminanceTransform(ref red, ref green, ref blue, amount, 0D);
-                        break;
-                    case "lumOff":
-                        ApplyNativeDrawingLuminanceTransform(ref red, ref green, ref blue, 1D, amount);
-                        break;
-                    case "alpha":
-                        alpha = 255D * amount;
-                        break;
-                    case "alphaMod":
-                    case "alphaModFix":
-                        alpha *= amount;
-                        break;
-                }
-            }
-
-            return OfficeColor.FromRgba(
-                ClampNativeDrawingColorByte(red),
-                ClampNativeDrawingColorByte(green),
-                ClampNativeDrawingColorByte(blue),
-                ClampNativeDrawingColorByte(alpha));
-        }
-
-        private static void ApplyNativeDrawingLuminanceTransform(ref double red, ref double green, ref double blue, double luminanceMultiplier, double luminanceOffset) {
-            RgbToHsl(red, green, blue, out double hue, out double saturation, out double luminance);
-            luminance = Math.Max(0D, Math.Min(1D, luminance * luminanceMultiplier + luminanceOffset));
-            HslToRgb(hue, saturation, luminance, out red, out green, out blue);
-        }
-
-        private static void RgbToHsl(double red, double green, double blue, out double hue, out double saturation, out double luminance) {
-            double r = Math.Max(0D, Math.Min(255D, red)) / 255D;
-            double g = Math.Max(0D, Math.Min(255D, green)) / 255D;
-            double b = Math.Max(0D, Math.Min(255D, blue)) / 255D;
-            double max = Math.Max(r, Math.Max(g, b));
-            double min = Math.Min(r, Math.Min(g, b));
-            luminance = (max + min) / 2D;
-
-            if (Math.Abs(max - min) < double.Epsilon) {
-                hue = 0D;
-                saturation = 0D;
-                return;
-            }
-
-            double delta = max - min;
-            saturation = luminance > 0.5D
-                ? delta / (2D - max - min)
-                : delta / (max + min);
-
-            if (Math.Abs(max - r) < double.Epsilon) {
-                hue = (g - b) / delta + (g < b ? 6D : 0D);
-            } else if (Math.Abs(max - g) < double.Epsilon) {
-                hue = (b - r) / delta + 2D;
-            } else {
-                hue = (r - g) / delta + 4D;
-            }
-
-            hue /= 6D;
-        }
-
-        private static void HslToRgb(double hue, double saturation, double luminance, out double red, out double green, out double blue) {
-            if (saturation <= 0D) {
-                red = green = blue = luminance * 255D;
-                return;
-            }
-
-            double q = luminance < 0.5D
-                ? luminance * (1D + saturation)
-                : luminance + saturation - luminance * saturation;
-            double p = 2D * luminance - q;
-            red = HueToRgb(p, q, hue + 1D / 3D) * 255D;
-            green = HueToRgb(p, q, hue) * 255D;
-            blue = HueToRgb(p, q, hue - 1D / 3D) * 255D;
-        }
-
-        private static double HueToRgb(double p, double q, double hue) {
-            if (hue < 0D) {
-                hue += 1D;
-            } else if (hue > 1D) {
-                hue -= 1D;
-            }
-
-            if (hue < 1D / 6D) {
-                return p + (q - p) * 6D * hue;
-            }
-
-            if (hue < 1D / 2D) {
-                return q;
-            }
-
-            return hue < 2D / 3D
-                ? p + (q - p) * (2D / 3D - hue) * 6D
-                : p;
-        }
+        private static OfficeColor ApplyNativeDrawingColorTransforms(OfficeColor color, OpenXmlElement colorElement) =>
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ApplyTransforms(color, colorElement);
 
         private static int? GetNativeDrawingColorTransformValue(OpenXmlElement transform) {
             string? raw = GetNativeDrawingEnumAttributeValue(transform, "val") ?? GetNativeDrawingEnumAttributeValue(transform, "amt");
@@ -490,12 +292,5 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static byte ConvertNativeDrawingPercentageToByte(int? value) {
-            double normalized = Math.Max(0D, Math.Min(100000D, value ?? 0)) / 100000D;
-            return ClampNativeDrawingColorByte(255D * normalized);
-        }
-
-        private static byte ClampNativeDrawingColorByte(double value) =>
-            (byte)Math.Max(0, Math.Min(255, (int)Math.Round(value)));
     }
 }

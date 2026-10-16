@@ -103,8 +103,11 @@ public static partial class WordPdfConverterExtensions {
         var shape = OfficeShape.Rectangle(1D, 1D);
         shape.FillColor = null; shape.StrokeColor = null; shape.StrokeWidth = 0D;
         ApplyNativeShapeStyle(shape, wordShape, GetNativeDrawingThemeColors(GetNativeShapeSourcePart(wordShape)));
-        style.Background = shape.FillColor is { } fill ? PdfCore.PdfColor.FromOfficeColor(fill) : null;
-        style.BackgroundOpacity = shape.FillOpacity;
+        if (shape.FillColor is { } fill) {
+            style.Background = PdfCore.PdfColor.FromOfficeColor(fill);
+            // PdfColor carries RGB only; transfer intrinsic alpha once at this boundary.
+            style.BackgroundOpacity = (shape.FillOpacity ?? 1D) * fill.A / 255D;
+        }
         style.BorderColor = shape.StrokeColor is { } stroke ? PdfCore.PdfColor.FromOfficeColor(stroke) : null;
         style.BorderWidth = shape.StrokeWidth;
         style.BorderDashStyle = shape.StrokeDashStyle;

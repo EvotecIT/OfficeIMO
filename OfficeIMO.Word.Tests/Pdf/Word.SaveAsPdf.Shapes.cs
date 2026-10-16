@@ -314,7 +314,9 @@ namespace OfficeIMO.Tests {
                 (byte)System.Math.Round(startRgb[0] * 255D),
                 (byte)System.Math.Round(startRgb[1] * 255D),
                 (byte)System.Math.Round(startRgb[2] * 255D)));
-            Assert.Equal(OfficeColor.FromRgb(242, 164, 111), OfficeColor.FromRgb(
+            // DrawingML tint retains 30% of the input in linear-light sRGB;
+            // the remaining 70% is white, matching native Office's tint contract.
+            Assert.Equal(OfficeColor.FromRgb(250, 226, 219), OfficeColor.FromRgb(
                 (byte)System.Math.Round(endRgb[0] * 255D),
                 (byte)System.Math.Round(endRgb[1] * 255D),
                 (byte)System.Math.Round(endRgb[2] * 255D)));
