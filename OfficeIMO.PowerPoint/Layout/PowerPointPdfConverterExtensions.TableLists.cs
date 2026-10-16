@@ -8,10 +8,11 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static PdfCore.PdfTextRun CreatePdfTableCellListMarker(
         PptCore.PowerPointTableCell cell, PptCore.PowerPointParagraph paragraph, string marker,
-        string? fallbackFontFamily, double fallbackFontSize, int slideNumber, PowerPointToPdfOptions options) {
+        string? fallbackFontFamily, double fallbackFontSize, int slideNumber, PowerPointToPdfOptions options,
+        System.Collections.Generic.IReadOnlyList<A.TextCharacterPropertiesType> tableDefaults) {
         A.RunProperties? properties = paragraph.Paragraph.Elements<A.Run>().FirstOrDefault()?.RunProperties;
         PdfCore.PdfTextRun inherited = CreatePdfTableCellTextRun(cell, paragraph.Paragraph,
-            properties, marker, fallbackFontFamily, slideNumber, options);
+            properties, marker, fallbackFontFamily, slideNumber, options, tableDefaults, fallbackFontSize);
         string? family = paragraph.BulletFontName ?? inherited.FontFamily;
         double? size = paragraph.BulletSizePoints;
         if (!size.HasValue && paragraph.BulletSizePercent is int percent)

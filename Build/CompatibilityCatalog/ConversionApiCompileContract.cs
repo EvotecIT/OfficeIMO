@@ -134,7 +134,7 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfDocumentResult(excel);
         _ = OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(pdf);
         _ = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocumentResult(powerPoint);
-        _ = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(pdf);
+        _ = OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(pdf);
         _ = OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(html);
         _ = browserPdf.ToPdfDocumentResult();
         _ = OfficeIMO.Mhtml.MhtmlPdfConverterExtensions.ToPdfDocumentResult(mhtml);

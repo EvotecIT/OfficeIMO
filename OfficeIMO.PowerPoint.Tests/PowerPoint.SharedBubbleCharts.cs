@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
@@ -747,8 +748,12 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
             Assert.True(png.Bytes.Length > 100);
-            Assert.Contains("<ellipse", svgText, StringComparison.Ordinal);
-            Assert.Contains("#D62828", svgText, StringComparison.OrdinalIgnoreCase);
+            XElement[] paintedElements = XDocument.Parse(svgText).Descendants()
+                .Where(element => element.Attribute("fill") != null).ToArray();
+            foreach (string color in new[] { "#D62828", "#2A9D8F", "#F4A261" }) {
+                Assert.Contains(paintedElements, element => string.Equals(
+                    element.Attribute("fill")!.Value, color, StringComparison.OrdinalIgnoreCase));
+            }
             Assert.DoesNotContain(png.Diagnostics,
                 diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(svg.Diagnostics,
@@ -760,7 +765,13 @@ namespace OfficeIMO.Tests {
             string html = htmlResult.Value;
             PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult();
             byte[] pdf = pdfResult.ToBytes();
-            Assert.Contains("<ellipse", html, StringComparison.OrdinalIgnoreCase);
+            // HTML can wrap or reserialize the SVG; all three authored point colors must still be painted.
+            foreach (string color in new[] { "#D62828", "#2A9D8F", "#F4A261" }) {
+                Assert.Contains("fill=\"" + color + "\"", html, StringComparison.OrdinalIgnoreCase);
+            }
+            var page = PdfReadDocument.Open(pdf).Pages[0];
+            Assert.Equal(page.ExportImage(OfficeImageExportFormat.Png).Bytes, png.Bytes);
+            Assert.Equal(page.ExportImage(OfficeImageExportFormat.Svg).Bytes, svg.Bytes);
             Assert.DoesNotContain(htmlResult.ImageDiagnostics,
                 diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(pdfResult.Warnings,
@@ -779,13 +790,23 @@ namespace OfficeIMO.Tests {
                 CreateBubbleData(
                     new[] { 1D, 2D },
                     new[] { 2D, 4D },
-                    new[] { 0D, 9D }),
+                    new[] { 0D, 9D },
+                    new OfficeColor?[] {
+                        OfficeColor.Parse("#D62828"),
+                        OfficeColor.Parse("#2A9D8F")
+                    }),
                 30, 20, 420, 250);
 
             string svg = System.Text.Encoding.UTF8.GetString(
                 slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
 
-            Assert.Equal(1, CountOccurrences(svg, "<ellipse"));
+            // Inspect painted colors, independent of whether circles are encoded as ellipses or paths.
+            XElement[] paintedElements = XDocument.Parse(svg).Descendants()
+                .Where(element => element.Attribute("fill") != null).ToArray();
+            Assert.DoesNotContain(paintedElements, element => string.Equals(
+                element.Attribute("fill")!.Value, "#D62828", StringComparison.OrdinalIgnoreCase));
+            Assert.Single(paintedElements, element => string.Equals(
+                element.Attribute("fill")!.Value, "#2A9D8F", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -1870,16 +1891,6 @@ namespace OfficeIMO.Tests {
                 new C.Index { Val = 0U },
                 new C.ChartShapeProperties(shape3D)));
             Assert.False(chart.TryGetOfficeSnapshot(out _));
-        }
-
-        private static int CountOccurrences(string value, string marker) {
-            int count = 0;
-            int offset = 0;
-            while ((offset = value.IndexOf(marker, offset, StringComparison.Ordinal)) >= 0) {
-                count++;
-                offset += marker.Length;
-            }
-            return count;
         }
 
         private static OfficeChartData CreateBubbleData(IReadOnlyList<double> xValues,

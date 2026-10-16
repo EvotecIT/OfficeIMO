@@ -11,7 +11,7 @@ public static partial class PowerPointPdfConverterExtensions {
         for (int index = 0; index < presentation.Slides.Count; index++) {
             options.CancellationToken.ThrowIfCancellationRequested();
             PptCore.PowerPointSlide slide = presentation.Slides[index];
-            if ((!options.IncludeHiddenSlides && slide.Hidden)
+            if (!options.IncludesSlide(slide)
                 || !slide.Notes.TryGetText(out string notes) || string.IsNullOrWhiteSpace(notes)) continue;
             AddWarning(options, index + 1, "speaker-notes-omitted",
                 "Speaker notes are omitted by the selected PDF page layout or IncludeSpeakerNotes setting.",

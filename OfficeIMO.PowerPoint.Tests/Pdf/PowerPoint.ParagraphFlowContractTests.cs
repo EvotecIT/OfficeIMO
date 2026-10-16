@@ -1,12 +1,10 @@
 using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
+using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -19,7 +17,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void EmptyParagraphOutsideTheFrameReportsLossOnlyWhenItDisplacesVisibleText(bool table, bool followingText) {
+    public void EmptyParagraphOutsideTheFrameRetainsFollowingTextAndDiagnosesTextBoxOverflow(bool table, bool followingText) {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
         var slide = presentation.AddSlide();
@@ -27,32 +25,35 @@ public sealed class PowerPointParagraphFlowContractTests {
             var cell = slide.AddTablePoints(1, 1, 20, 20, 240, 60).GetCell(0, 0);
             cell.Text = "VISIBLE"; cell.FontName = "Helvetica"; cell.FontSize = 32;
             cell.AddParagraph("");
-            if (followingText) cell.AddParagraph("CLIPPED");
+            if (followingText) cell.AddParagraph("OVERFLOW");
         } else {
             var box = slide.AddTextBoxPoints("VISIBLE", 20, 20, 240, 60);
             box.FontName = "Helvetica"; box.FontSize = 32;
             box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
             box.AddParagraph("");
-            if (followingText) box.AddParagraph("CLIPPED");
+            if (followingText) box.AddParagraph("OVERFLOW");
         }
-        var svg = slide.ExportImage(OfficeImageExportFormat.Svg);
-        var losses = svg.Diagnostics.Where(diagnostic => diagnostic.Message.Contains("Clipped PowerPoint", StringComparison.Ordinal));
-        Assert.Equal(followingText, losses.Any());
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes());
-        Assert.Contains("VISIBLE", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        var result = presentation.ToPdfDocumentResult();
+        var page = PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0];
+        Assert.True(Span(page, "VISIBLE").IsVisible);
+        if (followingText) {
+            Assert.True(Span(page, "OVERFLOW").IsVisible);
+            Assert.True(Span(page, "VISIBLE").Y - Span(page, "OVERFLOW").Y > 60D);
+        }
         if (!table) {
-            var conversion = presentation.ToPdfDocumentResult();
-            Assert.Equal(followingText, conversion.Report.FidelityDiagnostics.Any(diagnostic => diagnostic.Code == "text-box-overflow"));
+            var overflows = result.Warnings.Where(warning => warning.Code == "text-box-overflow").ToArray();
+            Assert.Equal(followingText ? 1 : 0, overflows.Length);
+            Assert.All(overflows, warning => Assert.Equal(OfficeConversionLossKind.None, warning.LossKind));
         }
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void CondensedDescendersAreClippedOnlyAtTheTextBoxBoundary(bool rich) {
+    public void CondensedDescendersRemainVisibleBeyondTheTextBoxBoundary(bool rich) {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
-        var box = presentation.AddSlide().AddTextBoxPoints("gypsy\nplaying\nquickly", 20, 20, 240, 150);
+        var box = presentation.AddSlide().AddTextBoxPoints("gypsy\nplaying\nquickly", 20, 20, 240, 40);
         box.FontSize = 24; box.FontName = "Helvetica";
         box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
         box.Paragraphs[0].LineSpacingMultiplier = 0.75D;
@@ -60,7 +61,11 @@ public sealed class PowerPointParagraphFlowContractTests {
         byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         });
-        Assert.Contains("20 50 240 150 re W", PdfOperatorSearchText.From(bytes), StringComparison.Ordinal);
+        var page = PdfCore.PdfReadDocument.Open(bytes).Pages[0];
+        Assert.All(new[] { "gypsy", "playing", "quickly" }, text => Assert.True(Span(page, text).IsVisible));
+        Assert.InRange(Span(page, "gypsy").Y - Span(page, "playing").Y, 17.9D, 18.1D);
+        Assert.InRange(Span(page, "playing").Y - Span(page, "quickly").Y, 17.9D, 18.1D);
+        Assert.True(page.GetPageSize().Height - Span(page, "quickly").Y > 60D);
     }
 
     [Theory]
@@ -90,15 +95,10 @@ public sealed class PowerPointParagraphFlowContractTests {
         }
         paragraph.LineSpacingMultiplier = 0.75D;
         if (rich) paragraph.Runs[0].Bold = true;
-        if (!table) {
-            using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes());
-            Assert.InRange(BaselineFromTop(pdf, 1, "SECOND") - BaselineFromTop(pdf, 1, "FIRST"), 8.9D, 9.1D);
-            Assert.InRange(BaselineFromTop(pdf, 1, "THIRD") - BaselineFromTop(pdf, 1, "SECOND"), 8.9D, 9.1D);
-        }
-        var svg = XDocument.Parse(Encoding.UTF8.GetString(slide.ExportImage(OfficeImageExportFormat.Svg).Bytes));
-        double Y(string value) => double.Parse(Assert.Single(svg.Descendants(), element => element.Name.LocalName == "text" && element.Value == value).Attribute("y")!.Value, CultureInfo.InvariantCulture);
-        Assert.InRange(Y("SECOND") - Y("FIRST"), 8.9D, 9.1D);
-        Assert.InRange(Y("THIRD") - Y("SECOND"), 8.9D, 9.1D);
+        var page = Read(presentation).Pages[0];
+        Assert.InRange(Span(page, "FIRST").Y - Span(page, "SECOND").Y, 8.9D, 9.1D);
+        Assert.InRange(Span(page, "SECOND").Y - Span(page, "THIRD").Y, 8.9D, 9.1D);
+        if (trailingParagraph) Assert.True(Span(page, "THIRD").Y > Span(page, "END").Y);
     }
 
     [Theory]
@@ -140,11 +140,8 @@ public sealed class PowerPointParagraphFlowContractTests {
             if (spacer) cell.AddParagraph("").SetSpaceBeforePoints(7).SetSpaceAfterPoints(11);
             cell.AddParagraph("SECOND");
         }
-        double SvgY(int index) {
-            var svg = XDocument.Parse(Encoding.UTF8.GetString(presentation.Slides[index].ExportImage(OfficeImageExportFormat.Svg).Bytes));
-            return double.Parse(Assert.Single(svg.Descendants(), node => node.Name.LocalName == "text" && node.Value == "SECOND").Attribute("y")!.Value, CultureInfo.InvariantCulture);
-        }
-        Assert.InRange(SvgY(1) - SvgY(0), 32D, 34D);
+        var pdf = Read(presentation);
+        Assert.InRange(Span(pdf.Pages[0], "SECOND").Y - Span(pdf.Pages[1], "SECOND").Y, 32D, 34D);
     }
 
     [Theory]
@@ -174,11 +171,8 @@ public sealed class PowerPointParagraphFlowContractTests {
             }
             cell.AddParagraph("SECOND").Runs[0].FontSize = 12;
         }
-        double SvgY(int index) {
-            var svg = XDocument.Parse(Encoding.UTF8.GetString(presentation.Slides[index].ExportImage(OfficeImageExportFormat.Svg).Bytes));
-            return double.Parse(Assert.Single(svg.Descendants(), node => node.Name.LocalName == "text" && node.Value == "SECOND").Attribute("y")!.Value, CultureInfo.InvariantCulture);
-        }
-        Assert.InRange(SvgY(1) - SvgY(0), 35D, 37D);
+        var pdf = Read(presentation);
+        Assert.InRange(Span(pdf.Pages[0], "SECOND").Y - Span(pdf.Pages[1], "SECOND").Y, 35D, 37D);
     }
 
     [Theory]
@@ -194,8 +188,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         SetDefaults(box, box.Paragraphs[0].Paragraph, source, new A.DefaultRunProperties { Capital = A.TextCapsValues.All });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes());
         Assert.Contains("MIXED CASE", pdf.GetPage(1).Text, StringComparison.Ordinal);
-        var svg = Encoding.UTF8.GetString(presentation.Slides[0].ExportImage(OfficeImageExportFormat.Svg).Bytes);
-        Assert.Contains(">MIXED CASE</text>", svg, StringComparison.Ordinal);
+        Assert.Contains("MIXED CASE", string.Concat(Read(presentation).Pages[0].GetTextSpans().Select(span => span.Text)), StringComparison.Ordinal);
     }
 
     private static double BaselineFromTop(UglyToad.PdfPig.PdfDocument pdf, int pageNumber, string value) {
@@ -217,7 +210,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void EmptyParagraphRetainsItsLineAndSpacingInPdfAndSvg(bool bullet) {
+    public void EmptyParagraphRetainsItsLineAndSpacingInPdfSpans(bool bullet) {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
         foreach (bool spacer in new[] { false, true }) {
@@ -232,21 +225,8 @@ public sealed class PowerPointParagraphFlowContractTests {
             box.AddParagraph("SECOND").Alignment = PowerPointTextAlignment.Right;
             if (bullet) box.Paragraphs[0].SetBullet('*');
         }
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes(new PowerPointToPdfOptions {
-            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
-        double PdfY(int pageNumber) {
-            var page = pdf.GetPage(pageNumber);
-            string text = string.Concat(page.Letters.Select(letter => letter.Value));
-            return page.Height - page.Letters[text.IndexOf("SECOND", StringComparison.Ordinal)].StartBaseLine.Y;
-        }
-        Assert.InRange(PdfY(2) - PdfY(1), 32D, 34D);
-        double SvgY(int index) {
-            var svg = XDocument.Parse(Encoding.UTF8.GetString(presentation.Slides[index].ExportImage(OfficeImageExportFormat.Svg).Bytes));
-            var second = Assert.Single(svg.Descendants(), node => node.Name.LocalName == "text" && node.Value == "SECOND");
-            return double.Parse(second.Attribute("y")!.Value, CultureInfo.InvariantCulture);
-        }
-        Assert.InRange(SvgY(1) - SvgY(0), 32D, 34D);
+        var pdf = Read(presentation);
+        Assert.InRange(Span(pdf.Pages[0], "SECOND").Y - Span(pdf.Pages[1], "SECOND").Y, 32D, 34D);
     }
 
     [Theory]
@@ -271,10 +251,12 @@ public sealed class PowerPointParagraphFlowContractTests {
             level.RemoveAllChildren<A.DefaultRunProperties>();
             level.Append(defaults);
         }
-        var svg = XDocument.Parse(Encoding.UTF8.GetString(slide.ExportImage(OfficeImageExportFormat.Svg).Bytes));
-        var text = Assert.Single(svg.Descendants(), node => node.Name.LocalName == "text" && node.Value == "INHERITED");
-        Assert.Equal("#c02060", text.Attribute("fill")!.Value.ToLowerInvariant());
-        string operators = PdfOperatorSearchText.From(presentation.ToPdfBytes());
-        Assert.Contains("0.753 0.125 0.376 rg", operators, StringComparison.Ordinal);
+        var text = Span(Read(presentation).Pages[0], "INHERITED");
+        Assert.Equal(OfficeColor.FromRgb(192, 32, 96), text.Color);
     }
+    private static PdfCore.PdfReadDocument Read(PowerPointPresentation presentation) =>
+        PdfCore.PdfReadDocument.Open(presentation.ToPdfBytes());
+
+    private static PdfCore.PdfTextSpan Span(PdfCore.PdfReadPage page, string text) =>
+        Assert.Single(page.GetTextSpans(), span => span.Text.Contains(text, StringComparison.Ordinal));
 }

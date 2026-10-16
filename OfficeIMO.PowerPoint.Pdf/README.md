@@ -1,9 +1,9 @@
-# OfficeIMO.PowerPoint.Pdf - PowerPoint to PDF export
+# OfficeIMO.PowerPoint.Pdf - PDF import for PowerPoint
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.PowerPoint.Pdf)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.PowerPoint.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 
-`OfficeIMO.PowerPoint.Pdf` exports `OfficeIMO.PowerPoint` presentations to PDF through the first-party `OfficeIMO.Pdf` engine. In the reverse direction it reconstructs supported text, tables, safe shapes, and images as editable slide objects by default, with explicit visual, hybrid, and tables-only profiles.
+Forward PDF conversion lives in `OfficeIMO.PowerPoint` and keeps the `OfficeIMO.PowerPoint.Pdf` namespace. It uses the same layout as slide image export through the first-party `OfficeIMO.Pdf` engine. The `OfficeIMO.PowerPoint.Pdf` package supplies reverse PDF import. In the reverse direction it reconstructs supported text, tables, safe shapes, and images as editable slide objects by default, with explicit visual, hybrid, and tables-only profiles.
 
 ## Install
 
@@ -202,6 +202,8 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 ```
 
 ## Current limits
+
+PDF and slide images share the same content and limitations. Stored autofit values, computed shrinking, shape growth, table margins and row growth, theme colors, and native connectors run through this layout. Static conversion does not reproduce chart 3-D scenes, animation playback, or every DrawingML effect.
 
 - Presentation content comes from `OfficeIMO.PowerPoint`; layout and PDF writing use `OfficeIMO.Pdf`.
 - `PdfPowerPointImportMode.Auto` is the options default. It resolves an opened PDF to `EditableContent` and an already reduced `PdfDocumentReadResult` to `EditableTables`; use `CreateVisualPages()` only when one rendered page image per slide is the intended output.

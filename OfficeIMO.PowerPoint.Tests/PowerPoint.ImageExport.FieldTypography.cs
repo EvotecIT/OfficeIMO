@@ -42,29 +42,117 @@ namespace OfficeIMO.Tests {
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            string svgText = Encoding.UTF8.GetString(svg.Bytes);
-
-            OfficeDrawingRichText textBoxText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(),
-                element => element.PlainText.Contains("TEXT FIELD", StringComparison.Ordinal));
-            OfficeRichTextRun textBoxRun = Assert.Single(textBoxText.Runs);
-            Assert.True(textBoxRun.Bold);
-            Assert.True(textBoxRun.Italic);
-            Assert.Equal("Arial", textBoxRun.FontFamily);
-            Assert.Equal(OfficeTextDecorationStyle.Double, textBoxRun.UnderlineStyle);
-
-            OfficeDrawingRichText tableText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(),
-                element => element.PlainText.Contains("TABLE FIELD", StringComparison.Ordinal));
-            OfficeRichTextRun tableRun = Assert.Single(tableText.Runs);
-            Assert.True(tableRun.Bold);
-            Assert.Equal("Consolas", tableRun.FontFamily);
-            Assert.Equal(OfficeTextDecorationStyle.Wavy, tableRun.UnderlineStyle);
-
-            Assert.Contains("TEXT FIELD", ReadVisibleSvgText(svgText), StringComparison.Ordinal);
-            Assert.Contains("TABLE FIELD", ReadVisibleSvgText(svgText), StringComparison.Ordinal);
+            Assert.Contains("TEXT FIELD", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
+            Assert.Contains("TABLE FIELD", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
+            var textBoxSpans = snapshot.TextSpans.Where(span => span.X < 160 && !string.IsNullOrWhiteSpace(span.Text)).ToArray();
+            var tableSpans = snapshot.TextSpans.Where(span => span.X >= 175 && !string.IsNullOrWhiteSpace(span.Text)).ToArray();
+            Assert.NotEmpty(textBoxSpans);
+            Assert.NotEmpty(tableSpans);
+            Assert.All(textBoxSpans, span => {
+                Assert.True(span.IsBold);
+                Assert.True(span.IsItalic);
+                Assert.Equal(15D, span.FontSize, 3);
+            });
+            Assert.All(tableSpans, span => {
+                Assert.True(span.IsBold);
+                Assert.Equal(13D, span.FontSize, 3);
+            });
             Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
             Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.NotNull(rendered);
         }
+        [Fact]
+        public void FieldInlineRunMutationsPersistToThePresentationPackage() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                    PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("Before").Paragraphs.Single();
+                    paragraph.AddField("Field", "custom");
+                    PowerPointParagraphInline authoredField = Assert.Single(paragraph.InlineNodes,
+                        node => node.Kind == PowerPointParagraphInlineKind.Field);
+                    authoredField.Run!.Text = "Changed";
+                    authoredField.Run.Bold = true;
+                    authoredField.Run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
+                    Assert.Equal("Changed", authoredField.Text);
+                    presentation.Save();
+                }
+
+                using PowerPointPresentation reloaded = PowerPointPresentation.Load(path);
+                PowerPointParagraphInline reloadedField = Assert.Single(reloaded.Slides.Single().TextBoxes.Single()
+                    .Paragraphs.Single().InlineNodes, node => node.Kind == PowerPointParagraphInlineKind.Field);
+                Assert.Equal("Changed", reloadedField.Text);
+                Assert.True(reloadedField.Run!.Bold);
+                Assert.Equal(PowerPointUnderlineStyle.Wavy, reloadedField.Run.UnderlineStyle);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void PowerPointSlide_ImageExportMaterializesNativeCapsForTextBoxesAndTableCells() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(320, 140);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            PowerPointParagraph textBoxParagraph = slide.AddTextBoxPoints("izmir", 20, 20, 130, 60).Paragraphs[0];
+            PowerPointTextRun textBoxRun = textBoxParagraph.Runs[0];
+            textBoxRun.Language = "tr-TR";
+            textBoxRun.Capitalization = PowerPointCapitalization.AllCaps;
+            textBoxParagraph.AddLineBreak().AddField("TextBoxField", "custom");
+
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 170, 20, 120, 50).GetCell(0, 0);
+            cell.Text = "small caps";
+            cell.Runs[0].Capitalization = PowerPointCapitalization.SmallCaps;
+            cell.Paragraphs[0].AddLineBreak().AddField("CellField", "custom");
+
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            string text = GetSnapshotPlainText(slide.CreateVisualSnapshot());
+
+            Assert.Contains("TextBoxField", text, StringComparison.Ordinal);
+            Assert.Contains("İZMİR", text, StringComparison.Ordinal);
+            Assert.Contains("SMALL CAPS", text, StringComparison.Ordinal);
+            Assert.Contains("CellField", text, StringComparison.Ordinal);
+            Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
+            Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
+        public void PowerPointSlide_ImageExportResolvesParagraphCapsAndReportsNoncanonicalBaselines() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(360, 150);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            PowerPointParagraph textParagraph = slide.AddTextBoxPoints("izmir", 20, 20, 140, 50).Paragraphs[0];
+            textParagraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties { Capital = A.TextCapsValues.All, Language = "tr-TR" });
+            textParagraph.Runs[0].BaselinePercent = 5D;
+
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 180, 20, 140, 50).GetCell(0, 0);
+            cell.Text = "small caps";
+            PowerPointParagraph cellParagraph = cell.Paragraphs[0];
+            cellParagraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties { Capital = A.TextCapsValues.Small, Language = "en-US" });
+            cellParagraph.Runs[0].BaselinePercent = 80D;
+
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            string text = GetSnapshotPlainText(slide.CreateVisualSnapshot());
+
+            Assert.Contains("İZMİR", text, StringComparison.Ordinal);
+            Assert.Contains("SMALL CAPS", text, StringComparison.Ordinal);
+            // PDF conversion reports this approximation once per slide, across text boxes and tables.
+            Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated);
+            Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated);
+            Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
     }
 }

@@ -5,7 +5,7 @@ using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Pdf;
 
-public static partial class PowerPointPdfConverterExtensions {
+public static partial class PdfPowerPointConverterExtensions {
     private static PdfPowerPointConversionResult ImportEditableContent(
         PdfCore.PdfDocument document,
         PdfToPowerPointOptions options,

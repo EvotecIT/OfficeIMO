@@ -2027,7 +2027,7 @@ public sealed class PdfConversionScenarioManifestTests {
             }).RequireSuccess().Report!;
 
         using var powerPointStream = new MemoryStream();
-        PdfPowerPointConversionReport powerPointReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport powerPointReport = PdfPowerPointConverterExtensions.SaveAsPowerPoint(
             logicalDocument,
             powerPointStream,
             PdfToPowerPointOptions.CreateEditableTables()).RequireSuccess().Report!;

@@ -90,7 +90,7 @@ public static class OdpPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointPdf.PdfPowerPointConversionResult pdf =
-            PowerPointPdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(source, pdfOptions, cancellationToken);
+            PowerPointPdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdpPresentation> odp = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
             cancellationToken.ThrowIfCancellationRequested();
@@ -111,7 +111,7 @@ public static class OdpPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointPdf.PdfPowerPointConversionResult pdf =
-            PowerPointPdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(source, pdfOptions, cancellationToken);
+            PowerPointPdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdpPresentation> odp = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
             cancellationToken.ThrowIfCancellationRequested();

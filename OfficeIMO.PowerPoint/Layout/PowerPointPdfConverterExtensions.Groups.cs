@@ -35,7 +35,7 @@ public static partial class PowerPointPdfConverterExtensions {
         int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, int groupDepth) {
         IReadOnlyList<PptCore.PowerPointShape> children = groupShape.OwnerSlide!.GetGroupChildren(groupShape);
         foreach (PptCore.PowerPointShape child in children) {
-            if (child.Hidden) {
+            if (child.Hidden && !options.IncludeHiddenShapes) {
                 continue;
             }
 
@@ -47,10 +47,23 @@ public static partial class PowerPointPdfConverterExtensions {
                 continue;
             }
 
+            double originalX = x, originalY = y, originalWidth = width, originalHeight = height;
             MapGroupChildBox(groupShape, groupX, groupY, groupWidth, groupHeight, ref x, ref y, ref width, ref height);
             // The root group owns the page-space clip. A local clip here would rotate with
             // the ancestors and discard children that transform back onto the slide.
-            RenderShapeContent(canvas, child, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth + 1);
+            if (child is PptCore.PowerPointTable) {
+                // Keep the canonical table in its authored coordinate space.
+                // One affine scales its text, margins, leading and strokes as
+                // well as its grid; the ancestor group already owns page clipping.
+                double scaleX = width / originalWidth;
+                double scaleY = height / originalHeight;
+                canvas.Effect(new OfficeTransform(scaleX, 0D, 0D, scaleY,
+                    x - originalX * scaleX, y - originalY * scaleY), 1D,
+                    target => RenderShapeContent(target, child, originalX, originalY, originalWidth, originalHeight,
+                        slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth + 1));
+            } else {
+                RenderShapeContent(canvas, child, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth + 1);
+            }
         }
     }
 
