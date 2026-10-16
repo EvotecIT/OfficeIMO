@@ -157,13 +157,21 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore OfficeIMO.sln
+        run: dotnet restore OfficeIMO.sln -m:4
 
       - name: Setup Java
         uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Setup Python for independent signature validation
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install independent signature validator
+        run: python -m pip install pyhanko==0.37.0
 
       - name: Install external PDF proof tools
         shell: bash
@@ -291,8 +299,34 @@ jobs:
               --configuration "${BUILD_CONFIGURATION}" \
               --framework net8.0 \
               --no-restore \
+              -m:4 \
               --filter 'FullyQualifiedName~PdfExternalEngineProofTests' \
               --verbosity minimal
+
+      - name: Generate standards and real invoice proof fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          export OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT="$(pwd)/${PROOF_PATH}"
+          dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj \
+            --configuration "${BUILD_CONFIGURATION}" --framework net8.0 --no-restore -m:4 \
+            --filter 'FullyQualifiedName~PdfStandardsProofTests|FullyQualifiedName~PdfPadesProofTests' \
+            --verbosity minimal
+          dotnet test OfficeIMO.Invoicing.Pdf.Tests/OfficeIMO.Invoicing.Pdf.Tests.csproj \
+            --configuration "${BUILD_CONFIGURATION}" --framework net8.0 --no-restore -m:4 \
+            --filter 'FullyQualifiedName~PdfInvoiceExternalProofTests' --verbosity minimal
+
+      - name: Validate exact standards profiles invoices and timestamps
+        shell: bash
+        env:
+          VERAPDF_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.verapdf_path || '' }}
+          MUSTANG_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.mustang_path || '' }}
+        run: |
+          set -euo pipefail
+          python .github/scripts/Validate-PdfStandardsProof.py \
+            --proof "${PROOF_PATH}" \
+            --verapdf "${VERAPDF_PATH:-${OFFICEIMO_VERAPDF_CLI:-}}" \
+            --mustang "${MUSTANG_PATH:-${OFFICEIMO_MUSTANG_JAR:-}}"
 
       - name: Validate browser PDF/A-2B profile externally
         shell: bash
@@ -306,6 +340,7 @@ jobs:
             dotnet test Website/Apps/OfficeIMO.Web.Converter.Tests/OfficeIMO.Web.Converter.Tests.csproj \
               --configuration "${BUILD_CONFIGURATION}" \
               --framework net10.0 \
+              -m:4 \
               --filter 'FullyQualifiedName~HtmlToPdf_ArchivalProfileCreatesInternallyReadyPdfA2BArtifact' \
               --verbosity minimal
 
@@ -398,6 +433,17 @@ jobs:
 
             $lines.Add("| $($profile.displayName) | $($profile.isInternallyReady) | $($profile.hasRequiredExternalValidation) | $($profile.canClaimConformance) | $missingValidators |")
           }
+          $standards = Get-Content -LiteralPath '${{ env.PROOF_PATH }}/standards/proof.json' -Raw | ConvertFrom-Json
+          $lines.Add('')
+          $lines.Add('### Independent standards, invoice and signature checks')
+          $lines.Add('')
+          $lines.Add('| Artifact | Validator | Profile | Result |')
+          $lines.Add('| --- | --- | --- | --- |')
+          foreach ($row in $standards.validations) {
+            $lines.Add("| $($row.artifactFile) | $($row.validator) | $($row.profile) | $($row.status) |")
+          }
+          $lines.Add('')
+          $lines.Add('Signature trust uses ephemeral test roots and does not establish public trust or revocation status.')
           $lines | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
 
       - name: Upload PDF compliance proof
@@ -419,3 +465,8 @@ jobs:
             ${{ env.PROOF_PATH }}/engine/*.txt
             ${{ env.PROOF_PATH }}/browser/*.pdf
             ${{ env.PROOF_PATH }}/browser/*.txt
+            ${{ env.PROOF_PATH }}/standards/*.pdf
+            ${{ env.PROOF_PATH }}/standards/*.xml
+            ${{ env.PROOF_PATH }}/standards/*.pem
+            ${{ env.PROOF_PATH }}/standards/*.json
+            ${{ env.PROOF_PATH }}/standards/*.txt

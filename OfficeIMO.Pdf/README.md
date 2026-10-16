@@ -1999,6 +1999,19 @@ var cryptography = new PdfCmsSignatureCryptographyProvider(
 PdfSignatureValidationReport report = signed.ToDocument().Security.ValidateSignatures(cryptography);
 ```
 
+Set `SubFilter = PdfExternalSignatureSubFilter.CadesDetached` in the signature
+options for PAdES B-B. The built-in signer emits signing-certificate-v2 and omits
+CMS signing-time for that subfilter. Both RSA and ECDSA certificates are supported.
+For B-T, set `CmsSigningOptions.SignatureTimestampProvider` to an RFC 3161 token
+provider, such as `Rfc3161TimestampClient.GetTimestamp`; its transport and trust
+policy belong to the caller. Document timestamps use a separate RFC 3161 signer.
+
+Text appearances require an explicit `PdfVisibleSignatureAppearanceOptions.Font`
+containing an embedded TrueType font. Image-only appearances do not require it.
+`PdfLongTermValidationEnricher.EnrichAsync` can merge caller-supplied certificates,
+OCSP responses and CRLs with an optional caller-owned fetcher. DSS/VRI presence
+alone does not establish complete trusted B-LT validation.
+
 The PDF package owns byte ranges, incremental updates, signature dictionaries, and preservation policy. The optional
 provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or
 `IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`.
@@ -2463,6 +2476,29 @@ dash patterns. Creation generates supported appearances by default. Updates
 remove a stale appearance when visual properties change and can explicitly
 regenerate it with `RegenerateAppearance`.
 
+### Language and table structure in tagged output
+
+Create the document with `new PdfOptions().EnableTaggedPdfCatalogMarkers()` and
+set its default `Language`. Generated table headers have stable document-local
+IDs, and data cells reference the applicable row and column headers through
+`/Headers`. The ParentTree uses bounded number-tree nodes for larger documents.
+
+For positioned text in another language, set the language on a semantic span:
+
+```csharp
+document.Content.Canvas(canvas => canvas.Structure(
+    PdfCanvasStructureRole.Paragraph,
+    paragraph => paragraph.Structure(
+        PdfCanvasStructureRole.Span,
+        span => span.Text(new[] { PdfTextRun.Normal("Bonjour") },
+            PdfCanvasTextStructureRole.Span, 36, 36, 160, 24),
+        new PdfCanvasStructureOptions { Language = "fr-FR" })));
+```
+
+Descendants inherit the span language. Set `Language = "en-US"` on a nested span
+to return to the document language. PDF 2.0 structure elements declare the PDF 2.0
+namespace, including the single Document child of the structure root.
+
 ### Generate and assess validator-backed PDF/A
 
 ```csharp
@@ -2470,8 +2506,7 @@ using OfficeIMO.Pdf;
 
 var options = new PdfOptions()
     .UsePdfA(PdfComplianceProfile.PdfA2B)
-    .EmbedStandardFont(PdfStandardFont.Helvetica, "SourceSerif4-Regular.otf", "Source Serif 4")
-    .RequireCompliance(PdfComplianceProfile.PdfA2B);
+    .EmbedStandardFont(PdfStandardFont.Helvetica, "SourceSerif4-Regular.otf", "Source Serif 4");
 
 PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf.Content(content => content
         .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."))), options)
@@ -2501,7 +2536,7 @@ if (!proof.CanClaimConformance || !declaredClaims.CanClaimAllDeclaredConformance
 }
 ```
 
-Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, PDF/X-1a:2003, PDF/X-4, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. PDF/X additionally inspects the complete serialized artifact before any bytes are returned or committed to a destination. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
+Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, PDF/X-1a:2003, PDF/X-4, Factur-X, and ZUGFeRD. `UsePdfA(...)` and `UsePdfUa(...)` enable strict generation and saved-artifact checks. When combined, both declared profiles must pass those checks. `RequireCompliance(...)` selects a strict gate without configuring its prerequisites. For metadata-only preparation, use `ConfigurePdfAGroundwork(...)` or `ConfigurePdfUaGroundwork(...)`. PDF/A-4 stores document metadata in XMP and omits the trailer Info dictionary. PDF/A-4f requires an embedded file. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
 
 For an opened PDF, `pdf.AssessCompliance(profile, cancellationToken)` checks readback readiness and observes cancellation during inspection. Readiness does not replace external conformance validation.
 

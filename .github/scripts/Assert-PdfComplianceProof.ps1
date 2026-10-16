@@ -154,6 +154,7 @@ $measuredPaths = @(
     'Directory.Build.targets',
     'global.json',
     '.github/scripts/Assert-PdfComplianceProof.ps1',
+    '.github/scripts/Validate-PdfStandardsProof.py',
     '.github/scripts/verapdf-cli-install.xml',
     '.github/workflows/pdf-compliance-proof.yml',
     'Build/Export-PdfComplianceProof.ps1',
@@ -328,6 +329,84 @@ foreach ($expectedProductProfile in $expectedProductProfiles) {
     Assert-Condition -Condition ($fileEntry.Count -eq 1) -Message "Missing product proof contract row $expectedProductProfile in officeimo-profile-proof-contract.json."
     Assert-ProductProofContractProfile -Entry $entry[0] -ExpectedProfile $expectedProductProfile -SourceName 'proof.json'
     Assert-ProductProofContractProfile -Entry $fileEntry[0] -ExpectedProfile $expectedProductProfile -SourceName 'officeimo-profile-proof-contract.json'
+}
+
+# The extension is separate from the legacy product proof contract: each combined
+# declaration requires its own exact-profile run on the same PDF bytes.
+$standardsDirectory = Join-Path $resolvedProofPath 'standards'
+$standards = Get-Content -LiteralPath (Join-Path $standardsDirectory 'proof.json') -Raw | ConvertFrom-Json
+Assert-Condition ($standards.schemaVersion -eq 1 -and $standards.allPassed -eq $true) 'Standards proof did not pass.'
+foreach ($tool in @('veraPDF', 'Mustang', 'qpdf', 'pyHanko')) {
+    Assert-Condition (-not [string]::IsNullOrWhiteSpace($standards.toolVersions.$tool)) "Missing $tool version."
+}
+Assert-Condition ($standards.toolVersions.Mustang -eq '2.24.0') 'Wrong Mustang version in standards proof.'
+Assert-Condition ($standards.toolVersions.pyHanko -eq '0.37.0') 'Wrong pyHanko version in standards proof.'
+
+$standardsProfiles = [ordered]@{
+    'pdfa2a' = @('2a')
+    'pdfa2u' = @('2u')
+    'pdfa3a' = @('3a')
+    'pdfa3u' = @('3u')
+    'pdfa4' = @('4')
+    'pdfa4e' = @('4e')
+    'pdfa4f' = @('4f')
+    'pdfua2' = @('ua2')
+    'pdfa2b-ua1' = @('2b', 'ua1')
+    'pdfa3b-ua1' = @('3b', 'ua1')
+    'invoice-pdfa4f' = @('4f')
+    'invoice-pdfa3b-ua1' = @('3b', 'ua1')
+}
+$expectedStandardsRows = [System.Collections.Generic.List[string]]::new()
+foreach ($name in $standardsProfiles.Keys) {
+    foreach ($profile in $standardsProfiles[$name]) { $expectedStandardsRows.Add("$name.pdf|veraPDF|$profile") }
+    if ($name.StartsWith('invoice-')) {
+        $expectedStandardsRows.Add("$name.pdf|Mustang|pdf")
+        $expectedStandardsRows.Add("$name.xml|Mustang|xml")
+        $expectedStandardsRows.Add("$name.pdf|pyHanko|attachment")
+    }
+}
+foreach ($name in @($standardsProfiles.Keys) + @('pades-bb', 'pades-bt')) {
+    $expectedStandardsRows.Add("$name.pdf|qpdf|syntax")
+}
+foreach ($name in @('pades-bb', 'pades-bt')) { $expectedStandardsRows.Add("$name.pdf|pyHanko|$name") }
+Assert-Condition (@($standards.validations).Count -eq $expectedStandardsRows.Count) 'Standards proof validation matrix is incomplete.'
+
+function Assert-StandardsFile {
+    param($Entry)
+    Assert-Condition ($null -ne $Entry -and [System.IO.Path]::GetFileName([string]$Entry.file) -eq [string]$Entry.file) 'Invalid standards proof filename.'
+    $file = Get-Item -LiteralPath (Join-Path $standardsDirectory $Entry.file)
+    Assert-Condition ($file.Length -gt 0 -and $file.Length -eq $Entry.sizeBytes) "Wrong standards artifact length: $($Entry.file)."
+    $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    Assert-Condition ($hash -eq $Entry.sha256) "Standards artifact hash mismatch: $($Entry.file)."
+}
+
+$expectedStandardsFiles = @($standardsProfiles.Keys | ForEach-Object { "$_.pdf" }) + @(
+    'pades-bb.pdf', 'pades-bt.pdf', 'invoice-pdfa4f.xml', 'invoice-pdfa3b-ua1.xml', 'signer-root.pem', 'tsa-root.pem')
+Assert-Condition (@($standards.artifacts).Count -eq $expectedStandardsFiles.Count) 'Wrong standards artifact count.'
+foreach ($name in $expectedStandardsFiles) {
+    $entries = @($standards.artifacts | Where-Object { $_.file -eq $name })
+    Assert-Condition ($entries.Count -eq 1) "Missing or duplicate standards artifact $name."
+    Assert-StandardsFile $entries[0]
+}
+foreach ($key in $expectedStandardsRows) {
+    $rows = @($standards.validations | Where-Object { "$($_.artifactFile)|$($_.validator)|$($_.profile)" -eq $key })
+    Assert-Condition ($rows.Count -eq 1) "Missing or duplicate independent standards validation $key."
+    $row = $rows[0]
+    Assert-Condition ($row.status -eq 'Passed') "Independent standards validation failed: $key."
+    Assert-Condition (-not [string]::IsNullOrWhiteSpace($row.validatedUtc)) "Missing validation time: $key."
+    $artifact = @($standards.artifacts | Where-Object { $_.file -eq $row.artifactFile })[0]
+    Assert-Condition ($row.artifactSha256 -eq $artifact.sha256 -and $row.artifactSizeBytes -eq $artifact.sizeBytes) "Standards evidence is not bound to the exact artifact: $key."
+    Assert-StandardsFile $row.diagnostic
+    if ($row.profile -eq 'attachment') {
+        Assert-Condition ($row.details.embeddedXmlMatches -eq $true) "Invoice XML mismatch: $key."
+        Assert-StandardsFile $row.details.xml
+    }
+    if ($row.validator -eq 'pyHanko' -and $row.profile -in @('pades-bb', 'pades-bt')) {
+        Assert-Condition ($row.details.intact -eq $true -and $row.details.valid -eq $true -and $row.details.trusted -eq $true) "Signature integrity or synthetic trust failed: $key."
+        Assert-Condition ($row.details.coverage -eq 'ENTIRE_FILE' -and $row.details.baselineAttributesPresent -eq $true) "Signature coverage or baseline attributes failed: $key."
+        Assert-Condition ($row.details.cmsSigningTimeAbsent -eq $true) "PAdES contains the prohibited CMS signing_time attribute: $key."
+        Assert-Condition ($row.details.signatureTimestampValid -eq ($row.profile -eq 'pades-bt')) "Signature timestamp result is wrong: $key."
+    }
 }
 
 Write-Host "PDF compliance proof is valid: $resolvedProofPath"

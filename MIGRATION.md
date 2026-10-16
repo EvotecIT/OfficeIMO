@@ -1,5 +1,19 @@
 # Upgrading OfficeIMO
 
+## Strict PDF standards helpers
+
+`PdfOptions.UsePdfA(...)` and `UsePdfUa(...)` enable the strict compliance gate. Saving rejects missing font embedding, accessibility prerequisites and incompatible combined profile declarations; every declared A/UA profile is checked against the saved bytes. Applications that only prepare metadata can use `ConfigurePdfAGroundwork(...)` and `ConfigurePdfUaGroundwork(...)` instead. External validation remains necessary for a conformance claim on an exact artifact.
+
+PDF/A-4, PDF/A-4e, PDF/A-4f and PDF/UA-2 use PDF 2.0. PDF/A-4 metadata lives in XMP; callers reading only trailer Info fields should read `PdfDocument.Load(bytes).Inspect().XmpMetadata`. Hybrid invoice generation preserves a configured PDF/A-3 or PDF/A-4f profile. PDF/A-2 and base PDF/A-4 cannot carry the hybrid invoice XML through this API; use presentation-only output or choose an attachment-capable profile.
+
+## PAdES signatures and visible text
+
+`PdfCmsExternalSigner` honors the prepared subfilter. `CadesDetached` creates PAdES baseline CMS with a signing-certificate-v2 attribute and without CMS signing-time; SHA-1 and encapsulated content are rejected for this profile. RSA and ECDSA signing use platform key handles. `DetachedCms` retains its CMS signing-time behavior. Document timestamps require an RFC 3161 signer rather than the detached CMS adapter.
+
+Visible text appearances require `PdfVisibleSignatureAppearanceOptions.Font` with an embedded TrueType font. Supply the font explicitly; the writer rejects missing fonts instead of emitting unembedded Helvetica. Image-only appearances with `ShowText = false` do not need a text font.
+
+For B-T, provide `CmsSigningOptions.SignatureTimestampProvider`, for example `Rfc3161TimestampClient.GetTimestamp`. The client accepts caller-owned HTTP transport and trust policy, checks nonce, imprint and TSA signature, and returns the token for the CMS unsigned attribute. Optional evidence fetching uses `PdfLongTermValidationEnricher.EnrichAsync`; existing caller-supplied DSS/VRI enrichment remains available. Embedded certificates and revocation data alone do not establish a complete trusted B-LT validation path.
+
 ## PDF text output and embedded fonts
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.

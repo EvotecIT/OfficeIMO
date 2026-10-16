@@ -162,6 +162,20 @@ fonts that cover the actual scripts through
 when the deployment owns and verifies the installed families. Long descriptions
 flow across pages instead of being truncated.
 
+For an accessible archival hybrid, pass options configured with
+`UsePdfA(PdfComplianceProfile.PdfA3B).UsePdfUa(PdfComplianceProfile.PdfUa1)`.
+For PDF 2.0 invoices, use `UsePdfA(PdfComplianceProfile.PdfA4F)` and optionally
+`UsePdfUa(PdfComplianceProfile.PdfUa2)`. Both helpers enable strict checks; embed
+every font used by the visible invoice. The adapter preserves these profiles
+when attaching its captured XML. PDF/A-2 and base PDF/A-4 hybrid requests are
+rejected; `ToPresentationPdfBytes` produces a presentation without invoice XML.
+Validate the selected archival profile and the Factur-X/ZUGFeRD PDF profile,
+as well as the embedded XML. Mustang 2.24.0 and 2.26.0 restrict their PDF invoice
+check to PDF/A-3: an A-4f container can pass veraPDF and its XML can pass Mustang
+while Mustang reports its PDF section as invalid. Those separate passes do not
+establish a complete Mustang PDF invoice-profile pass. Check the PDF and XML
+section statuses, not just Mustang's exit code or overall summary.
+
 Use [pinned XML validation](../OfficeIMO.Invoicing.Validation/README.md) and run
 veraPDF plus an invoice validator against the exact generated PDF. Font coverage,
 page layout and external validation remain necessary for the selected content and

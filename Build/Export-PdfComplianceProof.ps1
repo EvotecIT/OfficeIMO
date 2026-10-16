@@ -751,6 +751,7 @@ try {
         '--framework', $Framework,
         '--filter', 'FullyQualifiedName~PdfComplianceGateTests',
         '--verbosity', 'minimal',
+        '-m:4',
         '-p:WarningLevel=0'
     )
 
@@ -877,7 +878,7 @@ $lines.Add('')
 $lines.Add('- PDF/A-2b, PDF/A-3b, Factur-X, and ZUGFeRD are formal engine profiles only when their exact generated artifacts pass every required validator.')
 $lines.Add('- PDF/UA-1 is formal only when the exact generated artifact passes the accessibility validator across tagged text, links, annotations, forms, figures, language, title, and embedded Unicode fonts.')
 $lines.Add('- PDF/X-1a:2003 and PDF/X-4 are claimable only when their exact generated artifacts pass a qualified print-production preflight validator.')
-$lines.Add('- Unsupported profiles, including PDF/UA-2, remain fail-closed.')
+$lines.Add('- Unsupported profiles remain fail-closed. The compliance CI lane also validates PDF/A-4, PDF/A-4f, PDF/UA-2, combined archival/accessibility profiles, and signatures in `standards/proof.json`.')
 $lines.Add('- External validators are CI/test proof tools and are not runtime dependencies of OfficeIMO.Pdf.')
 $lines.Add('- Artifact SHA-256 and byte length bind each validator result to the exact generated PDF used for the conformance decision.')
 $lines.Add('- Product proof contract rows are emitted by `PdfComplianceAnalyzer.AssessProof(...)`; they are the engine-level claimability signal for this proof pack.')
