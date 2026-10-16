@@ -11,6 +11,9 @@ public sealed class PdfMutationBlockedException : NotSupportedException {
     public PdfMutationPlan Plan { get; }
 
     private static string BuildMessage(PdfMutationPlan plan) {
+        if (plan.Operation == PdfMutationOperation.Optimize && plan.Preflight.Probe.Security.HasSignatures) {
+            return "Optimization of signed PDF files is refused because a full rewrite would invalidate their signatures. Optimize before signing. " + plan.Summary;
+        }
         if (plan.Diagnostics.Count == 0) {
             return plan.Summary;
         }
