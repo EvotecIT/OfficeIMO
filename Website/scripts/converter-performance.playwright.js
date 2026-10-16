@@ -129,13 +129,21 @@ async (page) => {
       } else {
         await page.locator('[data-bt-run]').click();
       }
-      await page.waitForFunction(previousUrl => {
-        const output = document.querySelector('[data-bt-output]');
-        const link = document.querySelector('[data-bt-download="primary"]');
-        return output?.getAttribute('data-result-state') === 'ok' && Boolean(link?.href?.startsWith('blob:') && link.href !== previousUrl);
-      }, previousDownloadUrl, { timeout: 120000 });
-      sampling = false;
-      await sampler;
+      try {
+        await page.waitForFunction(previousUrl => {
+          const output = document.querySelector('[data-bt-output]');
+          const link = document.querySelector('[data-bt-download="primary"]');
+          return output?.getAttribute('data-result-state') === 'error' ||
+            output?.getAttribute('data-result-state') === 'ok' && Boolean(link?.href?.startsWith('blob:') && link.href !== previousUrl);
+        }, previousDownloadUrl, { timeout: 120000 });
+        const output = page.locator('[data-bt-output]');
+        if (await output.getAttribute('data-result-state') === 'error') {
+          throw new Error(`${routeId} conversion failed: ${await output.innerText()}\n${consoleErrors.join('\n')}`);
+        }
+      } finally {
+        sampling = false;
+        await sampler;
+      }
       await sample();
 
       const downloadUrl = await page.locator('[data-bt-download="primary"]').getAttribute('href');

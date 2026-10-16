@@ -26,7 +26,7 @@ public class PdfDebuggerTests {
         Assert.NotEmpty(page.ContentObjectNumbers);
         Assert.Contains("BT", page.ContentOperators);
         Assert.Contains("Tf", page.ContentOperators);
-        Assert.Contains("Tj", page.ContentOperators);
+        Assert.Contains(page.ContentOperators, name => name is "Tj" or "TJ");
         Assert.Contains("ET", page.ContentOperators);
         Assert.False(page.ContentOperatorsTruncated);
         Assert.Contains(report.Objects, item => item.DecodedStreamPreview?.Contains("BT", StringComparison.Ordinal) == true);

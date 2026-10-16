@@ -356,7 +356,8 @@ internal static partial class TextContentParser {
         Action<int, MarkedContentState>? onActualTextForm = null,
         bool preserveGlyphText = false,
         bool requireMappedText = false,
-        Func<string, byte[], PdfTextDecodingEvidence>? decodingEvidenceForResource = null) {
+        Func<string, byte[], PdfTextDecodingEvidence>? decodingEvidenceForResource = null,
+        bool mergeKernedTextArrays = true) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -406,6 +407,7 @@ internal static partial class TextContentParser {
         int strokeLineJoin = initialStrokeLineJoin;
         double miterLimit = initialMiterLimit;
         string strokeDashIdentity = initialStrokeDashIdentity;
+        var outlineDashCache = new Dictionary<(string Identity, double Scale), (IReadOnlyList<double>? Pattern, double Phase)>();
         if (fillColorSelection != null) {
             fillColorResolved = fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor);
             if (fillColorResolved) {
@@ -951,7 +953,7 @@ internal static partial class TextContentParser {
             if (pendingGapPt >= threshold) sbOutGlobal.Append(' ');
             pendingGapPt = 0;
         }
-        void ShowTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp) {
+        void ShowTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp, double[]? kerningAfterByte = null) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
@@ -1036,7 +1038,8 @@ internal static partial class TextContentParser {
                     decodedGlyphCharacters++;
                 }
                 double w1000 = sumWidth1000ForFont(font, g);
-                double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (step == 1 && bytes[idx] == 0x20 ? wordSpacing : 0)) * hScale;
+                double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (step == 1 && bytes[idx] == 0x20 ? wordSpacing : 0)
+                    + (kerningAfterByte != null ? kerningAfterByte[idx + step - 1] : 0D)) * hScale;
                 if (ch != '\0') {
                     decodedGlyphCount++;
                     eachDecodedGlyphIsOneTextElement &= OfficeTextElements.Split(t).Count == 1;
@@ -1297,6 +1300,15 @@ internal static partial class TextContentParser {
                     span.MarkUnresolvedPaint();
                 }
                 if (usesVisibleStroke && ApplyTextOpacity(strokeColor, true).A > 3) {
+                    // Text strokes use the user-space line width of the CTM, not the text matrix.
+                    double strokeScale = Math.Sqrt(Math.Abs((ctm.A * ctm.D) - (ctm.B * ctm.C)));
+                    var dashKey = (strokeDashIdentity, strokeScale);
+                    if (outlineDashCache.TryGetValue(dashKey, out var dash) ||
+                        TryReadOutlineDash(strokeDashIdentity, strokeScale, out dash.Pattern, out dash.Phase)) {
+                        if (outlineDashCache.Count < 64) outlineDashCache[dashKey] = dash;
+                        span.SetOutlineStroke(ApplyTextOpacity(strokeColor, true), Math.Abs(strokeWidth) * strokeScale,
+                            dash.Pattern, dash.Phase);
+                    }
                     double scaleEnvelope = Math.Max(Math.Abs(ctm.A) + Math.Abs(ctm.C), Math.Abs(ctm.B) + Math.Abs(ctm.D));
                     double joinEnvelope = strokeLineJoin == 0 ? Math.Max(1D, miterLimit) : 1D;
                     span.SetVisibleStrokePadding(Math.Max(0.5D, Math.Abs(strokeWidth)) * scaleEnvelope * joinEnvelope / 2D);
@@ -1448,6 +1460,9 @@ internal static partial class TextContentParser {
             }
             if (list == null) return;
             bool hasPositioningAdjustment = list.Any(static item => item is double value && Math.Abs(value) > 0.000001D);
+            // Glyph-exact reads (redaction and editing evidence) keep one run per encoded string.
+            if (hasPositioningAdjustment && mergeKernedTextArrays && useLogicalTextFilters && adjustKerningFromTJ &&
+                !requireMappedText && !preserveGlyphText && TryShowKernedTextArray(list, paintOrder)) return;
             for (int j = 0; j < list.Count; j++) {
                 var it = list[j];
                 if (it is byte[] b) { ShowTextRun(b, paintOrder, hasPositioningAdjustment); }
@@ -1458,6 +1473,69 @@ internal static partial class TextContentParser {
                     if (delta > 0) pendingGapPt += delta; else pendingGapPt = 0;
                 }
             }
+        }
+
+        // Producers kern with small TJ adjustments between the strings of one array. Logical
+        // extraction keeps such an array as one run, folding each adjustment into the advance
+        // of the glyph before it, so words are not split at kerning pairs. Larger moves
+        // (tab-like gaps) keep the per-string runs and space detection.
+        bool TryShowKernedTextArray(List<object> list, double paintOrder) {
+            const double MaximumKerning1000 = 300D;
+            // Producers such as pdfTeX encode word gaps as TJ moves without space glyphs.
+            // Only tightening or a loosening well below a word space can join strings.
+            const double MaximumLoosening1000 = 120D;
+            // Restamping drops pair kerning. Kerning mostly tightens pairs; wider moves and
+            // visible loosening are deliberate spacing that a plain restamp cannot recreate.
+            const double MaximumRestampTightening1000 = 200D;
+            const double MaximumRestampLoosening1000 = 60D;
+            bool restampable = true;
+            int strings = 0, totalBytes = 0, first = -1, last = -1;
+            for (int index = 0; index < list.Count; index++) {
+                if (list[index] is byte[] b) {
+                    if (b.Length == 0) continue;
+                    strings++;
+                    totalBytes = checked(totalBytes + b.Length);
+                    if (first < 0) first = index;
+                    last = index;
+                } else if (list[index] is double number) {
+                    if (double.IsNaN(number) || double.IsInfinity(number) || number > MaximumKerning1000 ||
+                        -number > MaximumLoosening1000) return false;
+                    if (number > MaximumRestampTightening1000 || -number > MaximumRestampLoosening1000) restampable = false;
+                } else {
+                    return false;
+                }
+            }
+            if (strings < 2) return false;
+            var bytes = new byte[totalBytes];
+            var kerning = new double[totalBytes];
+            int offset = 0;
+            double pending = 0D;
+            for (int index = first; index <= last; index++) {
+                if (list[index] is byte[] b) {
+                    if (b.Length == 0) continue;
+                    if (offset > 0) kerning[offset - 1] += pending;
+                    pending = 0D;
+                    Buffer.BlockCopy(b, 0, bytes, offset, b.Length);
+                    offset += b.Length;
+                } else if (list[index] is double number) {
+                    pending += -number / 1000.0 * size;
+                }
+            }
+            for (int index = 0; index < first; index++) {
+                if (list[index] is double number) MoveByTextArrayAdjustment(number);
+            }
+            ShowTextRun(bytes, paintOrder, forceCannotRestamp: !restampable || first > 0 || last < list.Count - 1,
+                kerningAfterByte: kerning);
+            for (int index = last + 1; index < list.Count; index++) {
+                if (list[index] is double number) MoveByTextArrayAdjustment(number);
+            }
+            return true;
+        }
+
+        void MoveByTextArrayAdjustment(double number) {
+            double delta = -number / 1000.0 * size * hScale;
+            textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(delta, 0));
+            if (delta > 0) pendingGapPt += delta; else pendingGapPt = 0;
         }
 
         static double ToDouble(object o) { return o is double d ? d : 0.0; }

@@ -246,7 +246,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
-        Assert.Contains("/BaseFont /ScopedWeb-Regular", rawPdf, StringComparison.Ordinal);
+        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("ScopedWeb-Regular"), rawPdf);
         Assert.Contains("AΩ", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount >= 2);
     }

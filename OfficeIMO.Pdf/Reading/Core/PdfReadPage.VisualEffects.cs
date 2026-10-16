@@ -40,7 +40,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private PdfPageSoftMaskResource? ReadSoftMask(PdfDictionary state, PdfDictionary? parentResources = null) {
+    private PdfPageSoftMaskResource? ReadSoftMask(PdfDictionary state, PdfDictionary? parentResources, PageContentBudget? pageContentBudget) {
         PdfObject? resolved = ResolveEffectObject(state.Items.TryGetValue("SMask", out PdfObject? value) ? value : null);
         if (resolved is PdfName { Name: "None" } || resolved is not PdfDictionary mask) return null;
         if (mask.Items.TryGetValue("Type", out PdfObject? maskTypeObject) &&
@@ -54,8 +54,10 @@ public sealed partial class PdfReadPage {
             !HasOrdinaryTransparencyGroupDeclaration(transparency) ||
             ResolveEffectObject(mask.Items.TryGetValue("S", out PdfObject? modeObject) ? modeObject : null) is not PdfName modeName ||
             (modeName.Name != "Alpha" && modeName.Name != "Luminosity")) return null;
+        byte[]? transferTable = null;
         if (mask.Items.TryGetValue("TR", out PdfObject? transferObject) &&
-            ResolveEffectObject(transferObject) is not PdfName { Name: "Identity" } and not PdfNull) return null;
+            ResolveEffectObject(transferObject) is not PdfName { Name: "Identity" } and not PdfNull &&
+            !TryCreateSoftMaskTransferTable(transferObject, pageContentBudget, out transferTable)) return null;
         bool isIsolated = transparency.Items.TryGetValue("I", out PdfObject? isolatedObject) &&
             ResolveEffectObject(isolatedObject) is PdfBoolean { Value: true };
         if (transparency.Items.TryGetValue("I", out isolatedObject) &&
@@ -93,7 +95,7 @@ public sealed partial class PdfReadPage {
                     : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
             }
         }
-        return new PdfPageSoftMaskResource(group, mode, backdrop, hasByteExactBackdrop, isIsolated, hasExplicitGroupColorSpace, parentResources);
+        return new PdfPageSoftMaskResource(group, mode, backdrop, hasByteExactBackdrop, isIsolated, hasExplicitGroupColorSpace, parentResources, transferTable);
     }
 
     private bool HasOrdinaryTransparencyGroupDeclaration(PdfDictionary group) {
@@ -298,7 +300,7 @@ public sealed partial class PdfReadPage {
         textClippingBudget ??= new PdfTextClippingBudget();
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         bool supported = true;
-        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
@@ -315,7 +317,7 @@ public sealed partial class PdfReadPage {
             content,
             baseTransform,
             visualPageSize.Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget),
             colorSpaces,
             GetOptionalContentVisibility(resources),
             initialFillColor: initialState?.FillColor,
@@ -376,7 +378,7 @@ public sealed partial class PdfReadPage {
             WrapContentWithTransform(content, baseTransform),
             visualPageSize.Width,
             visualPageSize.Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget),
             colorSpaces,
             shadings,
             shadingPatterns,
@@ -420,7 +422,7 @@ public sealed partial class PdfReadPage {
             content,
             baseTransform,
             visualPageSize.Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget),
             colorSpaces,
             GetOptionalContentVisibility(resources),
             initialFillColor: initialState?.FillColor,
@@ -831,7 +833,7 @@ public sealed partial class PdfReadPage {
         initialEffect = initialEffect.WithEffectiveRenderingIntent(initialRenderingIntent);
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
             content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
-        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
+        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources, pageContentBudget);
         IReadOnlyList<PdfPageDrawingEffectTransition> parsed = PdfPageGraphicsEffectTimelineParser.Parse(
             content,
             graphicsStates,
@@ -1002,14 +1004,15 @@ public sealed partial class PdfReadPage {
         PdfTextClippingBudget patternTextClippingBudget,
         CancellationToken cancellationToken) {
         var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height, renderingIntent);
-        if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing;
+        // Cached masks are shared without their transfer table, which is applied per graphics state.
+        if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing.WithTransferTable(resource.TransferTable);
         if (!active.Add(resource.Group)) {
             return OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 new OfficeDrawing(width, height),
                 OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
                 mode: resource.Mode,
                 backdropColor: resource.BackdropColor,
-                transform: null);
+                transform: null).WithTransferTable(resource.TransferTable);
         }
         try {
             OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, renderingIntent, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken: cancellationToken);
@@ -1020,7 +1023,7 @@ public sealed partial class PdfReadPage {
                 backdropColor: resource.BackdropColor,
                 transform: null);
             cache[cacheKey] = mask;
-            return mask;
+            return mask.WithTransferTable(resource.TransferTable);
         } finally {
             active.Remove(resource.Group);
         }
@@ -1049,7 +1052,7 @@ public sealed partial class PdfReadPage {
             fallbackResources ??
             pageResources;
         var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
-        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0, registeredFonts);
+        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0, registeredFonts, cancellationToken: cancellationToken);
         ConfigureDrawingFonts(drawing, registeredFonts, pageContentBudget);
         string content = WrapFormContentWithBoundingBoxClip(
             decodedContent ?? PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
@@ -1090,7 +1093,7 @@ public sealed partial class PdfReadPage {
             ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects),
             ResourceResolver.GetBudgetedFontDecodersForForm(form.Dictionary, _objects));
         Dictionary<string, Func<byte[], double>> widthProviders = MergeWidthProviders(ResourceResolver.GetFontWidthProviders(_pageDict, _objects), ResourceResolver.GetFontWidthProviders(form.Dictionary, _objects));
-        Dictionary<string, PdfFontResource> fonts = MergeFonts(ResourceResolver.GetFontsForResources(pageResources, _objects), ResourceResolver.GetFontsForResources(resources, _objects));
+        Dictionary<string, PdfFontResource> fonts = MergeFonts(_fontResourceCache.GetFonts(pageResources, _objects, forDrawing: true, cancellationToken), _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, cancellationToken));
         string transformedContent = WrapContentWithTransform(content, transform, out int transformedOffset);
         CollectTextAndForms(
             transformedContent,

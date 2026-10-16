@@ -675,7 +675,9 @@ public partial class PdfDocumentVisualQualityTests {
             var ordered = line.OrderBy(letter => letter.StartBaseLine.X).ToList();
             for (int i = 1; i < ordered.Count; i++) {
                 double gap = ordered[i].StartBaseLine.X - ordered[i - 1].EndBaseLine.X;
-                Assert.True(gap >= -0.25,
+                // Pair kerning (AFM and GPOS pairs stay within about 0.2 em) overlaps advance boxes by design.
+                double kerningTolerance = Math.Max(0.25, 0.2 * Math.Min(ordered[i - 1].PointSize, ordered[i].PointSize));
+                Assert.True(gap >= -kerningTolerance,
                     $"Expected {areaName} text not to collide on baseline {line.Key:0.##}, but '{ordered[i - 1].Value}' and '{ordered[i].Value}' overlap by {-gap:0.##}pt.");
             }
         }

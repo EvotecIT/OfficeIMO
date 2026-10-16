@@ -34,6 +34,8 @@ public sealed partial class OfficeRasterCanvas {
     /// <summary>Decoded and prefiltered images shared by the renders of one drawing, when the caller keeps them.</summary>
     internal OfficeRasterImageCache? ImageCache { get; set; }
 
+    internal long MaximumClipRasterPixels { get; set; } = 64_000_000L;
+
     internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) =>
         _transformedTextBudget.ChargeIntermediateSurfacePixels(pixels, maximumRasterPixels);
 

@@ -2994,8 +2994,9 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal("Left שלום 42", string.Concat(runs.Select(run => run.Text)));
         Assert.Equal(4, hebrew.Count);
-        Assert.True(left.X < hebrew.Min(run => run.X));
-        Assert.True(number.X > hebrew.Max(run => run.X));
+        // UAX #9: a number after right-to-left text joins that run (W2/N1), so it is painted before the Hebrew.
+        Assert.True(left.X < number.X);
+        Assert.True(number.X < hebrew.Min(run => run.X));
         for (int index = 1; index < hebrew.Count; index++) Assert.True(hebrew[index].X < hebrew[index - 1].X);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         Assert.True(HtmlConversionDocument.Parse(html).ToPng().Length > 8);

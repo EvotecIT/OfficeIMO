@@ -552,13 +552,18 @@ internal static partial class PdfTextEditor {
     /// </summary>
     private static bool IsFindSpan(PdfTextSpan span, bool includeTextRenderingMode3, double pageHeight) {
         if (!IsPaintedSearchSpan(span, includeTextRenderingMode3)) return false;
+        return AreSearchBoundsVisible(span, GetBounds(span), pageHeight, allowPartial: true);
+    }
+
+    private static bool AreSearchBoundsVisible(PdfTextSpan span, SpanBounds bounds, double pageHeight, bool allowPartial) {
         if (span.ClipPath is not { } clip) return true;
         if (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping) return false;
         // Span bounds are in user space from the bottom; the clip is from the page's top, like the rendered page.
-        SpanBounds bounds = GetBounds(span);
         double top = pageHeight - (bounds.Y + bounds.Height);
         double bottom = pageHeight - bounds.Y;
         const double tolerance = 0.5D;
+        if (allowPartial) return bounds.X + bounds.Width > clip.X && bounds.X < clip.X + clip.Width &&
+            bottom > clip.Y && top < clip.Y + clip.Height;
         return bounds.X >= clip.X - tolerance && bounds.X + bounds.Width <= clip.X + clip.Width + tolerance &&
                top >= clip.Y - tolerance && bottom <= clip.Y + clip.Height + tolerance;
     }

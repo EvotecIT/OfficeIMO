@@ -488,6 +488,10 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        if (PdfImageSampling) {
+            DrawPdfImage(image, imageTransform, inverseTransform, sourceLeft, sourceTop, sourceWidth, sourceHeight, interpolate);
+            return;
+        }
         (double minX, double minY, double maxX, double maxY) = imageTransform.TransformRectangleBounds(0D, 0D, 1D, 1D);
         if (!IntersectsVisibleImageBounds((minX, minY, maxX, maxY), interpolate)) return;
         image = PrepareImageSource(image);
@@ -609,9 +613,11 @@ public sealed partial class OfficeRasterCanvas {
 
     private void BlendPixel(int x, int y, OfficeColor color) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (!IsPixelInsideClip(x, y)) {
+        double clip = GetClipCoverage(x, y);
+        if (clip <= 0D) {
             return;
         }
+        if (clip < 1D) color = ApplyCoverage(color, clip);
 
         if (_image != null) {
             _image.BlendPixel(x, y, color);

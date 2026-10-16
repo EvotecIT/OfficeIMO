@@ -15,6 +15,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly OfficeOpenTypeTracking? _tracking;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
+    private readonly PdfCanonicalGlyphText _canonicalGlyphText;
+    private readonly PdfGlyphTextPins _textPins;
     private readonly object _usageLock = new();
     private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
     private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
@@ -38,6 +40,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
         StemV = stemV;
         _advanceWidths1000 = advanceWidths1000;
         _cmap = cmap;
+        _canonicalGlyphText = new PdfCanonicalGlyphText(cmap);
+        _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: true);
         _subsetFontFingerprint = SubsetFontFingerprint.Create(_data);
     }
 
@@ -57,6 +61,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
         StemV = source.StemV;
         _advanceWidths1000 = source._advanceWidths1000;
         _cmap = source._cmap;
+        _canonicalGlyphText = source._canonicalGlyphText;
+        _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: true);
         _subsetFontFingerprint = source._subsetFontFingerprint;
         _tracking = source._tracking;
         // Nominal advances and glyph identities depend only on immutable font
@@ -106,7 +112,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         // Skip the external shaper only where it would not engage (no provider, default features); the
         // width then comes from the scalar path with no glyph-run allocation.
         int advanceWidth1000;
-        if (shapingProvider == null && options.FeatureSettings.IsDefault) {
+        if (shapingProvider == null && options.FeatureSettings.IsDefault && !PdfExternalTextShaper.RequiresManagedDirectionalShaping(text!, options)) {
             advanceWidth1000 = shapingMode == PdfTextShapingMode.OpenTypeLigatures
                 ? MeasureDefaultLatinAdvanceWidth1000(text!, options)
                 : PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text!, this, options);
@@ -192,10 +198,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
     public IReadOnlyList<(int GlyphId, string UnicodeText)> GetGlyphToUnicodeMappings() {
         lock (_usageLock) {
             if (_usedGlyphToUnicode.Count > 0) {
-                return _usedGlyphToUnicode
-                    .OrderBy(entry => entry.Key)
-                    .Select(entry => (entry.Key, entry.Value))
-                    .ToArray();
+                // Emitted pins own their glyph's entry, then the cmap's canonical text (a mirrored
+                // bracket keeps its own character); glyphs outside the cmap keep usage text.
+                var mappings = new List<(int GlyphId, string UnicodeText)>(_usedGlyphToUnicode.Count);
+                foreach (int glyphId in _usedGlyphIds) {
+                    if (_textPins.TryGetPinned(glyphId, out string text) || _canonicalGlyphText.TryGet(glyphId, out text) || _usedGlyphToUnicode.TryGetValue(glyphId, out text!))
+                        mappings.Add((glyphId, text));
+                }
+                return mappings;
             }
         }
 
@@ -230,7 +240,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         lock (_usageLock) {
             _usedGlyphIds.Clear();
             _usedGlyphToUnicode.Clear();
-            _usedAsciiLow = _usedAsciiHigh = 0;
+            _textPins.Clear();
         }
     }
 

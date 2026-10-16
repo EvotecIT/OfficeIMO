@@ -251,7 +251,7 @@ internal static partial class PdfWriter {
                         foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
                             fontProgram.RecordGlyphUsage(glyphId, unicodeText);
                         }
-                        fontProgram.MergeAsciiCharacterUsageFrom(otherProgram);
+                        fontProgram.MergeTextPinsFrom(otherProgram);
                     }
 
                     int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts, cancellationToken);
@@ -263,7 +263,7 @@ internal static partial class PdfWriter {
                     int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType2DescendantObject(fontProgram, descriptorId, cidToGlyphMapId));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(fontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(fontProgram, descendantFontId, toUnicodeObjectId));
-                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.FontName, descriptorId, trueType: true);
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.SubsetFontName, descriptorId, trueType: true);
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
                     foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
@@ -277,26 +277,29 @@ internal static partial class PdfWriter {
                         foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
                             cffFontProgram.RecordGlyphUsage(glyphId, unicodeText);
                         }
+                        cffFontProgram.MergeTextPinsFrom(otherProgram);
                     }
 
                     requiresPdf16FileVersion = true;
-                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan();
+                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan(allowCidKeyedCff: true);
                     pendingFont.Options.AddFontDiagnostics(
                         pendingFont.Font,
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
-                    string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
+                    string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
+                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds(), fontData) : cffFontProgram.FontName;
+                    string fontFileExtraEntries = "/Subtype /" + compactFontFile.FontFileSubtype;
                     int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
                             "<< /Length " + fontData.Length.ToString(CultureInfo.InvariantCulture) + " " + fontFileExtraEntries + " >>",
                             fontData);
-                    int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId));
-                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId));
+                    int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId, cffSubsetName));
+                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId, cffSubsetName));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(cffFontProgram));
-                    ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
-                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, cffFontProgram.FontName, descriptorId: descriptorId, descendantId: descendantFontId);
+                    ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId, cffSubsetName));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, cffSubsetName, descriptorId: descriptorId, descendantId: descendantFontId);
                 } else {
                     int toUnicodeObjectId = opts.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())
@@ -321,22 +324,24 @@ internal static partial class PdfWriter {
                 } else if (pendingFont.Options.TryGetNamedOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                            cffFontProgram != null) {
                     requiresPdf16FileVersion = true;
-                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan();
+                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan(allowCidKeyedCff: true);
                     pendingFont.Options.AddFontDiagnostics(
                         PdfStandardFont.Helvetica,
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "named-font:" + pendingFont.Font.FaceKey, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
-                    string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
+                    string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
+                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds(), fontData) : cffFontProgram.FontName;
+                    string fontFileExtraEntries = "/Subtype /" + compactFontFile.FontFileSubtype;
                     int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
                             "<< /Length " + fontData.Length.ToString(CultureInfo.InvariantCulture) + " " + fontFileExtraEntries + " >>",
                             fontData);
-                    int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId));
-                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId));
+                    int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId, cffSubsetName));
+                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId, cffSubsetName));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(cffFontProgram));
-                    ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
+                    ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId, cffSubsetName));
                 } else {
                     throw new InvalidOperationException("Named font resource '" + pendingFont.Font.FamilyName + "' could not be materialized.");
                 }

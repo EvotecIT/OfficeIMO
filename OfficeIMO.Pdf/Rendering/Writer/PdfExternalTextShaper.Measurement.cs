@@ -5,8 +5,9 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfExternalTextShaper {
     internal static int MeasureDefaultLatinAdvanceWidth1000(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, Action<int, string>? observeUsage = null) {
         var request = CreateDefaultLatinMeasurementRequest(text, font.FontName, font.FontDataForInspection, false, font.UnitsPerEm, options.Language);
-        if (OfficeManagedTextShapingProvider.Instance.TryShapeDefaultLatinTokens(request, out var tokens, out _))
-            return font.MeasureDefaultLatinTokens(tokens, options.RecordGlyphUsage, observeUsage, request.CancellationToken);
+        if (OfficeManagedTextShapingProvider.Instance.TryShapeDefaultLatinTokens(request, out var tokens, out _,
+            out OfficeOpenTypeGlyphPositioning[]? positions))
+            return font.MeasureDefaultLatinTokens(tokens, positions, options.RecordGlyphUsage, observeUsage, request.CancellationToken);
         return PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text, font, options, observeUsage);
     }
 
@@ -18,7 +19,7 @@ internal static partial class PdfExternalTextShaper {
             if (options.RecordGlyphUsage) font.RecordGlyphUsage(glyphId, unicodeText);
             observeUsage?.Invoke(glyphId, unicodeText);
             return width;
-        }, out int advance)) return advance;
+        }, adjustment => ScaleToPdfUnits(adjustment, font.UnitsPerEm), out int advance)) return advance;
         return font.MeasureScalarAdvanceWidth1000(text, options, observeUsage);
     }
 

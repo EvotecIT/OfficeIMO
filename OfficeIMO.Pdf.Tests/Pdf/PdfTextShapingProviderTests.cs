@@ -30,7 +30,9 @@ public class PdfTextShapingProviderTests {
             foreach (string logicalToken in evidence.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 Assert.Contains(logicalToken, extracted, StringComparison.Ordinal);
             }
-            if (evidence.Direction == OfficeTextDirection.RightToLeft || evidence.ManagedShapingExpected) {
+            // Reordered or substituted clusters need ActualText; plain right-to-left glyphs in visual
+            // order map through ToUnicode, which conforming readers reorder themselves.
+            if (evidence.ManagedShapingExpected && evidence.Direction != OfficeTextDirection.RightToLeft) {
                 Assert.Contains("/ActualText", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
             }
             Assert.DoesNotContain(report.Warnings, warning =>

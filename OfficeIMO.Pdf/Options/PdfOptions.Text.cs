@@ -26,6 +26,23 @@ public sealed partial class PdfOptions {
     internal OfficeTextFeatureSettings ResolveTextFeatureSettings(OfficeTextFeatureSettings? features) =>
         features == null || features.IsDefault ? DefaultTextFeatureSettings : features;
 
+    /// <summary>
+    /// Applies pair kerning to text without explicit run features: OpenType GPOS/kern pairs for embedded
+    /// fonts and Adobe AFM pairs for the standard Helvetica and Times fonts. The default is <see langword="true"/>.
+    /// Setting <see langword="false"/> restores nominal glyph advances; runs with explicit features keep their own <c>kern</c> value.
+    /// </summary>
+    public bool TextKerning {
+        get => !DefaultTextFeatureSettings.TryGetValue("kern", out int kerning) || kerning != 0;
+        set {
+            var features = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, int> feature in DefaultTextFeatureSettings.Features) {
+                if (!string.Equals(feature.Key, "kern", StringComparison.Ordinal)) features[feature.Key] = feature.Value;
+            }
+            if (!value) features["kern"] = 0;
+            DefaultTextFeatureSettings = features.Count == 0 ? OfficeTextFeatureSettings.Default : new OfficeTextFeatureSettings(features);
+        }
+    }
+
     private PdfTextWhitespaceMode _textWhitespaceMode;
     private bool _hasExplicitTextWhitespaceConfiguration;
 
@@ -74,7 +91,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     public PdfTextHyphenationCallback? TextHyphenationCallback {
         get => _textHyphenationCallback;
-        set => _textHyphenationCallback = value;
+        set { _automaticHyphenation = false; _textHyphenationCallback = value; }
     }
 
     /// <summary>
@@ -156,14 +173,26 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="callback">Callback returning UTF-16 break indexes for a token, or null to disable the hook.</param>
     public PdfOptions SetTextHyphenation(PdfTextHyphenationCallback? callback) {
-        _textHyphenationCallback = callback;
+        TextHyphenationCallback = callback;
+        return this;
+    }
+
+    /// <summary>
+    /// Hyphenates words at line ends with the embedded Liang patterns (US English and reformed German).
+    /// </summary>
+    /// <param name="language">A supported tag such as <c>en-US</c> or <c>de-DE</c>; null uses <see cref="Language"/> at layout time.</param>
+    /// <remarks>Unsupported languages produce no hyphenation. Words still wrap at Unicode line-break opportunities.</remarks>
+    public PdfOptions UseAutomaticHyphenation(string? language = null) {
+        _automaticHyphenation = true;
+        _automaticHyphenationLanguage = language;
+        _textHyphenationCallback = token => OfficeTextHyphenationPatterns.GetBreakpoints(token, language ?? Language);
         return this;
     }
 
     /// <summary>Uses or clears an immutable first-party word hyphenation dictionary.</summary>
     /// <param name="dictionary">Dictionary whose breakpoints should be used, or null to clear hyphenation.</param>
     public PdfOptions UseTextHyphenationDictionary(PdfHyphenationLexicon? dictionary) {
-        _textHyphenationCallback = dictionary?.AsCallback();
+        TextHyphenationCallback = dictionary?.AsCallback();
         return this;
     }
 
@@ -184,6 +213,9 @@ public sealed partial class PdfOptions {
         TextShapingMode = mode;
         return this;
     }
+
+    private bool _automaticHyphenation;
+    private string? _automaticHyphenationLanguage;
 
     // Passing the RecordProviderShapedTextRun method group as an Action allocates a new delegate on
     // every call site invocation; the text-show path hits it per drawn run. Memoize one delegate.

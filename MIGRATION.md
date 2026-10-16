@@ -1,5 +1,36 @@
 # Upgrading OfficeIMO
 
+## PDF text output and embedded fonts
+
+Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.
+
+Line wrapping follows Unicode line breaking (UAX #14). Words can now break after hyphens and slashes, at zero-width spaces and between CJK characters, so a token such as `buyer-service-1` can wrap as `buyer-` / `service-1`. `PdfOptions.UseAutomaticHyphenation(language)` adds opt-in US English and German pattern hyphenation; it replaces any `UseTextHyphenationDictionary` configuration, and the last one configured applies.
+
+Right-to-left and Arabic text is shaped and ordered automatically, without configuring a shaping provider. Glyphs are written in visual order, and pure right-to-left runs no longer carry a run-wide `ActualText`; their Unicode text comes from the font's `ToUnicode` map. Logical text extraction is unchanged.
+
+Text is written as one `TJ` array per run, with numeric kerning and justification adjustments, instead of per-glyph `Tj` operators with individual text matrices. `ActualText` is written only for clusters that `ToUnicode` cannot express. Tools that parse OfficeIMO content streams should accept `TJ` arrays.
+
+Embedded font names carry the standard six-letter subset tag, for example `ABCDEF+Arial`. TrueType subsets are renumbered compactly and mapped through `/CIDToGIDMap`. OpenType/CFF fonts embed as `/FontFile3 /Subtype /CIDFontType0C` when a CID-keyed subset can be proven, and otherwise keep the `/OpenType` program; `FontFile3` streams no longer carry `/Length1`. Assertions on `BaseFont` or `FontName` should ignore the subset tag.
+
+`PdfReadPage.GetTextSpans()` returns one span per text-show operator. For kerned `TJ` arrays from OfficeIMO and other producers, that is usually a whole same-font line rather than a word or glyph. Use `PdfTextSpan.TryGetGlyphs` or the `PdfUnderstandingWord` results of document understanding for glyph or word geometry, such as a redaction area around one word. A pure right-to-left span reports `PdfTextSpan.Text` in paint order.
+
+`OfficeBidiTextResolver` implements the Unicode Bidirectional Algorithm (UAX #9) and `OfficeTextLineBreaks` implements UAX #14, both from Unicode 16.0 data. Edge cases follow the standard: for example, the break opportunity at U+1806 MONGOLIAN TODO SOFT HYPHEN is now before it rather than after. Exact-standard-font mode still throws `PdfTextEncodingPreflightException` for text outside WinAnsi; its message now names `UseTextFallbacks()`, `MultilingualFonts` and `UseFontFamily` as remedies.
+
+## Managed PDF rendering
+
+PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conventions more closely, so pixel comparisons against earlier renders change:
+
+- Strokes default to butt caps, miter joins and a miter limit of 10, and the `M` operator and ExtGState `/ML` are honoured. Zero-width and sub-pixel strokes paint one device pixel. The `render.operator.miter-limit-simplified` capability is no longer reported.
+- Raster sizes no longer gain a row or column from floating-point noise; a 792-point page at 150 DPI is 1650 rows, not 1651. Safety-reduced scales keep strict whole-pixel sizing.
+- Downscaled images are box-filtered and image edges are anti-aliased, and clipping paths are anti-aliased.
+- Embedded CFF, Type1C, CIDFontType0C, OpenType/CFF and Type 1 fonts render from their own outlines instead of a substituted system font, so the `font-cff-substitution` and `font-substitution` diagnostics no longer appear for them. Text in the standard Symbol and ZapfDingbats fonts extracts as Greek, mathematical and dingbat characters rather than ASCII letters.
+- Text render modes 1, 2, 5 and 6 stroke glyph outlines. Text clipping modes 4–7 still do not clip later painting.
+- Function-based (type 1) and mesh (types 4–7) shadings render. Axial and radial shadings without `/Extend` leave their ends unpainted.
+- Images with 1, 2, 4 or 16 bits per component, resized or non-8-bit soft masks, `/Matte`, and JBIG2 images render. Soft masks with a `/TR` transfer function apply it. Undecodable images report `render.resource.image-unsupported` instead of being omitted silently, and knockout groups report `render.resource.knockout-group-simplified`.
+- Widgets without appearance streams, and text and choice widgets under `/NeedAppearances`, render a transient synthesized appearance reported as `render.annotation.appearance-synthesized` instead of `render.resource.annotation-appearance-missing`. The source document is not changed.
+
+`OfficeColorSpaceConverter.FromCmyk` interpolates between SWOP process-colour solids instead of computing `255 × (1 − c) × (1 − k)`. Pure cyan becomes RGB (0, 173, 239) and 100% black becomes (35, 31, 32). Update code that compares exact DeviceCMYK conversion results.
+
 ## Studio native interface and protected copies
 
 The native engine ABI is version 3. Redaction `apply` requests must include `revision`: use the revision returned by `find`, or the document facts revision on which drawn areas were reviewed. Requests without a revision or with a stale revision are rejected. After editing, reordering, undoing or redoing the document, find or mark the content again before applying redaction. Rebuild native hosts against the matching engine header and check `officeimo_abi_version()` at startup.

@@ -317,7 +317,9 @@ public partial class Excel {
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         Assert.True(
-            fontNameParts.Any(fontNamePart => rawPdf.Contains("/BaseFont /" + fontNamePart, StringComparison.OrdinalIgnoreCase)),
+            // Embedded subsets carry a six-letter tag (ABCDEF+) before the font name.
+            fontNameParts.Any(fontNamePart => Regex.IsMatch(rawPdf, "/BaseFont /(?:[A-Z]{6}\\+)?" + Regex.Escape(fontNamePart),
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)),
             "Expected raw PDF to contain one of these BaseFont names: " + string.Join(", ", fontNameParts) + ". Actual BaseFont names: " + string.Join(", ", baseFonts));
     }
 

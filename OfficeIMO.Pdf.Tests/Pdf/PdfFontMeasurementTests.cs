@@ -47,9 +47,11 @@ public class PdfFontMeasurementTests {
         foreach (bool fork in new[] { false, true }) {
             PdfTrueTypeFontProgram? tt = fork ? trueType?.ForkForDocument() : trueType;
             PdfOpenTypeCffFontProgram? ot = fork ? openType?.ForkForDocument() : openType;
+            // Design-unit rounding is independent of the font's default pair kerning.
+            OfficeTextFeatureSettings unkerned = OfficeTextFeatureSettings.Default.With("kern", 0);
             double Measure(bool original) => cff
-                ? ot!.MeasureTextWidth("AAAAAAAAAA", 12, mode, useFontUnitAdvances: original)
-                : tt!.MeasureTextWidth("AAAAAAAAAA", 12, mode, useFontUnitAdvances: original);
+                ? ot!.MeasureTextWidth("AAAAAAAAAA", 12, mode, featureSettings: unkerned, useFontUnitAdvances: original)
+                : tt!.MeasureTextWidth("AAAAAAAAAA", 12, mode, featureSettings: unkerned, useFontUnitAdvances: original);
             Assert.Equal(72D, Measure(false));
             Assert.Equal(72.01171875D, Measure(true));
         }
@@ -142,7 +144,14 @@ public class PdfFontMeasurementTests {
             ? value => ot!.MeasureTextWidth(value, 10, PdfTextShapingMode.OpenTypeLigatures)
             : value => tt!.MeasureTextWidth(value, 10, PdfTextShapingMode.OpenTypeLigatures);
 
-        Assert.Equal(2_146_271_512 * 10D / 1000, measure(text.Substring(0, 524)));
+        // Default measurement includes the font's pair kerning with the drawing path's rounding.
+        int unitsPerEm = cff ? ot!.UnitsPerEm : tt!.UnitsPerEm;
+        OfficeTextShapingResult kerned = Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(
+            new OfficeTextShapingRequest(text.Substring(0, 524), "Overflow", data, cff, unitsPerEm, OfficeTextDirection.Auto, null, default,
+                fontCollectionIndex: null, variationCoordinates: null, cloneFontData: true, applyDefaultLatinLigatures: true)));
+        long kerning = Enumerable.Range(0, kerned.Glyphs.Count)
+            .Sum(index => (long)Math.Round(kerned.GetAdvanceAdjustment(index) * 1000D / unitsPerEm, MidpointRounding.AwayFromZero));
+        Assert.Equal((2_146_271_512 + kerning) * 10D / 1000, measure(text.Substring(0, 524)));
         if (cff) ot!.ResetGlyphUsage(); else tt!.ResetGlyphUsage();
         Assert.Throws<OverflowException>(() => measure(text));
         var mappings = cff ? ot!.GetGlyphToUnicodeMappings() : tt!.GetGlyphToUnicodeMappings();

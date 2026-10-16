@@ -637,6 +637,7 @@ internal static partial class PdfFormFiller {
         font.Items["Type"] = new PdfName("Font");
         font.Items["Subtype"] = new PdfName("Type1");
         font.Items["BaseFont"] = new PdfName("Helvetica");
+        font.Items["Encoding"] = new PdfName("WinAnsiEncoding");
 
         var fonts = new PdfDictionary();
         fonts.Items["Helv"] = font;

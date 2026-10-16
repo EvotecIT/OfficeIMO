@@ -27,13 +27,14 @@ public class PdfFontGlyphUsageTests {
         recordText("aba");
         recordText(string.Empty);
         Assert.Equal(new[] { glyphId }, used());
-        Assert.Equal((glyphId, "aba"), Assert.Single(mappings()));
+        // A glyph the cmap reaches maps to its own character; other text needs ActualText at the show site.
+        Assert.Equal((glyphId, "A"), Assert.Single(mappings()));
 
         if (cff) ot!.ResetGlyphUsage(); else tt!.ResetGlyphUsage();
         recordText(string.Empty);
         Assert.Equal(new[] { glyphId }, used());
         recordScalar('C');
         Assert.Equal(new[] { glyphId }, used());
-        Assert.Equal((glyphId, "C"), Assert.Single(mappings()));
+        Assert.Equal((glyphId, "A"), Assert.Single(mappings()));
     }
 }

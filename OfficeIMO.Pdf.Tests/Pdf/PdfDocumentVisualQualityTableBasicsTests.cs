@@ -30,9 +30,9 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
         int headerTextColorIndex = content.IndexOf("1 1 1 rg", StringComparison.Ordinal);
-        int bodyTextIndex = content.IndexOf("<444D415243> Tj", StringComparison.Ordinal);
+        int bodyTextIndex = content.IndexOf("444D415243", StringComparison.Ordinal);
         int bodyTextColorIndex = content.LastIndexOf("0 0 0 rg", bodyTextIndex, StringComparison.Ordinal);
 
         Assert.True(headerTextColorIndex >= 0, "The header should use the configured white text color.");

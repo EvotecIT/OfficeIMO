@@ -84,8 +84,9 @@ public class HtmlPdfTextPlacement {
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters.ToArray();
         Assert.Equal(expected, string.Concat(letters.Select(letter => letter.Value)));
+        // Pair kerning may tighten a pair inside the nominal advance box; overlapping spans move by far more.
         for (int index = 1; index < letters.Length; index++) {
-            Assert.True(letters[index].StartBaseLine.X >= letters[index - 1].EndBaseLine.X - 0.02D,
+            Assert.True(letters[index].StartBaseLine.X >= letters[index - 1].EndBaseLine.X - 0.2D * letters[index].PointSize,
                 $"'{letters[index - 1].Value}' overlaps '{letters[index].Value}'.");
         }
     }

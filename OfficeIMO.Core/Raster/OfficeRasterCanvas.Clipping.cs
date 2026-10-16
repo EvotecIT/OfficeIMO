@@ -17,8 +17,9 @@ public sealed partial class OfficeRasterCanvas {
     /// <returns>A disposable scope that restores the previous clip.</returns>
     public IDisposable PushClipRectangle(double x, double y, double width, double height) {
         OfficeRasterClipRegion? previous = _clipRegion;
-        OfficeRasterClipRectangle next = OfficeRasterClipRectangle.FromBounds(
-            x * CoordinateScaleX, y * CoordinateScaleY, width * CoordinateScaleX, height * CoordinateScaleY);
+        OfficeRasterClipRectangle next = AntialiasedClipping
+            ? OfficeRasterClipRectangle.FromFractionalBounds(x * CoordinateScaleX, y * CoordinateScaleY, width * CoordinateScaleX, height * CoordinateScaleY)
+            : OfficeRasterClipRectangle.FromBounds(x * CoordinateScaleX, y * CoordinateScaleY, width * CoordinateScaleX, height * CoordinateScaleY);
         _clipRegion = OfficeRasterClipRegion.Rectangle(next, previous);
         return new ClipScope(this, previous);
     }
@@ -31,6 +32,11 @@ public sealed partial class OfficeRasterCanvas {
         left *= CoordinateScaleX; right *= CoordinateScaleX;
         top *= CoordinateScaleY; bottom *= CoordinateScaleY;
         OfficeRasterClipRegion? previous = _clipRegion;
+        if (AntialiasedClipping) {
+            _clipRegion = OfficeRasterClipRegion.Rectangle(
+                OfficeRasterClipRectangle.FromFractionalBounds(left, top, right - left, bottom - top), previous);
+            return new ClipScope(this, previous);
+        }
         var next = new OfficeRasterClipRectangle(
             ResolvePixelCentreBoundary(left, Width),
             ResolvePixelCentreBoundary(top, Height),
@@ -86,6 +92,18 @@ public sealed partial class OfficeRasterCanvas {
         _clipRegion == null || _clipRegion.Contains(x, y);
 
     /// <summary>
+    /// Anti-aliases clips: rectangles by their exact pixel-area overlap and polygons through an area-coverage
+    /// mask built with the shared scanline filler.
+    /// </summary>
+    internal bool AntialiasedClipping { get; set; }
+
+    /// <summary>Returns the clip coverage of a pixel in [0, 1].</summary>
+    private double GetClipCoverage(int x, int y) {
+        if (_clipRegion == null) return 1D;
+        return AntialiasedClipping ? _clipRegion.Coverage(this, x, y) : _clipRegion.Contains(x, y) ? 1D : 0D;
+    }
+
+    /// <summary>
     /// Conservatively tests a complete affine surface against the physical canvas and current clip.
     /// Antialiased image boundaries retain pixels with partial area coverage; periodic tiles use pixel centres.
     /// </summary>
@@ -132,22 +150,74 @@ public sealed partial class OfficeRasterCanvas {
             return new OfficeRasterClipRectangle(left, top, Math.Max(left, right), Math.Max(top, bottom));
         }
 
-        internal static OfficeRasterClipRectangle Intersect(OfficeRasterClipRectangle first, OfficeRasterClipRectangle second) =>
-            new OfficeRasterClipRectangle(
-                Math.Max(first.Left, second.Left),
-                Math.Max(first.Top, second.Top),
-                Math.Min(first.Right, second.Right),
-                Math.Min(first.Bottom, second.Bottom));
+        // Anti-aliased clips keep fractional edges; the integer range covers every partially visible pixel.
+        internal static OfficeRasterClipRectangle FromFractionalBounds(double x, double y, double width, double height) {
+            OfficeRasterClipRectangle outer = FromBounds(x, y, width, height);
+            if (outer.Right <= outer.Left || outer.Bottom <= outer.Top) return outer;
+            return new OfficeRasterClipRectangle(outer.Left, outer.Top, outer.Right, outer.Bottom, x, y, x + width, y + height);
+        }
+
+        private OfficeRasterClipRectangle(int left, int top, int right, int bottom, double edgeLeft, double edgeTop, double edgeRight, double edgeBottom)
+            : this(left, top, right, bottom) {
+            HasFractionalEdges = true;
+            EdgeLeft = edgeLeft; EdgeTop = edgeTop; EdgeRight = edgeRight; EdgeBottom = edgeBottom;
+        }
+
+        internal bool HasFractionalEdges { get; }
+        internal double EdgeLeft { get; }
+        internal double EdgeTop { get; }
+        internal double EdgeRight { get; }
+        internal double EdgeBottom { get; }
+
+        internal double Coverage(int x, int y) {
+            if (!Contains(x, y)) return 0D;
+            if (!HasFractionalEdges) return 1D;
+            double horizontal = Math.Min(x + 1D, EdgeRight) - Math.Max(x, EdgeLeft);
+            double vertical = Math.Min(y + 1D, EdgeBottom) - Math.Max(y, EdgeTop);
+            return horizontal <= 0D || vertical <= 0D ? 0D : Math.Min(1D, horizontal) * Math.Min(1D, vertical);
+        }
+
+        internal static OfficeRasterClipRectangle Intersect(OfficeRasterClipRectangle first, OfficeRasterClipRectangle second) {
+            int left = Math.Max(first.Left, second.Left), top = Math.Max(first.Top, second.Top);
+            int right = Math.Min(first.Right, second.Right), bottom = Math.Min(first.Bottom, second.Bottom);
+            if (!first.HasFractionalEdges && !second.HasFractionalEdges) return new OfficeRasterClipRectangle(left, top, right, bottom);
+            double edgeLeft = Math.Max(first.HasFractionalEdges ? first.EdgeLeft : first.Left, second.HasFractionalEdges ? second.EdgeLeft : second.Left);
+            double edgeTop = Math.Max(first.HasFractionalEdges ? first.EdgeTop : first.Top, second.HasFractionalEdges ? second.EdgeTop : second.Top);
+            double edgeRight = Math.Min(first.HasFractionalEdges ? first.EdgeRight : first.Right, second.HasFractionalEdges ? second.EdgeRight : second.Right);
+            double edgeBottom = Math.Min(first.HasFractionalEdges ? first.EdgeBottom : first.Bottom, second.HasFractionalEdges ? second.EdgeBottom : second.Bottom);
+            return new OfficeRasterClipRectangle(left, top, Math.Max(left, right), Math.Max(top, bottom), edgeLeft, edgeTop, edgeRight, edgeBottom);
+        }
 
         internal bool Contains(int x, int y) =>
             x >= Left && x < Right && y >= Top && y < Bottom;
     }
 
-    private sealed class OfficeRasterClipRegion {
+    private sealed partial class OfficeRasterClipRegion {
         private readonly OfficeRasterClipRectangle? _rectangle;
         private readonly IReadOnlyList<IReadOnlyList<OfficePoint>>? _contours;
         private readonly OfficeFillRule _fillRule;
         private readonly OfficeRasterClipRegion? _previous;
+        private static bool TryGetAxisAlignedRectangle(IReadOnlyList<IReadOnlyList<OfficePoint>> contours,
+            out double left, out double top, out double right, out double bottom) {
+            left = top = right = bottom = 0D;
+            if (contours.Count != 1) return false;
+            IReadOnlyList<OfficePoint> points = contours[0];
+            int count = points.Count;
+            if (count == 5 && points[0].X == points[4].X && points[0].Y == points[4].Y) count = 4;
+            if (count != 4) return false;
+            left = right = points[0].X; top = bottom = points[0].Y;
+            for (int index = 0; index < 4; index++) {
+                OfficePoint current = points[index], next = points[(index + 1) % 4];
+                OfficePoint after = points[(index + 2) % 4];
+                bool horizontal = current.Y == next.Y, vertical = current.X == next.X;
+                if (horizontal == vertical || horizontal == (next.Y == after.Y)) return false;
+                for (int prior = 0; prior < index; prior++)
+                    if (current.X == points[prior].X && current.Y == points[prior].Y) return false;
+                left = Math.Min(left, current.X); right = Math.Max(right, current.X);
+                top = Math.Min(top, current.Y); bottom = Math.Max(bottom, current.Y);
+            }
+            return right > left && bottom > top;
+        }
 
         private OfficeRasterClipRegion(OfficeRasterClipRectangle? rectangle, IReadOnlyList<IReadOnlyList<OfficePoint>>? contours, OfficeFillRule fillRule, OfficeRasterClipRegion? previous) {
             _rectangle = rectangle;

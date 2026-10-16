@@ -37,7 +37,7 @@ public static class OfficeRasterScaleLimiter {
         if (maximumPixels < 1L) throw new ArgumentOutOfRangeException(nameof(maximumPixels));
         if (maximumDimension < 1) throw new ArgumentOutOfRangeException(nameof(maximumDimension));
 
-        if (Fits(width, height, requestedScale, maximumPixels, maximumDimension, out int requestedWidth, out int requestedHeight)) {
+        if (Fits(width, height, requestedScale, maximumPixels, maximumDimension, toleratesNoise: true, out int requestedWidth, out int requestedHeight)) {
             return new OfficeRasterScaleLimit(requestedScale, requestedWidth, requestedHeight, false);
         }
 
@@ -46,34 +46,48 @@ public static class OfficeRasterScaleLimiter {
         upper = Math.Min(upper, maximumDimension / width);
         upper = Math.Min(upper, maximumDimension / height);
         if (double.IsNaN(upper) || upper <= 0D) upper = Math.Min(requestedScale, double.Epsilon);
+        // A reduced scale is searched with strict ceilings so its extents never sit a hair above whole pixels,
+        // which callers that size companion layers with Math.Ceiling would round up.
         double limited = upper;
-        if (!Fits(width, height, limited, maximumPixels, maximumDimension, out _, out _)) {
+        if (!Fits(width, height, limited, maximumPixels, maximumDimension, toleratesNoise: false, out _, out _)) {
             double lower = 0D;
             for (int iteration = 0; iteration < 80; iteration++) {
                 double candidate = lower + (upper - lower) / 2D;
-                if (Fits(width, height, candidate, maximumPixels, maximumDimension, out _, out _)) lower = candidate;
+                if (Fits(width, height, candidate, maximumPixels, maximumDimension, toleratesNoise: false, out _, out _)) lower = candidate;
                 else upper = candidate;
             }
             limited = lower > 0D ? lower : double.Epsilon;
         }
 
-        if (!Fits(width, height, limited, maximumPixels, maximumDimension, out int pixelWidth, out int pixelHeight)) {
+        if (!Fits(width, height, limited, maximumPixels, maximumDimension, toleratesNoise: false, out int pixelWidth, out int pixelHeight)) {
             throw new InvalidOperationException("The raster scale could not be reduced to the requested decoded-raster limits.");
         }
         return new OfficeRasterScaleLimit(limited, pixelWidth, pixelHeight, true);
     }
 
-    private static bool Fits(double width, double height, double scale, long maximumPixels, int maximumDimension, out int pixelWidth, out int pixelHeight) {
+    private static bool Fits(double width, double height, double scale, long maximumPixels, int maximumDimension, bool toleratesNoise,
+        out int pixelWidth, out int pixelHeight) {
         pixelWidth = 0;
         pixelHeight = 0;
         if (scale < 0D || double.IsNaN(scale) || double.IsInfinity(scale)) return false;
-        double scaledWidth = Math.Max(1D, Math.Ceiling(width * scale));
-        double scaledHeight = Math.Max(1D, Math.Ceiling(height * scale));
+        double scaledWidth = Math.Max(1D, toleratesNoise ? CeilingPixels(width * scale) : Math.Ceiling(width * scale));
+        double scaledHeight = Math.Max(1D, toleratesNoise ? CeilingPixels(height * scale) : Math.Ceiling(height * scale));
         if (double.IsNaN(scaledWidth) || double.IsInfinity(scaledWidth) || scaledWidth > int.MaxValue ||
             double.IsNaN(scaledHeight) || double.IsInfinity(scaledHeight) || scaledHeight > int.MaxValue) return false;
         pixelWidth = (int)scaledWidth;
         pixelHeight = (int)scaledHeight;
         return pixelWidth <= maximumDimension && pixelHeight <= maximumDimension && pixelWidth <= maximumPixels / pixelHeight;
+    }
+
+    /// <summary>
+    /// Rounds a scaled extent up to whole pixels, ignoring floating-point noise. A 792pt page at 150 DPI is
+    /// 1650.0000000000002 pixels in binary arithmetic and must allocate 1650 rows, not 1651.
+    /// </summary>
+    internal static double CeilingPixels(double value) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) return value;
+        double nearest = Math.Round(value);
+        double spacing = Math.Abs(BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(value) + 1L) - value);
+        return Math.Abs(value - nearest) <= 2D * spacing ? nearest : Math.Ceiling(value);
     }
 
     private static void ValidatePositive(double value, string name) {

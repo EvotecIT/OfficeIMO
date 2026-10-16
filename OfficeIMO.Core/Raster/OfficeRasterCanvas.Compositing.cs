@@ -35,7 +35,8 @@ public sealed partial class OfficeRasterCanvas {
         for (int y = top; y <= bottom; y++) {
             _cancellationToken.ThrowIfCancellationRequested();
             for (int x = left; x <= right; x++) {
-                if (!IsPixelInsideClip(x, y)) continue;
+                double clip = GetClipCoverage(x, y);
+                if (clip <= 0D) continue;
                 OfficePoint sourcePoint = inverse.TransformPoint(new OfficePoint(x + 0.5D, y + 0.5D));
                 double coverage = boundary?.GetCoverage(sourcePoint, out sourcePoint) ?? 1D;
                 if (coverage <= 0D || (boundary == null &&
@@ -45,7 +46,7 @@ public sealed partial class OfficeRasterCanvas {
                     : image.GetPixel(
                         Clamp((int)Math.Floor(sourcePoint.X), 0, image.Width - 1),
                         Clamp((int)Math.Floor(sourcePoint.Y), 0, image.Height - 1));
-                source = ApplyCoverage(source, coverage * opacity);
+                source = ApplyCoverage(source, coverage * opacity * clip);
                 CompositeBlendPixel(x, y, source, blendMode);
             }
         }
@@ -101,8 +102,10 @@ public sealed partial class OfficeRasterCanvas {
             case OfficeBlendMode.Overlay: return HardLight(source, backdrop);
             case OfficeBlendMode.Darken: return Math.Min(backdrop, source);
             case OfficeBlendMode.Lighten: return Math.Max(backdrop, source);
-            case OfficeBlendMode.ColorDodge: return source >= 1D ? 1D : Math.Min(1D, backdrop / (1D - source));
-            case OfficeBlendMode.ColorBurn: return source <= 0D ? 0D : 1D - Math.Min(1D, (1D - backdrop) / source);
+            // ISO 32000-2, 11.3.5.2 and W3C Compositing: an unlit backdrop stays black under dodge and a fully
+            // lit backdrop stays white under burn, before the source extremes are considered.
+            case OfficeBlendMode.ColorDodge: return backdrop <= 0D ? 0D : source >= 1D ? 1D : Math.Min(1D, backdrop / (1D - source));
+            case OfficeBlendMode.ColorBurn: return backdrop >= 1D ? 1D : source <= 0D ? 0D : 1D - Math.Min(1D, (1D - backdrop) / source);
             case OfficeBlendMode.HardLight: return HardLight(backdrop, source);
             case OfficeBlendMode.SoftLight: return SoftLight(backdrop, source);
             case OfficeBlendMode.Difference: return Math.Abs(backdrop - source);

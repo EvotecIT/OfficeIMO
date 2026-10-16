@@ -16,9 +16,9 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text("DocBackgroundMarker"))
                 .ToBytes();
 
-            string content = Encoding.ASCII.GetString(pdfBytes);
+            string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(pdfBytes));
             int backgroundFill = content.IndexOf("0.941 0.973 1 rg\n0 0 612 792 re f", StringComparison.Ordinal);
-            int markerText = content.IndexOf("<446F634261636B67726F756E644D61726B6572>", StringComparison.Ordinal);
+            int markerText = content.IndexOf("446F634261636B67726F756E644D61726B6572", StringComparison.Ordinal);
 
             Assert.True(backgroundFill >= 0, "Expected the document background to emit a full-page PDF fill.");
             Assert.True(markerText > backgroundFill, "Expected the page background to render before text content.");

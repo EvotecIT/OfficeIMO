@@ -28,8 +28,8 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
     public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
         if (!TryShapeTokens(request, out IOfficeFontProgram font, out List<OfficeOpenTypeSubstitution.GlyphToken> tokens,
             out OfficeTextDirection resolvedDirection)) return null;
-        bool kerningEnabled = request.FeatureSettings.TryGetValue("kern", out int kerningValue)
-            ? kerningValue != 0 : !request.ApplyDefaultLatinLigatures;
+        // Pair kerning is a default OpenType feature; only an explicit kern=0 disables it.
+        bool kerningEnabled = !request.FeatureSettings.TryGetValue("kern", out int kerningValue) || kerningValue != 0;
         var glyphIds = new int[tokens.Count];
         var scalars = new int[tokens.Count];
         for (int index = 0; index < tokens.Count; index++) {

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 
 namespace OfficeIMO.Drawing;
@@ -68,6 +69,15 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static void RenderPositionedTextLines(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale,
         double x, double y, double width, double height) {
+        IReadOnlyList<double>? dash = text.OutlineStrokeDashPattern;
+        if (dash != null && scale != 1D) {
+            var scaled = new double[dash.Count];
+            for (int index = 0; index < scaled.Length; index++) scaled[index] = dash[index] * scale;
+            dash = scaled;
+        }
+        using IDisposable? outline = text.OutlineStrokeColor is OfficeColor strokeColor
+            ? canvas.PushTextOutlineStroke(strokeColor, text.OutlineStrokeWidth * scale, text.FillSuppressed, dash, text.OutlineStrokeDashOffset * scale)
+            : null;
         double sourceSize = Math.Max(.1D, text.Font.Size * scale);
         double size = sourceSize * text.BaselineScale;
         double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scale;

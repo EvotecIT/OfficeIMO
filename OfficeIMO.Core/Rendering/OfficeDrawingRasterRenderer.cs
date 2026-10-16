@@ -33,7 +33,8 @@ public static partial class OfficeDrawingRasterRenderer {
         double scale = options.Scale;
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale))
             throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
-        double fullWidth = Math.Ceiling(drawing.Width * scale), fullHeight = Math.Ceiling(drawing.Height * scale);
+        double fullWidth = Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(drawing.Width * scale));
+        double fullHeight = Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(drawing.Height * scale));
         if (width <= 0 || height <= 0 || x < 0 || y < 0 || x + (double)width > fullWidth || y + (double)height > fullHeight)
             throw new ArgumentOutOfRangeException(nameof(width), "The region must lie within the rendered drawing.");
         if ((long)width * height > options.MaximumRasterPixels)
@@ -90,12 +91,14 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
         canvas.FontMetricScale = scale;
+        canvas.PdfRasterConventions = options.PdfRasterConventions;
         canvas.SetCoordinateScale(scaleX / scale, scaleY / scale);
         if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
         canvas.ImageCache = options.ImageCache;
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)
             : options.ImageCodec;
+        canvas.MaximumClipRasterPixels = options.MaximumRasterPixels;
         RenderElements(canvas, drawing.Elements, scale, imageCodec, options.MaximumRasterPixels, options.CancellationToken);
 
         return image;
@@ -248,7 +251,9 @@ public static partial class OfficeDrawingRasterRenderer {
                 } else if (linearGradient != null) {
                     canvas.FillLinearGradientRectangle(x, y, width, height, linearGradient);
                 } else if (fill.HasValue) {
-                    canvas.FillRectangle(x, y, width, height, fill.Value);
+                    double fillX = x, fillY = y, fillWidth = width, fillHeight = height;
+                    canvas.TrySnapRectangle(ref fillX, ref fillY, ref fillWidth, ref fillHeight);
+                    canvas.FillRectangle(fillX, fillY, fillWidth, fillHeight, fill.Value);
                 }
 
                 if ((stroke.HasValue || strokeLinearGradient != null || strokeRadialGradient != null) && strokeWidth > 0D) {

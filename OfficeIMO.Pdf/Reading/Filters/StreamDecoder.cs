@@ -12,7 +12,8 @@ internal static partial class StreamDecoder {
         Ascii85,
         RunLength,
         Lzw,
-        Fax
+        Fax,
+        Jbig2
     }
 
     public static byte[] Decode(
@@ -77,6 +78,9 @@ internal static partial class StreamDecoder {
                         break;
                     case DecodeFilterKind.Fax:
                         current = DecodeFax(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
+                        break;
+                    case DecodeFilterKind.Jbig2:
+                        current = DecodeJbig2(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
                     case DecodeFilterKind.Lzw:
                         int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes, cancellationToken);
@@ -269,9 +273,9 @@ internal static partial class StreamDecoder {
         out byte[] decoded,
         out PdfReadLimitException? limitException,
         Dictionary<int, PdfIndirectObject>? objects,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, int stopBeforeFilter = int.MaxValue) {
         stream.GetDataSegment(out byte[] data, out int offset, out int length);
-        return TryDecodeCore(stream.Dictionary, data, offset, length, maxOutputBytes, out decoded, out limitException, objects, cancellationToken);
+        return TryDecodeCore(stream.Dictionary, data, offset, length, maxOutputBytes, out decoded, out limitException, objects, cancellationToken, stopBeforeFilter);
     }
 
     private static bool TryDecodeCore(
@@ -283,7 +287,7 @@ internal static partial class StreamDecoder {
         out byte[] decoded,
         out PdfReadLimitException? limitException,
         Dictionary<int, PdfIndirectObject>? objects,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, int stopBeforeFilter = int.MaxValue) {
         cancellationToken.ThrowIfCancellationRequested();
         decoded = Array.Empty<byte>();
         limitException = null;
@@ -318,7 +322,7 @@ internal static partial class StreamDecoder {
         }
 
         byte[]? current = null;
-        for (int filterIndex = 0; filterIndex < filterNames.Count; filterIndex++) {
+        for (int filterIndex = 0; filterIndex < filterNames.Count && filterIndex < stopBeforeFilter; filterIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             string filterName = filterNames[filterIndex];
             try {
@@ -365,6 +369,10 @@ internal static partial class StreamDecoder {
                     case DecodeFilterKind.Fax:
                         current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
                         current = DecodeFax(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
+                        break;
+                    case DecodeFilterKind.Jbig2:
+                        current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
+                        current = DecodeJbig2(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
                     case DecodeFilterKind.Lzw:
                         current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
@@ -524,6 +532,8 @@ internal static partial class StreamDecoder {
             case "CCITTFaxDecode":
             case "CCF":
                 return DecodeFilterKind.Fax;
+            case "JBIG2Decode":
+                return DecodeFilterKind.Jbig2;
             default:
                 return DecodeFilterKind.Unsupported;
         }
@@ -731,6 +741,12 @@ internal static partial class StreamDecoder {
                 DecodeFilterKind filterKind = GetFilterKind(filterNames[filterIndex]);
                 if (filterKind == DecodeFilterKind.Fax) {
                     ValidateFaxParameters(decodeParms, objects, cancellationToken);
+                    continue;
+                }
+                if (filterKind == DecodeFilterKind.Jbig2) {
+                    // JBIG2Globals is the filter's only parameter; it must name a stream when present.
+                    if (decodeParms.Items.TryGetValue("JBIG2Globals", out PdfObject? globals) &&
+                        ResolveObject(globals, objects, cancellationToken) is not (PdfStream or PdfNull)) return false;
                     continue;
                 }
                 if (filterKind != DecodeFilterKind.Flate && filterKind != DecodeFilterKind.Lzw) {

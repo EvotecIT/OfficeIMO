@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal("PdfParagraph[0].Run[0]", exception.Data["location"]);
             Assert.Equal(0, exception.Data["runIndex"]);
             Assert.Equal("PDF WinAnsiEncoding", exception.Data["encoding"]);
-            Assert.Equal("Embedded Unicode fonts are required for this text.", exception.Data["remediation"]);
+            Assert.StartsWith("Embedded Unicode fonts are required for this text", Assert.IsType<string>(exception.Data["remediation"]), StringComparison.Ordinal);
             Assert.Equal(1, exception.Data["diagnosticsCount"]);
             Assert.False(PdfWinAnsiEncoding.CanEncode("Snowman \u2603", out int unsupportedIndex));
             Assert.Equal(8, unsupportedIndex);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal("\u2603", diagnostic.Text);
             Assert.False(diagnostic.IsControlCharacter);
             Assert.Equal("PDF WinAnsiEncoding", diagnostic.Encoding);
-            Assert.Equal("Embedded Unicode fonts are required for this text.", diagnostic.Remediation);
+            Assert.StartsWith("Embedded Unicode fonts are required for this text", Assert.IsType<string>(diagnostic.Remediation), StringComparison.Ordinal);
             Assert.Equal("unsupported-text-glyph", diagnostic.Code);
             Assert.Contains("Embedded Unicode fonts", diagnostic.Message, StringComparison.Ordinal);
 
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal("U+2603", warning.Details["codePoint"]);
             Assert.Equal("8", warning.Details["index"]);
             Assert.Equal("PDF WinAnsiEncoding", warning.Details["encoding"]);
-            Assert.Equal("Embedded Unicode fonts are required for this text.", warning.Details["remediation"]);
+            Assert.StartsWith("Embedded Unicode fonts are required for this text", Assert.IsType<string>(warning.Details["remediation"]), StringComparison.Ordinal);
         }
 
         [Fact]

@@ -203,6 +203,7 @@ internal static class PdfImageExportEngine {
             DiagnosticSink = diagnostics,
             DiagnosticSource = source,
             MaximumRasterPixels = effective.MaximumRasterPixels,
+            PdfRasterConventions = true,
             CancellationToken = cancellationToken
         });
         byte[] bytes = OfficeRasterImageEncoder.Encode(

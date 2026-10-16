@@ -136,6 +136,7 @@ internal static partial class PdfWriter {
 
         double backgroundYOffset = 0D;
         double xOrigin = xOverride ?? opts.MarginLeft;
+        int?[] bidiParagraphLevels = ResolveRichParagraphBidiLevels(lines);
         for (int li = 0; li < lines.Count; li++) {
             var segs = lines[li];
             bool hasLineBackground = false;
@@ -178,7 +179,9 @@ internal static partial class PdfWriter {
             else if (lineAlign == PdfAlign.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
 
             double xCursor = dx;
-            foreach (var s in segs) {
+            BidiLineLayout? backgroundBidi = bidiParagraphLevels[li].HasValue ? CreateBidiLineLayout(segs, bidiParagraphLevels[li]!.Value, wordSpacing) : null;
+            for (int si = 0; si < segs.Count; si++) {
+                var s = segs[si];
                 double leadingAdvance = 0D;
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance;
@@ -187,6 +190,20 @@ internal static partial class PdfWriter {
                 }
 
                 double wSeg = GetRichSegmentWidth(s);
+                if (backgroundBidi != null) {
+                    // Word and gap occupy separate visual positions; highlight each.
+                    if (s.BackgroundColor.HasValue && leadingAdvance > 0D) {
+                        double gapFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
+                        double gapBaseline = lineY + TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
+                        double gapAscent = GetAscenderForOptions(s.Font, s.NamedFont, gapFontSize, opts);
+                        double gapDescent = GetDescenderForOptions(s.Font, s.NamedFont, gapFontSize, opts);
+                        double gapPad = Math.Max(0.45D, gapFontSize * 0.05D);
+                        AddBackground(lineXOrigin + dx + backgroundBidi.GapX[si], gapBaseline - gapDescent - gapPad,
+                            leadingAdvance, gapAscent + gapDescent + gapPad * 2D, s.BackgroundColor.Value);
+                    }
+                    xCursor = dx + backgroundBidi.VisualX[si];
+                    leadingAdvance = 0D;
+                }
                 if (s.BackgroundColor.HasValue && (wSeg > 0 || leadingAdvance > 0)) {
                     double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                     double textRise = TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
@@ -259,6 +276,9 @@ internal static partial class PdfWriter {
             PdfAlign lineAlign = ResolveRichLineAlignment(block.Align, lineAlignments, li);
             bool justify = lineAlign == PdfAlign.Justify && !lineEndsWithHardBreak && li != lines.Count - 1 && gapsCount > 0 && lineWidthUsed > baseLineW;
             double wordSpacing = justify ? (lineWidthUsed - baseLineW) / gapsCount : 0;
+            // Tw applies only to single-byte code 32. Composite-font lines are positioned
+            // explicitly, and several readers misapply Tw to the two-byte code 0x0020.
+            double pdfWordSpacing = wordSpacing != 0D && !segs.All(seg => UsesSimpleFontText(seg, opts)) ? 0D : wordSpacing;
 
             double lineWForAlign = justify ? lineWidthUsed : baseLineW;
             double dx = 0;
@@ -266,9 +286,11 @@ internal static partial class PdfWriter {
             else if (lineAlign == PdfAlign.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
             content
                 .TextMatrix(lineXOrigin + dx, lineY)
-                .WordSpacing(wordSpacing);
+                .WordSpacing(pdfWordSpacing);
 
             double xCursor = dx;
+            // Right-to-left text keeps logical content order; words move to their UAX #9 positions.
+            BidiLineLayout? bidi = bidiParagraphLevels[li].HasValue ? CreateBidiLineLayout(segs, bidiParagraphLevels[li]!.Value, wordSpacing) : null;
             double currentTextRise = 0;
             for (int si = 0; si < segs.Count; si++) {
                 var s = segs[si];
@@ -296,7 +318,7 @@ internal static partial class PdfWriter {
                         defaultLeading,
                         lineXOrigin + xCursor,
                         lineY,
-                        wordSpacing,
+                        pdfWordSpacing,
                         fontRes,
                         syntheticOblique,
                         runFontSize,
@@ -308,6 +330,10 @@ internal static partial class PdfWriter {
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance;
                     double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing * s.LeadingSpaceCount : 0);
+                    if (bidi != null) {
+                        xCursor = dx + bidi.GapX[si];
+                        content.TextMatrix(lineXOrigin + xCursor, lineY);
+                    }
                     if (s.LeadingUnderlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.LeadingSpaceIsExpandable) {
                         PdfColor underlineColor = s.LeadingDecorationColor ?? block.DefaultColor ?? opts.DefaultTextColor ?? PdfColor.Black;
                         double underlineY = lineY + s.LeadingDecorationTextRise - s.LeadingDecorationFontSize * 0.15;
@@ -317,15 +343,17 @@ internal static partial class PdfWriter {
 
                     if (s.LeadingTabLeader != PdfTabLeaderStyle.None) {
                         string leader = BuildTabLeaderText(gap, s, opts);
+                        // Tab stops stay explicit text positions so readers keep the columns.
+                        content.BreakTextRun();
                         if (leader.Length > 0) {
-                            ApplyRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, wordSpacing);
+                            ApplyRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
                                 .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale), runFontSize, textRise, suppressActualText);
-                            ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, wordSpacing);
+                            ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
                         }
                         xCursor += gap;
-                        content.TextMatrix(lineXOrigin + xCursor, lineY);
+                        content.BreakTextRun().TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
                         content
                             .TextMatrix(lineXOrigin + xCursor, lineY)
@@ -370,7 +398,7 @@ internal static partial class PdfWriter {
                         .BeginText()
                         .TextLeading(defaultLeading)
                         .TextMatrix(lineXOrigin + xCursor, lineY)
-                        .WordSpacing(wordSpacing);
+                        .WordSpacing(pdfWordSpacing);
                     currentTextRise = 0D;
                     continue;
                 }
@@ -389,6 +417,10 @@ internal static partial class PdfWriter {
                     });
                 }
 
+                if (bidi != null) {
+                    xCursor = dx + bidi.VisualX[si];
+                    content.TextMatrix(lineXOrigin + xCursor, lineY);
+                }
                 double segmentStartX = xCursor;
                 PdfTextShowCommand textCommand = s.KerningCommand ?? EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale,
                     preservesPaintedGlyphs: s.PreservesPaintedGlyphs);
@@ -399,7 +431,7 @@ internal static partial class PdfWriter {
                     content.TextMatrix(lineXOrigin + xCursor, lineY);
                 }
                 if (HasRichTextSpacing(s.HorizontalTextScaling, s.CharacterSpacing)) {
-                    ApplyRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, wordSpacing);
+                    ApplyRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
                 }
                 if (linkMarkedContentId.HasValue) {
                     content.EndText();
@@ -413,7 +445,7 @@ internal static partial class PdfWriter {
                         .BeginText()
                         .TextLeading(defaultLeading)
                         .TextMatrix(lineXOrigin + xCursor, lineY)
-                        .WordSpacing(wordSpacing)
+                        .WordSpacing(pdfWordSpacing)
                         .Font(fontRes, runFontSize, syntheticOblique);
                     if (Math.Abs(textRise) > 0.0001) {
                         content.TextRise(textRise);
@@ -422,14 +454,14 @@ internal static partial class PdfWriter {
                     content
                         .FillColor(color ?? PdfColor.Black)
                         .ShowText(textCommand, runFontSize, textRise, suppressActualText);
-                    ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, wordSpacing);
+                    ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
                     content.EndText();
                     AppendMarkedContentEnd(sb, linkMarkedContentId);
                     content
                         .BeginText()
                         .TextLeading(defaultLeading)
                         .TextMatrix(lineXOrigin + xCursor + wSeg, lineY)
-                        .WordSpacing(wordSpacing);
+                        .WordSpacing(pdfWordSpacing);
                     if (Math.Abs(textRise) > 0.0001) {
                         content.TextRise(0);
                     }
@@ -437,7 +469,7 @@ internal static partial class PdfWriter {
                     currentTextRise = 0;
                 } else {
                     content.ShowText(textCommand, runFontSize, textRise, suppressActualText);
-                    ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, wordSpacing);
+                    ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
                 }
 
                 double baselineY = lineY + textRise;
@@ -555,6 +587,14 @@ internal static partial class PdfWriter {
         // A picture can overlap later text after the cell turns its text axes.
         // Preserve its logical structure position while painting the upright image above that text.
         if (uprightCellImages != null) sb.Append(uprightCellImages);
+    }
+
+    private static bool UsesSimpleFontText(RichSeg segment, PdfOptions options) {
+        if (segment.InlineElement != null) return false;
+        if (segment.NamedFont is PdfNamedFontFace named &&
+            (options.TryGetNamedFontProgram(named, out _) || options.TryGetNamedOpenTypeCffFontProgram(named, out _))) return false;
+        return !options.TryGetEmbeddedStandardFontProgram(segment.Font, out _) &&
+            !options.TryGetEmbeddedStandardOpenTypeCffFontProgram(segment.Font, out _);
     }
 
     private static int? FindStructElementIndex(LayoutResult.Page? structurePage, int? markedContentId, string? structureType) {

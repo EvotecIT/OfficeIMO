@@ -18,23 +18,30 @@ internal sealed class PdfFontResourceCache {
 
     internal PdfFontResourceSet GetOrCreate(
         PdfDictionary? resources,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects, bool forDrawing = false,
+        System.Threading.CancellationToken cancellationToken = default) {
         if (resources is null) {
             return Empty;
         }
 
-        lock (_sync) {
-            return ResourceResolver.CreateFontResourceSet(resources, objects, GetOrCreateFont);
-        }
+        return ResourceResolver.CreateFontResourceSet(resources, objects,
+            (name, font, graph) => ResolveFont(name, font, graph, forDrawing, cancellationToken));
     }
 
-    /// <summary>Resolves local font aliases without constructing unused text decoders or width providers.</summary>
+    /// <summary>Resolves local aliases without constructing unused text decoders or width providers.</summary>
     internal Dictionary<string, PdfFontResource> GetFonts(
-        PdfDictionary? resources,
-        Dictionary<int, PdfIndirectObject> objects) {
-        lock (_sync) {
-            return ResourceResolver.GetFontsForResources(resources, objects, GetOrCreateFont);
-        }
+        PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects, bool forDrawing = false,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        ResourceResolver.GetFontsForResources(resources, objects,
+            (name, font, graph) => ResolveFont(name, font, graph, forDrawing, cancellationToken));
+
+    private PdfFontResource ResolveFont(string name, PdfDictionary font, Dictionary<int, PdfIndirectObject> graph,
+        bool forDrawing, System.Threading.CancellationToken cancellationToken) {
+        PdfFontResource resource;
+        lock (_sync) resource = GetOrCreateFont(name, font, graph);
+        // Conversion can call back into retention accounting. Never hold the cache lock while
+        // taking the shared program lock, including when another alias resolves concurrently.
+        return forDrawing ? resource.ForDrawing(cancellationToken) : resource;
     }
 
     private PdfFontResource GetOrCreateFont(
@@ -53,11 +60,25 @@ internal sealed class PdfFontResourceCache {
             estimatedBytes <= MaxEstimatedRetainedFontBytes - _estimatedRetainedFontBytes) {
             fonts.Add(font, created);
             _estimatedRetainedFontBytes += estimatedBytes;
+            created.ObserveDrawingResolution(resolved => {
+                lock (_sync) {
+                    if (!fonts.TryGetValue(font, out PdfFontResource? current) || !ReferenceEquals(current, created)) return;
+                    long projected = EstimateRetainedBytes(resolved);
+                    long withoutCurrent = _estimatedRetainedFontBytes - estimatedBytes;
+                    if (projected > MaxEstimatedRetainedFontBytes - withoutCurrent) {
+                        fonts.Remove(font);
+                        _estimatedRetainedFontBytes = withoutCurrent;
+                    } else {
+                        _estimatedRetainedFontBytes = withoutCurrent + projected;
+                    }
+                }
+            });
         }
         return created;
     }
 
     private static long EstimateRetainedBytes(PdfFontResource font) {
+        if (font.RetainedDrawingResource is PdfFontResource resolved) return EstimateRetainedBytes(resolved);
         long embeddedBytes = font.EmbeddedTrueTypeFont?.LongLength ?? 0;
         long drawingBytes = 0;
         if (font.DrawingProgram is PdfDrawingFontProgram drawing) {

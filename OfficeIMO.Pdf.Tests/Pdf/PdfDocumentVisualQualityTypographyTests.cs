@@ -122,7 +122,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(
             embeddedLineCount < standardLineCount,
             $"Expected embedded TrueType metrics to wrap fewer narrow-glyph lines than Courier metrics. Standard: {standardLineCount}; embedded: {embeddedLineCount}.");
-        Assert.Contains("/BaseFont /OfficeIMOMetricsFont", embeddedRaw, StringComparison.Ordinal);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOMetricsFont"), embeddedRaw);
         Assert.Contains("/Subtype /Type0", embeddedRaw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", embeddedRaw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", embeddedRaw, StringComparison.Ordinal);

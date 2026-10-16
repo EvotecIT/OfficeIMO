@@ -181,7 +181,9 @@ internal static class PdfContentStreamTextRewriter {
                     ? provider(bytes)
                     : bytes.Length * 500D,
                 initialTextState: initialTextState,
-                graphicsStates: graphicsStates);
+                graphicsStates: graphicsStates,
+                // Rewrites map one span to each encoded string of a TJ array.
+                mergeKernedTextArrays: false);
             var byOperator = new Dictionary<int, List<PdfTextSpan>>();
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                 int operatorOffset = checked((int)Math.Round(spans[spanIndex].PaintOrder, MidpointRounding.AwayFromZero)) - prefix.Length;
