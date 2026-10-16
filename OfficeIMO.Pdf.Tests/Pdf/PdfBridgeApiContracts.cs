@@ -13,7 +13,7 @@ namespace OfficeIMO.Pdf.Tests;
 
 public sealed class PdfBridgeApiContracts {
     [Theory]
-    [InlineData(typeof(PowerPointPdfConverterExtensions), "SaveAsPowerPoint", "ToPowerPointPresentation", "ToPowerPointPresentationResult")]
+    [InlineData(typeof(PdfPowerPointConverterExtensions), "SaveAsPowerPoint", "ToPowerPointPresentation", "ToPowerPointPresentationResult")]
     [InlineData(typeof(PdfWordConverterExtensions), "SaveAsWord", "ToWordDocument", "ToWordDocumentResult")]
     [InlineData(typeof(RtfPdfConverterExtensions), "SaveAsRtf", "ToRtfDocument", "ToRtfDocumentResult")]
     [InlineData(typeof(PdfHtmlConverterExtensions), "SaveAsHtml", "ToHtml", "ToHtmlResult")]
@@ -53,7 +53,7 @@ public sealed class PdfBridgeApiContracts {
     }
 
     [Theory]
-    [InlineData(typeof(PowerPointPdfConverterExtensions))]
+    [InlineData(typeof(PdfPowerPointConverterExtensions))]
     [InlineData(typeof(PdfWordConverterExtensions))]
     [InlineData(typeof(PdfExcelTableConverterExtensions))]
     [InlineData(typeof(PdfHtmlConverterExtensions))]

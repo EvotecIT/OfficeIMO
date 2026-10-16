@@ -55,7 +55,7 @@ namespace OfficeIMO.PowerPoint {
                     out OpenXmlElement? placeholderColor)) {
                 return ShapeFillGradientProjection.None;
             }
-            if (!TryResolveGradientStops(gradient!, colorScheme, placeholderColor,
+            if (!TryResolveGradientStops(gradient!, colorScheme, placeholderColor, source.OwnerSlide?.ResolvedColorMap,
                     out IReadOnlyList<OfficeGradientStop>? stops)) {
                 return ShapeFillGradientProjection.Unsupported;
             }
@@ -200,6 +200,7 @@ namespace OfficeIMO.PowerPoint {
         private static bool TryResolveGradientStops(A.GradientFill gradient,
             A.ColorScheme? colorScheme,
             OpenXmlElement? placeholderColor,
+            OpenXmlElement? colorMap,
             out IReadOnlyList<OfficeGradientStop>? result) {
             result = null;
             A.GradientStop[] sourceStops = gradient.GetFirstChild<A.GradientStopList>()?
@@ -211,7 +212,7 @@ namespace OfficeIMO.PowerPoint {
             var stops = new List<OfficeGradientStop>(sourceStops.Length + 2);
             foreach (A.GradientStop sourceStop in sourceStops) {
                 OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(
-                    sourceStop, colorScheme, placeholderColor);
+                    sourceStop, colorScheme, placeholderColor, colorMap);
                 if (!color.HasValue) return false;
                 double offset = Math.Max(0D, Math.Min(1D,
                     (sourceStop.Position?.Value ?? 0) / 100000D));

@@ -8,46 +8,30 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
-        public void PowerPointSlide_StrictOmissionPolicyRejectsSkippedGradient() {
-            using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(180, 100);
+        public void PowerPointSlide_StrictOmissionPolicyRejectsSkippedGroupContent() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape source = slide.AddShapePoints(
-                OfficePresetShapeType.Rectangle,
-                30,
-                25,
-                100,
-                40);
-            AddShapePathGradient(
-                Assert.IsType<Shape>(source.Element),
-                A.PathShadeValues.Shape);
+            PowerPointAutoShape first = slide.AddRectanglePoints(10, 10, 20, 20);
+            PowerPointAutoShape second = slide.AddRectanglePoints(40, 10, 20, 20);
+            slide.GroupShapes(new PowerPointShape[] { first, second }, "Omitted group");
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
-                slide.ExportImage(
-                    OfficeImageExportFormat.Svg,
-                    new PowerPointImageExportOptions {
-                        IncludeSlideBackground = false,
-                        Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
-                    }));
-
-            Assert.Contains(
-                exception.Diagnostics,
-                diagnostic =>
-                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape &&
-                    diagnostic.Message.Contains("gradient", StringComparison.OrdinalIgnoreCase) &&
-                    diagnostic.LossKind == OfficeConversionLossKind.Omission);
+                slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
+                    MaxGroupShapeDepth = 0,
+                    Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+                }));
+            Assert.Contains(exception.Diagnostics, diagnostic =>
+                diagnostic.Code == "group-depth-limit" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
         [Fact]
-        public void PowerPointSlide_StrictOmissionPolicyAllowsRectangularFrameApproximation() {
+        public void PowerPointSlide_StrictOmissionPolicyAllowsSmallCapsApproximation() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 90);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Keep this text", 20, 20, 120, 50);
-            Shape shape = Assert.IsType<Shape>(textBox.Element);
-            shape.ShapeProperties!.GetFirstChild<A.PresetGeometry>()!.Preset = A.ShapeTypeValues.Funnel;
+            textBox.Paragraphs[0].Runs[0].Capitalization = PowerPointCapitalization.SmallCaps;
 
             OfficeImageExportResult result = slide.ExportImage(
                 OfficeImageExportFormat.Svg,
@@ -59,8 +43,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(
                 result.Diagnostics,
                 diagnostic =>
-                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape &&
-                    diagnostic.Message.Contains("frame geometry", StringComparison.OrdinalIgnoreCase) &&
+                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated &&
                     diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         }
 
@@ -85,7 +68,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(
                 exception.Diagnostics,
                 diagnostic =>
-                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage &&
+                    diagnostic.Code == "unsupported-slide-background-image" &&
                     diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
@@ -110,7 +93,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(
                 exception.Diagnostics,
                 diagnostic =>
-                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedSlideBackground &&
+                    diagnostic.Code == "unsupported-slide-background" &&
                     diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
     }

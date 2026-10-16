@@ -242,9 +242,7 @@ namespace OfficeIMO.PowerPoint {
         private static bool HasVisibleOmittedContent(PowerPointSlide slide,
             IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) {
             bool HasOmissionContaining(string text) => diagnostics.Any(
-                diagnostic => diagnostic.Code
-                        == PowerPointImageExportDiagnosticCodes.UnsupportedShape
-                    && diagnostic.LossKind == OfficeConversionLossKind.Omission
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission
                     && diagnostic.Message.IndexOf(text,
                         StringComparison.OrdinalIgnoreCase) >= 0);
 

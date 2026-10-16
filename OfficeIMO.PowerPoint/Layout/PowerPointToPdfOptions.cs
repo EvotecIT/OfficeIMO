@@ -24,6 +24,10 @@ public sealed class PowerPointToPdfOptions {
     public long MaximumTotalEmbeddedImageBytes { get; set; } = 256L * 1024 * 1024;
     internal long EmbeddedImageBytesRead { get; set; }
 
+    internal HashSet<PowerPointSlide>? SelectedSlides { get; set; }
+    internal bool IncludesSlide(PowerPointSlide slide) =>
+        (IncludeHiddenSlides || !slide.Hidden) && (SelectedSlides == null || SelectedSlides.Contains(slide));
+
     internal CancellationToken CancellationToken { get; set; }
     internal Func<string?, double, string?, DrawingCore.OfficeFontStyle, double>? NativeTextMeasure { get; set; }
     internal string? NativeTextDefaultFontFamily { get; set; }
@@ -276,6 +280,7 @@ public sealed class PowerPointToPdfOptions {
         if (MaximumTotalEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumTotalEmbeddedImageBytes));
         var clone = (PowerPointToPdfOptions)MemberwiseClone();
         clone.EmbeddedImageBytesRead = 0;
+        clone.SelectedSlides = SelectedSlides == null ? null : new HashSet<PowerPointSlide>(SelectedSlides);
         clone.ResourcePolicy = ResourcePolicy.Clone();
         clone.Warnings = new List<PowerPointPdfExportWarning>();
         clone.Report = new PdfCore.PdfConversionReport();

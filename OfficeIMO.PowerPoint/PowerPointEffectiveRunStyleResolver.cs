@@ -248,6 +248,10 @@ namespace OfficeIMO.PowerPoint {
             return null;
         }
 
+        /// <summary>Resolves table/preview Latin defaults in the actual relationship owner's theme.</summary>
+        internal static string? ResolveLatinThemeFontName(OpenXmlPartContainer? ownerPart, bool major = false) =>
+            ResolveThemeFontName(ownerPart, major, PowerPointFontScript.Latin);
+
         private static string? ResolveThemeFontName(
             OpenXmlPartContainer? ownerPart,
             bool major,
@@ -399,7 +403,7 @@ namespace OfficeIMO.PowerPoint {
             return string.IsNullOrWhiteSpace(mapped) ? scheme : mapped;
         }
 
-        private static A.ColorScheme? ResolveColorScheme(OpenXmlPartContainer? ownerPart) => ownerPart switch {
+        internal static A.ColorScheme? ResolveColorScheme(OpenXmlPartContainer? ownerPart) => ownerPart switch {
             SlidePart slidePart => slidePart.ThemeOverridePart?.ThemeOverride?.ColorScheme
                 ?? slidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.ColorScheme
                 ?? slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme,
@@ -409,7 +413,7 @@ namespace OfficeIMO.PowerPoint {
             _ => null
         };
 
-        private static OpenXmlCompositeElement? ResolveColorMap(OpenXmlPartContainer? ownerPart) => ownerPart switch {
+        internal static OpenXmlCompositeElement? ResolveColorMap(OpenXmlPartContainer? ownerPart) => ownerPart switch {
             SlidePart slidePart => slidePart.Slide?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
                 ?? slidePart.SlideLayoutPart?.SlideLayout?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
                 ?? (OpenXmlCompositeElement?)slidePart.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.ColorMap,

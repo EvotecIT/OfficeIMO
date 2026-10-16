@@ -15,19 +15,32 @@ namespace OfficeIMO.PowerPoint {
         private static A.FormatScheme? GetSlideFormatScheme(PowerPointSlide slide) =>
             slide.ResolvedFormatScheme;
 
+        /// <summary>Projects the existing shared shape appearance for preset and text-frame export.</summary>
+        internal static void ApplyShapeAppearanceForExport(OfficeShape target, PowerPointShape source,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            bool transformedAncestor = source.Element.Ancestors<DocumentFormat.OpenXml.Presentation.GroupShape>()
+                .Any(group => group.GroupShapeProperties?.TransformGroup is { } transform
+                    && ((transform.Rotation?.Value ?? 0) != 0 || transform.HorizontalFlip?.Value == true
+                        || transform.VerticalFlip?.Value == true));
+            ApplyShapeStyle(target, source, source.OwnerSlide?.ResolvedColorScheme,
+                PowerPointShapeBoundsMapping.Identity.WithTransformedAncestor(transformedAncestor), diagnostics);
+            if (source.UnsupportedFillKindForExport is { } fillKind) {
+                AddUnsupportedShapeDiagnostic(diagnostics, source,
+                    "Skipped a PowerPoint " + fillKind + " fill that is not supported by the shared Drawing renderer.");
+            }
+        }
+
         private static void ApplyShapeStyle(OfficeShape target, PowerPointShape source,
             A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            if (source.FillTransparency != 100) {
-                ShapeFillGradientProjection gradientProjection = ApplyShapeFillGradient(
-                    target, source, colorScheme, mapping.HasTransformedAncestor);
-                if (gradientProjection == ShapeFillGradientProjection.Unsupported) {
-                    AddUnsupportedShapeDiagnostic(diagnostics, source,
-                        "Skipped a PowerPoint shape gradient that cannot be represented faithfully by the shared Drawing renderer.");
-                } else if (gradientProjection == ShapeFillGradientProjection.None
-                    && TryResolveShapeFillColor(source, colorScheme, out OfficeColor fill)) {
-                    target.FillColor = fill;
-                }
+            ShapeFillGradientProjection gradientProjection = ApplyShapeFillGradient(
+                target, source, colorScheme, mapping.HasTransformedAncestor);
+            if (gradientProjection == ShapeFillGradientProjection.Unsupported) {
+                AddUnsupportedShapeDiagnostic(diagnostics, source,
+                    "Skipped a PowerPoint shape gradient that cannot be represented faithfully by the shared Drawing renderer.");
+            } else if (gradientProjection == ShapeFillGradientProjection.None
+                && TryResolveShapeFillColor(source, colorScheme, out OfficeColor fill)) {
+                target.FillColor = fill;
             }
 
             if (TryResolveShapeOutlineColor(source, colorScheme, out OfficeColor stroke)) {
@@ -247,8 +260,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false, string? defaultFontFamily = null) {
-            OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme);
-            OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, colorScheme);
+            OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme, paragraph);
+            OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, textBox, colorScheme);
             return new OfficeRichTextRun(
                 ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
                 mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? textBox.FontSize ?? 18 : run?.FontSize ?? textBox.FontSize ?? 18),
@@ -398,28 +411,28 @@ namespace OfficeIMO.PowerPoint {
             _ => OfficeTextBaseline.Normal
         };
 
-        private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
-            OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
-            if (runColor.HasValue) {
-                return runColor.Value;
-            }
-
-            return ResolveTextBoxColor(textBox, colorScheme);
+        private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme,
+            PowerPointParagraph? paragraph = null) {
+            if (run == null) return ResolveTextBoxColor(textBox, colorScheme);
+            paragraph ??= textBox.Paragraphs.FirstOrDefault(item =>
+                ReferenceEquals(item.Paragraph, run.Run.Parent ?? run.RunProperties?.Parent?.Parent));
+            return PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(run, paragraph, textBox)
+                ?? OfficeColor.Black;
         }
 
         private static OfficeColor ResolveTextBoxColor(PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
-            PowerPointTextRun? run = textBox.Paragraphs
-                .SelectMany(paragraph => paragraph.InlineNodes)
+            PowerPointParagraph? paragraph = textBox.Paragraphs.FirstOrDefault(item =>
+                item.InlineNodes.Any(node => node.Run != null && !string.IsNullOrEmpty(node.Text)))
+                ?? textBox.Paragraphs.FirstOrDefault();
+            PowerPointTextRun? run = paragraph?.InlineNodes
                 .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
-            OfficeColor? textBoxColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
-            return textBoxColor.HasValue
-                ? textBoxColor.Value
-                : OfficeColor.Black;
+            return PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(run, paragraph, textBox)
+                ?? OfficeColor.Black;
         }
 
-        private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, A.ColorScheme? colorScheme) {
-            return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
-        }
+        private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) =>
+            PowerPointEffectiveRunStyleResolver.ResolveTextColorElementForExport(
+                run?.RunProperties?.GetFirstChild<A.Highlight>(), textBox);
 
         private static OfficeTextAlignment MapTextAlignment(PowerPointTextAlignment? alignment) {
             if (alignment == PowerPointTextAlignment.Center) {

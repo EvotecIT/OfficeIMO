@@ -412,9 +412,10 @@ public class PowerPointSaveAsPdfTests {
         result.ToBytes();
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "text-box-overflow");
+        Assert.Equal(OfficeConversionLossKind.None, warning.LossKind);
         Assert.Equal("Slide 1", warning.Source);
         Assert.NotNull(warning.LayoutDiagnostic);
-        Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
+        Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.Overflow, warning.LayoutDiagnostic!.Kind);
         Assert.Equal("PowerPointTextBox", warning.LayoutDiagnostic.Source);
         Assert.True(warning.LayoutDiagnostic.HasBounds);
         Assert.Equal("OfficeIMO.PowerPoint.Pdf", warning.Converter);
@@ -450,18 +451,14 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_WarnsForUnsupportedShapes() {
-        using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.AddSlide().AddShape(OfficePresetShapeType.Cloud, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(40));
-        var options = new PowerPointToPdfOptions();
-
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
-        result.ToBytes();
-
-        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
-        Assert.Equal("Slide 1", warning.Source);
-        Assert.Equal("unsupported-auto-shape", warning.Code);
+    public void ToPdfDocument_PowerPointPresentation_UsesSchemaNamesForAdditionalDrawingMlPresets() {
+        using var presentation = PowerPointPresentation.Create();
+        presentation.AddSlide().AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 80, 60).Fill("265891");
+        var result = presentation.ToPdfDocumentResult();
+        byte[] bytes = result.ToBytes();
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-auto-shape");
+        var drawing = PdfCore.PdfReadDocument.Open(bytes).Pages[0].ToDrawing();
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.FillColor == OfficeColor.FromRgb(38, 88, 145));
     }
 
     [Fact]
@@ -498,8 +495,11 @@ public class PowerPointSaveAsPdfTests {
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("0 110 36 30 re W", raw, StringComparison.Ordinal);
-        Assert.Contains("-12 110 48 30 re", raw, StringComparison.Ordinal);
+        Assert.Contains("0 0 240 160 re W", raw, StringComparison.Ordinal);
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(PdfCore.PdfReadDocument.Open(bytes).Pages[0].ToDrawing(), 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.FromRgb(30, 90, 150), image.GetPixel(2, 25));
+        Assert.Equal(OfficeColor.FromRgb(30, 90, 150), image.GetPixel(34, 25));
+        Assert.Equal(OfficeColor.White, image.GetPixel(38, 25));
     }
 
     [Fact]
@@ -1332,8 +1332,13 @@ public class PowerPointSaveAsPdfTests {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
 
-        string raw = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("50 92 116 42 re", raw, StringComparison.Ordinal);
+        using var actual = PdfPigDocument.Open(bytes);
+        textBox.SetTextMarginsPoints(left: 0D, top: 0D, right: 0D, bottom: 0D);
+        using var control = PdfPigDocument.Open(presentation.ToPdfBytes(new PowerPointToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        Assert.Equal(20D, actual.GetPage(1).Letters[0].StartBaseLine.X - control.GetPage(1).Letters[0].StartBaseLine.X, 3);
+        Assert.Equal(6D, control.GetPage(1).Letters[0].StartBaseLine.Y - actual.GetPage(1).Letters[0].StartBaseLine.Y, 3);
     }
 
     [Fact]
@@ -1392,24 +1397,31 @@ public class PowerPointSaveAsPdfTests {
         score.HorizontalAlignment = PowerPointTextAlignment.Center;
         score.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
 
-        var options = new PowerPointToPdfOptions();
-        byte[] bytes = presentation.ToPdfBytes(options);
-
-        Assert.Empty(options.Warnings);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(result.Value.Blocks));
+        PdfCore.PdfCanvasTableItem item = Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTableItem>());
+        Assert.Equal(30D, item.X);
+        Assert.Equal(34D, item.Y);
+        Assert.Equal(150D, item.Width);
+        // Authored row heights are minimums. Default table margins may require
+        // growing the header, while the taller body row retains its height.
+        Assert.True(item.Block.Style!.RowMinHeights![0] >= 28D);
+        Assert.Equal(42D, item.Block.Style.RowMinHeights[1]);
+        Assert.True(item.Height >= 70D);
+        byte[] bytes = result.ToBytes();
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "table-cell-overflow");
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("30 146 m", raw, StringComparison.Ordinal);
-        Assert.Contains("180 76 l", raw, StringComparison.Ordinal);
         Assert.Contains("120 146 m", raw, StringComparison.Ordinal);
-        Assert.Contains("120 76 l", raw, StringComparison.Ordinal);
-        Assert.Contains("30 118 m", raw, StringComparison.Ordinal);
-        Assert.Contains("180 118 l", raw, StringComparison.Ordinal);
-        Assert.Contains("120 76 60 42 re", raw, StringComparison.Ordinal);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
         Assert.Contains("Metric", text, StringComparison.Ordinal);
         Assert.Contains("Quality", text, StringComparison.Ordinal);
         Assert.Contains("99", text, StringComparison.Ordinal);
+        Assert.InRange(FindWordStartX(pdf.GetPage(1), "Metric"), 37.1D, 37.3D);
+        Assert.InRange(FindWordStartX(pdf.GetPage(1), "Quality"), 37.9D, 38.1D);
+        Assert.True(FindWordStartY(pdf.GetPage(1), "Metric") > FindWordStartY(pdf.GetPage(1), "Quality"));
     }
 
     [Fact]
@@ -1508,7 +1520,12 @@ public class PowerPointSaveAsPdfTests {
         Assert.Equal(12.5D, style.FontSize);
         Assert.Equal(11D, style.SpacingAfter);
         Assert.Equal(new double?[] { 90D, 60D }, style.ColumnWidthPoints);
-        Assert.Equal(new double?[] { 28D, 42D }, style.RowMinHeights);
+        Assert.NotNull(style.RowMinHeights);
+        Assert.Equal(2, style.RowMinHeights!.Count);
+        Assert.Equal(28D, style.RowMinHeights[0]);
+        Assert.True(style.RowMinHeights[0] >= 12.5D * 1.2D + 12D);
+        Assert.Equal(42D, style.RowMinHeights[1]);
+        Assert.Equal(70D, tableItem.Height);
 
         Assert.Equal(PdfCore.PdfColor.FromRgb(220, 235, 250), configuredStyle.RowStripeFill);
         Assert.Null(configuredStyle.ColumnWidthPoints);

@@ -36,7 +36,7 @@ namespace OfficeIMO.PowerPoint {
         internal static OfficeColor ResolveTableCellFillColorForExport(
             PowerPointTable table, int row, int column) {
             A.ColorScheme? colorScheme = table.OwnerSlide == null
-                ? null
+                ? PowerPointEffectiveRunStyleResolver.ResolveColorScheme(table.RelationshipOwnerPart)
                 : GetSlideColorScheme(table.OwnerSlide);
             return ResolveTableCellFillColor(table,
                 table.GetCell(row, column), row, column,
@@ -46,10 +46,12 @@ namespace OfficeIMO.PowerPoint {
         internal static OfficeBorderBox ResolveTableCellBordersForExport(
             PowerPointTable table, int row, int column) {
             A.ColorScheme? colorScheme = table.OwnerSlide == null
-                ? null
+                ? PowerPointEffectiveRunStyleResolver.ResolveColorScheme(table.RelationshipOwnerPart)
                 : GetSlideColorScheme(table.OwnerSlide);
+            PowerPointTableCell cell = table.GetCell(row, column);
+            (int rowSpan, int columnSpan) = cell.Merge;
             return ResolveTableCellBorders(table,
-                table.GetCell(row, column), row, column, 1, 1,
+                cell, row, column, Math.Max(1, rowSpan), Math.Max(1, columnSpan),
                 ResolveTableStyle(table), colorScheme);
         }
 

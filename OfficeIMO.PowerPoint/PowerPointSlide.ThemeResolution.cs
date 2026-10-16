@@ -14,15 +14,15 @@ namespace OfficeIMO.PowerPoint {
             ?? SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.FormatScheme
             ?? SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.FormatScheme;
 
-        internal OpenXmlElement? ResolvedColorMap {
-            get {
-                OpenXmlElement? master = SlidePart.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.ColorMap;
-                var slideOverride = SlidePart.Slide?.ColorMapOverride;
-                if (slideOverride?.GetFirstChild<A.MasterColorMapping>() != null) return master;
-                if (slideOverride?.GetFirstChild<A.OverrideColorMapping>() is { } slideMap) return slideMap;
-                var layoutOverride = SlidePart.SlideLayoutPart?.SlideLayout?.ColorMapOverride;
-                return layoutOverride?.GetFirstChild<A.OverrideColorMapping>() ?? master;
-            }
+        internal OpenXmlElement? ResolvedColorMap => ResolveExportColorMap(SlidePart);
+
+        internal static OpenXmlElement? ResolveExportColorMap(DocumentFormat.OpenXml.Packaging.SlidePart? slidePart) {
+            OpenXmlElement? master = slidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.ColorMap;
+            var slideOverride = slidePart?.Slide?.ColorMapOverride;
+            if (slideOverride?.GetFirstChild<A.MasterColorMapping>() != null) return master;
+            if (slideOverride?.GetFirstChild<A.OverrideColorMapping>() is { } slideMap) return slideMap;
+            var layoutOverride = slidePart?.SlideLayoutPart?.SlideLayout?.ColorMapOverride;
+            return layoutOverride?.GetFirstChild<A.OverrideColorMapping>() ?? master;
         }
     }
 }

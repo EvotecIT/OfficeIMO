@@ -19,72 +19,99 @@ public static partial class PowerPointPdfConverterExtensions {
         double[] widths = NormalizeTableLayoutSegments(style.ColumnWidthPoints!, width - Math.Max(0, table.Columns - 1) * gap);
         double[] heights = NormalizeTableLayoutSegments(style.RowMinHeights!, height - Math.Max(0, table.Rows - 1) * gap);
         bool reportedFit = false;
-        for (int row = 0; row < rows.Count; row++) {
-            int cellIndex = 0;
-            for (int column = 0; column < table.Columns; column++) {
-                PptCore.PowerPointTableCell source = table.GetCell(row, column);
-                if (source.IsMergedCell) continue;
-                options.CancellationToken.ThrowIfCancellationRequested();
-                PdfCore.PdfTableCell cell = rows[row][cellIndex];
-                int columnEnd = Math.Min(table.Columns, column + cell.ColumnSpan);
-                int rowEnd = Math.Min(table.Rows, row + cell.RowSpan);
-                double cellWidth = gap * Math.Max(0, columnEnd - column - 1);
-                for (int index = column; index < columnEnd; index++) cellWidth += widths[index];
-                PdfCore.PdfCellPadding? padding = null;
-                style.CellPaddings?.TryGetValue((row, column), out padding);
-                double left = padding?.Left ?? style.CellPaddingLeft ?? style.CellPaddingX;
-                double right = padding?.Right ?? style.CellPaddingRight ?? style.CellPaddingX;
-                double top = padding?.Top ?? style.CellPaddingTop ?? style.CellPaddingY;
-                double bottom = padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY;
-                // Leave the original diagnostic path active for impossible margins.
-                double innerWidth = Math.Max(1D, cellWidth - left - right);
-                double fontSize = row < style.HeaderRowCount ? style.HeaderFontSize ?? style.FontSize ?? 18D
-                    : row >= table.Rows - style.FooterRowCount ? style.FooterFontSize ?? style.FontSize ?? 18D
-                    : style.FontSize ?? 18D;
-                bool rowBold = row < style.HeaderRowCount ? style.HeaderBold : row >= table.Rows - style.FooterRowCount && style.FooterBold;
-                var runs = cell.Runs.Select(run => new OfficeRichTextRun(run.Text,
-                    run.FontSize ?? fontSize, OfficeColor.Black, run.Bold || rowBold, run.Italic,
-                    fontFamily: run.FontFamily ?? options.NativeTextDefaultFontFamily
-                        ?? PdfCore.PdfFontNames.ToBaseFontName(run.Font ?? options.PdfOptions?.DefaultFont ?? PdfCore.PdfStandardFont.Helvetica),
-                    baseline: run.Baseline == PdfCore.PdfTextBaseline.Superscript ? OfficeTextBaseline.Superscript
-                        : run.Baseline == PdfCore.PdfTextBaseline.Subscript ? OfficeTextBaseline.Subscript : OfficeTextBaseline.Normal)).ToArray();
-                string text = string.Concat(runs.Select(run => run.Text));
-                // An unbreakable label such as Status should remain a word. Use
-                // the PDF owner's existing cell fit, rather than inserting breaks.
-                bool fittedLabel = false;
-                if (!string.IsNullOrWhiteSpace(text) && !text.Any(char.IsWhiteSpace)) {
-                    double textWidth = runs.Sum(run => measure(run.Text, run.FontSize, run.FontFamily, run.FontStyle));
-                    double minimumSize = style.MinimumShrinkFontSize ?? 6D;
-                    double minimumWidth = runs.Sum(run => measure(run.Text, Math.Min(run.FontSize, minimumSize), run.FontFamily, run.FontStyle));
-                    if (textWidth > innerWidth + .01D && minimumWidth <= innerWidth) {
-                        rows[row][cellIndex] = cell.WithShrinkTextToFit();
-                        fittedLabel = true;
-                        if (!reportedFit) {
-                            AddWarning(options, slideNumber, "table-cell-text-fit-approximation",
-                                "PowerPoint table labels wider than their cell are fitted to the cell width to avoid splitting words.");
-                            reportedFit = true;
-                        }
+        var cellIndexes = new int[rows.Count];
+        foreach (var anchor in table.EnumerateAnchorCells()) {
+            int row = anchor.Row, column = anchor.Column;
+            int cellIndex = cellIndexes[row]++;
+            PptCore.PowerPointTableCell source = anchor.Cell;
+            options.CancellationToken.ThrowIfCancellationRequested();
+            PdfCore.PdfTableCell cell = rows[row][cellIndex];
+            int columnEnd = Math.Min(table.Columns, column + cell.ColumnSpan);
+            int rowEnd = Math.Min(table.Rows, row + cell.RowSpan);
+            double cellWidth = gap * Math.Max(0, columnEnd - column - 1);
+            for (int index = column; index < columnEnd; index++) cellWidth += widths[index];
+            PdfCore.PdfCellPadding? padding = null;
+            style.CellPaddings?.TryGetValue((row, column), out padding);
+            double left = padding?.Left ?? style.CellPaddingLeft ?? style.CellPaddingX;
+            double right = padding?.Right ?? style.CellPaddingRight ?? style.CellPaddingX;
+            double top = padding?.Top ?? style.CellPaddingTop ?? style.CellPaddingY;
+            double bottom = padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY;
+            // Leave the original diagnostic path active for impossible margins.
+            double innerWidth = Math.Max(1D, cellWidth - left - right);
+            double fontSize = row < style.HeaderRowCount ? style.HeaderFontSize ?? style.FontSize ?? 18D
+                : row >= table.Rows - style.FooterRowCount ? style.FooterFontSize ?? style.FontSize ?? 18D
+                : style.FontSize ?? 18D;
+            bool rowBold = row < style.HeaderRowCount ? style.HeaderBold : row >= table.Rows - style.FooterRowCount && style.FooterBold;
+            OfficeRichTextRun[] runs = CreateTableLayoutRuns(cell.Runs, fontSize, rowBold, options);
+            string text = string.Concat(runs.Select(run => run.Text));
+            // An unbreakable label such as Status should remain a word. Use
+            // the PDF owner's existing cell fit, rather than inserting breaks.
+            bool fittedLabel = false;
+            if (!string.IsNullOrWhiteSpace(text) && !text.Any(char.IsWhiteSpace)) {
+                double textWidth = runs.Sum(run => measure(run.Text, run.FontSize, run.FontFamily, run.FontStyle));
+                double minimumSize = style.MinimumShrinkFontSize ?? 6D;
+                double minimumWidth = runs.Sum(run => measure(run.Text, Math.Min(run.FontSize, minimumSize), run.FontFamily, run.FontStyle));
+                if (textWidth > innerWidth + .01D && minimumWidth <= innerWidth) {
+                    rows[row][cellIndex] = cell.WithShrinkTextToFit();
+                    fittedLabel = true;
+                    if (!reportedFit) {
+                        AddWarning(options, slideNumber, "table-cell-text-fit-approximation",
+                            "PowerPoint table labels wider than their cell are fitted to the cell width to avoid splitting words.");
+                        reportedFit = true;
                     }
                 }
-                // Keep the authored sizes while measuring: this is conservative
-                // for fitted labels and leaves enough room for mixed-size runs.
-                double lineHeightFactor = style.LineHeight ?? 1.4D;
-                OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(runs,
-                    innerWidth, double.MaxValue, lineHeightFactor, measure, wrap: !fittedLabel,
-                    cancellationToken: options.CancellationToken);
-                // PDF table leading is a floor on every line, including lines
-                // whose explicit runs are smaller than the row's default font.
-                double leading = fontSize * lineHeightFactor;
-                double required = Math.Max(leading, layout.Lines.Sum(line => Math.Max(leading, line.LineHeight))) + top + bottom;
-                double available = gap * Math.Max(0, rowEnd - row - 1);
-                for (int index = row; index < rowEnd; index++) available += heights[index];
-                if (required > available) heights[rowEnd - 1] += required - available;
-                cellIndex++;
             }
+            double required = MeasureTableParagraphs(cell, fontSize, style.LineHeight ?? 1.4D,
+                rowBold, innerWidth, fittedLabel, measure, options) + top + bottom;
+            double available = gap * Math.Max(0, rowEnd - row - 1);
+            for (int index = row; index < rowEnd; index++) available += heights[index];
+            if (required > available) heights[rowEnd - 1] += required - available;
         }
         style.RowMinHeights = heights.Select(value => (double?)value).ToList();
         if (style.FixedRowHeights != null) style.FixedRowHeights = new List<double?>(style.RowMinHeights);
         return heights.Sum() + Math.Max(0, table.Rows - 1) * gap;
+    }
+
+    private static OfficeRichTextRun[] CreateTableLayoutRuns(IEnumerable<PdfCore.PdfTextRun> runs,
+        double fontSize, bool rowBold, PowerPointToPdfOptions options) => runs.Select(run => new OfficeRichTextRun(run.Text,
+            run.FontSize ?? fontSize, OfficeColor.Black, run.Bold || rowBold, run.Italic,
+            fontFamily: run.FontFamily ?? options.NativeTextDefaultFontFamily
+                ?? PdfCore.PdfFontNames.ToBaseFontName(run.Font ?? options.PdfOptions?.DefaultFont ?? PdfCore.PdfStandardFont.Helvetica),
+            baseline: run.Baseline == PdfCore.PdfTextBaseline.Superscript ? OfficeTextBaseline.Superscript
+                : run.Baseline == PdfCore.PdfTextBaseline.Subscript ? OfficeTextBaseline.Subscript : OfficeTextBaseline.Normal)).ToArray();
+
+    private static double MeasureTableParagraphs(PdfCore.PdfTableCell cell, double fontSize, double defaultFactor,
+        bool rowBold, double width, bool fittedLabel, Func<string?, double, string?, OfficeFontStyle, double> measure,
+        PowerPointToPdfOptions options) {
+        IReadOnlyList<PdfCore.PdfTableCellParagraph> paragraphs = cell.Paragraphs.Count > 0
+            ? cell.Paragraphs : new[] { new PdfCore.PdfTableCellParagraph(cell.Runs, fontSize: fontSize) };
+        double height = 0D;
+        double paintedBottom = 0D;
+        foreach (PdfCore.PdfTableCellParagraph paragraph in paragraphs) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            double size = paragraph.FontSize ?? fontSize;
+            bool exact = paragraph.LineSpacing?.Rule == PdfCore.PdfLineSpacingRule.Exact;
+            double factor = exact ? paragraph.LineSpacing!.Value / size : paragraph.LineSpacing?.Value ?? paragraph.LineHeight ?? defaultFactor;
+            double leading = size * factor;
+            OfficeRichTextRun[] runs = CreateTableLayoutRuns(paragraph.Runs, size, rowBold, options);
+            // PDF keeps a hanging indent relative to the paragraph's left
+            // margin. Drawing layout instead takes nonnegative offsets from
+            // the cell frame for both the first and continuation lines.
+            double firstOffset = Math.Max(0D, paragraph.LeftIndent + paragraph.FirstLineIndent);
+            double followingOffset = Math.Max(0D, paragraph.LeftIndent);
+            var layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(runs,
+                Math.Max(1D, width - paragraph.RightIndent), double.MaxValue, factor, measure,
+                wrap: !fittedLabel, paragraphIndent: new OfficeTextParagraphIndent(firstOffset, followingOffset),
+                cancellationToken: options.CancellationToken);
+            height += paragraph.SpacingBefore;
+            double advance = exact ? Math.Max(1, layout.Lines.Count) * leading
+                : Math.Max(leading, layout.Lines.Sum(line => Math.Max(leading, line.LineHeight)));
+            // A condensed final line can paint below its advance; grow the row
+            // for that ink without changing the paragraph's requested leading.
+            paintedBottom = Math.Max(paintedBottom, height + Math.Max(advance, OfficeDrawingTextLayout.RequiredFrameHeight(layout)));
+            height += advance + paragraph.SpacingAfter;
+        }
+        return Math.Max(height, paintedBottom);
     }
 
     private static double[] NormalizeTableLayoutSegments(IReadOnlyList<double?> segments, double total) {

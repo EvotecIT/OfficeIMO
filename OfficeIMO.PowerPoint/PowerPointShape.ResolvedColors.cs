@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
@@ -25,6 +26,22 @@ namespace OfficeIMO.PowerPoint {
             }
             return ResolveExportColor(ResolveThemeOutline()?.GetFirstChild<A.SolidFill>(),
                 GetShapeStyleLineColorChoice(createPlaceholder: false));
+        }
+
+        internal string? UnsupportedFillKindForExport {
+            get {
+                ShapeProperties? properties = GetShapeProperties();
+                OpenXmlElement? fill = properties != null && HasExplicitFillChoice(properties)
+                    ? properties.ChildElements.FirstOrDefault(child => child is A.NoFill or A.SolidFill
+                        or A.GradientFill or A.BlipFill or A.PatternFill or A.GroupFill)
+                    : ResolveThemeFill();
+                return fill switch {
+                    A.PatternFill => "pattern",
+                    A.BlipFill => "picture",
+                    A.GroupFill => "group",
+                    _ => null
+                };
+            }
         }
 
         private OfficeColor? ResolveExportColor(OpenXmlElement? color, OpenXmlElement? placeholder = null) =>

@@ -1,6 +1,8 @@
 using System.IO;
 using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -63,6 +65,152 @@ namespace OfficeIMO.Tests {
             } finally {
                 if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
             }
+        }
+    }
+
+    public partial class PowerPointImageExportTests {
+        [Fact]
+        public void PowerPointSlide_RendersMediaPosterThroughThePdfSceneInRasterAndSvg() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(160, 100);
+            PowerPointSlide slide = presentation.AddSlide();
+            using MemoryStream video = new(new byte[] { 0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50 });
+            slide.AddVideo(
+                video,
+                "video/mp4",
+                ".mp4",
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(80),
+                PowerPointUnits.FromPoints(45));
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(OfficeColor.FromRgb(31, 41, 55), rendered!.GetPixel(24, 24));
+            Assert.True(CountPixelsNear(rendered, OfficeColor.FromRgb(249, 250, 251)) > 0);
+
+            Assert.Contains("<svg", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
+            OfficeImageExportResult pdfSvg = presentation.ToPdfDocumentResult()
+                .ExportImages(OfficeImageExportFormat.Svg)[0];
+            Assert.Equal(pdfSvg.Bytes, svg.Bytes);
+        }
+
+        [Fact]
+        public void PowerPointSlide_RendersBmpPicturesThroughSharedRasterDecoder() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            PowerPointSlide slide = presentation.AddSlide();
+            byte[] bmp = CreateBmp24(2, 2, new[] {
+                OfficeColor.FromRgb(18, 52, 86), OfficeColor.FromRgb(18, 52, 86),
+                OfficeColor.FromRgb(18, 52, 86), OfficeColor.FromRgb(18, 52, 86)
+            });
+            slide.AddPicture(
+                new MemoryStream(bmp),
+                OfficeImageFormat.Bmp,
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(24),
+                PowerPointUnits.FromPoints(18));
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(OfficeColor.FromRgb(18, 52, 86), rendered!.GetPixel(30, 28));
+            Assert.Contains("<svg", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PowerPointSlide_RendersTopDownBmpPicturesThroughSharedRasterDecoder() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            PowerPointSlide slide = presentation.AddSlide();
+            byte[] bmp = CreateBmp24(2, 2, new[] {
+                OfficeColor.FromRgb(24, 96, 144), OfficeColor.FromRgb(24, 96, 144),
+                OfficeColor.FromRgb(24, 96, 144), OfficeColor.FromRgb(24, 96, 144)
+            }, topDown: true);
+            slide.AddPicture(
+                new MemoryStream(bmp),
+                OfficeImageFormat.Bmp,
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(24),
+                PowerPointUnits.FromPoints(18));
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(OfficeColor.FromRgb(24, 96, 144), rendered!.GetPixel(30, 28));
+            Assert.Contains("<svg", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PowerPointSlide_RendersBmp32AlphaPicturesThroughSharedRasterDecoder() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            PowerPointSlide slide = presentation.AddSlide();
+            byte[] bmp = CreateBmp32(2, 2, new[] {
+                OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128),
+                OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128)
+            });
+            slide.AddPicture(
+                new MemoryStream(bmp),
+                OfficeImageFormat.Bmp,
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(24),
+                PowerPointUnits.FromPoints(18));
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            OfficeColor blended = rendered!.GetPixel(30, 28);
+            Assert.True(blended.R >= 252, $"Expected red channel to stay near full after BMP alpha blend, got {blended.R}.");
+            Assert.InRange(blended.G, 124, 130);
+            Assert.InRange(blended.B, 124, 130);
+            Assert.Equal(255, blended.A);
+            Assert.Contains("<svg", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PowerPointSlide_RendersGifPicturesThroughSharedRasterDecoder() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.BackgroundColor = "000000";
+            slide.AddPicture(
+                new MemoryStream(CreateSinglePixelGif()),
+                OfficeImageFormat.Gif,
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(24),
+                PowerPointUnits.FromPoints(18));
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(OfficeColor.White, rendered!.GetPixel(30, 28));
+            Assert.Contains("<svg", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
         }
     }
 }

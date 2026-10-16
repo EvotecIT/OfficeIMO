@@ -1,10 +1,8 @@
 using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Xml.Linq;
 using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
@@ -68,7 +66,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
     [InlineData(2D, 2D, false)]
     [InlineData(2D, 0.5D, false)]
     [InlineData(0.5D, 2D, true)]
-    public void GroupedPdfAndSvgRetainMatchingTextPositionAndSize(double scaleX, double scaleY, bool nested) {
+    public void GroupedPdfAndSnapshotRetainMatchingTextPositionAndSize(double scaleX, double scaleY, bool nested) {
         var profile = new OfficeRenderingProfile("group-text", new OfficeFontFaceCollection().Add("Fixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
@@ -87,18 +85,21 @@ public sealed class PowerPointGroupedTextLayoutTests {
         transform.Extents.Cy = (long)Math.Round(transform.ChildExtents.Cy!.Value * scaleY);
         var imageOptions = new PowerPointImageExportOptions();
         imageOptions.UseRenderingProfile(profile);
-        var svg = XDocument.Parse(Encoding.UTF8.GetString(slide.ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes));
-        XElement[] textNodes = svg.Descendants().Where(node => node.Name.LocalName == "text" && node.Value == "INK").ToArray();
-        XElement text = Assert.Single(textNodes);
+        byte[] svg = slide.ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes;
+        var snapshot = slide.CreateVisualSnapshot(imageOptions);
+        var text = Assert.Single(snapshot.TextSpans, span => span.Text == "INK");
         var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions().UseRenderingProfile(profile));
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.ToBytes());
+        byte[] bytes = result.ToBytes();
+        var canonicalPage = OfficeIMO.Pdf.PdfReadDocument.Open(bytes).Pages[0];
+        var expectedText = Assert.Single(canonicalPage.GetTextSpans(), span => span.Text == "INK");
+        Assert.Equal((expectedText.X, expectedText.Y, expectedText.FontSize, expectedText.Advance, expectedText.RotationDegrees),
+            (text.X, text.Y, text.FontSize, text.Advance, text.RotationDegrees));
+        Assert.Equal(canonicalPage.ExportImage(OfficeImageExportFormat.Svg,
+            new PdfImageExportOptions().UseRenderingProfile(profile)).Bytes, svg);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         var letters = page.Letters;
         Assert.Equal("INK", string.Concat(letters.Select(letter => letter.Value)));
-        double Attribute(string name) => double.Parse(text.Attribute(name)!.Value, CultureInfo.InvariantCulture);
-        Assert.InRange(Math.Abs(letters[0].StartBaseLine.X - Attribute("x")), 0D, 0.1D);
-        Assert.InRange(Math.Abs(page.Height - letters[0].StartBaseLine.Y - Attribute("y")), 0D, 0.1D);
-        Assert.InRange(Math.Abs(letters[0].FontSize - Attribute("font-size")), 0D, 0.1D);
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "text-box-overflow");
     }
 

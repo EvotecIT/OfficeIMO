@@ -70,7 +70,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointPresentation presentation,
         PowerPointToPdfOptions options) {
         foreach (PptCore.PowerPointSlide slide in presentation.Slides) {
-            if (!options.IncludeHiddenSlides && slide.Hidden) {
+            if (!options.IncludesSlide(slide)) {
                 continue;
             }
 
@@ -117,7 +117,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointPresentation presentation,
         PowerPointToPdfOptions options) {
         foreach (PptCore.PowerPointSlide slide in presentation.Slides) {
-            if (!options.IncludeHiddenSlides && slide.Hidden) {
+            if (!options.IncludesSlide(slide)) {
                 continue;
             }
 
@@ -153,7 +153,7 @@ public static partial class PowerPointPdfConverterExtensions {
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
         for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
             PptCore.PowerPointSlide slide = slides[slideIndex];
-            if (!options.IncludeHiddenSlides && slide.Hidden) {
+            if (!options.IncludesSlide(slide)) {
                 continue;
             }
 
@@ -354,13 +354,15 @@ public static partial class PowerPointPdfConverterExtensions {
                 PptCore.PowerPointTableCell cell = table.GetCell(row, column);
                 if (!cell.IsMergedCell) {
                     RegisterPresentationFontCandidate(cell.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
-                    RegisterPresentationTableCellRunFonts(cell, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options);
+                    IReadOnlyList<A.TextCharacterPropertiesType> defaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
+                        ? Array.Empty<A.TextCharacterPropertiesType>() : CreateTableTextDefaults(table, row, column);
+                    RegisterPresentationTableCellRunFonts(cell, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options, defaults);
                 }
             }
         }
     }
 
-    private static void RegisterPresentationTableCellRunFonts(PptCore.PowerPointTableCell cell, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointToPdfOptions options) {
+    private static void RegisterPresentationTableCellRunFonts(PptCore.PowerPointTableCell cell, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointToPdfOptions options, IReadOnlyList<A.TextCharacterPropertiesType> tableDefaults) {
         A.TextBody? textBody = cell.Cell.TextBody;
         if (textBody == null) {
             return;
@@ -375,7 +377,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 };
                 if (child is not A.Run && child is not A.Field) continue;
                 IReadOnlyList<A.TextCharacterPropertiesType> sources =
-                    ResolveTableTextPropertySources(cell, paragraph, directProperties);
+                    ResolveTableTextPropertySources(cell, paragraph, directProperties, tableDefaults);
                 RegisterPresentationFontCandidate(
                     ReadRunFontName(cell, sources) ?? cell.FontName,
                     pdfOptions,

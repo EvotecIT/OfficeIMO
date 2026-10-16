@@ -21,26 +21,27 @@ internal static class PowerPointPageImageExport {
 
     internal static void RenderPages(PowerPointPresentation presentation, OfficeImageExportFormat format,
         PowerPointPresentationImageExportOptions options, OfficeImageExportConsumer consumer, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var slideNumbers = Enumerable.Range(1, presentation.Slides.Count)
             .Where(number => options.IncludeHiddenSlides || !presentation.Slides[number - 1].Hidden).ToArray();
         if (options.SlideNumbers?.Any(number => number < 1 || number > presentation.Slides.Count) == true)
             throw new ArgumentOutOfRangeException(nameof(options.SlideNumbers), "Selected slide numbers must exist in the presentation.");
         var selected = options.SlideNumbers == null || options.SlideNumbers.Count == 0
             ? null : new HashSet<int>(options.SlideNumbers);
-        int[] pages = slideNumbers.Select((number, index) => (number, page: index + 1))
-            .Where(item => selected == null || selected.Contains(item.number)).Select(item => item.page).ToArray();
-        if (pages.Length == 0) return;
+        int[] selectedNumbers = slideNumbers.Where(number => selected == null || selected.Contains(number)).ToArray();
+        if (selectedNumbers.Length == 0) return;
         int outputIndex = 0;
         PdfCore.PdfDocumentConversionResult? conversion = null;
         PdfCore.PdfImageExportEngine.ExportEach(
             token => {
-                conversion = presentation.ToPdfDocumentResult(CreateLayout(options, options.IncludeHiddenSlides), token);
+                PowerPointToPdfOptions layout = CreateLayout(options, options.IncludeHiddenSlides);
+                layout.SelectedSlides = new HashSet<PowerPointSlide>(selectedNumbers.Select(number => presentation.Slides[number - 1]));
+                conversion = presentation.ToPdfDocumentResult(layout, token);
                 return PdfCore.PdfReadDocument.Open(conversion.ToBytes(token), options: null, cancellationToken: token);
-            }, format, options.ToPdfImageOptions(), _ => PdfCore.PdfPageSelection.From(pages),
+            }, format, options.ToPdfImageOptions(), _ => null,
             result => {
                 // The PDF exporter emits in page order, which is the presentation's original slide order.
-                int page = pages[outputIndex++];
-                int number = slideNumbers[page - 1];
+                int number = selectedNumbers[outputIndex++];
                 consumer(new OfficeImageExportResult(result.Format, result.Width, result.Height, result.Bytes,
                     "Slide " + number, "PowerPoint slide " + number, result.Diagnostics));
             }, initialDiagnostics: null,
@@ -51,15 +52,18 @@ internal static class PowerPointPageImageExport {
         using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(options.RenderTimeout, CancellationToken.None);
         PowerPointPresentation presentation = GetPresentation(slide);
         int number = GetSlideNumber(presentation, slide);
-        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult(CreateLayout(options, true), execution.Token);
+        PowerPointToPdfOptions layout = CreateLayout(options, true);
+        layout.SelectedSlides = new HashSet<PowerPointSlide> { slide };
+        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult(layout, execution.Token);
         PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Open(conversion.ToBytes(execution.Token), options: null, cancellationToken: execution.Token);
-        PdfCore.PdfReadPage page = document.Pages[number - 1];
+        PdfCore.PdfReadPage page = document.Pages[0];
         var size = page.GetPageSize();
         OfficeDrawing drawing = page.ToDrawing(execution.Token, scene => scene.ApplyImageExportOptions(options),
             options.GetEffectiveScale(size.Width, size.Height), options.MaximumRasterPixels);
         var diagnostics = new List<OfficeImageExportDiagnostic>(PdfCore.PdfImageExportEngine.MapConversionDiagnostics(conversion));
         foreach (PdfCore.PdfRenderCapabilityDiagnostic diagnostic in page.GetRenderCapabilityDiagnostics(cancellationToken: execution.Token))
-            diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Supported ? OfficeImageExportDiagnosticSeverity.Info : OfficeImageExportDiagnosticSeverity.Warning,
                 diagnostic.Code, diagnostic.Message, "PowerPoint slide " + number, diagnostic.LossKind));
         drawing.AppendFontDiagnostics(diagnostics, "PowerPoint slide " + number);
         return new PowerPointSlideVisualSnapshot(drawing, diagnostics.AsReadOnly(), page.GetTextSpans(includeArtifactText: true, execution.Token));

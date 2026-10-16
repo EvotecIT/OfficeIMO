@@ -19,16 +19,12 @@ public static partial class PowerPointPdfConverterExtensions {
             }
 
             Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
-            if (shape is PptCore.PowerPointGroupShape || IsLineShape(shape)) {
-                // Establish the page clip before nested transforms or a line's
-                // stroke-sized link region extend beyond the raw shape box.
+            // Clip against the slide, never the original shape box: autofit rows
+            // and fixed-frame text may legitimately paint beyond that box.
+            if (shape is PptCore.PowerPointGroupShape || IsLineShape(shape) ||
+                x < 0D || y < 0D || x + width > pageWidth || y + height > pageHeight)
                 canvas.Clip(0D, 0D, pageWidth, pageHeight, render);
-            } else if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
-                NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
-                canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
-            } else {
-                render(canvas);
-            }
+            else render(canvas);
         }
     }
 
@@ -36,9 +32,11 @@ public static partial class PowerPointPdfConverterExtensions {
         if (shape is not PptCore.PowerPointPicture && shape.Hyperlink is { IsAbsoluteUri: true })
             AddWarning(options, slideNumber, "shape-hyperlink-omitted", "The PowerPoint shape hyperlink was not exported as a PDF annotation.", lossKind: OfficeConversionLossKind.Omission);
         if (shape is PptCore.PowerPointTextBox textBox) {
-            bool renderedGeometry = options.IncludeAutoShapes && RenderTextBoxGeometry(canvas, textBox, x, y, width, height);
+            bool renderedGeometry = false;
             if (options.IncludeTextBoxes) {
-                RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options, suppressFrame: renderedGeometry);
+                RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options);
+            } else if (options.IncludeAutoShapes) {
+                renderedGeometry = RenderTextBoxGeometry(canvas, textBox, x, y, width, height, slideNumber, options);
             }
             if (renderedGeometry || options.IncludeTextBoxes)
                 RenderShapeSlideLink(canvas, shape, x, y, width, height, slideNumber, options);
@@ -54,7 +52,10 @@ public static partial class PowerPointPdfConverterExtensions {
 
         if (shape is PptCore.PowerPointTable table) {
             if (options.IncludeTables) {
-                RenderTable(canvas, table, x, y, width, height, slideNumber, options);
+                // Group children retain authored coordinates under their affine;
+                // compare against page bounds only in the slide coordinate space.
+                RenderTable(canvas, table, x, y, width, height, slideNumber, options,
+                    groupDepth == 0 ? pageWidth : null, groupDepth == 0 ? pageHeight : null, hasAncestorPageClip: groupDepth > 0);
                 RenderShapeSlideLink(canvas, shape, x, y, width, height, slideNumber, options);
             }
             return;
@@ -82,6 +83,14 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
 
+        if (shape is PptCore.PowerPointConnectionShape connection) {
+            if (options.IncludeAutoShapes) {
+                RenderConnection(canvas, connection, x, y, width, height, slideNumber, options);
+                RenderShapeSlideLink(canvas, shape, x, y, width, height, slideNumber, options);
+            }
+            return;
+        }
+
         if (shape is PptCore.PowerPointAutoShape autoShape) {
             if (options.IncludeAutoShapes) {
                 RenderAutoShape(canvas, autoShape, x, y, width, height, slideNumber, options);
@@ -97,6 +106,12 @@ public static partial class PowerPointPdfConverterExtensions {
             } else {
                 AddWarning(options, slideNumber, "unsupported-shape", "Skipped a PowerPoint group shape because its owning slide context could not be resolved.", lossKind: OfficeConversionLossKind.Omission);
             }
+            return;
+        }
+
+        if (shape is PptCore.PowerPointOleObject) {
+            AddWarning(options, slideNumber, "unsupported-shape", "Skipped a PowerPoint OLE object because an embedded-object preview is unavailable.",
+                lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 

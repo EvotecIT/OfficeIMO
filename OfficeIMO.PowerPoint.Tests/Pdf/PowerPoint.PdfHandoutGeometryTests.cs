@@ -46,8 +46,16 @@ public sealed class PowerPointPdfHandoutGeometryTests {
             Assert.InRange(Math.Abs(image.X - left), 0, 0.002D);
             Assert.InRange(Math.Abs(image.Y - (pageHeight - margin - index * (rowHeight + gutter) - height)), 0, 0.002D);
         }
+        var spans = page.GetTextSpans();
+        for (int index = 0; index < 3; index++) {
+            var title = Assert.Single(spans, span => span.Text == "SLIDE " + (index + 1));
+            double top = margin + index * (rowHeight + gutter);
+            Assert.InRange(title.X, left, left + width);
+            Assert.InRange(title.Y, pageHeight - top - height, pageHeight - top);
+            Assert.InRange(title.X + title.Advance, left, left + width);
+        }
         double notesLeft = margin + columnWidth + gutter;
-        var notes = page.GetTextSpans().Where(span => span.Text.StartsWith("PRESENTER", StringComparison.Ordinal)).ToArray();
+        var notes = spans.Where(span => span.Text.StartsWith("PRESENTER", StringComparison.Ordinal)).ToArray();
         Assert.Equal(3, notes.Length);
         Assert.All(notes, span => Assert.InRange(Math.Abs(span.X - notesLeft), 0, 0.002D));
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);

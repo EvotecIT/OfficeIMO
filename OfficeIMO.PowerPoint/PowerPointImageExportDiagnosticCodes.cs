@@ -4,7 +4,7 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public static class PowerPointImageExportDiagnosticCodes {
         /// <summary>A PowerPoint shape or one of its visual features could not be projected exactly.</summary>
-        public const string UnsupportedShape = "unsupported-powerpoint-shape";
+        public const string UnsupportedShape = "unsupported-shape";
 
         /// <summary>A PowerPoint image was omitted because its projected bounds exceed the slide canvas.</summary>
         public const string ImageBoundsUnsupported = "unsupported-powerpoint-image-bounds";
@@ -22,15 +22,15 @@ namespace OfficeIMO.PowerPoint {
         public const string InvalidSlideBackgroundImage = "invalid-slide-background-image";
 
         /// <summary>Native small caps were rendered as uppercase glyphs because reduced small-cap glyph sizing is unavailable.</summary>
-        public const string SmallCapsApproximated = "powerpoint-small-caps-approximated";
+        public const string SmallCapsApproximated = "small-caps-approximation";
 
         /// <summary>Native double-wavy underline was rendered as a double solid underline by the shared drawing model.</summary>
         public const string WavyDoubleUnderlineApproximated = "powerpoint-wavy-double-underline-approximated";
 
         /// <summary>An authored DrawingML baseline percentage was reduced to the shared superscript or subscript geometry.</summary>
-        public const string BaselinePercentApproximated = "powerpoint-baseline-percent-approximated";
+        public const string BaselinePercentApproximated = "baseline-percent-approximation";
 
         /// <summary>A native chart family without a shared renderer, such as a 3-D chart, was drawn as a flat 2-D projection.</summary>
-        public const string ChartProjected = "powerpoint-chart-projected";
+        public const string ChartProjected = "chart-projected";
     }
 }

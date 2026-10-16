@@ -8,11 +8,13 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
-    private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options, bool suppressFrame = false) {
+    private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options) {
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         OfficeDrawing drawing = PptCore.PowerPointSlideImageRenderer.CreateTextBoxDrawing(
-            textBox, width, height, diagnostics, options.NativeTextMeasure!, options.NativeTextDefaultFontFamily);
-        if (!suppressFrame) RenderTextBoxFrame(canvas, textBox, x, y, drawing.Width, drawing.Height);
+            textBox, width, height, diagnostics, options.NativeTextMeasure!, options.NativeTextDefaultFontFamily, options.CancellationToken);
+        bool renderedGeometry = options.IncludeAutoShapes && RenderTextBoxGeometry(
+            canvas, textBox, x, y, drawing.Width, drawing.Height, slideNumber, options);
+        if (!renderedGeometry) RenderTextBoxFrame(canvas, textBox, x, y, drawing.Width, drawing.Height, slideNumber, options);
         foreach (OfficeImageExportDiagnostic diagnostic in diagnostics) {
             string code = diagnostic.Code switch {
                 "POWERPOINT_TEXT_OVERFLOW" => "text-box-overflow",
@@ -40,18 +42,12 @@ public static partial class PowerPointPdfConverterExtensions {
         if (drawing.Elements.Count > 0) canvas.DrawingForClippedRendering(drawing, x, y, drawing.Width, drawing.Height);
     }
 
-    private static void RenderTextBoxFrame(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
-        OfficeColor? fill = textBox.ResolveFillColorForExport();
-        OfficeColor? outline = textBox.ResolveOutlineColorForExport();
-        if (!fill.HasValue && !outline.HasValue) {
-            return;
-        }
-
+    private static void RenderTextBoxFrame(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height,
+        int slideNumber, PowerPointToPdfOptions options) {
         OfficeShape frame = OfficeShape.Rectangle(width, height);
-        frame.FillColor = fill;
-        frame.StrokeColor = outline;
-        frame.StrokeWidth = outline.HasValue ? textBox.OutlineWidthPoints ?? 0.75D : 0D;
-        frame.StrokeDashStyle = MapDash(textBox.OutlineDash.ToOpenXml());
+        ApplyShapeAppearance(textBox, frame, slideNumber, options);
+        if (!frame.FillColor.HasValue && frame.FillGradient == null && frame.FillRadialGradient == null
+            && !frame.StrokeColor.HasValue) return;
         canvas.Shape(frame, x, y, rotationAngle: textBox.Rotation ?? 0D);
     }
 

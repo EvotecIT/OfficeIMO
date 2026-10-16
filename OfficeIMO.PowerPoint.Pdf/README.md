@@ -203,6 +203,8 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 
 ## Current limits
 
+PDF and slide images share the same content and limitations. Stored autofit values, computed shrinking, shape growth, table margins and row growth, theme colors, and native connectors run through this layout. Static conversion does not reproduce chart 3-D scenes, animation playback, or every DrawingML effect.
+
 - Presentation content comes from `OfficeIMO.PowerPoint`; layout and PDF writing use `OfficeIMO.Pdf`.
 - `PdfPowerPointImportMode.Auto` is the options default. It resolves an opened PDF to `EditableContent` and an already reduced `PdfDocumentReadResult` to `EditableTables`; use `CreateVisualPages()` only when one rendered page image per slide is the intended output.
 - `PdfToPowerPointOptions.ReadOptions` controls the canonical semantic profile, page selection, layout, custom stages, and semantic work limits. The same page selection is used by visual and hybrid imports.
