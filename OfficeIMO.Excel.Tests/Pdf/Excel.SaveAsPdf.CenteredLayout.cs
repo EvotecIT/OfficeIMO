@@ -25,17 +25,29 @@ public partial class Excel {
         sheet.SetPageSetup(paperSize: ExcelPaperSize.Letter, scale: 50);
         sheet.Range("A1:B2").SetFillColor("FFCC33");
         sheet.SetPrintOptions(horizontalCentered: false, verticalCentered: false);
-        using var original = PdfPigDocument.Open(workbook.ToPdfBytes());
+        byte[] originalPdf = workbook.ToPdfBytes();
+        using var original = PdfPigDocument.Open(originalPdf);
         var pngOriginal = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
         sheet.SetPrintOptions(horizontalCentered: horizontal, verticalCentered: vertical);
-        using var centered = PdfPigDocument.Open(workbook.ToPdfBytes());
+        byte[] centeredPdf = workbook.ToPdfBytes();
+        using var centered = PdfPigDocument.Open(centeredPdf);
         var pngCentered = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
         var before = original.GetPage(1);
         var after = centered.GetPage(1);
-        // Two 12-character columns at the documented unavailable-font estimate: 66.75pt each.
-        double width = 133.5 * 0.5;
+        // Measure the uncentered cell fills independently of the centering code.
+        // Character-based column widths depend on the available workbook font.
+        var fills = before.Paths
+            .Where(path => path.IsFilled && path.FillColor.ToRGBValues() == (1D, 0.8D, 0.2D))
+            .Select(path => path.GetBoundingRectangle())
+            .Where(bounds => bounds.HasValue)
+            .Select(bounds => bounds!.Value)
+            .ToArray();
+        Assert.NotEmpty(fills);
+        double width = fills.Max(bounds => bounds.Right) - fills.Min(bounds => bounds.Left);
+        double height = fills.Max(bounds => bounds.Top) - fills.Min(bounds => bounds.Bottom);
+        Assert.Equal(30D, height, precision: 3);
         double expectedX = horizontal ? (612 - 36 - 72 - width) / 2 : 0;
-        double expectedY = vertical ? (792 - 54 - 90 - 60 * 0.5) / 2 : 0;
+        double expectedY = vertical ? (792 - 54 - 90 - height) / 2 : 0;
         Assert.InRange(FindWordStartX(after, "Marker") - FindWordStartX(before, "Marker"), expectedX - 0.05, expectedX + 0.05);
         Assert.InRange(FindWordStartY(before, "Marker") - FindWordStartY(after, "Marker"), expectedY - 0.05, expectedY + 0.05);
         Assert.True(OfficeRasterImageDecoder.TryDecode(pngOriginal.Bytes, out var imageBefore));
@@ -46,6 +58,15 @@ public partial class Excel {
         double pngExpectedY = vertical ? (pngCentered.Height - 192 - boxBefore.Height) / 2D : 0;
         Assert.InRange(boxAfter.X - boxBefore.X, pngExpectedX - 2, pngExpectedX + 2);
         Assert.InRange(boxAfter.Y - boxBefore.Y, pngExpectedY - 2, pngExpectedY + 2);
+        string? evidenceDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_EXCEL_INTEGRATION_EVIDENCE_DIR");
+        if (!string.IsNullOrWhiteSpace(evidenceDirectory)) {
+            Directory.CreateDirectory(evidenceDirectory);
+            string name = $"centering-{horizontal}-{vertical}";
+            File.WriteAllBytes(Path.Combine(evidenceDirectory, name + "-before.pdf"), originalPdf);
+            File.WriteAllBytes(Path.Combine(evidenceDirectory, name + "-after.pdf"), centeredPdf);
+            File.WriteAllBytes(Path.Combine(evidenceDirectory, name + "-before.png"), pngOriginal.Bytes);
+            File.WriteAllBytes(Path.Combine(evidenceDirectory, name + "-after.png"), pngCentered.Bytes);
+        }
     }
 
     private static (int X, int Y, int Width, int Height) FindYellowPrintBounds(OfficeRasterImage image) {
