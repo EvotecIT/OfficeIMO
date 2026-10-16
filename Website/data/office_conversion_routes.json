@@ -208,7 +208,7 @@
       "inputKind":"Text",
       "sourceExtensions":[ ".html", ".htm", ".txt" ],
       "targetExtension":".pdf",
-      "packageId":"OfficeIMO.Html.Pdf",
+      "packageId":"OfficeIMO.Html",
       "api":"HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)",
       "description":"Render bounded HTML and CSS into a tagged PDF.",
       "fidelity":"FixedLayout",

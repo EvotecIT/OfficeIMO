@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
@@ -25,9 +26,14 @@ internal static class PackedSiteBundleContract {
             HtmlRenderEngine.Execute(bundle.HtmlDocument, svgRequest),
             HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, svgRequest).GetAwaiter().GetResult()
         }) {
-            string svg = Encoding.UTF8.GetString(result.ExportImage().Bytes);
-            if (!svg.Contains("<image") || !svg.Contains("#123456"))
-                throw new InvalidOperationException("Packed site-bundle SVG lost archive images or CSS.");
+            HtmlRenderPage page = result.Document.Pages[0];
+            HtmlRenderImage image = page.Visuals.OfType<HtmlRenderImage>().Single();
+            if (!image.Bytes.SequenceEqual(png) || image.Width != 24D || image.Height != 24D
+                || !page.Visuals.OfType<HtmlRenderText>().Any(text => text.Text == "Packed site" && text.Color == OfficeColor.FromRgb(0x12, 0x34, 0x56)))
+                throw new InvalidOperationException("Packed site-bundle rendering lost archive image bytes or stylesheet text color.");
+            if (!OfficeSvgDrawingReader.TryRead(result.ExportImage().Bytes, out OfficeDrawing? drawing, out _)
+                || !HasImagePaint(drawing!, page, image))
+                throw new InvalidOperationException("Packed site-bundle SVG lost visible archive-image paint.");
         }
 
         HtmlRenderRequest pdfRequest = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
@@ -42,6 +48,21 @@ internal static class PackedSiteBundleContract {
             if (!pdf.ExtractText().Contains("Packed site") || !pdf.ExtractImages().Any(image => image.IsImageFile))
                 throw new InvalidOperationException("Packed site-bundle PDF lost text or archive images.");
         }
+    }
+
+    private static bool HasImagePaint(OfficeDrawing drawing, HtmlRenderPage page, HtmlRenderImage image) {
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, 2D, OfficeColor.White);
+        double scale = raster.Width / page.Width;
+        int left = Math.Max(0, (int)Math.Floor(image.X * scale));
+        int top = Math.Max(0, (int)Math.Floor(image.Y * scale));
+        int right = Math.Min(raster.Width, (int)Math.Ceiling((image.X + image.Width) * scale));
+        int bottom = Math.Min(raster.Height, (int)Math.Ceiling((image.Y + image.Height) * scale));
+        for (int y = top; y < bottom; y++)
+            for (int x = left; x < right; x++) {
+                OfficeColor pixel = raster.GetPixel(x, y);
+                if (pixel.A > 128 && pixel.R < 250 && pixel.G < 250 && pixel.B < 250) return true;
+            }
+        return false;
     }
 
     private static void Add(ZipArchive archive, string path, byte[] bytes) {

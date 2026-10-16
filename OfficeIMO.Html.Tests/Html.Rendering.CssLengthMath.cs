@@ -17,6 +17,7 @@ public partial class Html {
         string html = "<div id='math' style='width:" + width + ";height:10px;margin:0;background:#ff0000'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -40,6 +41,7 @@ public partial class Html {
         string html = "<div id='math-invalid' style='width:" + width + ";height:10px;margin:0;background:#ff0000'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -101,7 +103,7 @@ public partial class Html {
             + "<section style='width:100px;height:calc(10px - 20px);container-type:size'><div id='height-item' style='width:10px;height:10px'></div></section>"
             + "<section style='width:100px;height:100px;max-height:calc(10px - 20px);container-type:size'><div id='max-height-item' style='width:10px;height:10px'></div></section>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D, ViewportHeight = 300D });
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, ViewportHeight = 300D });
 
         foreach (string id in new[] { "width-item", "max-width-item", "height-item", "max-height-item" }) {
             HtmlRenderShape shape = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(),

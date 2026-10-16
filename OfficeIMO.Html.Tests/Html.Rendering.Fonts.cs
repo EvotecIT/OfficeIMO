@@ -149,15 +149,22 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRender_UsesSharedGlyphCoveragePlanAcrossFontFamilyFallbacks() {
         string emoji = char.ConvertFromUtf32(0x1F600);
-        byte[] emojiFont = CreateHtmlRenderTestFont(0x1F600);
-        byte[] hebrewFont = CreateHtmlRenderTestFont(0x05D0);
-        string html = "<style>"
+        byte[] emojiFont = ManagedTextShapingTestAssets.CreateFont(0x1F600);
+        byte[] hebrewFont = ManagedTextShapingTestAssets.CreateFont(0x05D0);
+        string html = "<style>@page{size:80px 40px;margin:0}body,p{margin:0}"
             + "@font-face{font-family:'Emoji Demo';src:url(\"data:font/ttf;base64," + Convert.ToBase64String(emojiFont) + "\")}"
             + "@font-face{font-family:'Hebrew Demo';src:url(\"data:font/ttf;base64," + Convert.ToBase64String(hebrewFont) + "\")}"
             + "p{font-family:'Emoji Demo','Hebrew Demo',sans-serif;font-size:20px;line-height:24px}"
             + "</style><p>" + emoji + "\u05D0" + emoji + "</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            AllowSystemFontFallback = false
+        };
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, HtmlPdfRenderedConverter.ResolveRenderOptions(options));
+        Assert.Single(rendered.Fonts.Faces, face => face.FamilyName == "Emoji Demo");
+        Assert.Single(rendered.Fonts.Faces, face => face.FamilyName == "Hebrew Demo");
         IReadOnlyList<HtmlRenderText> textRuns = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
 
         Assert.Collection(
@@ -174,10 +181,33 @@ public sealed partial class HtmlRenderingTests {
                 Assert.Equal(emoji, run.Text);
                 Assert.Equal("Emoji Demo", run.Font.FamilyName);
             });
-        string svg = HtmlConversionDocument.Parse(html).ToSvg();
-        Assert.Contains("font-family=\"Emoji Demo\"", svg, StringComparison.Ordinal);
-        Assert.Contains("font-family=\"Hebrew Demo\"", svg, StringComparison.Ordinal);
-        Assert.True(HtmlConversionDocument.Parse(html).ToPng().Length > 8);
+        string svg = document.ToSvg(options);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.True(OfficePngReader.TryDecode(document.ToPng(options), out OfficeRasterImage? pngRaster));
+        foreach (HtmlRenderText run in textRuns) {
+            Assert.True(FontFallbackRunHasInk(svgRaster, run), run.Font.FamilyName);
+            Assert.True(FontFallbackRunHasInk(pngRaster!, run), run.Font.FamilyName);
+        }
+        byte[] pdf = document.ToPdfBytes(options);
+        Assert.Contains(emoji + "\u05D0" + emoji, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        PdfCore.PdfFontInventory inventory = PdfCore.PdfDocument.Load(pdf).Resources.Fonts();
+        Assert.Equal(2, inventory.EmbeddedFontCount);
+        Assert.Contains(inventory.Fonts, font => font.FamilyName == "EmojiDemo-Regular" && font.IsEmbedded);
+        Assert.Contains(inventory.Fonts, font => font.FamilyName == "HebrewDemo-Regular" && font.IsEmbedded);
+    }
+
+    private static bool FontFallbackRunHasInk(OfficeRasterImage image, HtmlRenderText run) {
+        int left = Math.Max(0, (int)Math.Floor(run.X));
+        int right = Math.Min(image.Width, (int)Math.Ceiling(run.X + (run.TextAdvanceWidth ?? run.Width)));
+        int top = Math.Max(0, (int)Math.Floor(run.Y));
+        int bottom = Math.Min(image.Height, (int)Math.Ceiling(run.Y + run.Height));
+        for (int y = top; y < bottom; y++) {
+            for (int x = left; x < right; x++) {
+                OfficeColor pixel = image.GetPixel(x, y);
+                if (pixel.A > 0 && pixel.R < 100 && pixel.G < 100 && pixel.B < 100) return true;
+            }
+        }
+        return false;
     }
 
     [Fact]
@@ -191,6 +221,7 @@ public sealed partial class HtmlRenderingTests {
             + "</style><p style='margin:0'><span class='scoped'>" + emoji + emoji + "</span><span class='fallback'>BB</span></p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 500D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -216,6 +247,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] fontData = CreateHtmlRenderTestFont();
         var requested = new List<string>();
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             Margins = HtmlRenderMargins.All(8D),
             ResourceResolver = (request, cancellationToken) => {
@@ -356,9 +388,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceInvalid);
 
         string svg = HtmlConversionDocument.Parse(html).ToSvg();
-        foreach (OfficeFontFace face in rendered.Fonts.Faces) {
-            Assert.Contains("font-family:\"" + face.ResourceFamilyName + "\"", svg, StringComparison.Ordinal);
-        }
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.All(runs, run => Assert.True(FontFallbackRunHasInk(svgRaster, run), run.Font.FamilyName));
     }
 
     [Fact]
@@ -524,7 +555,7 @@ public sealed partial class HtmlRenderingTests {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 28'>"
             + "<defs><linearGradient id='ink'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient></defs>"
             + "<text x='4' y='21' font-family='PaintedSvg' font-size='18' fill='url(#ink)' stroke='black'>AB</text></svg>";
-        string html = "<style>@font-face{font-family:PaintedSvg;src:url('data:font/ttf;base64,"
+        string html = "<style>@page{size:100px 60px;margin:0}body{margin:0}@font-face{font-family:PaintedSvg;src:url('data:font/ttf;base64,"
             + Convert.ToBase64String(fontData)
             + "')}</style><img style='width:80px;height:28px' src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
@@ -541,8 +572,19 @@ public sealed partial class HtmlRenderingTests {
             visual.InnerDrawing.Elements.OfType<OfficeDrawingGroup>(),
             group => group.ActualText == "AB");
         Assert.NotEmpty(logicalPaint.Drawing.Shapes);
-        Assert.Contains("aria-label=\"AB\"", exportedSvg, StringComparison.Ordinal);
-        Assert.Contains("<linearGradient", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains(System.Xml.Linq.XDocument.Parse(exportedSvg).Descendants(),
+            element => element.Attribute("aria-label")?.Value == "AB");
+        OfficeDrawing exportedDrawing = HtmlSvgPaintAssertions.Read(Encoding.UTF8.GetBytes(exportedSvg));
+        Assert.NotEmpty(DrawingTestTraversal.Elements(exportedDrawing).OfType<OfficeDrawingShape>());
+        OfficeRasterImage svgRaster = OfficeDrawingRasterRenderer.Render(exportedDrawing, 4D, OfficeColor.White);
+        bool redPaint = false, bluePaint = false;
+        for (int y = 0; y < svgRaster.Height; y++)
+            for (int x = 0; x < svgRaster.Width; x++) {
+                OfficeColor pixel = svgRaster.GetPixel(x, y);
+                redPaint |= pixel.R > 150 && pixel.G < 30 && pixel.B < 100;
+                bluePaint |= pixel.B > 150 && pixel.G < 30 && pixel.R < 100;
+            }
+        Assert.True(redPaint && bluePaint, "The SVG must retain both ends of the painted glyph gradient.");
         Assert.Contains("/ActualText", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.Contains("AB", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));

@@ -58,10 +58,11 @@ public sealed partial class HtmlRenderingTests {
             + ".layer{position:absolute;left:0;top:0;width:100px;height:100px;opacity:.5;background:red}</style>"
             + "<body><div class='layer'></div><div class='layer'></div></body>");
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D),
-            MaximumRasterPixels = 20_000L
+            MaximumRasterPixels = 50_000L
         };
         OfficeImageExportResult baseline = document.ExportImage(OfficeImageExportFormat.Png, options);
         Assert.Equal(100, baseline.Width);
@@ -80,7 +81,10 @@ public sealed partial class HtmlRenderingTests {
             document.ExportImageAsync(OfficeImageExportFormat.Png, options));
 
         foreach (OfficeImageExportLimitException failure in new[] { legacy, explicitRequest, retainedResult, asynchronous }) {
-            Assert.Equal(20_000L, failure.RequestedPixels);
+            // The final page has only 10,000 pixels. All public routes must also
+            // reject the larger intermediate effect work in the PDF page owner.
+            Assert.True(failure.RequestedPixels > 15_000L);
+            Assert.Equal(legacy.RequestedPixels, failure.RequestedPixels);
             Assert.Equal(15_000L, failure.MaximumPixels);
         }
     }

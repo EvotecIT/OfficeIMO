@@ -203,10 +203,10 @@ public sealed class HtmlEpubImageExportTests {
         Assert.Equal(format, result.Format);
         Assert.True(result.Bytes.Length > 32);
         if (format == OfficeImageExportFormat.Svg) {
-            string svg = Encoding.UTF8.GetString(result.Bytes);
-            Assert.Contains("Styled EPUB", svg, StringComparison.Ordinal);
-            Assert.Contains("font-style=\"italic\"", svg, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("text-decoration-style=\"wavy\"", svg, StringComparison.OrdinalIgnoreCase);
+            OfficeDrawing drawing = HtmlSvgPaintAssertions.Read(result.Bytes);
+            Assert.Contains(DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>(), text =>
+                text.Text == "Styled EPUB" && (text.Font.Style & OfficeFontStyle.Italic) != 0);
+            HtmlSvgPaintAssertions.WavyStrokes(drawing, OfficeColor.FromRgb(0x33, 0x66, 0x99), 2);
         }
     }
 

@@ -259,6 +259,8 @@ result.Save("report.pdf").RequireNoLoss();
 
 ## Fonts and text shaping
 
+PDF and image export require glyph coverage in the selected embedded fonts. Missing glyphs produce a structured encoding failure, including under `AllowDiagnosedLoss`. Supply complete font files through `Fonts`, fallback packs or `@font-face`; use `TextShapingProvider` and `TextShapingLanguage` for scripts outside the managed shaping subset. Installed-font fallback depends on the host. Synthetic provider tests establish the API seam, while native script appearance needs separate rendered evidence.
+
 The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding, including supported OpenType features. Color glyphs and feature-bearing color fonts retain palette-aware outlines. Variable instances and text that requires vector paint use outlines plus logical `ActualText`, preserving extraction and accessibility.
 
 PDF outline expansion remains bounded. The selected program must implement

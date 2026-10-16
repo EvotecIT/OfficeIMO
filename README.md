@@ -459,11 +459,12 @@ _Dependency footprint:_ OfficeIMO Markdown, Markdown.Html, and HTML plus `System
 
 - [x] Canonical `HtmlConversionDocument` with DOM, base-URI, media, resource, and URL-policy ownership
 - [x] CSS-aware layout scene shared by PNG, JPEG, TIFF, SVG, WebP, PDF, and Office adapters
+- [x] HTML-to-PDF generation and PDF-backed paged images with shared fonts and margin boxes
 - [x] Direct PNG, JPEG, TIFF, SVG, and lossless WebP output with structured diagnostics and bounded local/remote resource loading
 - [x] Bounded CSS math, deterministic media preferences, caller stylesheets, paged running strings, shared CSS/SVG color parsing, WOFF 1, and Unicode-range-aware font selection
 - [x] Stable HTML contracts reused by Office, Markdown, Reader, PDF, and optional cross-format bridges
 
-_Dependency footprint:_ `OfficeIMO.Core`, AngleSharp, and AngleSharp.Css. Email, RTF, MHTML, and PDF are not part of the base HTML restore graph.
+_Dependency footprint:_ first-party Core, Html.Core, Html.AngleSharp and Pdf, plus AngleSharp and AngleSharp.Css. Email, RTF and MHTML remain separate adapters.
 
 #### [OfficeIMO.Html.Rtf](OfficeIMO.Html.Rtf/README.md)
 
@@ -904,9 +905,10 @@ _Dependency footprint:_ OfficeIMO OneNote.Markdown, Markdown.Pdf, PDF, and Drawi
 
 #### [OfficeIMO.Html.Pdf](OfficeIMO.Html.Pdf/README.md)
 
-- [x] Direct HTML-to-PDF plus shared PNG, JPEG, TIFF, SVG, and WebP rendering from `HtmlConversionDocument`
-- [x] CSS-aware page layout, media queries, local/remote resource policy, font fallback, links, tables, images, and vector content
 - [x] PDF-to-HTML logical projection and result-bearing diagnostics
+- [x] Positioned review HTML with explicit font, image and page-appearance limits
+
+HTML-to-PDF and PDF-backed page images are included in [OfficeIMO.Html](OfficeIMO.Html/README.md).
 
 _Dependency footprint:_ only OfficeIMO HTML, PDF, and Drawing packages; no browser process or native HTML renderer.
 

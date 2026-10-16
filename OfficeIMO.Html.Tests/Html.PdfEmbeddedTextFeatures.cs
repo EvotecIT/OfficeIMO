@@ -6,6 +6,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.TestAssets;
+using OfficeIMO.Tests;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -69,7 +70,8 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        OfficeColor[] paints = PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes
+        OfficeColor[] paints = DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1))
+            .OfType<OfficeDrawingShape>()
             .Select(shape => shape.Shape.FillColor ?? OfficeColor.Transparent).ToArray();
 
         Assert.Contains(palette == "dark" ? OfficeColor.Yellow : OfficeColor.Red, paints);

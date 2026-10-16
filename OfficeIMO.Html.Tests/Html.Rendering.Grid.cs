@@ -667,6 +667,7 @@ public sealed partial class HtmlRenderingTests {
             diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported
             && diagnostic.Source == "div#nested");
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D),
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
@@ -945,6 +946,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='minimum' style='hyphens:" + hyphens + ";background:red'>" + content + "</span>"
             + "<span id='maximum' style='hyphens:" + hyphens + ";background:blue'>" + content + "</span></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 280D,
             Margins = HtmlRenderMargins.All(0D),
             TextHyphenationCallback = token => token == "typography" ? new[] { 4 } : Array.Empty<int>()
@@ -1055,7 +1057,7 @@ public sealed partial class HtmlRenderingTests {
             </div>
             <p style="margin:0">GridPdfMarker</p>
             """;
-        var options = new HtmlRenderOptions { ViewportWidth = 80D, Margins = HtmlRenderMargins.All(8D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 80D, Margins = HtmlRenderMargins.All(8D) };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
@@ -1067,8 +1069,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 10));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("<rect x=\"8\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
-        Assert.Contains("<rect x=\"38\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(33, 10));
+        Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(40, 10));
         Assert.Contains("GridPdfMarker", pdfText, StringComparison.Ordinal);
     }
 
@@ -1142,7 +1146,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(3, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
 
-        var options = new HtmlRenderOptions { ViewportWidth = 220D, Margins = HtmlRenderMargins.All(0D), MaxGridTracks = 2 };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 220D, Margins = HtmlRenderMargins.All(0D), MaxGridTracks = 2 };
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
             HtmlRenderTestDriver.Render("<div style='display:grid;grid-template-columns:repeat(3,1fr)'><span>A</span></div>", options));
         Assert.Equal(HtmlRenderDiagnosticCodes.GridTrackLimitExceeded, exception.Code);
@@ -1194,6 +1198,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             html.ToString(),
             new HtmlRenderOptions {
+                Mode = HtmlRenderMode.Continuous,
                 ViewportWidth = 100D,
                 Margins = HtmlRenderMargins.All(0D),
                 MaxLayoutOperations = 100_000
@@ -1206,7 +1211,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     private static HtmlRenderDocument RenderGrid(string html, double viewportWidth) =>
-        HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
 
     private static HtmlRenderShape FindGridShape(HtmlRenderDocument rendered, string source) =>
         Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(), shape => shape.Source == source && shape.Shape.FillColor.HasValue);

@@ -14,11 +14,13 @@ public sealed partial class HtmlRenderingTests {
             + "</style><p class='target'>Media marker</p>";
 
         HtmlRenderDocument medium = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             ViewportHeight = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
         HtmlRenderDocument wide = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 800D,
             ViewportHeight = 600D,
             Margins = HtmlRenderMargins.All(0D)
@@ -58,6 +60,7 @@ public sealed partial class HtmlRenderingTests {
             <p class="target">Static preferences</p>
             """;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             ViewportHeight = 200D,
             Margins = HtmlRenderMargins.All(0D),
@@ -181,9 +184,11 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument narrow = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D)
         });
         HtmlRenderDocument wide = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 816D, Margins = HtmlRenderMargins.All(0D)
         });
 
@@ -194,6 +199,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRender_AdditionalStylesheetsParticipateInTheBoundedAuthorCascade() {
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             ViewportHeight = 200D,
             Margins = HtmlRenderMargins.All(0D)
@@ -216,6 +222,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRender_AdditionalStylesheetsFollowBodyPositionedDocumentStyles() {
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             ViewportHeight = 200D,
             Margins = HtmlRenderMargins.All(0D)

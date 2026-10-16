@@ -40,6 +40,10 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(PagedImageHtml);
         var options = new HtmlRenderOptions { AllowSystemFontFallback = false, TargetDpi = dpi };
         var all = document.ExportImages(OfficeImageExportFormat.Png, options);
+        var pdfPages = document.ToPdfDocumentResult(new HtmlToPdfOptions(options)).ExportImages(
+            OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = dpi });
+        Assert.Equal(all.Count, pdfPages.Count);
+        for (int index = 0; index < all.Count; index++) Assert.Equal(pdfPages[index].Bytes, all[index].Bytes);
         var streamed = new List<OfficeImageExportResult>();
         await document.ExportImagesAsync(OfficeImageExportFormat.Png, async (image, token) => {
             await Task.Yield();
