@@ -6,6 +6,9 @@ using OfficeIMO.Security;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class PdfSigningWorkflowTests {
+    private static PdfEmbeddedFont AppearanceFont() => new(PdfStandardFont.Helvetica,
+        File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "RobotoFlex.ttf")), "Workflow signing font");
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -69,7 +72,7 @@ public sealed class PdfSigningWorkflowTests {
                 Operation = OfficeWorkflowOperation.SignPdf, InputPath = "content://signing/source",
                 InputStream = new("source.pdf", async token => { entered.TrySetResult(); await resume.Task.WaitAsync(token); return new MemoryStream(CreatePdf(), false); }),
                 OutputPath = Path.Combine(root, "signed.pdf"), OutputSigner = signer,
-                OutputSignatureOptions = new() { FieldName = "Captured", VisibleAppearance = new() { PageNumber = 2, Width = 100 } },
+                OutputSignatureOptions = new() { FieldName = "Captured", VisibleAppearance = new() { PageNumber = 2, Width = 100, Font = AppearanceFont() } },
                 OutputSignatureValidator = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default)
             };
             Task<OfficeWorkflowResult> pending = new OfficeWorkflowRunner().RunAsync(request);
@@ -89,9 +92,13 @@ public sealed class PdfSigningWorkflowTests {
             using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate);
             var verifier = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default);
             var options = new PdfExternalSignatureOptions { FieldName = "Approval", Reason = "Reviewed",
-                VisibleAppearance = new() { PageNumber = 2, X = 20, Y = 20, Width = 100, Height = 40, Text = "Reviewed copy" } };
+                VisibleAppearance = new() { PageNumber = 2, X = 20, Y = 20, Width = 100, Height = 40, Text = "Reviewed copy", Font = AppearanceFont(), ShowBackground = false, ShowBorder = false } };
             var builder = OfficeWorkflow.SignPdf(source, signer, options, verifier).To(Path.Combine(root, "signed.pdf"));
             options.FieldName = "Later"; options.VisibleAppearance.PageNumber = 1;
+            options.VisibleAppearance.Font = new PdfEmbeddedFont(PdfStandardFont.Helvetica, new byte[] { 1 });
+            var capturedAppearance = builder.Build().OutputSignatureOptions!.VisibleAppearance!;
+            Assert.False(capturedAppearance.ShowBackground);
+            Assert.False(capturedAppearance.ShowBorder);
             builder.Build().OutputSignatureOptions!.FieldName = "Another";
             var result = await builder.RunAsync();
             Assert.True(result.Succeeded, result.Summary); Assert.True(result.HealthReport!.Verified);
