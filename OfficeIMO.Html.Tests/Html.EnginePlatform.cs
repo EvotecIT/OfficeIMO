@@ -935,7 +935,7 @@ public partial class Html {
                     @media all { em.media { text-transform: uppercase; } }
                     @media not screen { em.media { text-transform: lowercase; } }
                     @media not print and (color) { em.media { white-space: pre-wrap; } }
-                    @media projection { em.media { font-style: italic; } }
+                    @media projection { em.media { font-style: normal; } }
                     @media not projection { em.media { font-size: 18px; } }
                     @media screen and (color) { em.media { direction: rtl; } }
                     @media screen and (max-width: 0px) { em.media { text-transform: lowercase; } }
@@ -985,7 +985,7 @@ public partial class Html {
         Assert.Equal("uppercase", styles[media].GetValue("text-transform"));
         Assert.Equal("underline", styles[media].GetValue("text-decoration-line"));
         Assert.Equal("pre-wrap", styles[media].GetValue("white-space"));
-        Assert.Equal(string.Empty, styles[media].GetValue("font-style"));
+        Assert.Equal("italic", styles[media].GetValue("font-style"));
         Assert.Equal("18px", styles[media].GetValue("font-size"));
         Assert.Equal("rtl", styles[media].GetValue("direction"));
         Assert.Equal(string.Empty, styles[reset].GetValue("color"));

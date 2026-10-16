@@ -620,10 +620,8 @@ internal static class HtmlSemanticDocumentBuilder {
                 }
             }
             return new InlineState(
-                style?.IsSpecifiedValue("font-weight") == true || style?.IsResetValue("font-weight") == true
-                    ? cssBold : Bold || name == "strong" || name == "b" || name == "th" || cssBold,
-                style?.IsSpecifiedValue("font-style") == true || style?.IsResetValue("font-style") == true
-                    ? cssItalic : Italic || name == "em" || name == "i" || cssItalic,
+                style != null ? cssBold : Bold || name == "strong" || name == "b" || name == "th",
+                style != null ? cssItalic : Italic || name == "em" || name == "i",
                 Underline || addsUnderline,
                 addsUnderline ? decorationStyle : UnderlineStyle,
                 Strikethrough || addsStrikethrough,
