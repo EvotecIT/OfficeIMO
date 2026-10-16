@@ -406,7 +406,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             semanticVisuals,
             effectiveBreakBefore,
             style.BreakAfter,
-            true,
+            style.AvoidBreakInside,
             source,
             breakOffsets,
             trailingGroups: trailingGroups,

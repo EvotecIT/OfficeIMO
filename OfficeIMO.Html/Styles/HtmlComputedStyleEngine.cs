@@ -577,6 +577,8 @@ public static partial class HtmlComputedStyleEngine {
             inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
         ApplyHtmlFontDefaults(element, properties, parentProperties, resolvedProperties,
             inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
+        ApplyHtmlTableAlignmentDefault(element, properties.ContainsKey("text-align"), parentProperties, resolvedProperties,
+            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
             specifiedProperties, cascadePriorities, cascadeTraces);
