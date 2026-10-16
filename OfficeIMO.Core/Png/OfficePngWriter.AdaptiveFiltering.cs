@@ -17,7 +17,7 @@ public static partial class OfficePngWriter {
     private static void WriteColorZlib(Stream destination, int width, int height, byte[]? rgba,
         ushort[]? rgba64, PngColorLayout layout, bool adaptive, CancellationToken token,
         Action<OfficeRasterEncodingCheckpoint>? observer, CompressionLevel? level = null,
-        PngColorWorkspace? workspace = null) {
+        PngColorWorkspace? workspace = null, bool sampledFilters = false) {
         int stride = layout.RowBytes(width), bpp = layout.FilterBytesPerPixel;
         EnsureColorWorkingSet(rgba?.LongLength ?? checked(rgba64!.LongLength * 2L), stride);
         workspace ??= new PngColorWorkspace(stride);
@@ -40,8 +40,9 @@ public static partial class OfficePngWriter {
                     long none = 0, sub = 0, upScore = 0, average = 0, paeth = 0;
                     // Score all predictors in one scan. Replaying just the winning
                     // filter avoids four candidate rows and repeated source walks.
-                    for (int i = 0; i < stride; i++) {
-                        CheckColorBlock(i, token, observer);
+                    for (int i = 0, step = sampledFilters ? Math.Max(1, stride / 128) : 1; i < stride; i += step) {
+                        if (sampledFilters) token.ThrowIfCancellationRequested();
+                        else CheckColorBlock(i, token, observer);
                         int value = current[i], left = i >= bpp ? current[i - bpp] : 0;
                         int up = previous[i], upperLeft = i >= bpp ? previous[i - bpp] : 0;
                         none += SignedMagnitude(value);

@@ -85,7 +85,7 @@ public static partial class OfficePngWriter {
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
             cancellationToken,
-            checkpointObserver, requireRgbColorSpace: options.RequireRgbColorSpace, requireGrayColorSpace: options.RequireGrayColorSpace);
+            checkpointObserver, requireRgbColorSpace: options.RequireRgbColorSpace, requireGrayColorSpace: options.RequireGrayColorSpace, effort: options.Effort);
     }
 
 #if NET8_0_OR_GREATER
@@ -120,9 +120,11 @@ public static partial class OfficePngWriter {
         double? dpiY,
         System.Threading.CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null,
-        bool requireRgbColorSpace = false, bool requireGrayColorSpace = false) {
+        bool requireRgbColorSpace = false, bool requireGrayColorSpace = false,
+        OfficeImageEncodingEffort effort = OfficeImageEncodingEffort.Balanced) {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateRgba(width, height, rgba);
+        ValidatePngEffort(effort);
         OfficeRasterOutput.EnsureWritable(destination);
         if (compression != OfficePngCompression.Optimal && compression != OfficePngCompression.Stored && compression != OfficePngCompression.Fastest) {
             throw new ArgumentOutOfRangeException(nameof(compression));
@@ -130,7 +132,7 @@ public static partial class OfficePngWriter {
 
         if (compression == OfficePngCompression.Optimal || requireGrayColorSpace) {
             EncodeAdaptiveRgba(width, height, rgba, destination, dpiX, dpiY,
-                cancellationToken, checkpointObserver, requireRgbColorSpace, requireGrayColorSpace, compression);
+                cancellationToken, checkpointObserver, requireRgbColorSpace, requireGrayColorSpace, compression, effort);
             return;
         }
         destination.Write(PngSignature, 0, PngSignature.Length);

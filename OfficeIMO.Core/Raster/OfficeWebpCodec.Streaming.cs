@@ -71,7 +71,8 @@ public static partial class OfficeWebpCodec {
         CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null,
         long additionalRetainedManagedBytes = 0L,
-        bool materializeOutput = false) {
+        bool materializeOutput = false,
+        OfficeImageEncodingEffort effort = OfficeImageEncodingEffort.Balanced) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (additionalRetainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(additionalRetainedManagedBytes));
         OfficeRasterOutput.EnsureWritable(destination);
@@ -94,7 +95,7 @@ public static partial class OfficeWebpCodec {
                 ? checked(OfficeRasterOutput.GetMemoryStreamBackingBytes(memory!) + 24L) : 0L;
             compressedPayload = TryEncodeCompressedVp8l(image.Width, image.Height, hasAlpha, pixels,
                 GetFileLength(literalPayloadLength, exif?.Length ?? 0), exif?.LongLength ?? 0L,
-                checked(additionalRetainedManagedBytes + retainedOutput + 128L), cancellationToken, checkpointObserver);
+                checked(additionalRetainedManagedBytes + retainedOutput + 128L), cancellationToken, checkpointObserver, effort);
         } catch (OverflowException) {
             throw new ArgumentException("WebP encoding exceeds the managed working-set limit.", nameof(image));
         }

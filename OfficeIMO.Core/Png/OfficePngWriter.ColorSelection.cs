@@ -35,7 +35,7 @@ public static partial class OfficePngWriter {
 
     private static void EncodeAdaptiveRgba(int width, int height, byte[] rgba, Stream output,
         double? dpiX, double? dpiY, CancellationToken token,
-        Action<OfficeRasterEncodingCheckpoint>? observer, bool requireRgbColorSpace, bool requireGrayColorSpace, OfficePngCompression compression) {
+        Action<OfficeRasterEncodingCheckpoint>? observer, bool requireRgbColorSpace, bool requireGrayColorSpace, OfficePngCompression compression, OfficeImageEncodingEffort effort) {
         bool gray = true, opaque = true, one = true, two = true, four = true;
         Dictionary<uint, int>? palette = new Dictionary<uint, int>();
         for (int i = 0; i < rgba.Length; i += 4) {
@@ -62,6 +62,19 @@ public static partial class OfficePngWriter {
         if (compression != OfficePngCompression.Optimal) {
             WriteColorPng(output, width, height, rgba, null, layout, false, dpiX, dpiY, token, observer,
                 level: compression == OfficePngCompression.Fastest ? CompressionLevel.Fastest : CompressionLevel.NoCompression);
+            return;
+        }
+        if (effort != OfficeImageEncodingEffort.Smallest) {
+            // Select by packed sample storage, including palette overhead. This is a
+            // cheap size estimate, not a second compression of the same pixels.
+            if (palette != null && !requireGrayColorSpace) {
+                var indexed = new PngColorLayout(3, palette.Count <= 2 ? 1 : palette.Count <= 4 ? 2 : palette.Count <= 16 ? 4 : 8, palette);
+                if ((long)indexed.RowBytes(width) * height + indexed.MetadataBytes < (long)layout.RowBytes(width) * height)
+                    layout = indexed;
+            }
+            WriteColorPng(output, width, height, rgba, null, layout, true, dpiX, dpiY, token, observer,
+                level: effort == OfficeImageEncodingEffort.Fast ? CompressionLevel.Fastest : CompressionLevel.Optimal,
+                sampledFilters: true);
             return;
         }
         // Compare actual deflated output rather than choosing a palette merely
@@ -93,7 +106,7 @@ public static partial class OfficePngWriter {
     private static void WriteColorPng(Stream output, int width, int height, byte[]? rgba,
         ushort[]? rgba64, PngColorLayout layout, bool adaptive, double? dpiX, double? dpiY,
         CancellationToken token, Action<OfficeRasterEncodingCheckpoint>? observer,
-        PngColorWorkspace? workspace = null, CompressionLevel? level = null) {
+        PngColorWorkspace? workspace = null, CompressionLevel? level = null, bool sampledFilters = false) {
         token.ThrowIfCancellationRequested();
         output.Write(PngSignature, 0, PngSignature.Length);
         WriteChunk(output, "IHDR", BuildIhdr(width, height, layout.Depth, layout.Type));
@@ -111,9 +124,14 @@ public static partial class OfficePngWriter {
             if (alpha.Length != 0) WriteChunk(output, "tRNS", alpha);
         }
         var idat = new PngIdatChunkStream(output, StreamingIdatChunkSize);
-        WriteColorZlib(idat, width, height, rgba, rgba64, layout, adaptive, token, observer, level, workspace);
+        WriteColorZlib(idat, width, height, rgba, rgba64, layout, adaptive, token, observer, level, workspace, sampledFilters);
         token.ThrowIfCancellationRequested(); idat.Complete();
         WriteChunk(output, "IEND", Array.Empty<byte>());
+    }
+
+    private static void ValidatePngEffort(OfficeImageEncodingEffort effort) {
+        if (effort != OfficeImageEncodingEffort.Fast && effort != OfficeImageEncodingEffort.Balanced && effort != OfficeImageEncodingEffort.Smallest)
+            throw new ArgumentOutOfRangeException(nameof(effort));
     }
 
     private static long ColorPayloadBytes(long compressedBytes) =>

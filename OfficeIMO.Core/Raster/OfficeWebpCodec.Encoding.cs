@@ -17,7 +17,8 @@ public static partial class OfficeWebpCodec {
         long metadataBytes,
         long additionalRetainedManagedBytes,
         CancellationToken cancellationToken,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null,
+        OfficeImageEncodingEffort effort = OfficeImageEncodingEffort.Balanced) {
         try {
             // Compression is optional. Keep one pixel workspace, bounded match chains and
             // transform maps; reject the candidate before allocating if its growth peak
@@ -35,29 +36,44 @@ public static partial class OfficeWebpCodec {
                     metadataBytes, additionalRetainedManagedBytes)) return null;
 
             var residuals = new uint[rgba.Length / 4];
-            var matches = new Vp8lEncodingMatches();
+            var matches = new Vp8lEncodingMatches(effort == OfficeImageEncodingEffort.Fast ? 1 : effort == OfficeImageEncodingEffort.Balanced ? 4 : 16);
             FillVp8lSourcePixels(rgba, residuals, cancellationToken, checkpointObserver);
-            bool rawSubtractGreen = SelectVp8lSubtractGreen(residuals, cancellationToken);
-            Vp8lEncodingPlan rawPlan = SelectVp8lEncodingPlan(residuals, width, matches, cancellationToken);
-            long rawBits = rawPlan.BitCount + (rawSubtractGreen ? 3 : 0);
-
-            uint[] predictors = CreateVp8lBlockResiduals(width, height, rgba, residuals, cancellationToken);
-            bool subtractGreen = SelectVp8lSubtractGreen(residuals, cancellationToken);
-            uint[] colors = SelectVp8lColorTransform(width, height, residuals, cancellationToken);
-            Vp8lEncodingPlan plan = SelectVp8lEncodingPlan(residuals, width, matches, cancellationToken);
+            bool usePrediction = false, subtractGreen;
             int mapWidth = DivideRoundUp(width, 32);
-            Vp8lEncodingPlan predictorPlan = CreateVp8lEncodingPlan(predictors, mapWidth, matches, 0, cancellationToken);
-            Vp8lEncodingPlan? colorPlan = colors.Length == 0 ? null
-                : CreateVp8lEncodingPlan(colors, mapWidth, matches, 0, cancellationToken);
-            // Subimages omit the main image's meta-prefix flag (one bit).
-            long transformedBits = plan.BitCount + 6 + predictorPlan.BitCount - 1 +
-                (subtractGreen ? 3 : 0) + (colorPlan == null ? 0 : 6 + colorPlan.BitCount - 1);
-            bool usePrediction = transformedBits < rawBits;
-            if (!usePrediction) {
-                FillVp8lSourcePixels(rgba, residuals, cancellationToken);
-                if (rawSubtractGreen) ApplyVp8lSubtractGreen(residuals, cancellationToken);
-                subtractGreen = rawSubtractGreen;
-                plan = rawPlan;
+            uint[] predictors = Array.Empty<uint>(), colors = Array.Empty<uint>();
+            Vp8lEncodingPlan plan;
+            Vp8lEncodingPlan? predictorPlan = null, colorPlan = null;
+            if (effort != OfficeImageEncodingEffort.Smallest) {
+                usePrediction = effort == OfficeImageEncodingEffort.Balanced && ShouldUseVp8lPrediction(width, rgba, cancellationToken);
+                if (usePrediction) {
+                    predictors = CreateVp8lBlockResiduals(width, height, rgba, residuals, cancellationToken, quick: true);
+                    predictorPlan = CreateVp8lEncodingPlan(predictors, mapWidth, matches, 0, cancellationToken);
+                }
+                subtractGreen = effort == OfficeImageEncodingEffort.Balanced && SelectVp8lSubtractGreen(residuals, cancellationToken);
+                plan = CreateVp8lEncodingPlan(residuals, width, matches, 8, cancellationToken);
+            } else {
+                bool rawSubtractGreen = SelectVp8lSubtractGreen(residuals, cancellationToken);
+                Vp8lEncodingPlan rawPlan = SelectVp8lEncodingPlan(residuals, width, matches, cancellationToken);
+                long rawBits = rawPlan.BitCount + (rawSubtractGreen ? 3 : 0);
+
+                predictors = CreateVp8lBlockResiduals(width, height, rgba, residuals, cancellationToken);
+                subtractGreen = SelectVp8lSubtractGreen(residuals, cancellationToken);
+                colors = SelectVp8lColorTransform(width, height, residuals, cancellationToken);
+                plan = SelectVp8lEncodingPlan(residuals, width, matches, cancellationToken);
+                predictorPlan = CreateVp8lEncodingPlan(predictors, mapWidth, matches, 0, cancellationToken);
+                colorPlan = colors.Length == 0 ? null
+                    : CreateVp8lEncodingPlan(colors, mapWidth, matches, 0, cancellationToken);
+                // Subimages omit the main image's meta-prefix flag (one bit).
+                long transformedBits = plan.BitCount + 6 + predictorPlan.BitCount - 1 +
+                    (subtractGreen ? 3 : 0) + (colorPlan == null ? 0 : 6 + colorPlan.BitCount - 1);
+                usePrediction = transformedBits < rawBits;
+                if (!usePrediction) {
+                    FillVp8lSourcePixels(rgba, residuals, cancellationToken);
+                    if (rawSubtractGreen) ApplyVp8lSubtractGreen(residuals, cancellationToken);
+                    subtractGreen = rawSubtractGreen;
+                    plan = rawPlan;
+                }
+
             }
 
             var writer = new DynamicLsbBitWriter(Math.Max(128, rgba.Length / 4), maximumBitsBytes);
@@ -69,7 +85,7 @@ public static partial class OfficeWebpCodec {
                 writer.WriteBits(1, 1);
                 writer.WriteBits(0, 2); // predictor, applied first during encoding
                 writer.WriteBits(3, 3); // 32 x 32 blocks
-                WriteVp8lEncodingImage(writer, predictors, mapWidth, matches, predictorPlan, false, cancellationToken);
+                WriteVp8lEncodingImage(writer, predictors, mapWidth, matches, predictorPlan!, false, cancellationToken);
             }
             if (subtractGreen) {
                 writer.WriteBits(1, 1);

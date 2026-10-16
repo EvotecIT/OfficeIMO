@@ -10,6 +10,10 @@ public enum OfficeWebpEncodingMode {
 
 /// <summary>Controls managed WebP encoding.</summary>
 public sealed class OfficeWebpEncodeOptions {
+    /// <summary>Lossless encoding effort. Balanced is the default; Smallest opts into candidate searches.</summary>
+    /// <remarks>Applies to lossless VP8L; lossy quality is controlled separately.</remarks>
+    public OfficeImageEncodingEffort Effort { get; set; } = OfficeImageEncodingEffort.Balanced;
+
     /// <summary>The compression mode. Lossless preserves the existing default encoding contract.</summary>
     public OfficeWebpEncodingMode Mode { get; set; } = OfficeWebpEncodingMode.Lossless;
 

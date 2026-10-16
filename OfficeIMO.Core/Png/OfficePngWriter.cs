@@ -10,8 +10,8 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public enum OfficePngCompression {
     /// <summary>
-    /// Select exact grayscale, RGB, RGBA, or indexed samples and compare adaptive
-    /// and unfiltered rows using optimal deflate compression. All RGBA values,
+    /// Select exact grayscale, RGB, RGBA, or indexed samples and compress
+    /// according to the selected encoding effort. All RGBA values,
     /// including hidden colors under transparent pixels, are preserved.
     /// </summary>
     Optimal,
@@ -85,7 +85,7 @@ public static partial class OfficePngWriter {
             width, height, rgba, options.Compression,
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
-            System.Threading.CancellationToken.None, options.RequireRgbColorSpace, options.RequireGrayColorSpace);
+            System.Threading.CancellationToken.None, options.RequireRgbColorSpace, options.RequireGrayColorSpace, options.Effort);
     }
 
     /// <summary>

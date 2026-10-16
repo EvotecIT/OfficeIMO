@@ -17,6 +17,7 @@ public static partial class OfficePngWriter {
         if (rgba == null) throw new ArgumentNullException(nameof(rgba));
         if (rgba.LongLength != checked((long)width * height * 4)) throw new ArgumentException("RGBA sample count must match the dimensions.", nameof(rgba));
         options ??= new OfficePngEncodeOptions();
+        ValidatePngEffort(options.Effort);
         if (options.Compression != OfficePngCompression.Optimal) throw new ArgumentException("16-bit encoding requires optimal compression.", nameof(options));
         ValidateDpi(options.DpiX, nameof(options.DpiX)); ValidateDpi(options.DpiY, nameof(options.DpiY));
         OfficeRasterGuards.EnsureOutputPixels(width, height, "PNG dimensions exceed the managed image limit.");
@@ -32,7 +33,9 @@ public static partial class OfficePngWriter {
         WriteColorPng(output, width, height, null, rgba, layout, true,
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
-            cancellationToken, null);
+            cancellationToken, null,
+            level: options.Effort == OfficeImageEncodingEffort.Smallest ? null : options.Effort == OfficeImageEncodingEffort.Fast ? System.IO.Compression.CompressionLevel.Fastest : System.IO.Compression.CompressionLevel.Optimal,
+            sampledFilters: options.Effort != OfficeImageEncodingEffort.Smallest);
         return output.ToArray();
     }
 }

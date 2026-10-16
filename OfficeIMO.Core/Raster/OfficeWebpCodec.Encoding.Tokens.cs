@@ -43,6 +43,10 @@ public static partial class OfficeWebpCodec {
 
     /// <summary>Fixed-size hash chains bound both lookback storage and search work.</summary>
     private sealed class Vp8lEncodingMatches {
+        private readonly int _maximumAttempts;
+
+        internal Vp8lEncodingMatches(int maximumAttempts = 16) => _maximumAttempts = maximumAttempts;
+
         private readonly int[] _heads = new int[Vp8lMatchTableMaximumEntries];
         private readonly int[] _previous = new int[Vp8lMatchTableMaximumEntries];
 
@@ -65,7 +69,7 @@ public static partial class OfficeWebpCodec {
             if (position + 2 >= pixels.Length) return;
             int candidate = _heads[Hash(pixels, position)] - 1;
             int maximum = Math.Min(4096, pixels.Length - position);
-            for (int attempt = 0; attempt < 16 && candidate >= 0; attempt++) {
+            for (int attempt = 0; attempt < _maximumAttempts && candidate >= 0; attempt++) {
                 int offset = position - candidate;
                 if (offset > Vp8lMatchTableMaximumEntries || offset <= 0) break;
                 if (pixels[position] == pixels[candidate] &&

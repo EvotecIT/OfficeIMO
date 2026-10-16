@@ -17,7 +17,7 @@ public static partial class OfficeWebpCodec {
 
     /// <summary>Selects a predictor per 32-pixel block without retaining another full image.</summary>
     private static uint[] CreateVp8lBlockResiduals(int width, int height, byte[] rgba,
-        uint[] residuals, CancellationToken cancellationToken) {
+        uint[] residuals, CancellationToken cancellationToken, bool quick = false) {
         int columns = DivideRoundUp(width, 32);
         int rows = DivideRoundUp(height, 32);
         var modes = new uint[columns * rows];
@@ -30,11 +30,11 @@ public static partial class OfficeWebpCodec {
                 long bestScore = long.MaxValue;
                 // Sample a fixed grid to bound mode search. Mode 12 wins ties so
                 // flat areas and gradients don't acquire arbitrary mode changes.
-                for (int choice = 0; choice < 14; choice++) {
-                    int mode = choice == 0 ? 12 : choice <= 12 ? choice - 1 : 13;
+                for (int choice = 0; choice < (quick ? 3 : 14); choice++) {
+                    int mode = quick ? choice == 0 ? 12 : choice : choice == 0 ? 12 : choice <= 12 ? choice - 1 : 13;
                     long score = 0;
-                    for (int y = startY; y < endY; y += 4) {
-                        for (int x = startX; x < endX; x += 4) {
+                    for (int y = startY; y < endY; y += quick ? 8 : 4) {
+                        for (int x = startX; x < endX; x += quick ? 8 : 4) {
                             uint value = PackRgba(rgba, (y * width + x) * 4);
                             uint difference = SubtractArgb(value, PredictVp8lSource(rgba, width, x, y, mode));
                             score += Vp8lResidualScore(difference);
@@ -53,6 +53,20 @@ public static partial class OfficeWebpCodec {
             }
         }
         return modes;
+    }
+
+    // A fixed sample bounds the Balanced decision without encoding both candidates.
+    // Include every alpha sample and the format's actual edge predictor semantics.
+    private static bool ShouldUseVp8lPrediction(int width, byte[] rgba, CancellationToken token) {
+        long rawScore = 0, predictedScore = 0;
+        int count = rgba.Length / 4;
+        for (int i = 0, step = Math.Max(1, count / 4096); i < count; i += step) {
+            token.ThrowIfCancellationRequested();
+            uint value = PackRgba(rgba, i * 4);
+            rawScore += Vp8lResidualScore(value);
+            predictedScore += Vp8lResidualScore(SubtractArgb(value, PredictVp8lSource(rgba, width, i % width, i / width, 12)));
+        }
+        return predictedScore * 4 < rawScore * 3;
     }
 
     private static uint PredictVp8lSource(byte[] rgba, int width, int x, int y, int mode) {
