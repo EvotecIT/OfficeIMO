@@ -190,7 +190,7 @@ internal static partial class PdfFormFiller {
         }
     }
 
-    private static void MaterializeEmbeddedTextAppearanceFont(
+    internal static void MaterializeEmbeddedTextAppearanceFont(
         Dictionary<int, PdfIndirectObject> objects,
         PdfTrueTypeFontProgram fontProgram,
         int fontFileObjectNumber,

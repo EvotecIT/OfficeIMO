@@ -3,8 +3,8 @@ using System.Text;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static void BuildGeneratedStructTree(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int structTreeRootId, string? documentLanguage) {
-        if (!pages.Any(page => page.StructElements.Count > 0)) {
+    private static void BuildGeneratedStructTree(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int structTreeRootId, string? documentLanguage, bool pdf20 = false) {
+        if (!pdf20 && !pages.Any(page => page.StructElements.Count > 0)) {
             ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildEmptyStructTreeRootDictionary());
             return;
         }
@@ -19,6 +19,9 @@ internal static partial class PdfWriter {
             }
         }
 
+        int? namespaceId = pdf20 ? AddObject(objects, "<< /Type /Namespace /NS (http://iso.org/pdf2/ssn) >>\n") : null;
+        var structureParents = BuildStructureParents(pages);
+        var tableHeaders = BuildTableHeaderAssociations(pages, structureParents);
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             LayoutResult.Page page = pages[pageIndex];
             if (page.StructElements.Count == 0) {
@@ -40,6 +43,7 @@ internal static partial class PdfWriter {
                     element.ParentElementIndex.Value < page.StructElements.Count
                         ? page.StructElements[element.ParentElementIndex.Value].ObjectId
                         : documentStructElementId;
+                tableHeaders.TryGetValue(element, out var headers);
                 string structElement;
                 if (element.AnnotationObjectId.HasValue) {
                     structElement = PdfStructTreeRootDictionaryBuilder.BuildAnnotationStructElement(
@@ -72,7 +76,7 @@ internal static partial class PdfWriter {
                             element.TableRowSpan,
                             element.AdditionalMarkedContentIds,
                             contentStreamObjectId,
-                            additionalContentStreamObjectIds);
+                            additionalContentStreamObjectIds, tableHeaders: headers);
                 } else {
                     structElement = PdfStructTreeRootDictionaryBuilder.BuildContainerStructElement(
                         parentObjectId,
@@ -85,9 +89,12 @@ internal static partial class PdfWriter {
                         element.AlternativeText,
                         includePageReference: !element.SpansPages,
                         associatedFileIds: element.AssociatedFileIds,
-                        elementId: element.StructureType == "Note" ? NoteStructureId(element.ObjectId) : null);
+                        tableHeaders: headers);
                 }
 
+                string? language = element.Language;
+                if (string.Equals(language, InheritedStructureLanguage(element, structureParents, documentLanguage), StringComparison.OrdinalIgnoreCase)) language = null;
+                structElement = PdfStructTreeRootDictionaryBuilder.WithStructureMetadata(structElement, namespaceId, language, StructureId(element));
                 ReplaceObject(objects, element.ObjectId, structElement);
             }
 
@@ -138,19 +145,14 @@ internal static partial class PdfWriter {
         }
 
         List<int> documentChildElementIds = OrderStructureChildren(documentChildren);
-        if (documentChildElementIds.Count == 0) {
-            ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildEmptyStructTreeRootDictionary());
-            ReplaceObject(objects, documentStructElementId, PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(structTreeRootId, documentChildElementIds, documentLanguage));
-            return;
-        }
-
-        ReplaceObject(objects, documentStructElementId, PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(structTreeRootId, documentChildElementIds, documentLanguage));
-        int parentTreeId = AddObject(objects, PdfStructTreeRootDictionaryBuilder.BuildParentTree(parentTreeEntries));
+        string documentElement = PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(structTreeRootId, documentChildElementIds, documentLanguage);
+        ReplaceObject(objects, documentStructElementId, PdfStructTreeRootDictionaryBuilder.WithStructureMetadata(documentElement, namespaceId));
+        int parentTreeId = AddObject(objects, PdfStructTreeRootDictionaryBuilder.BuildParentTree(parentTreeEntries, value => AddObject(objects, value)));
         int parentTreeNextKey = parentTreeEntries.Count == 0
             ? 0
             : parentTreeEntries.Max(entry => entry.StructParentIndex) + 1;
         ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(new[] { documentStructElementId }, parentTreeId, parentTreeNextKey,
-            pages.SelectMany(page => page.StructElements).Select(element => element.StructureType), BuildNoteIdTree(objects, pages)));
+            pages.SelectMany(page => page.StructElements).Select(element => element.StructureType), BuildStructureIdTree(objects, pages), namespaceId));
     }
 
     private static List<int> StructureChildren(IReadOnlyList<LayoutResult.Page> pages,
@@ -182,14 +184,14 @@ internal static partial class PdfWriter {
     // Object numbers provide document-local uniqueness, including notes repeated across pages.
     private static string NoteStructureId(int objectId) => "note-" + objectId.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    private static int? BuildNoteIdTree(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages) {
+    private static int? BuildStructureIdTree(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages) {
         var notes = pages.SelectMany(page => page.StructElements)
-            .Where(element => element.StructureType == "Note")
-            .OrderBy(element => NoteStructureId(element.ObjectId), StringComparer.Ordinal).ToArray();
+            .Where(element => StructureId(element) != null)
+            .OrderBy(element => StructureId(element), StringComparer.Ordinal).ToArray();
         if (notes.Length == 0) return null;
         var names = new StringBuilder("<< /Names [");
         foreach (var note in notes) {
-            names.Append(PdfSyntaxEscaper.TextString(NoteStructureId(note.ObjectId))).Append(' ')
+            names.Append(PdfSyntaxEscaper.TextString(StructureId(note)!)).Append(' ')
                 .Append(PdfSyntaxEscaper.IndirectReference(note.ObjectId)).Append(' ');
         }
         return AddObject(objects, names.Append("] >>\n").ToString());

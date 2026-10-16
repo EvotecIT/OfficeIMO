@@ -363,6 +363,7 @@ public class PdfIncrementalInputLimitTests {
         };
         var signatureOptions = new PdfExternalSignatureOptions {
             VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
+                Font = PdfSignatureTestFonts.LoadAppearanceFont(),
                 Text = new string('A', sourceMaximumStream + 256)
             }
         };
@@ -428,7 +429,7 @@ public class PdfIncrementalInputLimitTests {
         };
         var options = new PdfExternalSignatureOptions {
             MaxInputBytes = source.LongLength,
-            VisibleAppearance = new PdfVisibleSignatureAppearanceOptions { Text = "Signed" }
+            VisibleAppearance = new PdfVisibleSignatureAppearanceOptions { Text = "Signed", Font = PdfSignatureTestFonts.LoadAppearanceFont() }
         };
 
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(

@@ -13,6 +13,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             })) {
                 bool sawRoot = false;
                 string? invoiceCurrencyCode = null;
+                string? taxCurrencyCode = null;
                 var amountCurrencyMarkers = new List<PdfCiiCurrencyAmountMarker>();
 
                 while (reader.Read()) {
@@ -26,6 +27,11 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                             diagnostic = "Attach UN/CEFACT CrossIndustryInvoice XML in factur-x.xml.";
                             return false;
                         }
+                    }
+
+                    if (string.Equals(reader.LocalName, "TaxCurrencyCode", StringComparison.Ordinal)) {
+                        taxCurrencyCode = ReadElementText(reader).Trim();
+                        continue;
                     }
 
                     if (string.Equals(reader.LocalName, "InvoiceCurrencyCode", StringComparison.Ordinal)) {
@@ -48,12 +54,12 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 }
 
                 BuildCurrencyDiagnostics(
-                    invoiceCurrencyCode,
+                    invoiceCurrencyCode, taxCurrencyCode,
                     amountCurrencyMarkers,
                     out IReadOnlyList<string> amountFieldsWithoutCurrency,
                     out IReadOnlyList<string> mismatchedAmountCurrencyFields);
                 evidence = new PdfCiiCurrencyConsistencyEvidence(
-                    invoiceCurrencyCode,
+                    invoiceCurrencyCode, taxCurrencyCode,
                     GetAmountCurrencyCodes(amountCurrencyMarkers),
                     amountCurrencyMarkers.Count > 0,
                     amountFieldsWithoutCurrency,
@@ -68,13 +74,14 @@ internal static partial class PdfCiiDocumentHeaderInspector {
     }
 
     private static void BuildCurrencyDiagnostics(
-        string? invoiceCurrencyCode,
+        string? invoiceCurrencyCode, string? taxCurrencyCode,
         List<PdfCiiCurrencyAmountMarker> amountCurrencyMarkers,
         out IReadOnlyList<string> amountFieldsWithoutCurrency,
         out IReadOnlyList<string> mismatchedAmountCurrencyFields) {
         var missing = new List<string>();
         var mismatched = new List<string>();
         string? normalizedInvoiceCurrency = NormalizeCurrencyCode(invoiceCurrencyCode);
+        string? normalizedTaxCurrency = NormalizeCurrencyCode(taxCurrencyCode);
 
         for (int i = 0; i < amountCurrencyMarkers.Count; i++) {
             PdfCiiCurrencyAmountMarker marker = amountCurrencyMarkers[i];
@@ -84,7 +91,9 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             }
 
             if (normalizedInvoiceCurrency != null &&
-                !string.Equals(normalizedAmountCurrency, normalizedInvoiceCurrency, StringComparison.Ordinal)) {
+                !string.Equals(normalizedAmountCurrency, normalizedInvoiceCurrency, StringComparison.Ordinal) &&
+                !(marker.FieldName == "TaxTotalAmount" && normalizedTaxCurrency != null &&
+                    string.Equals(normalizedAmountCurrency, normalizedTaxCurrency, StringComparison.Ordinal))) {
                 mismatched.Add(marker.FieldName + " currencyID " + normalizedAmountCurrency);
             }
         }

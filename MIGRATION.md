@@ -1,5 +1,25 @@
 # Upgrading OfficeIMO
 
+## Strict PDF standards helpers
+
+`PdfOptions.UsePdfA(...)` and `UsePdfUa(...)` enable the strict compliance gate. Saving rejects missing font embedding, accessibility prerequisites and incompatible combined profile declarations; every declared A/UA profile is checked against the saved bytes. Applications that only prepare metadata can use `ConfigurePdfAGroundwork(...)` and `ConfigurePdfUaGroundwork(...)` instead. External validation remains necessary for a conformance claim on an exact artifact.
+
+PDF/A-4, PDF/A-4e, PDF/A-4f and PDF/UA-2 use PDF 2.0. PDF/A-4 metadata lives in XMP; callers reading only trailer Info fields should read `PdfDocument.Load(bytes).Inspect().XmpMetadata`.
+
+Hybrid invoice generation supports only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally combined with PDF/UA-1, and preserves those configured profiles. Replace PDF/A-4, PDF/A-4e or PDF/A-4f hybrid options with a supported PDF/A-3 profile, and replace PDF/UA-2 with PDF/UA-1 for hybrids. Use presentation-only output when invoice XML is not required; general PDF/A-4, PDF/A-4e and PDF/A-4f output remains available. Saved PDF/A-4f attachments cannot satisfy Factur-X/ZUGFeRD compliance proof.
+
+## Lossless PDF optimization
+
+The optimizer preserves XMP packets, embedded-file streams and output-intent ICC streams without changing their encoding or contents, and retains the source Info dictionary only when it exists. PDF/A-1 inputs reject object-stream or xref-stream settings; use `Balanced`, `Archival` or `Web`, or set `UseObjectStreams = false` and `XrefFormat = ClassicTable`. Inputs with filtered XMP metadata are rejected before output is written because the optimizer cannot both remove its filter and preserve the packet encoding. Object/xref-stream settings also reject unreadable XMP because its declared profile cannot be established safely; use classic cross references or supply metadata within the supported XML read limits. Signed files remain blocked: optimize before signing.
+
+## PAdES signatures and visible text
+
+`PdfCmsExternalSigner` honors the prepared subfilter. `CadesDetached` creates PAdES baseline CMS with a signing-certificate-v2 attribute and without CMS signing-time; SHA-1 and encapsulated content are rejected for this profile. RSA and ECDSA signing use platform key handles. `DetachedCms` retains its CMS signing-time behavior. Document timestamps require an RFC 3161 signer rather than the detached CMS adapter.
+
+Visible text appearances require `PdfVisibleSignatureAppearanceOptions.Font` with an embedded TrueType font. Supply the font explicitly; the writer rejects missing fonts instead of emitting unembedded Helvetica. Image-only appearances with `ShowText = false` do not need a text font.
+
+For B-T, provide `CmsSigningOptions.SignatureTimestampProvider`, for example `Rfc3161TimestampClient.GetTimestamp`. The client accepts caller-owned HTTP transport and trust policy, checks nonce, imprint and TSA signature, and returns the token for the CMS unsigned attribute. Optional evidence fetching uses `PdfLongTermValidationEnricher.EnrichAsync`; existing caller-supplied DSS/VRI enrichment remains available. Embedded certificates and revocation data alone do not establish a complete trusted B-LT validation path.
+
 ## PDF text output and embedded fonts
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.

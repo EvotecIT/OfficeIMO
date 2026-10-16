@@ -127,10 +127,7 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         string appearanceText = string.IsNullOrWhiteSpace(options.Text) ? fieldName : options.Text!;
-        if (options.ShowText && !PdfWinAnsiEncoding.CanEncode(appearanceText, out int unsupportedIndex, cancellationToken)) {
-            char unsupportedCharacter = appearanceText[unsupportedIndex];
-            throw new ArgumentException("Visible signature text contains unsupported Helvetica character '" + unsupportedCharacter + "'.", nameof(options));
-        }
+
 
         PdfWriter.PdfImageStream? imageStream = null;
         int? imageObjectNumber = null;
@@ -169,12 +166,18 @@ internal static partial class PdfIncrementalUpdater {
             changedObjects.Add(imageObjectNumber.Value);
         }
 
+        PdfReference? fontReference = null;
+        string? encodedText = null;
+        if (options.ShowText && options.Font is not null) {
+            fontReference = CreateSignatureAppearanceFont(options.Font, appearanceText, objects,
+                ref nextObjectNumber, changedObjects, out encodedText);
+        }
         int appearanceObjectNumber = nextObjectNumber++;
 
         objects[appearanceObjectNumber] = new PdfIndirectObject(
             appearanceObjectNumber,
             0,
-            BuildVisibleAppearanceStream(options, appearanceText, imageStream, imageObjectNumber));
+            BuildVisibleAppearanceStream(options, imageStream, imageObjectNumber, fontReference, encodedText));
         changedObjects.Add(appearanceObjectNumber);
 
         PdfArray annotations = EnsurePageAnnotations(objects, pageDictionary, changedObjects);
@@ -229,14 +232,14 @@ internal static partial class PdfIncrementalUpdater {
 
     private static PdfStream BuildVisibleAppearanceStream(
         PdfVisibleSignatureAppearanceOptions options,
-        string text,
         PdfWriter.PdfImageStream? imageStream,
-        int? imageObjectNumber) {
+        int? imageObjectNumber,
+        PdfReference? embeddedFont,
+        string? encodedText) {
         var resources = new PdfDictionary();
         if (options.ShowText) {
-            PdfDictionary font = PdfStandardFontDictionaryBuilder.BuildStandardType1FontDictionary(PdfStandardFont.Helvetica);
             var fonts = new PdfDictionary();
-            fonts.Items["F1"] = font;
+            fonts.Items["F1"] = embeddedFont ?? throw new InvalidOperationException("The embedded signature appearance font was not prepared.");
             resources.Items["Font"] = fonts;
         }
         if (imageObjectNumber.HasValue) {
@@ -292,7 +295,7 @@ internal static partial class PdfIncrementalUpdater {
             double textY = Math.Max(2, (options.Height - options.FontSize) / 2);
             content.Append("BT ").Append(FormatColor(options.TextColor)).Append(" rg /F1 ")
                 .Append(Format(options.FontSize)).Append(" Tf 6 ").Append(Format(textY))
-                .Append(" Td ").Append(PdfSyntaxEscaper.WinAnsiHexString(text)).Append(" Tj ET\n");
+                .Append(" Td ").Append("<" + (encodedText ?? throw new InvalidOperationException("The signature appearance text was not encoded.")) + ">").Append(" Tj ET\n");
         }
         if (options.ShowBorder) {
             content.Append(FormatColor(options.BorderColor)).Append(" RG 1 w 0.5 0.5 ")
@@ -313,6 +316,9 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     private static void ValidateVisibleAppearance(PdfVisibleSignatureAppearanceOptions options) {
+        if (options.ShowText && options.Font is null) {
+            throw new ArgumentException("Visible signature text requires an embedded TrueType Font. Set VisibleAppearance.Font or set ShowText to false for an image-only appearance.", nameof(options));
+        }
         ValidateFinite(options.X, nameof(options.X));
         ValidateFinite(options.Y, nameof(options.Y));
         ValidateFinite(options.Width, nameof(options.Width));

@@ -107,7 +107,7 @@ internal static partial class PdfWriter {
             int highlightAnnotationCount = artifactPage.HighlightAnnotations.Count;
             int formFieldCount = artifactPage.FormFields.Count;
             int bookmarkCount = artifactPage.Bookmarks.Count;
-            sb.Append("/Artifact BMC\n");
+            sb.Append("/Artifact << /Type /Layout >> BDC\n");
             bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
             bool previousStructure = _suppressCanvasStructureRegistration;
             _suppressCanvasAccessibilityWrappers = true;
@@ -304,8 +304,9 @@ internal static partial class PdfWriter {
             string structureType = MapCanvasStructureType(role);
             string headerScope = MapCanvasTableHeaderScope(options.HeaderScope);
             string alternativeText = options.AlternativeText ?? string.Empty;
+            string? language = options.Language ?? _canvasStructureParentElement?.Language ?? currentOpts.Language;
             PageStructElement? structureElement;
-            var structureKey = (options.StructureElementKey ?? string.Empty, structureType, _canvasStructureParentElement, headerScope, options.ColumnSpan, options.RowSpan, alternativeText);
+            var structureKey = (options.StructureElementKey ?? string.Empty, structureType, _canvasStructureParentElement, headerScope, options.ColumnSpan, options.RowSpan, alternativeText, language);
             if (options.StructureElementKey != null && canvasStructureElements.TryGetValue(structureKey, out PageStructElement? existingStructureElement)) {
                 structureElement = existingStructureElement;
                 if (!currentPage!.StructElements.Contains(structureElement)) structureElement.SpansPages = true;
@@ -318,6 +319,7 @@ internal static partial class PdfWriter {
                     options.RowSpan,
                     options.AlternativeText);
                 if (structureElement != null) {
+                    structureElement.Language = language;
                     structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
                     structureElement.LogicalOrder = options.LogicalOrder;
                 }
@@ -349,6 +351,7 @@ internal static partial class PdfWriter {
             if (role == PdfCanvasStructureRole.Caption) return "Caption";
             if (role == PdfCanvasStructureRole.Figure) return "Figure";
             if (role == PdfCanvasStructureRole.TableBody) return "TBody";
+            if (role == PdfCanvasStructureRole.Span) return "Span";
             if (role == PdfCanvasStructureRole.Formula) return "Formula";
             return "Note";
         }

@@ -376,6 +376,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageStructElement {
+        public string? Language { get; set; }
         public long? LogicalOrder { get; set; }
         public int? MarkedContentId { get; set; }
         public System.Collections.Generic.List<int>? AdditionalMarkedContentIds { get; set; }

@@ -47,7 +47,7 @@ public class PdfEncryptedSignatureTests {
             PdfDocument document = PdfDocument.Load(current, ownerOptions);
             PdfExternalSignatureCompletion completion = document.Security.SignExternal(signer, new PdfExternalSignatureOptions {
                 FieldName = "Approval" + i, Name = "Protected signer", Reason = "Protected reason", Location = "Protected location",
-                VisibleAppearance = i == 0 ? new PdfVisibleSignatureAppearanceOptions { Text = "Protected visible signature" } : null
+                VisibleAppearance = i == 0 ? new PdfVisibleSignatureAppearanceOptions { Text = "Protected visible signature", Font = PdfSignatureTestFonts.LoadAppearanceFont() } : null
             });
             byte[] signed = completion.Pdf;
             Assert.True(PdfReadDocument.Open(completion.ToDocument().ToBytes(), ownerOptions).Security.HasEncryption);

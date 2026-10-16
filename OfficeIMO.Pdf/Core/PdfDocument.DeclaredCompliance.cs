@@ -88,7 +88,7 @@ public sealed partial class PdfDocument {
         return new PdfDeclaredComplianceClaim(standard, declaration, profile, proof, diagnostic);
     }
 
-    private static PdfComplianceProfile? MapPdfAProfile(int part, string conformance) {
+    internal static PdfComplianceProfile? MapPdfAProfile(int part, string conformance) {
         if (part == 2) {
             return conformance switch {
                 "A" => PdfComplianceProfile.PdfA2A,

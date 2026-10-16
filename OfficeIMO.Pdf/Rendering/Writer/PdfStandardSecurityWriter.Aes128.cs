@@ -76,14 +76,7 @@ internal static partial class PdfStandardSecurityWriter {
         OfficeIMO.Security.IOfficeAesCryptographyProvider? provider,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        int bodyStart = IndexOf(objectBytes, PdfEncoding.Latin1GetBytes("obj\n"), 0, cancellationToken);
-        int bodyEnd = LastIndexOf(objectBytes, PdfEncoding.Latin1GetBytes("endobj\n"), cancellationToken);
-        if (bodyStart < 0 || bodyEnd <= bodyStart) {
-            return objectBytes;
-        }
-
-        bodyStart += 4;
-        byte[] body = Slice(objectBytes, bodyStart, bodyEnd);
+        byte[] body = ReadSerializedObjectBody(objectBytes, objectNumber);
         cancellationToken.ThrowIfCancellationRequested();
         return PdfObjectBytes.WrapIndirectObject(
             objectNumber,
@@ -98,30 +91,22 @@ internal static partial class PdfStandardSecurityWriter {
         bool deriveObjectKey,
         OfficeIMO.Security.IOfficeAesCryptographyProvider? provider,
         CancellationToken cancellationToken) {
-        byte[] streamMarker = PdfEncoding.Latin1GetBytes("\nstream\n");
-        byte[] endStreamMarker = PdfEncoding.Latin1GetBytes("\nendstream");
-        int streamMarkerIndex = IndexOf(body, streamMarker, 0, cancellationToken);
+        StreamLayout? stream = ReadStreamLayout(body, cancellationToken);
         byte[] objectKey = deriveObjectKey ? ComputeAes128ObjectKey(fileKey, objectNumber, generation: 0) : fileKey;
-        if (streamMarkerIndex < 0) {
+        if (stream == null) {
             return EncryptAesPdfStrings(body, objectKey, provider, cancellationToken);
         }
 
-        int streamDataStart = streamMarkerIndex + streamMarker.Length;
-        int streamDataEnd = LastIndexOf(body, endStreamMarker, cancellationToken);
-        if (streamDataEnd < streamDataStart) {
-            return EncryptAesPdfStrings(body, objectKey, provider, cancellationToken);
-        }
-
-        byte[] prefix = Slice(body, 0, streamDataStart);
-        byte[] streamData = Slice(body, streamDataStart, streamDataEnd);
-        byte[] suffix = Slice(body, streamDataEnd, body.Length);
+        byte[] prefix = Slice(body, 0, stream.DataStart);
+        byte[] streamData = Slice(body, stream.DataStart, stream.DataEnd);
+        byte[] suffix = Slice(body, stream.DataEnd, body.Length);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!encryptMetadata && IndexOf(prefix, PdfEncoding.Latin1GetBytes("/Type /Metadata"), 0, cancellationToken) >= 0) {
+        if (!encryptMetadata && stream.IsMetadata) {
             return PdfObjectBytes.Concat(EncryptAesPdfStrings(prefix, objectKey, provider, cancellationToken), streamData, suffix);
         }
 
         byte[] encryptedStream = EncryptAesCbc(objectKey, streamData, provider, cancellationToken);
-        prefix = ReplaceDirectStreamLength(prefix, encryptedStream.Length);
+        prefix = ReplaceDirectStreamLength(prefix, stream, encryptedStream.Length);
         byte[] encryptedPrefix = EncryptAesPdfStrings(prefix, objectKey, provider, cancellationToken);
         return PdfObjectBytes.Concat(encryptedPrefix, encryptedStream, suffix);
     }
@@ -136,6 +121,16 @@ internal static partial class PdfStandardSecurityWriter {
         while (index < input.Length) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte current = input[index];
+            if (current == (byte)'%') {
+                int commentEnd = index;
+                while (commentEnd < input.Length && input[commentEnd] != '\r' && input[commentEnd] != '\n') {
+                    if ((commentEnd & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    commentEnd++;
+                }
+                output.Write(input, index, commentEnd - index);
+                index = commentEnd;
+                continue;
+            }
             if (current == (byte)'<' && index + 1 < input.Length && input[index + 1] == (byte)'<') {
                 // Consume the dictionary opener together; its second '<' is not a hex string.
                 output.WriteByte(current);
@@ -207,48 +202,10 @@ internal static partial class PdfStandardSecurityWriter {
         return Take(digest, Math.Min(fileKey.Length + 5, 16));
     }
 
-    private static byte[] ReplaceDirectStreamLength(byte[] prefix, int encryptedLength) {
-        byte[] marker = PdfEncoding.Latin1GetBytes("/Length");
-        int markerIndex = -1;
-        int searchStart = 0;
-        while (searchStart < prefix.Length) {
-            int candidate = IndexOf(prefix, marker, searchStart);
-            if (candidate < 0) {
-                break;
-            }
-
-            int afterMarker = candidate + marker.Length;
-            if (afterMarker < prefix.Length && IsWhiteSpace(prefix[afterMarker])) {
-                markerIndex = candidate;
-            }
-
-            searchStart = afterMarker;
-        }
-
-        if (markerIndex < 0) {
-            throw new InvalidOperationException("AES-encrypted PDF streams require a direct /Length entry.");
-        }
-
-        int numberStart = markerIndex + marker.Length;
-        while (numberStart < prefix.Length && IsWhiteSpace(prefix[numberStart])) {
-            numberStart++;
-        }
-
-        int numberEnd = numberStart;
-        while (numberEnd < prefix.Length && prefix[numberEnd] >= (byte)'0' && prefix[numberEnd] <= (byte)'9') {
-            numberEnd++;
-        }
-
-        if (numberEnd == numberStart) {
-            throw new InvalidOperationException("AES-encrypted PDF streams require a numeric direct /Length entry.");
-        }
-
+    private static byte[] ReplaceDirectStreamLength(byte[] prefix, StreamLayout stream, int encryptedLength) {
         byte[] replacement = PdfEncoding.Latin1GetBytes(encryptedLength.ToString(CultureInfo.InvariantCulture));
-        using var output = new MemoryStream(prefix.Length - (numberEnd - numberStart) + replacement.Length);
-        output.Write(prefix, 0, numberStart);
-        output.Write(replacement, 0, replacement.Length);
-        output.Write(prefix, numberEnd, prefix.Length - numberEnd);
-        return output.ToArray();
+        return PdfObjectBytes.Concat(Slice(prefix, 0, stream.LengthStart), replacement,
+            Slice(prefix, stream.LengthEnd, prefix.Length));
     }
 
     private static string BuildAes128EncryptionDictionary(

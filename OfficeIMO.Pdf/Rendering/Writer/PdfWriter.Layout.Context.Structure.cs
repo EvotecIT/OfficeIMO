@@ -2,6 +2,12 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
+        private string? ResolveStructureLanguage(int? parentElementIndex, PageStructElement? parentElement) {
+            if (parentElementIndex is int index && currentPage != null && index >= 0 && index < currentPage.StructElements.Count)
+                parentElement = currentPage.StructElements[index];
+            return parentElement?.Language ?? currentOpts.Language;
+        }
+
         private int? RegisterStructureContainer(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, long? logicalOrder = null) {
             if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
@@ -17,7 +23,8 @@ internal static partial class PdfWriter {
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan,
                 AlternativeText = alternativeText ?? string.Empty,
-                ParentElement = semanticParent
+                ParentElement = semanticParent,
+                Language = ResolveStructureLanguage(parentElementIndex, semanticParent)
             });
             return elementIndex;
         }
@@ -34,7 +41,8 @@ internal static partial class PdfWriter {
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan,
-                AlternativeText = alternativeText ?? string.Empty
+                AlternativeText = alternativeText ?? string.Empty,
+                Language = (parentElement ?? ResolveFlowSemanticParent())?.Language ?? currentOpts.Language
             };
             currentPage.StructElements.Add(element);
             return element;
@@ -60,7 +68,7 @@ internal static partial class PdfWriter {
 
             PageStructElement? semanticParent = parentElementIndex.HasValue ? null : ResolveFlowSemanticParent();
             int markedContentId = currentPage.NextMarkedContentId++;
-            currentPage.StructElements.Add(new PageStructElement {
+            var element = new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = structureType,
                 TableHeaderScope = tableHeaderScope,
@@ -69,7 +77,9 @@ internal static partial class PdfWriter {
                 ParentElementIndex = parentElementIndex,
                 ParentElement = semanticParent,
                 LogicalOrder = logicalOrder
-            });
+            };
+            element.Language = ResolveStructureLanguage(element.ParentElementIndex, element.ParentElement);
+            currentPage.StructElements.Add(element);
             return markedContentId;
         }
 
@@ -79,7 +89,7 @@ internal static partial class PdfWriter {
             }
 
             int markedContentId = currentPage.NextMarkedContentId++;
-            currentPage.StructElements.Add(new PageStructElement {
+            var element = new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = structureType,
                 ParentElement = parentElement ?? ResolveFlowSemanticParent(),
@@ -87,7 +97,9 @@ internal static partial class PdfWriter {
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan
-            });
+            };
+            element.Language = ResolveStructureLanguage(element.ParentElementIndex, element.ParentElement);
+            currentPage.StructElements.Add(element);
             return markedContentId;
         }
 
@@ -103,7 +115,8 @@ internal static partial class PdfWriter {
                 StructureType = "Figure",
                 AlternativeText = alternativeText,
                 ParentElementIndex = parentElementIndex,
-                ParentElement = semanticParent
+                ParentElement = semanticParent,
+                Language = ResolveStructureLanguage(parentElementIndex, semanticParent)
             });
             return markedContentId;
         }

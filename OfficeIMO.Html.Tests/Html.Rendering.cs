@@ -1802,7 +1802,7 @@ public sealed partial class HtmlRenderingTests {
         string raw = Encoding.ASCII.GetString(pdf);
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).Outlines);
-        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("Chapter Alpha", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("Chapter Beta", pdfText, StringComparison.Ordinal);
         Assert.Contains("First body", pdfText, StringComparison.Ordinal);
@@ -2316,7 +2316,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Empty heading", Assert.Single(info.Outlines[1].Children).Title);
         Assert.Equal("Empty block", info.Outlines[2].Title);
         Assert.Equal("Empty inline", info.Outlines[3].Title);
-        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", raw, StringComparison.Ordinal);
         Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "H2"));
         Assert.DoesNotContain("Decorative note", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(bookmark-level:2)"));
@@ -2386,7 +2386,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(groups, group => group.Role == HtmlRenderSemanticGroupRole.Artifact && group.Source?.Contains("table", StringComparison.OrdinalIgnoreCase) == true);
         Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "H3"));
         Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "H4"));
-        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.DoesNotContain("Decorative table", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "artifact-field");
         Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "field");
@@ -2526,7 +2526,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("Decorative second", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(info.LinkAnnotations);
         Assert.Empty(info.FormFields);
-        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -2805,7 +2805,7 @@ public sealed partial class HtmlRenderingTests {
             group.Role == HtmlRenderSemanticGroupRole.Artifact && group.Source?.Contains("top-left", StringComparison.Ordinal) == true);
 
         Assert.Contains(artifact.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Page 1");
-        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.DoesNotContain("Page 1", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Page 1", PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(rendered.Diagnostics);

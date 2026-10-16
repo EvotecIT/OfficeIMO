@@ -346,7 +346,8 @@ internal static partial class PdfComplianceAnalyzer {
             }
 
             var missingFields = new List<string>();
-            if (!evidence!.HasSellerTaxRegistrationId) {
+            if (!evidence!.HasSellerTaxRegistrationId &&
+                !HasOnlyOutsideScopeInvoiceTax(file)) {
                 missingFields.Add("SellerTradeParty SpecifiedTaxRegistration ID");
             }
 
@@ -631,10 +632,6 @@ internal static partial class PdfComplianceAnalyzer {
                 missingFields.Add("ApplicableTradeTax CategoryCode");
             }
 
-            if (!evidence.HasRateApplicablePercent) {
-                missingFields.Add("ApplicableTradeTax RateApplicablePercent");
-            }
-
             if (!evidence.HasBasisAmount) {
                 missingFields.Add("ApplicableTradeTax BasisAmount");
             }
@@ -671,7 +668,7 @@ internal static partial class PdfComplianceAnalyzer {
                 "einvoice-xml-tax-breakdown",
                 "EN 16931 XML tax breakdown",
                 PdfComplianceRequirementStatus.Satisfied,
-                "The factur-x.xml CrossIndustryInvoice includes VAT trade tax type, category, rate, basis, and calculated amount markers for e-invoice readiness.");
+                "The factur-x.xml CrossIndustryInvoice includes VAT trade tax type, category, basis, and calculated amount markers; category-specific rate requirements are checked separately for e-invoice readiness.");
         }
 
         string diagnostic = diagnostics.Count == 0
