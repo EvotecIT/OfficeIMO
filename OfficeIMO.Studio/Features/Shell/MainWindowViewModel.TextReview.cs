@@ -206,7 +206,7 @@ public sealed partial class MainWindowViewModel {
         long generation = _textReviewGeneration;
         string replacement = draft.Text;
         PdfTextEditOptions options;
-        try { options = draft.CaptureOptions(); } catch (Exception error) { ErrorMessage = error.Message; return; }
+        try { options = draft.CaptureOptions(); } catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); return; }
         PdfEditorSelection? selection = SelectedObject;
         var included = ReplacementMatches.Where(match => match.IsIncluded).ToArray();
         bool batch = _textReviewIsBatch;
@@ -258,7 +258,7 @@ public sealed partial class MainWindowViewModel {
             TextPreviewBefore = beforeImage; TextPreviewAfter = afterImage;
             OnPropertyChanged(nameof(HasTextPreview));
         } catch (OperationCanceledException) { }
-        catch (Exception error) { if (generation == _textPreviewPageGeneration && ReferenceEquals(prepared, _preparedTextEdit)) { InvalidateTextPreview(); ErrorMessage = error.Message; } }
+        catch (Exception error) { if (generation == _textPreviewPageGeneration && ReferenceEquals(prepared, _preparedTextEdit)) { InvalidateTextPreview(); ErrorMessage = Infrastructure.StudioMessages.Describe(error); } }
         finally { if (ReferenceEquals(_textPreviewCancellation, operation)) _textPreviewCancellation = null; }
     }
 

@@ -9,7 +9,7 @@ public sealed partial class MainWindow {
     // The flyout presenter keeps this collection while each opening refreshes its entries.
     private readonly System.Collections.ObjectModel.ObservableCollection<object> _documentMenuItems = new();
 
-    private Task CloseSelectedDocumentTabAsync() => CloseDocumentTabAsync(TabHost.SelectedTab);
+    internal Task CloseSelectedDocumentTabAsync() => CloseDocumentTabAsync(TabHost.SelectedTab);
 
     private async void OnDocumentTabCloseClick(object? sender, RoutedEventArgs e) {
         if (sender is Control { DataContext: StudioDocumentTabViewModel tab })
@@ -20,7 +20,9 @@ public sealed partial class MainWindow {
         if (tab is null || !tab.CloseCommand.CanExecute(null)) return;
         bool restoreTabFocus = DocumentTabs.IsKeyboardFocusWithin || CompactCloseDocumentButton.IsKeyboardFocusWithin ||
                                CompactDocumentPicker.IsKeyboardFocusWithin;
-        await tab.CloseCommand.ExecuteAsync(null);
+        _keepScreenOnActivation = true;
+        try { await tab.CloseCommand.ExecuteAsync(null); }
+        finally { _keepScreenOnActivation = false; }
         if (!restoreTabFocus || _windowClosed || TabHost.Tabs.Contains(tab)) return;
         // A removed close button cannot retain keyboard focus. Keep subsequent tab actions usable.
         FocusSelectedDocumentTab();
@@ -66,12 +68,11 @@ public sealed partial class MainWindow {
         next.Focus(NavigationMethod.Directional);
     }, DispatcherPriority.Loaded);
 
-    private void OnDocumentListOpening(object? sender, EventArgs e) {
-        if (sender is not MenuFlyout menu) return;
+    private void RefreshDocumentListMenu() {
         _documentMenuItems.Clear();
         foreach (var tab in TabHost.Tabs) {
             var item = new MenuItem {
-                Header = tab.Title,
+                [!MenuItem.HeaderProperty] = new Avalonia.Data.Binding(nameof(StudioDocumentTabViewModel.Title)) { Source = tab },
                 ToggleType = MenuItemToggleType.Radio,
                 IsChecked = ReferenceEquals(tab, TabHost.SelectedTab)
             };

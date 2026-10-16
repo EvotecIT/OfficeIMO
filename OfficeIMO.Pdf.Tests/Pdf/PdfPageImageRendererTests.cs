@@ -4079,8 +4079,8 @@ public partial class PdfPageImageRendererTests {
         OfficeDrawingShape shape = Assert.Single(drawing.Shapes, item =>
             item.Shape.Kind == OfficeShapeKind.Rectangle &&
             item.Shape.FillColor == OfficeColor.FromRgb(0, 128, 0));
-        Assert.Equal(110D, shape.X, 1);
-        Assert.Equal(190D, shape.Y, 1);
+        Assert.Equal(40D, shape.X, 1);
+        Assert.Equal(20D, shape.Y, 1);
         Assert.Equal(50D, shape.Shape.Width, 1);
         Assert.Equal(30D, shape.Shape.Height, 1);
         AssertPngSignature(png);

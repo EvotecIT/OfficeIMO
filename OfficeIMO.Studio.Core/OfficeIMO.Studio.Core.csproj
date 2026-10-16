@@ -19,6 +19,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Studio" />
     <InternalsVisibleTo Include="OfficeIMO.Studio.iOS" />
+    <InternalsVisibleTo Include="OfficeIMOStudioEngine" />
     <InternalsVisibleTo Include="OfficeIMO.Studio.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Studio.Core.Tests" />
   </ItemGroup>

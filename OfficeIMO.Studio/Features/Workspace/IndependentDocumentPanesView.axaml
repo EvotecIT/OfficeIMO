@@ -3,7 +3,7 @@
              x:Class="OfficeIMO.Studio.Features.Workspace.IndependentDocumentPanesView" x:DataType="shell:StudioDocumentPanes">
   <Grid RowDefinitions="Auto,*" Background="{DynamicResource StudioCanvasBrush}">
     <Border Background="{DynamicResource StudioPanelMutedBrush}" Padding="8,4">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}">
         <TextBlock Text="{Binding HelpLabel}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" />
         <Button x:Name="SwitchPaneButton" Grid.Column="1" Classes="tool" Click="OnSwitchClick" Content="{Binding SwitchLabel}" />
       </Grid>

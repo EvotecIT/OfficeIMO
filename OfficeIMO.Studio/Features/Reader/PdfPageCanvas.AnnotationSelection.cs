@@ -34,7 +34,7 @@ public sealed partial class PdfPageCanvas {
         _selectionStart = null; _selectionEnd = null;
     }
 
-    private void SelectAllAnnotations() {
+    internal void SelectAllAnnotations() {
         if (Scene?.Interactions is not { } interactions) return;
         AnnotationSelectionRequested?.Invoke(new(interactions.Regions.Where(region => region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue)
             .Select(region => CreateSelection(Scene.PageNumber, region)).ToArray(), false, Toggle: false));
@@ -46,12 +46,7 @@ public sealed partial class PdfPageCanvas {
         if (command && e.Key == Key.A) SelectAllAnnotations();
         else if (SelectedAnnotations.Count > 0 && (e.Key == Key.Delete || e.Key == Key.Back || command && e.Key is Key.G or Key.D ||
             command && e.Key is Key.OemOpenBrackets or Key.OemCloseBrackets)) AnnotationKeyRequested?.Invoke(e.Key, e.KeyModifiers);
-        else if (SelectedAnnotations.Count > 0 && command && e.Key is Key.Left or Key.Right or Key.Up or Key.Down && SelectedObject is { } selected) {
-            double amount = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? 10D : 1D;
-            var delta = e.Key switch { Key.Left => new Vector(-amount, 0), Key.Right => new Vector(amount, 0), Key.Up => new Vector(0, -amount), _ => new Vector(0, amount) };
-            var bounds = selected.Bounds;
-            ObjectTransformCompleted?.Invoke(new(selected, new(bounds.Left + delta.X, bounds.Top + delta.Y, bounds.Right + delta.X, bounds.Bottom + delta.Y), SelectedAnnotations.ToArray()));
-        } else if (e.Key is Key.Enter or Key.Space && IsAdditive(e.KeyModifiers)) {
+        else if (e.Key is Key.Enter or Key.Space && IsAdditive(e.KeyModifiers)) {
             var interactions = GetKeyboardInteractions();
             if (_keyboardInteractionIndex < 0 || _keyboardInteractionIndex >= interactions.Count) return false;
             SelectAnnotationRegion(interactions[_keyboardInteractionIndex], true);

@@ -20,8 +20,36 @@ public static partial class OfficeDrawingRasterRenderer {
         return RenderCore(drawing, options, options.Scale, options.Scale);
     }
 
+    /// <summary>
+    /// Renders the pixel rectangle <paramref name="x"/>, <paramref name="y"/>, <paramref name="width"/> by
+    /// <paramref name="height"/> of the image <see cref="Render(OfficeDrawing, OfficeDrawingRasterRenderOptions)"/>
+    /// produces, so tiles of one drawing at one scale join without seams. Each tile is held to
+    /// <see cref="OfficeDrawingRasterRenderOptions.MaximumRasterPixels"/> on its own.
+    /// </summary>
+    internal static OfficeRasterImage RenderRegion(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options,
+        int x, int y, int width, int height) {
+        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        double scale = options.Scale;
+        if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale))
+            throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
+        double fullWidth = Math.Ceiling(drawing.Width * scale), fullHeight = Math.Ceiling(drawing.Height * scale);
+        if (width <= 0 || height <= 0 || x < 0 || y < 0 || x + (double)width > fullWidth || y + (double)height > fullHeight)
+            throw new ArgumentOutOfRangeException(nameof(width), "The region must lie within the rendered drawing.");
+        if ((long)width * height > options.MaximumRasterPixels)
+            throw new OfficeImageExportLimitException(scale, (long)width * height, options.MaximumRasterPixels, int.MaxValue);
+        // The drawing moves so the region's corner is the origin; the canvas clips everything outside it.
+        var viewport = new OfficeDrawing(width / scale, height / scale) {
+            TextShapingProvider = drawing.TextShapingProvider,
+            TextShapingLanguage = drawing.TextShapingLanguage
+        };
+        viewport.AddDrawingForClippedRendering(drawing, -x / scale, -y / scale, null);
+        return RenderCore(viewport, options, scale, scale, fonts: drawing.Fonts, pixelWidth: width, pixelHeight: height);
+    }
+
     private static OfficeRasterImage RenderCore(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options,
-        double scaleX, double scaleY, OfficeRasterExportPlan? allocationPlan = null, OfficeFontFaceCollection? fonts = null) {
+        double scaleX, double scaleY, OfficeRasterExportPlan? allocationPlan = null, OfficeFontFaceCollection? fonts = null,
+        int pixelWidth = 0, int pixelHeight = 0) {
         if (drawing == null) {
             throw new ArgumentNullException(nameof(drawing));
         }
@@ -38,7 +66,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         bool uniform = scaleX == scale && scaleY == scale;
-        OfficeRasterExportPlan plan = allocationPlan ?? OfficeRasterExportPlanner.Resolve(
+        OfficeRasterExportPlan? plan = pixelWidth > 0 ? null : allocationPlan ?? OfficeRasterExportPlanner.Resolve(
             uniform ? drawing.Width : drawing.Width * scaleX,
             uniform ? drawing.Height : drawing.Height * scaleY,
             OfficeImageExportFormat.Png,
@@ -48,8 +76,9 @@ public static partial class OfficeDrawingRasterRenderer {
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
 
-        int width = plan.Limit.PixelWidth;
-        int height = plan.Limit.PixelHeight;
+        // A region gives its exact size; dividing it by the scale and rounding up again could add a pixel.
+        int width = plan?.Limit.PixelWidth ?? pixelWidth;
+        int height = plan?.Limit.PixelHeight ?? pixelHeight;
         OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background);
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(
             image,
@@ -64,6 +93,7 @@ public static partial class OfficeDrawingRasterRenderer {
         canvas.PdfRasterConventions = options.PdfRasterConventions;
         canvas.SetCoordinateScale(scaleX / scale, scaleY / scale);
         if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
+        canvas.ImageCache = options.ImageCache;
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)
             : options.ImageCodec;

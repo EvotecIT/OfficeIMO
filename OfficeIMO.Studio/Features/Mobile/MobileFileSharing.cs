@@ -11,7 +11,7 @@ internal static class MobileFileSharing {
             return;
         }
         StudioStorageSnapshot snapshot = await services.Storage.ReadSnapshotAsync(location, CancellationToken.None);
-        string root = services.LocalDocuments?.Path ?? throw new IOException("The mobile document folder is unavailable.");
+        string root = services.LocalDocuments?.Path ?? throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.DocumentFolderUnavailable"));
         string directory = Path.Combine(root, ".sharing", Guid.NewGuid().ToString("N"));
         string copy = Path.Combine(directory, Path.GetFileName(services.Storage.Describe(location).Name));
         try {

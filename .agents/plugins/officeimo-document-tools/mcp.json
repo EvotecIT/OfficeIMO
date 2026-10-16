@@ -6,10 +6,11 @@
       "command": "dotnet",
       "args": [
         "dnx",
-        "OfficeIMO.Tool@3.5.0",
+        "OfficeIMO.Tool@3.5.1",
         "mcp",
         "serve",
-        "--stdio"
+        "--stdio",
+        "--yes"
       ]
     }
   }

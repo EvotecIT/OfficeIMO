@@ -4,7 +4,7 @@
     <Description>First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.</Description>
     <AssemblyName>OfficeIMO.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Pdf</AssemblyTitle>
-    <VersionPrefix>3.5.0</VersionPrefix>
+    <VersionPrefix>3.5.1</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -76,6 +76,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Chm.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO.Studio.Core" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />

@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The OfficeIMO Studio engine as a native library with a C interface, for the native macOS, iPadOS and iOS apps.
+    Publish with NativeAOT: a shared library (.dll/.so/.dylib) by default, or with -p:StudioEngineLibrary=Static the
+    archive an Xcode project links (osx-arm64, osx-x64, ios-arm64, iossimulator-arm64); Build-AppleEngine.ps1 packages
+    the archives as an XCFramework. NativeLib is set here rather than on the command line: as a global property it
+    reaches the referenced projects, and on iOS runtimes the Mono workload then treats each of them as a Mono
+    library-mode build.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>Latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>OfficeIMOStudioEngine</AssemblyName>
+    <RootNamespace>OfficeIMO.Studio.Native</RootNamespace>
+    <PublishAot>true</PublishAot>
+    <StudioEngineLibrary Condition="'$(StudioEngineLibrary)' == ''">Shared</StudioEngineLibrary>
+    <NativeLib>$(StudioEngineLibrary)</NativeLib>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- The SDK reaches NativeAOT for iOS and the iOS simulator through the NativeAOT runtime packs, without a workload. -->
+    <PublishAotUsingRuntimePack Condition="$(RuntimeIdentifier.StartsWith('ios'))">true</PublishAotUsingRuntimePack>
+    <Description>OfficeIMO Studio document engine with a C interface for native host applications.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Studio.Core.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!--
+      The engine renders pages into large short-lived buffers inside apps with tight memory limits. Conserving memory
+      makes the collector compact the large object heap sooner; it lowered the peak footprint on scanned documents from
+      1.3 to 0.9 GB in the engine's measurements.
+    -->
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include/officeimo_studio.h" Pack="false" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!--
+    A static NativeAOT archive holds only the compiled code. The app links it with the runtime libraries, the native
+    shims and the system libraries and frameworks the NativeAOT toolchain names for the target. This writes those inputs
+    beside the archive: link/*.a and *.o are copied from the toolchain, and link/link-inputs.txt lists every input in
+    link order, one per line, as "file name", "-lname" or "-framework name".
+  -->
+  <Target Name="PublishStaticLinkInputs" AfterTargets="CopyNativeBinary" DependsOnTargets="SetupOSSpecificProps"
+          Condition="'$(NativeLib)' == 'Static' and '$(_targetOS)' != 'win'">
+    <PropertyGroup>
+      <_StaticLinkInputsDirectory>$(PublishDir)link/</_StaticLinkInputsDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <_StaticLinkLibrary Include="@(NativeLibrary)" />
+      <_StaticLinkInput Include="@(_StaticLinkLibrary->'%(Filename)%(Extension)')" />
+      <_StaticLinkInput Include="@(NativeSystemLibrary->'-l%(Identity)')" />
+      <_StaticLinkInput Include="@(NativeFramework->'-framework %(Identity)')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_StaticLinkLibrary)" DestinationFolder="$(_StaticLinkInputsDirectory)" SkipUnchangedFiles="true" />
+    <WriteLinesToFile File="$(_StaticLinkInputsDirectory)link-inputs.txt" Lines="@(_StaticLinkInput)" Overwrite="true" />
+  </Target>
+</Project>

@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   package:
-    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'OfficeIMO-v') }}
+    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'OfficeIMO-v') || startsWith(github.event.release.tag_name, 'OfficeIMO.Tool-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -45,13 +45,14 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          [[ "$RELEASE_TAG" =~ ^OfficeIMO-v[0-9]{14}$ ]]
+          version=$(python3 -c 'import json; print(json.load(open(".agents/plugins/officeimo-document-tools/plugin.json"))["version"])')
+          [[ "$RELEASE_TAG" =~ ^OfficeIMO-v[0-9]{14}$ || "$RELEASE_TAG" == "OfficeIMO.Tool-v$version" ]]
           git merge-base --is-ancestor HEAD origin/master
       - name: Check out the shared packer
         uses: actions/checkout@v7
         with:
           repository: EvotecIT/PSPublishModule
-          ref: 3c6f7eca78796f3e2c885a40416101d706bd4ebd
+          ref: 9e7d940d6a107e83d1d2a65a16ead0b2dc3a6979
           path: .powerforge-agent-plugin-build
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
@@ -68,6 +69,21 @@ jobs:
           python -m pip install jsonschema==4.26.0
           python -m unittest discover -s Build -p test_validate_mcp_registry.py
           python Build/validate_mcp_registry.py metadata
+      - name: Install the product SDK for release verification
+        if: ${{ github.event_name == 'release' }}
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Verify the published launcher before distributing the plugin
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          version=$(python -c 'import json; print(json.load(open(".agents/plugins/officeimo-document-tools/plugin.json"))["version"])')
+          package="$RUNNER_TEMP/OfficeIMO.Tool.$version.nupkg"
+          curl --fail --silent --show-error --location --max-time 120 --retry 3 --output "$package" \
+            "https://api.nuget.org/v3-flatcontainer/officeimo.tool/$version/officeimo.tool.$version.nupkg"
+          python Build/validate_mcp_registry.py package "$package" --expected-version "$version"
+          dotnet nuget verify "$package" --all \
+            --certificate-fingerprint D13C03BFEEC0CBF7FD0E0E7FFAF3F3D2076E62B1AF64665E806917B9191CFFDE
       - name: Validate and package the plugin
         env:
           PLUGIN_OUTPUT: ${{ runner.temp }}/officeimo-agent-plugin
@@ -83,7 +99,7 @@ jobs:
           retention-days: 7
 
   attach-release:
-    if: ${{ github.event_name == 'release' && startsWith(github.event.release.tag_name, 'OfficeIMO-v') }}
+    if: ${{ github.event_name == 'release' && (startsWith(github.event.release.tag_name, 'OfficeIMO-v') || startsWith(github.event.release.tag_name, 'OfficeIMO.Tool-v')) }}
     needs: package
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -99,3 +115,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: gh release upload "$RELEASE_TAG" agent-plugin/*.zip agent-plugin/*.sha256 --repo "$GITHUB_REPOSITORY"
+
+  publish-distribution:
+    if: ${{ github.event_name == 'release' && (startsWith(github.event.release.tag_name, 'OfficeIMO-v') || startsWith(github.event.release.tag_name, 'OfficeIMO.Tool-v')) }}
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: officeimo-agent-plugin
+          path: agent-plugin
+      - uses: EvotecIT/PSPublishModule/.github/actions/agent-plugin-publish@9e7d940d6a107e83d1d2a65a16ead0b2dc3a6979
+        with:
+          archive: agent-plugin
+          github-token: ${{ secrets.GITHUB_TOKEN }}

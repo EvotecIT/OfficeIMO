@@ -25,6 +25,14 @@
       "enabled": true
     },
     {
+      "id": "agents",
+      "name": "AI agents",
+      "description": "An MCP server, plugin and skills for Claude, Codex, Copilot and Cursor.",
+      "action": "Add to your agent",
+      "url": "/agents/",
+      "enabled": true
+    },
+    {
       "id": "dotnet",
       "name": ".NET",
       "description": "Focused NuGet packages for Word, Excel, PowerPoint, PDF and more.",

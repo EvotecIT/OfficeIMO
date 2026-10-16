@@ -16,7 +16,7 @@ public sealed partial class SearchablePdfOcrView : UserControl {
                 ?? throw new InvalidOperationException(StudioLocalization.Current.GetOrDefault("Ocr.Text.NoClipboard", "Clipboard is unavailable. Select the text to copy it manually."));
             await clipboard.SetTextAsync(model.ExtractedText);
             model.Status = StudioLocalization.Current.GetOrDefault("Ocr.Text.Copied", "Reviewed text copied.");
-        } catch (Exception error) { model.ErrorMessage = error.Message; }
+        } catch (Exception error) { model.ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
 
     public SearchablePdfOcrView() {

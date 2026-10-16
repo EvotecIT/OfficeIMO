@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:infra="using:OfficeIMO.Studio.Infrastructure"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             x:Class="OfficeIMO.Studio.Features.Shell.DocumentNoticesView"
+             x:DataType="shell:MainWindowViewModel">
+  <UserControl.Styles>
+    <!-- On touch shells the notice actions get finger-sized targets. -->
+    <Style Selector="shell|DocumentNoticesView.touch infra|StudioNoticeBar /template/ Button">
+      <Setter Property="MinHeight" Value="44" />
+      <Setter Property="MinWidth" Value="44" />
+    </Style>
+  </UserControl.Styles>
+  <!-- Persistent notices, shared by the desktop window and the iPad workspace: failures first, then restrictions on
+       the current task, then how faithfully pages are drawn, then storage problems. -->
+  <StackPanel>
+    <infra:StudioNoticeBar x:Name="ErrorNotice" Severity="Error" IsVisible="{Binding HasVisibleError}" Message="{Binding ErrorMessage}"
+                           ActionText="{loc:Loc Shell.SaveCopyInstead}" ActionCommand="{Binding Commands[SaveAs]}" IsActionVisible="{Binding CanRecoverWithSaveAs}"
+                           DismissCommand="{Binding DismissErrorCommand}" />
+    <infra:StudioNoticeBar x:Name="RestrictionNotice" Severity="Warning" IsVisible="{Binding HasSecurityWarning}" Message="{Binding SecurityWarning}"
+                           ActionText="{loc:Loc Notices.BackToReading}" ActionCommand="{Binding Commands[Read]}" IsActionVisible="{Binding CanReturnToReading}"
+                           DismissCommand="{Binding DismissSecurityWarningCommand}" />
+    <infra:StudioNoticeBar x:Name="RenderingNotice" Severity="Information" IsVisible="{Binding HasRenderingNotice}" Message="{Binding RenderingNotice}"
+                           ActionText="{Binding RenderingNoticeAction}" ActionCommand="{Binding ShowRenderingNoticePageCommand}"
+                           DismissCommand="{Binding DismissRenderingNoticeCommand}" />
+    <infra:StudioNoticeBar x:Name="StorageNotice" Severity="Warning" IsVisible="{Binding Session.HasStorageError, FallbackValue=False}" Message="{Binding Session.StorageError}"
+                           ActionText="{loc:Loc Session.RetryStorage}" ActionCommand="{Binding Session.RetryStorageCommand}" />
+  </StackPanel>
+</UserControl>

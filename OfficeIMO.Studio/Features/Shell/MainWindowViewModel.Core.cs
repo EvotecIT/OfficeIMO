@@ -18,9 +18,9 @@ public sealed partial class MainWindowViewModel : IStudioDocument {
     }
     string? IStudioDocument.DocumentPath => DocumentPath;
     string? IStudioDocument.LastClosedDocumentPath => LastClosedDocumentPath;
-    bool IStudioDocument.HasUnsavedAuxiliaryWork => BookWorkbench.IsDirty;
-    IEnumerable<string> IStudioDocument.OwnedOutputLocations => BookWorkbench.OwnedLocations;
-    bool IStudioDocument.OwnsOutputPath(string path) => BookWorkbench.OwnsPath(path);
+    bool IStudioDocument.HasUnsavedAuxiliaryWork => _ownsWorkbenches && BookWorkbench.IsDirty;
+    IEnumerable<string> IStudioDocument.OwnedOutputLocations => _ownsWorkbenches ? BookWorkbench.OwnedLocations : [];
+    bool IStudioDocument.OwnsOutputPath(string path) => _ownsWorkbenches && BookWorkbench.OwnsPath(path);
     void IStudioDocument.Deactivate() => DeactivateAssistant();
     void IStudioDocument.SetPresentationActive(bool active) => SetPresentationActive(active);
     Task IStudioDocument.OpenDocumentAsync(string path, CancellationToken token) => OpenDocumentAsync(path, token);

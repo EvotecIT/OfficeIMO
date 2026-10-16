@@ -55,7 +55,7 @@ public sealed partial class PageSplitPreviewViewModel : ObservableObject {
                 throw new ArgumentException(_localizer.Get("Organizer.SplitWholeCount"));
             Parts = PdfSplitPlan.Create(PageCount, count).Parts;
             PartSize = count; ErrorMessage = null;
-        } catch (Exception error) when (error is ArgumentException or InvalidOperationException) { ErrorMessage = error.Message; }
+        } catch (Exception error) when (error is ArgumentException or InvalidOperationException) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
         OnPropertyChanged(nameof(CanApply));
     }
     internal void Complete(PdfSplitWorkflowResult result) {
@@ -71,7 +71,7 @@ public sealed partial class PageSplitPreviewViewModel : ObservableObject {
     private async Task OpenFileAsync(string? path) {
         if (string.IsNullOrWhiteSpace(path) || !Files.Any(file => file.Path == path)) return;
         try { await _open(path).ConfigureAwait(true); }
-        catch (Exception error) { ErrorMessage = error.Message; }
+        catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
 }
 

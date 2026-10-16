@@ -192,7 +192,7 @@ public sealed class PdfPipelineReportTests {
         PdfPipelineStep crop = cropped.Pipeline.Steps.Last(
             step => step.Kind == PdfPipelineStepKind.Mutation);
         Assert.Equal("Append", append.Operation);
-        Assert.Equal(PdfMutationOperation.MergeDocuments, append.MutationOperation);
+        Assert.Equal(PdfMutationOperation.ImportPages, append.MutationOperation);
         Assert.Equal("CropAndTranslate", crop.Operation);
         Assert.Equal(PdfMutationOperation.ModifyPageTree, crop.MutationOperation);
     }

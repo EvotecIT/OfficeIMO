@@ -44,7 +44,7 @@ public sealed partial class StudioMobileApplicationTests {
                     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
                     while (document.OrganizerPages.Any(page => page.IsLoading)) await Task.Delay(10, timeout.Token);
                     Layout(window); Capture(window, "organizer-independent-pages");
-                    await ClickAsync(window, view, document.MoveSelectedUpCommand);
+                    await ClickAsync(window, view, document.Commands["MovePagesUp"]);
                     await document.MoveSelectedUpCommand.ExecutionTask!;
                     Assert.True(document.IsDirty);
                     await document.SaveCommand.ExecuteAsync(null);

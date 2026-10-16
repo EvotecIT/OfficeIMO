@@ -22,4 +22,21 @@ public sealed partial class App {
             }
         }
     }
+
+    // Windows and Linux have no activation lifetime; a later launch forwards its arguments instead.
+    private void AttachForwardedLaunches(MainWindow window) {
+        // Accepting only queues the paths; the later launch exits once the window has taken them, not after they open.
+        SingleInstance?.StartListening(paths => {
+            if (!window.AcceptsForwardedLaunches) return false;
+            Services.Diagnostics.Write(StudioDiagnosticLevel.Information, "FileActivation", "Forwarded");
+            Dispatcher.UIThread.Post(async () => {
+                try {
+                    await window.OpenForwardedPathsAsync(paths);
+                } catch (Exception error) when (error is not OutOfMemoryException) {
+                    Services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "FileActivation", "DispatchFailed", error);
+                }
+            });
+            return true;
+        });
+    }
 }

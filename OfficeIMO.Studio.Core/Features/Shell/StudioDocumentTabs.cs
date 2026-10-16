@@ -13,6 +13,8 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
     private readonly Action<TDocument> _activateDocument;
     private readonly Func<TDocument, Task<bool>>? _prepareActiveClose;
     private TDocument _emptyDocument;
+    // Owns window-level work (shared workbenches) that outlives every tab; it never becomes a tab itself.
+    private readonly TDocument? _applicationDocument;
     private bool _openingDocument;
     private bool _disposed;
     private readonly HashSet<TDocument> _presentedDocuments = new();
@@ -21,8 +23,10 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
         Func<Func<string, CancellationToken, Task>, TDocument> createDocument,
         Action<TDocument> activateDocument,
         Func<TDocument, Func<TTab, Task>, TTab> createTab,
-        Func<TDocument, Task<bool>>? prepareActiveClose = null) {
+        Func<TDocument, Task<bool>>? prepareActiveClose = null,
+        TDocument? applicationDocument = null) {
         _createDocument = createDocument ?? throw new ArgumentNullException(nameof(createDocument));
+        _applicationDocument = applicationDocument;
         _activateDocument = activateDocument ?? throw new ArgumentNullException(nameof(activateDocument));
         _createTab = createTab ?? throw new ArgumentNullException(nameof(createTab));
         _prepareActiveClose = prepareActiveClose;
@@ -41,10 +45,11 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
 
     internal TDocument ActiveDocument => SelectedTab?.Document ?? _emptyDocument;
 
-    internal IEnumerable<TDocument> OperationDocuments => Tabs.Select(tab => tab.Document).Append(_emptyDocument).Distinct();
+    internal IEnumerable<TDocument> OperationDocuments => Tabs.Select(tab => tab.Document).Append(_emptyDocument)
+        .Concat(_applicationDocument is null ? Enumerable.Empty<TDocument>() : new[] { _applicationDocument }).Distinct();
 
     internal bool HasBusyDocuments => Tabs.Any(tab => tab.Document.CanCancelOperation) ||
-                                      _emptyDocument.CanCancelOperation;
+                                      _emptyDocument.CanCancelOperation || _applicationDocument?.CanCancelOperation == true;
 
     internal bool HasDirtyDocuments => OperationDocuments.Any(document => document.IsDirty || document.HasUnsavedAuxiliaryWork);
 
@@ -234,11 +239,16 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
     }
 
     internal async Task<bool> RequestCloseAllAsync() {
-        if (!await _emptyDocument.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
+        // The window-level document and the empty document close like any tab: every participant is prepared, then
+        // committed, and a veto anywhere cancels the preparation of all of them.
+        TDocument[] shared = _applicationDocument is null ? [_emptyDocument] : [_applicationDocument, _emptyDocument];
         TTab[] candidates = Tabs.ToArray();
         TTab? previousSelection = SelectedTab;
         bool prepared = false;
         try {
+            foreach (TDocument document in shared) {
+                if (!await document.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
+            }
             foreach (TTab tab in candidates) {
                 SelectedTab = tab;
                 if (!await tab.Document.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
@@ -247,9 +257,13 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
                 SelectedTab = tab;
                 if (!await tab.Document.CommitPreparedDiscardAsync().ConfigureAwait(true)) return false;
             }
+            foreach (TDocument document in shared) {
+                if (!await document.CommitPreparedDiscardAsync().ConfigureAwait(true)) return false;
+            }
             prepared = true;
         } finally {
             if (!prepared) {
+                foreach (TDocument document in shared) document.CancelPreparedClose();
                 foreach (TTab tab in candidates) tab.Document.CancelPreparedClose();
                 if (previousSelection is not null && Tabs.Contains(previousSelection)) SelectedTab = previousSelection;
             }
@@ -261,6 +275,7 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
             Tabs.Remove(tab);
             tab.Dispose();
         }
+        foreach (TDocument document in shared) document.CompletePreparedClose();
         OnPropertyChanged(nameof(HasTabs));
         SelectedTab = null;
         return true;
@@ -269,6 +284,7 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
     internal void CancelAllOperations() {
         foreach (TTab tab in Tabs) tab.Document.CancelCurrentOperation();
         _emptyDocument.CancelCurrentOperation();
+        _applicationDocument?.CancelCurrentOperation();
     }
 
     public void Dispose() {
@@ -277,5 +293,6 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
         foreach (TTab tab in Tabs.ToArray()) tab.Dispose();
         Tabs.Clear();
         _emptyDocument.Dispose();
+        _applicationDocument?.Dispose();
     }
 }

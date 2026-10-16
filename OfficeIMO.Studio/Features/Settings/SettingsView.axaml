@@ -4,42 +4,44 @@
              xmlns:settings="using:OfficeIMO.Studio.Features.Settings"
              x:Class="OfficeIMO.Studio.Features.Settings.SettingsView"
              x:DataType="settings:StudioSettingsViewModel">
-  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                Background="{DynamicResource StudioWindowBrush}">
-    <StackPanel Margin="28,24,28,36" Spacing="18" MaxWidth="980" HorizontalAlignment="Stretch">
-      <StackPanel Spacing="4">
-        <TextBlock Text="{loc:Loc Settings.Settings}" Classes="pageTitle" />
-        <TextBlock Text="{loc:Loc Settings.Description}" Classes="muted" TextWrapping="Wrap" />
-      </StackPanel>
+  <UserControl.Styles>
+    <Style Selector="ListBox#SectionList ListBoxItem"><Setter Property="Padding" Value="12,8" /><Setter Property="Margin" Value="0,1" /></Style>
+    <Style Selector="ListBox#SectionList ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="Border.settingsSection"><Setter Property="Padding" Value="20,18" /></Style>
+    <Style Selector="Border.settingsSection > StackPanel"><Setter Property="Spacing" Value="10" /></Style>
+    <Style Selector="TextBlock.settingLabel"><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Margin" Value="0,6,0,0" /></Style>
+  </UserControl.Styles>
 
-      <Grid x:Name="AppearanceGrid" ColumnDefinitions="*,*" ColumnSpacing="16" RowSpacing="16">
-        <Border Classes="card">
-          <StackPanel Spacing="12">
+  <!-- Sections are listed on the left and all stay on one page, so search, keyboard and screen-reader
+       navigation reach every option; choosing a section scrolls to it. -->
+  <Grid x:Name="SettingsLayout" ColumnDefinitions="220,*" Background="{DynamicResource StudioWindowBrush}">
+    <Border x:Name="SectionNavigation" Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,0,1,0">
+      <ListBox x:Name="SectionList" Margin="12,24,12,12" Background="Transparent" SelectionMode="Single"
+               AutomationProperties.Name="{loc:Loc Settings.Sections}">
+        <ListBoxItem Tag="AppearanceSection" Content="{loc:Loc Settings.AppearanceAndLanguage}" />
+        <ListBoxItem Tag="ReadingSection" Content="{loc:Loc Settings.ReadingWorkspace}" />
+        <ListBoxItem Tag="TextRecognitionSection" Content="{loc:Loc OcrSetup.Title}" />
+        <ListBoxItem Tag="PrivacySection" Content="{loc:Loc Settings.PrivacySection}" />
+        <ListBoxItem Tag="RecoverySection" Content="{loc:Loc Settings.RecoverySection}" />
+        <ListBoxItem Tag="AboutSection" Content="{loc:Loc Settings.AboutAndUpdates}" />
+      </ListBox>
+    </Border>
+
+    <ScrollViewer x:Name="SectionScroller" Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel x:Name="SettingsContent" Classes="pageContent" Spacing="{StaticResource StudioSpaceL}" MaxWidth="780" HorizontalAlignment="Left">
+        <StackPanel Classes="pageHeading">
+          <TextBlock Text="{loc:Loc Settings.Settings}" Classes="pageTitle" />
+          <TextBlock Text="{loc:Loc Settings.Description}" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border x:Name="AppearanceSection" Classes="card settingsSection">
+          <StackPanel>
             <TextBlock Text="{loc:Loc Settings.AppearanceAndLanguage}" Classes="sectionTitle" />
-            <TextBlock Text="{loc:Loc Settings.Density}" FontWeight="SemiBold" />
-            <ComboBox ItemsSource="{Binding Densities}" SelectedItem="{Binding SelectedDensity, Mode=TwoWay}"
-                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.Density}">
-              <ComboBox.ItemTemplate>
-                <DataTemplate x:DataType="settings:StudioDensityChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate>
-              </ComboBox.ItemTemplate>
-            </ComboBox>
-            <TextBlock Text="{loc:Loc Settings.InterfaceLanguage}" FontWeight="SemiBold" />
-            <ComboBox ItemsSource="{Binding Cultures}" SelectedItem="{Binding SelectedCulture, Mode=TwoWay}"
-                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.InterfaceLanguage}">
-              <ComboBox.ItemTemplate>
-                <DataTemplate x:DataType="settings:StudioCultureChoice">
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{Binding Label}" />
-                    <TextBlock Text="{Binding Name}" Classes="muted" />
-                  </StackPanel>
-                </DataTemplate>
-              </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Border IsVisible="{Binding RestartRequired}" Background="{DynamicResource StudioWarningSoftBrush}"
-                    BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
-              <TextBlock Text="{loc:Loc Settings.RestartRequired}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
-            </Border>
-            <TextBlock Text="{loc:Loc Settings.Appearance}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <TextBlock Text="{loc:Loc Settings.Appearance}" Classes="settingLabel" />
             <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
                       HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.Appearance}">
               <ComboBox.ItemTemplate>
@@ -49,117 +51,147 @@
               </ComboBox.ItemTemplate>
             </ComboBox>
             <TextBlock Text="{Binding SelectedTheme.Description}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.Density}" Classes="settingLabel" />
+            <ComboBox ItemsSource="{Binding Densities}" SelectedItem="{Binding SelectedDensity, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.Density}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="settings:StudioDensityChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Text="{loc:Loc Settings.InterfaceLanguage}" Classes="settingLabel" />
+            <ComboBox ItemsSource="{Binding Cultures}" SelectedItem="{Binding SelectedCulture, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.InterfaceLanguage}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="settings:StudioCultureChoice">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}">
+                    <TextBlock Text="{Binding Label}" />
+                    <TextBlock Text="{Binding Name}" Classes="muted" />
+                  </StackPanel>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Border IsVisible="{Binding RestartRequired}" Classes="callout warning">
+              <TextBlock Text="{loc:Loc Settings.RestartRequired}" TextWrapping="Wrap" />
+            </Border>
           </StackPanel>
         </Border>
 
-        <Border Grid.Column="1" Classes="card">
-          <StackPanel Spacing="10">
+        <Border x:Name="ReadingSection" Classes="card settingsSection">
+          <StackPanel>
             <TextBlock Text="{loc:Loc Settings.ReadingWorkspace}" Classes="sectionTitle" />
             <TextBlock Text="{loc:Loc Settings.ReadingWorkspaceDescription}" TextWrapping="Wrap" />
-            <Border x:Name="FocusReadingHelp" Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="6" Padding="10,8">
-              <TextBlock Text="{loc:Loc Settings.FocusReadingHelp}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" />
+            <Border x:Name="FocusReadingHelp" Classes="callout">
+              <TextBlock Text="{loc:Loc Settings.FocusReadingHelp}" TextWrapping="Wrap" />
             </Border>
             <TextBlock Text="{loc:Loc Settings.DocumentAppearanceHelp}" Classes="muted" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
-      </Grid>
 
-      <Border Classes="card" DataContext="{Binding OcrSetup}" x:DataType="settings:StudioOcrSetupViewModel">
-        <StackPanel Spacing="10">
-          <TextBlock Text="{loc:Loc OcrSetup.Title}" Classes="sectionTitle" />
-          <TextBlock Text="{loc:Loc OcrSetup.Description}" Classes="muted" TextWrapping="Wrap" />
-          <TextBlock Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
-          <StackPanel Spacing="10" IsVisible="{Binding IsAvailable}">
-            <TextBlock Text="{loc:Loc OcrSetup.ExecutablePath}" FontWeight="SemiBold" />
-            <TextBox Text="{Binding ExecutablePath, Mode=TwoWay}" PlaceholderText="{loc:Loc OcrSetup.AutomaticDiscovery}"
-                     IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{loc:Loc OcrSetup.ExecutablePath}" />
-            <WrapPanel>
-              <Button Classes="tool" Content="{loc:Loc OcrSetup.ChooseExecutable}" Command="{Binding ChooseExecutableCommand}" Margin="0,0,8,6" />
-              <Button Classes="tool" Content="{loc:Loc OcrSetup.CheckAndSave}" Command="{Binding CheckCommand}" Margin="0,0,8,6" />
-              <Button Classes="tool" Content="{loc:Loc OcrSetup.UseAutomatic}" Command="{Binding UseAutomaticDiscoveryCommand}" Margin="0,0,0,6" />
-            </WrapPanel>
-            <StackPanel Spacing="4" IsVisible="{Binding IsReady}">
-              <TextBlock Text="{Binding DetectedExecutable}" TextWrapping="Wrap" />
-              <TextBlock Text="{Binding Version}" TextWrapping="Wrap" />
-              <TextBlock Text="{Binding InstalledLanguages}" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc OcrSetup.InstalledLanguages}" />
+        <Border x:Name="TextRecognitionSection" Classes="card settingsSection" DataContext="{Binding OcrSetup}" x:DataType="settings:StudioOcrSetupViewModel">
+          <StackPanel>
+            <TextBlock Text="{loc:Loc OcrSetup.Title}" Classes="sectionTitle" />
+            <TextBlock Text="{loc:Loc OcrSetup.Description}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            <StackPanel Spacing="{StaticResource StudioSpaceM}" IsVisible="{Binding IsAvailable}">
+              <TextBlock Text="{loc:Loc OcrSetup.ExecutablePath}" Classes="settingLabel" />
+              <TextBox Text="{Binding ExecutablePath, Mode=TwoWay}" PlaceholderText="{loc:Loc OcrSetup.AutomaticDiscovery}"
+                       IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{loc:Loc OcrSetup.ExecutablePath}" />
+              <WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
+                <Button Classes="tool" Content="{loc:Loc OcrSetup.ChooseExecutable}" Command="{Binding ChooseExecutableCommand}" />
+                <Button Classes="tool" Content="{loc:Loc OcrSetup.CheckAndSave}" Command="{Binding CheckCommand}" />
+                <Button Classes="tool" Content="{loc:Loc OcrSetup.UseAutomatic}" Command="{Binding UseAutomaticDiscoveryCommand}" />
+              </WrapPanel>
+              <StackPanel Spacing="{StaticResource StudioSpaceXS}" IsVisible="{Binding IsReady}">
+                <TextBlock Text="{Binding DetectedExecutable}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Version}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding InstalledLanguages}" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc OcrSetup.InstalledLanguages}" />
+              </StackPanel>
+              <TextBlock Text="{loc:Loc OcrSetup.InstallHelp}" TextWrapping="Wrap" />
+              <TextBox Text="{Binding InstallationCommand}" IsReadOnly="True" TextWrapping="Wrap"
+                       AutomationProperties.Name="{loc:Loc OcrSetup.InstallCommand}" />
+              <TextBlock Text="{Binding LanguageHelp}" TextWrapping="Wrap" Classes="muted" />
             </StackPanel>
-            <TextBlock Text="{loc:Loc OcrSetup.InstallHelp}" TextWrapping="Wrap" />
-            <TextBox Text="{Binding InstallationCommand}" IsReadOnly="True" TextWrapping="Wrap"
-                     AutomationProperties.Name="{loc:Loc OcrSetup.InstallCommand}" />
-            <TextBlock Text="{Binding LanguageHelp}" TextWrapping="Wrap" Classes="muted" />
           </StackPanel>
-        </StackPanel>
-      </Border>
+        </Border>
 
-      <Grid x:Name="PrivacyGrid" ColumnDefinitions="*,*" ColumnSpacing="16" RowSpacing="16">
-        <Border Classes="card">
-          <StackPanel Spacing="10">
-            <TextBlock Text="{loc:Loc Settings.PrivacyAndDiagnostics}" Classes="sectionTitle" />
+        <Border x:Name="PrivacySection" Classes="card settingsSection">
+          <StackPanel>
+            <TextBlock Text="{loc:Loc Settings.PrivacySection}" Classes="sectionTitle" />
             <TextBlock Text="{Binding PrivacyNotice}" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Settings.PrivateDocumentsHelp}" TextWrapping="Wrap" Classes="muted" />
             <ToggleSwitch IsChecked="{Binding RememberSession, Mode=TwoWay}" Content="{loc:Loc Session.Remember}"
                           OnContent="{x:Null}" OffContent="{x:Null}" AutomationProperties.Name="{loc:Loc Session.Remember}" />
             <TextBlock Text="{loc:Loc Session.RememberDescription}" TextWrapping="Wrap" Classes="muted" />
-            <TextBlock Text="{loc:Loc Settings.DocumentHistory}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <ToggleSwitch IsChecked="{Binding ShowRecentPreviews, Mode=TwoWay}" Content="{loc:Loc Settings.ShowRecentPreviews}"
+                          OnContent="{x:Null}" OffContent="{x:Null}" AutomationProperties.Name="{loc:Loc Settings.ShowRecentPreviews}" />
+            <TextBlock Text="{loc:Loc Settings.ShowRecentPreviewsDescription}" TextWrapping="Wrap" Classes="muted" />
+            <TextBlock Text="{loc:Loc Settings.DocumentHistory}" Classes="settingLabel" />
             <TextBlock Text="{loc:Loc Settings.HistoryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />
-            <Button Classes="tool" Content="{Binding HistoryPersistenceAction}" Command="{Binding ToggleDocumentHistoryCommand}"
-                    HorizontalAlignment="Left" />
+            <WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
+              <Button Classes="tool" Content="{Binding HistoryPersistenceAction}" Command="{Binding ToggleDocumentHistoryCommand}" />
+              <Button Classes="tool" Content="{loc:Loc Settings.ClearHistory}" Command="{Binding RequestHistoryClearCommand}"
+                      IsVisible="{Binding !ConfirmHistoryClear}" />
+            </WrapPanel>
             <TextBlock Text="{loc:Loc Settings.HistoryDisabled}" IsVisible="{Binding !RememberDocumentHistory}" TextWrapping="Wrap" />
-            <Button Classes="tool" Content="{loc:Loc Settings.ClearHistory}" Command="{Binding RequestHistoryClearCommand}"
-                    IsVisible="{Binding !ConfirmHistoryClear}" HorizontalAlignment="Left" />
-            <Border IsVisible="{Binding ConfirmHistoryClear}" Background="{DynamicResource StudioWarningSoftBrush}"
-                    BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
-              <StackPanel Spacing="10">
+            <Border IsVisible="{Binding ConfirmHistoryClear}" Classes="callout warning">
+              <StackPanel Spacing="{StaticResource StudioSpaceM}">
                 <TextBlock Text="{loc:Loc Settings.HistoryClearWarning}" TextWrapping="Wrap" />
-                <WrapPanel>
-                  <Button Classes="tool" Content="{loc:Loc Settings.DeleteHistory}" Command="{Binding ClearHistoryCommand}" Margin="0,0,8,6" />
-                  <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelHistoryClearCommand}" Margin="0,0,0,6" />
+                <WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
+                  <Button Classes="tool" Content="{loc:Loc Settings.DeleteHistory}" Command="{Binding ClearHistoryCommand}" />
+                  <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelHistoryClearCommand}" />
                 </WrapPanel>
               </StackPanel>
             </Border>
             <TextBlock Text="{Binding HistoryStatus}" IsVisible="{Binding HasHistoryStatus}" TextWrapping="Wrap" />
-            <TextBlock Text="{loc:Loc Settings.RecoveryStorage}" FontWeight="SemiBold" Margin="0,4,0,0" />
+          </StackPanel>
+        </Border>
+
+        <Border x:Name="RecoverySection" Classes="card settingsSection">
+          <StackPanel>
+            <TextBlock Text="{loc:Loc Settings.RecoverySection}" Classes="sectionTitle" />
+            <TextBlock Text="{loc:Loc Settings.RecoveryStorage}" Classes="settingLabel" />
             <TextBlock Text="{loc:Loc Settings.RecoveryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />
-            <Button Classes="tool" Content="{Binding RecoveryPersistenceAction}" Command="{Binding ToggleRecoveryPersistenceCommand}"
-                    IsEnabled="{Binding !IsRecoveryBusy}" HorizontalAlignment="Left" />
+            <WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
+              <Button Classes="tool" Content="{Binding RecoveryPersistenceAction}" Command="{Binding ToggleRecoveryPersistenceCommand}"
+                      IsEnabled="{Binding !IsRecoveryBusy}" />
+              <Button Classes="tool" Content="{loc:Loc Settings.ClearRecovery}" Command="{Binding RequestRecoveryClearCommand}"
+                      IsVisible="{Binding !ConfirmRecoveryClear}" IsEnabled="{Binding !IsRecoveryBusy}" />
+            </WrapPanel>
             <TextBlock Text="{loc:Loc Settings.RecoveryDisabled}" IsVisible="{Binding !CreateRecoverySnapshots}" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Settings.RecoveryRetention}" TextWrapping="Wrap" Classes="muted" />
-            <Button Classes="tool" Content="{loc:Loc Settings.ClearRecovery}" Command="{Binding RequestRecoveryClearCommand}"
-                    IsVisible="{Binding !ConfirmRecoveryClear}" IsEnabled="{Binding !IsRecoveryBusy}" HorizontalAlignment="Left" />
-            <Border IsVisible="{Binding ConfirmRecoveryClear}" Background="{DynamicResource StudioWarningSoftBrush}"
-                    BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
-              <StackPanel Spacing="10">
+            <Border IsVisible="{Binding ConfirmRecoveryClear}" Classes="callout warning">
+              <StackPanel Spacing="{StaticResource StudioSpaceM}">
                 <TextBlock Text="{loc:Loc Settings.RecoveryClearWarning}" TextWrapping="Wrap" />
-                <WrapPanel IsEnabled="{Binding !IsRecoveryBusy}">
-                  <Button Classes="tool" Foreground="{DynamicResource StudioErrorBrush}" Content="{loc:Loc Settings.DeleteRecovery}" Command="{Binding ClearRecoveryCommand}" Margin="0,0,8,6" />
-                  <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelRecoveryClearCommand}" Margin="0,0,0,6" />
+                <WrapPanel IsEnabled="{Binding !IsRecoveryBusy}" ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
+                  <Button Classes="tool" Foreground="{DynamicResource StudioErrorBrush}" Content="{loc:Loc Settings.DeleteRecovery}" Command="{Binding ClearRecoveryCommand}" />
+                  <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelRecoveryClearCommand}" />
                 </WrapPanel>
               </StackPanel>
             </Border>
             <TextBlock Text="{loc:Loc Settings.RecoveryClearing}" IsVisible="{Binding IsRecoveryBusy}" TextWrapping="Wrap" />
             <TextBlock Text="{Binding RecoveryStatus}" IsVisible="{Binding HasRecoveryStatus}" TextWrapping="Wrap" />
-            <TextBlock Text="{loc:Loc Settings.DiagnosticsLocation}" FontWeight="SemiBold" Margin="0,4,0,0" />
-            <TextBlock Text="{Binding DiagnosticsDirectory}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.DiagnosticsLocation}" Classes="settingLabel" />
+            <SelectableTextBlock Text="{Binding DiagnosticsDirectory}" Classes="muted" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
 
-        <Border Grid.Column="1" Classes="card">
-          <StackPanel Spacing="8">
+        <Border x:Name="AboutSection" Classes="card settingsSection">
+          <StackPanel>
             <TextBlock Text="{loc:Loc Settings.AboutAndUpdates}" Classes="sectionTitle" />
-            <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="7">
+            <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="{StaticResource StudioSpaceS}">
               <TextBlock Text="{loc:Loc Settings.Version}" Classes="muted" />
-              <TextBlock Grid.Column="1" Text="{Binding ProductVersion}" />
+              <SelectableTextBlock Grid.Column="1" Text="{Binding ProductVersion}" />
               <TextBlock Grid.Row="1" Text="{loc:Loc Settings.Runtime}" Classes="muted" />
-              <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RuntimeDescription}" TextWrapping="Wrap" />
+              <SelectableTextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RuntimeDescription}" TextWrapping="Wrap" />
               <TextBlock Grid.Row="2" Text="{loc:Loc Settings.System}" Classes="muted" />
-              <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OperatingSystem}" TextWrapping="Wrap" />
+              <SelectableTextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OperatingSystem}" TextWrapping="Wrap" />
             </Grid>
-            <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="6" Padding="10,8" Margin="0,4,0,0">
-              <TextBlock Text="{loc:Loc Settings.ManualUpdatePolicy}" Classes="muted" TextWrapping="Wrap" />
+            <Border Classes="callout">
+              <TextBlock Text="{loc:Loc Settings.ManualUpdatePolicy}" TextWrapping="Wrap" />
             </Border>
           </StackPanel>
         </Border>
-      </Grid>
-    </StackPanel>
-  </ScrollViewer>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
 </UserControl>

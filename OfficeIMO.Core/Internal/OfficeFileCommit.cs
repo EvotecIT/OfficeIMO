@@ -553,11 +553,19 @@ namespace OfficeIMO.Core.Internal {
             return TryMoveIfAbsent(temporaryPath, GetFullTargetPath(targetPath));
         }
 
+        private const string ReadOnlyDestinationKey = "OfficeIMO.FileCommit.ReadOnlyDestination";
+
         private static void EnsureDestinationWritable(string targetPath) {
             if (File.Exists(targetPath) && new FileInfo(targetPath).IsReadOnly) {
-                throw new UnauthorizedAccessException($"Destination file '{targetPath}' is read-only.");
+                var error = new UnauthorizedAccessException($"Destination file '{targetPath}' is read-only.");
+                error.Data[ReadOnlyDestinationKey] = true;
+                throw error;
             }
         }
+
+        /// <summary>True when a commit was refused because the existing destination file is marked read-only.</summary>
+        internal static bool IsReadOnlyDestination(Exception error) =>
+            error is UnauthorizedAccessException && error.Data[ReadOnlyDestinationKey] is true;
 
         /// <summary>Deletes a temporary file when it exists without hiding an earlier failure.</summary>
         public static void DeleteIfExists(string? path) {

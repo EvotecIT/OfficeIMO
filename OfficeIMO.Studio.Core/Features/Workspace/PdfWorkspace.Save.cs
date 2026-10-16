@@ -7,6 +7,35 @@ using OfficeIMO.Studio.Infrastructure;
 namespace OfficeIMO.Studio.Features.Workspace;
 
 internal sealed partial class PdfWorkspace {
+    /// <summary>
+    /// Writes the open revision to another file, as a share or an export does; the document keeps its own location and
+    /// saved state.
+    /// </summary>
+    internal async Task SaveCopyAsync(string path, CancellationToken cancellationToken) {
+        ThrowIfDisposed();
+        string destination = ValidateCopyDestination(path);
+        await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            byte[] bytes = _bytes;
+            await WriteWorkspaceOutputAsync(destination,
+                async (stream, token) => await LoadDocument(bytes).SaveAsync(stream, token).ConfigureAwait(false),
+                cancellationToken).ConfigureAwait(false);
+        } finally {
+            _operationGate.Release();
+        }
+    }
+
+    /// <summary>Uses the workspace's storage identity and write policy for any operation that promises a separate copy.</summary>
+    internal string ValidateCopyDestination(string path) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination is required.", nameof(path));
+        string destination = OfficeStorageIdentity.Normalize(path);
+        if (OfficeStorageIdentity.AreEquivalent(destination, Path)) {
+            throw new ArgumentException("A copy can't replace the document it was made from.", nameof(path));
+        }
+        _storage.EnsureWritableLocation(destination);
+        return destination;
+    }
+
     internal async Task SaveAsync(string? path, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
         ThrowIfDisposed();
         string destination = string.IsNullOrWhiteSpace(path) ? Path : OfficeStorageIdentity.Normalize(path);
@@ -14,6 +43,7 @@ internal sealed partial class PdfWorkspace {
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             string previousPath = Path;
+            string previousRecoveryIdentity = RecoveryIdentity;
             progress?.Report(new PdfWorkspaceProgress("Saving PDF", 0.2D));
             PdfSaveResult? saved = null;
             string? savedSourceIdentity = null;
@@ -23,7 +53,7 @@ internal sealed partial class PdfWorkspace {
                 using var serialized = new OfficeBoundedMemoryStream(StudioDocumentStorage.MaximumDocumentBytes);
                 saved = await LoadDocument(_bytes).SaveAsync(serialized, cancellationToken).ConfigureAwait(false);
                 if (replacingSource) {
-                    await _recoveryStore.WriteAsync(Path, _baseFingerprint, _bytes, _revision, cancellationToken).ConfigureAwait(false);
+                    await _recoveryStore.WriteAsync(RecoveryIdentity, _baseFingerprint, _bytes, _revision, cancellationToken).ConfigureAwait(false);
                 }
                 try {
                     StudioStoragePublication publication = await _storage.PublishAsync(destination, serialized.ToArray(), replacingSource ? _baseFingerprint : null,
@@ -63,11 +93,14 @@ internal sealed partial class PdfWorkspace {
             Path = destination;
             _sourceIdentityKey = savedSourceIdentity ?? OfficePathIdentity.GetPhysicalIdentityKey(destination);
             _baseFingerprint = saved!.Pipeline.Output!.Sha256.ToUpperInvariant();
+            _externalBaseFingerprint = null;
+            _preparedExternalSaves.Clear();
+            UsesExternalPublication = false;
             _savedRevision = _revision;
             // Publication has completed; cleanup must not be interrupted by late cancellation.
             try {
-                await _recoveryStore.DeleteAsync(previousPath).ConfigureAwait(false);
-                if (previousPath != Path) await _recoveryStore.DeleteAsync(Path).ConfigureAwait(false);
+                await _recoveryStore.DeleteAsync(previousRecoveryIdentity).ConfigureAwait(false);
+                if (previousRecoveryIdentity != RecoveryIdentity) await _recoveryStore.DeleteAsync(RecoveryIdentity).ConfigureAwait(false);
             } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
                 Changed?.Invoke(this, EventArgs.Empty);
                 throw new IOException("The PDF was saved, but its stored recovery data could not be removed. Clear stored recovery data in Settings when storage is available.", error);

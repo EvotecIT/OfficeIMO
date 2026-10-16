@@ -11,7 +11,7 @@ internal sealed partial class MobileDocumentHost {
     internal void ConfigureAssistant(MainWindowViewModel document, Func<string, bool> canPublish) {
         services.AiConnections.OpenUri = OpenUriAsync;
         document.Assistant.CopyAnswer = async text => {
-            var clipboard = TopLevel.GetTopLevel(workspace)?.Clipboard ?? throw new IOException("Clipboard is unavailable.");
+            var clipboard = TopLevel.GetTopLevel(workspace)?.Clipboard ?? throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.ClipboardUnavailable"));
             await clipboard.SetTextAsync(text);
         };
         document.Assistant.ExportAnswer = async (text, isCurrent, token) => {
@@ -23,7 +23,7 @@ internal sealed partial class MobileDocumentHost {
             void Authorize() {
                 token.ThrowIfCancellationRequested();
                 services.Storage.EnsureWritableLocation(location);
-                if (!isCurrent() || !canPublish(location)) throw new IOException("The source or destination changed. Export the current answer to a separate file.");
+                if (!isCurrent() || !canPublish(location)) throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.AnswerSourceChanged"));
             }
             Authorize();
             byte[] bytes = Encoding.UTF8.GetBytes(text);

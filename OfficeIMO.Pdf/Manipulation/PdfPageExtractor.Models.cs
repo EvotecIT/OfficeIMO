@@ -13,8 +13,10 @@ internal static partial class PdfPageExtractor {
             Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null,
             bool preserveReferenceGenerations = false,
             bool preserveRawStringBytes = false,
+            IReadOnlyCollection<int>? undefinedObjectNumbers = null,
             CancellationToken cancellationToken = default) {
             NumberMap = numberMap;
+            UndefinedObjectNumbers = undefinedObjectNumbers ?? Array.Empty<int>();
             PagesObjectId = pagesObjectId;
             MaterializedPageValues = materializedPageValues;
             SourceObjects = sourceObjects;
@@ -40,6 +42,12 @@ internal static partial class PdfPageExtractor {
         public CancellationToken CancellationToken { get; }
     
         public Dictionary<int, Dictionary<string, PdfObject>> PageOverrides { get; }
+
+        /// <summary>
+        /// Objects the source references but never defines. ISO 32000-2 7.3.10 reads such a reference as the null
+        /// object, so it is written as null.
+        /// </summary>
+        public IReadOnlyCollection<int> UndefinedObjectNumbers { get; }
     }
     
     internal sealed class AdditionalObject {

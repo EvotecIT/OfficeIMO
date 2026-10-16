@@ -4,8 +4,13 @@ using OfficeIMO.Studio.Features.Reader;
 namespace OfficeIMO.Studio.Features.Workspace;
 
 internal sealed partial class PdfWorkspace {
+    /// <summary>
+    /// Reads the PDFs to import. A protected source is opened with its entry in <paramref name="passwords"/> when given;
+    /// otherwise <paramref name="promptPassword"/> asks for it, and without a prompt the preparation fails with a
+    /// <see cref="PdfImportPasswordException"/> naming the source.
+    /// </summary>
     internal async Task<PdfImportPreparation?> PrepareImportAsync(IReadOnlyList<string> paths, CancellationToken token,
-        Func<string, bool, CancellationToken, Task<string?>>? promptPassword = null) {
+        Func<string, bool, CancellationToken, Task<string?>>? promptPassword = null, IReadOnlyList<string?>? passwords = null) {
         ThrowIfDisposed();
         if (!CanImportPages) throw new InvalidOperationException("This document cannot safely import pages.");
         if (paths is null || paths.Count is < 1 or > 1000) throw new ArgumentException("Choose between 1 and 1000 PDFs to import.", nameof(paths));
@@ -14,14 +19,15 @@ internal sealed partial class PdfWorkspace {
         string[] sources = paths.Select(ValidateSourcePdfPath).ToArray();
         var captured = new List<PdfImportSource>(sources.Length);
         long remainingBytes = Infrastructure.StudioDocumentStorage.MaximumDocumentBytes;
-        foreach (string source in sources) {
+        for (int index = 0; index < sources.Length; index++) {
+            string source = sources[index];
             token.ThrowIfCancellationRequested();
             if (remainingBytes == 0) throw new IOException("The selected PDFs exceed the 512 MiB import limit. Import fewer documents at a time.");
             var snapshot = await _storage.ReadSnapshotAsync(source, token,
                 Math.Min(remainingBytes, StudioPdfSecurityPolicy.MaximumInputBytes)).ConfigureAwait(true);
             remainingBytes -= snapshot.Bytes.LongLength;
             string name = _storage.Describe(source).Name;
-            string? password = null;
+            string? password = passwords is not null && index < passwords.Count ? passwords[index] : null;
             while (true) {
                 bool invalidPassword;
                 try {
@@ -29,8 +35,13 @@ internal sealed partial class PdfWorkspace {
                         StudioPdfSecurityPolicy.CreateLoadOptions(password)).Inspect().PageCount, token).ConfigureAwait(true);
                     captured.Add(new(name, snapshot.Bytes, password, count));
                     break;
-                } catch (PdfPasswordRequiredException) when (promptPassword is not null) { invalidPassword = false; }
-                catch (PdfInvalidPasswordException) when (promptPassword is not null) { invalidPassword = true; }
+                } catch (PdfPasswordRequiredException exception) {
+                    if (promptPassword is null) throw new PdfImportPasswordException(index, name, invalid: false, exception);
+                    invalidPassword = false;
+                } catch (PdfInvalidPasswordException exception) {
+                    if (promptPassword is null) throw new PdfImportPasswordException(index, name, invalid: true, exception);
+                    invalidPassword = true;
+                }
                 password = await promptPassword!(name, invalidPassword, token).ConfigureAwait(true);
                 if (password is null) return null;
             }
@@ -64,4 +75,13 @@ internal sealed partial class PdfWorkspace {
         }, token, progress).ConfigureAwait(false);
         return (int)imported;
     }
+}
+
+/// <summary>A PDF chosen for import needs its password, or the one given was wrong.</summary>
+internal sealed class PdfImportPasswordException(int sourceIndex, string name, bool invalid, Exception inner)
+    : Exception(invalid ? $"The password for “{name}” is not correct." : $"“{name}” is protected by a password.", inner) {
+    /// <summary>The source's position in the requested list, from zero.</summary>
+    internal int SourceIndex { get; } = sourceIndex;
+    internal string Name { get; } = name;
+    internal bool Invalid { get; } = invalid;
 }

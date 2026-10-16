@@ -90,7 +90,8 @@ public sealed partial class MainWindowViewModel {
             Zoom = Zoom,
             ZoomMode = _zoomMode,
             ReaderLayout = ReaderLayout,
-            FocusReading = IsFocusReading
+            FocusReading = IsFocusReading,
+            ViewRotationDegrees = ViewRotationDegrees
         }).Normalize();
     }
 
@@ -104,6 +105,7 @@ public sealed partial class MainWindowViewModel {
 
     private void ApplyDocumentViewState(StudioDocumentViewState state) {
         _documentViewState = state.Normalize();
+        SetViewRotation(_documentViewState.ViewRotationDegrees, saveState: false);
         SelectedReaderLayoutChoice = ReaderLayoutChoices.Single(choice => choice.Mode == _documentViewState.ReaderLayout);
         SelectedPage = Pages.Count == 0 ? null : Pages[Math.Clamp(_documentViewState.PageNumber - 1, 0, Pages.Count - 1)];
         _zoomMode = _documentViewState.ZoomMode;

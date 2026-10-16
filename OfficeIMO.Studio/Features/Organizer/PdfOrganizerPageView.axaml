@@ -5,23 +5,24 @@
              xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
              x:Class="OfficeIMO.Studio.Features.Organizer.PdfOrganizerPageView"
              x:DataType="organizer:PdfOrganizerPageViewModel">
-  <StackPanel Margin="6" Spacing="6" HorizontalAlignment="Center">
+  <StackPanel Margin="6" Spacing="{StaticResource StudioSpaceSM}" HorizontalAlignment="Center">
     <Border Width="124" Height="154"
             Background="White"
             BorderBrush="{DynamicResource StudioSubtleBorderBrush}"
             BorderThickness="1"
             CornerRadius="4"
             BoxShadow="{DynamicResource StudioCardShadow}"
-            Padding="5">
+            Padding="6">
       <Grid>
-        <reader:PdfPageCanvas x:Name="ThumbnailCanvas"
-                              Width="{Binding ThumbnailWidth}"
-                              Height="{Binding ThumbnailHeight}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              IsHitTestVisible="False"
-                              Scene="{Binding Scene}"
-                              FallbackImage="{Binding FallbackImage}" />
+        <Grid Width="{Binding ThumbnailWidth}" Height="{Binding ThumbnailHeight}" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <reader:PdfPageCanvas x:Name="ThumbnailCanvas"
+                                IsHitTestVisible="False"
+                                Scene="{Binding Scene}"
+                                FallbackImage="{Binding FallbackImage}" />
+          <!-- A pending crop is outlined on the selected pages before it is applied. -->
+          <Rectangle IsVisible="{Binding HasCropPreview}" Margin="{Binding CropPreviewInset}" IsHitTestVisible="False"
+                     Stroke="{DynamicResource StudioAccentBrush}" StrokeThickness="1.5" StrokeDashArray="3,2" />
+        </Grid>
         <ProgressBar IsVisible="{Binding IsLoading}"
                      Width="54"
                      IsIndeterminate="True"
@@ -29,7 +30,7 @@
                      VerticalAlignment="Center" />
         <TextBlock IsVisible="{Binding HasError}"
                    Text="{loc:Loc PdfOrganizerPage.PreviewUnavailable}"
-                   FontSize="12"
+                   FontSize="{StaticResource StudioSecondaryFontSize}"
                    Foreground="{DynamicResource StudioErrorBrush}"
                    TextWrapping="Wrap"
                    TextAlignment="Center"
@@ -38,7 +39,7 @@
       </Grid>
     </Border>
     <TextBlock Text="{Binding Label}"
-               FontSize="11.5"
+               FontSize="{StaticResource StudioCaptionFontSize}"
                Foreground="{DynamicResource StudioMutedTextBrush}"
                HorizontalAlignment="Center" />
   </StackPanel>

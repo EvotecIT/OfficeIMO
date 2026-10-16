@@ -1,8 +1,16 @@
 # Upgrading OfficeIMO
 
+## Studio native interface and protected copies
+
+The native engine ABI is version 3. Redaction `apply` requests must include `revision`: use the revision returned by `find`, or the document facts revision on which drawn areas were reviewed. Requests without a revision or with a stale revision are rejected. After editing, reordering, undoing or redoing the document, find or mark the content again before applying redaction. Rebuild native hosts against the matching engine header and check `officeimo_abi_version()` at startup.
+
+Hosts that serialize document publication can use `officeimo_document_acknowledge_ordered_save` after reading the original file back. It retires preparations proved superseded by those observed bytes while retaining newer preparations. Repeated identical bytes can leave publication order ambiguous; recovery remains until distinct readback disambiguates it. Hosts that allow older saves to publish later must keep using `officeimo_document_acknowledge_save`, which preserves recovery for those in-flight saves.
+
+Studio protected copies that restrict printing, copying or changes require a separate permissions password. For AES-256, the permissions and document-open passwords must still differ after FormKC normalization and truncation to 127 UTF-8 bytes. A single password remains sufficient for unrestricted copies. The native `allowCopying: false` option disables both content copying and accessibility text extraction; desktop Studio retains its separate accessibility setting.
+
 ## ZIP APIs move to OfficeIMO.Archives
 
-OfficeIMO 3.5.0 removes `OfficeIMO.Zip`. Replace its package reference and namespace with `OfficeIMO.Archives`, then update these public APIs:
+OfficeIMO 3.5.1 removes `OfficeIMO.Zip`. Replace its package reference and namespace with `OfficeIMO.Archives`, then update these public APIs:
 
 | Previous API | Replacement |
 | --- | --- |
@@ -131,6 +139,15 @@ Update inspection and export code to treat null fit dimensions as inactive and
 to use `Scale` for percentage-based printing. To enable page fitting, configure
 it through `sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U)` for one page wide
 with no height limit, instead of relying on cached dimensions in the worksheet XML.
+
+## PDF clockwise visual coordinates
+
+Page rendering and visual-coordinate APIs interpret `/Rotate 90` as clockwise,
+as required by PDF. Earlier versions mapped 90 and 270 degrees in the opposite
+direction. Remove application-level compensations that swap those angles when
+using search bounds, annotation or image placement, crop margins, or
+`MapVisualPointToUserSpace` / `MapVisualRectangleToUserSpace`. Saved `/Rotate`
+values are unchanged; existing PDFs display according to their stored rotation.
 
 ## Excel import cancellation and date conversion
 

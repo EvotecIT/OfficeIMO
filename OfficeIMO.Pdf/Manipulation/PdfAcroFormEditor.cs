@@ -11,7 +11,7 @@ internal static partial class PdfAcroFormEditor {
         Guard.NotNull(edit, nameof(edit));
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
-        if (source.AcroFormXfa is not null) throw new NotSupportedException("Transactional AcroForm editing does not modify XFA packets. Remove or convert XFA before editing the AcroForm field tree.");
+        if (source.UncheckedAcroFormXfa is not null) throw new NotSupportedException("Transactional AcroForm editing does not modify XFA packets. Remove or convert XFA before editing the AcroForm field tree.");
 
         var session = new PdfAcroFormEditSession(source.ReadOptions.Limits);
         edit(session);
@@ -70,7 +70,7 @@ internal static partial class PdfAcroFormEditor {
             PreserveRevisionStructure = false,
             PreserveSecurityState = !session.Commands.Any(static command => command.Options?.Kind == PdfFormFieldCreationKind.Signature)
         };
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions, cancellationToken);
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreservedForMutation(pdf, output, preservationOptions, plan, cancellationToken);
         return new PdfAcroFormEditResult(output, plan, preservation, saved.FormFields, calculationOrder, operations.AsReadOnly(), savedReadOptions);
     }
 

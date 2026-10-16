@@ -34,4 +34,6 @@ public sealed class OfficeDrawingRasterRenderOptions {
     /// </summary>
     internal bool PdfRasterConventions { get; set; }
     internal OfficeRasterTransformedTextBudget? TransformedTextBudget { get; set; }
+    /// <summary>Decoded and prefiltered images kept between renders of the same drawing.</summary>
+    internal OfficeRasterImageCache? ImageCache { get; set; }
 }

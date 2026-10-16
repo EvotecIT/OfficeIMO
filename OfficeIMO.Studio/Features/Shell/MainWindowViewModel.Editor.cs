@@ -1,3 +1,4 @@
+using OfficeIMO.Studio.Infrastructure.Localization;
 using Avalonia;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -22,7 +23,7 @@ public sealed partial class MainWindowViewModel {
     private PdfEditorToolChoice _selectedEditorToolChoice = null!;
 
     [ObservableProperty]
-    private string _editorText = "Review note";
+    private string _editorText = StudioLocalization.Current.Get("Editor.DefaultNoteText");
 
     [ObservableProperty]
     private string _editorAuthor = Environment.UserName;
@@ -44,6 +45,13 @@ public sealed partial class MainWindowViewModel {
     private int _editorLinkPage = 1;
 
     public bool IsLinkToolActive => ActiveEditorTool == PdfEditorTool.Link;
+
+    /// <summary>Adding text places new text over the page; replacing changes text that is already there.</summary>
+    public bool IsAddTextToolActive => ActiveEditorTool == PdfEditorTool.AddText;
+
+    /// <summary>How to move and resize the selection from the keyboard, with this platform's modifier names.</summary>
+    public string ObjectKeyboardHint => _localizer.Format("Inspector.KeyboardHint",
+        StudioShortcuts.UsesCommandKey ? "⌘" : "Ctrl", StudioShortcuts.UsesCommandKey ? "⌥" : "Alt");
 
     [ObservableProperty]
     private double _editorFontSize = 14D;
@@ -89,7 +97,7 @@ public sealed partial class MainWindowViewModel {
     private string _newFormFieldValue = string.Empty;
 
     [ObservableProperty]
-    private string _newFormFieldOptions = "Option 1\nOption 2";
+    private string _newFormFieldOptions = StudioLocalization.Current.Get("Editor.DefaultFieldOptions");
 
     [ObservableProperty]
     private string _newFormFieldCaption = "Button";
@@ -202,6 +210,7 @@ public sealed partial class MainWindowViewModel {
         if (ShapeTools.Contains(value.Tool)) LastShapeTool = value.Tool;
         OnPropertyChanged(nameof(IsShapeToolActive));
         OnPropertyChanged(nameof(IsLinkToolActive));
+        OnPropertyChanged(nameof(IsAddTextToolActive));
         UpdateFormAnchor();
         // Choosing any other tool abandons a pending signature or date placement.
         if (IsPlacingFillSignItem && !IsFillSignPlacement(value.Tool)) {
@@ -317,7 +326,7 @@ public sealed partial class MainWindowViewModel {
         try {
             properties = CreateEditorProperties(IsFillSignPlacement(tool));
         } catch (Exception error) {
-            ErrorMessage = error.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(error);
             return;
         }
         if (tool == PdfEditorTool.Redact) {
@@ -358,7 +367,7 @@ public sealed partial class MainWindowViewModel {
                         CancellationToken.None, successStatus: UiText(tool == PdfEditorTool.AddText ? "FillSign.DatePlaced" : "FillSign.SignaturePlaced")).ConfigureAwait(true))
                     CompleteFillSignPlacement();
             } catch (Exception ex) {
-                ErrorMessage = ex.Message;
+                ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
             }
             return;
         }
@@ -378,7 +387,7 @@ public sealed partial class MainWindowViewModel {
                 token => workspace.ApplyEditorGestureAsync(tool, gesture, properties, token, CreateProgress()),
                 CancellationToken.None, successStatus: UiText("Editor.EditAdded")).ConfigureAwait(true);
         } catch (Exception ex) {
-            ErrorMessage = ex.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
         }
     }
 
@@ -434,6 +443,7 @@ public sealed partial class MainWindowViewModel {
 
         SelectedObjectText = selection.Text ?? string.Empty;
 
+        ObjectScalePercent = 100;
         SelectedObject = selection;
         SelectedObjectSummary = selection.Kind switch {
             PdfEditorSelectionKind.Text => UiFormat("Editor.TextSelectionSummary", selection.PageNumber, selection.Text?.Length ?? 0),
@@ -590,7 +600,7 @@ public sealed partial class MainWindowViewModel {
             await RunMutationAsync(token => workspace.ApplyWatermarkAsync(prepared, token, CreateProgress()),
                 cancellationToken).ConfigureAwait(true);
         } catch (OperationCanceledException) { }
-        catch (Exception error) { ErrorMessage = error.Message; }
+        catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
         finally { _reviewingWatermark = false; }
     }
 
@@ -605,12 +615,18 @@ public sealed partial class MainWindowViewModel {
             cancellationToken).ConfigureAwait(true);
     }
 
+    /// <summary>Discards property and geometry edits in the inspector and shows the selected annotation's saved values again.</summary>
+    [RelayCommand]
+    private void RevertSelectedAnnotation() {
+        if (SelectedObject is { Kind: PdfEditorSelectionKind.Annotation } selection) ApplyObjectSelection(selection);
+    }
+
     [RelayCommand]
     private async Task UpdateSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
         PdfColor color;
         try { color = ParseColor(EditorColorHex); }
-        catch (Exception error) { ErrorMessage = error.Message; return; }
+        catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); return; }
         string contents = SelectedAnnotationContents;
         string author = SelectedAnnotationAuthor;
         ClearObjectSelection();
@@ -625,7 +641,7 @@ public sealed partial class MainWindowViewModel {
         string reply = AnnotationReplyText;
         PdfColor color;
         try { color = ParseColor(EditorColorHex); }
-        catch (Exception error) { ErrorMessage = error.Message; return; }
+        catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); return; }
         ClearObjectSelection();
         bool succeeded = await RunMutationAsync(
             token => _workspace.AddAnnotationReplyAsync(objectNumber, reply, EditorAuthor, color, token, CreateProgress()),
@@ -678,7 +694,7 @@ public sealed partial class MainWindowViewModel {
         _formWorkspace = _workspace;
         FormFields.Clear();
         if (_workspace is not null) {
-            foreach (PdfFormField field in (_workspace.DocumentInfo?.FormFields ?? []).Where(static field => !string.IsNullOrWhiteSpace(field.Name))) {
+            foreach (PdfFormField field in _workspace.FormMetadata.Where(static field => !string.IsNullOrWhiteSpace(field.Name))) {
                 var model = new PdfFormFieldViewModel(field, _localizer);
                 var matches = previous.Where(candidate => candidate.Name == model.Name).ToArray();
                 var old = matches.Length == 1 && matches[0].Kind == model.Kind ? matches[0] : null;
@@ -722,6 +738,7 @@ public sealed partial class MainWindowViewModel {
 
     private void ClearObjectSelection() {
         ClearTextReview();
+        ObjectScalePercent = 100;
         SelectedAnnotations = Array.Empty<PdfEditorSelection>();
         SelectedObject = null;
         SelectedObjectSummary = null;

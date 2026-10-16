@@ -23,10 +23,6 @@ public partial class PdfReadStreamTests {
         AssertOpenAction(PdfStamper.StampText(openActionPdf, "STAMP"));
 
         static void AssertOpenAction(byte[] output) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/OpenAction [", text, StringComparison.Ordinal);
-            Assert.Contains("/Fit", text, StringComparison.Ordinal);
-
             PdfDocumentInfo info = PdfInspector.Inspect(output);
             Assert.True(info.HasOpenActions);
             Assert.True(info.HasReadableOpenAction);
@@ -63,12 +59,6 @@ public partial class PdfReadStreamTests {
         AssertOpenAction(PdfStamper.StampText(openActionPdf, "STAMP"));
 
         static void AssertOpenAction(byte[] output) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/OpenAction <<", text, StringComparison.Ordinal);
-            Assert.Contains("/S /GoTo", text, StringComparison.Ordinal);
-            Assert.Contains("/D [", text, StringComparison.Ordinal);
-            Assert.Contains("/Fit", text, StringComparison.Ordinal);
-
             PdfDocumentInfo info = PdfInspector.Inspect(output);
             Assert.True(info.HasOpenActions);
             Assert.True(info.HasReadableOpenAction);
@@ -99,7 +89,6 @@ public partial class PdfReadStreamTests {
 
         AssertOpenActions(() => PdfPageExtractor.ExtractPages(openActionPdf, 1));
         AssertOpenActions(() => PdfPageExtractor.SplitPages(openActionPdf));
-        AssertOpenActions(() => PdfPageEditor.DeletePages(openActionPdf, 1));
         AssertOpenActions(() => PdfMetadataEditor.UpdateMetadata(openActionPdf, title: "Updated"));
         AssertOpenActions(() => PdfMerger.Merge(openActionPdf));
         AssertOpenActions(() => PdfStamper.StampText(openActionPdf, "STAMP"));

@@ -9,6 +9,42 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfCmsSignatureValidationTests {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void PageAttributes_PreserveApprovalSignatureCryptographyAcrossRevisions(int fieldLayout) {
+        using X509Certificate2 certificate = CreateSigningCertificate();
+        byte[] signed = CreateSignedPdf(certificate, fieldLayout);
+        Assert.False(PdfDocument.Load(signed).PlanMutation(PdfMutationOperation.NormalizePageRotation).CanExecute);
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(signed).Pages.NormalizeRotation());
+        byte[] rotated = PdfDocument.Load(signed).Pages.Rotate(90, 1).ToBytes();
+        byte[] cropped = PdfDocument.Load(rotated).Pages.SetCropBox(10, 10, 200, 300, 1).ToBytes();
+        foreach (byte[] output in new[] { signed, rotated, cropped }) {
+            PdfSignatureValidationReport report = PdfSignatureValidator.Validate(output, CreateProvider((_, _) => true));
+            Assert.True(report.MathematicalSignaturesVerified);
+            Assert.True(report.DigestVerified);
+            Assert.True(report.IsStructurallyValid);
+        }
+        Assert.True(cropped.AsSpan(0, signed.Length).SequenceEqual(signed));
+    }
+
+    [Fact]
+    public void SignatureHierarchy_StillDetectsWidgetPageReassignment() {
+        using X509Certificate2 certificate = CreateSigningCertificate();
+        byte[] signed = CreateSignedPdf(certificate, fieldLayout: 2);
+        var (objects, trailer) = PdfSyntax.ParseObjects(signed);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(signed);
+        int fieldNumber = Assert.Single(security.Signatures).FieldObjectNumber!.Value;
+        var field = Assert.IsType<PdfDictionary>(objects[fieldNumber].Value);
+        int widgetNumber = Assert.IsType<PdfReference>(Assert.IsType<PdfArray>(field.Items["Kids"]).Items[0]).ObjectNumber;
+        Assert.IsType<PdfDictionary>(objects[widgetNumber].Value).Items["P"] = new PdfReference(security.RootObjectNumber!.Value, 0);
+        byte[] reassigned = PdfIncrementalObjectWriter.Append(signed, objects, security, trailer, new[] { widgetNumber });
+        PdfSignatureMutationReport report = PdfSignatureMutationAnalyzer.Analyze(signed, reassigned, PdfMutationOperation.ModifyPageAttributes);
+        Assert.False(Assert.Single(report.Signatures).ActiveDefinitionPreserved);
+        Assert.False(report.IsPreservedAppendOnlyMutation);
+    }
+
     [Fact]
     public void SignedCmsProviderValidatesDetachedPdfSignatureAndCallerTrustPolicy() {
         using X509Certificate2 certificate = CreateSigningCertificate();
@@ -187,8 +223,9 @@ public class PdfCmsSignatureValidationTests {
         Assert.True(report.DigestVerified);
     }
 
-    private static byte[] CreateSignedPdf(X509Certificate2 certificate) {
+    private static byte[] CreateSignedPdf(X509Certificate2 certificate, int fieldLayout = 0) {
         PdfExternalSignaturePreparation preparation = CreateSigningPreparation();
+        if (fieldLayout != 0) preparation = WithSeparateSignatureWidget(preparation, fieldLayout == 2);
         using var signer = new PdfCmsExternalSigner(
             OfficeSecurityProvider.Default,
             certificate,
@@ -196,6 +233,57 @@ public class PdfCmsSignatureValidationTests {
         return PdfIncrementalUpdater.ApplyExternalSignature(
             preparation,
             signer.Sign(new PdfExternalSignatureRequest(preparation)));
+    }
+
+    private static PdfExternalSignaturePreparation WithSeparateSignatureWidget(PdfExternalSignaturePreparation preparation, bool hierarchical) {
+        byte[] prepared = preparation.PreparedPdf;
+        var (objects, trailer) = PdfSyntax.ParseObjects(prepared);
+        PdfReadDocument read = PdfReadDocument.Open(prepared);
+        int fieldNumber = Assert.Single(read.Security.Signatures).FieldObjectNumber!.Value;
+        var field = Assert.IsType<PdfDictionary>(objects[fieldNumber].Value);
+        int widgetNumber = objects.Keys.Max() + 1;
+        int pageNumber = read.Pages[0].ObjectNumber;
+        var widget = new PdfDictionary();
+        widget.Items["Type"] = new PdfName("Annot");
+        widget.Items["Subtype"] = new PdfName("Widget");
+        widget.Items["Parent"] = new PdfReference(fieldNumber, 0);
+        widget.Items["P"] = new PdfReference(pageNumber, 0);
+        var rectangle = new PdfArray();
+        for (int index = 0; index < 4; index++) rectangle.Items.Add(new PdfNumber(0));
+        widget.Items["Rect"] = rectangle;
+        objects[widgetNumber] = new PdfIndirectObject(widgetNumber, 0, widget);
+        var kids = new PdfArray();
+        kids.Items.Add(new PdfReference(widgetNumber, 0));
+        field.Items["Kids"] = kids;
+        Assert.IsType<PdfDictionary>(objects[pageNumber].Value).Items["Annots"] = kids;
+        var changed = new List<int> { fieldNumber, widgetNumber, pageNumber };
+        if (hierarchical) {
+            int parentNumber = widgetNumber + 1;
+            var parent = new PdfDictionary();
+            parent.Items["T"] = new PdfStringObj("Group");
+            var children = new PdfArray();
+            children.Items.Add(new PdfReference(fieldNumber, 0));
+            parent.Items["Kids"] = children;
+            objects[parentNumber] = new PdfIndirectObject(parentNumber, 0, parent);
+            field.Items["Parent"] = new PdfReference(parentNumber, 0);
+            var catalog = PdfSyntax.FindCatalog(objects, trailer)!;
+            int formNumber = Assert.IsType<PdfReference>(catalog.Items["AcroForm"]).ObjectNumber;
+            var fields = new PdfArray();
+            fields.Items.Add(new PdfReference(parentNumber, 0));
+            Assert.IsType<PdfDictionary>(objects[formNumber].Value).Items["Fields"] = fields;
+            changed.Add(parentNumber);
+            changed.Add(formNumber);
+        }
+        prepared = PdfIncrementalObjectWriter.Append(prepared, objects, read.Security, trailer, changed);
+        long[] ranges = preparation.ByteRangeValues.ToArray();
+        ranges[3] = prepared.LongLength - ranges[2];
+        int rangeOffset = Encoding.ASCII.GetString(prepared).IndexOf("/ByteRange [", StringComparison.Ordinal) + "/ByteRange [".Length;
+        byte[] rangeBytes = Encoding.ASCII.GetBytes(string.Join(" ", ranges.Select(value => value.ToString("D20", System.Globalization.CultureInfo.InvariantCulture))));
+        Buffer.BlockCopy(rangeBytes, 0, prepared, rangeOffset, rangeBytes.Length);
+        return new PdfExternalSignaturePreparation(prepared,
+            hierarchical ? "Group." + preparation.FieldName : preparation.FieldName,
+            preparation.Filter, preparation.SubFilter, preparation.Profile, ranges,
+            preparation.ContentsHexOffset, preparation.ContentsHexLength, preparation.ReservedSignatureContentsBytes);
     }
 
     private static PdfExternalSignaturePreparation CreateSigningPreparation() {

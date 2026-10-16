@@ -7,7 +7,8 @@ internal sealed record StudioFileType(string Name, IReadOnlyList<string> Extensi
 
 /// <summary>
 /// Generic open, save and folder pickers for document features. Implementations register the chosen
-/// locations with Studio storage and confirm provider-backed writes before returning them.
+/// locations with Studio storage. Destination selection does not publish content;
+/// callers retain their final previews, ownership checks and publication confirmation.
 /// </summary>
 internal interface IStudioFileDialogs {
     Task<string?> PickOpenFileAsync(string title, StudioFileType type, CancellationToken cancellationToken);

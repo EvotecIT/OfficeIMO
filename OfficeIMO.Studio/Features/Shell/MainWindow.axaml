@@ -59,16 +59,23 @@
     <StyleInclude Source="avares://OfficeIMO.Studio/Features/Shell/AppleShellStyles.axaml" />
   </Window.Styles>
 
-  <Grid x:Name="ShellRoot" RowDefinitions="44,*,Auto" ColumnDefinitions="72,*">
+  <Grid x:Name="ShellRoot" RowDefinitions="44,*,Auto" ColumnDefinitions="80,*">
     <!-- Title bar: drag area, tabs, command search and window actions. -->
     <Border x:Name="TitleBarDragArea" Grid.ColumnSpan="2" Background="Transparent"
             chrome:WindowDecorationProperties.ElementRole="TitleBar" />
     <Image x:Name="TitleBarLogo" Grid.Row="0" Grid.Column="0" Source="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.png"
            Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
            AutomationProperties.Name="OfficeIMO Studio" />
-    <Grid x:Name="TitleBar" Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
-      <Grid x:Name="TitleDocuments" ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Stretch" ColumnSpacing="2">
-        <TextBlock Text="OfficeIMO Studio" VerticalAlignment="Center" FontWeight="SemiBold" Margin="2,0,10,0"
+    <!-- Windows and Linux application menu; macOS uses the native menu bar. -->
+    <Button x:Name="AppMenuButton" Grid.Row="0" Grid.Column="0" Classes="icon appMenu" IsVisible="False"
+            Width="40" Height="34" HorizontalAlignment="Center" VerticalAlignment="Center"
+            chrome:WindowDecorationProperties.ElementRole="User"
+            AutomationProperties.Name="{loc:Loc Menu.ApplicationMenu}" ToolTip.Tip="{loc:Loc Menu.ApplicationMenuTip}">
+      <Image Source="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.png" Width="22" Height="22" />
+    </Button>
+    <Grid x:Name="TitleBar" Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceSM}">
+      <Grid x:Name="TitleDocuments" ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Stretch" ColumnSpacing="{StaticResource StudioSpaceXXS}">
+        <TextBlock Text="OfficeIMO Studio" VerticalAlignment="Center" FontWeight="SemiBold" Margin="2,0,12,0"
                    x:Name="AppTitleText" x:DataType="shell:StudioDocumentTabHost" IsVisible="{Binding !HasTabs}" IsHitTestVisible="False" />
         <TabControl x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
                  ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
@@ -83,9 +90,9 @@
             <DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
               <Border Classes="documentTab" MinWidth="140" MaxWidth="240" Padding="12,0,6,0"
                       ToolTip.Tip="{Binding SourcePath}" PointerReleased="OnDocumentTabPointerReleased">
-                <Grid Classes="tabContents" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                <Grid Classes="tabContents" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}">
                   <PathIcon Classes="tabIcon" Data="{StaticResource IconDocument}" Width="13" Height="13" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                  <TextBlock Grid.Column="1" Classes="tabTitle" Text="{Binding DisplayTitle}" FontSize="12.5" FontWeight="Medium"
+                  <TextBlock Grid.Column="1" Classes="tabTitle" Text="{Binding DisplayTitle}" FontSize="{StaticResource StudioSecondaryFontSize}" FontWeight="Medium"
                              TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                   <Grid Classes="tabCloseHost">
                     <Ellipse Classes="dirtyDot" Width="7" Height="7" Fill="{DynamicResource StudioAccentBrush}" IsVisible="{Binding IsDirty}"
@@ -113,21 +120,21 @@
                 chrome:WindowDecorationProperties.ElementRole="User"
                 AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}" ToolTip.Tip="{loc:Loc Apple.OpenDocuments}">
           <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
-          <Button.Flyout><MenuFlyout Opening="OnDocumentListOpening" Placement="BottomEdgeAlignedRight" /></Button.Flyout>
+          <Button.Flyout><MenuFlyout Placement="BottomEdgeAlignedRight" /></Button.Flyout>
         </Button>
       </Grid>
 
       <Button x:Name="CommandSearchButton" Grid.Column="2" Width="300" VerticalAlignment="Center" Click="OnCommandsClick"
               chrome:WindowDecorationProperties.ElementRole="User"
-              AutomationProperties.Name="{loc:Loc Commands.PaletteTitle}" ToolTip.Tip="{loc:Loc Shell.CommandSearchTip}">
-        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+              AutomationProperties.Name="{loc:Loc Commands.PaletteTitle}">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}">
           <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" Foreground="{DynamicResource StudioMutedTextBrush}" />
           <TextBlock x:Name="CommandSearchLabel" Grid.Column="1" Text="{loc:Loc Shell.CommandSearch}" Foreground="{DynamicResource StudioMutedTextBrush}"
-                     FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-          <Border x:Name="CommandSearchKeycap" Grid.Column="2" Classes="kbd"><TextBlock x:Name="CommandSearchShortcut" Text="Ctrl K" /></Border>
+                     FontSize="{StaticResource StudioSecondaryFontSize}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <Border x:Name="CommandSearchKeycap" Grid.Column="2" Classes="kbd"><TextBlock x:Name="CommandSearchShortcut" Text="Ctrl+K" /></Border>
         </Grid>
       </Button>
-      <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
+      <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="{StaticResource StudioSpaceXXS}" VerticalAlignment="Center"
                   chrome:WindowDecorationProperties.ElementRole="User">
         <ToggleButton x:Name="AssistantToggle" Classes="icon" IsChecked="{Binding IsAssistantVisible, Mode=OneWay}" Command="{Binding ToggleAssistantCommand}"
                       AutomationProperties.Name="{loc:Loc Assistant.Title}" ToolTip.Tip="{loc:Loc Assistant.Title}">
@@ -136,7 +143,7 @@
         <Button x:Name="ThemeToggle" Classes="icon" Click="OnToggleThemeClick"
                       AutomationProperties.Name="{loc:Loc MainWindow.Theme}"
                       AutomationProperties.HelpText="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}"
-                      ToolTip.Tip="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}">
+                      ToolTip.Tip="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}" ToolTip.ShowOnDisabled="True">
           <Panel>
             <PathIcon Classes="moon" Data="{StaticResource IconMoon}" />
             <PathIcon Classes="sun" Data="{StaticResource IconSun}" />
@@ -145,7 +152,7 @@
       </StackPanel>
       <TextBlock x:Name="CompactTitle" Grid.Column="0" Text="OfficeIMO Studio" IsVisible="False" Margin="16,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" />
       <ComboBox x:Name="CompactDocumentPicker" Grid.Column="0" chrome:WindowDecorationProperties.ElementRole="User" IsVisible="False"
-                Margin="10,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                Margin="12,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                 x:DataType="shell:StudioDocumentTabHost" ItemsSource="{Binding Tabs}"
                 SelectedItem="{Binding SelectedTab, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel"><TextBlock Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
@@ -168,19 +175,19 @@
             Background="{DynamicResource StudioChromeBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="4,4,4,6">
       <UniformGrid Rows="1" Columns="5">
         <infra:StudioRadioToggle Classes="nav touchNav" IsChecked="{Binding IsHomeMode, Mode=OneWay}" Command="{Binding Commands[Home]}" AutomationProperties.Name="{loc:Loc MainWindow.Home}">
-          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconHome}" /><TextBlock Text="{loc:Loc MainWindow.Home}" /></StackPanel>
+          <StackPanel Spacing="{StaticResource StudioSpaceXS}"><PathIcon Data="{StaticResource IconHome}" /><TextBlock Text="{loc:Loc MainWindow.Home}" /></StackPanel>
         </infra:StudioRadioToggle>
         <infra:StudioRadioToggle Classes="nav touchNav" IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}" Command="{Binding ShowPdfWorkspaceCommand}" IsEnabled="{Binding HasDocument}" AutomationProperties.Name="{loc:Loc MainWindow.Document}">
-          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconDocument}" /><TextBlock Text="{loc:Loc MainWindow.Document}" /></StackPanel>
+          <StackPanel Spacing="{StaticResource StudioSpaceXS}"><PathIcon Data="{StaticResource IconDocument}" /><TextBlock Text="{loc:Loc MainWindow.Document}" /></StackPanel>
         </infra:StudioRadioToggle>
         <infra:StudioRadioToggle Classes="nav touchNav" IsChecked="{Binding IsToolsMode, Mode=OneWay}" Command="{Binding Commands[Tools]}" AutomationProperties.Name="{loc:Loc MainWindow.Tools}">
-          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconTools}" /><TextBlock Text="{loc:Loc MainWindow.Tools}" /></StackPanel>
+          <StackPanel Spacing="{StaticResource StudioSpaceXS}"><PathIcon Data="{StaticResource IconTools}" /><TextBlock Text="{loc:Loc MainWindow.Tools}" /></StackPanel>
         </infra:StudioRadioToggle>
         <infra:StudioRadioToggle Classes="nav touchNav" IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding Commands[Jobs]}" AutomationProperties.Name="{loc:Loc Jobs.Title}">
-          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconJobs}" /><TextBlock Text="{loc:Loc Jobs.Title}" /></StackPanel>
+          <StackPanel Spacing="{StaticResource StudioSpaceXS}"><PathIcon Data="{StaticResource IconJobs}" /><TextBlock Text="{loc:Loc Jobs.Title}" /></StackPanel>
         </infra:StudioRadioToggle>
         <Button x:Name="MoreNavigationButton" Classes="ghost touchNav" AutomationProperties.Name="{loc:Loc Apple.More}">
-          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconMore}" /><TextBlock Text="{loc:Loc Apple.More}" HorizontalAlignment="Center" FontSize="11" /></StackPanel>
+          <StackPanel Spacing="{StaticResource StudioSpaceXS}"><PathIcon Data="{StaticResource IconMore}" /><TextBlock Text="{loc:Loc Apple.More}" HorizontalAlignment="Center" FontSize="{StaticResource StudioLabelFontSize}" /></StackPanel>
           <Button.Flyout><MenuFlyout Placement="TopEdgeAlignedRight">
             <MenuItem Header="{loc:Loc MainWindow.Convert}" Command="{Binding Commands[Convert]}" />
             <MenuItem Header="{loc:Loc MainWindow.OCR}" Command="{Binding Commands[Ocr]}" />
@@ -250,31 +257,7 @@
                    PaneBackground="{DynamicResource StudioPanelBrush}">
           <SplitView.Pane><Border IsVisible="{Binding IsAssistantVisible}"><ai:AssistantView DataContext="{Binding Assistant}" /></Border></SplitView.Pane>
           <Grid RowDefinitions="Auto,*">
-            <StackPanel Grid.Row="0">
-              <Border IsVisible="{Binding HasVisibleError}" Background="{DynamicResource StudioErrorSoftBrush}"
-                      BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="0,0,0,1" Padding="14,8">
-                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
-                  <PathIcon Data="{StaticResource IconWarning}" Width="15" Height="15" Foreground="{DynamicResource StudioErrorBrush}" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                  <Button Grid.Column="2" Classes="tool" Command="{Binding Commands[SaveAs]}" IsVisible="{Binding CanRecoverWithSaveAs}" Content="{loc:Loc Shell.SaveCopyInstead}" />
-                  <Button Grid.Column="3" Classes="ghost" Command="{Binding DismissErrorCommand}" AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" Content="{loc:Loc MainWindow.Dismiss}" />
-                </Grid>
-              </Border>
-              <Border IsVisible="{Binding HasSecurityWarning}" Background="{DynamicResource StudioWarningSoftBrush}"
-                      BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="14,8">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                  <PathIcon Data="{StaticResource IconShieldCheck}" Width="15" Height="15" Foreground="{DynamicResource StudioWarningBrush}" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding SecurityWarning}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
-                </Grid>
-              </Border>
-              <Border IsVisible="{Binding Session.HasStorageError}" Background="{DynamicResource StudioWarningSoftBrush}"
-                      BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="14,8">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                  <TextBlock Text="{Binding Session.StorageError}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                  <Button Grid.Column="1" Classes="tool" Command="{Binding Session.RetryStorageCommand}" Content="{loc:Loc Session.RetryStorage}" />
-                </Grid>
-              </Border>
-            </StackPanel>
+            <shell:DocumentNoticesView Grid.Row="0" />
 
             <home:HomeView Grid.Row="1" IsVisible="{Binding IsHomeMode}" />
             <home:ToolsView Grid.Row="1" IsVisible="{Binding IsToolsMode}" />
@@ -284,7 +267,7 @@
             </TabControl>
             <workspace:DocumentWorkspaceView x:Name="DocumentWorkspace" Grid.Row="1" IsVisible="{Binding IsPdfWorkspaceMode}" />
             <Grid Grid.Row="1" IsVisible="{Binding IsConversionMode}" RowDefinitions="Auto,*">
-              <Border Padding="24,18,24,12" Background="{DynamicResource StudioPanelBrush}"><StackPanel Spacing="4"><TextBlock Text="{loc:Loc MainWindow.Convert}" Classes="pageTitle" /><TextBlock Text="{loc:Loc MainWindow.PrepareRunAndInspectConversionJobs}" Classes="muted" /></StackPanel></Border>
+              <Border Classes="pageHeader"><StackPanel Classes="pageHeading"><TextBlock Text="{loc:Loc MainWindow.Convert}" Classes="pageTitle" /><TextBlock Text="{loc:Loc MainWindow.PrepareRunAndInspectConversionJobs}" Classes="muted" /></StackPanel></Border>
               <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="1" />
             </Grid>
             <workflow:OutputIntakeWorkbenchView Grid.Row="1" IsVisible="{Binding IsOutputMode}" />
@@ -301,10 +284,10 @@
 
         <!-- Notices stack at the bottom centre, above the page pill and the Pages action bar, so they
              never cover the inspector or the navigation rail. Newest job results sit above the operation notice. -->
-        <StackPanel x:Name="ToastStack" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="16,0,16,96" Spacing="8" MaxWidth="560">
+        <StackPanel x:Name="ToastStack" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="16,0,16,96" Spacing="{StaticResource StudioSpaceS}" MaxWidth="560">
           <Border x:Name="JobToast" Classes="floating" IsVisible="False" Opacity="0" RenderTransform="translateY(12px)"
                   MinWidth="320" Padding="12,8,6,8" AutomationProperties.LiveSetting="Polite">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
               <Border x:Name="JobToastBadge" Width="26" Height="26" CornerRadius="8" Background="{DynamicResource StudioSuccessSoftBrush}" VerticalAlignment="Center">
                 <PathIcon x:Name="JobToastIcon" Data="{StaticResource IconCheck}" Width="13" Height="13" Foreground="{DynamicResource StudioSuccessBrush}" />
               </Border>
@@ -312,7 +295,7 @@
                 <TextBlock x:Name="JobToastTitle" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                 <TextBlock x:Name="JobToastDetail" Classes="caption" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis" />
               </StackPanel>
-              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{StaticResource StudioSpaceXS}" VerticalAlignment="Center">
                 <Button x:Name="JobToastOpenButton" Classes="tool" Content="{loc:Loc Jobs.OpenOutput}" Click="OnJobToastOpenClick" />
                 <Button Classes="tool" Content="{loc:Loc Shell.ViewJobs}" Click="OnJobToastViewClick" />
               </StackPanel>
@@ -326,16 +309,16 @@
           <!-- Operation status: progress, results with Undo, and recovery choices without shifting the layout. -->
           <Border x:Name="OperationToast" Classes="floating" IsVisible="False" Opacity="0" RenderTransform="translateY(12px)"
                   MinWidth="320" Padding="12,8,6,8" AutomationProperties.LiveSetting="Polite">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
               <Panel VerticalAlignment="Center">
                 <PathIcon Data="{StaticResource IconInfo}" Width="16" Height="16" Foreground="{DynamicResource StudioAccentBrush}" IsVisible="{Binding !IsWorkspaceBusy}" />
                 <ProgressBar IsVisible="{Binding IsWorkspaceBusy}" IsIndeterminate="True" Width="16" MinWidth="16" Height="3" VerticalAlignment="Center" />
               </Panel>
-              <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+              <StackPanel Grid.Column="1" Spacing="{StaticResource StudioSpaceSM}" VerticalAlignment="Center">
                 <TextBlock x:Name="OperationToastText" TextWrapping="Wrap" MaxWidth="380" Text="{Binding OperationStatus}" />
                 <ProgressBar IsVisible="{Binding IsWorkspaceBusy}" Minimum="0" Maximum="1" Value="{Binding OperationProgressFraction}" />
               </StackPanel>
-              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{StaticResource StudioSpaceXS}" VerticalAlignment="Center">
                 <Button Classes="tool" x:Name="ToastUndoButton" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Undo}" Content="{loc:Loc DocumentWorkspace.Undo}"
                         Command="{Binding Commands[Undo]}" IsVisible="False" />
                 <Button Classes="tool" AutomationProperties.Name="{loc:Loc MainWindow.RestoreRecoveredEdits}" Content="{loc:Loc MainWindow.RestoreRecoveredEdits}" IsVisible="{Binding HasRecovery}" Command="{Binding RestoreRecoveryCommand}" />
@@ -352,13 +335,13 @@
 
         <!-- Full-window drop target that explains what will happen. -->
         <Border x:Name="DropOverlay" IsVisible="False" Background="{DynamicResource StudioScrimBrush}" IsHitTestVisible="False">
-          <Border Classes="floating" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="36,28" CornerRadius="16"
+          <Border Classes="floating" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="36,32" CornerRadius="16"
                   BorderBrush="{DynamicResource StudioAccentBrush}" BorderThickness="2">
-            <StackPanel Spacing="10" HorizontalAlignment="Center" MaxWidth="420">
+            <StackPanel Spacing="{StaticResource StudioSpaceM}" HorizontalAlignment="Center" MaxWidth="420">
               <Border Width="56" Height="56" CornerRadius="14" Background="{DynamicResource StudioAccentSoftBrush}" HorizontalAlignment="Center">
                 <PathIcon Data="{StaticResource IconOpen}" Width="26" Height="26" Foreground="{DynamicResource StudioAccentBrush}" />
               </Border>
-              <TextBlock x:Name="DropOverlayTitle" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock x:Name="DropOverlayTitle" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
               <TextBlock x:Name="DropOverlayDetail" Classes="muted" HorizontalAlignment="Center" TextAlignment="Center" />
             </StackPanel>
           </Border>

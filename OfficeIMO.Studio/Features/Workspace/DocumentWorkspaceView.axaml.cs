@@ -21,9 +21,17 @@ public sealed partial class DocumentWorkspaceView : UserControl {
 
     public DocumentWorkspaceView() {
         InitializeComponent();
+        Avalonia.Controls.ToolTip.SetTip(FindButton, Infrastructure.Localization.StudioLocalization.Current.Format("Shell.FindTip",
+            Shell.StudioShortcuts.Describe(Shell.StudioShortcuts.Find)));
         IndependentPanes.ReaderFocusRequested += (_, _) => FocusActiveIndependentPane();
         InitializeOrganizerInput();
         InitializeAnnotationSelectionInput();
+        // Native popups size themselves when they open, so load saved signatures before the menu appears.
+        FillSignButton.AddHandler(PointerPressedEvent, (_, _) => _document?.EnsureSignaturesLoaded(),
+            Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+        FillSignButton.AddHandler(KeyDownEvent, (_, e) => {
+            if (e.Key is Avalonia.Input.Key.Enter or Avalonia.Input.Key.Space) _document?.EnsureSignaturesLoaded();
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
         SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width, e.NewSize.Height);
         DataContextChanged += (_, _) => {
             if (_document is not null) {
@@ -31,6 +39,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
                 _document.PropertyChanged -= OnDocumentChanged;
             }
             _document = DataContext as MainWindowViewModel;
+            _organizerShowsGrid = _document?.IsPagesDocumentMode == true;
             SetPageNumberError(null);
             if (_document is not null) _document.PropertyChanged += OnDocumentChanged;
             RestorePaneWidths();
@@ -49,7 +58,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         bool phone = width < 700 || shortLandscape;
         Classes.Set("shortLandscape", shortLandscape);
         Grid.SetRow(OrganizerActionBar, shortLandscape ? 1 : 0);
-        OrganizerActionBar.Margin = shortLandscape ? new Thickness(8, 0, 8, 4) : new Thickness(16, 0, 16, 18);
+        OrganizerActionBar.Margin = shortLandscape ? new Thickness(8, 0, 8, 4) : new Thickness(16, 0, 16, 16);
         bool phoneChanged = _phoneLayout != phone;
         _phoneLayout = phone;
         UpdateOverlayWidths();
@@ -68,6 +77,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
     }
 
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs e) {
+        if (e.PropertyName == nameof(MainWindowViewModel.DocumentMode)) KeepOrganizerSelectionAcrossPanelChange();
         if (e.PropertyName == nameof(MainWindowViewModel.DocumentViewState)) RestorePaneWidths();
         else if (e.PropertyName is nameof(MainWindowViewModel.DocumentMode) or nameof(MainWindowViewModel.IsFocusReading) or
                  nameof(MainWindowViewModel.HasDocument) or nameof(MainWindowViewModel.IsComparisonOpen)) ShowContextPanes();
@@ -236,6 +246,28 @@ public sealed partial class DocumentWorkspaceView : UserControl {
     internal ListBox PagesListControl => PagesList;
 
     internal ListBox OrganizerListControl => OrganizerList;
+
+    /// <summary>True while the organizer swaps between the sidebar list and the Pages grid; its selection changes then are layout, not the user's.</summary>
+    internal bool IsOrganizerPanelChanging { get; private set; }
+    private bool _organizerShowsGrid;
+
+    // The Pages task lays the same organizer out as a grid. Swapping the item panel rebuilds its containers, which report the
+    // selected pages as deselected; the page selection belongs to the document, so it is put back once the new panel is laid out.
+    private void KeepOrganizerSelectionAcrossPanelChange() {
+        bool grid = _document?.IsPagesDocumentMode == true;
+        if (grid == _organizerShowsGrid || _document is not { } document) return;
+        _organizerShowsGrid = grid;
+        int[] selected = document.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray();
+        if (selected.Length == 0) return;
+        IsOrganizerPanelChanging = true;
+        void Restore(object? sender, EventArgs args) {
+            OrganizerList.LayoutUpdated -= Restore;
+            IsOrganizerPanelChanging = false;
+            if (!ReferenceEquals(_document, document)) return;
+            document.SetOrganizerSelection(document.OrganizerPages.Where(page => selected.Contains(page.PageNumber)));
+        }
+        OrganizerList.LayoutUpdated += Restore;
+    }
 
     internal ListBox GridPagesListControl => GridPagesList;
 

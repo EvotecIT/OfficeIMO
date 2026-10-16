@@ -962,11 +962,51 @@ internal static partial class PdfSyntax {
     private static int FindDictEnd(string text, int dictStart, int limit,
         System.Threading.CancellationToken cancellationToken = default) {
         int depth = 0;
+        // Once a literal string or comment runs to the limit, later ones would too; they are scanned as plain bytes.
+        bool literalsEnd = true, commentsEnd = true;
         for (int i = dictStart; i + 1 < limit; i++) {
             if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             char c = text[i]; char n = text[i + 1];
             if (c == '<' && n == '<') { depth++; i++; continue; }
             if (c == '>' && n == '>') { depth--; i++; if (depth == 0) return i + 1; continue; }
+            if (depth == 0) continue;
+            // Strings and comments are data: a hex string closing before the dictionary does (<FEFF0041>>>) or a
+            // literal string holding >> must not end it. An unterminated one is scanned as before.
+            int skipped = -1;
+            if (c == '<') skipped = FindHexStringEnd(text, i, limit, cancellationToken);
+            else if (c == '(' && literalsEnd) literalsEnd = (skipped = FindLiteralStringEnd(text, i, limit, cancellationToken)) > i;
+            else if (c == '%' && commentsEnd) commentsEnd = (skipped = FindCommentEnd(text, i, limit, cancellationToken)) > i;
+            if (skipped > i) i = skipped - 1;
+        }
+        return -1;
+    }
+
+    private static int FindHexStringEnd(string text, int start, int limit, System.Threading.CancellationToken cancellationToken) {
+        for (int i = start + 1; i < limit; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char c = text[i];
+            if (c == '>') return i + 1;
+            if (!Uri.IsHexDigit(c) && c is not (' ' or '\t' or '\r' or '\n' or '\f' or '\0')) return -1;
+        }
+        return -1;
+    }
+
+    private static int FindLiteralStringEnd(string text, int start, int limit, System.Threading.CancellationToken cancellationToken) {
+        int depth = 0;
+        for (int i = start; i < limit; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char c = text[i];
+            if (c == '\\') { i++; continue; }
+            if (c == '(') depth++;
+            else if (c == ')' && --depth == 0) return i + 1;
+        }
+        return -1;
+    }
+
+    private static int FindCommentEnd(string text, int start, int limit, System.Threading.CancellationToken cancellationToken) {
+        for (int i = start + 1; i < limit; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (text[i] == '\n' || text[i] == '\r') return i;
         }
         return -1;
     }

@@ -47,6 +47,12 @@ $nativeTools = @(
         evidence = 'The unified native executable starts and exposes namespaced HTML, Reader, and Markup commands.'
     }
 )
+$nativeLibraries = @(
+    [ordered]@{
+        name = 'OfficeIMO.Studio.Native'
+        evidence = 'The Studio engine publishes as a NativeAOT shared library and completes the open, render, rotate, undo, redo and save journey through its C interface.'
+    }
+)
 $nativeWorkflowProfiles = @(
     [ordered]@{
         name = 'OfficeIMO.Workflows.IWork'
@@ -221,7 +227,7 @@ $nonNativeValidated = @(
     [ordered]@{
         name = 'OfficeIMO.Studio.Core'
         classification = 'managed-cross-platform'
-        evidence = 'The UI-independent Studio core targets managed .NET 10 and passes trim and AOT analyzers; it is not rooted in a NativeAOT qualification host.'
+        evidence = 'The UI-independent Studio core targets managed .NET 10 and passes trim and AOT analyzers; its reachable surface is compiled into the native Studio engine library rather than rooted as a whole.'
     }
     [ordered]@{
         name = 'OfficeIMO.Studio'
@@ -262,6 +268,7 @@ $classifiedNames = @(
     $fullyRootedLibraries
     $boundedLibraries
     $nativeTools.name
+    $nativeLibraries.name
     $nativeWorkflowProfiles.name
     $nativeDrivers.name
     $nonNativeValidated.name
@@ -296,6 +303,10 @@ $components = foreach ($component in @($catalog.components | Sort-Object name)) 
         $classification = 'native-bounded-workflow'
         $nativeValidated = $true
         $evidence = 'The token-store adapter round-trips from the native host. Google authorization APIs remain subject to Google.Apis and Newtonsoft.Json trimming warnings when the entire dependency is rooted.'
+    } elseif ($name -in $nativeLibraries.name) {
+        $classification = 'native-library'
+        $nativeValidated = $true
+        $evidence = [string] ($nativeLibraries | Where-Object name -EQ $name).evidence
     } elseif ($name -in $nativeWorkflowProfiles.name) {
         $classification = 'native-bounded-workflow'
         $nativeValidated = $true
@@ -339,6 +350,7 @@ $matrix = [ordered]@{
         fullyRootedLibraryCount = $fullyRootedLibraries.Count
         boundedWorkflowLibraryCount = $boundedLibraries.Count + $nativeWorkflowProfiles.Count
         nativeExecutableCount = $nativeTools.Count
+        nativeLibraryCount = $nativeLibraries.Count
         nativeWindowsDriverCount = $nativeDrivers.Count
         nativeBuildAnalyzerCount = $buildAnalyzers.Count
         managedCrossPlatformProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'managed-cross-platform').Count
@@ -349,6 +361,7 @@ $matrix = [ordered]@{
         nativeFullSurface = 'The production library is retained as a complete assembly in the NativeAOT compile graph.'
         nativeBoundedWorkflow = 'A specified workflow publishes and runs natively on its recorded targets; the complete library, dependency and platform surface is not claimed.'
         nativeExecutable = 'The production CLI publishes as a native executable and starts successfully.'
+        nativeLibrary = 'The library publishes as a NativeAOT shared library and a native host completes its journey through the exported C interface.'
         nativeWindowsDriver = 'The Windows x64 shared library publishes with NativeAOT and executes through the operating system driver manager.'
         nativeBuildAnalyzer = 'The build-time analyzer emits code that compiles into and executes from a NativeAOT consumer; the analyzer is not deployed as a runtime assembly.'
         managedCrossPlatform = 'The package is validated in its supported cross-platform managed deployment model rather than advertised for NativeAOT.'
@@ -371,6 +384,8 @@ if (-not [string]::IsNullOrWhiteSpace($JsonOutputPath)) {
     FullyRootedLibraryCount = $matrix.summary.fullyRootedLibraryCount
     BoundedWorkflowLibraryCount = $matrix.summary.boundedWorkflowLibraryCount
     NativeExecutableCount = $matrix.summary.nativeExecutableCount
+    NativeLibraryCount = $matrix.summary.nativeLibraryCount
+    NativeWindowsDriverCount = $matrix.summary.nativeWindowsDriverCount
     NativeBuildAnalyzerCount = $matrix.summary.nativeBuildAnalyzerCount
     ManagedCrossPlatformProjectCount = $matrix.summary.managedCrossPlatformProjectCount
     ManagedWindowsProjectCount = $matrix.summary.managedWindowsProjectCount

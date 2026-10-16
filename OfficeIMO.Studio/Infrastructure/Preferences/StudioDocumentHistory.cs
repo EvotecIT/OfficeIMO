@@ -23,6 +23,17 @@ internal sealed class StudioDocumentHistory {
     internal StudioSessionStore RestartSession { get; }
     internal event EventHandler<StudioHistoryCleanupResult>? Cleared;
 
+    /// <summary>Raised after any window or tab rewrites the recent-document list; the sender is the writer.</summary>
+    internal event EventHandler? RecentDocumentsChanged;
+
+    internal void NotifyRecentDocumentsChanged(object writer) => RecentDocumentsChanged?.Invoke(writer, EventArgs.Empty);
+
+    /// <summary>Clears only the recent-document list and lets every open tab drop its copy.</summary>
+    internal void ClearRecentDocuments(object writer) {
+        RecentDocuments.Clear();
+        NotifyRecentDocumentsChanged(writer);
+    }
+
     internal void SetRememberHistory(bool enabled) =>
         _preferences.Update(current => current with { RememberDocumentHistory = enabled });
 

@@ -222,8 +222,13 @@ public sealed class MainWindowViewModelTests {
 
     [Fact]
     public async Task FailedEditorGestureKeepsFailureStatus() {
-        using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
-        await viewModel.OpenDocumentAsync(GetFixturePath());
+        var services = TestAppBuilder.CreateTestServices();
+        string fixture = GetFixturePath();
+        byte[] original = await File.ReadAllBytesAsync(fixture);
+        await services.Recovery.WriteAsync(fixture, PdfWorkspaceRecoveryStore.Fingerprint(original),
+            PdfDocument.Load(original).Pages.Rotate(90).ToBytes(), 1, CancellationToken.None);
+        using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+        await viewModel.OpenDocumentAsync(fixture);
         viewModel.ShowEditModeCommand.Execute(null);
         viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.AddText);
 
@@ -624,19 +629,29 @@ public sealed class MainWindowViewModelTests {
 
     [Fact]
     public async Task BlockedOrganizerMutationDoesNotReportSuccessOrRefreshTheDocument() {
-        string fixture = GetFixturePath();
-        using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
-        await viewModel.OpenDocumentAsync(fixture);
-        PdfPageViewModel originalPage = viewModel.Pages[0];
-        viewModel.SetOrganizerSelection([viewModel.OrganizerPages[0]]);
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-certified-organizer-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string fixture = Path.Combine(root, "certified.pdf");
+            var preparation = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Text("Certified page")))).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
+                Profile = PdfSignatureProfile.Certification,
+                CertificationPermission = PdfCertificationPermissionLevel.FormFillingAndSignatures,
+                FieldName = "Certification", ReservedSignatureContentsBytes = 512
+            });
+            await File.WriteAllBytesAsync(fixture, preparation.Complete([0x30, 0x01, 0x00]).ToBytes());
+            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: TestAppBuilder.CreateTestServices());
+            await viewModel.OpenDocumentAsync(fixture);
+            PdfPageViewModel originalPage = viewModel.Pages[0];
+            viewModel.SetOrganizerSelection([viewModel.OrganizerPages[0]]);
 
-        await viewModel.DuplicateSelectedCommand.ExecuteAsync(null);
+            await viewModel.DuplicateSelectedCommand.ExecuteAsync(null);
 
-        Assert.False(viewModel.CanMutatePages);
-        Assert.Same(originalPage, viewModel.Pages[0]);
-        Assert.Single(viewModel.Pages);
-        Assert.Equal("Operation failed", viewModel.OperationStatus);
-        Assert.True(viewModel.HasError);
+            Assert.False(viewModel.CanMutatePages);
+            Assert.Same(originalPage, viewModel.Pages[0]);
+            Assert.Single(viewModel.Pages);
+            Assert.Equal("Operation failed", viewModel.OperationStatus);
+            Assert.True(viewModel.HasError);
+        } finally { Directory.Delete(root, recursive: true); }
     }
 
     [Fact]

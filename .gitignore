@@ -96,6 +96,8 @@ StyleCopReport.xml
 *.vspscc
 *.vssscc
 .builds
+Apple/.build/
+Apple/.swiftpm/
 *.pidb
 *.svclog
 *.scc

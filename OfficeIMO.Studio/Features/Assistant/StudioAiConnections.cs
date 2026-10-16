@@ -53,6 +53,10 @@ internal sealed partial class StudioAiConnections : ObservableObject {
     public bool UsesCredential => !IsChatGpt;
     public bool CanSignIn => ProviderIndex == 0 || (ProviderIndex == 2 && !string.IsNullOrWhiteSpace(GitHubClientId));
     public bool CanConnect => !IsBusy;
+    /// <summary>Importing reads the Codex login in the user's home folder, which sandboxed and mobile builds cannot reach.</summary>
+    internal static bool CodexImportSupported => !Infrastructure.StudioDistributionPolicy.IsMacAppStore && !OperatingSystem.IsIOS() && !OperatingSystem.IsAndroid();
+    public bool CanImportCodexLogin => IsChatGpt && CodexImportSupported;
+    private bool CanImportCodex => CanConnect && CanImportCodexLogin;
     public bool CanUse => IsConnected && !IsBusy && !string.IsNullOrWhiteSpace(Model);
     public string Summary => string.IsNullOrWhiteSpace(Model) ? Providers[ProviderIndex] : $"{Providers[ProviderIndex]} · {Model}";
 
@@ -60,11 +64,12 @@ internal sealed partial class StudioAiConnections : ObservableObject {
         AccountId = string.Empty; ApiKey = string.Empty; Model = string.Empty; Models.Clear(); Accounts.Clear();
         OnPropertyChanged(nameof(HasSavedAccounts));
         Endpoint = ProviderChoices[value].Endpoint ?? "https://api.openai.com/v1/";
-        foreach (string name in new[] { nameof(IsChatGpt), nameof(IsCopilot), nameof(IsLocal), nameof(UsesEndpoint), nameof(UsesCredential), nameof(CanSignIn) }) OnPropertyChanged(name);
+        foreach (string name in new[] { nameof(IsChatGpt), nameof(IsCopilot), nameof(IsLocal), nameof(UsesEndpoint), nameof(UsesCredential), nameof(CanSignIn), nameof(CanImportCodexLogin) }) OnPropertyChanged(name);
         ShowAdvanced = false;
         Status = Text("NotConnected", "Choose a connection. No document is sent during sign-in or model discovery.");
         OnPropertyChanged(nameof(SelectedProvider));
         OnPropertyChanged(nameof(IsApi));
+        ImportCodexLoginCommand.NotifyCanExecuteChanged();
         Invalidate();
     }
     partial void OnModelChanged(string value) => Invalidate(keepConnection: true);
@@ -112,7 +117,7 @@ internal sealed partial class StudioAiConnections : ObservableObject {
     private Task ConnectAsync() => RunConnectionAsync(signIn: false, importCodex: false, signOut: false);
     [RelayCommand(CanExecute = nameof(CanConnect))]
     private Task SignInAsync() => RunConnectionAsync(signIn: true, importCodex: false, signOut: false);
-    [RelayCommand(CanExecute = nameof(CanConnect))]
+    [RelayCommand(CanExecute = nameof(CanImportCodex))]
     private Task ImportCodexLoginAsync() => RunConnectionAsync(signIn: false, importCodex: true, signOut: false);
     [RelayCommand(CanExecute = nameof(CanConnect))]
     private Task SignOutAsync() => RunConnectionAsync(signIn: false, importCodex: false, signOut: true);

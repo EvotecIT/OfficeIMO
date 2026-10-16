@@ -174,6 +174,7 @@ public sealed partial class StudioDocumentPaneViewModel : ObservableObject, IDis
             Pages[index].MirrorInteractionState(Document.Pages[index], IsActive);
     }
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs args) {
+        if (args.PropertyName == nameof(MainWindowViewModel.ViewRotationDegrees) && _zoomMode != ViewerZoomMode.Custom) Fit();
         if (args.PropertyName == nameof(MainWindowViewModel.DocumentName)) OnPropertyChanged(nameof(Title));
         if (args.PropertyName == nameof(MainWindowViewModel.IsComparisonOpen) && !Document.IsComparisonOpen) PublishNavigation();
         if (_synchronizing || !IsActive || Document.IsReplacingReaderPresentation || Document.IsComparisonOpen) return;

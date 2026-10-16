@@ -3,7 +3,7 @@ using Avalonia.Platform.Storage;
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindow {
-    private Task<string?> PickPrintOutputAsync(CancellationToken token) => PickPrintOutputAsync(StorageProvider,
+    private Task<string?> PickPrintOutputAsync(CancellationToken token) => !PickerAvailable(StorageProvider.CanSave) ? Task.FromResult<string?>(null) : PickPrintOutputAsync(StorageProvider,
         _services.Localizer.GetOrDefault("PrintPreview.ChooseOutput", "Choose printer output"), ViewModel.DocumentName, token);
 
     internal static async Task<string?> PickPrintOutputAsync(IStorageProvider provider, string title, string documentName, CancellationToken token) {

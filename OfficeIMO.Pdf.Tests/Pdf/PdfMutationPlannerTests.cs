@@ -94,7 +94,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void ActiveContentBlocksMetadataAndFormFillUntilItCanBePreservedSafely() {
+    public void ActiveContentBlocksMetadataButFormFillAppendsAndPreservesIt() {
         byte[] metadataSource = WithCatalogAction(
             PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Active metadata source")).ToBytes());
         byte[] formSource = WithCatalogAction(
@@ -114,12 +114,18 @@ public class PdfMutationPlannerTests {
 
         Assert.False(metadataPlan.CanExecute);
         Assert.False(metadataPlan.AppendOnlyAvailable);
-        Assert.False(formPlan.CanExecute);
-        Assert.Equal(PdfMutationExecutionMode.Blocked, formPlan.ExecutionMode);
-        Assert.False(formPlan.AppendOnlyAvailable);
         Assert.False(metadataResult.Succeeded);
-        Assert.False(formResult.Succeeded);
-        Assert.Contains(formPlan.BlockerCodes, static code => code == "FullRewrite.OpenActions");
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, formPlan.ExecutionMode);
+        Assert.False(formPlan.FullRewriteAvailable);
+        Assert.Contains("Input.ActiveContentPreserved", formPlan.Warnings);
+        Assert.True(formResult.Succeeded, string.Join(" ", formResult.Diagnostics));
+        byte[] filled = formResult.Value!.ToBytes();
+        Assert.True(filled.AsSpan(0, formSource.Length).SequenceEqual(formSource));
+        PdfDocumentInfo filledInfo = PdfInspector.Inspect(filled);
+        Assert.Equal("after", filledInfo.FormFieldsByName["Account"].Value);
+        PdfDocumentProbe filledProbe = PdfInspector.Probe(filled);
+        Assert.True(filledProbe.HasOpenActions);
+        Assert.True(filledProbe.HasActiveContent);
     }
 
     [Fact]
@@ -176,7 +182,7 @@ public class PdfMutationPlannerTests {
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfPageEditor.DeletePages(source, 1));
 
-        Assert.Equal(PdfMutationOperation.ModifyPageTree, exception.Plan.Operation);
+        Assert.Equal(PdfMutationOperation.OrganizePages, exception.Plan.Operation);
         Assert.Equal(PdfMutationExecutionMode.Blocked, exception.Plan.ExecutionMode);
         PdfMutationCapabilityRecord pageTree = Assert.Single(
             exception.Plan.CapabilityRecords,
@@ -271,7 +277,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void TryPageImports_UseMergePolicyForFormBearingTarget() {
+    public void TryPageImports_UseImportPolicyForFormBearingTarget() {
         byte[] target = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
         byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
 
@@ -281,7 +287,7 @@ public class PdfMutationPlannerTests {
 
         Assert.All(new[] { appended, prepended, inserted }, result => {
             Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
-            Assert.Equal(PdfMutationOperation.MergeDocuments, result.MutationPlan!.Operation);
+            Assert.Equal(PdfMutationOperation.ImportPages, result.MutationPlan!.Operation);
             Assert.Equal(2, result.RequireValue().Inspect().PageCount);
             Assert.Single(result.RequireValue().Inspect().FormFields, static field => field.Name == "Name");
         });
@@ -323,7 +329,7 @@ public class PdfMutationPlannerTests {
 
         Assert.All(new[] { appended, prepended, inserted }, result => {
             Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
-            Assert.Equal(PdfMutationOperation.MergeDocuments, result.MutationPlan!.Operation);
+            Assert.Equal(PdfMutationOperation.ImportPages, result.MutationPlan!.Operation);
             Assert.DoesNotContain("Output.EncryptionWillBeRemoved", result.MutationPlan.Warnings);
             Assert.True(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
         });
@@ -348,15 +354,14 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void Plan_BlocksPageTreeMutationWhenSourceStructureCannotBePreserved() {
+    public void Plan_NormalizesStreamStructureForSupportedPageTreeRewrites() {
         byte[] source = PdfRewritePreservationTestSupport.BuildSourceStructurePreservationProofPdf();
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.ModifyPageTree);
 
-        Assert.False(plan.CanExecute);
-        Assert.Equal(PdfMutationExecutionMode.Blocked, plan.ExecutionMode);
-        Assert.Contains("FullRewrite.XrefStreamPreservation", plan.BlockerCodes);
-        Assert.Contains("FullRewrite.ObjectStreamPreservation", plan.BlockerCodes);
+        Assert.True(plan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.FullRewrite, plan.ExecutionMode);
+        Assert.Contains("Input.CrossReferenceAndObjectStreamsWillBeNormalized", plan.Warnings);
     }
 
     [Fact]

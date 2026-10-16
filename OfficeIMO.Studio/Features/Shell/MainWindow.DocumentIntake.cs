@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
@@ -61,13 +62,100 @@ public sealed partial class MainWindow {
         return next;
     }
 
+    /// <summary>False once the window is closing or asking whether to close, so a later launch opens its files itself.</summary>
+    internal bool AcceptsForwardedLaunches => !_windowClosed && !_closePromptOpen && !_allowClose;
+
+    /// <summary>
+    /// Opens local paths forwarded by a later launch, or brings the window forward when there are none. Forwarded paths
+    /// are ordinary local paths, as at startup, so package folders such as .pages go to Convert the same way.
+    /// </summary>
+    internal Task OpenForwardedPathsAsync(IReadOnlyList<string> paths) {
+        Avalonia.Threading.Dispatcher.UIThread.VerifyAccess();
+        Task next = OpenForwardedPathsAfterAsync(paths.Distinct(StudioPathComparer).ToArray(), _activationTail);
+        _activationTail = next;
+        return next;
+    }
+
+    private async Task OpenForwardedPathsAfterAsync(string[] paths, Task previous) {
+        try {
+            await previous;
+            await _startupCompleted.Task;
+            if (_windowClosed) return;
+            BringToFront();
+            IntakeError? priorError = _intakeError;
+            bool missing = false;
+            foreach (string path in paths) {
+                if (_windowClosed) return;
+                bool isFile = File.Exists(path);
+                if (!isFile && !Directory.Exists(path)) {
+                    missing = true;
+                    continue;
+                }
+                bool isPdf = isFile && IsPdf(path);
+                if (!isPdf && !IsConvertible(path)) {
+                    ShowIntakeError(_services.Localizer.Get("Activation.Unsupported"));
+                    continue;
+                }
+                if (!await WaitForForwardedIntakeAsync(isPdf)) return;
+                try {
+                    if (isPdf) {
+                        await TabHost.OpenDocumentAsync(path);
+                        if (ViewModel.HasDocument) ClearPriorIntakeError(priorError);
+                    } else if (ViewModel.ConversionWorkbench.AddDroppedPaths([path])) {
+                        ClearPriorIntakeError(priorError);
+                        ViewModel.ShowConversionWorkbenchCommand.Execute(null);
+                    }
+                } catch (Exception error) when (error is not OutOfMemoryException) { ReportIntakeError(error); }
+            }
+            if (missing && !_windowClosed) ShowIntakeError(_services.Localizer.Get("Activation.Missing"));
+        } catch (Exception error) when (error is not OutOfMemoryException) {
+            ReportIntakeError(error);
+        }
+    }
+
+    private static StringComparer StudioPathComparer => OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
+
+    // The pipe already acknowledged these files. Keep them until the current operation releases the workspace.
+    private async Task<bool> WaitForForwardedIntakeAsync(bool isPdf) {
+        while (!_windowClosed) {
+            MainWindowViewModel document = ViewModel;
+            var conversion = document.ConversionWorkbench;
+            bool Ready() => document.CanStartDocumentTransition && (isPdf || conversion.CanEditQueue);
+            if (Ready()) return true;
+            var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            System.ComponentModel.PropertyChangedEventHandler wake = (_, _) => changed.TrySetResult();
+            EventHandler closed = (_, _) => changed.TrySetResult();
+            document.PropertyChanged += wake;
+            conversion.PropertyChanged += wake;
+            TabHost.PropertyChanged += wake;
+            Closed += closed;
+            try {
+                if (_windowClosed || !ReferenceEquals(document, ViewModel) || Ready()) changed.TrySetResult();
+                await changed.Task;
+            } finally {
+                document.PropertyChanged -= wake;
+                conversion.PropertyChanged -= wake;
+                TabHost.PropertyChanged -= wake;
+                Closed -= closed;
+            }
+        }
+        return false;
+    }
+
+    private void BringToFront() {
+        if (WindowState == WindowState.Minimized) WindowState = _stateBeforeMinimize;
+        Activate();
+    }
+
     private async Task ProcessActivationAsync(IStorageItem[] items, Task previous) {
         var unowned = new HashSet<IStorageItem>(items, ReferenceEqualityComparer.Instance);
         try {
             await previous;
             await _startupCompleted.Task;
             if (_windowClosed) return;
-            Activate();
+            BringToFront();
             IntakeError? priorError = _intakeError;
             foreach (IStorageItem item in items) {
                 if (_windowClosed) return;
@@ -107,7 +195,7 @@ public sealed partial class MainWindow {
 
     private void ReportIntakeError(Exception error) {
         _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "FileActivation", "IntakeFailed", error);
-        if (!_windowClosed) ShowIntakeError(error.Message);
+        if (!_windowClosed) ShowIntakeError(Infrastructure.StudioMessages.Describe(error));
     }
 
     private void ShowIntakeError(string message) {
@@ -150,7 +238,7 @@ public sealed partial class MainWindow {
                 await TabHost.OpenDocumentAsync(location);
             }
         } catch (Exception error) when (error is not OutOfMemoryException) {
-            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
+            if (!_windowClosed) ViewModel.ErrorMessage = Infrastructure.StudioMessages.Describe(error);
         }
     }
 

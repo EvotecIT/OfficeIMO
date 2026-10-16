@@ -5,6 +5,23 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfIncrementalObjectWriterTests {
     [Fact]
+    public void AutomaticFormat_FollowsFinalClassicSectionAfterEarlierStream() {
+        byte[] source = PdfExternalDocumentCompatibilityTests.BuildXrefStreamPdfWithTrailingStaleDuplicatePage();
+        var (objects, trailer) = PdfSyntax.ParseObjects(source);
+        int number = objects.Keys.Max() + 1;
+        objects[number] = new PdfIndirectObject(number, 0, PdfInfoDictionaryBuilder.BuildDictionary(new PdfMetadata { Title = "Classic revision" }));
+        byte[] classic = PdfIncrementalObjectWriter.Append(source, objects, PdfSyntax.ReadDocumentSecurityInfo(source), trailer,
+            new[] { number }, infoObjectNumberOverride: number, format: PdfIncrementalXrefFormat.ClassicTable);
+        Assert.True(PdfSyntax.ReadDocumentSecurityInfo(classic).HasXrefStreams);
+
+        byte[] output = PdfIncrementalUpdater.UpdateMetadata(classic, title: "Automatic revision");
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(output);
+        Assert.Equal((byte)'x', output[security.LastStartXrefOffset!.Value]);
+        Assert.True(output.AsSpan(0, classic.Length).SequenceEqual(classic));
+        Assert.Equal("Automatic revision", PdfInspector.Inspect(output).Metadata.Title);
+    }
+
+    [Fact]
     public void Append_XrefStreamRevisionPreservesPrefixAndReadsUpdatedObject() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Original xref-stream title")

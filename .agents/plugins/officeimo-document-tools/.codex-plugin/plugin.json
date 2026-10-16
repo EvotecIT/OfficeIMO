@@ -1,9 +1,11 @@
 {
   "name": "officeimo-document-tools",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "description": "Inspect, search, selectively fetch, and convert local documents and mail stores with OfficeIMO.",
   "author": {
-    "name": "EvotecIT"
+    "name": "Evotec Services sp. z o.o.",
+    "email": "contact@evotec.pl",
+    "url": "https://evotec.xyz"
   },
   "homepage": "https://officeimo.com/",
   "repository": "https://github.com/EvotecIT/OfficeIMO",
@@ -19,7 +21,7 @@
     "displayName": "OfficeIMO Document Tools",
     "shortDescription": "Search local documents and mail stores, then fetch the relevant content.",
     "longDescription": "Inspect, search, selectively fetch, and convert local documents and mail stores with OfficeIMO.",
-    "developerName": "EvotecIT",
+    "developerName": "Evotec Services sp. z o.o.",
     "category": "DocumentAutomation",
     "websiteURL": "https://officeimo.com/",
     "defaultPrompt": [
@@ -37,5 +39,5 @@
     ]
   },
   "skills": "./skills/",
-  "mcpServers": "./.codex-plugin/mcp.json"
+  "mcpServers": "./.mcp.json"
 }

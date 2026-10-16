@@ -81,6 +81,11 @@ internal static partial class PdfIncrementalUpdater {
             throw new ArgumentException("PDF does not contain a readable AcroForm field tree.", nameof(pdf));
         }
 
+        if (effectiveOptions.XfaHandling == PdfFormXfaHandling.Remove &&
+            acroForm.Items.ContainsKey("XFA") && security.HasDocMDPPermissions) {
+            throw new NotSupportedException("Removing XFA changes the form definition and is not permitted by a DocMDP certification signature. Preserve XFA when filling a certified form.");
+        }
+
         var remaining = new HashSet<string>(fieldValues.Keys, StringComparer.Ordinal);
         var changedObjectNumbers = new HashSet<int>();
         int inheritedFlags = 0;
@@ -117,6 +122,11 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(effectiveOptions.KeepNeedAppearances);
+        if (effectiveOptions.XfaHandling == PdfFormXfaHandling.Remove && acroForm.Items.Remove("XFA") &&
+            catalog.Items.Remove("NeedsRendering")) {
+            changedObjectNumbers.Add(security.RootObjectNumber.Value);
+        }
+
         if (acroFormObject is PdfReference acroFormReferenceForNeedAppearances) {
             changedObjectNumbers.Add(acroFormReferenceForNeedAppearances.ObjectNumber);
         } else {

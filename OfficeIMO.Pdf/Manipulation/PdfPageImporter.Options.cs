@@ -46,6 +46,8 @@ internal static partial class PdfPageImporter {
         PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
         byte[] preparedSource = PrepareImportSource(sourcePdf, options, sourceReadOptions);
         PdfLoadOptions preparedSourceReadOptions = PdfLoadOptions.WithMinimumInputBytes(sourceReadOptions, preparedSource.LongLength);
+        if (TryImportPreservingCatalog(targetPdf, preparedSource, insertBeforePageNumber, sourcePageNumbers, targetReadOptions, preparedSourceReadOptions, out var taggedOutput))
+            return taggedOutput;
         if (insertBeforePageNumber == targetPageCount + 1) {
             return ImportPreparedPages(targetPdf, preparedSource, append: true, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers, targetDocument);
         }
@@ -67,7 +69,26 @@ internal static partial class PdfPageImporter {
         PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
         byte[] preparedSource = PrepareImportSource(sourcePdf, options, sourceReadOptions);
         PdfLoadOptions preparedSourceReadOptions = PdfLoadOptions.WithMinimumInputBytes(sourceReadOptions, preparedSource.LongLength);
+        var target = PdfReadDocument.Open(targetPdf, targetReadOptions);
+        if (TryImportPreservingCatalog(targetPdf, preparedSource, append ? target.Pages.Count + 1 : 1, sourcePageNumbers!, targetReadOptions, preparedSourceReadOptions, out var taggedOutput))
+            return taggedOutput;
         return ImportPreparedPages(targetPdf, preparedSource, append, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers!);
+    }
+
+    private static bool TryImportPreservingCatalog(byte[] targetPdf, byte[] sourcePdf, int insertBeforePageNumber, int[] sourcePageNumbers,
+        PdfLoadOptions? targetOptions, PdfLoadOptions? sourceOptions, out byte[] output) {
+        var target = PdfReadDocument.Open(targetPdf, targetOptions); var source = PdfReadDocument.Open(sourcePdf, sourceOptions);
+        if (!PdfTaggedPageOrganizer.IsTagged(target) && !PdfTaggedPageOrganizer.IsTagged(source)) {
+            var sourceCatalog = (PdfDictionary)source.Objects[source.Security.RootObjectNumber!.Value].Value;
+            // Incoming forms and layers still need the merger's explicit collision policies. Ordinary page graphs
+            // use the same catalog-preserving ImportPages route whether either document is tagged or not.
+            bool needsMergePolicy = source.AcroFormXfa != null || source.FormFields.Count > 0 || sourceCatalog.Items.ContainsKey("OCProperties") ||
+                sourceCatalog.Items.TryGetValue("Names", out var value) && PdfObjectLookup.Resolve(source.Objects, value) is PdfDictionary names &&
+                names.Items.Keys.Any(key => key != "Dests");
+            if (needsMergePolicy) { output = Array.Empty<byte>(); return false; }
+        }
+        output = PdfTaggedPageOrganizer.Import(targetPdf, sourcePdf, insertBeforePageNumber, sourcePageNumbers, targetOptions, sourceOptions);
+        return true;
     }
 
     private static byte[] ImportPreparedPages(

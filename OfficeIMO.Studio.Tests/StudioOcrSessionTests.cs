@@ -82,13 +82,20 @@ public sealed class StudioOcrSessionTests {
                 : (await services.Storage.RegisterFolderAsync([folder.Item], default))!;
             using var model = new OcrSessionViewModel(_ => Task.FromResult<IReadOnlyList<string>>(sources),
                 _ => Task.FromResult<string?>(destination), services.Localizer,
-                storage: services.Storage, jobs: services.Jobs, recovery: services.WorkflowRecovery,
-                confirmProvider: _ => Task.FromResult(true),
+                storage: services.Storage, jobs: services.Jobs,
                 createEngine: (_, _, _) => Task.FromResult<IOcrEngine>(engine));
             await model.AddFilesCommand.ExecuteAsync(null);
             Assert.Equal(new[] { "scan.png.txt", "scan.png (2).txt" }, model.Items.Select(item => item.OutputName));
             model.OutputFolder = destination;
             var running = model.RunCommand.ExecuteAsync(null);
+            if (providerFolder) {
+                await running;
+                Assert.Contains(services.Localizer.Get("Output.LocalFolderRequired"), model.Status);
+                Assert.Equal(0, folder!.Creations);
+                Assert.Empty(folder.Files);
+                Assert.Empty(services.Jobs.Entries);
+                return true;
+            }
             ImageOcrReviewViewModel? previous = null;
             for (int index = 0; index < 2; index++) {
                 await WaitFor(() => model.ImageReview is not null && model.ImageReview != previous, running, model);

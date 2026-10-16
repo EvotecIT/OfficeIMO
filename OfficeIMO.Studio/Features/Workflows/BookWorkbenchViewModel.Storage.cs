@@ -55,8 +55,7 @@ public sealed partial class BookWorkbenchViewModel {
         await ApplyDraftsAsync(token);
         byte[] bytes = await Task.Run(() => _project!.ToProjectBytes(token), token);
         string? expected = SameLocation(destination, _projectLocation) ? _projectFingerprint : await GetDestinationFingerprintAsync(destination, token);
-        StudioStoragePublication saved = await _storage.PublishAsync(destination, bytes, expected,
-            ct => AuthorizeAsync(destination, allowProjectSource: true, ct), token);
+        StudioStoragePublication saved = await PublishBookOutputAsync(destination, bytes, expected, allowProjectSource: true, token);
         _projectLocation = destination; _projectFingerprint = saved.Fingerprint;
         _projectIdentity = saved.Identity;
         ProjectName = _storage.Describe(destination).Name; IsDirty = false;
@@ -70,9 +69,14 @@ public sealed partial class BookWorkbenchViewModel {
         await ApplyDraftsAsync(token);
         byte[] bytes = await Task.Run(() => _project!.Export(token).Bytes, token);
         string? expected = await GetDestinationFingerprintAsync(destination, token);
-        await _storage.PublishAsync(destination, bytes, expected, ct => AuthorizeAsync(destination, false, ct), token);
+        await PublishBookOutputAsync(destination, bytes, expected, allowProjectSource: false, token);
         Status = T("Exported", "EPUB exported and verified. Save the book project to retain your editing and review state.");
     });
+    private Task<StudioStoragePublication> PublishBookOutputAsync(string destination, byte[] bytes, string? expected,
+        bool allowProjectSource, CancellationToken token) => _storage.UsesProviderPublication(destination)
+        ? _storage.PublishAsync(destination, bytes, expected, ct => AuthorizeAsync(destination, allowProjectSource, ct), token)
+        : StudioLocalPublication.WriteVerifiedAsync(destination, bytes, expected, ct => AuthorizeAsync(destination, allowProjectSource, ct), token, _localizer);
+
     private static bool SameLocation(string location, string? other) => other != null &&
         OfficeStorageIdentity.Normalize(location) == OfficeStorageIdentity.Normalize(other);
     private async Task<string?> GetDestinationFingerprintAsync(string location, CancellationToken token) {

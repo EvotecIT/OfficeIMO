@@ -20,7 +20,7 @@ public sealed class InvoiceWorkbenchVisualTests {
             Directory.CreateDirectory(services.Paths.Root);
             string input = Path.Combine(services.Paths.Root, "Invoice with a long descriptive source filename.xml");
             File.WriteAllBytes(input, InvoiceSample.Create());
-            using var model = new InvoiceWorkbenchViewModel(_ => Task.FromResult<string?>(input), _ => Task.FromResult<string?>(null)) { InputPath = input };
+            using var model = new InvoiceWorkbenchViewModel(_ => Task.FromResult<string?>(input), _ => Task.FromResult<string?>(null)) { InputPath = input, OutputFolder = services.Paths.Root };
             model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.EditSource);
             model.EditNumber = "EDITED-42"; model.EditIssueDate = "2026-09-30";
             var view = new InvoiceWorkbenchView { DataContext = model };

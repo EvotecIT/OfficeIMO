@@ -77,11 +77,13 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
     }
 
     internal override void Remember(StudioStorageReference reference) {
-        if (reference.Bookmark?.Length > 32768 || reference.Name is null || reference.Name.Length > 4096) return;
+        if (reference.Bookmark?.Length > 32768 || reference.PermissionFolder?.Length > 4096 || reference.Name is null || reference.Name.Length > 4096) return;
         string location = OfficeStorageIdentity.Normalize(reference.Location);
+        // Remembering a restart record must not resolve an expired grant during window construction.
+        // The document-open boundary restores permission and reports a selectable-file error.
         lock (_sync) {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            _references[OfficeStorageIdentity.Normalize(location)] = reference with { Location = location };
+            _references[location] = reference with { Location = location };
         }
     }
 
@@ -92,10 +94,10 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
 
     internal override bool UsesProviderPublication(string location) {
         string key = OfficeStorageIdentity.Normalize(location);
-        lock (_sync) return _pendingDestinations.ContainsKey(key) || OfficeStorageIdentity.GetLocalPath(location) is null ||
+        lock (_sync) return !(_references.TryGetValue(key, out var selected) && selected.PermissionFolder is not null) &&
+            (OfficeStorageIdentity.GetLocalPath(location) is null ||
             ((OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()) && (_files.ContainsKey(key) || _folders.ContainsKey(key) ||
-                _outputFolderReferences.ContainsKey(key) ||
-                (_references.TryGetValue(key, out var reference) && reference.Bookmark is not null)));
+                (_references.TryGetValue(key, out var reference) && reference.Bookmark is not null))));
     }
 
     internal OfficeIMO.Workflows.OfficeWorkflowStreamInput? CreateWorkflowInput(string location) =>
@@ -130,19 +132,15 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
         string key = OfficeStorageIdentity.Normalize(location);
         IStorageFile? existing;
         StudioStorageReference? reference;
-        (IStorageFolder Folder, string Name) folderOutput;
         lock (_sync) {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_files.TryGetValue(key, out existing)) return existing;
-            if (_pendingDestinations.ContainsKey(key)) throw new FileNotFoundException("The selected new output has not been created yet.");
             _references.TryGetValue(key, out reference);
-            _outputFolderReferences.TryGetValue(key, out folderOutput);
         }
-        if (folderOutput.Folder is null && reference?.Bookmark is null && OfficeStorageIdentity.GetLocalPath(location) is not null) return null;
-        IStorageProvider? provider = folderOutput.Folder is not null ? null : _provider?.Invoke()
+        if ((reference?.Bookmark is null || reference.PermissionFolder is not null) && OfficeStorageIdentity.GetLocalPath(location) is not null) return null;
+        IStorageProvider provider = _provider?.Invoke()
             ?? throw new IOException("This document needs its storage provider. Select it again to grant access.");
-        IStorageFile? file = folderOutput.Folder is not null ? await FindFolderFileAsync(folderOutput.Folder, folderOutput.Name, token).ConfigureAwait(false)
-            : reference?.Bookmark is { } native && OfficeMacFilePermission.IsNativeBookmark(native)
+        IStorageFile? file = reference?.Bookmark is { } native && OfficeMacFilePermission.IsNativeBookmark(native)
             ? await provider!.TryGetFileFromPathAsync(new Uri(location, UriKind.Absolute)).ConfigureAwait(false)
             : reference?.Bookmark is { } bookmark
             ? await provider!.OpenFileBookmarkAsync(bookmark).ConfigureAwait(false)
@@ -174,6 +172,7 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
 
     public override void Dispose() {
         IStorageItem[] files;
+        OfficeMacFilePermission[] permissions;
         lock (_sync) {
             if (_disposed) return;
             _disposed = true;
@@ -183,13 +182,17 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
             _retiredFiles.Clear();
             _references.Clear();
             _folders.Clear();
-            _outputFolderReferences.Clear();
-            _pendingDestinations.Clear();
             _retiredFolders.Clear();
+            permissions = _folderPermissions.Values.ToArray();
+            _folderPermissions.Clear();
         }
         List<Exception>? errors = null;
         foreach (IStorageItem file in files) {
             try { file.Dispose(); }
+            catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { (errors ??= []).Add(error); }
+        }
+        foreach (var permission in permissions) {
+            try { permission.Dispose(); }
             catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { (errors ??= []).Add(error); }
         }
         if (errors is not null) throw new IOException("Provider references could not be released.", new AggregateException(errors));

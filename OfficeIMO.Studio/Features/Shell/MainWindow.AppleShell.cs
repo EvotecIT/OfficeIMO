@@ -40,7 +40,7 @@ public sealed partial class MainWindow {
         if (width <= 0) return;
         bool narrow = width < 700;
         bool apple = OperatingSystem.IsMacOS();
-        double sidebar = narrow ? 0 : apple ? (_sidebarHidden ? 0 : width >= 1100 ? 208 : 176) : 72;
+        double sidebar = narrow ? 0 : apple ? (_sidebarHidden ? 0 : width >= 1100 ? 208 : 176) : 80;
         Classes.Set("narrow", narrow);
         ShellRoot.ColumnDefinitions[0].Width = new GridLength(sidebar);
         ShellRoot.RowDefinitions[0].Height = new GridLength(narrow ? 52 : 44);
@@ -48,7 +48,8 @@ public sealed partial class MainWindow {
         CompactNavigation.IsVisible = narrow;
         SidebarToggle.IsVisible = apple && !narrow;
         Grid.SetColumnSpan(SidebarToggle, _sidebarHidden ? 2 : 1);
-        TitleBarLogo.IsVisible = !apple && !narrow;
+        TitleBarLogo.IsVisible = !apple && !narrow && _appMenu is null;
+        AppMenuButton.IsVisible = !narrow && _appMenu is not null;
         Grid.SetColumn(TitleBar, sidebar > 0 ? 1 : 0);
         Grid.SetColumnSpan(TitleBar, sidebar > 0 ? 1 : 2);
         TitleBar.Margin = new Thickness(apple && _sidebarHidden && !narrow ? 52 : 0, 0, apple ? 10 : 0, 0);

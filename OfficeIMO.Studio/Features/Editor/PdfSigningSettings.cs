@@ -14,7 +14,7 @@ internal sealed record PdfSigningSettings(PdfSigningCertificateViewModel Certifi
         Location = string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
         VisibleAppearance = Visible ? new() {
             PageNumber = Page, X = X, Y = Y, Width = Width, Height = Height,
-            Text = "Digitally signed by " + Certificate.DisplayName
+            Text = Infrastructure.Localization.StudioLocalization.Current.Format("Signing.VisibleText", Certificate.DisplayName)
         } : null
     };
 }

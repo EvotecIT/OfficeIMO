@@ -429,7 +429,8 @@ public sealed partial class PdfDocument {
         IEnumerable<string>? fieldNames = null,
         PdfLoadOptions? options = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
-        PdfSignatureProfile? signatureProfile = null) where T : class {
+        PdfSignatureProfile? signatureProfile = null,
+        CancellationToken cancellationToken = default) where T : class {
         Guard.NotNullOrWhiteSpace(operationName, nameof(operationName));
         Guard.NotNull(operation, nameof(operation));
 
@@ -439,13 +440,18 @@ public sealed partial class PdfDocument {
             options,
             executionPreference,
             signatureProfile,
-            CancellationToken.None);
+            cancellationToken);
         if (!plan.CanExecute) {
             return PdfOperationResult<T>.MutationBlocked(operationName, capability, plan);
         }
 
         try {
-            return PdfOperationResult<T>.MutationSuccess(operationName, capability, plan, operation(plan.ExecutionMode));
+            cancellationToken.ThrowIfCancellationRequested();
+            T value = operation(plan.ExecutionMode);
+            cancellationToken.ThrowIfCancellationRequested();
+            return PdfOperationResult<T>.MutationSuccess(operationName, capability, plan, value);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
         } catch (Exception ex) {
             return PdfOperationResult<T>.MutationFailed(operationName, capability, plan, ex);
         }
@@ -457,7 +463,8 @@ public sealed partial class PdfDocument {
         PdfMutationOperation mutationOperation,
         Func<T> operation,
         PdfLoadOptions? options = null,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) where T : class {
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
+        CancellationToken cancellationToken = default) where T : class {
         Guard.NotNull(operation, nameof(operation));
         return TryMutationOperation(
             operationName,
@@ -465,7 +472,8 @@ public sealed partial class PdfDocument {
             mutationOperation,
             _ => operation(),
             options: options,
-            executionPreference: executionPreference);
+            executionPreference: executionPreference,
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Creates one PDF by merging all supplied documents in order through a single merge pass.</summary>

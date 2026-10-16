@@ -73,6 +73,33 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 The checkboxes describe the exact level of support: authoring, editing, reading, preserving, inspecting, converting, or exporting. A checked inspection or preservation item is not presented as full authoring support.
 
+## OfficeIMO Studio
+
+[OfficeIMO Studio](https://officeimo.com/studio/) puts the OfficeIMO engines in an app: read, search, mark up and fill PDFs, organize pages, make scans searchable, convert Office documents to PDF, and protect and sign the result. Documents are processed on your own device; connecting the document assistant to a model is optional.
+
+- **Windows and Linux:** the desktop workspace, from the [Microsoft Store](https://apps.microsoft.com/detail/xp9m6j7hvm2hz0) or as a signed MSI, Debian package or portable ZIP for x64 and Arm64 from [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases). It adds comment threads, redaction, content editing, form authoring, conversion from PDF, comparison and a document assistant. See the [Studio README](OfficeIMO.Studio/README.md).
+- **Mac, iPad and iPhone:** native apps on the same engine, in development, with system document handling, Apple Pencil markup, the document camera, on-device text recognition with Vision, and Shortcuts. See the [Apple app README](Apple/OfficeIMOStudio/README.md).
+
+The [feature table on the Studio page](https://officeimo.com/studio/#features) shows what Studio does on each system and what is planned.
+
+<p>
+  <img src="Website/static/images/studio/workspace-light.png" width="62%" alt="OfficeIMO Studio on the desktop with a sample PDF, page navigation and document tools." />
+  <img src="Docs/Images/StudioApple/ipad-read.jpg" width="30%" alt="OfficeIMO Studio on iPad reading a PDF with the page list." />
+</p>
+
+The [OfficeIMO command-line tool](OfficeIMO.Tool/README.md) runs the same conversions, extraction and workflows from scripts, and serves them to AI agents over MCP.
+
+## OfficeIMO for AI agents
+
+Claude Code, Codex, VS Code with GitHub Copilot, Cursor and other MCP clients use OfficeIMO to inspect, search, fetch and convert local Word, Excel, PowerPoint, PDF and mail files, and to make separate PDF outputs. The [OfficeIMO Document Tools plugin](.agents/plugins/officeimo-document-tools/README.md) adds two Agent Skills and the MCP server, which runs on your computer and opens only the folders you allow:
+
+```text
+claude plugin marketplace add EvotecIT/OfficeIMO
+codex plugin marketplace add EvotecIT/OfficeIMO --ref master --sparse .agents/plugins
+```
+
+The [AI agents page](https://officeimo.com/agents/) has one-click installation for VS Code and Cursor, the configuration for other clients, every tool the server provides, and the directories that list OfficeIMO.
+
 ## Packages and tools
 
 Every checked item below is implemented today. Detailed behavior, examples, and fidelity boundaries live in each project README.

@@ -7,7 +7,7 @@
              x:DataType="reader:PdfPageViewModel">
   <UserControl.Resources>
     <Flyout x:Key="SelectionActions" Placement="TopEdgeAlignedLeft" ShowMode="Transient">
-      <StackPanel Orientation="Horizontal" Spacing="2">
+      <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceXXS}">
         <Button Classes="cmd" Click="OnCopySelectionClick" AutomationProperties.Name="{loc:Loc PageActions.Copy}" ToolTip.Tip="{loc:Loc PageActions.CopyTip}">
           <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource IconDuplicate}" /><TextBlock Classes="cmdLabel" Text="{loc:Loc PageActions.Copy}" /></StackPanel>
         </Button>
@@ -30,6 +30,10 @@
       <MenuItem Header="{loc:Loc PageActions.SelectAll}" InputGesture="Ctrl+A" Click="OnSelectAllClick">
         <MenuItem.Icon><PathIcon Data="{StaticResource IconSelectAll}" Width="14" Height="14" /></MenuItem.Icon>
       </MenuItem>
+      <!-- The pointer-free way to select every annotation, for touch as well as the Ctrl+A shortcut. -->
+      <MenuItem Tag="annotations" Header="{loc:Loc PageActions.SelectAllAnnotations}" Click="OnSelectAllAnnotationsClick">
+        <MenuItem.Icon><PathIcon Data="{StaticResource IconSelectAll}" Width="14" Height="14" /></MenuItem.Icon>
+      </MenuItem>
       <Separator />
       <MenuItem Tag="selection" Header="{loc:Loc PageActions.HighlightSelection}" Click="OnHighlightSelectionClick">
         <MenuItem.Icon><PathIcon Data="{StaticResource IconHighlight}" Width="14" Height="14" /></MenuItem.Icon>
@@ -45,7 +49,7 @@
       </MenuItem>
     </MenuFlyout>
   </UserControl.Resources>
-  <StackPanel Width="{Binding DisplayWidth}" Margin="24,14" HorizontalAlignment="Center" Spacing="8">
+  <StackPanel Width="{Binding DisplayWidth}" Margin="24,16" HorizontalAlignment="Center" Spacing="{StaticResource StudioSpaceS}">
     <Border x:Name="PagePaper" Width="{Binding DisplayWidth}"
             Height="{Binding DisplayHeight}"
             Background="White"
@@ -53,11 +57,13 @@
             BorderThickness="1"
             CornerRadius="2"
             BoxShadow="{DynamicResource StudioPageShadow}">
-      <Grid>
+      <LayoutTransformControl LayoutTransform="{Binding ViewRotationTransform}">
+      <Grid Width="{Binding ContentDisplayWidth}" Height="{Binding ContentDisplayHeight}">
         <reader:PdfPageCanvas x:Name="PageCanvas" ContextRequested="OnCanvasContextRequested"
                               AutomationProperties.Name="{Binding PageLabel}"
                               AutomationProperties.HelpText="{loc:Loc PdfPage.KeyboardHelp}"
                               Scene="{Binding Scene}"
+                              ViewRotationDegrees="{Binding ViewRotationDegrees}"
                               SearchHighlights="{Binding SearchHighlights}"
                               ActiveSearchHighlight="{Binding ActiveSearchHighlight}"
                               ActiveSearchHighlights="{Binding ActiveSearchHighlights}"
@@ -69,6 +75,7 @@
                               FormAnchorObjectNumber="{Binding FormAnchorObjectNumber}"
                               SelectionMode="{Binding SelectionMode}"
                               PendingRedactionAreas="{Binding PendingRedactionAreas}"
+                              PendingObjectPreview="{Binding PendingObjectPreview}"
                               FallbackImage="{Binding PageImage}"
                               IsVisible="{Binding HasScene}" />
 
@@ -97,7 +104,7 @@
         <StackPanel IsVisible="{Binding IsRendering}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Spacing="10">
+                    Spacing="{StaticResource StudioSpaceM}">
           <ProgressBar Width="120" IsIndeterminate="True" />
           <TextBlock Text="{loc:Loc PdfPage.RenderingPage}"
                      Foreground="{DynamicResource StudioMutedTextBrush}"
@@ -112,7 +119,7 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 MaxWidth="480">
-          <StackPanel Spacing="8">
+          <StackPanel Spacing="{StaticResource StudioSpaceS}">
             <TextBlock Text="{loc:Loc PdfPage.ThisPageCouldNotBeRendered}"
                        Foreground="{DynamicResource StudioErrorBrush}"
                        FontWeight="SemiBold"
@@ -124,13 +131,14 @@
           </StackPanel>
         </Border>
       </Grid>
+      </LayoutTransformControl>
     </Border>
 
     <Grid Classes="pageCaption" ColumnDefinitions="Auto,Auto" HorizontalAlignment="Center" MinHeight="22">
       <TextBlock
                  Text="{Binding PageLabel}"
                  Foreground="{DynamicResource StudioMutedTextBrush}"
-                 FontSize="12" />
+                 FontSize="{StaticResource StudioSecondaryFontSize}" />
       <Button Grid.Column="1" Classes="ghost" IsVisible="{Binding HasDiagnostics}"
               Background="{DynamicResource StudioAccentSoftBrush}" Foreground="{DynamicResource StudioAccentBrush}"
               CornerRadius="6" Padding="8,2" Margin="8,0,0,0" HorizontalAlignment="Left"
@@ -139,7 +147,12 @@
         <Button.Flyout>
           <Flyout>
             <ScrollViewer MaxHeight="280" MaxWidth="420" VerticalScrollBarVisibility="Auto">
-              <TextBlock Text="{Binding DiagnosticsDetails}" TextWrapping="Wrap" />
+              <StackPanel Spacing="{StaticResource StudioSpaceS}">
+                <TextBlock Text="{Binding DiagnosticsExplanation}" IsVisible="{Binding HasDiagnosticsExplanation}" TextWrapping="Wrap" />
+                <TextBlock Text="{loc:Loc PdfPage.TechnicalDetails}" IsVisible="{Binding HasDiagnosticsExplanation}" Classes="muted"
+                           FontSize="{StaticResource StudioLabelFontSize}" FontWeight="SemiBold" />
+                <SelectableTextBlock Text="{Binding DiagnosticsDetails}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
+              </StackPanel>
             </ScrollViewer>
           </Flyout>
         </Button.Flyout>

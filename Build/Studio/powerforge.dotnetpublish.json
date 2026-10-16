@@ -123,7 +123,7 @@
         "Product": {
           "Name": "OfficeIMO Studio",
           "Manufacturer": "Evotec",
-          "Version": "0.1.9767",
+          "Version": "0.1.9768",
           "UpgradeCode": "{C54BB967-362B-48C3-937E-CCBCDD1EA390}",
           "Scope": "PerMachine",
           "DowngradeErrorMessage": "A newer version of OfficeIMO Studio is already installed."
@@ -166,21 +166,22 @@
       "OutputName": "officeimo-studio_{version}_{architecture}.deb",
       "Debian": {
         "PackageName": "officeimo-studio",
-        "Version": "0.1.9767",
+        "Version": "0.1.9768",
         "Maintainer": "Evotec <support@evotec.pl>",
         "Description": "Cross-platform OfficeIMO document studio.",
         "Executable": "OfficeIMO.Studio",
         "CommandName": "officeimo-studio",
         "InstallDirectoryName": "officeimo-studio",
+        "Depends": "libc6, libgcc-s1, libstdc++6, zlib1g, libfontconfig1, libx11-6, libice6, libsm6, xdg-desktop-portal | libgtk-3-0",
         "Section": "office",
         "Priority": "optional",
         "DesktopName": "OfficeIMO Studio",
         "DesktopComment": "Open, inspect, convert, and work with documents locally.",
         "DesktopCategories": "Office;Graphics;Utility;",
-        "MimeTypes": "application/pdf;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.openxmlformats-officedocument.presentationml.presentation;",
+        "MimeTypes": "application/pdf;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.openxmlformats-officedocument.presentationml.presentation;application/vnd.apple.pages;application/vnd.apple.numbers;application/vnd.apple.keynote;application/x-iwork-pages-sffpages;application/x-iwork-numbers-sffnumbers;application/x-iwork-keynote-sffkey;",
         "StartupWmClass": "OfficeIMO.Studio",
-        "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",
-        "IconSize": 1024
+        "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio-512.png",
+        "IconSize": 512
       }
     },
     {
@@ -195,7 +196,7 @@
       "MacApp": {
         "BundleIdentifier": "com.evotec.officeimo.studio",
         "BundleName": "OfficeIMO Studio",
-        "Version": "0.1.9767",
+        "Version": "0.1.9768",
         "BuildNumber": "1",
         "Executable": "OfficeIMO.Studio",
         "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",

@@ -3,6 +3,9 @@
 ###############################################################################
 * text=auto
 
+# PowerForge compares generated plugin compatibility manifests byte for byte.
+.agents/plugins/**/*.json text eol=lf
+
 # Published integration downloads are bound to raw-byte hashes, including EML,
 # executable source copies and ASCII PDF stream/xref offsets.
 Website/static/downloads/integrations/** -text -whitespace

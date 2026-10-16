@@ -10,7 +10,10 @@ internal sealed record PdfEditorProperties(
     string LinkUri,
     double FontSize,
     byte[]? ImageBytes = null,
-    int? LinkPageNumber = null);
+    int? LinkPageNumber = null,
+    double? StrokeWidth = null,
+    double? Opacity = null,
+    string? LineEndEnding = null);
 
 internal sealed record PdfEditorCommand(
     PdfEditorTool Tool,

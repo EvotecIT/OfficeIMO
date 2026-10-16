@@ -18,6 +18,9 @@ public sealed class PrintPreviewLocalizationTests {
     [InlineData("pl", 960, 640, false)]
     [InlineData("de", 960, 640, false)]
     [InlineData("fr", 1280, 850, true)]
+    [InlineData("es", 960, 640, false)]
+    [InlineData("it", 720, 540, false)]
+    [InlineData("pt-BR", 1280, 850, true)]
     public async Task ChoicesAndPreparedPreviewUseCultureResources(string culture, int width, int height, bool dark) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
@@ -80,6 +83,12 @@ public sealed class PrintPreviewLocalizationTests {
                     notice => notice.Code == "render.resource.font-substitution");
                 Assert.Equal(localizer.Get("PrintPreview.Rendering.FontSubstitution"), font.Message);
                 Assert.StartsWith(font.Code + ":", font.Details);
+                TabControl? compactTabs = window.GetVisualDescendants().OfType<TabControl>().SingleOrDefault(tabs =>
+                    tabs.IsEffectivelyVisible && tabs.Items.OfType<TabItem>().Any(tab =>
+                        Equals(tab.Header, localizer.Get("Conversion.CompactDetails"))));
+                if (compactTabs is not null)
+                    compactTabs.SelectedItem = compactTabs.Items.OfType<TabItem>().Single(tab =>
+                        Equals(tab.Header, localizer.Get("Conversion.CompactDetails")));
                 window.UpdateLayout();
                 Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), text => text.IsEffectivelyVisible && text.Text == font.Message);
                 Capture(window, culture + "-print-ready-" + width);

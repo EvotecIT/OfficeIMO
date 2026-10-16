@@ -24,6 +24,21 @@ internal sealed partial class StudioSettingsViewModel {
         }
     }
 
+    /// <summary>Previews render the first page of recent local documents in memory; private work can turn them off.</summary>
+    public bool ShowRecentPreviews {
+        get => _preferences.Current.ShowRecentPreviews;
+        set {
+            if (value == ShowRecentPreviews) return;
+            try {
+                _preferences.Update(current => current with { ShowRecentPreviews = value });
+                HistoryStatus = null;
+            } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+                _diagnostics.Write(StudioDiagnosticLevel.Warning, "Preferences", "PreviewPrivacyChangeFailed", error);
+                HistoryStatus = _localizer.Get("Settings.HistoryPreferenceFailed");
+            }
+            OnPropertyChanged();
+        }
+    }
     [RelayCommand]
     private void RequestHistoryClear() { HistoryStatus = null; ConfirmHistoryClear = true; }
 

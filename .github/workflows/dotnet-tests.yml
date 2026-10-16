@@ -28,8 +28,8 @@ concurrency:
 
 env:
   DOTNET_VERSION: |
-    8.0.418
-    10.0.112
+    8.0.426
+    10.0.113
   BUILD_CONFIGURATION: 'Release'
   TEST_VERBOSITY: minimal # set to 'detailed' to restore full test output
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
@@ -254,6 +254,9 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Check Studio translations
+        shell: pwsh
+        run: ./Build/Studio/Test-StudioTranslations.ps1
       - name: Test Studio
         shell: pwsh
         env:
@@ -2074,7 +2077,7 @@ jobs:
           # Studio and the AI projects target net10 only. Preserve
           # the existing net8 analyzer lane for every compatible solution project.
           $projects = dotnet sln OfficeIMO.sln list | Where-Object {
-            $_ -match '\.csproj$' -and $_ -notmatch '(^|[\\/])OfficeIMO\.(Studio(\.Core)?(\.Tests)?|AI(\.IntelligenceX|\.Tests|\.Example)?)[\\/]'
+            $_ -match '\.csproj$' -and $_ -notmatch '(^|[\\/])OfficeIMO\.(Studio(\.Core|\.Native)?(\.Tests)?|AI(\.IntelligenceX|\.Tests|\.Example)?)[\\/]'
           } | ForEach-Object {
             (Resolve-Path -LiteralPath $_).Path
           }
@@ -2093,7 +2096,7 @@ jobs:
           # concurrent Avalonia generation through Studio and Studio.Tests.
           dotnet restore OfficeIMO.sln
           $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.sln'
-          dotnet sln $analyzerSolution add OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj OfficeIMO.AI/OfficeIMO.AI.csproj OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj OfficeIMO.AI.Tests/OfficeIMO.AI.Tests.csproj Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj
+          dotnet sln $analyzerSolution add OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj OfficeIMO.AI/OfficeIMO.AI.csproj OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj OfficeIMO.AI.Tests/OfficeIMO.AI.Tests.csproj Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj
           dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
           dotnet build OfficeIMO.Studio/OfficeIMO.Studio.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
 

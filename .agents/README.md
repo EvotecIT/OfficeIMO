@@ -8,3 +8,5 @@ This folder contains repo-owned agent assets.
 - Plugin skills are the canonical reusable instructions for using those tools and for OfficeIMO conversion, PDF, WASM website, build, release, and PSWritePDF retirement work.
 
 The MCP server is provided by the versioned `OfficeIMO.Tool` .NET tool package.
+
+Contributor skills for working on this repository, such as building releases, the website's browser tools and Studio translations, live in `skills/` and are not part of the plugin.

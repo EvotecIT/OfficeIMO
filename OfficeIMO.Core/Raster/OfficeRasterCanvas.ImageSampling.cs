@@ -77,10 +77,16 @@ public sealed partial class OfficeRasterCanvas {
         int height = ReducedSamplingDimension(image.Height, footprintY);
         if (width == image.Width && height == image.Height) return image;
         _cancellationToken.ThrowIfCancellationRequested();
+        if (ImageCache != null && ImageCache.TryGetFiltered(image, width, height, out OfficeRasterImage cached)) {
+            _transformedTextBudget.ChargeIntermediateSurfacePixels((long)cached.Width * cached.Height);
+            return cached;
+        }
         _transformedTextBudget.ChargeIntermediateSurfacePixels(
             OfficeRasterResampler.GetAdditionalHighQualityPixelBufferCost(image.Width, image.Height, width, height));
-        return OfficeRasterResampler.Resize(image, width, height, OfficeRasterResamplingMode.Area,
+        OfficeRasterImage filtered = OfficeRasterResampler.Resize(image, width, height, OfficeRasterResamplingMode.Area,
             OfficeRasterResamplingColorSpace.EncodedSrgb, checked((long)Width * Height * 4L), _cancellationToken);
+        ImageCache?.AddFiltered(image, width, height, filtered);
+        return filtered;
     }
 
     private static int ReducedSamplingDimension(int original, double footprint) =>

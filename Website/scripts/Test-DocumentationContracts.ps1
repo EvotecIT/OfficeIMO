@@ -488,6 +488,7 @@ $expectedAotClassifications = [ordered]@{
     fullyRootedLibraryCount = 'native-full-surface'
     boundedWorkflowLibraryCount = 'native-bounded-workflow'
     nativeExecutableCount = 'native-executable'
+    nativeLibraryCount = 'native-library'
     nativeWindowsDriverCount = 'native-windows-driver'
     nativeBuildAnalyzerCount = 'native-build-analyzer'
     managedCrossPlatformProjectCount = 'managed-cross-platform'
