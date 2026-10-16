@@ -422,7 +422,7 @@ officeimo html convert archive.mhtml --output archive.pdf
 officeimo html capabilities --format json
 ```
 
-The command uses the same renderer and capability catalog as the .NET API. Local and remote resource reads are disabled by default; embedded data and bounded MHTML resources remain available. Standard input/output, caller stylesheets, page limits, atomic file replacement, and explicit embedded fonts for PDF/UA-ready artifacts are supported.
+The command uses the same renderer and capability catalog as the .NET API. Host fonts and local and remote resource reads are disabled by default; embedded data and bounded MHTML resources remain available. Supply `--font-family` and `--font-regular` for text outside the standard PDF encoding; `convert` and `render` use the same supplied font family. Standard input/output, caller stylesheets, page limits, atomic file replacement, and explicit embedded fonts for PDF/UA-ready artifacts are supported.
 
 ## Explicit document projections
 

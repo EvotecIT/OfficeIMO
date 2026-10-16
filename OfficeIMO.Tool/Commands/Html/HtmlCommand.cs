@@ -191,7 +191,7 @@ claim conformance without passing external validator evidence.
         CancellationToken cancellationToken) {
         byte[] input = await ReadInputAsync(arguments.InputPath!, standardInput, arguments.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         HtmlRenderRequest template = HtmlRenderRequest.Create(arguments.RenderProfile, arguments.RenderEncoder);
-        HtmlRenderOptions options = new HtmlToPdfOptions(template.Options) {
+        var options = new HtmlToPdfOptions(template.Options) {
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         options.MaxPageCount = arguments.MaxPages;
@@ -208,7 +208,7 @@ claim conformance without passing external validator evidence.
             byte[]? bold = await ReadOptionalFontAsync(arguments.BoldFontPath, cancellationToken).ConfigureAwait(false);
             byte[]? italic = await ReadOptionalFontAsync(arguments.ItalicFontPath, cancellationToken).ConfigureAwait(false);
             byte[]? boldItalic = await ReadOptionalFontAsync(arguments.BoldItalicFontPath, cancellationToken).ConfigureAwait(false);
-            ConfigureRenderFontFamily(options, arguments.FontFamilyName!, regular, bold, italic, boldItalic);
+            ConfigureFontFamily(options, arguments.FontFamilyName!, regular, bold, italic, boldItalic);
         }
 
         HtmlConversionDocument htmlDocument;
