@@ -21,7 +21,7 @@ internal sealed class PdfCffFontProgram {
     private readonly Dictionary<int, int>? _glyphByCid;
 
     private PdfCffFontProgram(byte[] data, CffIndex charStrings, bool isCidKeyed, string[]? glyphNames, int[]? cids,
-        int[] builtinEncoding, double[] fontMatrix, double[] fontBBox, byte[]? fdSelect, double[] defaultWidths, double[] nominalWidths) {
+        int[] builtinEncoding, double[] fontMatrix, double[] fontBBox, byte[]? fdSelect, double[] defaultWidths, double[] nominalWidths, bool hasUniformFontMatrix) {
         Data = data;
         _charStrings = charStrings;
         IsCidKeyed = isCidKeyed;
@@ -29,6 +29,7 @@ internal sealed class PdfCffFontProgram {
         Cids = cids;
         BuiltinEncoding = builtinEncoding;
         FontMatrix = fontMatrix;
+        HasUniformFontMatrix = hasUniformFontMatrix;
         FontBBox = fontBBox;
         _fdSelect = fdSelect;
         _defaultWidths = defaultWidths;
@@ -62,6 +63,9 @@ internal sealed class PdfCffFontProgram {
 
     /// <summary>Effective glyph-space to text-space matrix.</summary>
     internal double[] FontMatrix { get; }
+
+    /// <summary>All glyph-selected font dictionaries share the effective matrix.</summary>
+    internal bool HasUniformFontMatrix { get; }
 
     internal double[] FontBBox { get; }
 
@@ -247,21 +251,31 @@ internal sealed class PdfCffFontProgram {
         double[] nominalWidths;
         byte[]? fdSelect = null;
         double[] effectiveMatrix = topMatrix;
+        bool hasUniformFontMatrix = true;
         if (isCidKeyed) {
             int fdArrayOffset = RequireOffset(top, 1236, data.Length);
             CffIndex fdArray = CffIndex.ReadAt(data, fdArrayOffset);
             if (fdArray.Count < 1 || fdArray.Count > MaximumFontDicts) throw new InvalidDataException("Invalid CFF FDArray.");
             defaultWidths = new double[fdArray.Count];
             nominalWidths = new double[fdArray.Count];
+            var matrices = new double[fdArray.Count][];
             for (int index = 0; index < fdArray.Count; index++) {
                 Dictionary<int, double[]> fontDict = ParseDict(fdArray[index]);
                 ReadPrivateWidths(data, fontDict, out defaultWidths[index], out nominalWidths[index]);
-                if (index == 0 && fontDict.TryGetValue(1207, out double[]? fdMatrix) && fdMatrix.Length == 6) {
-                    effectiveMatrix = top.ContainsKey(1207) ? Multiply(fdMatrix, topMatrix) : fdMatrix;
-                }
+                matrices[index] = fontDict.TryGetValue(1207, out double[]? fdMatrix) && fdMatrix.Length == 6
+                    ? top.ContainsKey(1207) ? Multiply(fdMatrix, topMatrix) : fdMatrix : topMatrix;
             }
             if (top.TryGetValue(1237, out double[]? fdSelectValue) && fdSelectValue.Length > 0) {
                 fdSelect = ReadFdSelect(data, CheckedInt(fdSelectValue[0]), glyphCount);
+            }
+            int first = fdSelect == null ? 0 : fdSelect[0];
+            if (first >= matrices.Length) throw new InvalidDataException("Invalid CFF font dictionary selection.");
+            effectiveMatrix = matrices[first];
+            for (int glyph = 0; glyph < glyphCount; glyph++) {
+                int selected = fdSelect == null ? 0 : fdSelect[glyph];
+                if (selected >= matrices.Length) throw new InvalidDataException("Invalid CFF font dictionary selection.");
+                for (int term = 0; term < 6; term++)
+                    if (matrices[selected][term] != effectiveMatrix[term]) hasUniformFontMatrix = false;
             }
         } else {
             defaultWidths = new double[1];
@@ -292,7 +306,7 @@ internal sealed class PdfCffFontProgram {
         if (!isCidKeyed) ReadEncoding(data, top, charset, glyphNames!, builtinEncoding);
         if (!IsUsableMatrix(effectiveMatrix)) throw new InvalidDataException("The CFF font matrix is singular.");
         return new PdfCffFontProgram(data, charStrings, isCidKeyed, glyphNames, cids, builtinEncoding, effectiveMatrix, bbox,
-            fdSelect, defaultWidths, nominalWidths);
+            fdSelect, defaultWidths, nominalWidths, hasUniformFontMatrix);
     }
 
     private static bool IsUsableMatrix(double[] matrix) {

@@ -20,6 +20,35 @@ internal static partial class TextContentParser {
     private static bool IsSolidTextDash(string identity) => identity.Length > 0 && identity[0] == ':' ||
         identity.StartsWith("[]:", StringComparison.Ordinal);
 
+    private static bool TryReadOutlineDash(string identity, double scale, out IReadOnlyList<double>? pattern, out double phase) {
+        pattern = null; phase = 0D;
+        if (IsSolidTextDash(identity)) return true;
+        int separator = identity.IndexOf(':');
+        if (separator <= 0) return false;
+        if (!double.TryParse(
+#if NET8_0_OR_GREATER
+                identity.AsSpan(separator + 1),
+#else
+                identity.Substring(separator + 1),
+#endif
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double rawPhase) || double.IsNaN(rawPhase) || double.IsInfinity(rawPhase)) return false;
+        string[] values = identity.Substring(0, separator).Split(',');
+        var dashes = new double[values.Length];
+        bool positive = false;
+        for (int index = 0; index < dashes.Length; index++) {
+            if (!double.TryParse(values[index], NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+                value < 0D || double.IsNaN(value) || double.IsInfinity(value)) return false;
+            dashes[index] = value * scale;
+            if (double.IsInfinity(dashes[index])) return false;
+            positive |= value > 0D;
+        }
+        phase = rawPhase * scale;
+        if (!positive || double.IsInfinity(phase)) return false;
+        pattern = Array.AsReadOnly(dashes);
+        return true;
+    }
+
     // A color-space selection resets its color, even without a following sc/SC.
     // Keep the authored initial components so later rendering intents can re-evaluate them.
     private static bool TryCreateInitialTextPaint(PdfPageColorSpace space, OfficeIccRenderingIntent intent,

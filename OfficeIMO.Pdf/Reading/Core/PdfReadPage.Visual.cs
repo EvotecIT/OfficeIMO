@@ -1009,7 +1009,7 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfFontResource> fonts = fontResources.Fonts;
         Dictionary<string, Func<byte[], double>> widthProviders = fontResources.WidthProviders;
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStateResources =
-            GetGraphicsStateResources(resources, fontResources.Decoders, widthProviders, fonts);
+            GetGraphicsStateResources(resources, pageContentBudget, fontResources.Decoders, widthProviders, fonts);
         PdfPageOptionalContentVisibility? optionalContentVisibility = GetOptionalContentVisibility(resources);
         Dictionary<string, PdfPageColorSpace> colorSpaceResources = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
         Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
@@ -2125,7 +2125,7 @@ public sealed partial class PdfReadPage {
         value < 0D ? 0D : value > 1D ? 1D : value;
 
     private Dictionary<string, PdfPageGraphicsStateResource> GetGraphicsStateResources(
-        PdfDictionary? resources,
+        PdfDictionary? resources, PageContentBudget? pageContentBudget,
         Dictionary<string, Func<byte[], int, string>>? decoders = null,
         Dictionary<string, Func<byte[], double>>? widthProviders = null,
         Dictionary<string, PdfFontResource>? fonts = null) {
@@ -2181,7 +2181,7 @@ public sealed partial class PdfReadPage {
                 HasInvalidStrictNumber(state, "ML", static value => value >= 1D) ||
                 !HasExactlyRepresentableStrokeDash(state);
             bool? softMaskEnabled = ReadSoftMaskEnabled(state);
-            PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
+            PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources, pageContentBudget) : null;
             bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
             bool unsupportedTextRestampEffect = hasInvalidRenderingIntent || hasInvalidFont || HasUnsupportedTextRestampEffect(state);
             PdfPageImagePaintEffectOverrides imagePaintEffectOverrides = ReadImagePaintEffectOverrides(state);
@@ -2461,7 +2461,7 @@ public sealed partial class PdfReadPage {
             content,
             Matrix2D.Identity,
             pageSize.Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget: null),
             placeholders,
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,

@@ -40,7 +40,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private PdfPageSoftMaskResource? ReadSoftMask(PdfDictionary state, PdfDictionary? parentResources = null) {
+    private PdfPageSoftMaskResource? ReadSoftMask(PdfDictionary state, PdfDictionary? parentResources, PageContentBudget? pageContentBudget) {
         PdfObject? resolved = ResolveEffectObject(state.Items.TryGetValue("SMask", out PdfObject? value) ? value : null);
         if (resolved is PdfName { Name: "None" } || resolved is not PdfDictionary mask) return null;
         if (mask.Items.TryGetValue("Type", out PdfObject? maskTypeObject) &&
@@ -57,7 +57,7 @@ public sealed partial class PdfReadPage {
         byte[]? transferTable = null;
         if (mask.Items.TryGetValue("TR", out PdfObject? transferObject) &&
             ResolveEffectObject(transferObject) is not PdfName { Name: "Identity" } and not PdfNull &&
-            !TryCreateSoftMaskTransferTable(transferObject, out transferTable)) return null;
+            !TryCreateSoftMaskTransferTable(transferObject, pageContentBudget, out transferTable)) return null;
         bool isIsolated = transparency.Items.TryGetValue("I", out PdfObject? isolatedObject) &&
             ResolveEffectObject(isolatedObject) is PdfBoolean { Value: true };
         if (transparency.Items.TryGetValue("I", out isolatedObject) &&
@@ -96,22 +96,6 @@ public sealed partial class PdfReadPage {
             }
         }
         return new PdfPageSoftMaskResource(group, mode, backdrop, hasByteExactBackdrop, isIsolated, hasExplicitGroupColorSpace, parentResources, transferTable);
-    }
-
-    // The transfer function maps each computed mask value; one-in, one-out functions are sampled once per mask level.
-    private bool TryCreateSoftMaskTransferTable(PdfObject transferObject, out byte[]? table) {
-        table = null;
-        if (!PdfColorSpaceFunctionResolver.TryCreateFunction(transferObject, 1, 1, _objects, _limits.MaxDecodedStreamBytes, out PdfColorFunction function)) return false;
-        var samples = new byte[256];
-        var input = new double[1];
-        var output = new double[1];
-        for (int index = 0; index < samples.Length; index++) {
-            input[0] = index / 255D;
-            if (!function.TryEvaluate(input, output) || double.IsNaN(output[0])) return false;
-            samples[index] = (byte)Math.Round(Math.Max(0D, Math.Min(1D, output[0])) * 255D);
-        }
-        table = samples;
-        return true;
     }
 
     private bool HasOrdinaryTransparencyGroupDeclaration(PdfDictionary group) {
@@ -333,7 +317,7 @@ public sealed partial class PdfReadPage {
             content,
             baseTransform,
             visualPageSize.Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget),
             colorSpaces,
             GetOptionalContentVisibility(resources),
             initialFillColor: initialState?.FillColor,
@@ -394,7 +378,7 @@ public sealed partial class PdfReadPage {
             WrapContentWithTransform(content, baseTransform),
             visualPageSize.Width,
             visualPageSize.Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget),
             colorSpaces,
             shadings,
             shadingPatterns,
@@ -438,7 +422,7 @@ public sealed partial class PdfReadPage {
             content,
             baseTransform,
             visualPageSize.Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget),
             colorSpaces,
             GetOptionalContentVisibility(resources),
             initialFillColor: initialState?.FillColor,
@@ -849,7 +833,7 @@ public sealed partial class PdfReadPage {
         initialEffect = initialEffect.WithEffectiveRenderingIntent(initialRenderingIntent);
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
             content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
-        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
+        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources, pageContentBudget);
         IReadOnlyList<PdfPageDrawingEffectTransition> parsed = PdfPageGraphicsEffectTimelineParser.Parse(
             content,
             graphicsStates,

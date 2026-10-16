@@ -656,7 +656,7 @@ public sealed partial class PdfReadPage {
         type3LineStateCache ??= new Dictionary<(PdfStream Stream, PdfDictionary? Resources, int LineStateMask), bool>();
         var stateStack = new Stack<PatternLineState>();
         bool consumesInheritedState = false;
-        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
+        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources, pageContentBudget);
         Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
         PdfContentStreamInterpreter.Interpret(
             content,

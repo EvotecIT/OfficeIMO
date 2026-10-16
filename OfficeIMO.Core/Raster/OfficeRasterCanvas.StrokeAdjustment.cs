@@ -28,19 +28,19 @@ public sealed partial class OfficeRasterCanvas {
         return (Math.Floor(device + 1e-6D) - device) / CoordinateScaleY;
     }
 
-    private (OfficeColor Color, double Width, bool FillSuppressed)? _textOutlineStroke;
+    private (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset)? _textOutlineStroke;
 
     /// <summary>Strokes the outlines of glyphs drawn within the scope, optionally without filling them.</summary>
-    internal IDisposable PushTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed) {
+    internal IDisposable PushTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed, IReadOnlyList<double>? pattern = null, double offset = 0D) {
         var previous = _textOutlineStroke;
-        _textOutlineStroke = (color, width, fillSuppressed);
+        _textOutlineStroke = (color, width, fillSuppressed, pattern, offset);
         return new TextOutlineStrokeScope(this, previous);
     }
 
     private sealed class TextOutlineStrokeScope : IDisposable {
         private OfficeRasterCanvas? _canvas;
-        private readonly (OfficeColor Color, double Width, bool FillSuppressed)? _previous;
-        internal TextOutlineStrokeScope(OfficeRasterCanvas canvas, (OfficeColor Color, double Width, bool FillSuppressed)? previous) { _canvas = canvas; _previous = previous; }
+        private readonly (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset)? _previous;
+        internal TextOutlineStrokeScope(OfficeRasterCanvas canvas, (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset)? previous) { _canvas = canvas; _previous = previous; }
         public void Dispose() { if (_canvas != null) { _canvas._textOutlineStroke = _previous; _canvas = null; } }
     }
 
@@ -56,7 +56,7 @@ public sealed partial class OfficeRasterCanvas {
         if (outlines.Count == 0) return;
         OfficeColor strokeColor = stroke.Color;
         StrokeContours(outlines, stroke.Width > 0D ? stroke.Width : 1E-9D, OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Miter, 10D,
-            null, 0D, (_, _) => strokeColor, hairline: stroke.Width <= 0D);
+            stroke.Pattern, stroke.Offset, (_, _) => strokeColor, hairline: stroke.Width <= 0D);
     }
 
     private double DevicePixelsPerLogicalUnit => Math.Sqrt(Math.Abs(CoordinateScaleX * CoordinateScaleY));

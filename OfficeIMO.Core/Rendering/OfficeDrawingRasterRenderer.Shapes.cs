@@ -266,7 +266,11 @@ public static partial class OfficeDrawingRasterRenderer {
         double left = points[0].X, right = left, top = points[0].Y, bottom = top;
         for (int i = 0; i < 4; i++) {
             OfficePoint current = points[i], next = points[(i + 1) % 4];
-            if (current.X != next.X && current.Y != next.Y) return points;
+            OfficePoint after = points[(i + 2) % 4];
+            bool horizontal = current.Y == next.Y, vertical = current.X == next.X;
+            if (horizontal == vertical || horizontal == (next.Y == after.Y)) return points;
+            for (int prior = 0; prior < i; prior++)
+                if (current.X == points[prior].X && current.Y == points[prior].Y) return points;
             left = Math.Min(left, current.X); right = Math.Max(right, current.X);
             top = Math.Min(top, current.Y); bottom = Math.Max(bottom, current.Y);
         }

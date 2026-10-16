@@ -291,8 +291,10 @@ public sealed partial class PdfReadPage {
 
     private static void MarkPaintedGlyphs(OfficeDrawing drawing, PdfTextSpan span) {
         if (span.OutlineStroke is { } stroke && span.TextRenderingMode is 1 or 2 or 5 or 6) {
-            drawing.SetLastTextOutlineStroke(stroke.Color, stroke.Width, fillSuppressed: span.TextRenderingMode is 1 or 5);
+            drawing.SetLastTextOutlineStroke(stroke.Color, stroke.Width, fillSuppressed: span.TextRenderingMode is 1 or 5, stroke.DashPattern, stroke.DashOffset);
         }
+        if (span.OutlineStroke == null && span.TextRenderingMode is 1 or 5)
+            drawing.SetLastTextOutlineStroke(OfficeColor.Transparent, 0D, fillSuppressed: true);
         if (span.LogicalDrawingText != null) drawing.SetLastTextPaintedProjection(span.LogicalDrawingText, span.Text);
         if (PreservesPaintedGlyphs(span)) drawing.MarkLastTextAsPaintedGlyphs();
     }

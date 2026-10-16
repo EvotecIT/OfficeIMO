@@ -42,13 +42,13 @@ internal static partial class PdfType1FontConverter {
     }
 
     private static Result? Convert(byte[] program) {
-        byte[] data = StripPfbHeaders(program);
+        byte[] data = StripPfbHeaders(program, out int binaryStart);
         int eexec = IndexOf(data, "eexec", 0);
         if (eexec < 0) return null;
         string clearText = Encoding.ASCII.GetString(data, 0, eexec);
-        int encryptedStart = eexec + 5;
-        while (encryptedStart < data.Length && IsWhitespace(data[encryptedStart])) encryptedStart++;
-        byte[] encrypted = ExtractEncrypted(data, encryptedStart);
+        int encryptedStart = binaryStart >= 0 ? binaryStart : eexec + 5;
+        if (binaryStart < 0) while (encryptedStart < data.Length && IsWhitespace(data[encryptedStart])) encryptedStart++;
+        byte[] encrypted = ExtractEncrypted(data, encryptedStart, binaryStart >= 0);
         byte[] privatePart = Decrypt(encrypted, 55665, 4);
 
         double[] fontMatrix = ReadNumberArray(clearText, "/FontMatrix", 6) ?? new[] { 0.001D, 0D, 0D, 0.001D, 0D, 0D };
@@ -92,26 +92,30 @@ internal static partial class PdfType1FontConverter {
         return new Result(BuildCff(fontName, names, outlines, fontMatrix, fontBBox), builtinEncoding);
     }
 
-    private static byte[] StripPfbHeaders(byte[] data) {
+    private static byte[] StripPfbHeaders(byte[] data) => StripPfbHeaders(data, out _);
+
+    private static byte[] StripPfbHeaders(byte[] data, out int binaryStart) {
+        binaryStart = -1;
         if (data.Length < 6 || data[0] != 0x80) return data;
         using var output = new MemoryStream(data.Length);
         int cursor = 0;
         while (cursor + 2 <= data.Length && data[cursor] == 0x80) {
             int type = data[cursor + 1];
             if (type == 3) break;
-            if (cursor + 6 > data.Length) break;
+            if (type is not (1 or 2) || cursor + 6 > data.Length) throw new InvalidDataException("Invalid PFB segment header.");
             int length = data[cursor + 2] | (data[cursor + 3] << 8) | (data[cursor + 4] << 16) | (data[cursor + 5] << 24);
             cursor += 6;
-            if (length < 0 || length > data.Length - cursor) length = data.Length - cursor;
+            if (length < 0 || length > data.Length - cursor) throw new InvalidDataException("Truncated PFB segment.");
+            if (type == 2 && binaryStart < 0) binaryStart = checked((int)output.Position);
             output.Write(data, cursor, length);
             cursor += length;
         }
         return output.ToArray();
     }
 
-    private static byte[] ExtractEncrypted(byte[] data, int start) {
+    private static byte[] ExtractEncrypted(byte[] data, int start, bool declaredBinary) {
         // Binary eexec sections are the norm in PDF; a hexadecimal section starts with four hex digits.
-        bool hex = start + 4 <= data.Length;
+        bool hex = !declaredBinary && start + 4 <= data.Length;
         for (int index = start; hex && index < start + 4; index++) hex = IsHexDigit(data[index]);
         if (!hex) {
             var binary = new byte[data.Length - start];

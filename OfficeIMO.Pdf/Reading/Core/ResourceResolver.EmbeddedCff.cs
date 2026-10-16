@@ -30,6 +30,11 @@ internal static partial class ResourceResolver {
         if (cff == null) return null;
 
         double[] matrix = cff.FontMatrix;
+        // The sfnt wrapper uses a scalar em normalization. Affine CFF matrices require an
+        // outline transform not currently implemented by the shared CFF program; diagnose
+        // substitution rather than discarding authored matrix terms and distorting glyphs.
+        if (!cff.HasUniformFontMatrix || matrix[0] <= 0D || matrix[0] != matrix[3] || matrix[1] != 0D || matrix[2] != 0D ||
+            matrix[4] != 0D || matrix[5] != 0D) return null;
         double scale = Math.Abs(matrix[0]) > 0D ? Math.Abs(matrix[0]) : Math.Abs(matrix[3]);
         if (scale <= 0D || double.IsNaN(scale)) return null;
         int unitsPerEm = (int)Math.Round(1D / scale);

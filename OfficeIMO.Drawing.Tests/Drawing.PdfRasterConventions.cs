@@ -5,6 +5,50 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class PdfRasterConventionTests {
+    [Fact]
+    public void BacktrackingFillDoesNotSnapToItsBoundingRectangle() {
+        var drawing = new OfficeDrawing(4, 4);
+        OfficeShape shape = OfficeShape.Polygon(new[] { new OfficePoint(0, 0), new OfficePoint(2, 0), new OfficePoint(0, 0), new OfficePoint(0, 2) });
+        shape.FillColor = OfficeColor.Red; shape.StrokeWidth = 0;
+        drawing.AddShape(shape, 0, 0);
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions { PdfRasterConventions = true });
+        Assert.Equal(0, image.GetPixel(1, 1).A);
+    }
+
+    [Theory]
+    [InlineData(0D, 100D)]
+    [InlineData(50D, 150D)]
+    public void AffineHairlineKeepsOneDevicePixelAcrossItsNormal(double shear, double expectedInk) {
+        var image = new OfficeRasterImage(200, 40);
+        var canvas = new OfficeRasterCanvas(image) { PdfRasterConventions = true };
+        canvas.StrokeTransformedContours(new[] { new OfficeFlattenedPathContour(new[] { new OfficePoint(0, 0), new OfficePoint(1, 1) }, false) },
+            1E-9D, OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Miter, 10, null, 0,
+            new OfficeTransform(100, 0, shear, 1, 10, 10), (_, _) => OfficeColor.Black, hairline: true);
+        double ink = 0D;
+        for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++) ink += image.GetPixel(x, y).A / 255D;
+        Assert.InRange(ink, expectedInk - 2D, expectedInk + 2D);
+    }
+
+    [Theory]
+    [InlineData(false, 1D, 1D, 10D)]
+    [InlineData(false, 2D, 3D, 30D)]
+    [InlineData(true, 2D, 3D, 30D)]
+    public void SolidVerticalHairlinesUseDeviceNormals(bool direct, double axisX, double axisY, double expectedInk) {
+        var image = new OfficeRasterImage(100, 100);
+        var canvas = new OfficeRasterCanvas(image) { PdfRasterConventions = true };
+        canvas.SetCoordinateScale(axisX, axisY);
+        var contours = new[] { new OfficeFlattenedPathContour(new[] { new OfficePoint(0, 0), new OfficePoint(0, 10) }, false) };
+        if (direct) {
+            contours = new[] { new OfficeFlattenedPathContour(new[] { new OfficePoint(10, 10), new OfficePoint(10, 20) }, false) };
+            canvas.StrokeContours(contours, 1E-9D, OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Miter, 10, null, 0,
+                (_, _) => OfficeColor.Black, hairline: true);
+        } else canvas.StrokeTransformedContours(contours, 1E-9D, OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Miter, 10, null, 0,
+            new OfficeTransform(100, 0, 0, 1, 10, 10), (_, _) => OfficeColor.Black, hairline: true);
+        double ink = 0D;
+        for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++) ink += image.GetPixel(x, y).A / 255D;
+        Assert.InRange(ink, expectedInk - 1D, expectedInk + 1D);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

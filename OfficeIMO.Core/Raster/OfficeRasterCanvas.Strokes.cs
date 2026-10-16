@@ -8,6 +8,7 @@ public sealed partial class OfficeRasterCanvas {
     internal void StrokeTransformedContours(IReadOnlyList<OfficeFlattenedPathContour> contours, double width,
         OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit, IReadOnlyList<double>? pattern,
         double offset, OfficeTransform transform, Func<double, double, OfficeColor> paint, bool hairline = false) {
+        if (hairline && TryStrokeDeviceHairline(contours, cap, join, miterLimit, pattern, offset, transform, paint)) return;
         if (!transform.TryInvert(out OfficeTransform inverse)) {
             // Preserve the scene contract for collapsed transforms: keep the projected
             // centreline visible, while its fill has no two-dimensional area.
@@ -43,6 +44,7 @@ public sealed partial class OfficeRasterCanvas {
         IReadOnlyList<double>? dashPattern, double dashOffset, Func<double, double, OfficeColor> paint,
         bool resetDashPatternForEachSegment = false, bool hairline = false) {
         if (!IsFinite(width) || width <= 0D) return;
+        if (hairline && TryStrokeDeviceHairline(contours, cap, join, miterLimit, dashPattern, dashOffset, OfficeTransform.Identity, paint)) return;
         width = AdjustStrokeWidth(width, DevicePixelsPerLogicalUnit, hairline);
         if (TryStrokeAdjustedContours(contours, width, cap, join, miterLimit, dashPattern, OfficeTransform.Identity, paint)) return;
         var outlines = OfficeStrokeGeometry.Create(contours, width, cap, join, miterLimit, dashPattern, dashOffset, 1D,

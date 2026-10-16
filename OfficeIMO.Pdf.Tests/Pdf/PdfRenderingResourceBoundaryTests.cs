@@ -109,7 +109,7 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
         return output.ToArray();
     }
 
-    private static byte[] Type1(byte[] glyph, string encoding = "", string glyphName = "A") {
+    private static byte[] Type1(byte[] glyph, string encoding = "", string glyphName = "A", byte[]? cipherPrefix = null) {
         using var privatePart = new MemoryStream();
         void Write(string text) { byte[] bytes = Encoding.ASCII.GetBytes(text); privatePart.Write(bytes, 0, bytes.Length); }
         privatePart.Write(new byte[4], 0, 4);
@@ -121,7 +121,8 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
         byte[] bytes = privatePart.ToArray();
         ushort state = 55665;
         for (int index = 0; index < bytes.Length; index++) {
-            bytes[index] ^= (byte)(state >> 8);
+            if (cipherPrefix != null && index < 4) bytes[index] = cipherPrefix[index];
+            else bytes[index] ^= (byte)(state >> 8);
             state = unchecked((ushort)((bytes[index] + state) * 52845 + 22719));
         }
         return Encoding.ASCII.GetBytes("%!PS-AdobeFont-1.0\n/FontName /Review def\n" + encoding + "\ncurrentfile eexec\n" + BitConverter.ToString(bytes).Replace("-", string.Empty));

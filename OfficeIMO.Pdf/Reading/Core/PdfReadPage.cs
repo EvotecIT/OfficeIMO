@@ -1029,7 +1029,7 @@ public sealed partial class PdfReadPage {
         PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
             content, resources, cancellationCheck ?? (Action)pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
-            GetGraphicsStateResources(resources, decoders, widthProviders, fonts);
+            GetGraphicsStateResources(resources, pageContentBudget, decoders, widthProviders, fonts);
         var actualTextForms = new Dictionary<int, TextContentParser.MarkedContentState>();
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -1281,7 +1281,7 @@ public sealed partial class PdfReadPage {
                      content,
                      baseTransform,
                      pageHeight,
-                     GetGraphicsStateResources(resources),
+                     GetGraphicsStateResources(resources, pageContentBudget),
                      GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                      optionalContentVisibility,
                      initialFillColor,

@@ -90,7 +90,7 @@ public sealed partial class PdfReadPage {
             PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
                 content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
-            IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
+            IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources, pageContentBudget);
             IReadOnlyList<PdfPageDrawingEffectTransition> effects = PdfPageGraphicsEffectTimelineParser.Parse(
                 content,
                 graphicsStates,
@@ -161,7 +161,7 @@ public sealed partial class PdfReadPage {
                          content,
                          formTransform,
                          pageHeight,
-                         GetGraphicsStateResources(resources),
+                         GetGraphicsStateResources(resources, pageContentBudget),
                          colorSpaces,
                          GetOptionalContentVisibility(resources),
                          initialClipPath: invocationState.ClipPath,

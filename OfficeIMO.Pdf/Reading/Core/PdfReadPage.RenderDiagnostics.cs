@@ -156,7 +156,7 @@ public sealed partial class PdfReadPage {
                 WrapContentWithTransform(content, initialTransform ?? Matrix2D.Identity),
                 GetVisualPageSize().Width,
                 GetVisualPageSize().Height,
-                GetGraphicsStateResources(resources),
+                GetGraphicsStateResources(resources, pageContentBudget),
                 GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                 GetShadingResources(resources, pageContentBudget: pageContentBudget),
                 GetShadingPatternResources(resources, pageContentBudget: pageContentBudget),
@@ -202,7 +202,7 @@ public sealed partial class PdfReadPage {
         CollectFontCapabilityDiagnostics(resources, invokedFonts, failedType3Fonts, diagnostics, seen, pageContentBudget.CancellationToken);
         CollectShadingCapabilityDiagnostics(resources, invokedShadings, invokedPatterns, diagnostics, seen, pageContentBudget);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
-        CollectGraphicsStateCapabilityDiagnostics(resources, diagnostics, seen);
+        CollectGraphicsStateCapabilityDiagnostics(resources, diagnostics, seen, pageContentBudget);
         CollectXObjectCapabilityDiagnostics(resources, invokedXObjects, invokedXObjectStates, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, textClippingBudget, depth, auxiliarySurfaceDepth);
         CollectAuxiliarySurfaceCapabilityDiagnostics(resources, invokedPatterns, invokedSoftMasks, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, textClippingBudget, auxiliarySurfaceDepth);
     }
@@ -255,7 +255,7 @@ public sealed partial class PdfReadPage {
             content,
             initialTransform,
             GetVisualPageSize().Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget),
             colorSpaces,
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
@@ -305,7 +305,7 @@ public sealed partial class PdfReadPage {
             content,
             initialTransform,
             GetVisualPageSize().Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget),
             colorSpaces,
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
@@ -445,7 +445,7 @@ public sealed partial class PdfReadPage {
                 content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
             Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
-            IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
+            IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources, pageContentBudget);
             IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects = PdfPageGraphicsEffectTimelineParser.Parse(
                 content,
                 graphicsStates,
@@ -1122,7 +1122,7 @@ public sealed partial class PdfReadPage {
             if (string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal)) {
                 if (font.Type3 != null && !failedType3Fonts.Contains(font.ResourceName)) continue;
                 capabilityId = PdfRenderCapabilities.Type3FontSubstitutionId;
-            } else if (font.EmbeddedProgramSubtype is "Type1C" or "CIDFontType0C" or "CFF") {
+            } else if (font.EmbeddedProgramSubtype is "Type1" or "Type1C" or "CIDFontType0C" or "CFF" or "OpenType") {
                 capabilityId = PdfRenderCapabilities.CffFontSubstitutionId;
             } else {
                 capabilityId = PdfRenderCapabilities.FontSubstitutionId;
@@ -1328,7 +1328,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private void CollectGraphicsStateCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
+    private void CollectGraphicsStateCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, PageContentBudget pageContentBudget) {
         PdfDictionary? states = ResolveDictionary(resources.Items.TryGetValue("ExtGState", out PdfObject? value) ? value : null);
         if (states == null) return;
         foreach (KeyValuePair<string, PdfObject> entry in states.Items) {
@@ -1339,7 +1339,7 @@ public sealed partial class PdfReadPage {
             }
             if (state.Items.TryGetValue("SMask", out PdfObject? mask) &&
                 ResolveEffectObject(mask) is not PdfName { Name: "None" } &&
-                ReadSoftMask(state) == null) {
+                ReadSoftMask(state, null, pageContentBudget) == null) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedSoftMaskId, entry.Key);
             }
         }
