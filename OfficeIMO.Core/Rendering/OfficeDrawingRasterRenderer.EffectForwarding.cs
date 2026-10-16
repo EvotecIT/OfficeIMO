@@ -14,6 +14,7 @@ public static partial class OfficeDrawingRasterRenderer {
     private static bool TryForwardScaledSourceOverGroup(OfficeRasterCanvas canvas,
         OfficeDrawingEffectGroup effect, EffectTextLayerPlan layer, double scale,
         IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels, CancellationToken cancellationToken) {
+        if (TryForwardTranslatedImage(canvas, effect, scale, imageCodec, maximumRasterPixels, cancellationToken)) return true;
         OfficeTransform transform = effect.Transform;
         if (layer.Interpolate || effect.Opacity != 1D || effect.BlendMode != OfficeBlendMode.Normal ||
             effect.SoftMask != null || effect.UnfilteredGeometryBounds.HasValue || layer.Left != 0D ||
@@ -30,8 +31,33 @@ public static partial class OfficeDrawingRasterRenderer {
             width <= 0D || height <= 0D || width > maximumDimension || height > maximumDimension ||
             width * height > maximumRasterPixels || !HasOnlySourceOverCompositing(layer.Drawing, cancellationToken)) return false;
         using (canvas.PushClipRectangle(0D, 0D, layer.Drawing.Width * forwardedScale, layer.Drawing.Height * forwardedScale)) {
+            // A fractional clip must cover the composited group once. Applying it
+            // to each overlapping child changes both alpha and the visible color.
+            if (!canvas.HasBinaryClipCoverage) return false;
+            using var metricScope = canvas.PushFontMetricScale(forwardedScale);
             RenderElements(canvas, layer.Drawing.Elements, forwardedScale, imageCodec, maximumRasterPixels, cancellationToken);
         }
+        return true;
+    }
+
+    /// <summary>Retains fractional placement on a single full-frame image until its final source sampling.</summary>
+    private static bool TryForwardTranslatedImage(OfficeRasterCanvas canvas, OfficeDrawingEffectGroup effect,
+        double scale, IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels, CancellationToken cancellationToken) {
+        OfficeTransform transform = effect.Transform;
+        OfficeDrawing drawing = effect.InnerDrawing;
+        if (effect.Opacity != 1D || effect.BlendMode != OfficeBlendMode.Normal || effect.SoftMask != null ||
+            effect.UnfilteredGeometryBounds.HasValue || transform.M11 != 1D || transform.M22 != 1D ||
+            transform.M12 != 0D || transform.M21 != 0D || drawing.Elements.Count != 1 ||
+            drawing.Elements[0] is not OfficeDrawingImage image || image.Interpolate) return false;
+        OfficeImageProjection projection = image.Projection;
+        // Full-frame, unrotated image bounds are the layer's own implicit clip.
+        // Crops remain on the projection and use the existing guarded image renderer.
+        if (projection.HasTransform || projection.X != 0D || projection.Y != 0D ||
+            projection.Width != drawing.Width || projection.Height != drawing.Height) return false;
+        var placed = new OfficeDrawingImage(image.EncodedBytes, image.ContentType,
+            projection.Translate(transform.OffsetX, transform.OffsetY), image.AlternativeText,
+            image.Opacity, image.Interpolate, useDataSnapshot: true);
+        RenderImage(canvas, placed, scale, imageCodec, maximumRasterPixels, cancellationToken);
         return true;
     }
 

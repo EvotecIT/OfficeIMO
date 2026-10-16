@@ -6,6 +6,10 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeRasterCanvas {
     private OfficeRasterClipRegion? _clipRegion;
 
+    /// <summary>Whether the current clip can be applied per source-over child without repeating fractional coverage.</summary>
+    internal bool HasBinaryClipCoverage =>
+        !AntialiasedClipping || _clipRegion == null || _clipRegion.HasBinaryCoverage();
+
     /// <summary>
     /// Restricts subsequent raster drawing to the supplied rectangular bounds until the returned scope is disposed.
     /// Nested clips are intersected with the current clip.
@@ -259,6 +263,27 @@ public sealed partial class OfficeRasterCanvas {
 
         internal static OfficeRasterClipRegion Polygons(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule, OfficeRasterClipRegion? previous) =>
             new OfficeRasterClipRegion(null, contours, fillRule, previous);
+
+        internal bool HasBinaryCoverage() {
+            for (OfficeRasterClipRegion? current = this; current != null; current = current._previous) {
+                OfficeRasterClipRectangle? rectangle = current._rectangle ?? current._maskRectangle;
+                if (rectangle.HasValue) {
+                    OfficeRasterClipRectangle bounds = rectangle.Value;
+                    if (bounds.HasFractionalEdges && !HasIntegralEdges(bounds.EdgeLeft, bounds.EdgeTop, bounds.EdgeRight, bounds.EdgeBottom)) return false;
+                } else if (current._contours == null ||
+                    !TryGetAxisAlignedRectangle(current._contours, out double left, out double top, out double right, out double bottom) ||
+                    !HasIntegralEdges(left, top, right, bottom)) {
+                    // Do not allocate a polygon mask merely to qualify an optimization.
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool HasIntegralEdges(double left, double top, double right, double bottom) =>
+            IsFinite(left) && IsFinite(top) && IsFinite(right) && IsFinite(bottom) &&
+            left == Math.Truncate(left) && top == Math.Truncate(top) &&
+            right == Math.Truncate(right) && bottom == Math.Truncate(bottom);
 
         internal void IntersectBounds(ref double left, ref double top, ref double right, ref double bottom,
             System.Threading.CancellationToken cancellationToken) {
