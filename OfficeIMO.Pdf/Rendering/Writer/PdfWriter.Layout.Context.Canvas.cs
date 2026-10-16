@@ -107,7 +107,7 @@ internal static partial class PdfWriter {
             int highlightAnnotationCount = artifactPage.HighlightAnnotations.Count;
             int formFieldCount = artifactPage.FormFields.Count;
             int bookmarkCount = artifactPage.Bookmarks.Count;
-            sb.Append("/Artifact BMC\n");
+            sb.Append("/Artifact << /Type /Layout >> BDC\n");
             bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
             bool previousStructure = _suppressCanvasStructureRegistration;
             _suppressCanvasAccessibilityWrappers = true;

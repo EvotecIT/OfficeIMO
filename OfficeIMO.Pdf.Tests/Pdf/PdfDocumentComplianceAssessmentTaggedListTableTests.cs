@@ -261,7 +261,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.Contains("/Artifact BMC", content, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/TD << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
     }
@@ -288,7 +288,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.Contains("/Artifact BMC", content, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/TD << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
     }
@@ -320,7 +320,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.Contains("/Artifact BMC", content, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/TD << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
     }

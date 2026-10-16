@@ -750,10 +750,10 @@ internal static partial class PdfWriter {
                 usedShadingResources = FilterPdfResources(pageContentBytes, shadings);
             } else {
                 string pageLayoutContent = layout.ReadContent(page.Content);
-                string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo);
+                string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo, "/Type /Pagination");
                 if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
                     string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources, pageNamedFontResources);
-                    contentStr += WrapArtifactContent(headerContent, markInfo);
+                    contentStr += WrapArtifactContent(headerContent, markInfo, "/Type /Pagination /Subtype /Header");
                 }
                 string pageContent = ReplaceInlineImageDrawTokens(pageLayoutContent, page.Images);
                 contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
@@ -777,7 +777,7 @@ internal static partial class PdfWriter {
                 }
                 if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
                     string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
-                    contentStr += WrapArtifactContent(footer, markInfo);
+                    contentStr += WrapArtifactContent(footer, markInfo, "/Type /Pagination /Subtype /Footer");
                 }
                 contentStr += foregroundImages.ToString();
                 if (flattenVisualAnnotations) {
@@ -1534,12 +1534,12 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static string WrapArtifactContent(string content, bool enabled) {
+    private static string WrapArtifactContent(string content, bool enabled, string properties = "/Type /Layout") {
         if (!enabled || string.IsNullOrEmpty(content)) {
             return content;
         }
 
-        return "/Artifact BMC\n" + content + "EMC\n";
+        return "/Artifact << " + properties + " >> BDC\n" + content + "EMC\n";
     }
 
     private static void AssignFigureMarkedContentIds(LayoutResult.Page page) {
@@ -1740,7 +1740,7 @@ internal static partial class PdfWriter {
 
             sb.Append(" >> BDC\n");
         } else if (!img.SuppressAccessibilityWrapper && img.IsDecorativeArtifact) {
-            sb.Append("/Artifact BMC\n");
+            sb.Append("/Artifact << /Type /Layout >> BDC\n");
         }
 
         OfficeTransform imageTransform = new OfficeImageProjection(

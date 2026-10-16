@@ -37,7 +37,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
+        Assert.True(CountOccurrences(content, "/Artifact << /Type /Layout >> BDC") >= 2);
         Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
     }
 
@@ -54,7 +54,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
+        Assert.True(CountOccurrences(content, "/Artifact << /Type /Layout >> BDC") >= 2);
         Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
     }
 
@@ -74,27 +74,52 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 5);
+        Assert.True(CountOccurrences(content, "/Artifact << /Type /Layout >> BDC") >= 5);
         Assert.Contains("/Type /StructElem /S /Document", content, StringComparison.Ordinal);
         Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void TaggedRunningHeaderFooterTextEmitsArtifactMarkedContent() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TaggedRunningHeaderFooterTextEmitsArtifactMarkedContent(bool contentStory) {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
-            .Header(header => header.Text("Running header"))
-            .Footer(footer => footer.Text("Page {page} of {pages}"))
+            .Header(header => {
+                if (contentStory) header.Content(content => content.Paragraph(paragraph => paragraph.Text("Running header")), 24D);
+                else header.Text("Running header");
+            })
+            .Footer(footer => {
+                if (contentStory) footer.Content(content => content.Paragraph(paragraph => paragraph.Text("Running footer")), 24D);
+                else footer.Text("Page {page} of {pages}");
+            })
             .Paragraph(paragraph => paragraph.Text("Body text remains structured."))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
+        Assert.Contains("/Artifact << /Type /Pagination /Subtype /Header >> BDC", content, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Pagination /Subtype /Footer >> BDC", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Artifact BMC", content, StringComparison.Ordinal);
         Assert.Contains("/P << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /Document", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TaggedRunningHeaderFooterShapesArePaginationArtifacts() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Header(header => header.Shape(CreateComplianceShape()))
+            .Footer(footer => footer.Shape(CreateComplianceShape()))
+            .Paragraph(paragraph => paragraph.Text("Body text remains structured."))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+        Assert.Contains("/Artifact << /Type /Pagination >> BDC", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Artifact BMC", content, StringComparison.Ordinal);
+        Assert.Contains("/P << /MCID", content, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -115,7 +140,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
+        Assert.True(CountOccurrences(content, "/Artifact << /Type /Layout >> BDC") >= 2);
         Assert.True(CountOccurrences(content, "/P << /MCID") >= 4);
         Assert.Contains("/Type /StructElem /S /Document", content, StringComparison.Ordinal);
     }
@@ -161,7 +186,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 8);
+        Assert.True(CountOccurrences(content, "/Artifact << /Type /Layout >> BDC") >= 8);
         Assert.Contains("/P << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/TH << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/TD << /MCID", content, StringComparison.Ordinal);
@@ -294,7 +319,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
+        Assert.True(CountOccurrences(content, "/Artifact << /Type /Layout >> BDC") >= 2);
         Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
         Assert.Contains("/StructTreeRoot", content, StringComparison.Ordinal);
     }
