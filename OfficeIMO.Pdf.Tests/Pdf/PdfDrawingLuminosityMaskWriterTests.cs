@@ -35,13 +35,16 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(OfficeColor.White, raster.GetPixel(28, 20));
         }
 
-        [Fact]
-        public void PrintConversionPreservesNestedLuminosityMaskVectorValues() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PrintConversionPreservesNestedLuminosityMaskVectorValues(bool useTilingPattern) {
             OfficeColor gray = OfficeColor.FromRgb(128, 128, 128);
             OfficeDrawing content = new OfficeDrawing(20, 20).AddShape(Rectangle(20, 20, OfficeColor.Blue), 0, 0);
-            OfficeDrawing maskContent = new OfficeDrawing(20, 20).AddEffectDrawing(
-                new OfficeDrawing(20, 20).AddShape(Rectangle(20, 20, gray), 0, 0),
-                OfficeTransform.Identity, opacity: 0.5);
+            OfficeDrawing tile = new OfficeDrawing(20, 20).AddShape(Rectangle(20, 20, gray), 0, 0);
+            OfficeDrawing maskContent = useTilingPattern
+                ? new OfficeDrawing(20, 20).AddTilingPattern(tile, new OfficeImagePlacement(0, 0, 20, 20), 20, 20, opacity: 0.5)
+                : new OfficeDrawing(20, 20).AddEffectDrawing(tile, OfficeTransform.Identity, opacity: 0.5);
             OfficeDrawingSoftMask mask = OfficeDrawingSoftMask.CreateWithLuminosityStandard(maskContent,
                 OfficeSoftMaskLuminosityStandard.PdfDeviceRgb, OfficeSoftMaskMode.Luminosity);
             OfficeDrawing drawing = new OfficeDrawing(20, 20).AddEffectDrawing(content,
@@ -49,21 +52,34 @@ namespace OfficeIMO.Tests.Pdf {
             PdfOptions options = PrintOptions(20, 20);
 
             byte[] bytes = Write(drawing, options);
-            string pdf = Encoding.ASCII.GetString(bytes);
-            Assert.Contains("0.502 0.502 0.502 rg", pdf);
-            Assert.Contains(" k", pdf); // The visible blue still follows print conversion.
+            PdfStream[] groups = PdfReadDocument.Open(bytes).Objects.Values.Select(item => item.Value)
+                .OfType<PdfStream>().Where(stream => stream.Dictionary.Items.ContainsKey("Group")).ToArray();
+            Assert.Contains(groups, stream => stream.Dictionary.Items["Group"] is PdfDictionary group &&
+                group.Items.TryGetValue("CS", out PdfObject? cs) && cs is PdfName { Name: "DeviceRGB" } &&
+                (!useTilingPattern || stream.Dictionary.Items["Resources"] is PdfDictionary resources &&
+                    resources.Items.ContainsKey("Pattern")));
             OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes));
             Assert.InRange(raster.GetPixel(10, 10).A, (byte)63, (byte)65);
         }
 
-        [Fact]
-        public void PrintConversionSeparatesMaskShadingsAndImagesFromVisibleResources() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PrintConversionSeparatesMaskShadingsAndImagesFromVisibleResources(bool radial) {
             OfficeShape gradient = Rectangle(10, 10, OfficeColor.White);
-            gradient.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+            OfficeColor transparentBlue = OfficeColor.FromRgba(0, 0, 255, 128);
+            OfficeShape separateAlpha = Rectangle(10, 10, OfficeColor.White);
+            if (radial) {
+                gradient.FillRadialGradient = OfficeRadialGradient.Centered(OfficeColor.Red, transparentBlue);
+                separateAlpha.FillRadialGradient = gradient.FillRadialGradient.WithSeparateAlphaInterpolation();
+            } else {
+                gradient.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, transparentBlue);
+                separateAlpha.FillGradient = gradient.FillGradient.WithSeparateAlphaInterpolation();
+            }
             OfficeRasterImage pixel = new OfficeRasterImage(1, 1);
-            pixel.SetPixel(0, 0, OfficeColor.FromRgb(128, 128, 128));
+            pixel.SetPixel(0, 0, OfficeColor.FromRgb(64, 128, 192));
             byte[] image = OfficeRasterImageEncoder.Encode(pixel, OfficeImageExportFormat.Png);
-            OfficeDrawing shared = new OfficeDrawing(20, 10).AddShape(gradient, 0, 0)
+            OfficeDrawing shared = new OfficeDrawing(20, 10).AddShape(gradient, 0, 0).AddShape(separateAlpha, 0, 0)
                 .AddImage(image, "image/png", new OfficeImageProjection(new OfficeImagePlacement(10, 0, 10, 10)));
             OfficeDrawingSoftMask mask = OfficeDrawingSoftMask.CreateWithLuminosityStandard(shared,
                 OfficeSoftMaskLuminosityStandard.PdfDeviceRgb, OfficeSoftMaskMode.Luminosity);
@@ -74,8 +90,8 @@ namespace OfficeIMO.Tests.Pdf {
             PdfObject[] objects = PdfReadDocument.Open(bytes).Objects.Values.Select(item => item.Value).ToArray();
             PdfDictionary[] shadings = objects.OfType<PdfDictionary>().Where(dictionary =>
                 dictionary.Items.ContainsKey("ShadingType")).ToArray();
-            Assert.Single(shadings, dictionary => dictionary.Items["ColorSpace"] is PdfName { Name: "DeviceRGB" });
-            Assert.Single(shadings, dictionary => dictionary.Items["ColorSpace"] is PdfName { Name: "DeviceCMYK" });
+            Assert.Equal(2, shadings.Count(dictionary => dictionary.Items["ColorSpace"] is PdfName { Name: "DeviceRGB" }));
+            Assert.Equal(2, shadings.Count(dictionary => dictionary.Items["ColorSpace"] is PdfName { Name: "DeviceCMYK" }));
             PdfDictionary[] images = objects.OfType<PdfStream>().Select(stream => stream.Dictionary).Where(dictionary =>
                 dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" }).ToArray();
             Assert.Single(images, dictionary => dictionary.Items["ColorSpace"] is PdfName { Name: "DeviceRGB" });
