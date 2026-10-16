@@ -105,7 +105,11 @@ public class DrawingPngBilevelWriterTests {
         int rows = 0, blocks = 0;
         var exception = Assert.Throws<OperationCanceledException>(() =>
             OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Png, destination,
-                new OfficeRasterEncodingOptions(), long.MaxValue, cancellation.Token, checkpoint => {
+                new OfficeRasterEncodingOptions {
+                    Png = new OfficePngEncodeOptions {
+                        Effort = cancelAtRow > image.Height ? OfficeImageEncodingEffort.Smallest : OfficeImageEncodingEffort.Balanced
+                    }
+                }, long.MaxValue, cancellation.Token, checkpoint => {
                     if (checkpoint == OfficeRasterEncodingCheckpoint.PngCompressionRow) { rows++; blocks = 0; }
                     if (rows == cancelAtRow && checkpoint == OfficeRasterEncodingCheckpoint.PngFilteringBlock
                         && ++blocks == cancelAtBlock) cancellation.Cancel();
