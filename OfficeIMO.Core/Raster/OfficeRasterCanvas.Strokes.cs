@@ -22,7 +22,7 @@ public sealed partial class OfficeRasterCanvas {
         }
         double devicePixelsPerUnit = Math.Sqrt(Math.Abs(transform.M11 * transform.M22 - transform.M12 * transform.M21)) * DevicePixelsPerLogicalUnit;
         width = AdjustStrokeWidth(width, devicePixelsPerUnit, hairline);
-        if (TryStrokeAdjustedContours(contours, width, cap, join, pattern, transform, paint)) return;
+        if (TryStrokeAdjustedContours(contours, width, cap, join, miterLimit, pattern, transform, paint)) return;
         // Contours remain logical until FillContourPaint applies the canvas axes.
         // Clip in that same space so a compressed axis retains its visible extent.
         var bounds = inverse.TransformRectangleBounds(0, 0, Width / CoordinateScaleX, Height / CoordinateScaleY);
@@ -44,7 +44,7 @@ public sealed partial class OfficeRasterCanvas {
         bool resetDashPatternForEachSegment = false, bool hairline = false) {
         if (!IsFinite(width) || width <= 0D) return;
         width = AdjustStrokeWidth(width, DevicePixelsPerLogicalUnit, hairline);
-        if (TryStrokeAdjustedContours(contours, width, cap, join, dashPattern, OfficeTransform.Identity, paint)) return;
+        if (TryStrokeAdjustedContours(contours, width, cap, join, miterLimit, dashPattern, OfficeTransform.Identity, paint)) return;
         var outlines = OfficeStrokeGeometry.Create(contours, width, cap, join, miterLimit, dashPattern, dashOffset, 1D,
             0D, 0D, Width / CoordinateScaleX, Height / CoordinateScaleY, _cancellationToken, resetDashPatternForEachSegment);
         var fillContours = new List<IReadOnlyList<OfficePoint>>(outlines.Count);

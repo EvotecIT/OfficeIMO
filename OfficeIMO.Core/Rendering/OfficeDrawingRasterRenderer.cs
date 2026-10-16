@@ -33,7 +33,8 @@ public static partial class OfficeDrawingRasterRenderer {
         double scale = options.Scale;
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale))
             throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
-        double fullWidth = Math.Ceiling(drawing.Width * scale), fullHeight = Math.Ceiling(drawing.Height * scale);
+        double fullWidth = Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(drawing.Width * scale));
+        double fullHeight = Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(drawing.Height * scale));
         if (width <= 0 || height <= 0 || x < 0 || y < 0 || x + (double)width > fullWidth || y + (double)height > fullHeight)
             throw new ArgumentOutOfRangeException(nameof(width), "The region must lie within the rendered drawing.");
         if ((long)width * height > options.MaximumRasterPixels)

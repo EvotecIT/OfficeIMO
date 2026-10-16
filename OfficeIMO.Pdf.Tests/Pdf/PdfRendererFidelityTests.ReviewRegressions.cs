@@ -29,6 +29,21 @@ public sealed partial class PdfRendererFidelityTests {
     }
 
     [Theory]
+    [InlineData("")]
+    [InlineData("/BitsPerComponent 0")]
+    [InlineData("/BitsPerComponent -1")]
+    [InlineData("/BitsPerComponent 3")]
+    public void MalformedSoftMaskDepthDoesNotEscapeAsAnArithmeticFailure(string depth) {
+        var objects = new List<(string, byte[])> {
+            (ImageDictionary(1, 1, "/DeviceRGB", 8, 3, "/SMask 6 0 R"), new byte[] { 255, 0, 0 }),
+            ("<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray " + depth + " /Length 1 >>", new byte[] { 0 })
+        };
+        byte[] pdf = BuildPdf("q 80 0 0 80 10 10 cm /Im1 Do Q", "<< /XObject << /Im1 5 0 R >> >>", objects: objects);
+        var drawing = PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingImage);
+    }
+
+    [Theory]
     [InlineData(false, 255)]
     [InlineData(true, 223)]
     public void ResizedSoftMasksHonorTheirInterpolationFlag(bool interpolate, int expectedGreen) {
@@ -48,12 +63,24 @@ public sealed partial class PdfRendererFidelityTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedImageId);
     }
 
+    [Fact]
+    public void StrokeAdjustmentDoesNotExtendAReversingInteriorVertex() {
+        OfficeRasterImage image = RenderPage("12 w 20 50 m 50 50 l 20 50 l S");
+        AssertColor(image, 55, 50, 255, 255, 255);
+        AssertColor(image, 30, 50, 0, 0, 0);
+    }
+
     [Theory]
     [InlineData("1 J", 14, 44)]
     [InlineData("1 j", 55, 75)]
     [InlineData("2 j", 55, 75)]
+    [InlineData("1 M 0 j", 55, 75)]
+    [InlineData("q 2 0 0 2 0 0 cm 1 M 0 j", 55, 75)]
     public void StrokeAdjustmentPreservesRoundCapsAndNonMiterJoins(string style, int x, int y) {
-        OfficeRasterImage image = RenderPage(style + " 12 w 20 50 m 80 50 l S 20 20 m 50 20 l 50 5 l S");
+        string path = style.StartsWith("q ", StringComparison.Ordinal)
+            ? " 6 w 10 25 m 40 25 l S 10 10 m 25 10 l 25 2.5 l S Q"
+            : " 12 w 20 50 m 80 50 l S 20 20 m 50 20 l 50 5 l S";
+        OfficeRasterImage image = RenderPage(style + path);
         AssertColor(image, x, y, 255, 255, 255);
         AssertColor(image, 50, 50, 0, 0, 0);
     }

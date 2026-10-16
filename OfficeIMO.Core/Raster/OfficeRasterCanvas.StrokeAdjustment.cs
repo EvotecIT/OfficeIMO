@@ -86,7 +86,7 @@ public sealed partial class OfficeRasterCanvas {
     /// is not axis-aligned in device space, so the caller uses the general stroker.
     /// </summary>
     private bool TryStrokeAdjustedContours(IReadOnlyList<OfficeFlattenedPathContour> contours, double width,
-        OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, IReadOnlyList<double>? pattern, OfficeTransform transform,
+        OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit, IReadOnlyList<double>? pattern, OfficeTransform transform,
         Func<double, double, OfficeColor> paint) {
         if (!StrokeAdjustment || pattern is { Count: > 0 } || width <= 0D || !IsFinite(width) ||
             cap == OfficeStrokeLineCap.Round) return false;
@@ -96,15 +96,23 @@ public sealed partial class OfficeRasterCanvas {
         foreach (OfficeFlattenedPathContour contour in contours) {
             IReadOnlyList<OfficePoint> points = contour.Points;
             int count = points.Count;
-            if (join != OfficeStrokeLineJoin.Miter && (contour.Closed || count > 2)) return false;
+            if ((contour.Closed || count > 2) && (join != OfficeStrokeLineJoin.Miter || miterLimit < Math.Sqrt(2D))) return false;
             if (contour.Closed && count > 1 && points[0].X == points[count - 1].X && points[0].Y == points[count - 1].Y) count--;
+            // A reversal has no square miter extension; preserve it through the general stroker.
+            for (int vertex = contour.Closed ? 0 : 1; vertex < (contour.Closed ? count : count - 1); vertex++) {
+                OfficePoint prior = points[(vertex + count - 1) % count], current = points[vertex], next = points[(vertex + 1) % count];
+                double inX = current.X - prior.X, inY = current.Y - prior.Y;
+                double outX = next.X - current.X, outY = next.Y - current.Y;
+                if (Math.Abs(inX * outY - inY * outX) <= AxisAlignmentTolerance && inX * outX + inY * outY < 0D) return false;
+            }
             int segments = contour.Closed ? count : count - 1;
             for (int index = 0; index < segments; index++) {
                 OfficePoint start = points[index];
                 OfficePoint end = points[(index + 1) % count];
                 double dx = end.X - start.X, dy = end.Y - start.Y;
                 double length = Math.Sqrt(dx * dx + dy * dy);
-                if (length <= 0D) continue;
+                // The general stroker deduplicates vertices before constructing joins and caps.
+                if (length <= 0D) return false;
                 double ux = dx / length * width / 2D, uy = dy / length * width / 2D;
                 // Device offsets of the half-width normal and of the half-width extension along the segment.
                 OfficePoint normal = Linear(transform, -uy, ux, sx, sy);

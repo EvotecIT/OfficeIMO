@@ -23,7 +23,15 @@ public static class OfficeTextLineBreaks {
     /// optionally excluding boundaries that are not after a space, hyphen, solidus or other break character
     /// (or before a break-before character).
     /// </summary>
-    public static IReadOnlyList<int> GetBreakPositions(string? text, bool allowCjkBreaks) {
+    public static IReadOnlyList<int> GetBreakPositions(string? text, bool allowCjkBreaks) =>
+        GetBreakPositions(text, allowCjkBreaks, default);
+
+    /// <summary>Returns safe UTF-16 wrap indexes, observing cancellation during Unicode boundary analysis.</summary>
+    /// <param name="text">Text whose grapheme and line-break boundaries are analyzed.</param>
+    /// <param name="allowCjkBreaks">Whether implicit East Asian line-break opportunities may be returned.</param>
+    /// <param name="cancellationToken">Cancellation for the calling layout or rendering operation.</param>
+    public static IReadOnlyList<int> GetBreakPositions(string? text, bool allowCjkBreaks, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (text == null || text.Length == 0) {
             return Array.Empty<int>();
         }
@@ -34,9 +42,10 @@ public static class OfficeTextLineBreaks {
         }
 
         int[] scalars = OfficeUnicodeBidi.ToScalars(text, out int[] scalarStarts);
-        OfficeUnicodeLineBreaker.BreakAction[] actions = OfficeUnicodeLineBreaker.Analyze(scalars);
+        OfficeUnicodeLineBreaker.BreakAction[] actions = OfficeUnicodeLineBreaker.Analyze(scalars, cancellationToken);
         var positions = new List<int>();
         for (int index = 1; index < scalars.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (actions[index] == OfficeUnicodeLineBreaker.BreakAction.Prohibited) continue;
             // A soft hyphen breaks only by inserting a visible hyphen; discretionary hyphenation owns it.
             if (scalars[index - 1] == 0x00AD) continue;

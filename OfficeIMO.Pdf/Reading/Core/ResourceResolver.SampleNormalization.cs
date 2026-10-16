@@ -106,6 +106,7 @@ internal static partial class ResourceResolver {
     private static bool TryUnpackSamples(byte[] raw, int width, int height, int colorCount, int bitsPerComponent,
         out byte[] samples, CancellationToken cancellationToken) {
         samples = Array.Empty<byte>();
+        if (bitsPerComponent is not (1 or 2 or 4 or 8 or 16) || width <= 0 || height <= 0 || colorCount <= 0) return false;
         long rowBits = (long)width * colorCount * bitsPerComponent;
         long stride = (rowBits + 7) / 8;
         if (stride * height > raw.LongLength || (long)width * colorCount * height > int.MaxValue) return false;
@@ -141,7 +142,7 @@ internal static partial class ResourceResolver {
         int maskHeight = (int)(softMask.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int maskBits = (int)(softMask.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
         string colorSpace = GetNameOrEmpty(softMask.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ? colorSpaceObject : null, objects);
-        if (maskWidth <= 0 || maskHeight <= 0 || !string.Equals(colorSpace, "DeviceGray", StringComparison.Ordinal) ||
+        if (maskBits is not (1 or 2 or 4 or 8 or 16) || maskWidth <= 0 || maskHeight <= 0 || !string.Equals(colorSpace, "DeviceGray", StringComparison.Ordinal) ||
             Filters.StreamDecoder.GetUnsupportedFilters(softMask.Dictionary, objects).Count != 0 ||
             !PdfImageBufferLimits.TryGetScanlineBufferSize(maskWidth, maskHeight, 1, maximumBytes, out _, out _)) return false;
         byte[] maskSamples;

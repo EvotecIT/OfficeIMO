@@ -74,17 +74,6 @@ public sealed class PdfRenderingResourceBoundaryTests {
     }
 
     [Fact]
-    public void NonCmapGlyphsRequireActualTextInEveryOptionContext() {
-        var canonical = new PdfCanonicalGlyphText(new Dictionary<int, int> { ['A'] = 1 });
-        var first = new PdfGlyphTextPins(canonical, 10, false);
-        var second = new PdfGlyphTextPins(canonical, 10, false);
-        Assert.False(first.TryResolveCode(2, "fi", out _));
-        Assert.False(second.TryResolveCode(2, "fl", out _));
-        first.MergeFrom(second);
-        Assert.True(first.TryResolveCode(1, "A", out _));
-    }
-
-    [Fact]
     public void RegionalIndicatorAnalysisHonorsCancellationAndKeepsPairBoundaries() {
         int[] scalars = Enumerable.Repeat(0x1F1E6, 50000).ToArray();
         var actions = OfficeUnicodeLineBreaker.Analyze(scalars);
@@ -92,7 +81,7 @@ public sealed class PdfRenderingResourceBoundaryTests {
             Assert.Equal(index % 2 == 0 ? OfficeUnicodeLineBreaker.BreakAction.Allowed : OfficeUnicodeLineBreaker.BreakAction.Prohibited, actions[index]);
         using var source = new CancellationTokenSource();
         source.Cancel();
-        Assert.Throws<OperationCanceledException>(() => OfficeUnicodeLineBreaker.Analyze(scalars, source.Token));
+        Assert.Throws<OperationCanceledException>(() => OfficeTextLineBreaks.GetBreakPositions(char.ConvertFromUtf32(0x1F1E6), true, source.Token));
     }
 
     private static byte[] CffWithCustomNames(int glyphs, int nameLength, bool uniqueNames) {

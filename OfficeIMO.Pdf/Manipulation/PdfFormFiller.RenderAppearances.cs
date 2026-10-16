@@ -58,7 +58,7 @@ internal static partial class PdfFormFiller {
                     string text = ReadDisplayedFieldText(objects, value);
                     if (fieldType == "Ch" && choiceOptions != null) {
                         var lookup = ChoiceOptionLookup.Create(objects, choiceOptions);
-                        text = string.Join("\n", text.Split('\n').Select(item => lookup.ResolveDisplayValue(item) ?? item));
+                        text = lookup.ResolveDisplayValue(text) ?? text;
                     }
                     if (!TryCreateDefaultAppearanceSimpleFontResources(objects, defaultAppearance, defaultResources, null, null,
                             out string? fontResourceName, out resources)) {

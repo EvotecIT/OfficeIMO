@@ -54,6 +54,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
                 canvas.TransformedTextBudget,
+                canvas.PdfRasterConventions,
                 maximumRasterPixels,
                 cancellationToken);
         }
@@ -328,6 +329,7 @@ public static partial class OfficeDrawingRasterRenderer {
         System.Collections.Generic.ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
         string? diagnosticSource,
         OfficeRasterTransformedTextBudget transformedTextBudget,
+        bool pdfRasterConventions,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         long surfacePixels = (long)source.Width * source.Height;
@@ -355,6 +357,7 @@ public static partial class OfficeDrawingRasterRenderer {
             DiagnosticSink = diagnosticSink,
             DiagnosticSource = diagnosticSource,
             TransformedTextBudget = transformedTextBudget,
+            PdfRasterConventions = pdfRasterConventions,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         }, scaleX, scaleY, maskPlan, fonts);
