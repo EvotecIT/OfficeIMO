@@ -226,6 +226,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         if (paintChunks != null) {
+            CheckCancellation();
+            // Every owner participates in chunk composition, including owners
+            // without bounds. Reserve that cross product before allocating any
+            // per-owner bounds arrays rather than relying on final projection.
+            ChargeLayoutOperations((long)nodes.Count * paintChunks.Count, "inline paint chunk bounds");
             foreach (InlineStackingNode node in nodes.Values) node.SetPaintChunks(paintChunks);
         }
         if (rootLayers.Count == 0) return content;
@@ -305,11 +310,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal void Merge(InlineContainingBounds other, double offsetX, double offsetY) {
+            _owner.CheckCancellation();
+            _owner.ChargeLayoutOperations(other._fragments.Count, "inline paint capture fragments");
             if (!double.IsPositiveInfinity(other._left)) {
                 Include(other._left + offsetX, other._top + offsetY, other._right - other._left,
                     other._bottom - other._top, decorationFragment: false);
             }
             foreach (InlineFragmentRect fragment in other._fragments) {
+                _owner.CheckCancellation();
                 IncludeFragment(fragment.X + offsetX, fragment.Y + offsetY, fragment.Width, fragment.Height, fragment.RelativePaintOffsetY);
             }
             if (other._retainDecorationFallback) RetainDecorationFallback();
@@ -320,12 +328,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         private void IncludeFragment(double x, double y, double width, double height, double relativePaintOffsetY) {
+            _owner.CheckCancellation();
             const double tolerance = 0.01D;
             long line = (long)Math.Floor(y / tolerance);
             for (int offset = -1; offset <= 1; offset++) {
                 long candidate = line + offset;
                 if (!_fragmentsByLine.TryGetValue(candidate, out List<int>? indexes)) continue;
                 for (int item = indexes.Count - 1; item >= 0; item--) {
+                    _owner.CheckCancellation();
                     _owner.ChargeLayoutOperation("positioned inline fragment lookup");
                     int index = indexes[item];
                     InlineFragmentRect fragment = _fragments[index];
@@ -359,15 +369,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _fragments.Add(new InlineFragmentRect(x, y, width, height, relativePaintOffsetY));
         }
 
-        internal InlineContainingRect ToRect(IElement formattingContainer, bool isContinuation) =>
-            new InlineContainingRect(
+        internal InlineContainingRect ToRect(IElement formattingContainer, bool isContinuation) {
+            _owner.CheckCancellation();
+            IReadOnlyList<InlineFragmentRect> fragments = _fontDecorationBounds?.Fragments ?? _fragments;
+            _owner.ChargeLayoutOperations(fragments.Count, "inline paint fragment projection");
+            return new InlineContainingRect(
                 formattingContainer,
                 double.IsPositiveInfinity(_left) ? 0D : _left,
                 double.IsPositiveInfinity(_top) ? 0D : _top,
                 double.IsNegativeInfinity(_right) ? 0.01D : _right - _left,
                 double.IsNegativeInfinity(_bottom) ? 0.01D : _bottom - _top,
-                (_fontDecorationBounds?.Fragments ?? _fragments).OrderBy(item => item.Y).ThenBy(item => item.X).ToArray(),
+                fragments.OrderBy(item => item.Y).ThenBy(item => item.X).ToArray(),
                 isContinuation);
+        }
     }
 
     private readonly struct InlineFragmentRect {

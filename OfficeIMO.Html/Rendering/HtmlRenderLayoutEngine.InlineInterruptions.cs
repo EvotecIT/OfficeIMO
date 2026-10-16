@@ -17,6 +17,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var blockRuns = new List<HtmlInlineRun?>();
         bool hasInlineLineBoxes = false;
         void Flush() {
+            CheckCancellation();
             if (pending.Count == 0) return;
             var capture = new InlinePaintCapture(this);
             // The enclosing inline scopes were prepared before the block split.
@@ -41,6 +42,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             blocks.Add(inlineBlock);
         }
         foreach (HtmlInlineRun run in runs) {
+            CheckCancellation();
+            ChargeLayoutOperation("interrupted inline run scan");
             if (!run.IsBlockInterruption) {
                 pending.Add(run);
                 continue;
@@ -79,6 +82,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double cursor = rightToLeft ? width : 0D;
         string? pageName = blocks.FirstOrDefault()?.PageName;
         for (int index = 0; index < blocks.Count; index++) {
+            CheckCancellation();
+            ChargeLayoutOperation("interrupted inline block capture");
             HtmlRenderFlowBlock block = blocks[index];
             InlinePaintCapture? capture = captures[index];
             if (capture == null) {
@@ -87,6 +92,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 RecordInlineOwnerGeometry(run, formattingContainer, 0D, 0D, block.Width, block.Height,
                     capture.Bounds, decorationFragment: false);
                 foreach (HtmlRenderVisual visual in block.Visuals) {
+                    CheckCancellation();
+                    ChargeLayoutOperation("interrupted inline block visuals");
                     AddInlineOwnedVisual(capture.Visuals, capture.Owned, ApplyInlineElementSemantics(visual, run),
                         run.OwnerElement, formattingContainer);
                 }
@@ -139,9 +146,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pagedPaintExtent: paintExtent, hasInFlowLineBoxes: hasInlineLineBoxes ? true : (bool?)null);
     }
 
-    private static void CollapseInterruptedBlockMargins(List<HtmlRenderFlowBlock> blocks) {
+    private void CollapseInterruptedBlockMargins(List<HtmlRenderFlowBlock> blocks) {
         var adjoining = new AdjoiningMarginState();
         for (int index = 0; index < blocks.Count; index++) {
+            CheckCancellation();
+            ChargeLayoutOperation("interrupted inline margin scan");
             HtmlRenderFlowBlock block = blocks[index];
             if (!block.HasCollapsibleMargins) {
                 adjoining.Clear();
