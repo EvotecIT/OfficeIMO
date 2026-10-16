@@ -99,14 +99,15 @@ internal static partial class PdfComplianceAnalyzer {
             return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
         }
 
-        if (RequiresPdf17FileVersion(profile)) {
+        bool invoicePdf20 = IsElectronicInvoice(profile) && info.XmpMetadata?.PdfAPart == 4;
+        if (RequiresPdf17FileVersion(profile) && !invoicePdf20) {
             Add(requirements, "readback-pdf-file-version", "Readback effective PDF 1.7 version",
                 ComparePdfVersion(info.EffectiveVersion, "1.7") == 0,
                 "The saved PDF effective version is PDF 1.7.",
                 "Generate the saved PDF with a PDF 1.7 header or catalog /Version before checking PDF/A-2, PDF/A-3, PDF/UA-1, or e-invoice profile evidence.");
         }
 
-        if (RequiresPdf20FileVersion(profile)) {
+        if (RequiresPdf20FileVersion(profile) || invoicePdf20) {
             Add(requirements, "readback-pdf-file-version", "Readback effective PDF 2.0 version",
                 ComparePdfVersion(info.EffectiveVersion, "2.0") >= 0,
                 "The saved PDF effective version is PDF 2.0 or newer.",
@@ -146,7 +147,8 @@ internal static partial class PdfComplianceAnalyzer {
 
     private static void AddPdfAReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfDocumentInfo info) {
         PdfXmpMetadataInfo? xmp = info.XmpMetadata;
-        (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
+        (int Part, string? Conformance) target = IsElectronicInvoice(profile) && xmp?.PdfAPart == 4
+            ? (4, "F") : GetPdfAIdentificationTarget(profile);
 
         Add(requirements, "readback-xmp-metadata", "Readback catalog XMP metadata",
             xmp != null && xmp.IsXmlMetadataStream && xmp.IsWellFormedXml,
@@ -160,6 +162,8 @@ internal static partial class PdfComplianceAnalyzer {
             hasMatchingIdentification,
             "The saved PDF contains PDF/A identification metadata for " + GetDisplayName(profile) + ".",
             "The saved PDF XMP metadata must contain matching pdfaid:part and pdfaid:conformance values for " + GetDisplayName(profile) + ".");
+
+        AddPdfIdentificationReadbackRequirements(requirements, xmp, target.Part);
 
         Add(requirements, "readback-output-intent", "Readback catalog output intent",
             info.OutputIntentCount > 0,
@@ -427,6 +431,10 @@ internal static partial class PdfComplianceAnalyzer {
                 xmp?.PdfUaPart == expectedPart,
                 "The saved PDF contains " + GetDisplayName(profile) + " identification metadata.",
                 "The saved PDF XMP metadata must contain pdfuaid:part=" + expectedPart.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".");
+
+            if (expectedPart == 2) Add(requirements, "readback-pdfua-revision", "PDF/UA-2 revision",
+                XmpIdentificationValue(xmp?.RawXml, PdfUaIdentification.NamespaceUri, "rev") == "2024",
+                "PDF/UA-2 revision is 2024.", "PDF/UA-2 requires pdfuaid:rev=2024.");
 
             Add(requirements, "readback-document-title", "Readback document title metadata",
                 !string.IsNullOrWhiteSpace(xmp?.Title),

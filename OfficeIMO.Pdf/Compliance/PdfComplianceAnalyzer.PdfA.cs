@@ -4,7 +4,8 @@ internal static partial class PdfComplianceAnalyzer {
 
     private static void AddPdfARequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
         PdfAIdentification? identification = options.PdfAIdentification;
-        (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
+        (int Part, string? Conformance) target = IsElectronicInvoice(profile) && identification?.Part == 4
+            ? (4, "F") : GetPdfAIdentificationTarget(profile);
 
         Add(requirements, "xmp-metadata", "Catalog XMP metadata",
             options.IncludeXmpMetadata || identification != null,
@@ -32,6 +33,18 @@ internal static partial class PdfComplianceAnalyzer {
         requirements.Add(BuildOutputIntentPolicyRequirement(options));
 
         requirements.Add(BuildPdfAEmbeddedFileModificationDateRequirement(options, generatedEvidence));
+        PdfEmbeddedFile[] attachments = options.EmbeddedFileSnapshots
+            .Concat(generatedEvidence?.StructureAssociatedFiles ?? Array.Empty<PdfEmbeddedFile>()).ToArray();
+        if (target.Part == 2 || target.Part == 4 && string.IsNullOrEmpty(target.Conformance)) {
+            Add(requirements, "pdfa-attachment-policy", "Profile attachment policy", attachments.Length == 0,
+                "No embedded files are present.",
+                "Use PDF/A-3 or PDF/A-4f for arbitrary embedded files; PDF/A-2 embedded PDF/A validation is not supported by this generation gate.");
+        }
+        if (profile == PdfComplianceProfile.PdfA4F || IsElectronicInvoice(profile) && target.Part == 4) {
+            Add(requirements, "pdfa4f-embedded-files", "PDF/A-4f embedded files", options.EmbeddedFileSnapshots.Any(),
+                "The catalog EmbeddedFiles tree contains an attachment.",
+                "PDF/A-4f requires an EmbeddedFiles catalog entry. Add at least one embedded file.");
+        }
 
         AddEmbeddedFontCoverageRequirement(requirements, options, generatedStandardFonts, generatedFontUsages);
 

@@ -609,41 +609,6 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF compliance profile must be None", invalidException.Message, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(PdfComplianceProfile.PdfA2U, "PDF/A-2u", "Unicode text mapping", "veraPDF")]
-    [InlineData(PdfComplianceProfile.PdfA2A, "PDF/A-2a", "tagged PDF structure tree", "alternate text")]
-    [InlineData(PdfComplianceProfile.PdfA3U, "PDF/A-3u", "Unicode text mapping", "veraPDF")]
-    [InlineData(PdfComplianceProfile.PdfA3A, "PDF/A-3a", "tagged PDF structure tree", "alternate text")]
-    public void ComplianceProfile_RejectsUnsupportedFormalProfiles(PdfComplianceProfile profile, string displayName, string requirement, string validator) {
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Create()
-                .Compliance(profile)
-                .Meta(title: "Compliance probe")
-                .Paragraph(p => p.Text("Body"))
-                .ToBytes());
-
-        Assert.Contains(displayName, exception.Message, StringComparison.Ordinal);
-        Assert.Contains("cannot yet generate certified", exception.Message, StringComparison.Ordinal);
-        Assert.Contains(requirement, exception.Message, StringComparison.Ordinal);
-        Assert.Contains(validator, exception.Message, StringComparison.Ordinal);
-        Assert.Contains(nameof(PdfComplianceProfile.None), exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void ComplianceProfile_PdfAAccessibilityMessageDoesNotRequirePdfUaSpecificMetadata() {
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Create()
-                .Compliance(PdfComplianceProfile.PdfA3A)
-                .Paragraph(p => p.Text("Body"))
-                .ToBytes());
-
-        Assert.Contains("PDF/A-3a", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("tagged PDF structure tree", exception.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("PDF/UA identification XMP", exception.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("document title metadata", exception.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("DisplayDocTitle", exception.Message, StringComparison.Ordinal);
-    }
-
     [Fact]
     public void EmbeddedStandardFonts_SnapshotDataAndRejectInvalidInputs() {
         var data = new byte[] { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };

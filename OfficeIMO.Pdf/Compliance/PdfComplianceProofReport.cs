@@ -6,13 +6,15 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfComplianceProofReport {
     private readonly IReadOnlyList<PdfExternalValidatorKind> _requiredExternalValidators;
     private readonly IReadOnlyList<PdfExternalValidationResult> _externalValidations;
+    private readonly PdfComplianceProfile? _invoiceArchivalProfile;
 
     internal PdfComplianceProofReport(
         PdfComplianceReadinessReport readiness,
         IReadOnlyList<PdfExternalValidatorKind> requiredExternalValidators,
         IReadOnlyList<PdfExternalValidationResult> externalValidations,
         string? artifactSha256 = null,
-        long? artifactSizeBytes = null) {
+        long? artifactSizeBytes = null,
+        PdfComplianceProfile? invoiceArchivalProfile = null) {
         Guard.NotNull(readiness, nameof(readiness));
         Guard.NotNull(requiredExternalValidators, nameof(requiredExternalValidators));
         Guard.NotNull(externalValidations, nameof(externalValidations));
@@ -22,6 +24,7 @@ public sealed class PdfComplianceProofReport {
         _externalValidations = externalValidations;
         ArtifactSha256 = PdfArtifactFingerprint.NormalizeSha256(artifactSha256, nameof(artifactSha256));
         ArtifactSizeBytes = artifactSizeBytes;
+        _invoiceArchivalProfile = invoiceArchivalProfile;
     }
 
     /// <summary>Requested compliance profile.</summary>
@@ -397,14 +400,17 @@ public sealed class PdfComplianceProofReport {
     }
 
     private IEnumerable<string> EnumerateExpectedExternalProfileNames(PdfExternalValidatorKind validatorKind) {
-        yield return DisplayName;
-        yield return Profile.ToString();
-
         if ((Profile == PdfComplianceProfile.FacturX || Profile == PdfComplianceProfile.Zugferd) &&
             validatorKind == PdfExternalValidatorKind.VeraPdf) {
-            yield return "PDF/A-3b";
-            yield return PdfComplianceProfile.PdfA3B.ToString();
+            // Invoice packaging proof must use the actual carrier's archival profile.
+            // A result for another flavour must neither satisfy nor veto this artifact.
+            if (_invoiceArchivalProfile is PdfComplianceProfile.PdfA3A or PdfComplianceProfile.PdfA3B
+                or PdfComplianceProfile.PdfA3U or PdfComplianceProfile.PdfA4F)
+                yield return _invoiceArchivalProfile.Value.ToString();
+            yield break;
         }
+        yield return DisplayName;
+        yield return Profile.ToString();
     }
 
     private static string NormalizeProfileName(string profile) {

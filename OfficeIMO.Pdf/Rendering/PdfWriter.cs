@@ -1119,7 +1119,7 @@ internal static partial class PdfWriter {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = opts.EmbeddedFileSnapshots;
         List<(string FileName, int FileSpecId)> structureFileEntries = BuildStructureAssociatedFiles(objects, layout.Pages, embeddedFiles, cancellationToken);
         if (markInfo) {
-            BuildGeneratedStructTree(objects, layout.Pages, pageIds, structTreeRootId, opts.Language);
+            BuildGeneratedStructTree(objects, layout.Pages, pageIds, structTreeRootId, opts.Language, pdf20: serializationFileVersion >= PdfFileVersion.Pdf20);
         }
 
         int outlinesId = BuildOutlines(objects, layout.Pages, pageIds, opts.OutlineExpansionLevelSnapshot);
@@ -1240,7 +1240,10 @@ internal static partial class PdfWriter {
             portfolioId,
             optionalContentPropertiesId));
 
-        infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords, opts.TrappingStatus, pdfXIdentification, pdfXProductionMetadata));
+        // PDF/A-4 keeps descriptive metadata exclusively in XMP (ISO 19005-4, 6.1.3).
+        if (pdfAIdentification?.Part != 4) {
+            infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords, opts.TrappingStatus, pdfXIdentification, pdfXProductionMetadata));
+        }
         MaterializePendingFontObjects();
 
         PdfFileVersion effectiveFileVersion = requiresPdf16FileVersion

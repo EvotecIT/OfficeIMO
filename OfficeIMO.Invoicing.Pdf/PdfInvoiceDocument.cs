@@ -107,7 +107,15 @@ public sealed partial class PdfInvoiceDocument {
         configured.UseTextFallbacks(PdfTextFallbackFeatures.MultilingualFonts);
         if (configured.TextShapingProvider == null) configured.UseManagedTextShaping();
         if (embedInvoiceXml) {
-            configured.UseFacturX(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
+            // Preserve the caller's archival target; the invoice XML is an attachment,
+            // not a reason to silently downgrade PDF 2.0/A-4f to PDF 1.7/A-3b.
+            if (configured.PdfAIdentification is PdfAIdentification archival) {
+                if (archival.Part == 2 || archival.Part == 4 && archival.Conformance != "F")
+                    throw new NotSupportedException("Hybrid invoices require PDF/A-3 or PDF/A-4f. Use ToPresentationPdfBytes for a PDF without invoice XML.");
+                configured.AddFacturXInvoiceXml(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
+            } else {
+                configured.UseFacturX(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
+            }
             configured.SetEmbeddedFileModificationDate("factur-x.xml", _capturedAt);
         }
         PdfDocument document = PdfDocument.Create(configured);

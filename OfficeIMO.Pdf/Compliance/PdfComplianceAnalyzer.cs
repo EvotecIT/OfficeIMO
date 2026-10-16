@@ -42,11 +42,12 @@ internal static partial class PdfComplianceAnalyzer {
         }
 
         PdfFileVersion effectiveFileVersion = generatedEvidence?.EffectiveFileVersion ?? options.FileVersion;
-        if (RequiresPdf17FileVersion(profile)) {
+        bool invoicePdf20 = IsElectronicInvoice(profile) && options.PdfAIdentification?.Part == 4;
+        if (RequiresPdf17FileVersion(profile) && !invoicePdf20) {
             AddFileVersionRequirement(requirements, effectiveFileVersion);
         }
 
-        if (RequiresPdf20FileVersion(profile)) {
+        if (RequiresPdf20FileVersion(profile) || invoicePdf20) {
             AddPdf20FileVersionRequirement(requirements, effectiveFileVersion);
         }
 
