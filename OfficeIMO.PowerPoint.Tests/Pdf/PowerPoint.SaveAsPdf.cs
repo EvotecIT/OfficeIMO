@@ -1328,7 +1328,9 @@ public class PowerPointSaveAsPdfTests {
         textBox.FontSize = 10;
         textBox.SetTextMarginsPoints(left: 20D, top: 6D, right: 4D, bottom: 2D);
 
-        byte[] bytes = presentation.ToPdfBytes();
+        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("50 92 116 42 re", raw, StringComparison.Ordinal);
@@ -1651,7 +1653,7 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_UsesSansFallbackForUnmappedExplicitFonts() {
+    public void SaveAsPdf_PowerPointPresentation_UsesSansFallbackForPortableDocumentFonts() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(260, 180);
@@ -1659,6 +1661,7 @@ public class PowerPointSaveAsPdfTests {
         textBox.FontName = "Aptos Display";
 
         byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = new PdfCore.PdfOptions {
                 DefaultFont = PdfCore.PdfStandardFont.TimesRoman
             }

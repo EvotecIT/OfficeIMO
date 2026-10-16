@@ -644,6 +644,8 @@ internal static partial class PdfWriter {
             pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
             pageImage.IsForeground = item.Foreground;
+            if (item.Foreground) pageImage.ForegroundTransform = _canvasEffectToPage;
+            if (paragraphCanvasTop.HasValue) ReportAnchoredImagePageClipping(item, bottomY);
             pageImage.ForegroundZOrder = item.ForegroundZOrder;
             // Foreground images use a distinct final image layer; ordinary canvas order stays inline.
             if (!item.Foreground) {

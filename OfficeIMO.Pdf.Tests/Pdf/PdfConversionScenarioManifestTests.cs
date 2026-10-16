@@ -2500,6 +2500,7 @@ public sealed class PdfConversionScenarioManifestTests {
         slide.SlidePart.Slide.Save();
 
         var options = new PowerPointToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);

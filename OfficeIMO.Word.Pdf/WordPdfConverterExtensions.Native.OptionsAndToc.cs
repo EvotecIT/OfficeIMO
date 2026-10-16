@@ -227,7 +227,8 @@ namespace OfficeIMO.Word.Pdf {
                     fallbackFeatures,
                     reservedFontSlots,
                     allowSystemFontEmbedding,
-                    preserveCallerFontSlots);
+                    preserveCallerFontSlots,
+                    requiredText: string.Join("\n", EnumerateNativeDocumentFallbackText(document, listMarkers)));
                 foreach (PdfCore.PdfStandardFont slot in pdfOptions.EmbeddedFontFallbacks?.FontSlots ?? Array.Empty<PdfCore.PdfStandardFont>()) {
                     PdfCore.PdfOptions.AddRegisteredFontFamilySlot(reservedFontSlots, slot);
                 }

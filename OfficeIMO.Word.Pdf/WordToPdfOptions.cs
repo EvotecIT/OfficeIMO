@@ -57,7 +57,7 @@ namespace OfficeIMO.Word.Pdf {
         /// </summary>
         public string? FontFamily { get; set; }
 
-        /// <summary>Host-resource policy. Balanced conversion allows explicitly selected system fonts, but disables document-selected font embedding, local files, and remote resources. Enable <see cref="PdfCore.PdfResourcePolicy.AllowDocumentFontEmbedding"/> for trusted documents when preserving their installed fonts is required.</summary>
+        /// <summary>Host-resource policy. Balanced conversion embeds installed document fonts and uses installed substitutes for missing Office families. Local files and remote resources are disabled. Use <see cref="PdfCore.PdfResourcePolicy.CreatePortableDeterministic"/> for host-independent conversion.</summary>
         public PdfCore.PdfResourcePolicy ResourcePolicy {
             get => _resourcePolicy;
             set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));

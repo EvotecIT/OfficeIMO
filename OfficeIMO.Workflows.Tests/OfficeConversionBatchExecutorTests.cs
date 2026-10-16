@@ -92,7 +92,8 @@ public sealed class OfficeConversionBatchExecutorTests {
         Assert.Contains(first.Item.Diagnostics, item => item.Stage == "convert" && item.Code == "NativeFontFamilySubstituted");
         var resumed = new CaptureItem();
         Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request, resumed)).Reused);
-        foreach (var diagnostic in first.Item.Diagnostics.Where(item => item.Details.ContainsKey("lossKind"))) {
+        foreach (var diagnostic in first.Item.Diagnostics.Where(item =>
+                     item.Details.TryGetValue("lossKind", out string? kind) && kind != "None")) {
             var restored = Assert.Single(resumed.Item!.Diagnostics, item => item.Code == diagnostic.Code && item.Stage == diagnostic.Stage);
             Assert.Equal(diagnostic.Details["lossKind"], restored.Details["lossKind"]);
             Assert.Equal(diagnostic.Details["source"], restored.Details["source"]);

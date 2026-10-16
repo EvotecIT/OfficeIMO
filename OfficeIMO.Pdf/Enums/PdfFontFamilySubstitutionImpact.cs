@@ -5,8 +5,9 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public enum PdfFontFamilySubstitutionImpact {
     /// <summary>
-    /// The caller accepts the substitute as layout-compatible for the intended document profile.
-    /// The generated appearance can still differ from the source font.
+    /// The caller or conversion policy selects the substitute with compatibility intent for the document profile.
+    /// This classification does not verify exact metrics for the selected font versions, including
+    /// vertical metrics, wrapping, or pagination. The generated appearance can still differ from the source font.
     /// </summary>
     Compatible,
 

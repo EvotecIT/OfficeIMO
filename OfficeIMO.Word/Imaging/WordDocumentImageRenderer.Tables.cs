@@ -837,12 +837,21 @@ namespace OfficeIMO.Word {
                 .Where(tableBorders => tableBorders != null)
                 .Select(tableBorders => tableBorders!)
                 .ToList();
-            if (conditionalBorders.Count > 0 || styleBorders.Count > 0) {
+            // Direct table borders sit above conditional and inherited table styles.
+            TableBorders? directTableBorders = table._tableProperties?.TableBorders;
+            OfficeBorderSide? ResolveEdge(TableCellBorderEdge edge) {
+                OpenXmlElement? direct = directTableBorders == null ? null : SelectTableBorderSource(
+                    directTableBorders, edge, rowIndex, columnIndex, rowSpan, columnSpan, rowCount, columnCount);
+                return direct != null ? ResolveTableBorderSide(direct as BorderType, colorScheme)
+                    : ResolveInheritedTableBorderSide(conditionalBorders, styleBorders, edge,
+                        rowIndex, columnIndex, rowSpan, columnSpan, rowCount, columnCount, colorScheme);
+            }
+            if (directTableBorders != null || conditionalBorders.Count > 0 || styleBorders.Count > 0) {
                 return new OfficeBorderBox(
-                    ResolveInheritedTableBorderSide(conditionalBorders, styleBorders, TableCellBorderEdge.Left, rowIndex, columnIndex, rowSpan, columnSpan, rowCount, columnCount, colorScheme),
-                    ResolveInheritedTableBorderSide(conditionalBorders, styleBorders, TableCellBorderEdge.Top, rowIndex, columnIndex, rowSpan, columnSpan, rowCount, columnCount, colorScheme),
-                    ResolveInheritedTableBorderSide(conditionalBorders, styleBorders, TableCellBorderEdge.Right, rowIndex, columnIndex, rowSpan, columnSpan, rowCount, columnCount, colorScheme),
-                    ResolveInheritedTableBorderSide(conditionalBorders, styleBorders, TableCellBorderEdge.Bottom, rowIndex, columnIndex, rowSpan, columnSpan, rowCount, columnCount, colorScheme),
+                    ResolveEdge(TableCellBorderEdge.Left),
+                    ResolveEdge(TableCellBorderEdge.Top),
+                    ResolveEdge(TableCellBorderEdge.Right),
+                    ResolveEdge(TableCellBorderEdge.Bottom),
                     null,
                     null);
             }

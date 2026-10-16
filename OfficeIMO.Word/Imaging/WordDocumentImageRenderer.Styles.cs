@@ -61,9 +61,11 @@ namespace OfficeIMO.Word {
             table.Document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
 
         private static IEnumerable<Style> EnumerateStyleChain(Styles? styles, string? styleId, StyleValues expectedType) {
-            if (styles == null || string.IsNullOrWhiteSpace(styleId)) {
-                yield break;
-            }
+            if (styles == null) yield break;
+            if (string.IsNullOrWhiteSpace(styleId))
+                styleId = styles.Elements<Style>().FirstOrDefault(style =>
+                    style.Type?.Value == expectedType && style.Default?.Value == true)?.StyleId?.Value;
+            if (string.IsNullOrWhiteSpace(styleId)) yield break;
 
             HashSet<string> visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {

@@ -55,9 +55,11 @@ public static partial class WordPdfConverterExtensions {
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
                 var paragraph = new WordParagraph(story.Document, source);
                 hasParagraph = true;
-                // Drawings, text boxes and explicit pagination retain their
-                // established bounded export until running flow preserves them.
-                ordinaryStoriesSupported &= !source.Descendants<W.Drawing>().Any() &&
+                // Ordinary inline pictures use the same measured flow as body
+                // pictures. Fixed header images cannot reserve their line height
+                // or keep following paragraphs below a tall picture.
+                // Anchors and other drawings retain the bounded projection.
+                ordinaryStoriesSupported &= source.Descendants<W.Drawing>().All(IsNativeRunningInlinePictureDrawing) &&
                     !source.Descendants<W.Picture>().Any() && !source.Descendants<W.EmbeddedObject>().Any() &&
                     !source.Descendants<AlternateContent>().Any() && !HasNativePageBreakBefore(paragraph) &&
                     !source.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page ||
@@ -92,6 +94,15 @@ public static partial class WordPdfConverterExtensions {
             ordinaryStoriesSupported &= minimumHeight + distance < GetNativePageSize(section, options).Height;
         }
         return hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported);
+    }
+
+    private static bool IsNativeRunningInlinePictureDrawing(W.Drawing drawing) {
+        var inline = drawing.Inline;
+        var graphicData = inline?.Graphic?.GraphicData;
+        return inline != null && drawing.Anchor == null &&
+            graphicData != null && graphicData.Uri?.Value == "http://schemas.openxmlformats.org/drawingml/2006/picture" &&
+            graphicData.Elements<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Count() == 1 &&
+            !drawing.Ancestors<W.SdtRun>().Any(IsNativePictureControl);
     }
 
     /// <summary>

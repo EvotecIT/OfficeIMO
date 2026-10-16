@@ -35,16 +35,6 @@ internal static partial class PdfWriter {
             content);
     }
 
-    private static int AddTrueTypeFontFileObject(System.Collections.Generic.IList<byte[]> list, PdfTrueTypeFontProgram fontProgram, bool compress, CancellationToken cancellationToken) {
-        byte[] data = fontProgram.BuildSubsetFontFile(compress, out int uncompressedLength, cancellationToken);
-        string filter = compress ? " /Filter /FlateDecode" : string.Empty;
-        return AddStreamObject(
-            list,
-            "<< /Length " + data.Length.ToString(CultureInfo.InvariantCulture) +
-            " /Length1 " + uncompressedLength.ToString(CultureInfo.InvariantCulture) + filter + " >>",
-            data);
-    }
-
     private static int AddFlateStreamObject(System.Collections.Generic.IList<byte[]> list, byte[] content) {
         Guard.NotNull(content, nameof(content));
         byte[] compressed = DeflateZlib(content);
@@ -521,6 +511,7 @@ internal static partial class PdfWriter {
         public int? StructElementIndex { get; set; }
         public string? InlineDrawToken { get; set; }
         public bool IsForeground { get; set; }
+        public OfficeTransform ForegroundTransform { get; set; } = OfficeTransform.Identity;
         public uint ForegroundZOrder { get; set; }
         public bool DebugBox { get; set; }
         public string Name { get; set; } = string.Empty;

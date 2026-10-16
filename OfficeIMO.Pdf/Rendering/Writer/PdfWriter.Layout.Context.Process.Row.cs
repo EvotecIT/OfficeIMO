@@ -397,27 +397,32 @@ internal static partial class PdfWriter {
 
                                 var markerLines = new System.Collections.Generic.List<string>(1) { listItem.Marker };
                                 int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);
-                                if (listItem.MarkerNamedFont.HasValue) {
-                                    currentPage!.UsedNamedFonts.Add(listItem.MarkerNamedFont.Value);
-                                } else {
-                                    MarkSimpleFont(listItem.MarkerFont);
-                                }
+                                if (!WriteListMarkerFallback(listItem.MarkerFallback, xCol + listItem.MarkerXOffset,
+                                        listItem.MarkerWidth, AdjustRichLineBaseline(baselineY, sliceLines[0], currentOpts, listItem.Size),
+                                        listItem.MarkerSize, leading, listItem.MarkerAlign, listItem.MarkerColor ?? listItem.Color,
+                                        labelMarkedContentId)) {
+                                    if (listItem.MarkerNamedFont.HasValue) {
+                                        currentPage!.UsedNamedFonts.Add(listItem.MarkerNamedFont.Value);
+                                    } else {
+                                        MarkSimpleFont(listItem.MarkerFont);
+                                    }
 
-                                WriteLinesInternal(
-                                    GetFontResourceName(listItem.MarkerFont, listItem.MarkerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
-                                    listItem.MarkerSize,
-                                    leading,
-                                    xCol + listItem.MarkerXOffset,
-                                    listItem.MarkerWidth,
-                                    AdjustRichLineBaseline(baselineY, sliceLines[0], currentOpts, listItem.Size),
-                                    markerLines,
-                                    listItem.MarkerAlign,
-                                    listItem.MarkerColor ?? listItem.Color,
-                                    applyBaselineTweak: true,
-                                    structureType: "Lbl",
-                                    markedContentId: labelMarkedContentId,
-                                    namedFont: listItem.MarkerNamedFont,
-                                    featureSettings: listItem.MarkerFeatureSettings);
+                                    WriteLinesInternal(
+                                        GetFontResourceName(listItem.MarkerFont, listItem.MarkerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
+                                        listItem.MarkerSize,
+                                        leading,
+                                        xCol + listItem.MarkerXOffset,
+                                        listItem.MarkerWidth,
+                                        AdjustRichLineBaseline(baselineY, sliceLines[0], currentOpts, listItem.Size),
+                                        markerLines,
+                                        listItem.MarkerAlign,
+                                        listItem.MarkerColor ?? listItem.Color,
+                                        applyBaselineTweak: true,
+                                        structureType: "Lbl",
+                                        markedContentId: labelMarkedContentId,
+                                        namedFont: listItem.MarkerNamedFont,
+                                        featureSettings: listItem.MarkerFeatureSettings);
+                                }
                             }
 
                             int? bodyMarkedContentId = line == 0 || listItem.StructureElement == null

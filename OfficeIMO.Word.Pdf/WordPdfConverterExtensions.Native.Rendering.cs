@@ -737,7 +737,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (var image in images.OrderBy(item => item.Position)) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 if (image.Image._Image != null && inlineImages?.ContainsKey(image.Image._Image) == true) continue;
-                renderedFlowObject |= RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas, paragraphSpacing);
+                renderedFlowObject |= RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas, paragraphSpacing, paragraph);
             }
             if (anchoredCanvas.Items.Count > 0)
                 anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(anchoredCanvas.Items);

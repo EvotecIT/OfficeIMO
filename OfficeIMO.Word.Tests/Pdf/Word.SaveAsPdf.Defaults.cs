@@ -11,11 +11,11 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
-        public void SaveAsPdf_DefaultsDoNotEmbedDocumentNamedHostFontsOrAllowArbitraryResourceReads() {
+        public void SaveAsPdf_DefaultsEmbedDocumentFontsWithoutAllowingArbitraryResourceReads() {
             var options = new WordToPdfOptions();
 
             Assert.True(options.ResourcePolicy.AllowSystemFontEmbedding);
-            Assert.False(options.ResourcePolicy.AllowDocumentFontEmbedding);
+            Assert.True(options.ResourcePolicy.AllowDocumentFontEmbedding);
             Assert.False(options.ResourcePolicy.AllowLocalFileAccess);
             Assert.False(options.ResourcePolicy.AllowRemoteResourceResolution);
         }

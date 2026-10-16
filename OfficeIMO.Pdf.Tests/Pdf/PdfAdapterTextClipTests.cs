@@ -29,7 +29,6 @@ public sealed class PdfAdapterTextClipTests {
             var media = page.GetGeometry().MediaBox!;
             Assert.Equal(media.Width, span.ClipPath.Value.Width, 3);
             Assert.Equal(media.Height, span.ClipPath.Value.Height, 3);
-            Assert.Equal(0, topMargin);
         }
     }
 

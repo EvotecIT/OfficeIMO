@@ -614,7 +614,13 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle, tableStyleDefaults.UseConfiguredTypography));
             }
 
-            if (NeedsNativeParagraphMarkStrut(result, WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true)) {
+            // Empty cells still contain a Word paragraph mark. Give that mark
+            // its own resolved metrics instead of relying on the PDF table's
+            // fallback leading for an empty or spacing-only rich-run list.
+            // Keep authored zero cell margins and hidden paragraph marks intact.
+            bool hasOnlySpacing = result.All(run => run.InlineElement == null && IsNativeTrailingSpacingOnly(run.Text));
+            if ((hasOnlySpacing && ShouldRenderNativeEmptyParagraphLineBox(paragraph)) ||
+                NeedsNativeParagraphMarkStrut(result, WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true)) {
                 result.Add(CreateNativeParagraphMarkStrut(paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap));
             }
             return result;

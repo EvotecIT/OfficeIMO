@@ -678,16 +678,16 @@ namespace OfficeIMO.Word {
         }
 
         private static OfficeRichTextRun CreateRichTextRun(WordParagraph paragraph, DocumentFormat.OpenXml.Drawing.ColorScheme? colorScheme, string? text = null) {
-            double fontSize = paragraph.FontSize ?? 11;
+            double fontSize = ResolveImageFontSize(paragraph);
             WordVerticalTextPosition? verticalTextAlignment = ResolveImageExportVerticalTextAlignment(paragraph);
             return new OfficeRichTextRun(
                 text ?? paragraph.Text,
                 fontSize,
                 ResolveParagraphTextColor(paragraph, colorScheme),
-                paragraph.Bold,
-                paragraph.Italic,
+                ResolveImageBold(paragraph),
+                ResolveImageItalic(paragraph),
                 paragraph.Underline.HasValue && paragraph.Underline.Value != WordUnderlineStyle.None,
-                paragraph.FontFamily ?? "Calibri",
+                ResolveImageFontFamily(paragraph),
                 paragraph.Strike || paragraph.DoubleStrike,
                 ResolveRunBackgroundColor(paragraph, colorScheme),
                 MapWordUnderlineStyle(paragraph.Underline),
@@ -717,11 +717,11 @@ namespace OfficeIMO.Word {
 
         private static OfficeFontInfo CreateFont(WordParagraph paragraph) {
             OfficeFontStyle style = OfficeFontStyle.Regular;
-            if (paragraph.Bold) {
+            if (ResolveImageBold(paragraph)) {
                 style |= OfficeFontStyle.Bold;
             }
 
-            if (paragraph.Italic) {
+            if (ResolveImageItalic(paragraph)) {
                 style |= OfficeFontStyle.Italic;
             }
 
@@ -733,7 +733,7 @@ namespace OfficeIMO.Word {
                 style |= OfficeFontStyle.Strikethrough;
             }
 
-            return new OfficeFontInfo(paragraph.FontFamily ?? "Calibri", paragraph.FontSize ?? 11, style);
+            return new OfficeFontInfo(ResolveImageFontFamily(paragraph), ResolveImageFontSize(paragraph), style);
         }
 
         private static OfficeTextAlignment MapTextAlignment(WordParagraphAlignment? alignment) {
