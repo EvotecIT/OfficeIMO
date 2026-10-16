@@ -1044,36 +1044,6 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Resolves_DrawingMl_Preset_Colors() {
-        var properties = new ChartShapeProperties(
-            new A.SolidFill(new A.PresetColor { Val = A.PresetColorValues.Red }));
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryGetNativeDrawingSolidFillColor", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] arguments = { properties, null, null };
-
-        bool result = (bool)method.Invoke(null, arguments)!;
-
-        Assert.True(result);
-        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), Assert.IsType<OfficeColor>(arguments[1]));
-    }
-
-    [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Applies_DrawingMl_Luminance_Transforms_In_Hsl_Space() {
-        var properties = new ChartShapeProperties(
-            new A.SolidFill(new A.RgbColorModelHex(
-                new A.LuminanceModulation { Val = 50000 },
-                new A.LuminanceOffset { Val = 20000 }) {
-                Val = "4472C4"
-            }));
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryGetNativeDrawingSolidFillColor", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] arguments = { properties, null, null };
-
-        bool result = (bool)method.Invoke(null, arguments)!;
-
-        Assert.True(result);
-        Assert.Equal(OfficeColor.ParseHex("#3864B2"), Assert.IsType<OfficeColor>(arguments[1]));
-    }
-
-    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Text_Watermark_To_Pdf_Watermark() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTextWatermark.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTextWatermark.pdf");

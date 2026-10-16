@@ -121,7 +121,8 @@ public static class OfficeColorTransforms {
         return FromHsl(hue, saturation, ClampUnit(transformed), color.A);
     }
 
-    private static void ToHsl(OfficeColor color, out double hue, out double saturation, out double luminance) {
+    /// <summary>Converts to HSL without a byte round trip between operations in shared format adapters.</summary>
+    internal static void ToHsl(OfficeColor color, out double hue, out double saturation, out double luminance) {
         double red = color.R / 255D;
         double green = color.G / 255D;
         double blue = color.B / 255D;
@@ -151,7 +152,8 @@ public static class OfficeColorTransforms {
         }
     }
 
-    private static OfficeColor FromHsl(double hue, double saturation, double luminance, byte alpha) {
+    /// <summary>Quantizes the completed HSL transform sequence to an RGBA color.</summary>
+    internal static OfficeColor FromHsl(double hue, double saturation, double luminance, byte alpha) {
         hue = ((hue % 360D) + 360D) % 360D;
         saturation = ClampUnit(saturation);
         luminance = ClampUnit(luminance);

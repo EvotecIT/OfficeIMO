@@ -29,20 +29,35 @@ public sealed class PowerPointNativeThemeTintTests {
             OfficeColor.FromRgb(221, 225, 229)
         };
 
-        for (int index = 0; index < expected.Length; index++) {
-            int x = 35 + index * 65;
-            Assert.Equal(expected[index], nativePng.GetPixel(x, 70));
-            // Only the alpha control allows the one-channel-value quantization difference between
-            // native compositing and our rounded eight-bit alpha (0.65 becomes 166/255).
-            int tolerance = index == 6 ? 1 : 0;
-            foreach ((string route, OfficeRasterImage image) in new[] { ("native PDF", nativePdf), ("managed PDF", managed) }) {
-                OfficeColor pixel = image.GetPixel(x, 70);
-                Assert.True(Math.Abs(pixel.R - expected[index].R) <= tolerance &&
-                    Math.Abs(pixel.G - expected[index].G) <= tolerance && Math.Abs(pixel.B - expected[index].B) <= tolerance,
-                    $"Control {index} in {route}: expected {expected[index]}, observed {pixel}.");
-                Assert.Equal(255, pixel.A);
-            }
-        }
+        AssertControlSamples(nativePng, nativePdf, managed, expected, firstAlphaIndex: 6);
+    }
+
+    [Fact]
+    public void LuminanceOrderAndInterleavedAlphaMatchSevenNativePowerPointControls() {
+        string folder = Path.Combine(AppContext.BaseDirectory, "Documents", "PowerPointNativeThemeTint");
+        using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "luminance-controls.pptx"));
+        PowerPointSlide slide = Assert.Single(presentation.Slides);
+        PowerPointAutoShape[] controls = slide.Shapes.OfType<PowerPointAutoShape>().ToArray();
+        Assert.Equal(7, controls.Length);
+        // Alpha between HSL operations must not force an intermediate encoded-RGB rounding step.
+        OfficeColor translucent = OfficeColor.FromRgba(56, 100, 178, 115);
+        Assert.Equal(translucent, controls[5].ResolveFillColorForExport());
+        Assert.Equal(translucent, controls[6].ResolveFillColorForExport());
+        OfficeRasterImage nativePng = VisualBaselineTestSupport.DecodePng(
+            File.ReadAllBytes(Path.Combine(folder, "luminance-controls-native.png")), "Native luminance controls are not a valid PNG.");
+        byte[] reference = File.ReadAllBytes(Path.Combine(folder, "microsoft-powerpoint-16.113.4-luminance-controls.pdf"));
+        OfficeRasterImage nativePdf = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(reference).Pages[0].ToDrawing(),
+            background: OfficeColor.White);
+        OfficeRasterImage managed = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(presentation.ToPdfBytes()).Pages[0].ToDrawing(),
+            background: OfficeColor.White);
+        OfficeColor[] expected = {
+            OfficeColor.FromRgb(68, 114, 196), OfficeColor.FromRgb(32, 56, 100),
+            OfficeColor.FromRgb(146, 172, 220), OfficeColor.FromRgb(56, 100, 178),
+            OfficeColor.FromRgb(44, 78, 139), OfficeColor.FromRgb(165, 185, 220),
+            OfficeColor.FromRgb(165, 185, 220)
+        };
+
+        AssertControlSamples(nativePng, nativePdf, managed, expected, firstAlphaIndex: 5);
     }
 
     [Fact]
@@ -64,5 +79,22 @@ public sealed class PowerPointNativeThemeTintTests {
         // A clear point inside the second row, away from text and borders, in PDF page coordinates.
         Assert.Equal(expected, native.GetPixel(100, 185));
         Assert.Equal(expected, managed.GetPixel(100, 185));
+    }
+
+    private static void AssertControlSamples(OfficeRasterImage nativePng, OfficeRasterImage nativePdf,
+        OfficeRasterImage managed, OfficeColor[] expected, int firstAlphaIndex) {
+        for (int index = 0; index < expected.Length; index++) {
+            int x = 35 + index * 65;
+            Assert.Equal(expected[index], nativePng.GetPixel(x, 70));
+            // Only alpha controls permit one channel value for rounded eight-bit alpha compositing.
+            int tolerance = index >= firstAlphaIndex ? 1 : 0;
+            foreach ((string route, OfficeRasterImage image) in new[] { ("native PDF", nativePdf), ("managed PDF", managed) }) {
+                OfficeColor pixel = image.GetPixel(x, 70);
+                Assert.True(Math.Abs(pixel.R - expected[index].R) <= tolerance &&
+                    Math.Abs(pixel.G - expected[index].G) <= tolerance && Math.Abs(pixel.B - expected[index].B) <= tolerance,
+                    $"Control {index} in {route}: expected {expected[index]}, observed {pixel}.");
+                Assert.Equal(255, pixel.A);
+            }
+        }
     }
 }

@@ -246,11 +246,35 @@ internal static class OfficeOpenXmlThemeColorResolver {
     /// <remarks>Tint and shade retain the specified input proportion in linear sRGB, independently of encoded-RGB helpers.</remarks>
     internal static OfficeColor ApplyTransforms(OfficeColor color, OpenXmlElement colorElement) {
         OfficeColor resolved = color;
+        bool pendingHsl = false;
+        double hue = 0D, saturation = 0D, luminance = 0D;
         foreach (OpenXmlElement transform in colorElement.ChildElements) {
-            switch (transform.LocalName) {
-                case "comp":
-                    resolved = OfficeColorTransforms.Complement(resolved);
-                    continue;
+            string name = transform.LocalName;
+            if (name is "comp" or "lumMod" or "lumOff" or "hueOff" or "hueMod" or "satOff" or "satMod") {
+                double amount = 0D;
+                if (name != "comp" && !TryReadTransformValue(transform, out amount)) continue;
+                if (!pendingHsl) {
+                    OfficeColorTransforms.ToHsl(resolved, out hue, out saturation, out luminance);
+                    pendingHsl = true;
+                }
+                switch (name) {
+                    case "comp": hue = (hue + 180D) % 360D; break;
+                    case "lumMod": luminance = ClampUnit(luminance * Math.Max(0D, amount)); break;
+                    case "lumOff": luminance = ClampUnit(luminance + amount); break;
+                    case "hueOff": hue = ((hue + amount * 100000D / 60000D) % 360D + 360D) % 360D; break;
+                    case "hueMod": hue = hue * Math.Max(0D, amount) % 360D; break;
+                    case "satOff": saturation = ClampUnit(saturation + amount); break;
+                    case "satMod": saturation = ClampUnit(saturation * Math.Max(0D, amount)); break;
+                }
+                continue;
+            }
+            // Alpha does not change the HSL channels. Other color-space operations must
+            // observe the completed HSL sequence; do not round between HSL modifiers.
+            if (pendingHsl && name is not ("alpha" or "alphaMod" or "alphaOff")) {
+                resolved = OfficeColorTransforms.FromHsl(hue, saturation, luminance, resolved.A);
+                pendingHsl = false;
+            }
+            switch (name) {
                 case "inv":
                     resolved = OfficeColor.FromRgba(
                         (byte)(255 - resolved.R),
@@ -288,25 +312,6 @@ internal static class OfficeOpenXmlThemeColorResolver {
                         OfficeColor.FromRgba(0, 0, 0, resolved.A), resolved,
                         ClampUnit(value), OfficeGradientColorInterpolation.LinearRgb);
                     break;
-                case "lumMod":
-                    resolved = OfficeColorTransforms.ModulateLuminance(resolved, Math.Max(0D, value));
-                    break;
-                case "lumOff":
-                    resolved = OfficeColorTransforms.OffsetLuminance(resolved, value);
-                    break;
-                // Hue offsets are 60000ths of a degree; the shared reader scales by 100000.
-                case "hueOff":
-                    resolved = OfficeColorTransforms.OffsetHue(resolved, value * 100000D / 60000D);
-                    break;
-                case "hueMod":
-                    resolved = OfficeColorTransforms.ModulateHue(resolved, Math.Max(0D, value));
-                    break;
-                case "satOff":
-                    resolved = OfficeColorTransforms.OffsetSaturation(resolved, value);
-                    break;
-                case "satMod":
-                    resolved = OfficeColorTransforms.ModulateSaturation(resolved, Math.Max(0D, value));
-                    break;
                 case "red":
                     resolved = OfficeColor.FromRgba(ToChannel(255D * value), resolved.G, resolved.B, resolved.A);
                     break;
@@ -337,7 +342,9 @@ internal static class OfficeOpenXmlThemeColorResolver {
             }
         }
 
-        return resolved;
+        return pendingHsl
+            ? OfficeColorTransforms.FromHsl(hue, saturation, luminance, resolved.A)
+            : resolved;
     }
 
     private static OpenXmlElement? FindColorElement(OpenXmlElement? container) {
