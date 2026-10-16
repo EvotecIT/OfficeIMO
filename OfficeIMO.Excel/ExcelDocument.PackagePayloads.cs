@@ -143,10 +143,7 @@ namespace OfficeIMO.Excel {
                 ? SpreadsheetDocumentType.MacroEnabledTemplate
                 : SpreadsheetDocumentType.MacroEnabledWorkbook;
             if (type != target) {
-                // ChangeDocumentType copies the main part's persisted bytes, not its unsaved DOM.
-                WorkbookPartRoot.Workbook?.Save();
-                _spreadSheetDocument.ChangeDocumentType(target);
-                _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing after the macro format change.");
+                ChangeSpreadsheetDocumentType(target);
             }
         }
     }

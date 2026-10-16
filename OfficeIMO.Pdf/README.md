@@ -336,8 +336,11 @@ Canvas gradients interpolate premultiplied channels, including linear-light RGB 
 Imported SVG/XPS retains separate colour and alpha interpolation.
 
 Drawing export retains bounded vector tiling patterns, isolated group opacity and
-blend modes, and alpha soft masks with transparent backdrops. Luminosity masks and
-nontransparent mask backdrops reject export. Embedded drawing images preserve their
+blend modes, and alpha or explicit `PdfDeviceRgb` luminosity soft masks with
+transparent backdrops. Mask values remain separate from print color conversion.
+For colored luminosity masks, the PDF consumer chooses the DeviceRGB-to-gray conversion.
+The default sRGB luminosity standard and nontransparent mask backdrops reject export.
+Embedded drawing images preserve their
 interpolation setting. When reopening PDFs, the managed reader retains ordinary
 isolated Form groups with implicit or DeviceRGB blending space and no knockout.
 Invocation opacity applies once after overlapping paths, images, text, and nested

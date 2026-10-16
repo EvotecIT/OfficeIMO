@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[target];
 
         Assert.Equal("rgba(0, 255, 0, 1)", style.GetValue("color"));
-        Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("background-color"));
+        Assert.Equal(OfficeColor.Red, OfficeColor.ParseCss(style.GetValue("background-color")));
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector("#target")!];
 
         Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("color"));
-        Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("background-color"));
+        Assert.Equal(OfficeColor.Red, OfficeColor.ParseCss(style.GetValue("background-color")));
     }
 
     [Fact]

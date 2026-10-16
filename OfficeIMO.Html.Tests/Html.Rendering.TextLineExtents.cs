@@ -7,20 +7,20 @@ namespace OfficeIMO.Tests {
 
     public sealed partial class HtmlRenderingTests {
         [Theory]
-        [InlineData(10D, 0D, 35.41796875D, 20D, false)]
-        [InlineData(10D, 0D, 35.41796875D, 20D, true)]
-        [InlineData(10D, 10D, 38.58203125D, 26.58203125D, false)]
-        [InlineData(10D, 10D, 38.58203125D, 26.58203125D, true)]
-        [InlineData(10D, -10D, 45.41796875D, 20D, false)]
-        [InlineData(10D, -10D, 45.41796875D, 20D, true)]
-        [InlineData(20D, 10D, 42D, 30D, false)]
-        [InlineData(20D, 10D, 42D, 30D, true)]
+        [InlineData(10D, 0D, 36D, 23D, false)]
+        [InlineData(10D, 0D, 36D, 23D, true)]
+        [InlineData(10D, 10D, 38D, 29D, false)]
+        [InlineData(10D, 10D, 38D, 29D, true)]
+        [InlineData(10D, -10D, 46D, 23D, false)]
+        [InlineData(10D, -10D, 46D, 23D, true)]
+        [InlineData(20D, 10D, 42D, 33D, false)]
+        [InlineData(20D, 10D, 42D, 33D, true)]
         public void HtmlTextLine_FaceLeadingAndDisplacementAdvanceFollowingContentTogether(
             double size, double shift, double expectedHeight, double expectedBaseline, bool floating) {
             // The supplied face has hhea ascent1950/descent550 at2048 units/em.
-            // A20px/32px strut has A22.8359375/D9.1640625; a10px/32px
-            // run has A19.41796875/D12.58203125. These authored extents include
-            // half-leading and the explicit vertical-align shift, rather than em ascent.
+            // Paired native witnesses have a20px/32px strut A23/D9 and
+            // a10px/32px run A19/D13 after CSS font/leading alignment. These
+            // extents include vertical-align displacement and agree beside floats.
             string floatBox = floating ? "<i style='float:left;width:20px;height:200px'></i>" : "";
             string html = "<style>body{margin:0;font:20px/32px Pinned}p{margin:0}</style>"
                 + "<div style='width:120px'>" + floatBox + "BASE <span style='font-size:"

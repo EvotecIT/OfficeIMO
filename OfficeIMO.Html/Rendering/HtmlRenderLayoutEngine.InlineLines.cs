@@ -51,16 +51,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Segments.Add(segment);
             Width += segment.Width;
             AddInlineEdges(segment);
-            if (segment.Run.RunningStringElement == null
-                && segment.Run.RunningElementAssignment == null
-                && !segment.Run.IsFlowMarker) _flowContentCount++;
+            if (ContributesFlowContent(segment.Run)) _flowContentCount++;
         }
 
         internal void RemoveAt(int index) {
             InlineSegment removed = Segments[index];
-            if (Segments[index].Run.RunningStringElement == null
-                && Segments[index].Run.RunningElementAssignment == null
-                && !Segments[index].Run.IsFlowMarker) _flowContentCount--;
+            if (ContributesFlowContent(removed.Run)) _flowContentCount--;
             Width -= Segments[index].Width;
             Segments.RemoveAt(index);
             if (_inlineEdges.Count > 0) RebuildInlineEdges(removed);
@@ -73,14 +69,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal void RemoveRange(int index, int count) {
             for (int offset = 0; offset < count; offset++) {
                 InlineSegment removed = Segments[index + offset];
-                if (removed.Run.RunningStringElement == null
-                    && removed.Run.RunningElementAssignment == null
-                    && !removed.Run.IsFlowMarker) _flowContentCount--;
+                if (ContributesFlowContent(removed.Run)) _flowContentCount--;
                 Width -= removed.Width;
             }
             Segments.RemoveRange(index, count);
             if (_inlineEdges.Count > 0) RebuildInlineEdges();
         }
+
+        // Out-of-flow markers keep their static position segment without
+        // creating an in-flow line box or contributing a font strut.
+        internal static bool ContributesFlowContent(HtmlInlineRun run) =>
+            run.RunningStringElement == null && run.RunningElementAssignment == null
+            && run.PositionedMarkerElement == null && !run.IsFlowMarker;
 
         internal void SetSegmentWidth(int index, double width) {
             double normalized = Math.Max(0D, width);
@@ -92,6 +92,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!HasFlowContent) return 0D;
             double height = fallback;
             for (int i = 0; i < Segments.Count; i++) {
+                if (!ContributesFlowContent(Segments[i].Run)) continue;
                 height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
             }
             if (!HasReplacedImage) {
@@ -102,7 +103,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double textBaseline = 0D;
                     double textDescent = 0D;
                     foreach (InlineSegment segment in Segments) {
-                        if (segment.Run.AtomicBlock == null) {
+                        if (segment.Run.AtomicBlock == null && ContributesFlowContent(segment.Run)) {
                             textBaseline = Math.Max(textBaseline, segment.Run.Style.Font.Size);
                             textDescent = Math.Max(textDescent, segment.Run.Style.LineHeight - segment.Run.Style.Font.Size);
                         }
@@ -116,6 +117,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double descent = 0D;
             for (int i = 0; i < Segments.Count; i++) {
                 HtmlInlineRun run = Segments[i].Run;
+                if (!ContributesFlowContent(run)) continue;
                 if (run.AtomicBlock != null) {
                     double atomicBaseline = Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height));
                     ascent = Math.Max(ascent, atomicBaseline);
@@ -131,7 +133,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal bool HasReplacedImage => Segments.Any(segment => segment.Run.IsReplacedImage);
 
         internal bool HasMixedTextSizes(HtmlRenderBoxStyle paragraphStyle) =>
-            Segments.Any(segment => segment.Run.AtomicBlock == null
+            Segments.Any(segment => segment.Run.AtomicBlock == null && ContributesFlowContent(segment.Run)
                 && Math.Abs(segment.Run.Style.Font.Size - paragraphStyle.Font.Size) > 0.000001D);
 
         internal double ResolveBaseline(HtmlRenderBoxStyle paragraphStyle) {
@@ -141,13 +143,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // baseline, including the containing paragraph's line strut.
                 double baseline = paragraphStyle.Font.Size;
                 foreach (InlineSegment segment in Segments) {
-                    if (segment.Run.AtomicBlock == null) baseline = Math.Max(baseline, segment.Run.Style.Font.Size);
+                    if (segment.Run.AtomicBlock == null && ContributesFlowContent(segment.Run))
+                        baseline = Math.Max(baseline, segment.Run.Style.Font.Size);
                 }
                 return baseline;
             }
             double ascent = ResolveTextAscent(paragraphStyle);
             for (int i = 0; i < Segments.Count; i++) {
                 HtmlInlineRun run = Segments[i].Run;
+                if (!ContributesFlowContent(run)) continue;
                 ascent = Math.Max(ascent, run.AtomicBlock == null
                     ? ResolveTextAscent(run.Style)
                     : Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height)));

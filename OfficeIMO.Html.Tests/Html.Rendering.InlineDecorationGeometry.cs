@@ -97,7 +97,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
             + "<span id='float' style='float:left;width:40px;height:120px;background:lime'></span>" + closing, options);
 
         Assert.Equal(Shape(plain, "span#owner").Width, Shape(floated, "span#owner").Width, 6);
-        Assert.Equal(Face(options).Height + 16D, Shape(floated, "span#owner").Height, 6);
+        Assert.Equal(19D + 16D, Shape(floated, "span#owner").Height, 6);
         Assert.Equal(120D, Shape(floated, "span#float").Height, 6);
         floated.RequireNoLoss();
     }
@@ -144,9 +144,10 @@ public sealed class HtmlInlineDecorationGeometryTests {
         }
         HtmlRenderDocument control = Render(Source(false), options);
         HtmlRenderDocument rendered = Render(Source(true), options);
-        var face = Face(options);
-        double usedLineHeight = Shape(control, "div#following").Y - 30D;
-        double selectedBaseline = lineHeight < 16D ? (usedLineHeight - face.Height) / 2D + face.Ascent : 16D;
+        // The exact supplied face has native used ascent15/descent4 at16px,
+        // including zero and negative leading. Raw Core metrics stay separate.
+        var face = (Height: 19D, Ascent: 15D);
+        double selectedBaseline = lineHeight == 0D ? 5D : lineHeight == 8D ? 9D : 15D;
         double expectedTop = 30D + selectedBaseline - face.Ascent - 8D;
 
         if (content != "empty-standalone") {

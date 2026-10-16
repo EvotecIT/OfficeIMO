@@ -5,6 +5,20 @@ using OfficeIMO.Html.Css;
 namespace OfficeIMO.Html;
 
 internal static class HtmlRenderCssValues {
+    /// <summary>
+    /// Resolves the used CSS line height for horizontal inline layout. Unitless
+    /// multipliers use the rounded font-size basis and truncate to a layout unit;
+    /// absolute computed lengths round to the nearest layout unit instead.
+    /// </summary>
+    internal static double ResolveInlineAlignmentLineHeight(double lineHeight, double fontSize, double? multiplier = null) {
+        const double unitsPerPixel = 64D;
+        if (multiplier.HasValue) {
+            double usedFontSize = Math.Round(fontSize * unitsPerPixel, MidpointRounding.AwayFromZero) / unitsPerPixel;
+            return Math.Truncate(usedFontSize * multiplier.Value * unitsPerPixel) / unitsPerPixel;
+        }
+        return Math.Round(lineHeight * unitsPerPixel, MidpointRounding.AwayFromZero) / unitsPerPixel;
+    }
+
     internal static bool TryResolveFontSizeKeyword(
         string? value,
         double inheritedFontSize,

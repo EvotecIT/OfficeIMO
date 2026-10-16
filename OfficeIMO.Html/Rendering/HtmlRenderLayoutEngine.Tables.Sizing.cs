@@ -3,10 +3,10 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     // Unlike a normal block, a table or cell's authored height is a minimum.
     private static double ResolveTableMinimumHeight(HtmlRenderBoxStyle style) =>
-        Math.Max(Math.Max(1D, style.VerticalInsets), (style.ExplicitHeight ?? 0D) + (style.BorderBox ? 0D : style.VerticalInsets));
+        Math.Max(style.VerticalInsets, (style.ExplicitHeight ?? 0D) + (style.BorderBox ? 0D : style.VerticalInsets));
 
     private static double ResolveTableCellMinimumHeight(HtmlRenderBoxStyle style, HtmlInlineLayout inline) =>
-        Math.Max(Math.Max(style.LineHeight, inline.Height) + style.VerticalInsets,
+        Math.Max(inline.Height + style.VerticalInsets,
             (style.ExplicitHeight ?? 0D) + (style.BorderBox ? 0D : style.VerticalInsets));
 
     private void ApplyTableMinimumHeight(IReadOnlyList<TableRowLayout> rows, HtmlRenderBoxStyle style,

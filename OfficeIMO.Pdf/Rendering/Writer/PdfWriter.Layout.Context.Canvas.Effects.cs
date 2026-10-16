@@ -68,6 +68,7 @@ internal static partial class PdfWriter {
                 BoundsBottom = boundsBottom,
                 BoundsRight = boundsRight,
                 BoundsTop = boundsTop,
+                IsOpacityData = _drawingIsOpacityData,
                 GraphicsStateName = opacityState
             });
             sb.Append(token);

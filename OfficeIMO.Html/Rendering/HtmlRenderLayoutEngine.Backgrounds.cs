@@ -20,13 +20,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visuals.Add(new HtmlRenderLayoutBox(x, y, width, height, visuals.Count,
                 HtmlRenderStyleResolver.DescribeSource(source)));
         }
-        if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
+        if (!style.PaintVisible) return;
         int backgroundStart = visuals.Count;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription, sourceDescription);
-        AddInsetBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
+        AddInsetBoxShadows(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription);
 
         if (paintBorders || style.UnsupportedBorderPaint.Length > 0) {
             AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
@@ -42,7 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         IElement source) {
-        if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
+        if (!style.PaintVisible) return;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddOutlinePaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
@@ -63,7 +63,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription, visualSourceDescription);
-        AddInsetBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
+        AddInsetBoxShadows(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription);
     }
 
     private void AddBoxBackgroundCore(
@@ -78,14 +78,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
+        // Outer shadows and outlines can expand a zero-layout box. Its own
+        // background still has no paint area, for ordinary and generated boxes.
+        if (width <= 0.0001D || height <= 0.0001D) return;
         if (style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0) {
             BackgroundPaintBox colorBox = ResolveBackgroundBox(
                 style.BackgroundColorClip, x, y, width, height, borderInsets, style, radii);
-            OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
-            fill.FillColor = style.BackgroundColor;
-            fill.StrokeWidth = 0D;
-            visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
-                canExtendFragmentBackground: CanExtendBoxBackgroundThroughFragmentSlack(style, fill)));
+            if (colorBox.Width > 0D && colorBox.Height > 0D) {
+                OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
+                fill.FillColor = style.BackgroundColor;
+                fill.StrokeWidth = 0D;
+                visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
+                    canExtendFragmentBackground: CanExtendBoxBackgroundThroughFragmentSlack(style, fill)));
+            }
         }
 
         AddBackgroundImages(visuals, style, x, y, width, height, borderInsets, radii, source, diagnosticSourceDescription, visualSourceDescription);
@@ -174,6 +179,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string layerVisualSource = visualSourceDescription + ":background-image" + layerSuffix;
         BackgroundPaintBox originBox = ResolveBackgroundBox(layer.Origin, x, y, width, height, borderInsets, style, radii);
         BackgroundPaintBox clipBox = ResolveBackgroundBox(layer.Clip, x, y, width, height, borderInsets, style, radii);
+        if (clipBox.Width <= 0D || clipBox.Height <= 0D) return;
         double areaX = originBox.X;
         double areaY = originBox.Y;
         double areaWidth = originBox.Width;
@@ -187,6 +193,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeConversionLossKind.Approximation);
         }
         if (layer.LinearGradient != null || layer.RadialGradient != null || layer.ConicGradient != null) {
+            if (areaWidth <= 0D || areaHeight <= 0D) return;
             AddGradientBackground(
                 visuals,
                 style,
@@ -214,17 +221,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double intrinsicHeight = imageInfo != null && imageInfo.Height > 0
             ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
             : areaHeight;
-        OfficeDrawing? svgDrawing = null;
-        if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)
-            && !TryReadSvgDrawing(
-                bytes,
-                intrinsicWidth,
-                intrinsicHeight,
-                diagnosticSourceDescription + ":background-image",
-                out svgDrawing)) {
-            return;
-        }
-
         BackgroundImageSize imageSize = ResolveBackgroundImageSize(layer.Size, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style.Font.Size, out bool usedSizeFallback, style.CharacterAdvance);
         if (usedSizeFallback) {
             AddUnsupported(
@@ -249,6 +245,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         imageSize = ApplyRoundBackgroundSize(imageSize, layer.Size, areaWidth, areaHeight, repeatX, repeatY);
+
+        // A viewBox fits to the concrete tile, including repeat:round sizing.
+        // Without one, retain the intrinsic scene and existing tile projection.
+        OfficeDrawing? svgDrawing = null;
+        if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)
+            && !TryReadSvgDrawing(
+                bytes,
+                intrinsicWidth,
+                intrinsicHeight,
+                diagnosticSourceDescription + ":background-image",
+                out svgDrawing,
+                viewportWidth: imageInfo?.HasSvgViewBox == true ? imageSize.Width : null,
+                viewportHeight: imageInfo?.HasSvgViewBox == true ? imageSize.Height : null)) {
+            return;
+        }
 
         (double offsetX, double offsetY) = ResolveBackgroundPosition(
             layer.Position,
@@ -424,8 +435,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             left += style.PaddingLeft;
         }
 
-        double boxWidth = Math.Max(0.01D, width - left - right);
-        double boxHeight = Math.Max(0.01D, height - top - bottom);
+        double boxWidth = Math.Max(0D, width - left - right);
+        double boxHeight = Math.Max(0D, height - top - bottom);
         return new BackgroundPaintBox(
             x + left,
             y + top,

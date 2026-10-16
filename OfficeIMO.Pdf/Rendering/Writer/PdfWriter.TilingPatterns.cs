@@ -49,7 +49,7 @@ internal static partial class PdfWriter {
         string formEntries = "/Type /XObject /Subtype /Form /FormType 1 /BBox [" +
             PdfNumberFormatter.Precise(effect.BoundsLeft) + " " + PdfNumberFormatter.Precise(effect.BoundsBottom) + " " +
             PdfNumberFormatter.Precise(effect.BoundsRight) + " " + PdfNumberFormatter.Precise(effect.BoundsTop) + "]" +
-            " /Group << /S /Transparency /I true /K false >> /Resources << /Pattern << /Pt " + patternId + " 0 R >> >>";
+            " /Group << /S /Transparency /I true /K false" + (effect.IsOpacityData ? " /CS /DeviceRGB" : string.Empty) + " >> /Resources << /Pattern << /Pt " + patternId + " 0 R >> >>";
         return AddFlateStreamObject(objects, Encoding.ASCII.GetBytes(buffer.ToString()), formEntries);
     }
 

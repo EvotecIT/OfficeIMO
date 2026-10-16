@@ -14,6 +14,7 @@ public sealed class EpubRegionInkInspectionTests {
     [InlineData(2000, "transform:rotate(20deg)", "", true, false)]
     [InlineData(700, "transform:translateY(100px)", "", false, false)]
     [InlineData(700, "", "transform:translateY(35px)", true, false)]
+    [InlineData(700, "", "position:relative;top:35px", true, false)]
     [InlineData(2000, "overflow:hidden", "", false, false)]
     [InlineData(2000, "overflow:hidden;transform:rotate(20deg)", "", false, false)]
     [InlineData(700, "overflow:hidden", "transform:translateY(35px)", false, false)]
@@ -31,6 +32,7 @@ public sealed class EpubRegionInkInspectionTests {
         if (regionStyle.StartsWith("overflow:hidden") && !unmeasured)
             Assert.Contains(region.TextInkDiagnostics, d => d.Code == HtmlRenderDiagnosticCodes.ClippedTextInkBounds);
         if (overflow || unmeasured) Assert.True(report.HasRenderingWarnings);
+        if (childStyle == "position:relative;top:35px") Assert.True(region.HasOverflow);
         if (regionStyle.Length == 0 && childStyle.Length == 0) {
             Assert.False(report.HasTextInkOverflow);
             Assert.False(region.HasOverflow);

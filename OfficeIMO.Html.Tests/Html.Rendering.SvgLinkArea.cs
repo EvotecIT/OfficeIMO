@@ -193,9 +193,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Text", link.Contents);
     }
 
-    [Fact]
-    public void HtmlPdf_InlineAnchorUsesFaceHeightInsteadOfExtraLineLeading() {
-        const string html = "<div style='font:16px/24px Example'>"
+    [Theory]
+    [InlineData(24D, 2D, 17D)]
+    [InlineData(40D, 10D, 25D)]
+    public void HtmlPdf_InlineAnchorUsesFaceHeightInsteadOfExtraLineLeading(
+        double lineHeight, double expectedTop, double expectedBaseline) {
+        string html = FormattableString.Invariant($"<div style='font:16px/{lineHeight}px Example'>")
             + "<a href='https://example.test/inline'>Link text</a></div>";
         var options = new HtmlRenderOptions {
             Margins = HtmlRenderMargins.All(0D),
@@ -207,7 +210,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>());
 
         Assert.Equal(19D, fragment.Height, 3);
-        Assert.Equal(text.Y, fragment.Y, 3);
+        Assert.Equal(expectedTop, fragment.Y, 3);
+        Assert.Equal(expectedBaseline, text.Y + text.Font.Size, 3);
         byte[] pdf = HtmlPdfRenderedConverter.CreatePdf(rendered, new HtmlToPdfOptions(options),
             System.Threading.CancellationToken.None).Document.ToBytes();
         Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.test/inline"));

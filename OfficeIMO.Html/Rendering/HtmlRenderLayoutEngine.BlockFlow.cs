@@ -62,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (entry.TableNodes != null) {
                 if (seekingContinuation && !entry.TableNodes.OfType<IElement>().Any(element => ReferenceEquals(element, continuationChild))) continue;
                 seekingContinuation = false;
-                double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth,
+                double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, out _,
                     pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
                 flowHeight += inlineHeight;
                 HtmlRenderBoxStyle tableStyle = CreateAnonymousBoxStyle(parentStyle, "table", "anonymous-table");
@@ -104,9 +104,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 if (HtmlCssRunningElementParser.TryParsePosition(childStyle.Position, out string runningElementName)) {
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, out bool hasInlineLineBoxes, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
                     flowHeight += inlineHeight;
-                    if (inlineHeight > 0D) adjoiningMargins.Clear();
+                    if (inlineHeight > 0D || hasInlineLineBoxes) adjoiningMargins.Clear();
                     IReadOnlyList<HtmlCssRunningStringAssignment> assignments = CaptureRunningElement(
                         element,
                         runningElementName,
@@ -132,7 +132,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ? CreateFlattenedSemanticBoundary(element, childStyle)
                     : null;
                 if (childStyle.Display == "contents" && HasBlockChildren(element, width, childStyle, depth + 1)) {
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, out _, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
                     flowHeight += inlineHeight;
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
                     List<HtmlFloatExclusion>? flattenedFloats = activeFloats != null
@@ -172,9 +172,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         inlineNodes.Add(node);
                         continue;
                     }
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, out bool hasInlineLineBoxes, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
                     flowHeight += inlineHeight;
-                    if (inlineHeight > 0D) {
+                    if (inlineHeight > 0D || hasInlineLineBoxes) {
                         adjoiningMargins.Clear();
                     }
                     PositionedStaticAnchor? staticAnchor = HtmlRenderStyleResolver.IsBlockElement(element, childStyle)
@@ -191,9 +191,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)) {
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, out bool hasInlineLineBoxes, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
                     flowHeight += inlineHeight;
-                    if (inlineHeight > 0D) {
+                    if (inlineHeight > 0D || hasInlineLineBoxes) {
                         adjoiningMargins.Clear();
                     }
                     // Absolute fixed tracks can enlarge a table beyond its
@@ -316,10 +316,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineNodes.Add(node);
         }
 
-        double trailingInlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
+        double trailingInlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, out bool hasTrailingLineBoxes, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
         flowHeight += trailingInlineHeight;
         if (ownsFloatContext && floatContext.Bottom > flowHeight) blocks.Add(CreateFloatClearanceBlock(width, floatContext.Bottom - flowHeight));
-        if (trailingInlineHeight > 0D) adjoiningMargins.Clear();
+        if (trailingInlineHeight > 0D || hasTrailingLineBoxes) adjoiningMargins.Clear();
         if (includeGeneratedAfter) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
         return blocks;
     }

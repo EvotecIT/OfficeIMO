@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
         private string? EnsureFillGradient(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
             if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line) return null;
             EnsurePage();
-            return EnsureShapeFillGradient(currentPage!.Shadings, shape, xShape, bottomY, localCoordinates);
+            return EnsureShapeFillGradient(currentPage!.Shadings, shape, xShape, bottomY, localCoordinates, _drawingIsOpacityData);
         }
 
         private void DrawShapeShadowAt(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY) {
@@ -322,6 +322,7 @@ internal static partial class PdfWriter {
                 projection.Width,
                 projection.Height);
             pageImage.Interpolate = image.Interpolate;
+            pageImage.IsOpacityData = _drawingIsOpacityData;
             pageImage.Opacity = image.Opacity;
             pageImage.GraphicsStateName = EnsureGraphicsState(image.Opacity, image.Opacity);
             pageImage.HorizontalFlip = projection.FlipHorizontal;

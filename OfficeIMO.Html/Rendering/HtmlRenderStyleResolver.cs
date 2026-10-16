@@ -178,7 +178,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             parent?.FontDescriptor ?? OfficeFontFaceDescriptor.Regular);
         string display = pseudoElement
             ? ResolvePseudoDisplay(computed.GetValue("display"))
-            : ResolveDisplay(element, computed.GetValue("display"), computed.GetValue("-webkit-box-orient"), ResolveLineClamp(computed).HasValue);
+            : ResolveDisplay(element, computed);
         bool propagatedUnderline = parent != null && parent.UnderlineStyle != OfficeTextDecorationStyle.None
             && CanReceiveTextDecoration(display, computed.GetValue("position"), computed.GetValue("float"));
         OfficeFontStyle fontStyle = ResolveFontStyle(fontTag, computed);
@@ -222,7 +222,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : double.NaN;
         string fontPalette = ResolveInheritedKeyword(computed.GetValue("font-palette"), parent?.FontPalette, "normal");
 
-        double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent);
+        double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent, out double alignmentLineHeight);
         string verticalAlign = ResolveTextVerticalAlign(pseudoElement ? string.Empty : tag, computed);
         int baselineLevel = ResolveTextBaselineLevel(verticalAlign, parent?.BaselineLevel ?? 0);
         double baselineOffset = ResolveTextBaselineOffset(
@@ -270,6 +270,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
             CharacterAdvance = _activeCharacterAdvance,
             LineHeight = lineHeight,
+            InlineAlignmentLineHeight = alignmentLineHeight,
             LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
@@ -347,6 +348,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
         ApplyPositioning(physicalComputed, style);
+        style.TransformAppliesToBox = IsTransformableBox(element, style, parent, pseudoElement);
         // Positioned layout temporarily uses a static clone; retain applicability here.
         style.Clip = style.Position is "absolute" or "fixed"
             ? NormalizeCssValue(computed.GetValue("clip"), "auto")
@@ -845,27 +847,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         return rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;
     }
 
-    private double ResolveLineHeight(string value, double fontSize) {
-        if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return fontSize * _options.DefaultLineHeight;
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier) && multiplier >= 0D) return fontSize * multiplier;
-        return TryResolveLength(value, fontSize, fontSize, _rootFontSize, out double lineHeight) && lineHeight >= 0D
-            ? lineHeight
-            : fontSize * _options.DefaultLineHeight;
-    }
-
-    private double ResolveComputedLineHeight(HtmlComputedStyle computed, double fontSize, HtmlRenderBoxStyle? parent) {
-        string value = computed.GetValue("line-height");
-        // A length or percentage becomes an absolute computed line height on its
-        // originating element. A unitless number remains a multiplier when inherited.
-        if (parent != null && computed.IsInheritedValue("line-height")
-            && !string.IsNullOrWhiteSpace(value)
-            && !string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)
-            && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
-            return parent.LineHeight;
-        }
-        return ResolveLineHeight(value, fontSize);
-    }
-
     private static string ResolveSemanticRole(string tag) {
         if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') return "heading-" + tag[1];
         if (tag == "p") return "paragraph";
@@ -1045,7 +1026,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         IReadOnlyList<string> attachmentLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-attachment"));
         (string shorthandOrigin, string shorthandClip) = ExtractBackgroundBoxes(backgroundShorthand);
         style.BackgroundColorClip = HtmlRenderBackgroundLayer.NormalizeBox(
-            clipLayers.Count > 0 ? clipLayers[clipLayers.Count - 1] : shorthandClip,
+            GetLayerValue(clipLayers, Math.Max(0, sourceLayers.Count - 1), shorthandClip, "border-box"),
             "border-box");
         var layers = new List<HtmlRenderBackgroundLayer>();
         int declaredLayerCount = 0;

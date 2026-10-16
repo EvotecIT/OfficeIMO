@@ -141,6 +141,9 @@ internal sealed class HtmlRenderBoxStyle {
     internal HtmlRenderTextIndent? TextIndent;
     internal double CharacterAdvance = double.NaN;
     internal double LineHeight;
+    // Keep the used alignment height separate from ordinary text paint and the
+    // computed CSS value. Cloned styles retain the originating length's units.
+    internal double? InlineAlignmentLineHeight;
     internal double LetterSpacing;
     internal double WordSpacing;
     internal double? ExplicitWidth;
@@ -214,6 +217,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedOverflowClipMargin = string.Empty;
     internal string Transform = "none";
     internal string IndividualScale = "none";
+    // Resolved box applicability survives positioning/float clones that reset
+    // their original boxifying fields. Synthetic styles carry no declarations.
+    internal bool TransformAppliesToBox;
+    internal string UsedTransform => TransformAppliesToBox ? Transform : "none";
+    internal string UsedIndividualScale => TransformAppliesToBox ? IndividualScale : "none";
     internal string TransformOrigin = "50% 50%";
     internal string ClipPath = "none";
     internal string Clip = "auto";

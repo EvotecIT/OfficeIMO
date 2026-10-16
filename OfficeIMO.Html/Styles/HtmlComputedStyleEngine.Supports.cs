@@ -152,6 +152,9 @@ public static partial class HtmlComputedStyleEngine {
         if (BorderDeclarationNames.Contains(propertyName.ToLowerInvariant())) {
             return IsSupportedBorderDeclarationSyntax(propertyName, value);
         }
+        if (BackgroundLonghands.Contains(propertyName.ToLowerInvariant())) {
+            return IsSupportedBackgroundLonghandSyntax(propertyName.ToLowerInvariant(), value);
+        }
 
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
         if (string.Equals(propertyName, "text-indent", StringComparison.OrdinalIgnoreCase)) {
@@ -390,6 +393,9 @@ public static partial class HtmlComputedStyleEngine {
             // invalid later values must be rejected before replacing an earlier one.
             return IsSupportedBorderDeclarationSyntax(propertyName, value);
         }
+        if (BackgroundLonghands.Contains(propertyName.ToLowerInvariant())) {
+            return IsSupportedBackgroundLonghandSyntax(propertyName.ToLowerInvariant(), value);
+        }
         OfficeIMO.Html.Css.HtmlCssPropertyParseResult owned =
             OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(propertyName, value, UnboundedPropertyTokenization);
         if (owned.Definition != null && owned.IsAccepted) return true;
@@ -431,6 +437,8 @@ public static partial class HtmlComputedStyleEngine {
                 return HtmlCssTransformParser.IsSupportedIndividualScaleSyntax(normalized);
             case "font":
                 return TryExpandFontShorthand(value, out _);
+            case "background":
+                return TryExpandBackgroundShorthand(value, out _);
             case "text-decoration":
                 return TryExpandTextDecorationShorthand(value, out _);
             case "font-size":
@@ -683,6 +691,7 @@ public static partial class HtmlComputedStyleEngine {
             : raw;
 
         ExpandResolvedCascadeShorthands(resolved, priorities, inherited, reset, specified);
+        MaterializeBackgroundResets(resolved, reset);
         NormalizeOwnedComputedValues(resolved);
         ResolveRelativeComputedFontWeight(resolved, parentProperties);
 
@@ -801,6 +810,14 @@ public static partial class HtmlComputedStyleEngine {
                 } else {
                     resolved[pair.Key] = value;
                 }
+                continue;
+            }
+            string backgroundInitial = BackgroundInitialValue(pair.Key);
+            if (backgroundInitial.Length != 0) {
+                resolved[pair.Key] = backgroundInitial;
+                invalidAtComputedValueProperties.Add(pair.Key);
+                specifiedProperties.Remove(pair.Key);
+                inheritedProperties.Remove(pair.Key);
                 continue;
             }
             if (!OfficeIMO.Html.Css.HtmlCssPropertyCatalog.TryGet(pair.Key,

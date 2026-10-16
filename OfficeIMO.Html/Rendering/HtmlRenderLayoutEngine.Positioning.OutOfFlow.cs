@@ -426,7 +426,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double x = left ?? (right.HasValue ? containingWidth - right.Value - block.Width : staticPosition.X);
         double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : staticPosition.Y);
         return new PositionedLayer(block, x + translatedX, y + translatedY,
-            supportsBoundaryBreaks: localPagedBox && (request.Style.Transform == "none" || tookTranslation));
+            supportsBoundaryBreaks: localPagedBox && (request.Style.UsedTransform == "none" || tookTranslation));
     }
 
     private static bool MarkAbsolutePrintOverflow(IReadOnlyList<HtmlRenderVisual> visuals, string source) {

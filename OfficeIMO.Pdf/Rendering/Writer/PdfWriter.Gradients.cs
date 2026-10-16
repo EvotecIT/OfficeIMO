@@ -6,10 +6,10 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static string? EnsureShapeFillGradient(
         System.Collections.Generic.IList<PageShading> shadings,
-        OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
+        OfficeShape shape, double xShape, double bottomY, bool localCoordinates, bool isOpacityData = false) {
         if (shape.Kind == OfficeShapeKind.Line) return null;
         if (shape.FillRadialGradient != null) {
-            string radialName = EnsureRadialShading(shadings, shape.FillRadialGradient);
+            string radialName = EnsureRadialShading(shadings, shape.FillRadialGradient, isOpacityData);
             RegisterGradientAlphaBounds(shadings, radialName, shape, xShape, bottomY, localCoordinates);
             return radialName;
         }
@@ -22,7 +22,7 @@ internal static partial class PdfWriter {
             new OfficeTransform(shape.Width, 0D, 0D, localCoordinates ? shape.Height : -shape.Height,
                 originX, localCoordinates ? 0D : originY + shape.Height));
         string name = EnsureAxialShading(shadings, gradient,
-            projected.StartX, projected.StartY, projected.EndX, projected.EndY);
+            projected.StartX, projected.StartY, projected.EndX, projected.EndY, isOpacityData);
         RegisterGradientAlphaBounds(shadings, name, shape, xShape, bottomY, localCoordinates);
         return name;
     }
@@ -33,15 +33,17 @@ internal static partial class PdfWriter {
         double x0,
         double y0,
         double x1,
-        double y1) {
+        double y1,
+        bool isOpacityData) {
         for (int index = 0; index < shadings.Count; index++) {
             PageShading existing = shadings[index];
-            if (existing.InterpolateAlphaSeparately == gradient.InterpolateAlphaSeparately && existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesAxial(x0, y0, x1, y1, gradient.Stops)) return existing.Name;
+            if (existing.IsOpacityData == isOpacityData && existing.InterpolateAlphaSeparately == gradient.InterpolateAlphaSeparately && existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesAxial(x0, y0, x1, y1, gradient.Stops)) return existing.Name;
         }
 
         string name = "SH" + (shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
         shadings.Add(new PageShading {
             Name = name,
+            IsOpacityData = isOpacityData,
             Stops = new System.Collections.Generic.List<OfficeGradientStop>(gradient.Stops),
             ColorInterpolation = gradient.ColorInterpolation,
             InterpolateAlphaSeparately = gradient.InterpolateAlphaSeparately,
@@ -55,7 +57,8 @@ internal static partial class PdfWriter {
 
     private static string EnsureRadialShading(
         System.Collections.Generic.IList<PageShading> shadings,
-        OfficeRadialGradient gradient) {
+        OfficeRadialGradient gradient,
+        bool isOpacityData) {
         bool elliptical = !gradient.EndRadiusX.Equals(gradient.EndRadiusY);
         // Put the end focus at the coordinate origin. Large native brush maps
         // otherwise subtract nearly equal numbers in a consumer's float matrix,
@@ -68,12 +71,13 @@ internal static partial class PdfWriter {
         double r1 = elliptical ? 1D : gradient.EndRadius;
         for (int index = 0; index < shadings.Count; index++) {
             PageShading existing = shadings[index];
-            if (existing.InterpolateAlphaSeparately == gradient.InterpolateAlphaSeparately && existing.SpreadMode == gradient.SpreadMode && existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops, gradient.OutsideColor)) return existing.Name;
+            if (existing.IsOpacityData == isOpacityData && existing.InterpolateAlphaSeparately == gradient.InterpolateAlphaSeparately && existing.SpreadMode == gradient.SpreadMode && existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops, gradient.OutsideColor)) return existing.Name;
         }
 
         string name = "SH" + (shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
         shadings.Add(new PageShading {
             Name = name,
+            IsOpacityData = isOpacityData,
             IsRadial = true,
             SpreadMode = gradient.SpreadMode,
             OutsideColor = gradient.OutsideColor,

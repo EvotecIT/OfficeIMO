@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using OfficeIMO.Html.Css;
 
 namespace OfficeIMO.Html;
 
@@ -141,12 +142,28 @@ public static partial class HtmlResourcePipeline {
         }
     }
 
+    /// <summary>Uses the resource owner's option grammar without selecting or loading an image.</summary>
+    internal static bool IsValidImageSetSyntax(string value, Func<string, bool> validateImage) {
+        int open = value.IndexOf('(');
+        int close = open >= 0 ? FindMatchingCssParenthesis(value, open) : -1;
+        if (open <= 0 || close != value.Length - 1) return false;
+        // CSS forbids image-set anywhere inside an option's image. Tokens keep
+        // function-looking text in strings and URL payloads out of this check.
+        foreach (HtmlCssToken token in HtmlCssTokenizer.Enumerate(value)) {
+            if (token.Offset > open && token.Kind == HtmlCssTokenKind.Function
+                && (string.Equals(token.Value, "image-set", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(token.Value, "-webkit-image-set", StringComparison.OrdinalIgnoreCase))) return false;
+        }
+        return TryParseImageSetOptions(value, 0, open + 1, close, out _, validateImage);
+    }
+
     private static bool TryParseImageSetOptions(
         string css,
         int functionStart,
         int contentStart,
         int contentEnd,
-        out List<CssStringUrlReference> references) {
+        out List<CssStringUrlReference> references,
+        Func<string, bool>? validateImage = null) {
         references = new List<CssStringUrlReference>();
         int optionStart = contentStart;
         int depth = 0;
@@ -161,7 +178,7 @@ public static partial class HtmlResourcePipeline {
             if (current == '(') { depth++; continue; }
             if (current == ')' && depth > 0) { depth--; continue; }
             if (current != ',' || depth != 0) continue;
-            if (!TryParseImageSetOption(css, functionStart, optionStart, cursor, references)) {
+            if (!TryParseImageSetOption(css, functionStart, optionStart, cursor, references, validateImage)) {
                 references.Clear();
                 return false;
             }
@@ -175,15 +192,18 @@ public static partial class HtmlResourcePipeline {
         int functionStart,
         int start,
         int end,
-        ICollection<CssStringUrlReference> references) {
+        ICollection<CssStringUrlReference> references,
+        Func<string, bool>? validateImage) {
         int cursor = SkipCssTrivia(css, start, end);
         if (cursor >= end) return false;
         CssStringUrlReference? stringReference = null;
         if (css[cursor] is '"' or '\'') {
             int quote = cursor;
             if (!TryReadCssQuotedValue(css, cursor, out string source, out int sourceEnd) || sourceEnd > end ||
-                string.IsNullOrWhiteSpace(source)) return false;
-            stringReference = new CssStringUrlReference(functionStart, sourceEnd, quote + 1, source);
+                validateImage == null && string.IsNullOrWhiteSpace(source)) return false;
+            // An empty URL is valid syntax, but is not an extractable resource.
+            if (!string.IsNullOrWhiteSpace(source))
+                stringReference = new CssStringUrlReference(functionStart, sourceEnd, quote + 1, source);
             cursor = sourceEnd;
         } else {
             int nameStart = cursor;
@@ -194,6 +214,7 @@ public static partial class HtmlResourcePipeline {
             if (cursor >= end || css[cursor] != '(' || !IsSupportedCssImageFunction(functionName)) return false;
             int close = FindMatchingCssParenthesis(css, cursor);
             if (close < cursor || close >= end) return false;
+            if (validateImage != null && !validateImage(css.Substring(nameStart, close - nameStart + 1))) return false;
             cursor = close + 1;
         }
 
@@ -209,7 +230,9 @@ public static partial class HtmlResourcePipeline {
                 if (valueStart >= close || css[valueStart] is not ('"' or '\'') ||
                     !TryReadCssQuotedValue(css, valueStart, out string mediaType, out int valueEnd) ||
                     valueEnd > close || SkipCssTrivia(css, valueEnd, close) != close ||
-                    string.IsNullOrWhiteSpace(mediaType)) return false;
+                    validateImage == null && string.IsNullOrWhiteSpace(mediaType)) return false;
+                // MIME support selects an option; it does not decide whether
+                // the declaration's type(<string>) syntax is valid.
                 sawType = true;
                 cursor = close + 1;
                 continue;

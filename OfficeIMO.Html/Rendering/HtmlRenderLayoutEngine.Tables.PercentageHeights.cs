@@ -81,6 +81,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (int index in autoRows) rows[index].Height += extra / autoRows.Count;
             } else if (referenceTotal > 0D) {
                 foreach (TableRowLayout row in rows) row.Height += extra * row.Height / referenceTotal;
+            } else {
+                // All specified shares and content minima are zero. The table's
+                // authored minimum still belongs to its rows in equal shares.
+                foreach (TableRowLayout row in rows) row.Height += extra / rows.Count;
             }
         }
         return true;
