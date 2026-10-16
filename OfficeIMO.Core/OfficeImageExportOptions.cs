@@ -45,7 +45,7 @@ public class OfficeImageExportOptions {
     public OfficeColor BackgroundColor { get; set; } = OfficeColor.White;
 
     /// <summary>
-    /// Format-specific settings used when the selected output is raster-based.
+    /// Format-specific settings used when the selected output is raster-based, including PNG and lossless WebP encoding effort.
     /// </summary>
     public OfficeRasterEncodingOptions RasterEncoding { get; set; } = new OfficeRasterEncodingOptions();
 

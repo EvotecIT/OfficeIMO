@@ -2,6 +2,8 @@
 
 ## Image encoding defaults
 
+PNG and lossless WebP now default to `OfficeImageEncodingEffort.Balanced`. This replaces exhaustive candidate searches with bounded heuristics and one main compression plan. Set `RasterEncoding.Png.Effort` or `RasterEncoding.Webp.Effort` to `Smallest` to select the exhaustive compressor, or to `Fast` for lower encode cost. Direct codec option objects expose the same `Effort` property. Pixels remain lossless at every level; compressed bytes and sizes can change. PNG effort applies to `Compression = Optimal`; explicit `Fastest` and `Stored` compression retain their existing contracts. Lossy WebP quality remains separate.
+
 PNG optimal output chooses exact grayscale, grayscale-alpha, RGB, RGBA, or indexed samples instead of requiring a fixed channel layout. Palette transparency retains every original RGBA value. Generated PNGs also declare sRGB with matching gamma and chromaticities; a supplied ICC profile replaces those declarations through `EncodeWithMetadata`. Consumers must read IHDR rather than assume RGBA. Encoded bytes and image baselines can change while decoded pixels remain identical. `EncodeScanlines` and `CreateFromCompressedScanlines` retain the caller-selected layout and do not add automatic color declarations. The public raster model remains eight-bit; use `OfficePngWriter.EncodeRgba64` to encode sixteen-bit source samples directly.
 
 JPEG enables optimized Huffman tables by default. Quality 85, 4:4:4 sampling, and sequential scans remain the defaults, and decoded pixels are unchanged by Huffman optimization. Set `OfficeJpegEncodeOptions.OptimizeHuffman = false` to retain standard tables and the lower-memory MCU-at-a-time path.

@@ -7,6 +7,31 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeOutputWorkflowTests {
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png, OfficeImageEncodingEffort.Fast)]
+    [InlineData(OfficeImageExportFormat.Png, OfficeImageEncodingEffort.Smallest)]
+    [InlineData(OfficeImageExportFormat.Webp, OfficeImageEncodingEffort.Fast)]
+    [InlineData(OfficeImageExportFormat.Webp, OfficeImageEncodingEffort.Smallest)]
+    public async Task PageImageExportSnapshotsAndHonorsRasterEffort(OfficeImageExportFormat format, OfficeImageEncodingEffort effort) {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Encoder effort");
+        var encoding = new OfficeRasterEncodingOptions();
+        encoding.Png.Effort = encoding.Webp.Effort = effort;
+        var expected = PdfReadDocument.Open(File.ReadAllBytes(input)).Pages[0].ExportImage(format,
+            new PdfImageExportOptions { TargetDpi = 72, RasterEncoding = encoding.Clone() });
+        var request = new PdfPageImageExportRequest {
+            InputPath = input, OutputDirectory = Path.Combine(scope.Path, "pages"), Format = format,
+            TargetDpi = 72, RasterEncoding = encoding
+        };
+        // Progress runs after validation. Later caller mutation cannot change a
+        // captured operation's compression policy or make the request invalid.
+        var progress = new InlineProgress<OfficeWorkflowProgress>(_ =>
+            encoding.Png.Effort = encoding.Webp.Effort = (OfficeImageEncodingEffort)99);
+        var result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(request, progress);
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(expected.Bytes, File.ReadAllBytes(Assert.Single(result.Files).Path));
+    }
+
     [Fact]
     public async Task PageImageExportPreservesCallerSelectionAndPublishesValidatedFolder() {
         using var scope = new TestDirectory();

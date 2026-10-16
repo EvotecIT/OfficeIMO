@@ -90,6 +90,8 @@ Load EPUB with `IncludeRawHtml = true` and `IncludeResourceData = true` for the 
 
 ## Encoder and SVG output
 
+PNG and lossless WebP default to `OfficeImageEncodingEffort.Balanced`. Set `options.RasterEncoding.Png.Effort` or `.Webp.Effort` to `Fast` for lower encode cost or `Smallest` for exhaustive candidate searches. All levels retain exact pixels. `PdfPageImageExportRequest.RasterEncoding` passes the same settings through Workflows and snapshots them before execution.
+
 PNG optimal encoding selects exact grayscale, grayscale-alpha, RGB, RGBA, or indexed samples and writes sRGB color information. Use the metadata-aware raster encoder for an ICC profile and native density. JPEG defaults to optimized Huffman tables at quality 85 and 4:4:4; progressive and 4:2:0 remain explicit settings. TIFF adds `OfficeTiffCompression.CcittGroup4` for exact opaque black/white sources. WebP streams share the bounded lossless compressor instead of always writing literals. The [Core README](../OfficeIMO.Core/README.md) describes these APIs and their resource limits.
 
 SVG embeds non-interpolated rasters as `<image>` with pixelated sampling hints instead of expanding each pixel into rectangles. Output pixel dimensions follow the raster rounding rule. Soft-mask transfer tables and text outline strokes retain their Drawing paint semantics.

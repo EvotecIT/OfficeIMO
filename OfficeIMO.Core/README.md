@@ -758,11 +758,25 @@ OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Png, writer, op
 ReadOnlyMemory<byte> png = writer.WrittenMemory;
 ```
 
-The stream overload leaves the destination open. PNG's `Optimal` compression compares adaptive and unfiltered rows in the selected sample layout and writes the smaller compressed form. This preserves pixels, density metadata, cancellation and the encoded-byte ceiling. `Fastest` uses unfiltered rows and the platform's fastest Deflate setting; `Stored` writes uncompressed zlib blocks. Both skip the color-layout search for ordinary raster output. A supplied grayscale ICC profile still requires grayscale samples.
+The stream overload leaves the destination open. PNG and lossless WebP default to `OfficeImageEncodingEffort.Balanced`. Select effort on the existing format options; document conversion options expose the same settings through `RasterEncoding`:
 
-PNG chooses exact grayscale (including 1-, 2-, and 4-bit samples), grayscale-alpha, RGB, RGBA, or a palette of up to 256 RGBA colors. Palette entries preserve hidden RGB under transparent pixels. Optimal encoding compares palette overhead and compressed candidates, selects each row from all five PNG filters using signed-byte absolute differences, and compares against unfiltered compression. The probes and final pass use row-sized scratch, without retaining a full filtered image. Output is deterministic for the same input, encoder build, and runtime. Optimal encoding uses the smallest-size Deflate level on .NET 8/10 and the exposed optimal level on older targets. PNG raster exports declare sRGB, gamma, and chromaticities; `EncodeWithMetadata` writes a supplied ICC profile instead and retains a compatible RGB sample layout for RGB profiles.
+```csharp
+var exportOptions = new OfficeImageExportOptions();
+exportOptions.RasterEncoding.Png.Effort = OfficeImageEncodingEffort.Smallest;
+exportOptions.RasterEncoding.Webp.Effort = OfficeImageEncodingEffort.Smallest;
 
-`OfficePngWriter.EncodeRgba64(width, height, ushortSamples)` writes 16-bit samples without reducing their precision, including exact gray/gray-alpha/RGB reductions. It accepts tightly packed straight-alpha RGBA samples and optimal compression. `OfficeRasterImage` remains an eight-bit model; decoding to it before re-encoding cannot preserve sixteen-bit source samples.
+// The same settings work with direct raster encoding.
+options.Png.Effort = OfficeImageEncodingEffort.Fast;
+byte[] fastPng = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, options);
+```
+
+`Fast` uses cheap heuristics and a single compression plan. `Balanced` retains useful compression without competing full-image trials. `Smallest` opts into the more expensive searches described below. All levels preserve every decoded sample, including hidden RGB under transparent pixels, and are deterministic for the same input, encoder build, and runtime. Effort controls compression work rather than image quality; it is not a strict size ordering for every image.
+
+PNG chooses exact grayscale (including 1-, 2-, and 4-bit samples), grayscale-alpha, RGB, RGBA, or a palette of up to 256 RGBA colors. Fast and Balanced choose the layout by packed sample storage plus palette overhead, score a bounded sample of each row to select a PNG filter, and compress once. Fast uses the platform's fastest Deflate level; Balanced uses Optimal. Smallest compares compressed direct/palette layouts and adaptive/unfiltered rows, scores all five filters across each row, and uses smallest-size Deflate on .NET 8/10 (Optimal on older targets). Scratch remains row-sized, without a full filtered image.
+
+Effort applies when `OfficePngEncodeOptions.Compression` is `Optimal`. Explicit `Fastest` compression retains unfiltered RGBA and fastest Deflate; `Stored` retains uncompressed zlib blocks. A supplied grayscale ICC profile still requires grayscale samples. PNG raster exports declare sRGB, gamma, and chromaticities; `EncodeWithMetadata` writes a supplied ICC profile instead and retains a compatible sample layout.
+
+`OfficePngWriter.EncodeRgba64(width, height, ushortRgba, options)` preserves sixteen-bit source samples in grayscale, grayscale-alpha, RGB or RGBA output. It supports the same effort levels with `Compression = Optimal`. The shared decoded `OfficeRasterImage` model remains eight-bit.
 
 TIFF output supports uncompressed, LZW, PackBits, and Deflate RGBA strips; LZW and Deflate use horizontal prediction by default. `OfficeTiffCompression.CcittGroup4` writes one-bit T.6 strips from opaque exact black/white pixels and rejects other input. It applies to single images, streams, and `OfficeTiffCodec.EncodePages(...)`. Use `OfficeRasterImageEncoder.EncodeWithMetadata` to attach ICC data through the shared metadata owner.
 
@@ -794,7 +808,7 @@ The option supports single-line horizontal ASCII text with one resolved outline 
 
 ### Choose lossless or lossy WebP
 
-WebP output defaults to lossless VP8L. Byte-array and stream encoders use a bounded VP8L compressor with 32-pixel block predictors, subtract-green and cross-color transforms, an optional color cache, LZ77 references, and statistical Huffman tables. They retain one transformed pixel workspace and bounded match chains rather than a full token list. Inputs above four million pixels, or candidates whose workspace exceeds the managed-memory budget, use exact literal coding. Direct streaming retains a compressed payload when the compressor fits, without materializing a complete RIFF output. Set `Webp.Mode` to `Lossy` for VP8 output with an explicit quality:
+WebP output defaults to lossless VP8L. Fast uses one raw statistical Huffman/LZ77/color-cache plan with a shallow match search. Balanced samples color diversity and predictor residuals to decide whether a short block-predictor search is worthwhile, considers subtract-green, and builds one main compression plan with a bounded match search. Smallest compares raw and predicted plans, all supported block predictors, cross-color transforms and cache choices. Both byte-array and stream encoders retain one pixel workspace and bounded match chains instead of a full token list. Inputs above four million pixels, or candidates whose workspace cannot fit the managed memory limit, retain exact literal output at every effort level. Effort applies only to lossless VP8L; explicit VP8 lossy output uses `Quality` separately.
 
 ```csharp
 var webpOptions = new OfficeRasterEncodingOptions {

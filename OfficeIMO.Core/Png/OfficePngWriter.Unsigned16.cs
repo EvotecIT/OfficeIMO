@@ -8,7 +8,7 @@ public static partial class OfficePngWriter {
     /// <summary>Encodes tightly packed straight-alpha 16-bit RGBA samples without reducing precision.</summary>
     /// <remarks>Samples are in host ushort order. PNG stores them in network byte order.
     /// Exact gray and opaque channels are reduced to gray, gray-alpha, or RGB while
-    /// retaining 16-bit depth. This entry point uses optimal adaptive compression.
+    /// retaining 16-bit depth. This entry point supports all effort levels with Optimal compression.
     /// The 8-bit OfficeRasterImage model cannot retain 16-bit source precision.</remarks>
     public static byte[] EncodeRgba64(int width, int height, ushort[] rgba,
         OfficePngEncodeOptions? options = null, CancellationToken cancellationToken = default) {

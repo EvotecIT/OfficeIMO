@@ -56,17 +56,21 @@ public static partial class OfficeWebpCodec {
     }
 
     // A fixed sample bounds the Balanced decision without encoding both candidates.
-    // Include every alpha sample and the format's actual edge predictor semantics.
+    // Low-color sources usually benefit more from raw cache/copy reuse; only
+    // consider prediction when the sample has substantial color diversity.
     private static bool ShouldUseVp8lPrediction(int width, byte[] rgba, CancellationToken token) {
         long rawScore = 0, predictedScore = 0;
+        var colors = new System.Collections.Generic.HashSet<uint>();
+        int samples = 0;
         int count = rgba.Length / 4;
         for (int i = 0, step = Math.Max(1, count / 4096); i < count; i += step) {
             token.ThrowIfCancellationRequested();
             uint value = PackRgba(rgba, i * 4);
+            colors.Add(value); samples++;
             rawScore += Vp8lResidualScore(value);
             predictedScore += Vp8lResidualScore(SubtractArgb(value, PredictVp8lSource(rgba, width, i % width, i / width, 12)));
         }
-        return predictedScore * 4 < rawScore * 3;
+        return colors.Count * 4 >= samples && predictedScore * 4 < rawScore * 3;
     }
 
     private static uint PredictVp8lSource(byte[] rgba, int width, int x, int y, int mode) {
