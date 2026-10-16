@@ -14,6 +14,8 @@ public static partial class OfficeDrawingRasterRenderer {
         if (!effectGroup.Transform.TryInvert(out _)) return;
         EffectTextLayerPlan layerPlan = PlanEffectTextLayer(effectGroup, canvas, scale,
             canvas.CoordinateScaleX, canvas.CoordinateScaleY);
+        if (TryForwardScaledSourceOverGroup(canvas, effectGroup, layerPlan, scale,
+                imageCodec, maximumRasterPixels, cancellationToken)) return;
         double scaleX = layerPlan.ScaleX, scaleY = layerPlan.ScaleY;
         double layerScale = System.Math.Max(scaleX, scaleY);
         if (scaleX <= 0D || scaleY <= 0D) return;

@@ -23,25 +23,24 @@ public static partial class OfficeDrawingRasterRenderer {
     private static EffectTextLayerPlan PlanEffectTextLayer(OfficeDrawingEffectGroup effect,
         OfficeRasterCanvas canvas, double scale, double parentX, double parentY,
         OfficeTransform? samplingPlacement = null) {
-        // Inspect the complete text extent before choosing interpolation. The layer
-        // density must still include its transform: rasterizing a nearest image on
-        // a smaller local grid first discards source samples before viewport scaling.
+        // Isolated nearest content retains its original grid. Transform-only
+        // forwarding is handled before rasterization by RenderEffectGroup.
         EffectTextLayerPlan original = CreateEffectTextLayer(effect.InnerDrawing, canvas,
             scale, scale, interpolate: false);
         SamplingInspectionContext inspection = new SamplingInspectionContext(canvas.CancellationToken);
-        bool nearest = ContainsNearest(original);
+        if (ContainsNearest(original)) return original;
         OfficeTransform transform = samplingPlacement.HasValue
             ? effect.Transform.Then(samplingPlacement.Value) : effect.Transform;
         (double axisX, double axisY) = GetEffectAxisScales(transform, parentX, parentY);
         double scaleX = scale * axisX, scaleY = scale * axisY;
-        if (scaleX == scale && scaleY == scale) return original.WithInterpolation(!nearest);
+        if (scaleX == scale && scaleY == scale) return original.WithInterpolation(true);
         // Layout uses one nominal font scale; painting and texel support retain
         // the independent axes so a narrow destination does not allocate a square.
         EffectTextLayerPlan sampled = CreateEffectTextLayer(effect.InnerDrawing, canvas,
-            scaleX, scaleY, interpolate: !nearest);
-        // Density can reveal nearest content at rounded overhangs. Retain the
-        // destination density while selecting its authored sampling policy.
-        return nearest || ContainsNearest(sampled) ? sampled.WithInterpolation(false) : sampled;
+            scaleX, scaleY, interpolate: true);
+        // Density can reveal nearest content at rounded overhangs. Isolation
+        // must conservatively retain its original grid and measurements.
+        return ContainsNearest(sampled) ? original : sampled;
 
         bool ContainsNearest(EffectTextLayerPlan plan) {
             var surface = (Left: plan.Left, Top: 0D, Right: plan.Left + plan.Drawing.Width,

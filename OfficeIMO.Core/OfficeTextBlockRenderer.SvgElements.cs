@@ -207,9 +207,11 @@ public static partial class OfficeTextBlockRenderer {
             ? OfficeTextElements.ResolveBaseDirection(text)
             : direction;
         bool splitDecorations = RequiresSeparateSvgDecorations(resolvedUnderlineStyle, resolvedStrikethroughStyle);
-        builder.Append("<text")
-            .AppendAttribute("aria-label", string.Equals(text, logicalText, StringComparison.Ordinal) ? null : logicalText)
-            .AppendNumberAttribute("x", x)
+        builder.Append("<text");
+        if (logicalText != null && !string.Equals(text, logicalText, StringComparison.Ordinal)) {
+            builder.AppendAttribute("aria-label", logicalText);
+        }
+        builder.AppendNumberAttribute("x", x)
             .AppendNumberAttribute("y", renderedY)
             .AppendAttribute("font-family", string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily)
             .AppendNumberAttribute("font-size", renderedFontSize)
