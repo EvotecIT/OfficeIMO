@@ -210,6 +210,14 @@ internal sealed class PdfImageColorSpaceNormalization {
     internal double MapLookupByteToComponent(int component, byte value) =>
         MapUnitToComponentRange(component, value / 255D);
 
+    /// <summary>Maps a colour-space component into the sample interval used by packed image data.</summary>
+    internal double MapComponentToUnitRange(int component, double value) {
+        double minimum = _componentRanges[component * 2];
+        double maximum = _componentRanges[component * 2 + 1];
+        if (maximum <= minimum) return 0D;
+        return Math.Max(0D, Math.Min(1D, (value - minimum) / (maximum - minimum)));
+    }
+
     private bool HasNonUnitComponentRange() {
         for (int component = 0; component < SourceColorCount; component++) {
             int offset = component * 2;

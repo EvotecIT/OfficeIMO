@@ -276,13 +276,14 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         }
 
         // Right-to-left text is painted in visual order, as in the TrueType scalar fallback.
-        if (OfficeUnicodeBidi.ContainsRightToLeft(text) && glyphs.Count > 1) {
+        bool reordered = OfficeUnicodeBidi.ContainsRightToLeft(text) && glyphs.Count > 1;
+        if (reordered) {
             glyphs = PdfUnicodeScalarTextShaper.ToVisualOrder(text, glyphs);
             if (PdfExternalTextShaper.IsReversedLogicalRun(text, glyphs)) {
                 return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: null, OfficeTextDirection.RightToLeft, preserveGlyphUnicode: true);
             }
         }
-        string? actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
+        string? actualText = reordered || OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
             ? text
             : null;
         return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText, preserveGlyphUnicode:

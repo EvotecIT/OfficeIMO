@@ -311,13 +311,14 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         // Without shaping, right-to-left text is still painted in UAX #9 visual order (joining forms
         // and mirrored glyphs need a shaping provider). A run that is an exact reversal maps through
         // ToUnicode, which readers reorder; other reordered runs keep the logical string as ActualText.
-        if (OfficeUnicodeBidi.ContainsRightToLeft(text) && glyphs.Count > 1) {
+        bool reordered = OfficeUnicodeBidi.ContainsRightToLeft(text) && glyphs.Count > 1;
+        if (reordered) {
             glyphs = ToVisualOrder(text, glyphs);
             if (PdfExternalTextShaper.IsReversedLogicalRun(text, glyphs)) {
                 return new PdfGlyphRun(glyphs, diagnostics, actualText: null, OfficeTextDirection.RightToLeft, preserveGlyphUnicode: true);
             }
         }
-        string? actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
+        string? actualText = reordered || OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
             ? text
             : null;
         return new PdfGlyphRun(glyphs, diagnostics, actualText, preserveGlyphUnicode:

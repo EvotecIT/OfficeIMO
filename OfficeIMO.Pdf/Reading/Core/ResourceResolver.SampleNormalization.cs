@@ -23,9 +23,10 @@ internal static partial class ResourceResolver {
     /// Rewrites the samples as 8 bits per component and pairs them with an 8-bit soft mask of the same size,
     /// un-premultiplying /Matte colours (ISO 32000-1, 11.6.5.3). Colour-key ranges scale with the samples.
     /// </summary>
-    private static bool TryNormalizeImageSamples(PdfStream stream, int width, int height, int bitsPerComponent, int colorCount,
+    private static bool TryNormalizeImageSamples(PdfStream stream, int width, int height, int bitsPerComponent, PdfImageColorSpaceNormalization colorSpace,
         Dictionary<int, PdfIndirectObject> objects, int maximumBytes, out PdfStream normalized, CancellationToken cancellationToken) {
         normalized = stream;
+        int colorCount = colorSpace.SourceColorCount;
         cancellationToken.ThrowIfCancellationRequested();
         if (colorCount < 1 || colorCount > 4 || bitsPerComponent is not (1 or 2 or 4 or 8 or 16) ||
             !PdfImageBufferLimits.TryGetScanlineBufferSize(width, height, colorCount + 1, maximumBytes, out _, out _)) return false;
@@ -57,17 +58,16 @@ internal static partial class ResourceResolver {
 
         if (ResolveStream(stream.Dictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject) ? softMaskObject : null, objects) is PdfStream softMask) {
             if (!TryNormalizeSoftMask(softMask, width, height, objects, maximumBytes, out byte[] alpha, cancellationToken)) return false;
-            if (TryReadMatte(softMask, colorCount, objects, out double[]? matte) && matte != null) {
+            if (softMask.Dictionary.Items.TryGetValue("Matte", out PdfObject? matteObject) && ResolveObject(matteObject, objects) is not PdfNull) {
+                if (!TryReadMatte(softMask, colorSpace, objects, out double[]? matte) || matte == null) return false;
                 if (!PdfImageDecodeTransform.TryCreateColor(stream.Dictionary, colorCount, objects, out PdfImageDecodeTransform? decode)) return false;
                 // Decode before un-premultiplying, then remove Decode to avoid applying it twice.
                 if (decode != null) {
-                    for (int component = 0; component < colorCount; component++) {
-                        double low = decode.TransformColorComponentValue(0, component), high = decode.TransformColorComponentValue(255, component);
-                        if (low < 0D || low > 1D || high < 0D || high > 1D) return false;
-                    }
                     for (int index = 0; index < samples.Length; index++) {
                         if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                        samples[index] = decode.TransformColorComponent(samples[index], index % colorCount);
+                        int component = index % colorCount;
+                        double value = colorSpace.MapComponentToUnitRange(component, decode.TransformColorComponentValue(samples[index], component));
+                        samples[index] = (byte)Math.Round(value * 255D);
                     }
                     dictionary.Items.Remove("Decode");
                 }
@@ -188,14 +188,15 @@ internal static partial class ResourceResolver {
         return true;
     }
 
-    private static bool TryReadMatte(PdfStream softMask, int colorCount, Dictionary<int, PdfIndirectObject> objects, out double[]? matte) {
+    private static bool TryReadMatte(PdfStream softMask, PdfImageColorSpaceNormalization colorSpace, Dictionary<int, PdfIndirectObject> objects, out double[]? matte) {
         matte = null;
+        int colorCount = colorSpace.SourceColorCount;
         if (!softMask.Dictionary.Items.TryGetValue("Matte", out PdfObject? matteObject) || ResolveArray(matteObject, objects) is not PdfArray array ||
             array.Items.Count != colorCount) return false;
         matte = new double[colorCount];
         for (int index = 0; index < colorCount; index++) {
             if (ResolveObject(array.Items[index], objects) is not PdfNumber number || double.IsNaN(number.Value) || double.IsInfinity(number.Value)) return false;
-            matte[index] = Math.Max(0D, Math.Min(1D, number.Value));
+            matte[index] = colorSpace.MapComponentToUnitRange(index, number.Value);
         }
         return true;
     }

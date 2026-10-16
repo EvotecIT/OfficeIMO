@@ -278,7 +278,7 @@ internal static partial class PdfWriter {
             double wordSpacing = justify ? (lineWidthUsed - baseLineW) / gapsCount : 0;
             // Tw applies only to single-byte code 32. Composite-font lines are positioned
             // explicitly, and several readers misapply Tw to the two-byte code 0x0020.
-            double pdfWordSpacing = wordSpacing != 0D && !segs.Any(seg => UsesSimpleFontText(seg, opts)) ? 0D : wordSpacing;
+            double pdfWordSpacing = wordSpacing != 0D && !segs.All(seg => UsesSimpleFontText(seg, opts)) ? 0D : wordSpacing;
 
             double lineWForAlign = justify ? lineWidthUsed : baseLineW;
             double dx = 0;

@@ -1638,7 +1638,7 @@ internal static partial class ResourceResolver {
             !PdfIndexedImageNormalizer.IsIndexedColorSpace(colorSpaceObj, objects)) {
             if (!PdfImageColorSpaceNormalization.TryResolve(colorSpaceObj, colorSpace, objects, maxDecodedStreamBytes, renderingIntent,
                     outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var sampleLayout) ||
-                !TryNormalizeImageSamples(stream, width, height, bitsPerComponent, sampleLayout.SourceColorCount, objects,
+                !TryNormalizeImageSamples(stream, width, height, bitsPerComponent, sampleLayout, objects,
                     maxDecodedStreamBytes, out PdfStream normalized, cancellationToken)) return false;
             return TryBuildPngFile(normalized, width, height, 8, colorSpaceObj, colorSpace, string.Empty,
                 objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform,

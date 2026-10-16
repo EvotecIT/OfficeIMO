@@ -38,6 +38,17 @@ public class DrawingUnicodeConformanceTests {
         Assert.True(cases > 300);
     }
 
+    [Theory]
+    [InlineData(63, 1)]
+    [InlineData(64, 0)]
+    public void BracketStackOverflowDiscardsPreviouslyFoundPairs(int nestedOpeners, int expectedClosingLevel) {
+        // With no N0 pairing the closing bracket resolves between R and L to embedding L.
+        // BD16 overflow returns no pairs, even the earlier completed pair in this sequence.
+        string text = "\u05D0(\u05D0)a" + new string('(', nestedOpeners);
+        int[] scalars = OfficeUnicodeBidi.ToScalars(text, out _);
+        Assert.Equal(expectedClosingLevel, OfficeUnicodeBidi.Resolve(scalars, 0).Levels[3]);
+    }
+
     [Fact]
     public void LineBreakOpportunitiesMatchLineBreakTest() {
         int cases = 0;
