@@ -17,6 +17,19 @@ public enum PdfTextShapingMode {
 }
 
 public sealed partial class PdfOptions {
+    private string? _textShapingLanguageOverride;
+
+    /// <summary>Retains an adapter's shaping language independently from PDF language metadata.</summary>
+    internal string? TextShapingLanguageOverride {
+        get => _textShapingLanguageOverride;
+        set {
+            ValidateOptionalLanguage(value, nameof(TextShapingLanguageOverride));
+            _textShapingLanguageOverride = value;
+        }
+    }
+
+    internal string? EffectiveTextShapingLanguage => _textShapingLanguageOverride ?? Language;
+
     /// <summary>Uses original font advances for imported document layout; PDF painting retains encoded widths.</summary>
     internal bool UseFontUnitTextLayout { get; set; }
 

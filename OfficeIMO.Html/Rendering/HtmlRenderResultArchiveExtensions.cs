@@ -41,6 +41,17 @@ public static class HtmlRenderResultArchiveExtensions {
         string extension = format.GetFileExtension();
         var artifacts = new List<ArchiveArtifact>(images.Count);
         var pages = new List<HtmlRenderArchivePage>(images.Count);
+        var sourceDiagnostics = new HashSet<(OfficeImageExportDiagnosticSeverity, string, string, string?, OfficeConversionLossKind)>(
+            result.Diagnostics.Select(diagnostic => (
+                diagnostic.Severity switch {
+                    HtmlDiagnosticSeverity.Error => OfficeImageExportDiagnosticSeverity.Error,
+                    HtmlDiagnosticSeverity.Warning => OfficeImageExportDiagnosticSeverity.Warning,
+                    _ => OfficeImageExportDiagnosticSeverity.Info
+                },
+                diagnostic.Code, diagnostic.Message,
+                (string?)(diagnostic.Source == null ? "html-render"
+                    : string.IsNullOrWhiteSpace(diagnostic.Source) ? diagnostic.Component : diagnostic.Source),
+                diagnostic.LossKind)));
         for (int index = 0; index < images.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult image = images[index];
@@ -53,7 +64,8 @@ public static class HtmlRenderResultArchiveExtensions {
                 image,
                 entryName,
                 sha256,
-                image.Diagnostics.Skip(Math.Min(result.Diagnostics.Count, image.Diagnostics.Count))));
+                image.Diagnostics.Where(diagnostic => !sourceDiagnostics.Contains((
+                    diagnostic.Severity, diagnostic.Code, diagnostic.Message, diagnostic.Source, diagnostic.LossKind)))));
         }
 
         var manifest = new HtmlRenderArchiveManifest(result, format, pages);
