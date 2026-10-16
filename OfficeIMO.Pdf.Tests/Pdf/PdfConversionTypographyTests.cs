@@ -240,6 +240,7 @@ public sealed class PdfConversionTypographyTests {
             string workbookPath = Path.Combine(directory, "multilingual.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, "Report");
             ExcelSheet sheet = document.Sheets[0];
+            sheet.SetColumnWidth(1, 32);
             sheet.Cell(1, 1, "Converter typography report");
             sheet.Cell(2, 1, "Zażółć gęślą jaźń");
             sheet.Cell(3, 1, "Ελλάδα");
@@ -252,7 +253,7 @@ public sealed class PdfConversionTypographyTests {
             };
             PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             byte[] pdf = result.ToBytes();
-            Assert.False(result.HasWarnings);
+            Assert.False(result.HasWarnings, string.Join("; ", result.Warnings.Select(warning => warning.Code + ": " + warning.Message)));
             return pdf;
         } finally {
             if (Directory.Exists(directory)) {
@@ -278,7 +279,7 @@ Zażółć gęślą jaźń
 """).ToPdfDocumentResult(options);
 
         byte[] pdf = result.ToBytes();
-        Assert.False(result.HasWarnings);
+        Assert.False(result.HasWarnings, string.Join("; ", result.Warnings.Select(warning => warning.Code + ": " + warning.Message)));
         return pdf;
     }
 

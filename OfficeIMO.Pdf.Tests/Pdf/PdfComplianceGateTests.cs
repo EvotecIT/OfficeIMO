@@ -64,7 +64,6 @@ public class PdfComplianceGateTests {
         Assert.Equal("en-US", info.CatalogLanguage);
         Assert.Contains("/Metadata ", raw, StringComparison.Ordinal);
         Assert.Contains("/OutputIntents [", raw, StringComparison.Ordinal);
-        Assert.Contains("/Length 3052", raw, StringComparison.Ordinal);
         Assert.Contains("pdfaid:part", raw, StringComparison.Ordinal);
         Assert.Contains("pdfaid:conformance", raw, StringComparison.Ordinal);
         Assert.Contains("/EmbeddedFiles", raw, StringComparison.Ordinal);

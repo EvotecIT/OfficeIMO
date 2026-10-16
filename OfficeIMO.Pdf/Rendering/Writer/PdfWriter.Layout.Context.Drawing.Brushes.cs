@@ -4,37 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private long _drawingTileCount;
-        private int _drawingTileLimit;
         private bool _suppressDrawingLinks;
-
-        private void DrawDrawingPatternAt(OfficeDrawingTilingPattern pattern, double originX, double originTopY, OfficeDrawingTextMetrics metrics) {
-            if (pattern.Opacity <= 0D) return;
-            _drawingTileLimit = Math.Max(_drawingTileLimit, pattern.MaximumTileCount);
-            RenderEffectGroup(OfficeTransform.Identity, pattern.Opacity, () => {
-                int areaLinkStart = currentPage!.Annotations.Count;
-                var area = pattern.Area;
-                new ContentStreamBuilder(sb).SaveState();
-                AppendClipPath(sb, OfficeClipPath.Rectangle(area.Width, area.Height),
-                    originX + area.X, originTopY - area.Y - area.Height, area.Height);
-                foreach (OfficeTransform tileTransform in pattern.GetTileTransforms()) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (++_drawingTileCount > _drawingTileLimit)
-                        throw new InvalidOperationException("PDF vector pattern aggregate expansion exceeds the configured tile-count limit.");
-                    RenderEffectGroup(ToTopLeftPageTransform(tileTransform, originX, originTopY), 1D, () => {
-                        new ContentStreamBuilder(sb).SaveState();
-                        int tileLinkStart = currentPage!.Annotations.Count;
-                        AppendClipPath(sb, OfficeClipPath.Rectangle(pattern.InnerTile.Width, pattern.InnerTile.Height),
-                            originX, originTopY - pattern.InnerTile.Height, pattern.InnerTile.Height);
-                        DrawDrawingElements(pattern.InnerTile, originX, originTopY, metrics);
-                        ClipCanvasLinkAnnotations(currentPage.Annotations, tileLinkStart, originX, originTopY - pattern.InnerTile.Height, pattern.InnerTile.Width, pattern.InnerTile.Height, OfficeClipPath.Rectangle(pattern.InnerTile.Width, pattern.InnerTile.Height));
-                        new ContentStreamBuilder(sb).RestoreState();
-                    });
-                }
-                ClipCanvasLinkAnnotations(currentPage.Annotations, areaLinkStart, originX + area.X, originTopY - area.Y - area.Height, area.Width, area.Height, OfficeClipPath.Rectangle(area.Width, area.Height));
-                new ContentStreamBuilder(sb).RestoreState();
-            });
-        }
 
         private void DrawDrawingEffectAt(OfficeDrawingEffectGroup effect, double originX, double originTopY, OfficeDrawingTextMetrics metrics) {
             OfficeTransform transform = ToTopLeftPageTransform(effect.Transform, originX, originTopY);

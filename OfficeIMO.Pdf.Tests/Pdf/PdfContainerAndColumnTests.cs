@@ -47,7 +47,7 @@ public class PdfContainerAndColumnTests {
         IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Load(bytes).Reader.TextBlocks();
         Assert.Single(blocks, block => block.Text.Contains("Left one", StringComparison.Ordinal));
         Assert.Single(blocks, block => block.Text.Contains("Right one", StringComparison.Ordinal));
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("1 0 0 1 72 ", raw, StringComparison.Ordinal);
         Assert.Contains("1 0 0 1 318 ", raw, StringComparison.Ordinal);
         Assert.Single(PdfReadDocument.Open(bytes).Pages);
@@ -70,7 +70,7 @@ public class PdfContainerAndColumnTests {
             })
             .ToBytes();
 
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         string text = PdfReadDocument.Open(bytes).ExtractText();
         Assert.Contains("Container title", text, StringComparison.Ordinal);
         Assert.Contains("Container body", text, StringComparison.Ordinal);
@@ -107,7 +107,7 @@ public class PdfContainerAndColumnTests {
 
         byte[] bytes = document.ToBytes();
         PdfReadDocument read = PdfReadDocument.Open(bytes);
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.True(read.Pages.Count >= 2);
         Assert.Contains("Decorated fragment line 1", read.ExtractText(), StringComparison.Ordinal);
@@ -130,7 +130,7 @@ public class PdfContainerAndColumnTests {
             .ToBytes();
 
         PdfReadDocument read = PdfReadDocument.Open(bytes);
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         Assert.Equal(2, read.Pages.Count);
         Assert.Contains("Before break", read.ExtractText(), StringComparison.Ordinal);
         Assert.Contains("After break", read.ExtractText(), StringComparison.Ordinal);
@@ -165,7 +165,7 @@ public class PdfContainerAndColumnTests {
                 })
             .ToBytes();
 
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         PdfReadDocument read = PdfReadDocument.Open(bytes);
         Assert.Single(read.Pages);
         Assert.Contains("ColumnLine01", read.ExtractText(), StringComparison.Ordinal);
@@ -205,7 +205,7 @@ public class PdfContainerAndColumnTests {
                 })
             .ToBytes();
 
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         PdfReadDocument read = PdfReadDocument.Open(bytes);
 
         Assert.Single(read.Pages);
@@ -275,7 +275,7 @@ public class PdfContainerAndColumnTests {
                 })
             .ToBytes();
 
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         double[] wordSpacings = raw
             .Split('\n')
             .Select(line => line.Trim())

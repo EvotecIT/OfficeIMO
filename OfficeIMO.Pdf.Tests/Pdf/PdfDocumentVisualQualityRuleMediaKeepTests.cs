@@ -30,7 +30,7 @@ public partial class PdfDocumentVisualQualityTests {
                 spacingAfter: 6)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.102 0.2 0.302 RG", content);
         Assert.Contains("3 w", content);

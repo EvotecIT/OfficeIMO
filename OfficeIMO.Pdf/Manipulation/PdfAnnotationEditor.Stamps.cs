@@ -47,7 +47,7 @@ internal static partial class PdfAnnotationEditor {
 
         int nextObjectNumber = NextAnnotationObjectNumber(objects);
         // Reserve every generated object before mutating the graph; post-increment must not wrap.
-        _ = checked(nextObjectNumber + (imageStream?.SoftMask is not null ? 4 : 3));
+        _ = checked(nextObjectNumber + (imageStream?.SoftMask is not null ? 4 : 3) + (imageStream?.IccProfile is not null ? 1 : 0));
         var generatedObjects = new List<int>();
         int? fontObjectNumber = null;
         int? imageObjectNumber = null;
@@ -56,15 +56,12 @@ internal static partial class PdfAnnotationEditor {
             objects[fontObjectNumber.Value] = new PdfIndirectObject(fontObjectNumber.Value, 0, BuildStampFont());
             generatedObjects.Add(fontObjectNumber.Value);
         } else {
-            int? softMaskObjectNumber = null;
-            if (imageStream.SoftMask is not null) {
-                softMaskObjectNumber = nextObjectNumber++;
-                objects[softMaskObjectNumber.Value] = new PdfIndirectObject(softMaskObjectNumber.Value, 0, PdfWriter.BuildImageXObject(imageStream.SoftMask));
-                generatedObjects.Add(softMaskObjectNumber.Value);
-            }
-            imageObjectNumber = nextObjectNumber++;
-            objects[imageObjectNumber.Value] = new PdfIndirectObject(imageObjectNumber.Value, 0, PdfWriter.BuildImageXObject(imageStream, softMaskObjectNumber));
-            generatedObjects.Add(imageObjectNumber.Value);
+            imageObjectNumber = PdfWriter.AddImageXObjectResource(imageStream, stream => {
+                int number = nextObjectNumber++;
+                objects[number] = new PdfIndirectObject(number, 0, stream);
+                generatedObjects.Add(number);
+                return number;
+            }, PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf)));
         }
         int appearanceObjectNumber = nextObjectNumber++;
         int annotationObjectNumber = nextObjectNumber++;

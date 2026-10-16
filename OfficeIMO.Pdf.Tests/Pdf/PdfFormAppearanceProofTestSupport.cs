@@ -127,7 +127,7 @@ internal static class PdfFormAppearanceProofTestSupport {
         foreach (PdfObject item in xObjects.Items.Values) {
             PdfReference reference = (PdfReference)item;
             PdfStream stream = (PdfStream)objects[reference.ObjectNumber].Value;
-            builder.AppendLine(Encoding.ASCII.GetString(stream.Data));
+            builder.AppendLine(Encoding.ASCII.GetString(OfficeIMO.Pdf.Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects)));
         }
 
         return builder.ToString();

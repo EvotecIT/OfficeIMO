@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text("DocBackgroundMarker"))
                 .ToBytes();
 
-            string content = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(pdfBytes));
+            string content = PdfTestContentText.JoinTextArrays(PdfTestContentText.ReadDecoded(pdfBytes));
             int backgroundFill = content.IndexOf("0.941 0.973 1 rg\n0 0 612 792 re f", StringComparison.Ordinal);
             int markerText = content.IndexOf("446F634261636B67726F756E644D61726B6572", StringComparison.Ordinal);
 
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests.Pdf {
                     .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("PageBackgroundMarker")))))
                 .ToBytes();
 
-            string content = Encoding.ASCII.GetString(pdfBytes);
+            string content = PdfTestContentText.ReadDecoded(pdfBytes);
 
             Assert.Contains("0.933 0.949 1 rg\n0 0 300 400 re f", content, StringComparison.Ordinal);
             Assert.DoesNotContain("1 1 1 rg\n0 0 300 400 re f", content, StringComparison.Ordinal);

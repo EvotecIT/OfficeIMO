@@ -511,7 +511,7 @@ internal static class PdfPngTestImages {
         return ms;
     }
 
-    private static void WritePngChunk(Stream stream, string type, byte[] data) {
+    internal static void WritePngChunk(Stream stream, string type, byte[] data) {
         byte[] typeBytes = Encoding.ASCII.GetBytes(type);
         var length = new byte[4];
         WriteInt32BigEndian(length, 0, data.Length);
@@ -525,7 +525,7 @@ internal static class PdfPngTestImages {
         stream.Write(crcBytes, 0, crcBytes.Length);
     }
 
-    private static byte[] BuildStoredZlib(byte[] scanline) {
+    internal static byte[] BuildStoredZlib(byte[] scanline) {
         using var ms = new MemoryStream();
         ms.WriteByte(0x78);
         ms.WriteByte(0x01);

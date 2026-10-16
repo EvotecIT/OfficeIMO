@@ -64,7 +64,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (decoded.Length < expectedLength) {
+        if (decoded.Length != expectedLength) {
             unsupportedReason = "PNG image data ended before all 16-bit scanlines were decoded.";
             return false;
         }
@@ -73,8 +73,8 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryGetPngCheckedLength(width, height, baseChannels, includeFilterByte: true, out int baseRowsLength) ||
-            !TryGetPngCheckedLength(width, height, 1, includeFilterByte: true, out int alphaRowsLength)) {
+        if (!TryGetPngCheckedLength(width, height, baseChannels * 2, includeFilterByte: true, out int baseRowsLength) ||
+            !TryGetPngCheckedLength(width, height, 2, includeFilterByte: true, out int alphaRowsLength)) {
             unsupportedReason = "PNG dimensions exceed supported limits.";
             return false;
         }
@@ -84,8 +84,8 @@ internal static partial class PdfWriter {
 
         for (int row = 0; row < height; row++) {
             cancellationToken.ThrowIfCancellationRequested();
-            int baseRowStart = row * (1 + width * baseChannels);
-            int alphaRowStart = row * (1 + width);
+            int baseRowStart = row * (1 + width * baseChannels * 2);
+            int alphaRowStart = row * (1 + width * 2);
             baseRows[baseRowStart] = 0;
             if (alphaRows != null) {
                 alphaRows[alphaRowStart] = 0;
@@ -95,29 +95,29 @@ internal static partial class PdfWriter {
             for (int pixel = 0; pixel < width; pixel++) {
                 CheckPngLoopCancellation(PngRowLoopKind.SixteenBitExpansion, pixel, cancellationToken);
                 int sourcePixel = sourceRowStart + pixel * sourceBytesPerPixel;
-                int basePixel = baseRowStart + 1 + pixel * baseChannels;
+                int basePixel = baseRowStart + 1 + pixel * baseChannels * 2;
 
                 if (colorType == 0 || colorType == 4) {
                     int gray = ReadUInt16BigEndian(rawPixels, sourcePixel);
-                    baseRows[basePixel] = Scale16BitSampleToByte(gray);
+                    WritePng16Sample(baseRows, basePixel, gray);
                     if (alphaRows != null) {
                         int alpha = hasIntrinsicAlpha
                             ? ReadUInt16BigEndian(rawPixels, sourcePixel + 2)
                             : gray == transparentGray ? 0 : 65535;
-                        alphaRows[alphaRowStart + 1 + pixel] = Scale16BitSampleToByte(alpha);
+                        WritePng16Sample(alphaRows, alphaRowStart + 1 + pixel * 2, alpha);
                     }
                 } else {
                     int red = ReadUInt16BigEndian(rawPixels, sourcePixel);
                     int green = ReadUInt16BigEndian(rawPixels, sourcePixel + 2);
                     int blue = ReadUInt16BigEndian(rawPixels, sourcePixel + 4);
-                    baseRows[basePixel] = Scale16BitSampleToByte(red);
-                    baseRows[basePixel + 1] = Scale16BitSampleToByte(green);
-                    baseRows[basePixel + 2] = Scale16BitSampleToByte(blue);
+                    WritePng16Sample(baseRows, basePixel, red);
+                    WritePng16Sample(baseRows, basePixel + 2, green);
+                    WritePng16Sample(baseRows, basePixel + 4, blue);
                     if (alphaRows != null) {
                         int alpha = hasIntrinsicAlpha
                             ? ReadUInt16BigEndian(rawPixels, sourcePixel + 6)
                             : red == transparentRed && green == transparentGreen && blue == transparentBlue ? 0 : 65535;
-                        alphaRows[alphaRowStart + 1 + pixel] = Scale16BitSampleToByte(alpha);
+                        WritePng16Sample(alphaRows, alphaRowStart + 1 + pixel * 2, alpha);
                     }
                 }
             }
@@ -128,7 +128,8 @@ internal static partial class PdfWriter {
             Data = DeflateZlib(baseRows, cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
-            DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, baseChannels, width)
+            BitsPerComponent = 16,
+            DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, baseChannels, width, 16)
         };
 
         if (alphaRows != null) {
@@ -136,11 +137,49 @@ internal static partial class PdfWriter {
                 Data = DeflateZlib(alphaRows, cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
-                DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
+                BitsPerComponent = 16,
+                DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width, 16)
             };
         }
 
         return true;
+    }
+
+    private static void WritePng16Sample(byte[] bytes, int offset, int sample) {
+        bytes[offset] = (byte)(sample >> 8);
+        bytes[offset + 1] = (byte)sample;
+    }
+
+    /// <summary>
+    /// PDF 1.5 introduced 16-bit image samples. Older targets retain the existing nearest-value
+    /// reduction, round(sample / 257), for both color and alpha without mutating cached preparation.
+    /// </summary>
+    internal static PdfImageStream PrepareImageStreamForVersion(PdfImageStream source, PdfFileVersion version,
+        CancellationToken cancellationToken = default) {
+        if (version >= PdfFileVersion.Pdf15 || source.BitsPerComponent != 16) return source;
+        PdfImageStream image = source.CloneForWrite();
+        int channels = source.DictionarySuffix.Contains("/DeviceGray") ? 1 : 3;
+        if (!TryDecodePngData(source.Data, cancellationToken, out byte[] decoded, out string? reason) ||
+            !TryUnfilterPngRows(decoded, source.PixelWidth, source.PixelHeight, channels * 2,
+                cancellationToken, out byte[] samples, out reason) ||
+            !TryGetPngCheckedLength(source.PixelWidth, source.PixelHeight, channels, true, out int length)) {
+            throw new NotSupportedException(reason ?? "16-bit image reduction exceeds supported limits.");
+        }
+        byte[] rows = new byte[length];
+        int stride = source.PixelWidth * channels;
+        for (int row = 0; row < source.PixelHeight; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int sample = 0; sample < stride; sample++) {
+                CheckPngLoopCancellation(PngRowLoopKind.SixteenBitExpansion, sample, cancellationToken);
+                rows[row * (stride + 1) + 1 + sample] =
+                    Scale16BitSampleToByte(ReadUInt16BigEndian(samples, (row * stride + sample) * 2));
+            }
+        }
+        image.Data = DeflateZlib(rows, cancellationToken);
+        image.BitsPerComponent = 8;
+        image.DictionarySuffix = image.DictionarySuffix.Replace("/BitsPerComponent 16", "/BitsPerComponent 8");
+        if (image.SoftMask != null) image.SoftMask = PrepareImageStreamForVersion(image.SoftMask, version, cancellationToken);
+        return image;
     }
 
     private static byte Scale16BitSampleToByte(int sample) =>

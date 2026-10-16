@@ -226,7 +226,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string pdf = Encoding.ASCII.GetString(bytes);
+        string pdf = PdfTestContentText.ReadDecoded(bytes);
         string content = string.Join("\n", GetPageContentStreams(bytes, 1));
         var fill = Assert.Single(ExtractPaintedRectangles(content, "0.23 0.34 0.45 rg", "f"));
         var border = Assert.Single(ExtractPaintedRectangles(content, "0.63 0.24 0.14 RG", "S"));
@@ -290,7 +290,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string pdf = Encoding.ASCII.GetString(bytes);
+        string pdf = PdfTestContentText.ReadDecoded(bytes);
         string content = string.Join("\n", GetPageContentStreams(bytes, 1));
         var fill = Assert.Single(ExtractPaintedRectangles(content, "0.23 0.34 0.45 rg", "f"));
         var border = Assert.Single(ExtractPaintedRectangles(content, "0.63 0.24 0.14 RG", "S"));

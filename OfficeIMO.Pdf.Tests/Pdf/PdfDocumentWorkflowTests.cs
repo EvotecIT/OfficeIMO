@@ -45,7 +45,7 @@ public class PdfDocumentWorkflowTests {
             }, style: style, includeHeader: true, keyHeader: "Field", valueHeader: "Value")
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Equal(4, style.HeaderRowCount);
@@ -209,7 +209,7 @@ public class PdfDocumentWorkflowTests {
             })
             .ToBytes();
 
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Matches(@"(?s)/F\d+\s+4\s+Tf.*<54696E79>\s+Tj", raw);
     }

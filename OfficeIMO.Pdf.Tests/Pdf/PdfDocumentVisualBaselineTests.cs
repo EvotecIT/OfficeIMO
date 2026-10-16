@@ -177,7 +177,7 @@ public class PdfDocumentVisualBaselineTests {
 
     private static void AppendContentStreamSignals(StringBuilder sb, byte[] pdfBytes) {
         string pdfText = Encoding.ASCII.GetString(pdfBytes);
-        string content = ExtractNonImageStreams(pdfText);
+        string content = ExtractNonImageStreams(pdfBytes);
         int imageDraws = CountOccurrences(content, " Do");
         int imageSoftMasks = CountOccurrences(pdfText, "/SMask");
         int visibleImageXObjects = Math.Max(imageDraws, CountOccurrences(pdfText, "/Subtype /Image") - imageSoftMasks);
@@ -209,34 +209,15 @@ public class PdfDocumentVisualBaselineTests {
         }
     }
 
-    private static string ExtractNonImageStreams(string pdfText) {
-        var sb = new StringBuilder();
-        int searchIndex = 0;
-        while (true) {
-            int streamIndex = pdfText.IndexOf("stream\n", searchIndex, StringComparison.Ordinal);
-            if (streamIndex < 0) {
-                break;
-            }
-
-            int endIndex = pdfText.IndexOf("\nendstream", streamIndex, StringComparison.Ordinal);
-            if (endIndex < 0) {
-                break;
-            }
-
-            int objectIndex = pdfText.LastIndexOf(" obj\n", streamIndex, StringComparison.Ordinal);
-            string header = objectIndex >= 0
-                ? pdfText.Substring(objectIndex, streamIndex - objectIndex)
-                : pdfText.Substring(Math.Max(0, streamIndex - 300), Math.Min(300, streamIndex));
-
-            if (!header.Contains("/Subtype /Image")) {
-                int contentStart = streamIndex + "stream\n".Length;
-                sb.AppendLine(pdfText.Substring(contentStart, endIndex - contentStart));
-            }
-
-            searchIndex = endIndex + "\nendstream".Length;
+    private static string ExtractNonImageStreams(byte[] pdf) {
+        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var builder = new StringBuilder();
+        foreach (PdfStream stream in objects.Values.Select(value => value.Value).OfType<PdfStream>()) {
+            if (stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image") continue;
+            builder.AppendLine(PdfEncoding.Latin1GetString(OfficeIMO.Pdf.Filters.StreamDecoder.Decode(
+                stream.Dictionary, stream.Data, objects)));
         }
-
-        return sb.ToString();
+        return builder.ToString();
     }
 
     private static int CountOccurrences(string text, string value) {

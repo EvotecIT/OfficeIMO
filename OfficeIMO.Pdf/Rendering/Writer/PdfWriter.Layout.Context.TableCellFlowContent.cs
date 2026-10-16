@@ -39,6 +39,12 @@ internal static partial class PdfWriter {
                 }
             }
 
+            // Deferred row spans consume only the lines actually admitted and resume the rest.
+            if (!verticalOffsetOverride.HasValue)
+                ReportFlowTableCellDiagnostics(style, cell, lines, rowIndex, sourceStartLine, requestedLineCount,
+                    visibleLineCount, cellX, cellTop, cellWidth, cellHeight, rowLeading, innerW,
+                    verticalOffset, includeObjects: !suppressCellObjects);
+
             double firstBaseline = contentFrame.Top - cellPadTop - verticalOffset - (sourceStartLine == 0 ? lines.TopSpacing : 0D) - GetAscenderForOptions(cellFont, rowSize, currentOpts) + style.RowBaselineOffset;
 
             pageDirty = true;

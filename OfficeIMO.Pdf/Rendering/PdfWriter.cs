@@ -377,6 +377,7 @@ internal static partial class PdfWriter {
         var optimizedImageCache = new Dictionary<string, OfficeImageOptimizationResult>(StringComparer.Ordinal);
 
         int EnsureImageXObject(PdfImageStream imageStream) {
+            imageStream = PrepareImageStreamForVersion(imageStream, serializationFileVersion, cancellationToken);
             if (imageXObjectIdsByHash == null) {
                 foreach ((PdfImageStream written, int existingImageId) in imageXObjectIds) {
                     if (SameImageStream(written, imageStream)) return existingImageId;
@@ -415,7 +416,9 @@ internal static partial class PdfWriter {
                 softMaskId = AddStreamObject(objects, softMaskDictionary, imageStream.SoftMask.Data);
             }
 
-            string imageDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream, softMaskId);
+            int? iccProfileId = imageStream.IccProfile == null ? null :
+                AddStreamObject(objects, BuildImageIccDictionary(imageStream), imageStream.IccProfile);
+            string imageDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream, softMaskId, iccProfileId);
             int imageId = AddStreamObject(objects, imageDictionary, imageStream.Data);
             imageXObjectIds.Add((imageStream, imageId));
             if (imageXObjectIdsByHash != null) {
@@ -601,14 +604,18 @@ internal static partial class PdfWriter {
                             shading.Y1,
                             shading.R1,
                             shading.Stops,
-                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation)
+                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation,
+                            interpolateAlphaSeparately: shading.InterpolateAlphaSeparately,
+                            functionReferenceResolver: body => PdfSyntaxEscaper.IndirectReference(AddObject(objects, body)))
                         : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
                             shading.X0,
                             shading.Y0,
                             shading.X1,
                             shading.Y1,
                             shading.Stops,
-                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation);
+                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation,
+                            interpolateAlphaSeparately: shading.InterpolateAlphaSeparately,
+                            functionReferenceResolver: body => PdfSyntaxEscaper.IndirectReference(AddObject(objects, body)));
                     int shadingId;
                     if (shading.SpreadMode != OfficeGradientSpreadMode.Pad) {
                         shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false, shadingColorTransform);
@@ -708,7 +715,9 @@ internal static partial class PdfWriter {
                         FilterPdfResources(effectContent, graphicsStates),
                         FilterPdfResources(effectContent, shadings),
                         effect.StructParentIndex);
-                    int effectId = AddStreamObject(objects, dictionary, effectBytes);
+                    int effectId = effect.TilingPattern != null
+                        ? AddTilingPatternForm(objects, effect, effectContent, fontResources, xobjects, graphicsStates, shadings)
+                        : AddStreamObject(objects, dictionary, effectBytes);
                     effect.Name = "/Fx" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
                     effect.ObjectId = effectId;
                     xobjects.Add((effect.Name, effectId));

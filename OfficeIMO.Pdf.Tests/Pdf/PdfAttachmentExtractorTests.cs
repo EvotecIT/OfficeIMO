@@ -42,8 +42,9 @@ public class PdfAttachmentExtractorTests {
 
         Assert.Equal(2, attachments.Count);
         Assert.Equal(2, documentAttachments.Count);
-        Assert.Equal(invoiceXml.Length, documentAttachmentInfos[0].SizeBytes);
-        Assert.Equal(sourceBytes.Length, documentAttachmentInfos[1].SizeBytes);
+        Assert.Equal(invoiceXml.Length, documentAttachmentInfos[0].DeclaredSizeBytes);
+        Assert.Equal("FlateDecode", documentAttachmentInfos[0].Filter);
+        Assert.Equal(sourceBytes.Length, documentAttachmentInfos[1].DeclaredSizeBytes);
 
         PdfExtractedAttachment invoice = attachments[0];
         Assert.Equal("invoice.xml", invoice.Name);

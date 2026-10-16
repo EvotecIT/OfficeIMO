@@ -1,5 +1,13 @@
 # Upgrading OfficeIMO
 
+## PDF graphics, images and stream compression
+
+Direct PDF authoring compresses page content with Flate by default. Set `PdfOptions.CompressContentStreams = false` when a tool needs plain page operators. ICC profiles, embedded files and widget appearances are compressed independently; XMP packets remain uncompressed. Tools inspecting PDF streams must decode their declared filters before reading their content. `PdfAttachmentInfo.SizeBytes` remains the encoded stream size; use `DeclaredSizeBytes` for the original size declared in attachment parameters, or extract the payload when its actual decoded size is required.
+
+Image authoring applies EXIF orientation during shared preparation. Previously unoriented images can rotate or mirror, and their intrinsic dimensions can swap. JPEGs without a required orientation transform retain DCT pass-through. Supported PNG and JPEG ICC profiles are retained with ICCBased colour spaces; indexed PNGs keep their palettes. Sixteen-bit PNG samples are retained in PDF 1.5 and newer. PDF 1.4 output rounds them to eight bits.
+
+Supported SVG images embedded in drawings retain vector paths, gradients, clipping and text. Tiling patterns use reusable PDF pattern cells. Expanded link annotations count against a shared generation budget derived from the existing pattern `maximumTileCount` limits, including nested and running content. Canvas gradients interpolate premultiplied colour channels, avoiding dark fringes beside transparent stops; imported SVG/XPS gradients retain their producer's separate colour/alpha interpolation. Regenerate image baselines that relied on the earlier rasterized SVG or canvas-gradient appearance.
+
 ## PDF text output and embedded fonts
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.

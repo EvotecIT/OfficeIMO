@@ -23,6 +23,9 @@ internal static partial class PdfWriter {
         public int PixelHeight { get; set; }
         public int BitsPerComponent { get; set; } = 8;
         public PdfImageStream? SoftMask { get; set; }
+        public byte[]? IccProfile { get; set; }
+        public int IccComponents { get; set; }
+        public byte[]? IndexedPalette { get; set; }
 
         /// <summary>
         /// Creates a writable descriptor over the immutable prepared stream payloads.
@@ -35,6 +38,9 @@ internal static partial class PdfWriter {
             PixelWidth = PixelWidth,
             PixelHeight = PixelHeight,
             BitsPerComponent = BitsPerComponent,
+            IccProfile = IccProfile,
+            IccComponents = IccComponents,
+            IndexedPalette = IndexedPalette,
             SoftMask = SoftMask?.CloneForWrite()
         };
     }
@@ -48,6 +54,13 @@ internal static partial class PdfWriter {
         CancellationToken cancellationToken,
         out PdfImageStream image,
         out string? unsupportedReason) {
+        if (!TryGetPngImageDataCore(data, cancellationToken, out image, out unsupportedReason)) return false;
+        return TryAttachImageIccProfile(data, OfficeImageFormat.Png, image,
+            image.DictionarySuffix.Contains("/DeviceGray") ? 1 : 3, cancellationToken, out unsupportedReason);
+    }
+
+    private static bool TryGetPngImageDataCore(byte[] data, CancellationToken cancellationToken,
+        out PdfImageStream image, out string? unsupportedReason) {
         image = new PdfImageStream();
         unsupportedReason = null;
         cancellationToken.ThrowIfCancellationRequested();
@@ -67,6 +80,7 @@ internal static partial class PdfWriter {
         int interlace = 0;
         byte[]? palette = null;
         byte[]? transparency = null;
+        bool hasIccChunk = false;
         var idat = new MemoryStream();
 
         while (offset + 12 <= data.Length) {
@@ -98,6 +112,12 @@ internal static partial class PdfWriter {
                 compression = data[chunkData + 10];
                 filter = data[chunkData + 11];
                 interlace = data[chunkData + 12];
+            } else if (type == "iCCP") {
+                if (hasIccChunk || palette != null || idat.Length > 0) {
+                    unsupportedReason = "PNG ICC profiles must occur once before palette and image data.";
+                    return false;
+                }
+                hasIccChunk = true;
             } else if (type == "IDAT") {
                 idat.Write(data, chunkData, length);
             } else if (type == "PLTE") {
@@ -371,97 +391,6 @@ internal static partial class PdfWriter {
         return true;
     }
 
-    private static bool TryExpandIndexedPng(byte[] compressedData, int width, int height, int bitDepth, byte[]? palette, byte[]? paletteAlpha, CancellationToken cancellationToken, out PdfImageStream image, out string? unsupportedReason) {
-        image = new PdfImageStream();
-        unsupportedReason = null;
-
-        if (palette == null || palette.Length == 0) {
-            unsupportedReason = "Indexed-color PNG images require a PLTE palette chunk.";
-            return false;
-        }
-
-        int paletteEntries = palette.Length / 3;
-        if (paletteAlpha != null && paletteAlpha.Length > paletteEntries) {
-            unsupportedReason = "Indexed-color PNG transparency has more entries than the PLTE palette.";
-            return false;
-        }
-
-        if (!TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
-            return false;
-        }
-
-        if (!TryGetPngRowByteCount(width, bitDepth, out int packedRowBytes) ||
-            !TryGetPngScanlineLength(packedRowBytes, height, out int expectedLength)) {
-            unsupportedReason = "PNG dimensions exceed supported limits.";
-            return false;
-        }
-
-        if (decoded.Length < expectedLength) {
-            unsupportedReason = "PNG image data ended before all indexed-color scanlines were decoded.";
-            return false;
-        }
-
-        if (!TryUnfilterPngRows(decoded, packedRowBytes, height, 1, cancellationToken, out var packedRows, out unsupportedReason)) {
-            return false;
-        }
-
-        if (!TryGetPngCheckedLength(width, height, 3, includeFilterByte: true, out int rgbRowsLength) ||
-            !TryGetPngCheckedLength(width, height, 1, includeFilterByte: true, out int indexedAlphaRowsLength)) {
-            unsupportedReason = "PNG dimensions exceed supported limits.";
-            return false;
-        }
-
-        byte[] baseRows = new byte[rgbRowsLength];
-        byte[]? alphaRows = HasPaletteTransparency(paletteAlpha) ? new byte[indexedAlphaRowsLength] : null;
-        for (int row = 0; row < height; row++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int baseRowStart = row * (1 + width * 3);
-            int alphaRowStart = row * (1 + width);
-            baseRows[baseRowStart] = 0;
-            if (alphaRows != null) {
-                alphaRows[alphaRowStart] = 0;
-            }
-
-            int sourceRowStart = row * packedRowBytes;
-            for (int pixel = 0; pixel < width; pixel++) {
-                CheckPngLoopCancellation(PngRowLoopKind.IndexedExpansion, pixel, cancellationToken);
-                int paletteIndex = ReadPackedPngSample(packedRows, sourceRowStart, pixel, bitDepth);
-                if (paletteIndex >= paletteEntries) {
-                    unsupportedReason = "Indexed-color PNG pixel references a palette entry that does not exist.";
-                    return false;
-                }
-
-                int paletteOffset = paletteIndex * 3;
-                int targetOffset = baseRowStart + 1 + pixel * 3;
-                baseRows[targetOffset] = palette[paletteOffset];
-                baseRows[targetOffset + 1] = palette[paletteOffset + 1];
-                baseRows[targetOffset + 2] = palette[paletteOffset + 2];
-
-                if (alphaRows != null) {
-                    alphaRows[alphaRowStart + 1 + pixel] =
-                        paletteAlpha != null && paletteIndex < paletteAlpha.Length ? paletteAlpha[paletteIndex] : (byte)255;
-                }
-            }
-        }
-
-        image = new PdfImageStream {
-            Data = DeflateZlib(baseRows, cancellationToken),
-            PixelWidth = width,
-            PixelHeight = height,
-            DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceRGB", 3, width)
-        };
-        if (alphaRows != null) {
-            image.SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows, cancellationToken),
-                PixelWidth = width,
-                PixelHeight = height,
-                DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
-            };
-        }
-
-        return true;
-    }
-
     private static bool HasPaletteTransparency(byte[]? paletteAlpha) =>
         paletteAlpha != null && paletteAlpha.Any(alpha => alpha < 255);
 
@@ -701,6 +630,7 @@ internal static partial class PdfWriter {
         a.PixelHeight == b.PixelHeight &&
         string.Equals(a.DictionarySuffix, b.DictionarySuffix, StringComparison.Ordinal) &&
         BytesEqual(a.Data, b.Data) &&
+        (a.IccProfile == null ? b.IccProfile == null : b.IccProfile != null && BytesEqual(a.IccProfile, b.IccProfile)) &&
         (a.SoftMask == null ? b.SoftMask == null : b.SoftMask != null && SameImageStream(a.SoftMask, b.SoftMask));
 
     private static void AddImageXObjectToHashIndex(
@@ -728,6 +658,7 @@ internal static partial class PdfWriter {
         AppendHashInt(hash, image.PixelHeight);
         AppendHashString(hash, image.DictionarySuffix);
         AppendHashBytes(hash, image.Data);
+        AppendHashBytes(hash, image.IccProfile ?? Array.Empty<byte>());
         if (image.SoftMask == null) {
             AppendHashByte(hash, 0);
             return;
@@ -832,14 +763,18 @@ internal static partial class PdfWriter {
     internal static PdfImageStream CreatePreparedJpegStream(
         byte[] data,
         OfficeImageInfo info,
-        int componentCount) {
+        int componentCount,
+        CancellationToken cancellationToken = default) {
         string colorSpace = componentCount == 1 ? "/DeviceGray" : "/DeviceRGB";
-        return new PdfImageStream {
+        var image = new PdfImageStream {
             Data = data,
             PixelWidth = info.Width,
             PixelHeight = info.Height,
             DictionarySuffix = " /ColorSpace " + colorSpace + " /BitsPerComponent 8 /Filter /DCTDecode"
         };
+        if (!TryAttachImageIccProfile(data, OfficeImageFormat.Jpeg, image, componentCount == 1 ? 1 : 3,
+                cancellationToken, out string? reason)) throw new NotSupportedException(reason);
+        return image;
     }
 
     internal static bool TryBuildImageStream(
@@ -876,7 +811,9 @@ internal static partial class PdfWriter {
             DictionarySuffix = " /ColorSpace " + colorSpace + " /BitsPerComponent 8 /Filter /DCTDecode"
         };
         cancellationToken.ThrowIfCancellationRequested();
-        return true;
+        return TryAttachImageIccProfile(data, OfficeImageFormat.Jpeg, image,
+            colorSpace == "/DeviceGray" ? 1 : colorSpace == "/DeviceCMYK" ? 4 : 3,
+            cancellationToken, out unsupportedReason);
     }
 
     private static void CheckPngLoopCancellation(PngRowLoopKind kind, int index, CancellationToken cancellationToken) {
@@ -895,7 +832,7 @@ internal static partial class PdfWriter {
     }
 
     internal static PdfStream BuildImageXObject(PdfImageStream image, int? softMaskObjectNumber = null) {
-        return PdfImageXObjectDictionaryBuilder.BuildStreamObject(image, softMaskObjectNumber);
+        return PdfImageXObjectDictionaryBuilder.BuildStreamObject(PrepareImageStreamForVersion(image, PdfFileVersion.Pdf14), softMaskObjectNumber);
     }
 
     private static bool IsPngChunkCrcValid(byte[] data, int chunkOffset, int chunkLength, CancellationToken cancellationToken) {

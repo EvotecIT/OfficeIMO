@@ -53,15 +53,29 @@ public sealed class DrawingSvgRadialSpreadTests {
     }
 
     [Theory]
-    [InlineData(OfficeGradientSpreadMode.Repeat)]
-    [InlineData(OfficeGradientSpreadMode.Reflect)]
-    public void ExplicitInteriorSpreadInterpolatesColorAndAlphaSeparately(OfficeGradientSpreadMode spread) {
-        var gradient = new OfficeRadialGradient(.25, .5, 0, .25, .5, .5,
-            new OfficeGradientStop(0, OfficeColor.FromRgba(255, 0, 0, 64)),
-            new OfficeGradientStop(1, OfficeColor.FromRgba(0, 0, 255, 128))).WithSpreadMode(spread);
-        var shape = OfficeShape.Rectangle(1, 1); shape.StrokeWidth = 0; shape.FillColor = null; shape.FillRadialGradient = gradient;
-        var drawing = new OfficeDrawing(1, 1).AddShape(shape, 0, 0);
-        Assert.Equal(OfficeColor.FromRgba(128, 0, 128, 96), OfficeDrawingRasterRenderer.Render(drawing).GetPixel(0, 0));
+    [InlineData(OfficeGradientSpreadMode.Repeat, false)]
+    [InlineData(OfficeGradientSpreadMode.Reflect, false)]
+    [InlineData(OfficeGradientSpreadMode.Repeat, true)]
+    [InlineData(OfficeGradientSpreadMode.Reflect, true)]
+    public void InteriorSpreadRetainsProducerAlphaInterpolation(OfficeGradientSpreadMode spread, bool importedSvg) {
+        OfficeDrawing drawing;
+        if (importedSvg) {
+            string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'><defs><radialGradient id='g' fx='.25' fy='.5' fr='0' cx='.25' cy='.5' r='.5' spreadMethod='" +
+                spread.ToString().ToLowerInvariant() + "'><stop offset='0' stop-color='red' stop-opacity='.25'/><stop offset='1' stop-color='blue' stop-opacity='.5'/></radialGradient></defs><rect width='1' height='1' fill='url(#g)'/></svg>";
+            Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? parsed, out int unsupported));
+            Assert.Equal(0, unsupported);
+            drawing = parsed!;
+        } else {
+            var gradient = new OfficeRadialGradient(.25, .5, 0, .25, .5, .5,
+                new OfficeGradientStop(0, OfficeColor.FromRgba(255, 0, 0, 64)),
+                new OfficeGradientStop(1, OfficeColor.FromRgba(0, 0, 255, 128))).WithSpreadMode(spread);
+            var shape = OfficeShape.Rectangle(1, 1); shape.StrokeWidth = 0; shape.FillColor = null; shape.FillRadialGradient = gradient;
+            drawing = new OfficeDrawing(1, 1).AddShape(shape, 0, 0);
+        }
+        // The sample is halfway through the stop interval. SVG interpolates RGB
+        // independently; canvas paint weights its channels by the endpoint alpha.
+        OfficeColor expected = importedSvg ? OfficeColor.FromRgba(128, 0, 128, 96) : OfficeColor.FromRgba(85, 0, 170, 96);
+        Assert.Equal(expected, OfficeDrawingRasterRenderer.Render(drawing).GetPixel(0, 0));
     }
 
 }

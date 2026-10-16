@@ -54,6 +54,8 @@ internal static partial class PdfWriter {
                     !ReferenceEquals(image.Data, image.PreparedStream.SoftMask.Data) &&
                     !ReferenceEquals(image.PreparedStream.Data, image.PreparedStream.SoftMask.Data))
                     bytes += image.PreparedStream.SoftMask.Data.LongLength;
+                bytes += image.PreparedStream.IccProfile?.LongLength ?? 0L;
+                bytes += image.PreparedStream.IndexedPalette?.LongLength ?? 0L;
             }
             return bytes;
         }

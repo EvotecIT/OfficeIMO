@@ -36,7 +36,7 @@ internal static partial class PdfWriter {
         double y1) {
         for (int index = 0; index < shadings.Count; index++) {
             PageShading existing = shadings[index];
-            if (existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesAxial(x0, y0, x1, y1, gradient.Stops)) return existing.Name;
+            if (existing.InterpolateAlphaSeparately == gradient.InterpolateAlphaSeparately && existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesAxial(x0, y0, x1, y1, gradient.Stops)) return existing.Name;
         }
 
         string name = "SH" + (shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
@@ -44,6 +44,7 @@ internal static partial class PdfWriter {
             Name = name,
             Stops = new System.Collections.Generic.List<OfficeGradientStop>(gradient.Stops),
             ColorInterpolation = gradient.ColorInterpolation,
+            InterpolateAlphaSeparately = gradient.InterpolateAlphaSeparately,
             X0 = x0,
             Y0 = y0,
             X1 = x1,
@@ -67,7 +68,7 @@ internal static partial class PdfWriter {
         double r1 = elliptical ? 1D : gradient.EndRadius;
         for (int index = 0; index < shadings.Count; index++) {
             PageShading existing = shadings[index];
-            if (existing.SpreadMode == gradient.SpreadMode && existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops, gradient.OutsideColor)) return existing.Name;
+            if (existing.InterpolateAlphaSeparately == gradient.InterpolateAlphaSeparately && existing.SpreadMode == gradient.SpreadMode && existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops, gradient.OutsideColor)) return existing.Name;
         }
 
         string name = "SH" + (shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
@@ -78,6 +79,7 @@ internal static partial class PdfWriter {
             OutsideColor = gradient.OutsideColor,
             Stops = new System.Collections.Generic.List<OfficeGradientStop>(gradient.Stops),
             ColorInterpolation = gradient.ColorInterpolation,
+            InterpolateAlphaSeparately = gradient.InterpolateAlphaSeparately,
             X0 = x0,
             Y0 = y0,
             R0 = r0,

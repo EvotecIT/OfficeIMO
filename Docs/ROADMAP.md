@@ -59,6 +59,10 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## PDF engine and conversion fidelity
 
+- [ ] Extend authoring overflow diagnostics to free-text annotation boxes, rotated and viewport table cells, paragraph-specific horizontal frames, and glyph/inline paint overhang in ordinary rows and fixed boxes. Preserve the distinction between admitted content, ordinary page continuation, preserved overflow and actual clipping.
+- [ ] Route visible signature appearance images through the shared image-resource allocator so supported ICC profiles and target-version sample depth are retained with their dependent resources.
+- [ ] Preserve JPEG DCT payloads while applying EXIF orientation through shared PDF image placement. The shared raster normalizer currently emits lossless PNG for transformed images; qualify crops, mirrors, stamps and running content before replacing that path.
+
 - [ ] Qualify the DOC/DOCX/TXT archive workflow with a representative large mixed-format producer corpus, including interruption/restart, source/output integrity, diagnostics, throughput and peak memory. Keep the existing per-file limits separate from archive-capacity claims.
 - [ ] Qualify printer delivery on native macOS and physical Windows/CUPS printers, including duplex, trays, margins and driver failures. Preserve queue acceptance as a separate contract from confirmed physical delivery.
 - [ ] Add source-password admission to CLI `workflow print-plan` and `workflow print` through the existing password environment-variable binding and `PdfPrintPlanRequest.PdfPassword`. Cover printing-permitted, copying-denied user access, incorrect passwords and denied printing; preserve authenticated Studio snapshots and MCP planning.

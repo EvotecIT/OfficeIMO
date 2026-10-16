@@ -98,11 +98,23 @@ public class PdfInvoiceProfileConsistencyTests {
             .AddEmbeddedFile("support.txt", new byte[] { 88 }, "text/plain", PdfAssociatedFileRelationship.Supplement);
         byte[] generated = PdfDocument.Create(options).Paragraph(p => p.Text("Invoice")).ToBytes();
         string original = PdfEncoding.Latin1GetString(generated);
-        string altered = emptyPayload
-            ? original.Replace("/Length 1 /Params", "/Length 0 /Params")
-            : original.Replace("/Subtype /text#2Fplain", "/Subtype /text#20plain");
-        Assert.NotEqual(original, altered);
-        byte[] pdf = PdfEncoding.Latin1GetBytes(altered);
+        byte[] pdf;
+        if (emptyPayload) {
+            pdf = PdfDocumentObjectGraphRewriter.Rewrite(generated, null, null, (objects, security) => {
+                var support = objects.Values.Single(item => item.Value is PdfStream stream &&
+                    stream.Dictionary.Get<PdfName>("Type")?.Name == "EmbeddedFile" &&
+                    stream.Dictionary.Get<PdfName>("Subtype")?.Name == "text/plain");
+                PdfStream stream = (PdfStream)support.Value;
+                stream.Dictionary.Items.Remove("Filter");
+                objects[support.ObjectNumber] = new PdfIndirectObject(support.ObjectNumber, support.Generation,
+                    new PdfStream(stream.Dictionary, Array.Empty<byte>()));
+                return security.InfoObjectNumber;
+            });
+        } else {
+            string altered = original.Replace("/Subtype /text#2Fplain", "/Subtype /text#20plain");
+            Assert.NotEqual(original, altered);
+            pdf = PdfEncoding.Latin1GetBytes(altered);
+        }
         var auxiliary = PdfAttachmentExtractor.ExtractAttachments(pdf).Single(file => file.FileName == "support.txt");
         if (emptyPayload) Assert.Empty(auxiliary.Bytes);
         else Assert.Equal("text plain", auxiliary.MimeType);

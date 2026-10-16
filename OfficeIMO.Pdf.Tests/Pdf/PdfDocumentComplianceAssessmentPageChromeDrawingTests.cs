@@ -19,7 +19,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Paragraph(paragraph => paragraph.Text("Header and footer image marked content."))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.Contains("/Figure << /Alt <486561646572206C6F676F> >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/Figure << /Alt <466F6F746572206C6F676F> >> BDC", content, StringComparison.Ordinal);
@@ -35,7 +35,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Paragraph(paragraph => paragraph.Text("Decorative image artifact marked content."))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
         Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
@@ -52,7 +52,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Paragraph(paragraph => paragraph.Text("Header and footer decorative images."))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
         Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
@@ -72,7 +72,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Paragraph(paragraph => paragraph.Text("Decorative page chrome artifact marked content."))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.True(CountOccurrences(content, "/Artifact BMC") >= 5);
         Assert.Contains("/Type /StructElem /S /Document", content, StringComparison.Ordinal);
@@ -90,7 +90,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Paragraph(paragraph => paragraph.Text("Body text remains structured."))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
         Assert.Contains("/P << /MCID", content, StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                     .Paragraph(paragraph => paragraph.Text("After row rule.")))))))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
         Assert.True(CountOccurrences(content, "/P << /MCID") >= 4);
@@ -159,7 +159,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             }, style: tableStyle)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.True(CountOccurrences(content, "/Artifact BMC") >= 8);
         Assert.Contains("/P << /MCID", content, StringComparison.Ordinal);
@@ -187,7 +187,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             }, linkUri: "https://officeimo.net/drawing", linkContents: "Approval drawing")
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.Contains("/MarkInfo << /Marked true >>", content, StringComparison.Ordinal);
         Assert.Contains("/StructParents 0", content, StringComparison.Ordinal);
@@ -212,7 +212,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Drawing(drawing, style: new PdfDrawingStyle { AlternativeText = "Composite drawing alternative text" })
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
         Assert.Equal(1, CountOccurrences(content, "/Figure << /Alt"));
         Assert.Contains("/Alt <436F6D706F736974652064726177696E6720616C7465726E61746976652074657874>", content, StringComparison.Ordinal);
         Assert.DoesNotContain("4E657374656420696D61676520616C7465726E61746976652074657874", content, StringComparison.Ordinal);
@@ -231,9 +231,9 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Drawing(drawing);
         byte[] pdf = document.ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
         Assert.Equal(1, CountOccurrences(content, "/StructParents"));
-        Assert.Contains("/StructParents 0 /Length", content, StringComparison.Ordinal);
+        Assert.Contains("/StructParents 0", content, StringComparison.Ordinal);
         Assert.Matches(@"/Type /StructElem /S /Figure[\s\S]+?/K << /Type /MCR /Pg \d+ 0 R /Stm (?<form>\d+) 0 R /MCID 0 >>", content);
         Assert.Matches(@"/Nums \[0 \[(?<figure>\d+) 0 R\]\]", content);
         Assert.Equal(
@@ -270,7 +270,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Drawing(drawing, style: new PdfDrawingStyle { Decorative = true })
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
         Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
         Assert.DoesNotContain("4E657374656420696D61676520616C7465726E61746976652074657874", content, StringComparison.Ordinal);
     }
@@ -292,7 +292,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             })
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
+        string content = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
         Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);

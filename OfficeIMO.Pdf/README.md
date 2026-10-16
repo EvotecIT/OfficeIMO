@@ -7,6 +7,20 @@
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
+Page content is Flate-compressed by default, including direct `PdfDocument.Create`
+authoring. `PdfOptions.CompressContentStreams = false` keeps page operators plain.
+ICC profiles, embedded files and widget appearances are compressed independently;
+XMP packets remain uncompressed. Identical graphics states, shadings, functions and
+untagged Form resources are shared within the document. Byte-identical page programs
+also share storage while retaining each page occurrence. Output keeps classic cross-reference
+tables; compact object/xref streams remain available through `Optimization`.
+
+Supported PNG/JPEG ICC profiles are retained as ICCBased image resources. Indexed PNGs
+keep their palette and transparency mask. EXIF orientation is applied once during shared
+image preparation. Sixteen-bit PNG colour and alpha samples are retained with PDF 1.5+
+output; PDF 1.4 rounds them to eight bits. JPEG DCT pass-through and repeated-image
+sharing remain available when no orientation or other pixel transform is required.
+
 ## Header and footer content
 
 Headers and footers can contain the same bounded paragraph, table, image and drawing flow used by the document body. `Content`, `FirstPageContent` and `EvenPagesContent` select a story for each page and reserve body space from its measured height. Distances and the optional `bodyGap` are in points from the top or bottom page edge. Repeated image payloads are shared across pages and pagination passes. During layout, including pagination stabilization, running content retains at most 128 MiB of distinct encoded image bytes, prepared streams and image masks; exceeding this limit throws `InvalidDataException`. This bounds retained layout assets; transient callback/decoder allocations and opt-in image optimization or PDF/X conversion during serialization use their own policies.
@@ -299,6 +313,15 @@ including header and footer shapes. Gradient direction follows the same local co
 before and after an affine transform.
 Path and polygon fills preserve `OfficeShape.FillRule`, including even-odd holes,
 gradient clipping, affine transforms, and header and footer shapes.
+
+Embedded SVG drawing images retain supported vector paths, gradients, clipping and text.
+PDF tiling patterns store a reusable cell instead of a copy of every tile. Repeated link
+annotations share a generation-wide expansion budget derived from the patterns' existing
+`maximumTileCount` limits; nested patterns and running content consume the same budget.
+Paint that the SVG reader can import but the PDF vector writer cannot express uses raster fallback and
+reports `SvgImageRasterFallback`; incomplete SVG imports fail explicitly.
+Canvas gradients interpolate premultiplied channels, including linear-light RGB gradients.
+Imported SVG/XPS retains separate colour and alpha interpolation.
 
 Drawing export retains bounded vector tiling patterns, isolated group opacity and
 blend modes, and alpha soft masks with transparent backdrops. Luminosity masks and

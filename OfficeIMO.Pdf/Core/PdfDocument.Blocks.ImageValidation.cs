@@ -30,7 +30,9 @@ public sealed partial class PdfDocument {
         }
 
         internal void Add(byte[] sourceHash, PreparedImage prepared) {
-            long size = prepared.Data.LongLength + (prepared.PreparedStream?.Data.LongLength ?? 0L) + (prepared.PreparedStream?.SoftMask?.Data.LongLength ?? 0L);
+            long size = prepared.Data.LongLength + (prepared.PreparedStream?.Data.LongLength ?? 0L) +
+                (prepared.PreparedStream?.SoftMask?.Data.LongLength ?? 0L) + (prepared.PreparedStream?.IccProfile?.LongLength ?? 0L) +
+                (prepared.PreparedStream?.IndexedPalette?.LongLength ?? 0L);
             if (size > MaximumBytes / 4) {
                 return;
             }
@@ -221,9 +223,14 @@ public sealed partial class PdfDocument {
             retainedManagedBytes: 0L,
             cancellationToken: cancellationToken);
         bool hasEmbeddedIccProfile = (sourceMetadata.Kinds & OfficeImageMetadataKinds.Icc) != 0;
-        if (hasEmbeddedIccProfile && sourceMetadata.Icc == null) {
+        if (hasEmbeddedIccProfile && sourceMetadata.Icc == null && sourceInfo.Format != OfficeImageFormat.Png) {
             throw new NotSupportedException(
                 SupportedImageMessage + " The embedded ICC profile cannot be retained or normalized safely.");
+        }
+
+        if (OfficeImageOrientationNormalizer.TryRead(data, cancellationToken, out OfficeImageOrientation orientation) &&
+            orientation != OfficeImageOrientation.Normal) {
+            return PrepareOrientedImage(data, sourceInfo, sourceMetadata, orientation, cancellationToken);
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Jpeg) {
@@ -276,7 +283,7 @@ public sealed partial class PdfDocument {
                 sourceInfo,
                 sourceInfo.Format,
                 wasTranscoded: false,
-                PdfWriter.CreatePreparedJpegStream(jpegSnapshot, sourceInfo, hasComponentCount ? componentCount : 0));
+                PdfWriter.CreatePreparedJpegStream(jpegSnapshot, sourceInfo, hasComponentCount ? componentCount : 0, cancellationToken));
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Png) {

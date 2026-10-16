@@ -56,7 +56,7 @@ public class PdfMergerTests {
         using var pdf = PdfPigDocument.Open(new MemoryStream(merged));
         Assert.Equal(2, pdf.NumberOfPages);
 
-        string pdfText = Encoding.ASCII.GetString(merged);
+        string pdfText = PdfTestContentText.ReadDecoded(merged);
         Assert.Contains("/Subtype /Image", pdfText);
         Assert.Contains("/Filter /FlateDecode", pdfText);
         Assert.Contains("/Width 1", pdfText);
@@ -77,7 +77,7 @@ public class PdfMergerTests {
             },
             annotated,
             plain);
-        string pdf = Encoding.ASCII.GetString(merged);
+        string pdf = PdfTestContentText.ReadDecoded(merged);
         PdfDocumentInfo info = PdfInspector.Inspect(merged);
 
         Assert.Equal(2, info.PageCount);
@@ -122,7 +122,7 @@ public class PdfMergerTests {
             Assert.Equal(842, Math.Round(page.Height));
         });
 
-        string pdf = Encoding.ASCII.GetString(merged);
+        string pdf = PdfTestContentText.ReadDecoded(merged);
         Assert.Contains(" cm", pdf, StringComparison.Ordinal);
         string text = NormalizeExtractedText(PdfReadDocument.Open(merged).ExtractText());
         AssertContainsInOrder(text, "Lettersourcepage", "Smallsourcepage", "Landscapesourcepage", "A4sourcepage");

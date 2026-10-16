@@ -5,6 +5,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Filters;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
@@ -173,12 +174,22 @@ public class PdfDocumentImageValidationTests {
             .Image(png, 18, 18)
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
-        int imageObjectCount = CountOccurrences(pdfContent, "/Subtype /Image");
-        int imageDrawCount = CountOccurrences(pdfContent, "/Im1 Do");
-
-        Assert.Equal(1, imageObjectCount);
-        Assert.True(imageDrawCount >= 3, "Expected all repeated image placements to draw the shared XObject.");
+        var objects = PdfSyntax.ParseObjects(bytes).Map;
+        PdfIndirectObject imageObject = Assert.Single(objects.Values.Where(item =>
+            item.Value is PdfStream stream && stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image"));
+        PdfDictionary[] pages = objects.Values.Select(item => item.Value).OfType<PdfDictionary>()
+            .Where(dictionary => dictionary.Get<PdfName>("Type")?.Name == "Page").ToArray();
+        Assert.Equal(2, pages.Length);
+        int imageDrawCount = 0;
+        foreach (PdfDictionary page in pages) {
+            PdfDictionary resources = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, page.Items["Resources"]));
+            PdfDictionary xobjects = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, resources.Items["XObject"]));
+            Assert.Equal(imageObject.ObjectNumber, Assert.IsType<PdfReference>(xobjects.Items["Im1"]).ObjectNumber);
+            PdfStream contents = Assert.IsType<PdfStream>(PdfObjectLookup.ResolveChain(objects, page.Items["Contents"]));
+            string operators = System.Text.Encoding.ASCII.GetString(StreamDecoder.DecodeRequired(contents, objects));
+            imageDrawCount += CountOccurrences(operators, "/Im1 Do");
+        }
+        Assert.Equal(3, imageDrawCount);
     }
 
     [Fact]
@@ -209,7 +220,7 @@ public class PdfDocumentImageValidationTests {
             }, style: tableStyle)
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n72 0 0 36 24 122 cm\n/Im1 Do\nQ", pdfContent);
     }
@@ -247,7 +258,7 @@ public class PdfDocumentImageValidationTests {
                                 }, style: tableStyle))))))
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n72 0 0 36 24 122 cm\n/Im1 Do\nQ", pdfContent);
     }
@@ -725,7 +736,7 @@ public class PdfDocumentImageValidationTests {
             .Image(jpeg, 360, 180, style: new PdfImageStyle { ScaleDownToFit = true })
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n180 0 0 90 20 70 cm\n/Im1 Do\nQ", pdfContent);
     }
@@ -853,7 +864,7 @@ public class PdfDocumentImageValidationTests {
     }
 
     [Fact]
-    public void Image_WithIndexedColorPng_WritesRgbImageObject() {
+    public void Image_WithIndexedColorPng_WritesIndexedImageObject() {
         byte[] png = CreateMinimalIndexedColorPng(includeTransparency: false);
 
         Assert.True(PdfDocument.TryValidateImageBytes(png, out OfficeImageInfo? imageInfo, out string? unsupportedReason));
@@ -867,8 +878,8 @@ public class PdfDocumentImageValidationTests {
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("/Width 2 /Height 1", pdfContent);
         Assert.Contains("/Filter /FlateDecode", pdfContent);
-        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
-        Assert.Contains("/Colors 3", pdfContent);
+        Assert.Contains("/ColorSpace [/Indexed /DeviceRGB", pdfContent);
+        Assert.Contains("/Colors 1", pdfContent);
         Assert.DoesNotContain("/SMask", pdfContent);
         Assert.DoesNotContain("/Filter /DCTDecode", pdfContent);
 
@@ -881,15 +892,15 @@ public class PdfDocumentImageValidationTests {
     [InlineData(2)]
     [InlineData(4)]
     [InlineData(8)]
-    public void Image_WithIndexedColorPngBitDepth_WritesRgbImageObject(int bitDepth) {
+    public void Image_WithIndexedColorPngBitDepth_WritesIndexedImageObject(int bitDepth) {
         byte[] png = CreateMinimalIndexedColorPng(includeTransparency: false, bitDepth: bitDepth);
 
         byte[] bytes = PdfDocument.Create().Image(png, 24, 12).ToBytes();
 
         string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
         Assert.Contains("/Width 2 /Height 1", pdfContent);
-        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
-        Assert.Contains("/Colors 3", pdfContent);
+        Assert.Contains("/ColorSpace [/Indexed /DeviceRGB", pdfContent);
+        Assert.Contains("/Colors 1", pdfContent);
         Assert.DoesNotContain("/SMask", pdfContent);
     }
 
@@ -904,9 +915,8 @@ public class PdfDocumentImageValidationTests {
         Assert.Contains("/Width 2 /Height 1", pdfContent);
         Assert.Contains("/Filter /FlateDecode", pdfContent);
         Assert.Contains("/SMask", pdfContent);
-        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
+        Assert.Contains("/ColorSpace [/Indexed /DeviceRGB", pdfContent);
         Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
-        Assert.Contains("/Colors 3", pdfContent);
         Assert.Contains("/Colors 1", pdfContent);
         Assert.DoesNotContain("/Filter /DCTDecode", pdfContent);
 
@@ -922,7 +932,7 @@ public class PdfDocumentImageValidationTests {
             .Image(jpeg, 100, 100, fit: OfficeImageFit.Contain)
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n100 0 0 50 72 645 cm\n/Im1 Do\nQ", pdfContent);
         Assert.DoesNotContain("W n\nq\n100 0 0 50", pdfContent);
@@ -936,7 +946,7 @@ public class PdfDocumentImageValidationTests {
             .Image(jpeg, 100, 100, fit: OfficeImageFit.Cover)
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n72 620 100 100 re W n\nq\n200 0 0 100 22 620 cm\n/Im1 Do\nQ\nQ", pdfContent);
     }
@@ -960,7 +970,7 @@ public class PdfDocumentImageValidationTests {
             .Image(png, 24, 24, clipPath: OfficeClipPath.Rectangle(12, 12))
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n72 708 12 12 re W n\nq\n24 0 0 24 72 696 cm\n/Im1 Do\nQ\nQ", pdfContent);
         Assert.Contains("/Subtype /Image", pdfContent);
@@ -1006,7 +1016,7 @@ public class PdfDocumentImageValidationTests {
         style.Fit = OfficeImageFit.Cover;
         style.SpacingAfter = 0;
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         double imageBottomY = 60;
         double paragraphTopY = FindWordStartY(pdf.GetPage(1), "AfterDefaultImage") + 10 * 0.74;
@@ -1042,7 +1052,7 @@ public class PdfDocumentImageValidationTests {
                                 column.Image(png, 24, 24))))))
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n24 0 0 24 108 136 cm\n/Im1 Do\nQ", pdfContent);
     }
@@ -1067,7 +1077,7 @@ public class PdfDocumentImageValidationTests {
                                 column.Image(jpeg, 360, 180, style: new PdfImageStyle { ScaleDownToFit = true }))))))
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n180 0 0 90 20 70 cm\n/Im1 Do\nQ", pdfContent);
     }
@@ -1085,7 +1095,7 @@ public class PdfDocumentImageValidationTests {
                                 column.Image(png, 24, 24, clipPath: OfficeClipPath.RoundedRectangle(12, 12, 3)))))))
             .ToBytes();
 
-        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("75 708 m", pdfContent);
         Assert.Contains("W n\nq\n24 0 0 24", pdfContent);
