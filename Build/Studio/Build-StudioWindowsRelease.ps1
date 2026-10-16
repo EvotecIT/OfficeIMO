@@ -21,7 +21,7 @@ $parameters = @{
 }
 if ($Validate) { $parameters.Validate = $true }
 if ($Plan) { $parameters.Plan = $true }
-if ($Publish) { $parameters.PublishProjectGitHub = $true }
+if ($Publish) { $parameters.PublishToolGitHub = $true }
 
 try {
     Import-Module PSPublishModule -MinimumVersion 3.0.146 -Force -ErrorAction Stop
