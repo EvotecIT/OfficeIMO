@@ -8,6 +8,28 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PowerPointSaveAsPdfTests {
     [Fact]
+    public void SaveAsPdf_UnsupportedSvgPictureReportsOmissionWithoutAbortingTheSlide() {
+        using var presentation = PowerPointPresentation.Create();
+        presentation.SlideSize.SetSizePoints(160, 100);
+        PowerPointSlide slide = presentation.AddSlide();
+        slide.BackgroundColor = "FFFFFF";
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>"
+            + "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Visible HTML</div></foreignObject></svg>");
+        slide.AddPicture(new MemoryStream(svg), OfficeImageFormat.Svg, 0, 0,
+            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(30));
+        slide.AddShapePoints(OfficePresetShapeType.Rectangle, 80, 20, 30, 20).FillColor = "D7263D";
+
+        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        byte[] pdf = result.ToBytes();
+
+        Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-picture");
+        OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(),
+            background: OfficeColor.White);
+        Assert.Equal(OfficeColor.FromRgb(0xD7, 0x26, 0x3D), rendered.GetPixel(95, 30));
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_RotatesPictureCropWithImageFrame() {
         string folder = Path.Combine(AppContext.BaseDirectory, "Documents", "PowerPointNativeImagePlacement");
         using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "picture-crop-rotation.pptx"));

@@ -6,6 +6,81 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfDrawingGlowTests {
     [Theory]
+    [InlineData("pdf", (byte)255)]
+    [InlineData("pdf", (byte)128)]
+    [InlineData("raster", (byte)255)]
+    [InlineData("raster", (byte)128)]
+    [InlineData("svg", (byte)255)]
+    [InlineData("svg", (byte)128)]
+    public void FullOpacityGlowFadesOutwardAcrossRenderers(string renderer, byte alpha) {
+        OfficeShape shape = OfficeShape.Rectangle(48D, 28D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.StrokeWidth = 0D;
+        shape.Glow = new OfficeGlow(OfficeColor.FromRgba(255, 0, 255, alpha), 1D, 6D);
+        var drawing = new OfficeDrawing(120D, 90D).AddShape(shape, 32D, 24D);
+
+        OfficeRasterImage raster = RenderGlow(drawing, renderer);
+
+        OfficeColor inner = raster.GetPixel(31, 38);
+        OfficeColor outer = raster.GetPixel(27, 38);
+        Assert.Equal(255, inner.R);
+        Assert.Equal(255, inner.B);
+        int expectedGreen = 255 - alpha;
+        Assert.InRange((int)inner.G, System.Math.Max(0, expectedGreen - 3), expectedGreen + 3);
+        Assert.InRange((int)outer.G, inner.G + 20, 254);
+        Assert.Equal(OfficeColor.White, raster.GetPixel(24, 38));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(48, 38));
+    }
+
+    [Theory]
+    [InlineData("pdf")]
+    [InlineData("raster")]
+    [InlineData("svg")]
+    public void RectangleGlowHasRoundNativeCornerBounds(string renderer) {
+        OfficeShape shape = OfficeShape.Rectangle(48D, 28D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.StrokeWidth = 0D;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+        shape.Glow = new OfficeGlow(OfficeColor.FromRgb(255, 0, 255), 1D, 6D);
+        var drawing = new OfficeDrawing(120D, 90D).AddShape(shape, 32D, 24D);
+
+        OfficeRasterImage raster = RenderGlow(drawing, renderer);
+
+        // Outside the radius-six corner disk, but inside a square/miter expansion.
+        Assert.Equal(OfficeColor.White, raster.GetPixel(26, 18));
+        OfficeColor corner = raster.GetPixel(29, 21);
+        Assert.True(corner.R == 255 && corner.B == 255 && corner.G < 250);
+        Assert.Equal(OfficeStrokeLineJoin.Miter, shape.StrokeLineJoin);
+    }
+
+    [Theory]
+    [InlineData("pdf")]
+    [InlineData("raster")]
+    [InlineData("svg")]
+    public void AcuteJoinAndOpenCapGlowStayWithinRoundRadius(string renderer) {
+        OfficeShape angle = OfficeShape.Path(40D, 40D,
+            OfficePathCommand.MoveTo(10D, 30D), OfficePathCommand.LineTo(20D, 5D), OfficePathCommand.LineTo(30D, 30D));
+        angle.StrokeColor = OfficeColor.Blue;
+        angle.StrokeWidth = 2D;
+        angle.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+        angle.Glow = new OfficeGlow(OfficeColor.FromRgb(255, 0, 255), 1D, 6D);
+        OfficeShape line = OfficeShape.Line(0D, 0D, 20D, 0D);
+        line.StrokeColor = OfficeColor.Blue;
+        line.StrokeWidth = 2D;
+        line.StrokeLineCap = OfficeStrokeLineCap.Square;
+        line.Glow = angle.Glow.Clone();
+        var drawing = new OfficeDrawing(140D, 100D).AddShape(angle, 30D, 25D).AddShape(line, 90D, 60D);
+
+        OfficeRasterImage raster = RenderGlow(drawing, renderer);
+
+        // The apex is (50,30); the halo radius, including half the source stroke, is seven.
+        Assert.Equal(OfficeColor.White, raster.GetPixel(50, 20));
+        Assert.True(raster.GetPixel(50, 24).G < 250, "The acute vertex must retain its round halo.");
+        Assert.Equal(OfficeColor.White, raster.GetPixel(84, 54));
+        Assert.True(raster.GetPixel(86, 60).G < 250, "The open endpoint must retain its round cap.");
+    }
+
+    [Theory]
     [InlineData((byte)255)]
     [InlineData((byte)128)]
     public void DrawingGlowRetainsVectorHaloAlphaAndPaintOrder(byte alpha) {
@@ -111,6 +186,15 @@ public sealed class PdfDrawingGlowTests {
 
     private static OfficeRasterImage ReadRaster(byte[] bytes) =>
         OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes), background: OfficeColor.White);
+
+    private static OfficeRasterImage RenderGlow(OfficeDrawing drawing, string renderer) {
+        if (renderer == "pdf") return ReadRaster(Write(drawing));
+        if (renderer == "raster") return OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing, 1D, OfficeSvgSizeUnit.Pixel);
+        Assert.True(OfficeSvgDrawingReader.TryRead(System.Text.Encoding.UTF8.GetBytes(svg), out OfficeDrawing? imported, out int unsupported));
+        Assert.Equal(0, unsupported);
+        return OfficeDrawingRasterRenderer.Render(imported!, background: OfficeColor.White);
+    }
 
     private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfOptions {
         PageWidth = drawing.Width, PageHeight = drawing.Height,

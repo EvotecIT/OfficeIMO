@@ -320,8 +320,10 @@ Zażółć gęślą jaźń
         presentation.SlideSize.SetSizePoints(520, 320);
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox title = slide.AddTextBoxPoints("Converter typography report", 32, 26, 280, 28);
+        title.FontName = FamilyName;
         title.FontSize = 14;
         PowerPointTextBox polish = slide.AddTextBoxPoints("Zażółć gęślą jaźń", 32, 70, 250, 28);
+        polish.FontName = FamilyName;
         polish.FontSize = 12;
         PowerPointTable table = slide.AddTablePoints(3, 2, 32, 118, 280, 98);
         table.GetCell(0, 0).Text = "Region";
@@ -330,6 +332,8 @@ Zażółć gęślą jaźń
         table.GetCell(1, 1).Text = "Athens";
         table.GetCell(2, 0).Text = "Україна";
         table.GetCell(2, 1).Text = "Київ";
+        for (int row = 0; row < table.Rows; row++)
+            for (int column = 0; column < table.Columns; column++) table.GetCell(row, column).FontName = FamilyName;
 
         var options = new PowerPointToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),

@@ -611,7 +611,9 @@ internal sealed class PdfCanvasImageResource {
         // Canvas SVG images use the same vector writer as Drawing images. They
         // must not pass through the raster-only PDF image-stream preparer.
         if (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) && info.Format == OfficeImageFormat.Svg) {
-            return Create(new PdfDocument.PreparedImage((byte[])bytes.Clone(), info, OfficeImageFormat.Svg, wasTranscoded: false));
+            byte[] snapshot = (byte[])bytes.Clone();
+            PdfSvgImageReader.Read(snapshot);
+            return Create(new PdfDocument.PreparedImage(snapshot, info, OfficeImageFormat.Svg, wasTranscoded: false));
         }
         return Create(PdfDocument.PrepareImageBytes(bytes));
     }

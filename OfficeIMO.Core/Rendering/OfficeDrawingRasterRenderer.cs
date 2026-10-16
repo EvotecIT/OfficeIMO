@@ -490,40 +490,13 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateGlowShapes(OfficeDrawingShape drawingShape) {
-        OfficeShape shape = drawingShape.Shape;
-        OfficeGlow? glow = shape.Glow;
-        if (glow == null || glow.Radius <= 0D || glow.Opacity <= 0D || glow.Color.A == 0) {
-            return Array.Empty<OfficeDrawingShape>();
+        IReadOnlyList<OfficeShape> layers = OfficeGlowLayerPlanner.CreateShapes(drawingShape.Shape);
+        if (layers.Count == 0) return Array.Empty<OfficeDrawingShape>();
+        var glowShapes = new List<OfficeDrawingShape>(layers.Count);
+        for (int i = 0; i < layers.Count; i++) {
+            glowShapes.Add(new OfficeDrawingShape(layers[i], drawingShape.X, drawingShape.Y));
         }
-
-        const int layers = 4;
-        var glowShapes = new List<OfficeDrawingShape>(layers);
-        double baseStrokeWidth = Math.Max(0D, shape.StrokeWidth);
-        for (int i = layers; i >= 1; i--) {
-            double factor = i / (double)layers;
-            OfficeShape glowShape = shape.Clone();
-            glowShape.Shadow = null;
-            glowShape.Glow = null;
-            glowShape.FillColor = null;
-            glowShape.FillGradient = null;
-            glowShape.FillRadialGradient = null;
-            glowShape.StrokeColor = glow.Color;
-            glowShape.StrokeGradient = null;
-            glowShape.StrokeRadialGradient = null;
-            glowShape.StrokeWidth = Math.Max(1D, baseStrokeWidth + glow.Radius * 2D * factor);
-            glowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
-            glowShape.StrokeStartMarker = null;
-            glowShape.StrokeEndMarker = null;
-            glowShape.StrokeOpacity = ComputeGlowLayerOpacity(glow.Opacity, layers - i + 1);
-            glowShapes.Add(new OfficeDrawingShape(glowShape, drawingShape.X, drawingShape.Y));
-        }
-
         return glowShapes;
-    }
-
-    private static double ComputeGlowLayerOpacity(double opacity, int layerDepth) {
-        double clamped = opacity < 0D ? 0D : opacity > 1D ? 1D : opacity;
-        return 1D - Math.Pow(1D - clamped, layerDepth + 1);
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateShadowShapes(OfficeDrawingShape drawingShape) {

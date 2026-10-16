@@ -47,12 +47,7 @@ internal static partial class PdfWriter {
         }
 
         private OfficeDrawing ReadSvgImageForPdf(byte[] bytes) {
-            var options = new OfficeSvgDrawingReaderOptions { CancellationToken = cancellationToken };
-            if (!OfficeSvgDrawingReader.TryRead(bytes, options, out OfficeDrawing? vector, out int unsupported) ||
-                vector == null || unsupported != 0) {
-                throw new NotSupportedException("OfficeIMO.Pdf cannot import this SVG image completely. Supply an image produced by a renderer supporting its SVG features.");
-            }
-            return vector;
+            return PdfSvgImageReader.Read(bytes, cancellationToken);
         }
 
         private byte[] RasterizeSvgImageForPdf(OfficeDrawing vector, OfficeImageProjection projection) {
