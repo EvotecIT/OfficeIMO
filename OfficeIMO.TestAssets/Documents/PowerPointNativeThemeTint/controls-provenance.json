@@ -1,0 +1,140 @@
+{
+  "producer": "Microsoft PowerPoint 16.113.4",
+  "captured": "2026-10-16",
+  "slide_points": [
+    480,
+    160
+  ],
+  "assets": {
+    "controls.pptx": {
+      "bytes": 24612,
+      "sha256": "2b060d9a961987fe8667970d1db6401732afe1dc6eaf1466cce995c936ea2503"
+    },
+    "microsoft-powerpoint-16.113.4-controls.pdf": {
+      "bytes": 4082,
+      "sha256": "4308d844a1549c4e1c152acabb2edaf93463b73f5377c9747b62e530be22725f"
+    },
+    "controls-native.png": {
+      "bytes": 646,
+      "sha256": "51e7bd34ef2be395cd705164d27897e2812fad8d212157bd16c4e17bbd6d7d31"
+    }
+  },
+  "preservation": "Original source deck and complete native PDF copied byte-for-byte; no PDF rewriting. Native PNG supplied by parent from Poppler.",
+  "samples": [
+    {
+      "index": 0,
+      "source_rgb": "156082",
+      "ordered_transforms": [],
+      "point": [
+        35,
+        70
+      ],
+      "native_rgb": [
+        21,
+        96,
+        130
+      ]
+    },
+    {
+      "index": 1,
+      "source_rgb": "156082",
+      "ordered_transforms": [
+        "tint=40000"
+      ],
+      "point": [
+        100,
+        70
+      ],
+      "native_rgb": [
+        204,
+        210,
+        216
+      ]
+    },
+    {
+      "index": 2,
+      "source_rgb": "FFFFFF",
+      "ordered_transforms": [
+        "shade=40000"
+      ],
+      "point": [
+        165,
+        70
+      ],
+      "native_rgb": [
+        170,
+        170,
+        170
+      ]
+    },
+    {
+      "index": 3,
+      "source_rgb": "ED7D31",
+      "ordered_transforms": [
+        "tint=30000"
+      ],
+      "point": [
+        230,
+        70
+      ],
+      "native_rgb": [
+        250,
+        226,
+        219
+      ]
+    },
+    {
+      "index": 4,
+      "source_rgb": "156082",
+      "ordered_transforms": [
+        "tint=40000",
+        "shade=40000"
+      ],
+      "point": [
+        295,
+        70
+      ],
+      "native_rgb": [
+        135,
+        139,
+        143
+      ]
+    },
+    {
+      "index": 5,
+      "source_rgb": "156082",
+      "ordered_transforms": [
+        "shade=40000",
+        "tint=40000"
+      ],
+      "point": [
+        360,
+        70
+      ],
+      "native_rgb": [
+        204,
+        206,
+        209
+      ]
+    },
+    {
+      "index": 6,
+      "source_rgb": "156082",
+      "ordered_transforms": [
+        "tint=40000",
+        "alpha=65000"
+      ],
+      "point": [
+        425,
+        70
+      ],
+      "native_rgb": [
+        221,
+        225,
+        229
+      ]
+    }
+  ],
+  "acceptance": "Six opaque controls require exact channels in native PNG, native PDF readback and managed PDF. Alpha control additionally requires exact resolved RGBA 204,210,216,166 and permits one encoded channel value in PDF compositing because alpha is represented as an eight-bit value.",
+  "scope": "These controls qualify base color, two tint ratios, white shade, both tint/shade orders and tint plus alpha over white; other DrawingML transforms and all possible transform chains are not claimed."
+}

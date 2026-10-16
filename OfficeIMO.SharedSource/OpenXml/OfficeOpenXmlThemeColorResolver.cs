@@ -244,7 +244,9 @@ internal static class OfficeOpenXmlThemeColorResolver {
         return color.HasValue ? ApplyTransforms(color.Value, colorElement) : null;
     }
 
-    private static OfficeColor ApplyTransforms(OfficeColor color, OpenXmlElement colorElement) {
+    /// <summary>Applies DrawingML color transforms in child order, retaining each transform's alpha semantics.</summary>
+    /// <remarks>Tint and shade retain the specified input proportion in linear sRGB, independently of encoded-RGB helpers.</remarks>
+    internal static OfficeColor ApplyTransforms(OfficeColor color, OpenXmlElement colorElement) {
         OfficeColor resolved = color;
         foreach (OpenXmlElement transform in colorElement.ChildElements) {
             switch (transform.LocalName) {
@@ -279,10 +281,14 @@ internal static class OfficeOpenXmlThemeColorResolver {
                     resolved = OfficeColorTransforms.OffsetAlpha(resolved, value);
                     break;
                 case "tint":
-                    resolved = OfficeColorTransforms.Tint(resolved, ClampUnit(value));
+                    resolved = OfficeGradientColors.Interpolate(
+                        OfficeColor.FromRgba(255, 255, 255, resolved.A), resolved,
+                        ClampUnit(value), OfficeGradientColorInterpolation.LinearRgb);
                     break;
                 case "shade":
-                    resolved = OfficeColorTransforms.Shade(resolved, ClampUnit(value));
+                    resolved = OfficeGradientColors.Interpolate(
+                        OfficeColor.FromRgba(0, 0, 0, resolved.A), resolved,
+                        ClampUnit(value), OfficeGradientColorInterpolation.LinearRgb);
                     break;
                 case "lumMod":
                     resolved = OfficeColorTransforms.ModulateLuminance(resolved, Math.Max(0D, value));

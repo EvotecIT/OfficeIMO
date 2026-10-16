@@ -132,7 +132,7 @@ Other native chart geometry now follows Office, so chart renders and baselines c
 
 PowerPoint SmartArt now renders from the drawing Office caches with the diagram (`ppt/diagrams/drawing*.xml`), so producer layouts keep their shapes, colours and text positions in PDF and image export. When that drawing is missing or no longer matches the diagram text, the existing semantic layout is used; if neither applies, `unsupported-smartart` names both reasons. Worksheet SmartArt is reported as `WorksheetSmartArt` in Excel PDF export instead of being omitted silently.
 
-DrawingML `hueOff`, `hueMod`, `satOff` and `satMod` colour transforms are applied, so colours that use them, common in SmartArt, no longer prevent a chart or shape from rendering.
+DrawingML `hueOff`, `hueMod`, `satOff` and `satMod` colour transforms are applied, so colours that use them, common in SmartArt, no longer prevent a chart or shape from rendering. DrawingML `tint` and `shade` blend in linear sRGB and retain the proportion specified by the document. Theme table bands, shape fills and gradient stops can therefore change colour; the generic `OfficeColorTransforms.Tint` and `Shade` helpers keep their encoded-RGB contract.
 
 ## Studio native interface and protected copies
 
