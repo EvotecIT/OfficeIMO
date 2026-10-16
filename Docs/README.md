@@ -84,6 +84,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Image export contract](officeimo.image-export.md)
 - [Image export capability matrix](officeimo.image-export-capability-matrix.md)
 - [Static rendering qualification](../Build/Project/Evidence/2026-09-30/html-master-convergence/static-rendering-integration-20261016.json) — font and box geometry, CSS paint, and SVG fill controls across HTML, PDF, SVG and raster output.
+- [Semantic font and inline-content qualification](../Build/Project/Evidence/2026-09-30/html-master-convergence/semantic-font-defaults-20261016.json) — HTML font defaults, editable rich text, inline SVG resets and pinned native controls.
 - [Browser-local conversion performance and limits](officeimo.blazor-wasm-conversion-proof.md)
 
 ## Architecture
