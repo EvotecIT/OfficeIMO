@@ -287,7 +287,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             ? text
             : null;
         return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText, preserveGlyphUnicode:
-            options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text));
+            reordered || options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text),
+            isScalarBidi: reordered);
     }
 
     public double GetAscender(double fontSize) =>

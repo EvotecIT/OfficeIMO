@@ -7,7 +7,7 @@ internal sealed class PdfGlyphRun {
         : this(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: null, OfficeTextDirection.Auto) {
     }
 
-    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto, bool hasCompleteVerticalAdvances = false, OfficeTextShapingResult? sourceShapingResult = null, bool preserveGlyphUnicode = false, bool isAutomaticallyShaped = false) {
+    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto, bool hasCompleteVerticalAdvances = false, OfficeTextShapingResult? sourceShapingResult = null, bool preserveGlyphUnicode = false, bool isAutomaticallyShaped = false, bool isScalarBidi = false) {
         Glyphs = glyphs ?? throw new ArgumentNullException(nameof(glyphs));
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
@@ -16,10 +16,12 @@ internal sealed class PdfGlyphRun {
         SourceShapingResult = sourceShapingResult;
         PreserveGlyphUnicode = preserveGlyphUnicode;
         IsAutomaticallyShaped = isAutomaticallyShaped;
+        IsScalarBidi = isScalarBidi;
     }
 
     internal bool PreserveGlyphUnicode { get; }
     internal bool IsAutomaticallyShaped { get; }
+    internal bool IsScalarBidi { get; }
     /// <summary>Default pair kerning in font design units, aligned to <see cref="Glyphs"/>, when no provider result exists.</summary>
     internal int[]? DesignAdvanceAdjustments { get; set; }
     public IReadOnlyList<PdfGlyphInfo> Glyphs { get; }
@@ -119,6 +121,7 @@ internal sealed class PdfTextShowCommand {
     internal PdfTextShowCommand(PdfGlyphRun run) {
         PositionedGlyphs = run.HasPositioning ? run.Glyphs : null;
         ActualText = run.ActualText;
+        IsScalarBidi = run.IsScalarBidi;
         IsolatedRightToLeft = run.Direction == OfficeTextDirection.RightToLeft && run.ActualText == null;
         LogicalGlyphs = run.PreserveGlyphUnicode ? run.Glyphs : null;
         AdvanceWidth1000 = run.TotalAdvanceWidth1000;
@@ -131,10 +134,11 @@ internal sealed class PdfTextShowCommand {
         _glyphHex = run.PreserveGlyphUnicode ? null : run.ToGlyphHex();
     }
 
-    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null, OfficeOpenTypeTracking? tracking = null, int unitsPerEm = 1000, bool[]? trackingBoundaries = null, bool negativeTracking = false, double fontMetricScale = 1D, int? glyphCount = null, int[]? simpleFontKerning = null) {
+    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null, OfficeOpenTypeTracking? tracking = null, int unitsPerEm = 1000, bool[]? trackingBoundaries = null, bool negativeTracking = false, double fontMetricScale = 1D, int? glyphCount = null, int[]? simpleFontKerning = null, bool isScalarBidi = false) {
         if (fontMetricScale <= 0D || double.IsNaN(fontMetricScale) || double.IsInfinity(fontMetricScale))
             throw new ArgumentOutOfRangeException(nameof(fontMetricScale));
         SimpleFontKerning = simpleFontKerning;
+        IsScalarBidi = isScalarBidi;
         LogicalGlyphs = logicalGlyphs; AdvanceWidth1000 = advanceWidth1000; WordSpaceCount = wordSpaceCount;
         VisualGlyphs = visualGlyphs;
         _glyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
@@ -148,6 +152,8 @@ internal sealed class PdfTextShowCommand {
         FontMetricScale = fontMetricScale;
     }
 
+    /// <summary>Scalar bidi output uses isolated directional shows to avoid reader double-reordering.</summary>
+    internal bool IsScalarBidi { get; }
     internal IReadOnlyList<PdfGlyphInfo>? LogicalGlyphs { get; }
     /// <summary>Single-byte font pair kerning after each code, in 1/1000 em (negative tightens).</summary>
     internal int[]? SimpleFontKerning { get; }
@@ -277,7 +283,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                     font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
                 }
 
-                glyphs.Add(new PdfGlyphInfo(ligatureGlyphId, ligatureScalar, scalarStart, font.GetGlyphWidth1000(ligatureGlyphId)));
+                glyphs.Add(new PdfGlyphInfo(ligatureGlyphId, text.Substring(scalarStart, ligatureLength), scalarStart, font.GetGlyphWidth1000(ligatureGlyphId)));
                 index += ligatureLength;
                 continue;
             }
@@ -322,10 +328,19 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             ? text
             : null;
         return new PdfGlyphRun(glyphs, diagnostics, actualText, preserveGlyphUnicode:
-            options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text));
+            reordered || options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text),
+            isScalarBidi: reordered);
     }
 
     internal static List<PdfGlyphInfo> ToVisualOrder(string text, List<PdfGlyphInfo> glyphs) {
+        int[] glyphLevels = ResolveGlyphLevels(text, glyphs);
+        int[] order = OfficeUnicodeBidi.ReorderItems(glyphLevels);
+        var visual = new List<PdfGlyphInfo>(glyphs.Count);
+        foreach (int index in order) visual.Add(glyphs[index]);
+        return visual;
+    }
+
+    internal static int[] ResolveGlyphLevels(string text, IReadOnlyList<PdfGlyphInfo> glyphs) {
         int[] scalars = OfficeUnicodeBidi.ToScalars(text, out int[] starts);
         byte[] levels = OfficeUnicodeBidi.Resolve(scalars, paragraphLevel: null).GetLineLevels(0, scalars.Length);
         var glyphLevels = new int[glyphs.Count];
@@ -333,10 +348,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             int scalarIndex = Array.BinarySearch(starts, glyphs[index].TextIndex);
             glyphLevels[index] = levels[scalarIndex >= 0 ? scalarIndex : Math.Max(0, ~scalarIndex - 1)];
         }
-        int[] order = OfficeUnicodeBidi.ReorderItems(glyphLevels);
-        var visual = new List<PdfGlyphInfo>(glyphs.Count);
-        foreach (int index in order) visual.Add(glyphs[index]);
-        return visual;
+        return glyphLevels;
     }
 
     // Total advance width (1000-em units) without materializing a glyph run. Mirrors ShapeText's loop

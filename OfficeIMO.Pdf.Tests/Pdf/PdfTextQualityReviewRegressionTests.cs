@@ -13,6 +13,8 @@ public sealed class PdfTextQualityReviewRegressionTests {
     [Theory]
     [InlineData("abc \u05D0\u05D1\u05D2", true)]
     [InlineData("abc\u05D0\u05D1\u05D2", true)]
+    [InlineData("abc\u05D0\u05D1\u05D2123xyz", true)]
+    [InlineData("\u05D0\u05D1\u05D2123", true)]
     [InlineData("\u05D0\u05D1\u05D2 123", true)]
     [InlineData("\u05D0\u05D1\u05D2", false)]
     public void ScalarBidiReorderingRetainsLogicalTextExceptForExactRtlReversal(string text, bool marked) {
@@ -25,8 +27,29 @@ public sealed class PdfTextQualityReviewRegressionTests {
                 .UseFontFamily(new PdfEmbeddedFontFamily("Bidi", data)))
             .Canvas(canvas => canvas.Text(text, 20, 20, 500, 30)).ToBytes();
         Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
-        if (marked && text.IndexOf(' ') < 0)
-            Assert.Contains("/ActualText", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        if (marked && text.IndexOf(' ') < 0) {
+            if (text.Any(char.IsDigit)) Assert.Contains("/ActualText", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+            else Assert.DoesNotContain("/ActualText", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("ff", 0xFB00)]
+    [InlineData("fi", 0xFB01)]
+    [InlineData("fl", 0xFB02)]
+    [InlineData("ffi", 0xFB03)]
+    [InlineData("ffl", 0xFB04)]
+    public void MixedScalarLatinLigatureRetainsItsSourceLetters(string letters, int ligature) {
+        string text = letters + "\u05D0\u05D1\u05D2";
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(text.Select(character => (int)character).Concat(new[] { ligature }).Distinct().ToArray());
+        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(data);
+        PdfGlyphRun run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Bidi", PdfTextShapingMode.LatinLigatures));
+        Assert.Equal(letters, run.Glyphs[0].UnicodeText);
+        byte[] pdf = PdfDocument.Create(new PdfOptions { TextShapingMode = PdfTextShapingMode.LatinLigatures }
+                .UseFontFamily(new PdfEmbeddedFontFamily("Bidi", data)))
+            .Canvas(canvas => canvas.Text(text, 20, 20, 500, 30)).ToBytes();
+        Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.Contains("/ActualText", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
     }
 
     [Fact]

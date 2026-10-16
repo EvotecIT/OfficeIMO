@@ -766,6 +766,12 @@ that optional feature; the language system's required feature remains enabled.
 `LatinLigatures` remains available for the presentation-character
 substitutions supported by that mode.
 
+With `UnicodeScalar`, flat mixed-direction letter runs use separate directional
+text-show operations and ToUnicode mappings to preserve copying and extraction.
+Numeric, nested, and other ambiguous scalar contexts retain the logical source
+in `ActualText`; extraction order in third-party readers depends on their handling
+of bidi text and replacement text.
+
 Pair kerning is on by default for embedded fonts (OpenType GPOS or `kern`
 pairs) and for the standard Helvetica and Times fonts (Adobe AFM pairs). Set
 `PdfOptions.TextKerning = false` for nominal advances; runs with explicit

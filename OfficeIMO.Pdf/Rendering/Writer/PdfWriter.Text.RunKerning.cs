@@ -162,7 +162,7 @@ internal static partial class PdfWriter {
                         advanceWidth1000: command.AdvanceWidth1000 + advanceDelta, wordSpaceCount: command.WordSpaceCount,
                         visualGlyphs: glyphs, tracking: command.Tracking, unitsPerEm: command.UnitsPerEm,
                         trackingBoundaries: command.TrackingBoundaries, negativeTracking: command.NegativeTracking,
-                        fontMetricScale: command.FontMetricScale, glyphCount: command.GlyphCount).WithPinner(command.Pinner);
+                        fontMetricScale: command.FontMetricScale, glyphCount: command.GlyphCount, isScalarBidi: command.IsScalarBidi).WithPinner(command.Pinner);
                 }
             }
             return adjustment;

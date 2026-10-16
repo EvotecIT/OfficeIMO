@@ -202,14 +202,15 @@ internal sealed partial class ContentStreamBuilder {
 
     // Writes source-ordered glyphs as one TJ array. ToUnicode owns every glyph the font
     // can pin; only the remaining clusters get their own ActualText-scoped show operator.
-    private void WriteLogicalGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, PdfTextShowCommand command, double fontSize, double textRise) {
+    private void WriteLogicalGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, PdfTextShowCommand command, double fontSize, double textRise, int startIndex = 0, int? endIndex = null) {
+        int limit = endIndex ?? glyphs.Count;
         double tracking1000 = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)
             * 1000D / command.UnitsPerEm * (command.NegativeTracking ? -1D : 1D);
         IPdfGlyphTextPinner? pinner = command.Pinner;
         int currentOffsetY1000 = 0;
         bool open = false;
         double totalAdvance1000 = 0D;
-        for (int index = 0; index < glyphs.Count;) {
+        for (int index = startIndex; index < limit;) {
             int clusterStart = index;
             int logicalEnd = glyphs[index].LogicalClusterStart;
             bool representable = pinner != null;
@@ -219,7 +220,7 @@ internal sealed partial class ContentStreamBuilder {
                 // glyphs different starts but overlapping source ownership.
                 logicalEnd = Math.Max(logicalEnd, Math.Max(glyph.LogicalClusterStart + 1,
                     glyph.TextIndex + glyph.UnicodeText.Length));
-            } while (index < glyphs.Count && glyphs[index].LogicalClusterStart < logicalEnd);
+            } while (index < limit && glyphs[index].LogicalClusterStart < logicalEnd);
 
             System.Text.StringBuilder? logical = null;
             int[] codes = ResolveClusterCodes(glyphs, clusterStart, index, pinner, ref representable);
@@ -274,7 +275,7 @@ internal sealed partial class ContentStreamBuilder {
             _sb.Append(F(textRise)).Append(" Ts\n");
             OwnWrite();
         }
-        AdvanceTrackedText(totalAdvance1000 * fontSize / 1000D + glyphs.Count * _textCharacterSpacing);
+        AdvanceTrackedText(totalAdvance1000 * fontSize / 1000D + (limit - startIndex) * _textCharacterSpacing);
     }
 
     private int[] _codeBuffer = new int[16];
