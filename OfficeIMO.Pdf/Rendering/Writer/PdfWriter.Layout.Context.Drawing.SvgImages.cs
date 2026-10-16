@@ -8,24 +8,11 @@ internal static partial class PdfWriter {
             bool isSvg = OfficeImageInfo.FromMimeType(image.ContentType) == OfficeImageFormat.Svg ||
                 (OfficeImageReader.TryIdentifyByContent(image.EncodedBytes, null, out OfficeImageInfo info) && info.Format == OfficeImageFormat.Svg);
             if (!isSvg) return false;
-            var options = new OfficeSvgDrawingReaderOptions { CancellationToken = cancellationToken };
-            if (!OfficeSvgDrawingReader.TryRead(image.EncodedBytes, options, out OfficeDrawing? vector, out int unsupported) ||
-                vector == null || unsupported != 0) {
-                // Rasterizing an incomplete import would silently preserve the omissions.
-                throw new NotSupportedException("OfficeIMO.Pdf cannot import this SVG image completely. Supply a raster image produced by a renderer supporting its SVG features.");
-            }
+            OfficeDrawing vector = ReadSvgImageForPdf(image.EncodedBytes);
             if (!CanDrawSvgSceneAsVector(vector)) {
                 currentOpts.AddLayoutDiagnostic("SvgImageRasterFallback", "Drawing image",
                     "SVG image paint not supported by the PDF vector writer was rasterized.", PdfLayoutDiagnosticKind.SimplifiedContent);
-                double desiredScale = Math.Max(1D, Math.Max(image.Projection.Width / vector.Width, image.Projection.Height / vector.Height));
-                OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(vector.Width, vector.Height, OfficeImageExportFormat.Png,
-                    new OfficeImageExportOptions { Scale = desiredScale, MaximumRasterPixels = 16_000_000L,
-                        RasterOverflowBehavior = OfficeRasterOverflowBehavior.ReduceScale });
-                byte[] png = OfficeDrawingRasterRenderer.ToPng(vector, new OfficeDrawingRasterRenderOptions {
-                    Scale = plan.Limit.Scale, Background = OfficeColor.Transparent,
-                    CancellationToken = cancellationToken, MaximumRasterPixels = 16_000_000L,
-                    ThrowOnImageDecodeFailure = true
-                });
+                byte[] png = RasterizeSvgImageForPdf(vector, image.Projection);
                 DrawDrawingImageAt(OfficeDrawingImage.CreateWithInterpolation(png, "image/png", image.Projection, image.Interpolate,
                     image.AlternativeText, image.Opacity), originX, originTopY);
                 return true;
@@ -57,6 +44,27 @@ internal static partial class PdfWriter {
                 AppendDrawingMarkedContentEnd(markedContent);
             }
             return true;
+        }
+
+        private OfficeDrawing ReadSvgImageForPdf(byte[] bytes) {
+            var options = new OfficeSvgDrawingReaderOptions { CancellationToken = cancellationToken };
+            if (!OfficeSvgDrawingReader.TryRead(bytes, options, out OfficeDrawing? vector, out int unsupported) ||
+                vector == null || unsupported != 0) {
+                throw new NotSupportedException("OfficeIMO.Pdf cannot import this SVG image completely. Supply an image produced by a renderer supporting its SVG features.");
+            }
+            return vector;
+        }
+
+        private byte[] RasterizeSvgImageForPdf(OfficeDrawing vector, OfficeImageProjection projection) {
+            double desiredScale = Math.Max(1D, Math.Max(projection.Width / vector.Width, projection.Height / vector.Height));
+            OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(vector.Width, vector.Height, OfficeImageExportFormat.Png,
+                new OfficeImageExportOptions { Scale = desiredScale, MaximumRasterPixels = 16_000_000L,
+                    RasterOverflowBehavior = OfficeRasterOverflowBehavior.ReduceScale });
+            return OfficeDrawingRasterRenderer.ToPng(vector, new OfficeDrawingRasterRenderOptions {
+                Scale = plan.Limit.Scale, Background = OfficeColor.Transparent,
+                CancellationToken = cancellationToken, MaximumRasterPixels = 16_000_000L,
+                ThrowOnImageDecodeFailure = true
+            });
         }
 
         private static bool CanDrawSvgSceneAsVector(OfficeDrawing drawing) {

@@ -65,7 +65,7 @@ public static partial class OfficeDrawingRasterRenderer {
         if (fillRadialGradient != null || fillGradient != null)
             FillShapeGradientContours(canvas, drawingShape.Shape, drawingShape.X, drawingShape.Y, scale,
                 new[] { (IReadOnlyList<OfficePoint>)points }, fillGradient, fillRadialGradient, drawingShape.Shape.FillRule);
-        else if (fill.HasValue) canvas.FillPolygon(SnapRectangleContour(canvas, points), fill.Value);
+        else if (fill.HasValue) canvas.FillPolygon(SnapRectangleContour(canvas, points, drawingShape.Shape.CrispEdges), fill.Value);
         StrokeTransformedPathContours(canvas, drawingShape, new[] { new OfficeFlattenedPathContour(contour, true) }, scale, stroke, strokeGradient, strokeRadialGradient);
     }
 
@@ -86,7 +86,7 @@ public static partial class OfficeDrawingRasterRenderer {
                     FillShapeGradientContours(canvas, shape, drawingShape.X, drawingShape.Y, scale,
                         closedContours, fillGradient, fillRadialGradient, shape.FillRule);
                 } else {
-                    if (closedContours.Count == 1) closedContours[0] = SnapRectangleContour(canvas, closedContours[0]);
+                    if (closedContours.Count == 1) closedContours[0] = SnapRectangleContour(canvas, closedContours[0], shape.CrispEdges);
                     FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
                 }
             }
@@ -241,7 +241,7 @@ public static partial class OfficeDrawingRasterRenderer {
                     FillShapeGradientContours(canvas, shape, x / scale, y / scale, scale,
                         closedContours, fillGradient, fillRadialGradient, shape.FillRule);
                 } else {
-                    if (closedContours.Count == 1) closedContours[0] = SnapRectangleContour(canvas, closedContours[0]);
+                    if (closedContours.Count == 1) closedContours[0] = SnapRectangleContour(canvas, closedContours[0], shape.CrispEdges);
                     FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
                 }
             }
@@ -257,9 +257,9 @@ public static partial class OfficeDrawingRasterRenderer {
         }
     }
 
-    // Stroke adjustment snaps a filled single axis-aligned rectangle, as PDF viewers do for thin rules.
-    private static IReadOnlyList<OfficePoint> SnapRectangleContour(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points) {
-        if (!canvas.StrokeAdjustment) return points;
+    // Share device-edge rounding between PDF thin rules and SVG crisp rectangle fills.
+    private static IReadOnlyList<OfficePoint> SnapRectangleContour(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, bool crispEdges = false) {
+        if (!canvas.StrokeAdjustment && !crispEdges) return points;
         int count = points.Count;
         if (count == 5 && points[0].X == points[4].X && points[0].Y == points[4].Y) count = 4;
         if (count != 4) return points;
@@ -271,7 +271,7 @@ public static partial class OfficeDrawingRasterRenderer {
             top = Math.Min(top, current.Y); bottom = Math.Max(bottom, current.Y);
         }
         double width = right - left, height = bottom - top;
-        if (!canvas.TrySnapRectangle(ref left, ref top, ref width, ref height)) return points;
+        if (!canvas.TrySnapRectangle(ref left, ref top, ref width, ref height, crispEdges)) return points;
         return CreateRectangleContour(left, top, width, height);
     }
 

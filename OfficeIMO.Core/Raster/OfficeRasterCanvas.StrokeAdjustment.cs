@@ -69,13 +69,14 @@ public sealed partial class OfficeRasterCanvas {
         return StrokeAdjustment && width < onePixel ? onePixel : width;
     }
 
-    /// <summary>Snaps a logical rectangle fill to device pixels, keeping at least one pixel on each axis.</summary>
-    internal bool TrySnapRectangle(ref double x, ref double y, ref double width, ref double height) {
-        if (!StrokeAdjustment || !IsFinite(x) || !IsFinite(y) || !IsFinite(width) || !IsFinite(height)) return false;
+    /// <summary>Snaps a logical rectangle fill to device pixels. SVG crisp edges may collapse subpixel spans.</summary>
+    /// <remarks>PDF stroke adjustment instead retains at least one pixel on each axis.</remarks>
+    internal bool TrySnapRectangle(ref double x, ref double y, ref double width, ref double height, bool crispEdges = false) {
+        if ((!StrokeAdjustment && !crispEdges) || !IsFinite(x) || !IsFinite(y) || !IsFinite(width) || !IsFinite(height)) return false;
         double sx = CoordinateScaleX, sy = CoordinateScaleY;
         if (sx <= 0D || sy <= 0D) return false;
-        SnapSpan(x * sx, (x + width) * sx, out double left, out double right);
-        SnapSpan(y * sy, (y + height) * sy, out double top, out double bottom);
+        SnapSpan(x * sx, (x + width) * sx, out double left, out double right, minimumPixelSpan: !crispEdges);
+        SnapSpan(y * sy, (y + height) * sy, out double top, out double bottom, minimumPixelSpan: !crispEdges);
         x = left / sx; width = (right - left) / sx;
         y = top / sy; height = (bottom - top) / sy;
         return true;
@@ -140,12 +141,12 @@ public sealed partial class OfficeRasterCanvas {
         return true;
     }
 
-    // Edges round to the nearest pixel boundary; a span thinner than one pixel keeps the pixel holding its centre.
-    private static void SnapSpan(double low, double high, out double snappedLow, out double snappedHigh) {
+    // Edges round to the nearest pixel boundary. PDF minimum-width adjustment retains the pixel holding a thin span's centre.
+    private static void SnapSpan(double low, double high, out double snappedLow, out double snappedHigh, bool minimumPixelSpan = true) {
         if (high < low) (low, high) = (high, low);
         snappedLow = Math.Floor(low + 0.5D);
         snappedHigh = Math.Floor(high + 0.5D);
-        if (snappedHigh <= snappedLow) {
+        if (minimumPixelSpan && snappedHigh <= snappedLow) {
             snappedLow = Math.Floor((low + high) / 2D);
             snappedHigh = snappedLow + 1D;
         }

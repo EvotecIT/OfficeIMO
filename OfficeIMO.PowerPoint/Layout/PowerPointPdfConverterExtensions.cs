@@ -342,7 +342,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 linkUri: linkUri,
                 linkContents: linkUri != null ? picture.AltText : null,
                 alternativeText: picture.AltText,
-                rotationAngle: picture.Rotation ?? 0D,
+                rotationAngle: -(picture.Rotation ?? 0D),
                 horizontalFlip: picture.HorizontalFlip == true,
                 verticalFlip: picture.VerticalFlip == true);
             if (destination != null) RenderSlideLinkFrame(canvas, picture, destination, x, y, width, height);

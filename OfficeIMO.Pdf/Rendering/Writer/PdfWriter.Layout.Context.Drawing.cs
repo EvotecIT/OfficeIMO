@@ -98,12 +98,14 @@ internal static partial class PdfWriter {
         private void DrawShapeGeometryAt(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY) {
             if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return;
 
+            DrawShapeGlowAt(shape, xShape, bottomY);
             DrawShapeShadowAt(shape, xShape, bottomY);
 
             if (shape.StrokeWidth > 0D && (shape.StrokeGradient != null || shape.StrokeRadialGradient != null)) {
                 OfficeShape fill = shape.Clone();
                 fill.StrokeColor = null; fill.StrokeGradient = null; fill.StrokeRadialGradient = null; fill.StrokeWidth = 0;
                 fill.Shadow = null;
+                fill.Glow = null;
                 DrawShapeGeometryAt(fill, xShape, bottomY);
                 OfficeShape? stroke = CreateGradientStrokeShape(shape);
                 if (stroke != null) DrawShapeGeometryAt(stroke, xShape, bottomY);

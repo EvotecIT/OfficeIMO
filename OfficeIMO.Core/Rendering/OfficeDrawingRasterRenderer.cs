@@ -250,7 +250,7 @@ public static partial class OfficeDrawingRasterRenderer {
                     canvas.FillLinearGradientRectangle(x, y, width, height, linearGradient);
                 } else if (fill.HasValue) {
                     double fillX = x, fillY = y, fillWidth = width, fillHeight = height;
-                    canvas.TrySnapRectangle(ref fillX, ref fillY, ref fillWidth, ref fillHeight);
+                    canvas.TrySnapRectangle(ref fillX, ref fillY, ref fillWidth, ref fillHeight, shape.CrispEdges);
                     canvas.FillRectangle(fillX, fillY, fillWidth, fillHeight, fill.Value);
                 }
 

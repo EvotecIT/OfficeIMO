@@ -658,6 +658,10 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateImageStyleForBox(imageStyle, block.Width, block.Height, nameof(imageStyle.ClipPath));
             PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(imageStyle.Fit));
             double bottomY = currentOpts.PageHeight - item.Y - block.Height;
+            if (block.Info.Format == OfficeIMO.Drawing.OfficeImageFormat.Svg) {
+                RenderCanvasSvgImage(item, imageStyle, bottomY);
+                return;
+            }
             PageImage pageImage = CreatePageImage(block, imageStyle, item.X, bottomY, block.Width, block.Height);
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             pageImage.StructureParentElement = _canvasStructureParentElement;

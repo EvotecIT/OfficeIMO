@@ -554,6 +554,7 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static string BuildPaintAttributes(OfficeShape shape, string? fillGradientId, string? strokeGradientId) {
         var sb = new StringBuilder();
+        if (shape.CrispEdges) sb.Append(" shape-rendering=\"crispEdges\"");
         if (fillGradientId != null) {
             sb.Append(" fill=\"url(#").Append(Escape(fillGradientId)).Append(")\"");
             double fillOpacity = shape.FillOpacity ?? 1D;

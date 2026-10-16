@@ -54,6 +54,12 @@ public sealed class OfficeShape {
     /// </summary>
     internal bool StrokeHairline { get; set; }
 
+    /// <summary>
+    /// SVG crisp-edge intent for axis-aligned rectangle fills in device space. Unlike PDF stroke
+    /// adjustment, subpixel spans may collapse rather than overpaint neighbouring translucent strips.
+    /// </summary>
+    internal bool CrispEdges { get; set; }
+
     /// <summary>Optional stroke ending style for open paths. Null lets each renderer choose its default.</summary>
     public OfficeStrokeLineCap? StrokeLineCap { get; set; }
 
@@ -385,6 +391,7 @@ public sealed class OfficeShape {
         StrokeDashOffset = StrokeDashOffset,
         StrokeMiterLimit = StrokeMiterLimit,
         StrokeHairline = StrokeHairline,
+        CrispEdges = CrispEdges,
         StrokeLineCap = StrokeLineCap,
         StrokeLineJoin = StrokeLineJoin,
         StrokeStartMarker = StrokeStartMarker?.Clone(),

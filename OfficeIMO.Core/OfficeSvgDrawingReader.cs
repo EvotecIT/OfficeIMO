@@ -1207,6 +1207,7 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("stroke-linejoin", element.Attribute("stroke-linejoin")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-miterlimit", element.Attribute("stroke-miterlimit")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("fill-rule", element.Attribute("fill-rule")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("shape-rendering", element.Attribute("shape-rendering")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-family", element.Attribute("font-family")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-size", element.Attribute("font-size")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-style", element.Attribute("font-style")?.Value, paintServers, ref result, ref unsupported);
@@ -1292,6 +1293,25 @@ public static partial class OfficeSvgDrawingReader {
         if (string.IsNullOrWhiteSpace(value)) return;
         string normalized = value!.Trim();
         switch (name.Trim().ToLowerInvariant()) {
+            case "shape-rendering":
+                switch (normalized.ToLowerInvariant()) {
+                    case "crispedges":
+                        style.CrispEdges = true;
+                        break;
+                    case "auto":
+                    case "optimizespeed":
+                    case "geometricprecision":
+                    case "initial":
+                        style.CrispEdges = false;
+                        break;
+                    case "inherit":
+                    case "unset":
+                        break;
+                    default:
+                        unsupported++;
+                        break;
+                }
+                break;
             case "color":
                 if (normalized.Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) break;
                 if (!OfficeColor.TryParseCss(normalized, out OfficeColor currentColor)) unsupported++;
@@ -1515,6 +1535,7 @@ public static partial class OfficeSvgDrawingReader {
         shape.StrokeLineJoin = style.LineJoin;
         shape.StrokeMiterLimit = style.MiterLimit;
         shape.FillRule = style.FillRule;
+        shape.CrispEdges = style.CrispEdges;
     }
 
     private static void ApplyDeferredPaint(
@@ -1783,6 +1804,7 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeStrokeLineJoin LineJoin;
         internal double MiterLimit;
         internal OfficeFillRule FillRule;
+        internal bool CrispEdges;
         internal string FontFamily;
         internal double FontSize;
         internal SvgLineHeight LineHeight;

@@ -456,6 +456,7 @@ public sealed partial class PdfReadPage {
             (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             (group, transform, paintOrder, contentOrderKey, effect) => elements.Add(
                 PdfPageDrawingElement.FromGroup(group, transform, paintOrder, contentOrderKey, elements.Count).WithEffect(effect)),
+            scaleStrokeWidthWithTransform: true,
             cancellationToken: cancellationToken);
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));

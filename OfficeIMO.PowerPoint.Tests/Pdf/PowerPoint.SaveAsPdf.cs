@@ -19,7 +19,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PowerPointSaveAsPdfTests {
+public partial class PowerPointSaveAsPdfTests {
     [Fact]
     public void SaveAsPdf_RendersSmartArtThroughSharedDiagramPrimitives() {
         using PowerPointPresentation presentation =
@@ -1223,31 +1223,6 @@ public class PowerPointSaveAsPdfTests {
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("120 0 0 30 -20 80 cm", raw, StringComparison.Ordinal);
         Assert.Contains("0.5 0 0.5 1 re", raw, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RotatesPictureCropWithImageFrame() {
-        using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointPicture picture = presentation.AddSlide().AddPicture(
-            new MemoryStream(CreateMinimalRgbPng()),
-            OfficeIMO.Drawing.OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(50),
-            PowerPointUnits.FromPoints(60),
-            PowerPointUnits.FromPoints(30));
-        picture.Crop(leftPercent: 25D, topPercent: 0D, rightPercent: 0D, bottomPercent: 0D);
-        picture.Rotation = 90D;
-
-        byte[] bytes = presentation.ToPdfBytes();
-
-        string raw = PdfOperatorSearchText.From(bytes);
-        int imageTransform = raw.IndexOf("0 80 -30 0 75 55 cm", StringComparison.Ordinal);
-        int localClip = raw.IndexOf("0.25 0 0.75 1 re", StringComparison.Ordinal);
-
-        Assert.True(imageTransform >= 0, "Expected the cropped picture to render through the rotated image transform.");
-        Assert.True(localClip > imageTransform, "Expected the source crop clip to be applied inside the rotated image frame.");
     }
 
     [Fact]
