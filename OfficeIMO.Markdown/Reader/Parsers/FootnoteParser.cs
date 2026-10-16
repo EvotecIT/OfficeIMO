@@ -93,10 +93,14 @@ public static partial class MarkdownReader {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
 
+        // A note's lead is prose even when it contains a colon. Keep explicit
+        // multi-line definition lists, but do not reinterpret narrative note text.
+        var bodyOptions = options.Clone();
+        bodyOptions.PreferNarrativeSingleLineDefinitions = true;
         var suppressedParagraphAttributeStartLines = GetContinuationParagraphGenericAttributeSuppressionLines(contentSourceLines);
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(
             contentSourceLines,
-            options,
+            bodyOptions,
             state,
             suppressedParagraphAttributeStartLines);
         if (blocks.Count > 0) {
