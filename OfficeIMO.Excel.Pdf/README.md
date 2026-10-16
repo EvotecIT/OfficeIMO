@@ -152,6 +152,16 @@ Worksheet print areas are exported separately, in their stored order, with each 
 
 Worksheet fit-to-page mode includes retained image, chart, and shape extents before choosing page breaks, and defaults each omitted fit dimension to one page. A zero dimension leaves that axis unlimited. Manual scaling remains active when fit-to-page mode is disabled, even when the file retains cached fit dimensions.
 
+Bubble charts use aligned X/Y/size triples, the authored bubble scale percentage,
+and area or width sizing through the same Core bubble renderer as PNG export.
+Automatic per-series colours remain resolved from the workbook theme and chart
+style. A caller-supplied `ChartStyle` palette replaces automatic colours.
+`showNegBubbles = false` omits negative-size bubbles; a request to show them emits
+`ExcelChartBubbleNegativeSizesUnsupported` because Core cannot paint negative
+sizes. Positive bubbles remain visible. Invalid bubble settings and flat
+projections of 3-D bubbles emit `ExcelChartBubbleSettingsApproximated`. Native
+Excel's absolute bubble diameters can differ.
+
 Worksheet horizontal and vertical print centering position the scaled scene inside its print margins. Supported DrawingML shapes and text boxes use the same shape/text drawing owner as PNG export; `UseWorksheetImages = false` omits these objects as well as pictures. Unsupported objects produce a conversion warning. Header and footer pictures resolve their VML image relationships, including imported files with an undeclared standard relationship prefix or a stale relationship identifier.
 
 The default worksheet canvas preserves authored font sizes in wrapped cells. A cell with shrink-to-fit enabled reduces its own text without changing neighboring cells; wrapping takes precedence when both settings are present.

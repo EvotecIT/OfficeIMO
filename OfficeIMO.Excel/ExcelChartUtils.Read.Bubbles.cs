@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
                 if (!TryReadBubbleNumbers(item.GetFirstChild<XValues>(), sheet, budget, out var x) ||
                     !TryReadBubbleNumbers(item.GetFirstChild<YValues>(), sheet, budget, out var y) ||
                     !TryReadBubbleNumbers(item.GetFirstChild<BubbleSize>(), sheet, budget, out var sizes) ||
-                    x!.Count != y!.Count || x.Count != sizes!.Count || sizes.Any(value => value < 0D)) return null;
+                    x!.Count != y!.Count || x.Count != sizes!.Count) return null;
 
                 categories ??= x.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 string name = TryReadSeriesName(item, sheet, out string? resolved) && !string.IsNullOrWhiteSpace(resolved)

@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<double>? XValues { get; }
 
-        /// <summary>Gets snapshot bubble sizes aligned with the series X and Y values, when present.</summary>
+        /// <summary>Gets signed source bubble sizes aligned with X and Y values; render adapters diagnose unsupported negative-size painting.</summary>
         public IReadOnlyList<double>? BubbleSizes { get; }
 
         internal ExcelChartSeries WithBubbleSizes(IReadOnlyList<double> sizes) =>

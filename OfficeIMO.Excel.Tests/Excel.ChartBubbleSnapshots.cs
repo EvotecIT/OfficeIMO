@@ -10,7 +10,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
-public sealed class ExcelChartBubbleSnapshotTests {
+public sealed partial class ExcelChartBubbleSnapshotTests {
     [Fact]
     public void BubbleSnapshot_ReopenedWorksheetRangesPreserveEachSeriesCoordinates() {
         using ExcelDocument document = ExcelDocument.Create();
@@ -60,10 +60,9 @@ public sealed class ExcelChartBubbleSnapshotTests {
         Assert.False(series.ConnectLine);
         Assert.True(series.ShowMarkers);
 
-        // Exercise the existing Excel render adapter without changing its scatter approximation.
         OfficeImageExportResult image = chart.ExportImage(OfficeImageExportFormat.Svg);
         Assert.True(image.EncodedLength > 0);
-        Assert.Contains(image.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartKindApproximated);
+        Assert.DoesNotContain(image.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartKindApproximated);
     }
 
     [Fact]
@@ -98,8 +97,8 @@ public sealed class ExcelChartBubbleSnapshotTests {
     [InlineData("duplicate-index")]
     [InlineData("sparse-index")]
     [InlineData("nonfinite-x")]
-    [InlineData("negative-size")]
     [InlineData("excessive-count")]
+    [InlineData("mixed-chart")]
     public void BubbleSnapshot_InvalidTriplesFailWithoutPartialSnapshot(string defect) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelChart chart = CreateLiteralChart(document, false);
@@ -115,8 +114,8 @@ public sealed class ExcelChartBubbleSnapshotTests {
             case "duplicate-index": sizes.Elements<C.NumericPoint>().First().Index = 0U; break;
             case "sparse-index": sizes.GetFirstChild<C.PointCount>()!.Val = 3U; break;
             case "nonfinite-x": series.GetFirstChild<C.XValues>()!.Descendants<C.NumericValue>().First().Text = "NaN"; break;
-            case "negative-size": sizes.Elements<C.NumericPoint>().First().NumericValue!.Text = "-1"; break;
             case "excessive-count": sizes.GetFirstChild<C.PointCount>()!.Val = 1_000_001U; break;
+            case "mixed-chart": GetNativeBubble(document).Parent!.AppendChild(new C.LineChart()); break;
         }
         Assert.False(chart.TryGetSnapshot(out _));
     }

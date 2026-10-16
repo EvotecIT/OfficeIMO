@@ -183,9 +183,23 @@ for configuration and destination-preservation behavior.
 
 `ExcelChart.TryGetSnapshot(...)` reads bubble series from worksheet ranges,
 numeric literals, and numeric caches. Each series exposes aligned `XValues`,
-`Values`, and `BubbleSizes`. Unsupported or inconsistent triples fail snapshot
-reading. PNG export uses its existing scatter projection without size encoding;
-the PDF adapter reports bubble charts as unsupported.
+`Values`, and signed source `BubbleSizes`. Unsupported or inconsistent triples fail
+snapshot reading. PDF and image exports render true bubbles through the shared
+Core renderer, preserving `bubbleScale`, area/width `sizeRepresents`, and automatic
+series colours. Snapshots expose `BubbleScalePercent`, `BubbleSizeMode`, and
+`ShowNegativeBubbles`.
+
+Negative sizes remain in the snapshot. When `showNegBubbles` is false, their
+bubbles are omitted as requested. When true, exports still omit negative-size
+bubbles and report `ExcelChartBubbleNegativeSizesUnsupported`; the shared renderer
+cannot paint them. PDF warnings retain this omission classification through
+`ExcelPdfExportWarning.LossKind`. Invalid scale/size settings and 3-D bubble projections report
+`ExcelChartBubbleSettingsApproximated`. Native Excel's absolute bubble diameters
+and printer geometry are not guaranteed.
+
+Worksheet-canvas PDF retains charts anchored above or left of the populated cells
+without expanding the table's cell range. Large leading gaps use the computed
+scene fit even below five percent so retained cells stay inside the page.
 
 ## Excel worksheet canvas drawings and print layout
 

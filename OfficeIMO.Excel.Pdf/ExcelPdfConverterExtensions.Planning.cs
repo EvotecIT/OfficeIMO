@@ -352,6 +352,9 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelSheet? metadataSheet = boundedRead ? null : workbookSheet;
                 ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? metadataSheet?.GetPageSetup() : null;
                 ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? metadataSheet?.GetHeaderFooter() : null;
+                IReadOnlyList<WorksheetChartExportData> worksheetCharts = boundedRead
+                    ? Array.Empty<WorksheetChartExportData>()
+                    : ReadWorksheetCharts(workbookSheet, options, sheetName);
                 foreach (string exportRange in GetExportRanges(sheet, workbookSheet, options)) {
                     string normalizedExportRange = NormalizeA1Range(exportRange);
                     int sourceRows = GetRangeRowCount(normalizedExportRange);
@@ -396,7 +399,7 @@ namespace OfficeIMO.Excel.Pdf {
                         : FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
                     IReadOnlyList<WorksheetChartExportData> charts = boundedRead
                         ? Array.Empty<WorksheetChartExportData>()
-                        : FilterChartsByExportedCells(ReadWorksheetCharts(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
+                        : FilterChartsByExportedCells(worksheetCharts, exportedCellReferences, filterMediaToExportedCells);
                     var drawings = ReadWorksheetDrawingObjects(metadataSheet, options, sheetName, exportedCellReferences, filterMediaToExportedCells);
                     if (!hasTable && images.Count == 0 && charts.Count == 0 && drawings.Count == 0) {
                         continue;

@@ -101,14 +101,16 @@ namespace OfficeIMO.Excel.Pdf {
             // Retained objects therefore belong to this scene and must contribute their full
             // authored extent; clipping them to the final cell boundary can leave only a chart
             // title or a thin image strip visible when the anchor is in the last exported row.
-            double unscaledSceneWidth = Math.Max(tableWidth, objectBounds.Right);
-            double unscaledSceneHeight = Math.Max(tableHeight, objectBounds.Bottom);
+            double unscaledSceneWidth = Math.Max(tableWidth, objectBounds.Right) - objectBounds.Left;
+            double unscaledSceneHeight = Math.Max(tableHeight, objectBounds.Bottom) - objectBounds.Top;
             double scale = ResolveWorksheetSceneScale(plan.PageSetup, unscaledSceneWidth, unscaledSceneHeight, availableWidth, availableHeight, worksheetScale);
             sceneX += ExcelPageSetupGeometry.CenteredOffset(plan.PrintOptions?.HorizontalCentered, availableWidth, unscaledSceneWidth * scale);
             sceneY += ExcelPageSetupGeometry.CenteredOffset(plan.PrintOptions?.VerticalCentered, availableHeight, unscaledSceneHeight * scale);
             double clipWidth = Math.Min(availableWidth, unscaledSceneWidth * scale);
             double clipHeight = Math.Min(availableHeight, unscaledSceneHeight * scale);
 
+            double tableX = sceneX - objectBounds.Left * scale;
+            double tableY = sceneY - objectBounds.Top * scale;
             canvas.Clip(sceneX, sceneY, Math.Max(1D, clipWidth), Math.Max(1D, clipHeight), clipped => {
                 if (plan.HasTable && chunk.RowIndexes.Count > 0 && chunk.ColumnCount > 0) {
                     SheetExportData data = SelectPageCells(plan, chunk, options);
@@ -134,17 +136,17 @@ namespace OfficeIMO.Excel.Pdf {
                             scale,
                             preserveWorksheetNoWrap: true,
                             dateSystem: dateSystem),
-                        sceneX,
-                        sceneY,
+                        tableX,
+                        tableY,
                         tableWidth * scale,
                         tableHeight * scale,
                         tableStyle);
-                    AddWorksheetSceneConditionalIcons(clipped, data, columnWidths, rowHeights, sceneX, sceneY, scale);
+                    AddWorksheetSceneConditionalIcons(clipped, data, columnWidths, rowHeights, tableX, tableY, scale);
                 }
 
-                AddWorksheetSceneImages(clipped, plan, chunk, columnWidths, rowHeights, sceneX, sceneY, scale);
-                AddWorksheetSceneCharts(clipped, plan, chunk, options, columnWidths, rowHeights, sceneX, sceneY, scale);
-                AddWorksheetSceneDrawingObjects(clipped, plan, chunk, columnWidths, rowHeights, sceneX, sceneY, scale);
+                AddWorksheetSceneImages(clipped, plan, chunk, columnWidths, rowHeights, tableX, tableY, scale);
+                AddWorksheetSceneCharts(clipped, plan, chunk, options, columnWidths, rowHeights, tableX, tableY, scale);
+                AddWorksheetSceneDrawingObjects(clipped, plan, chunk, columnWidths, rowHeights, tableX, tableY, scale);
             });
         }
 
@@ -319,7 +321,9 @@ namespace OfficeIMO.Excel.Pdf {
                 scale = Math.Min(scale, availableHeight / Math.Max(1D, sceneHeight));
             }
 
-            return Math.Max(0.05D, scale);
+            // A lower bound here can push retained cells outside the page when media
+            // precedes a distant used range. Both computed ratios are already positive.
+            return scale;
         }
 
         private static double GetWorksheetAuthoredScale(ExcelSheetPageSetup? pageSetup) {
@@ -342,6 +346,8 @@ namespace OfficeIMO.Excel.Pdf {
             TableChunk chunk,
             IReadOnlyList<double> columnWidths,
             IReadOnlyList<double> rowHeights) {
+            double left = 0D;
+            double top = 0D;
             double right = 0D;
             double bottom = 0D;
             foreach (WorksheetImageExportData image in plan.Images) {
@@ -349,6 +355,8 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
+                left = Math.Min(left, x + image.OffsetXPoints);
+                top = Math.Min(top, y + image.OffsetYPoints);
                 right = Math.Max(right, x + image.OffsetXPoints + image.WidthPoints);
                 bottom = Math.Max(bottom, y + image.OffsetYPoints + image.HeightPoints);
             }
@@ -359,6 +367,8 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
+                left = Math.Min(left, x + PixelsToPoints(snapshot.OffsetXPixels));
+                top = Math.Min(top, y + PixelsToPoints(snapshot.OffsetYPixels));
                 right = Math.Max(right, x + PixelsToPoints(snapshot.OffsetXPixels + snapshot.WidthPixels));
                 bottom = Math.Max(bottom, y + PixelsToPoints(snapshot.OffsetYPixels + snapshot.HeightPixels));
             }
@@ -366,10 +376,12 @@ namespace OfficeIMO.Excel.Pdf {
             foreach (var drawing in plan.DrawingObjects) {
                 if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, drawing.Row, drawing.Column, out double x, out double y)) continue;
                 (double width, double height) = GetWorksheetDrawingSize(plan, drawing);
+                left = Math.Min(left, x + PixelsToPoints(drawing.OffsetXPixels));
+                top = Math.Min(top, y + PixelsToPoints(drawing.OffsetYPixels));
                 right = Math.Max(right, x + PixelsToPoints(drawing.OffsetXPixels) + width);
                 bottom = Math.Max(bottom, y + PixelsToPoints(drawing.OffsetYPixels) + height);
             }
-            return new WorksheetSceneBounds(right, bottom);
+            return new WorksheetSceneBounds(left, top, right, bottom);
         }
 
         private static void AddWorksheetSceneImages(
@@ -480,17 +492,14 @@ namespace OfficeIMO.Excel.Pdf {
 
                 int lastExportedRow = Math.Min(plan.ExportedRows, references.GetLength(0)) - 1;
                 int lastSourceRow = GetLastOriginalRowNumber(references, lastExportedRow);
-                if (lastSourceRow <= 0 ||
-                    sourceRow <= lastSourceRow ||
-                    !chunk.RowIndexes.Contains(lastExportedRow)) {
-                    return false;
-                }
-
-                for (int index = 0; index < rowHeights.Count; index++) {
-                    y += rowHeights[index];
-                }
-                for (int row = lastSourceRow + 1; row < sourceRow; row++) {
-                    y += GetWorksheetRowHeightPoints(plan.Geometry, row);
+                if (sourceRow < plan.Geometry.FirstRow && IsInitialWorksheetRowChunk(plan, chunk)) {
+                    // Virtual leading space belongs to canvas geometry, not a dense cell range.
+                    for (int row = sourceRow; row < plan.Geometry.FirstRow; row++)
+                        y -= GetWorksheetRowHeightPoints(plan.Geometry, row);
+                } else {
+                    if (lastSourceRow <= 0 || sourceRow <= lastSourceRow || !chunk.RowIndexes.Contains(lastExportedRow)) return false;
+                    for (int index = 0; index < rowHeights.Count; index++) y += rowHeights[index];
+                    for (int row = lastSourceRow + 1; row < sourceRow; row++) y += GetWorksheetRowHeightPoints(plan.Geometry, row);
                 }
             } else {
                 for (int index = 0; index < localRow; index++) {
@@ -511,6 +520,12 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int index = 0; index < localColumn; index++) {
                     x += columnWidths[index];
                 }
+                return true;
+            }
+
+            if (!plan.ClipToExportRange && sourceColumn < plan.Geometry.FirstColumn && chunk.StartColumn == 0) {
+                for (int column = sourceColumn; column < plan.Geometry.FirstColumn; column++)
+                    x -= GetWorksheetColumnWidthPoints(plan.Geometry, column);
                 return true;
             }
 
@@ -565,11 +580,15 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private readonly struct WorksheetSceneBounds {
-            public WorksheetSceneBounds(double right, double bottom) {
+            public WorksheetSceneBounds(double left, double top, double right, double bottom) {
+                Left = left;
+                Top = top;
                 Right = right;
                 Bottom = bottom;
             }
 
+            public double Left { get; }
+            public double Top { get; }
             public double Right { get; }
             public double Bottom { get; }
         }

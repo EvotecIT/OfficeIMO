@@ -40,12 +40,12 @@ namespace OfficeIMO.Excel.Pdf {
             List<double> heights = CreateWorksheetSceneRowHeights(plan, wholeSheet);
             WorksheetSceneBounds objects = MeasureWorksheetObjects(plan, wholeSheet, widths, heights);
             if (IsFitToWidth(plan.PageSetup)) {
-                scale = Math.Min(scale, availableWidth * plan.PageSetup!.FitToWidth!.Value / Math.Max(1D, Math.Max(widths.Sum(), objects.Right)));
+                scale = Math.Min(scale, availableWidth * plan.PageSetup!.FitToWidth!.Value / Math.Max(1D, (Math.Max(widths.Sum(), objects.Right) - objects.Left)));
                 scale = FindWorksheetFitScale(scale, candidate => SplitWorksheetColumns(plan, 0, columns, availableWidth / candidate).Count,
                     plan.PageSetup!.FitToWidth!.Value);
             }
             if (IsFitToHeight(plan.PageSetup)) {
-                scale = Math.Min(scale, availableHeight * plan.PageSetup!.FitToHeight!.Value / Math.Max(1D, Math.Max(heights.Sum(), objects.Bottom)));
+                scale = Math.Min(scale, availableHeight * plan.PageSetup!.FitToHeight!.Value / Math.Max(1D, (Math.Max(heights.Sum(), objects.Bottom) - objects.Top)));
                 var rows = Enumerable.Range(0, plan.ExportedRows).ToArray();
                 scale = FindWorksheetFitScale(scale, candidate => SplitWorksheetRows(plan, rows,
                     plan.ExportData.HeaderRowCount, availableHeight / candidate).Count, plan.PageSetup!.FitToHeight!.Value);

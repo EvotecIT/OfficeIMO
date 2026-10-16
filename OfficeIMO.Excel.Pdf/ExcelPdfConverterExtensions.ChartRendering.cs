@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel.Pdf {
                 options.ChartLayout ?? (preserveWorksheetLegend || chartKind is OfficeChartKind.Pie or OfficeChartKind.Doughnut
                     ? snapshot.Layout ?? new OfficeChartLayout()
                     : WithNativeCategoryGeometry(DefaultExcelPdfChartLayout, snapshot.Layout)),
-                snapshot.RadialLayout);
+                snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
         }
 
         // The PDF chart keeps its worksheet legend table, but bar spacing, point placement and
@@ -81,6 +81,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static OfficeChartSeries CreateOfficeChartSeries(ExcelChartSeries series, ExcelChartType defaultType, OfficeChartKind defaultKind,
             bool callerPalette = false) {
+            if (defaultType == ExcelChartType.Bubble) return ExcelRangeImageRenderer.CreateBubbleChartSeries(series, callerPalette);
             ExcelChartType effectiveType = series.ChartType ?? defaultType;
             OfficeChartKind? renderKind = null;
             if (effectiveType != defaultType) {
@@ -165,6 +166,9 @@ namespace OfficeIMO.Excel.Pdf {
                 case ExcelChartType.AreaStacked100:
                 case ExcelChartType.Area3DStacked100:
                     kind = OfficeChartKind.AreaStacked100;
+                    return true;
+                case ExcelChartType.Bubble:
+                    kind = OfficeChartKind.Bubble;
                     return true;
                 case ExcelChartType.Scatter:
                     kind = OfficeChartKind.Scatter;

@@ -148,6 +148,7 @@ namespace OfficeIMO.Excel {
             try {
                 var plot = GetChartPart().ChartSpace?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Chart>()?.PlotArea;
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot, resolveSourceLinkedFormats: true);
+                var bubble = ReadBubbleImageSettings(plot, data);
                 snapshot = new ExcelChartSnapshot(
                     Name,
                     Title,
@@ -161,8 +162,8 @@ namespace OfficeIMO.Excel {
                     anchorHeightPixels,
                     CreateImageExportStyle(data.Categories.Count),
                     CreateImageExportLayout(),
-                    CreateImageExportDiagnostics(),
-                    RadialLayout);
+                    CreateImageExportDiagnostics().Concat(bubble.Diagnostics).ToArray(),
+                    RadialLayout, bubble.Scale, bubble.Mode, bubble.ShowNegative);
                 return true;
             } catch (Exception exception) when (exception is ArgumentException || exception is FormatException ||
                 exception is OverflowException || exception is NotSupportedException) {
