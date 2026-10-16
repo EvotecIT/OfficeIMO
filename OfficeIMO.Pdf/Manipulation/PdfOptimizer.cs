@@ -49,9 +49,12 @@ internal static partial class PdfOptimizer {
         var actions = new List<PdfOptimizationAction>();
         var skippedActions = new List<PdfOptimizationSkippedAction>();
         var optimizedObjects = new Dictionary<int, PdfIndirectObject>(objects);
-        PdfMetadata metadata = PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata;
+        PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        ValidateConformanceSettings(source.UncheckedXmpMetadata, effectiveOptions);
+        int? infoObjectNumber = probe.Security.InfoObjectNumber;
+        HashSet<PdfStream> preservedStreams = FindPreservedStreams(objects, cancellationToken);
         if (effectiveOptions.CompressUnfilteredStreams) {
-            CompressUnfilteredStreams(optimizedObjects, effectiveOptions, actions, skippedActions);
+            CompressUnfilteredStreams(optimizedObjects, preservedStreams, effectiveOptions, actions, skippedActions);
         }
 
         if (effectiveOptions.DeduplicateIdenticalStreams) {
@@ -63,7 +66,7 @@ internal static partial class PdfOptimizer {
         if (effectiveOptions.DeduplicateResources) DeduplicateResourceDictionaries(optimizedObjects, actions, cancellationToken);
 
         if (effectiveOptions.RemoveUnreferencedObjects) {
-            RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions, cancellationToken);
+            RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, infoObjectNumber, actions, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -72,7 +75,7 @@ internal static partial class PdfOptimizer {
             candidate = RewriteAllObjects(
                 optimizedObjects,
                 catalogObjectNumber,
-                metadata,
+                infoObjectNumber,
                 pdf,
                 BuildSafeTrailerIdEntry(pdf),
                 effectiveOptions);
@@ -228,6 +231,7 @@ internal static partial class PdfOptimizer {
 
     private static void CompressUnfilteredStreams(
         Dictionary<int, PdfIndirectObject> objects,
+        HashSet<PdfStream> preservedStreams,
         PdfOptimizationOptions options,
         List<PdfOptimizationAction> actions,
         List<PdfOptimizationSkippedAction> skippedActions) {
@@ -235,6 +239,13 @@ internal static partial class PdfOptimizer {
             options.CancellationToken.ThrowIfCancellationRequested();
             PdfIndirectObject indirect = objects[objectNumber];
             if (indirect.Value is not PdfStream stream) {
+                continue;
+            }
+
+            if (preservedStreams.Contains(stream)) {
+                skippedActions.Add(new PdfOptimizationSkippedAction("CompressStream", objectNumber,
+                    stream.Data.LongLength, "PreserveConformanceStream",
+                    "Preserved metadata, embedded-file or output-intent stream bytes and filters."));
                 continue;
             }
 
@@ -417,9 +428,9 @@ internal static partial class PdfOptimizer {
         return " /ID [" + encoded + " " + encoded + "]";
     }
 
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf, string trailerIdEntry, PdfOptimizationOptions options) {
+    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, int? infoObjectNumber, byte[] sourcePdf, string trailerIdEntry, PdfOptimizationOptions options) {
         if (options.Linearize) {
-            return PdfLinearizationFileAssembler.Assemble(objects, catalogObjectNumber, metadata, sourcePdf, trailerIdEntry, options);
+            return PdfLinearizationFileAssembler.Assemble(objects, catalogObjectNumber, infoObjectNumber, sourcePdf, trailerIdEntry, options);
         }
 
         int[] sourceIds = objects.Keys.OrderBy(static id => id).ToArray();
@@ -440,11 +451,8 @@ internal static partial class PdfOptimizer {
             objectStreamEligibility.Add(sourceId != catalogObjectNumber && objects[sourceId].Value is not PdfStream);
         }
 
-        int infoId = bodies.Count + 1;
-        byte[] infoBody = PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata));
-        _ = AddWithinOptimizationOutputLimit(serializedBodyBytes, infoBody.LongLength, options.MaximumOutputBytes);
-        bodies.Add(infoBody);
-        objectStreamEligibility.Add(false);
+        int infoId = infoObjectNumber.HasValue && numberMap.TryGetValue(infoObjectNumber.Value, out int mappedInfo)
+            ? mappedInfo : 0;
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         return PdfOptimizationFileAssembler.Assemble(bodies, objectStreamEligibility, numberMap[catalogObjectNumber], infoId, fileVersion, options, trailerIdEntry);
@@ -461,11 +469,15 @@ internal static partial class PdfOptimizer {
     private static void RemoveUnreferencedObjects(
         Dictionary<int, PdfIndirectObject> objects,
         int catalogObjectNumber,
+        int? infoObjectNumber,
         List<PdfOptimizationAction> actions,
         System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var reachable = new HashSet<int>();
         CollectReachableObjectNumbers(objects, new PdfReference(catalogObjectNumber, objects[catalogObjectNumber].Generation), reachable);
+        if (infoObjectNumber.HasValue && objects.TryGetValue(infoObjectNumber.Value, out PdfIndirectObject? info)) {
+            CollectReachableObjectNumbers(objects, new PdfReference(info.ObjectNumber, info.Generation), reachable);
+        }
         foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
             cancellationToken.ThrowIfCancellationRequested();
             if (reachable.Contains(objectNumber)) {
