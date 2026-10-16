@@ -459,6 +459,7 @@ public sealed partial class PdfReadPage {
             (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             (group, transform, paintOrder, contentOrderKey, effect) => elements.Add(
                 PdfPageDrawingElement.FromGroup(group, transform, paintOrder, contentOrderKey, elements.Count).WithEffect(effect)),
+            scaleStrokeWidthWithTransform: true,
             cancellationToken: cancellationToken);
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
@@ -803,10 +804,14 @@ public sealed partial class PdfReadPage {
         if (allowRedundantPageClipRemoval &&
             clip.IsRectangle &&
             CanDropRedundantClipForEditableShape(shape) &&
-            ContainsShapeBounds(clip, shape, x, y)) {
+            ContainsShapeBounds(clip, shape, x, y) &&
+            (shape.Kind == OfficeShapeKind.Line ||
+                HasPositiveArea(x, y, shape.Width, shape.Height, drawing.Width, drawing.Height))) {
             // An enclosing rectangular clip adds no visible constraint to this
             // top-level ordinary shape. Keeping it would force the shape into a
             // clipped group and prevent editable-format recovery.
+            // Filled geometry must also satisfy its insertion bounds: tolerance
+            // at a rounded page edge must not remove the clip that retains it.
             return false;
         }
 

@@ -44,4 +44,16 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(60, top + paintedWidth));
     }
 
+    [Fact]
+    public void RenderPage_UniformTransformScalesExactDashLengthsAndPhase() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "q 0.75 0 0 0.75 0 25 cm 1 0 0 RG 8 w 0 J [8 12] 2 d 20 100 m 120 100 l S Q");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(
+            PdfPageImageRenderer.RenderPage(pdf), background: OfficeColor.White);
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(17, 100));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(25, 100));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(31, 100));
+    }
+
 }

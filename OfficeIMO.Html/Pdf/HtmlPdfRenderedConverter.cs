@@ -362,6 +362,12 @@ internal static partial class HtmlPdfRenderedConverter {
                 || diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
             throw new HtmlConversionException(diagnostics);
         }
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss) {
+            // Font providers can decline only when the PDF writer paints a run.
+            // Qualify that stage before returning a strict model or image scene,
+            // as well as before exposing bytes through the direct PDF routes.
+            _ = pdf.ToBytes(cancellationToken);
+        }
         if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss && conversionReport.HasLoss) {
             throw new HtmlConversionException(diagnostics.Concat(conversionReport.Warnings
                 .Where(static warning => warning.LossKind != OfficeConversionLossKind.None)

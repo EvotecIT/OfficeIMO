@@ -1022,7 +1022,7 @@ internal static partial class PdfPageContentVisualParser {
                     paintOrder,
                     fillTilingPaint,
                     strokeTilingPaint,
-                    _state.StrokeDashPattern));
+                    GetRenderedStrokeDashPattern()));
             } else if (stroke && isSingleLine) {
                 AddLine(ToPdfPoint(lineStart), ToPdfPoint(lineEnd), paintOrder);
             } else {
@@ -1066,7 +1066,7 @@ internal static partial class PdfPageContentVisualParser {
                     fill ? CreateTilingPatternPaint(_fillTilingPattern, _fillTilingTint, _fillPatternPaintTransform, _state.FillOpacity) : null,
                     stroke && _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _strokePatternPaintTransform, _state.StrokeOpacity) : null,
                     _retainPrimitiveData,
-                    _state.StrokeDashPattern,
+                    GetRenderedStrokeDashPattern(),
                     out PdfPageVisualPrimitive pathPrimitive)) {
                     AddPrimitive(pathPrimitive);
                 } else if (stroke && _state.StrokeWidth > 0D) {
@@ -1513,7 +1513,7 @@ internal static partial class PdfPageContentVisualParser {
                 _state.ClipPath,
                 paintOrder,
                 _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _strokePatternPaintTransform, _state.StrokeOpacity) : null,
-                _state.StrokeDashPattern));
+                GetRenderedStrokeDashPattern()));
         }
 
         private void RejectUnsupportedShadingStroke(
@@ -1528,23 +1528,6 @@ internal static partial class PdfPageContentVisualParser {
             strokeGradient = null;
             strokeRadialGradient = null;
             _unsupportedShadingTransformVisitor?.Invoke();
-        }
-
-        private double GetRenderedStrokeWidth() {
-            double strokeWidth = _state.StrokeWidth;
-            if (double.IsPositiveInfinity(strokeWidth)) return RenderedHairlineStrokeWidth;
-            if (!_scaleStrokeWidthWithTransform || strokeWidth <= 0D) {
-                return strokeWidth;
-            }
-
-            Matrix2D transform = _state.Transform;
-            double squaredScale = ((transform.A * transform.A) +
-                                   (transform.B * transform.B) +
-                                   (transform.C * transform.C) +
-                                   (transform.D * transform.D)) / 2D;
-            return squaredScale > 0D && !double.IsNaN(squaredScale) && !double.IsInfinity(squaredScale)
-                ? strokeWidth * Math.Sqrt(squaredScale)
-                : strokeWidth;
         }
 
         private void AddStrokedPathSegments(IReadOnlyList<OfficePathCommand> pathCommands, double paintOrder) {
