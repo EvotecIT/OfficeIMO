@@ -104,6 +104,8 @@ namespace OfficeIMO.Excel.Pdf {
             double unscaledSceneWidth = Math.Max(tableWidth, objectBounds.Right);
             double unscaledSceneHeight = Math.Max(tableHeight, objectBounds.Bottom);
             double scale = ResolveWorksheetSceneScale(plan.PageSetup, unscaledSceneWidth, unscaledSceneHeight, availableWidth, availableHeight, worksheetScale);
+            sceneX += ExcelPageSetupGeometry.CenteredOffset(plan.PrintOptions?.HorizontalCentered, availableWidth, unscaledSceneWidth * scale);
+            sceneY += ExcelPageSetupGeometry.CenteredOffset(plan.PrintOptions?.VerticalCentered, availableHeight, unscaledSceneHeight * scale);
             double clipWidth = Math.Min(availableWidth, unscaledSceneWidth * scale);
             double clipHeight = Math.Min(availableHeight, unscaledSceneHeight * scale);
 
@@ -137,10 +139,12 @@ namespace OfficeIMO.Excel.Pdf {
                         tableWidth * scale,
                         tableHeight * scale,
                         tableStyle);
+                    AddWorksheetSceneConditionalIcons(clipped, data, columnWidths, rowHeights, sceneX, sceneY, scale);
                 }
 
                 AddWorksheetSceneImages(clipped, plan, chunk, columnWidths, rowHeights, sceneX, sceneY, scale);
                 AddWorksheetSceneCharts(clipped, plan, chunk, options, columnWidths, rowHeights, sceneX, sceneY, scale);
+                AddWorksheetSceneDrawingObjects(clipped, plan, chunk, columnWidths, rowHeights, sceneX, sceneY, scale);
             });
         }
 
@@ -194,6 +198,8 @@ namespace OfficeIMO.Excel.Pdf {
             style.MinimumShrinkFontSize = Math.Max(3D, 4D * scale);
             style.SpacingBefore = 0D;
             style.SpacingAfter = 0D;
+            style.CellIcons = null;
+            ApplyWorksheetConditionalIconStyle(style, data, columnWidths, rowHeights, scale);
             style.AlternativeText = "Worksheet " + plan.SheetName;
             return style;
         }
@@ -357,6 +363,12 @@ namespace OfficeIMO.Excel.Pdf {
                 bottom = Math.Max(bottom, y + PixelsToPoints(snapshot.OffsetYPixels + snapshot.HeightPixels));
             }
 
+            foreach (var drawing in plan.DrawingObjects) {
+                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, drawing.Row, drawing.Column, out double x, out double y)) continue;
+                (double width, double height) = GetWorksheetDrawingSize(plan, drawing);
+                right = Math.Max(right, x + PixelsToPoints(drawing.OffsetXPixels) + width);
+                bottom = Math.Max(bottom, y + PixelsToPoints(drawing.OffsetYPixels) + height);
+            }
             return new WorksheetSceneBounds(right, bottom);
         }
 

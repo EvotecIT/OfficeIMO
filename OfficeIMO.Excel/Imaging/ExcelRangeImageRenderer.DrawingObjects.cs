@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
                     cancellationToken)));
         }
 
-        private static DrawingObjectScene CreateOfficeDrawing(ExcelVisualDrawingObject drawingObject, double scale) {
+        internal static DrawingObjectScene CreateOfficeDrawing(ExcelVisualDrawingObject drawingObject, double scale) {
             double width = Math.Max(1D, drawingObject.Width * scale);
             double height = Math.Max(1D, drawingObject.Height * scale);
             OfficeShape shape = CreateOfficeShape(drawingObject, width, height);
@@ -272,7 +272,7 @@ namespace OfficeIMO.Excel {
             offsetY = Math.Max(0D, Math.Max(-top, bottom - height)) + strokePadding;
         }
 
-        private readonly struct DrawingObjectScene {
+        internal readonly struct DrawingObjectScene {
             internal DrawingObjectScene(OfficeDrawing drawing, double offsetX, double offsetY) {
                 Drawing = drawing;
                 OffsetX = offsetX;

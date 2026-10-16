@@ -179,6 +179,27 @@ The authoring limits bound admitted and emitted payload bytes, not defensive
 copies or peak process memory. See [attachment authoring limits](OfficeIMO.Pdf/README.md#attachment-authoring-limits)
 for configuration and destination-preservation behavior.
 
+## Excel bubble chart snapshots
+
+`ExcelChart.TryGetSnapshot(...)` reads bubble series from worksheet ranges,
+numeric literals, and numeric caches. Each series exposes aligned `XValues`,
+`Values`, and `BubbleSizes`. Unsupported or inconsistent triples fail snapshot
+reading. Excel image and PDF exports use the existing scatter projection and
+report that bubble sizes are not encoded visually.
+
+## Excel worksheet canvas drawings and print layout
+
+Worksheet-canvas PDF export includes supported drawing shapes and text boxes.
+`UseWorksheetImages` controls these objects along with worksheet pictures.
+Feature preflight accepts renderable shapes; unsupported objects and drawing
+hyperlinks remain reported. The flow-table profile reports omitted shapes.
+
+Fit-to-page planning includes retained drawing extents before choosing page
+breaks. Wide banners can therefore reduce the print scale and page count.
+Horizontal and vertical print centering apply within print margins, including
+page-aware PNG/SVG export with `SplitByManualPageBreaks = true`. Ordinary range
+and worksheet images remain cropped to the selected cells.
+
 ## Excel worksheet page-fit inspection
 
 `ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,

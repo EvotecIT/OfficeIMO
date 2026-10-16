@@ -93,6 +93,10 @@ namespace OfficeIMO.Excel {
             return ClampScale(scale, minimumScale, maximumScale);
         }
 
+        // All measurements use the caller's coordinate unit (points or output pixels).
+        internal static double CenteredOffset(bool? centered, double available, double content) =>
+            centered == true ? System.Math.Max(0D, (available - content) / 2D) : 0D;
+
         internal static double ClampMargin(double margin, double pageSize) {
             if (double.IsNaN(margin) || double.IsInfinity(margin) || margin <= 0D) {
                 return 0D;

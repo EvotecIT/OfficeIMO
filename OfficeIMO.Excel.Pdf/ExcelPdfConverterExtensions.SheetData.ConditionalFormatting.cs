@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel.Pdf {
             var fills = new Dictionary<(int Row, int Column), string>();
             var dataBars = new Dictionary<(int Row, int Column), ConditionalDataBarCell>();
             var icons = new Dictionary<(int Row, int Column), ConditionalIconCell>();
+            var hiddenValues = new HashSet<(int Row, int Column)>();
             foreach (ExcelConditionalFormattingInfo rule in rules
                 .Where(rule => string.Equals(rule.Type, "ColorScale", StringComparison.OrdinalIgnoreCase) && rule.ColorScaleColors.Count >= 2)
                 .OrderByDescending(rule => rule.Priority)) {
@@ -100,92 +101,24 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                int iconCount = GetExcelIconSetCount(rule.IconSet!);
-                double min = candidates.Min(candidate => candidate.Value);
-                double max = candidates.Max(candidate => candidate.Value);
+                IReadOnlyList<double> ruleValues = ExcelConditionalVisualEvaluator.GetIconRuleNumericValues(workbookSheet, rule.Range);
+                if (ruleValues.Count == 0) ruleValues = candidates.Select(candidate => candidate.Value).ToArray();
+                double min = ruleValues.Min();
+                double max = ruleValues.Max();
                 foreach (var candidate in candidates) {
-                    int bucket = GetExcelIconSetBucket(candidate.Value, min, max, iconCount);
-                    if (rule.IconSetReverse) {
-                        bucket = iconCount - 1 - bucket;
-                    }
-
-                    icons[(candidate.Row, candidate.Column)] = MapExcelIconSetCell(rule.IconSet!, bucket, iconCount);
+                    if (!ExcelConditionalVisualEvaluator.TryResolveConditionalIcon(rule, candidate.Value, ruleValues, min, max, out OfficeConditionalIconKind? kind)) continue;
+                    var key = (candidate.Row, candidate.Column);
+                    // A higher-priority NoIcons substitution also replaces a lower-priority icon.
+                    icons.Remove(key);
+                    if (kind.HasValue) icons[key] = new ConditionalIconCell(kind.Value, rule.IconSetShowValue);
+                    if (rule.IconSetShowValue) hiddenValues.Remove(key);
+                    else hiddenValues.Add(key);
                 }
             }
 
+            // Empty strings suppress the value even when the caller supplies custom empty-cell text.
+            foreach (var key in hiddenValues) values[key.Row, key.Column] = string.Empty;
             return fills.Count == 0 && dataBars.Count == 0 && icons.Count == 0 ? null : new ConditionalFillData(fills, dataBars, icons);
-        }
-
-        private static int GetExcelIconSetCount(string iconSet) {
-            if (iconSet.StartsWith("Three", StringComparison.OrdinalIgnoreCase) ||
-                iconSet.StartsWith("3", StringComparison.Ordinal)) {
-                return 3;
-            }
-
-            if (iconSet.StartsWith("Four", StringComparison.OrdinalIgnoreCase) ||
-                iconSet.StartsWith("4", StringComparison.Ordinal)) {
-                return 4;
-            }
-
-            return 5;
-        }
-
-        private static int GetExcelIconSetBucket(double value, double min, double max, int iconCount) {
-            if (iconCount <= 1 || max <= min) {
-                return iconCount - 1;
-            }
-
-            double ratio = Math.Max(0D, Math.Min(1D, (value - min) / (max - min)));
-            return Math.Max(0, Math.Min(iconCount - 1, (int)Math.Floor(ratio * iconCount)));
-        }
-
-        private static ConditionalIconCell MapExcelIconSetCell(string iconSet, int bucket, int iconCount) {
-            string normalized = iconSet.ToLowerInvariant();
-            bool trafficLights = normalized.IndexOf("traffic", StringComparison.Ordinal) >= 0;
-            bool arrows = normalized.IndexOf("arrow", StringComparison.Ordinal) >= 0;
-            bool symbols = normalized.IndexOf("symbol", StringComparison.Ordinal) >= 0 || normalized.IndexOf("sign", StringComparison.Ordinal) >= 0 || normalized.IndexOf("indicator", StringComparison.Ordinal) >= 0;
-
-            if (trafficLights) {
-                return new ConditionalIconCell(PdfCore.PdfCellIconKind.Circle, GetExcelIconBucketColor(bucket, iconCount));
-            }
-
-            if (arrows) {
-                if (bucket == 0) {
-                    return new ConditionalIconCell(PdfCore.PdfCellIconKind.TriangleDown, PdfCore.PdfColor.FromRgb(192, 80, 77));
-                }
-
-                if (bucket >= iconCount - 1) {
-                    return new ConditionalIconCell(PdfCore.PdfCellIconKind.TriangleUp, PdfCore.PdfColor.FromRgb(99, 155, 71));
-                }
-
-                return new ConditionalIconCell(PdfCore.PdfCellIconKind.TriangleRight, PdfCore.PdfColor.FromRgb(255, 192, 0));
-            }
-
-            if (symbols && bucket == 0) {
-                return new ConditionalIconCell(PdfCore.PdfCellIconKind.Diamond, PdfCore.PdfColor.FromRgb(192, 80, 77));
-            }
-
-            if (symbols && bucket >= iconCount - 1) {
-                return new ConditionalIconCell(PdfCore.PdfCellIconKind.Circle, PdfCore.PdfColor.FromRgb(99, 155, 71));
-            }
-
-            if (symbols) {
-                return new ConditionalIconCell(PdfCore.PdfCellIconKind.TriangleUp, PdfCore.PdfColor.FromRgb(255, 192, 0));
-            }
-
-            return new ConditionalIconCell(PdfCore.PdfCellIconKind.Circle, GetExcelIconBucketColor(bucket, iconCount));
-        }
-
-        private static PdfCore.PdfColor GetExcelIconBucketColor(int bucket, int iconCount) {
-            if (bucket <= 0) {
-                return PdfCore.PdfColor.FromRgb(192, 80, 77);
-            }
-
-            if (bucket >= iconCount - 1) {
-                return PdfCore.PdfColor.FromRgb(99, 155, 71);
-            }
-
-            return PdfCore.PdfColor.FromRgb(255, 192, 0);
         }
 
         private static bool IsCellReferenceInReferenceList(string cellReference, string referenceList) {

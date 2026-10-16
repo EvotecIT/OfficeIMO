@@ -1,0 +1,64 @@
+using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+using Xunit;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+
+namespace OfficeIMO.Tests;
+
+public partial class Excel {
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void WorksheetPrintCentering_MovesPdfAndPngContentInsideMargins(bool horizontal, bool vertical) {
+        string path = Path.Combine(_directoryWithFiles, $"CenteredLayout-{horizontal}-{vertical}.xlsx");
+        using var workbook = ExcelDocument.Create(path, "Centered");
+        ExcelSheet sheet = workbook.Sheets[0];
+        sheet.CellValue(1, 1, "Marker");
+        sheet.CellValue(2, 2, "Tail");
+        sheet.SetColumnWidth(1, 12);
+        sheet.SetColumnWidth(2, 12);
+        sheet.SetRowHeight(1, 30);
+        sheet.SetRowHeight(2, 30);
+        sheet.SetMargins(0.5, 1, 0.75, 1.25);
+        sheet.SetPageSetup(paperSize: ExcelPaperSize.Letter, scale: 50);
+        sheet.Range("A1:B2").SetFillColor("FFCC33");
+        sheet.SetPrintOptions(horizontalCentered: false, verticalCentered: false);
+        using var original = PdfPigDocument.Open(workbook.ToPdfBytes());
+        var pngOriginal = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
+        sheet.SetPrintOptions(horizontalCentered: horizontal, verticalCentered: vertical);
+        using var centered = PdfPigDocument.Open(workbook.ToPdfBytes());
+        var pngCentered = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
+        var before = original.GetPage(1);
+        var after = centered.GetPage(1);
+        // Two 12-character columns at the documented unavailable-font estimate: 66.75pt each.
+        double width = 133.5 * 0.5;
+        double expectedX = horizontal ? (612 - 36 - 72 - width) / 2 : 0;
+        double expectedY = vertical ? (792 - 54 - 90 - 60 * 0.5) / 2 : 0;
+        Assert.InRange(FindWordStartX(after, "Marker") - FindWordStartX(before, "Marker"), expectedX - 0.05, expectedX + 0.05);
+        Assert.InRange(FindWordStartY(before, "Marker") - FindWordStartY(after, "Marker"), expectedY - 0.05, expectedY + 0.05);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(pngOriginal.Bytes, out var imageBefore));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(pngCentered.Bytes, out var imageAfter));
+        var boxBefore = FindYellowPrintBounds(imageBefore!);
+        var boxAfter = FindYellowPrintBounds(imageAfter!);
+        double pngExpectedX = horizontal ? (pngCentered.Width - 144 - boxBefore.Width) / 2D : 0;
+        double pngExpectedY = vertical ? (pngCentered.Height - 192 - boxBefore.Height) / 2D : 0;
+        Assert.InRange(boxAfter.X - boxBefore.X, pngExpectedX - 2, pngExpectedX + 2);
+        Assert.InRange(boxAfter.Y - boxBefore.Y, pngExpectedY - 2, pngExpectedY + 2);
+    }
+
+    private static (int X, int Y, int Width, int Height) FindYellowPrintBounds(OfficeRasterImage image) {
+        int left = image.Width, top = image.Height, right = -1, bottom = -1;
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                OfficeColor pixel = image.GetPixel(x, y);
+                if (pixel.R < 240 || pixel.G < 180 || pixel.G > 220 || pixel.B > 70) continue;
+                left = Math.Min(left, x); top = Math.Min(top, y);
+                right = Math.Max(right, x); bottom = Math.Max(bottom, y);
+            }
+        }
+        Assert.True(right >= left && bottom >= top, "Worksheet fill was not painted.");
+        return (left, top, right - left + 1, bottom - top + 1);
+    }
+}
