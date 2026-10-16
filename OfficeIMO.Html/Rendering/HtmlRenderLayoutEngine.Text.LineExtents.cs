@@ -19,7 +19,8 @@ namespace OfficeIMO.Html {
                 && TryResolveNormalInlineTextMetrics(paragraphStyle, ResolveTextFaceMetrics(strutText, paragraphStyle), out _,
                     allowShortLine: ordinaryFontBoxes);
             if (!selectedUsedFace && !line.HasMixedTextSizes(paragraphStyle)
-                    && !line.Segments.Any(segment => Math.Abs(segment.Run.Style.BaselineOffset
+                    && !line.Segments.Any(segment => InlineLine.ContributesFlowContent(segment.Run)
+                        && Math.Abs(segment.Run.Style.BaselineOffset
                         - paragraphStyle.BaselineOffset) > 0.000001D)) return false;
             ordinaryLineCarrier = selectedUsedFace;
             InlineTextLineMetrics strut = ResolveTextLineMetrics(strutText, paragraphStyle, ordinaryFontBoxes);
