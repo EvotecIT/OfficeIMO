@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Reconnects all live worksheet handles, including uncached aliases, after a save reloads the package.</summary>
-        private void RebindSheetWrappersAfterPackageReload(IReadOnlyDictionary<uint, WorksheetPart> previousParts) {
+        private void RebindSheetWrappersAfterPackageReload(IReadOnlyDictionary<uint, WorksheetPart> previousParts, bool packageWasSaved = true) {
             var elements = ReadSheetElements().Where(sheet => sheet.SheetId != null)
                 .ToDictionary(sheet => sheet.SheetId!.Value);
             lock (_sheetWrapperCacheLock) {
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
                         || sheet.Id?.Value == null
                         || _workBookPart.GetPartById(sheet.Id.Value) is not WorksheetPart part) continue;
 
-                    wrapper.RebindAfterPackageReload(_spreadSheetDocument!, sheet, part);
+                    wrapper.RebindAfterPackageReload(_spreadSheetDocument!, sheet, part, packageWasSaved);
                 }
             }
         }

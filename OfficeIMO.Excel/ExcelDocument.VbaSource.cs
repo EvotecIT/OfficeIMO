@@ -92,8 +92,7 @@ public partial class ExcelDocument {
                         else root.RemoveChild(currentProperties);
                     }
                     if (_spreadSheetDocument.DocumentType != originalType) {
-                        root.Save(); _spreadSheetDocument.ChangeDocumentType(originalType);
-                        _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing after recovery.");
+                        ChangeSpreadsheetDocumentType(originalType);
                     }
                 } catch (Exception restorationFailure) {
                     throw new AggregateException("The VBA update failed and Excel host metadata could not be restored. Discard this document instance.", failure, restorationFailure);

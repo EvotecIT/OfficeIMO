@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>Retains a caller's worksheet handle when saving replaces the underlying package.</summary>
-        internal void RebindAfterPackageReload(SpreadsheetDocument document, Sheet sheet, WorksheetPart part) {
+        internal void RebindAfterPackageReload(SpreadsheetDocument document, Sheet sheet, WorksheetPart part, bool packageWasSaved) {
             _spreadSheetDocument = document;
             _sheet = sheet;
             _id = sheet.SheetId!;
@@ -22,7 +22,8 @@ namespace OfficeIMO.Excel {
             _cellValueDefaultDateStyleIndex = null;
             _cellValueDefaultDurationStyleIndex = null;
             ResetStructuralMutationCachesLocal();
-            _hasWorksheetMutations = false;
+            // A type change replaces package parts before save preparation has committed worksheet edits.
+            _hasWorksheetMutations = !packageWasSaved;
         }
     }
 }
