@@ -21,8 +21,11 @@ public static partial class OfficeSvgDrawingReader {
         IDictionary<string, SvgContentSafetyTarget>? targets) {
         var builder = new OfficeContentSafetyBuilder("SVG", options);
         XElement computedRoot = new XElement(document.Root);
+        readerOptions?.CancellationToken.ThrowIfCancellationRequested();
+        var fonts = new OfficeFontFaceCollection();
+        fonts.AddRange(readerOptions?.Fonts);
         int unsupported = 0;
-        if (!ApplySvgStylesheets(computedRoot, ref unsupported, requireCompleteCss: true)) {
+        if (!ApplySvgStylesheets(computedRoot, fonts, ref unsupported, readerOptions?.CancellationToken ?? default, requireCompleteCss: true)) {
             throw new InvalidDataException("The SVG stylesheet or inline-style cascade uses unsupported constructs or exceeds the bounded CSS inspection limits.");
         }
 
@@ -33,7 +36,7 @@ public static partial class OfficeSvgDrawingReader {
         PopulateSvgLogicalInstructionSignals(candidates, options);
         var byComputedText = candidates.ToDictionary(item => item.ComputedText, item => item);
         var observer = new SvgContentSafetyTextObserver(byComputedText);
-        CollectSvgContentSafetyTextRuns(computedRoot, document, readerOptions, observer, ref unsupported);
+        CollectSvgContentSafetyTextRuns(computedRoot, document, readerOptions, fonts, observer, ref unsupported);
         ISet<string> reusableTextIds = CollectSvgReusableTextReferencedIds(document.Root);
         bool hasDynamicRendering = HasSvgDynamicRendering(document.Root);
         bool hasConditionalRendering = HasSvgConditionalRendering(document.Root);
@@ -398,6 +401,7 @@ public static partial class OfficeSvgDrawingReader {
         XElement root,
         SvgContentSafetyDocument document,
         OfficeSvgDrawingReaderOptions? readerOptions,
+        OfficeFontFaceCollection fonts,
         SvgContentSafetyTextObserver observer,
         ref int unsupported) {
         SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
@@ -408,8 +412,6 @@ public static partial class OfficeSvgDrawingReader {
         defaults.DashPercentageReference = NormalizedSvgDiagonal(document.ViewWidth, document.ViewHeight);
         SvgPaintContext rootStyle = ResolvePaintContext(root, defaults, paintServers, ref unsupported);
         OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, document.ViewX, document.ViewY, ref unsupported);
-        var fonts = new OfficeFontFaceCollection();
-        fonts.AddRange(readerOptions?.Fonts);
         CollectSvgContentSafetyTextElements(
             root,
             rootStyle,

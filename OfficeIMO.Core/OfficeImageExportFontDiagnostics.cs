@@ -27,7 +27,8 @@ public static class OfficeImageExportFontDiagnostics {
         OfficeFontStyle requestedStyle = OfficeFontFace.NormalizeStyle(style);
         for (int index = 0; index < families.Count; index++) {
             string family = families[index];
-            OfficeFontFace? scoped = fonts.ResolveStyledFaceForText(text!, family, requestedStyle);
+            string familyRequest = OfficeFontFamilyParser.Quote(family);
+            OfficeFontFace? scoped = fonts.ResolveStyledFaceForText(text!, familyRequest, requestedStyle);
             if (scoped != null) {
                 OfficeFontStyle resolvedStyle = scoped.Style;
                 if (index == 0 && resolvedStyle == requestedStyle && scoped.InstalledSubstituteFamily == null) return null;
@@ -41,7 +42,7 @@ public static class OfficeImageExportFontDiagnostics {
             }
 
             OfficeTrueTypeFont? platform = OfficeTrueTypeFont.TryLoadFontFamilyForText(
-                family, requestedStyle, text!, out OfficeFontStyle platformStyle);
+                familyRequest, requestedStyle, text!, out OfficeFontStyle platformStyle);
             if (platform != null) {
                 bool matchesFamily = OfficeSystemFontFamilyAliases.IsSystemUi(family) ||
                     OfficeSystemFontFamilyAliases.IsMath(family) || platform.MatchesFamilyName(family);

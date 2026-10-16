@@ -43,7 +43,7 @@ public static partial class OfficeSvgDrawingReader {
         // An intermediate destination-sized surface would clip negative source
         // coordinates before a group or pattern transform brings them into view.
         var imageLayer = new OfficeDrawing(width, height);
-        imageLayer.AddImageSharedWithInterpolation(bytes, contentType, projection.Translate(-x, -y), true, alternativeText, style.Opacity);
+        imageLayer.AddImageSharedWithInterpolation(bytes, contentType, projection.Translate(-x, -y), !style.NearestNeighborImages, alternativeText, style.Opacity);
         drawing.AddEffectDrawing(imageLayer, OfficeTransform.Translate(x, y).Then(transform));
         return true;
     }

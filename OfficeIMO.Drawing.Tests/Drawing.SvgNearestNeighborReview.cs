@@ -96,6 +96,22 @@ public partial class DrawingTests {
         Assert.Equal(raster.GetPixels(), embedded!.GetPixels());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeSvgDrawingReader_RetainsImageSamplingThroughSharedSvgExport(bool interpolate) {
+        var source = new OfficeRasterImage(2, 1, OfficeColor.Red);
+        source.SetPixel(1, 0, OfficeColor.Blue);
+        var drawing = new OfficeDrawing(8, 4).AddImageWithInterpolation(OfficePngWriter.Encode(source), "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 8, 4)), interpolate);
+        byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, 1, OfficeSvgSizeUnit.Pixel);
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(svg, out OfficeDrawing? imported, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(OfficeDrawingRasterRenderer.Render(drawing).GetPixels(),
+            OfficeDrawingRasterRenderer.Render(imported!).GetPixels());
+    }
+
     private sealed class CancelingNearestNeighborCodec : IOfficeRasterImageCodec {
         private readonly CancellationTokenSource _cancellation;
 
