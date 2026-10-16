@@ -339,7 +339,8 @@ Assert-Condition ($standards.schemaVersion -eq 1 -and $standards.allPassed -eq $
 foreach ($tool in @('veraPDF', 'Mustang', 'qpdf', 'pyHanko')) {
     Assert-Condition (-not [string]::IsNullOrWhiteSpace($standards.toolVersions.$tool)) "Missing $tool version."
 }
-Assert-Condition ($standards.toolVersions.Mustang -eq '2.24.0') 'Wrong Mustang version in standards proof.'
+Assert-Condition ($standards.toolVersions.Mustang -eq '2.26.0') 'Wrong Mustang version in standards proof.'
+Assert-Condition ($standards.toolVersions.MustangCiiRuleSet -eq 'ZF_250') 'Wrong Mustang CII ruleset in standards proof.'
 Assert-Condition ($standards.toolVersions.pyHanko -eq '0.37.0') 'Wrong pyHanko version in standards proof.'
 
 $standardsProfiles = [ordered]@{
@@ -353,7 +354,11 @@ $standardsProfiles = [ordered]@{
     'pdfua2' = @('ua2')
     'pdfa2b-ua1' = @('2b', 'ua1')
     'pdfa3b-ua1' = @('3b', 'ua1')
-    'invoice-pdfa4f' = @('4f')
+    'invoice-minimum-pdfa3b' = @('3b')
+    'invoice-basic-wl-pdfa3b' = @('3b')
+    'invoice-basic-pdfa3b' = @('3b')
+    'invoice-en16931-pdfa3a' = @('3a')
+    'invoice-extended-pdfa3u' = @('3u')
     'invoice-pdfa3b-ua1' = @('3b', 'ua1')
 }
 $expectedStandardsRows = [System.Collections.Generic.List[string]]::new()
@@ -380,8 +385,9 @@ function Assert-StandardsFile {
     Assert-Condition ($hash -eq $Entry.sha256) "Standards artifact hash mismatch: $($Entry.file)."
 }
 
-$expectedStandardsFiles = @($standardsProfiles.Keys | ForEach-Object { "$_.pdf" }) + @(
-    'pades-bb.pdf', 'pades-bt.pdf', 'invoice-pdfa4f.xml', 'invoice-pdfa3b-ua1.xml', 'signer-root.pem', 'tsa-root.pem')
+$expectedStandardsFiles = @($standardsProfiles.Keys | ForEach-Object { "$_.pdf" }) +
+    @($standardsProfiles.Keys | Where-Object { $_.StartsWith('invoice-') } | ForEach-Object { "$_.xml" }) + @(
+    'pades-bb.pdf', 'pades-bt.pdf', 'signer-root.pem', 'tsa-root.pem')
 Assert-Condition (@($standards.artifacts).Count -eq $expectedStandardsFiles.Count) 'Wrong standards artifact count.'
 foreach ($name in $expectedStandardsFiles) {
     $entries = @($standards.artifacts | Where-Object { $_.file -eq $name })
@@ -397,6 +403,11 @@ foreach ($key in $expectedStandardsRows) {
     $artifact = @($standards.artifacts | Where-Object { $_.file -eq $row.artifactFile })[0]
     Assert-Condition ($row.artifactSha256 -eq $artifact.sha256 -and $row.artifactSizeBytes -eq $artifact.sizeBytes) "Standards evidence is not bound to the exact artifact: $key."
     Assert-StandardsFile $row.diagnostic
+    if ($row.validator -eq 'Mustang') {
+        Assert-Condition ($row.details.validatorVersion -eq '2.26.0' -and $row.details.ruleSet -eq 'ZF_250') "Wrong Mustang version or CII ruleset: $key."
+        Assert-Condition ($row.details.xmlValidated -eq $true) "Missing Mustang XML validation: $key."
+        Assert-Condition ($row.details.pdfValidated -eq ($row.profile -eq 'pdf')) "Wrong Mustang PDF validation scope: $key."
+    }
     if ($row.profile -eq 'attachment') {
         Assert-Condition ($row.details.embeddedXmlMatches -eq $true) "Invoice XML mismatch: $key."
         Assert-StandardsFile $row.details.xml

@@ -99,15 +99,14 @@ internal static partial class PdfComplianceAnalyzer {
             return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
         }
 
-        bool invoicePdf20 = IsElectronicInvoice(profile) && info.XmpMetadata?.PdfAPart == 4;
-        if (RequiresPdf17FileVersion(profile) && !invoicePdf20) {
+        if (RequiresPdf17FileVersion(profile)) {
             Add(requirements, "readback-pdf-file-version", "Readback effective PDF 1.7 version",
                 ComparePdfVersion(info.EffectiveVersion, "1.7") == 0,
                 "The saved PDF effective version is PDF 1.7.",
                 "Generate the saved PDF with a PDF 1.7 header or catalog /Version before checking PDF/A-2, PDF/A-3, PDF/UA-1, or e-invoice profile evidence.");
         }
 
-        if (RequiresPdf20FileVersion(profile) || invoicePdf20) {
+        if (RequiresPdf20FileVersion(profile)) {
             Add(requirements, "readback-pdf-file-version", "Readback effective PDF 2.0 version",
                 ComparePdfVersion(info.EffectiveVersion, "2.0") >= 0,
                 "The saved PDF effective version is PDF 2.0 or newer.",
@@ -147,8 +146,7 @@ internal static partial class PdfComplianceAnalyzer {
 
     private static void AddPdfAReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfDocumentInfo info) {
         PdfXmpMetadataInfo? xmp = info.XmpMetadata;
-        (int Part, string? Conformance) target = IsElectronicInvoice(profile) && xmp?.PdfAPart == 4
-            ? (4, "F") : GetPdfAIdentificationTarget(profile);
+        (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
 
         Add(requirements, "readback-xmp-metadata", "Readback catalog XMP metadata",
             xmp != null && xmp.IsXmlMetadataStream && xmp.IsWellFormedXml,
@@ -161,7 +159,16 @@ internal static partial class PdfComplianceAnalyzer {
         Add(requirements, "readback-pdfa-identification", "Readback PDF/A identification XMP",
             hasMatchingIdentification,
             "The saved PDF contains PDF/A identification metadata for " + GetDisplayName(profile) + ".",
-            "The saved PDF XMP metadata must contain matching pdfaid:part and pdfaid:conformance values for " + GetDisplayName(profile) + ".");
+            IsElectronicInvoice(profile)
+                ? "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1."
+                : "The saved PDF XMP metadata must contain matching pdfaid:part and pdfaid:conformance values for " + GetDisplayName(profile) + ".");
+
+        if (IsElectronicInvoice(profile)) {
+            Add(requirements, "readback-einvoice-pdfua-profile", "Readback invoice PDF/UA profile",
+                xmp?.PdfUaPart == null || xmp.PdfUaPart == 1,
+                "The saved invoice has no PDF/UA declaration or declares PDF/UA-1.",
+                "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1; PDF/UA-2 is not supported.");
+        }
 
         AddPdfIdentificationReadbackRequirements(requirements, xmp, target.Part);
 

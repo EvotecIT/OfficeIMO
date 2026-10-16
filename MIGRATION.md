@@ -4,7 +4,9 @@
 
 `PdfOptions.UsePdfA(...)` and `UsePdfUa(...)` enable the strict compliance gate. Saving rejects missing font embedding, accessibility prerequisites and incompatible combined profile declarations; every declared A/UA profile is checked against the saved bytes. Applications that only prepare metadata can use `ConfigurePdfAGroundwork(...)` and `ConfigurePdfUaGroundwork(...)` instead. External validation remains necessary for a conformance claim on an exact artifact.
 
-PDF/A-4, PDF/A-4e, PDF/A-4f and PDF/UA-2 use PDF 2.0. PDF/A-4 metadata lives in XMP; callers reading only trailer Info fields should read `PdfDocument.Load(bytes).Inspect().XmpMetadata`. Hybrid invoice generation preserves a configured PDF/A-3 or PDF/A-4f profile. PDF/A-2 and base PDF/A-4 cannot carry the hybrid invoice XML through this API; use presentation-only output or choose an attachment-capable profile.
+PDF/A-4, PDF/A-4e, PDF/A-4f and PDF/UA-2 use PDF 2.0. PDF/A-4 metadata lives in XMP; callers reading only trailer Info fields should read `PdfDocument.Load(bytes).Inspect().XmpMetadata`.
+
+Hybrid invoice generation supports only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally combined with PDF/UA-1, and preserves those configured profiles. Replace PDF/A-4, PDF/A-4e or PDF/A-4f hybrid options with a supported PDF/A-3 profile, and replace PDF/UA-2 with PDF/UA-1 for hybrids. Use presentation-only output when invoice XML is not required; general PDF/A-4, PDF/A-4e and PDF/A-4f output remains available. Saved PDF/A-4f attachments cannot satisfy Factur-X/ZUGFeRD compliance proof.
 
 ## PAdES signatures and visible text
 

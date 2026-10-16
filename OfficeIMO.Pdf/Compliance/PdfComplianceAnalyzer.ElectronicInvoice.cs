@@ -2,6 +2,10 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
     private static void AddElectronicInvoiceRequirements(List<PdfComplianceRequirement> requirements, PdfOptions options) {
+        if (TryGetReducedInvoiceProfile(options, out var reducedProfile)) {
+            AddReducedInvoiceRequirements(requirements, options, reducedProfile);
+            return;
+        }
         requirements.Add(BuildElectronicInvoiceXmlAttachmentRequirement(options));
         requirements.Add(BuildElectronicInvoiceXmlProfileContextRequirement(options));
         requirements.Add(BuildElectronicInvoiceProfileConsistencyRequirement(options));
@@ -88,6 +92,11 @@ internal static partial class PdfComplianceAnalyzer {
             PdfComplianceRequirementStatus.Missing,
             "Update the configured e-invoice XMP metadata to " + string.Join(", ", diagnostics.ToArray()) + ".");
     }
+
+    private static bool HasOnlyOutsideScopeInvoiceTax(PdfEmbeddedFile file) =>
+        PdfCiiDocumentHeaderInspector.TryReadTaxCategoryCodes(file, out PdfCiiTaxCategoryCodeEvidence? evidence, out _) &&
+        evidence!.HeaderNotSubjectTaxBreakdownCount > 0 && evidence.CategoryCodes.Count > 0 &&
+        evidence.CategoryCodes.All(category => string.Equals(category, "O", StringComparison.Ordinal));
 
     private static bool IsKnownElectronicInvoiceConformanceLevel(string conformanceLevel) =>
         OfficeIMO.Internal.Invoicing.InvoiceProfiles.TryFromXmpConformanceLevel(conformanceLevel, out var profile) &&

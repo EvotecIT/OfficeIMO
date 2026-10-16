@@ -2674,7 +2674,9 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("invoice.pdf");
 ```
 
-The XML must be a valid EN 16931 CrossIndustryInvoice payload. The formal carrier gate checks the PDF/A-3 attachment, metadata, font, Unicode, and invoice rules before writing; exact-artifact PDF/A and invoice-validator results are still required before claiming conformance.
+Factur-X/ZUGFeRD hybrid containers support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1. PDF/A-4, PDF/A-4e and PDF/A-4f do not satisfy the invoice compliance profile; their general PDF generation and attachment capabilities follow their own profile requirements.
+
+The XML must be a valid CrossIndustryInvoice payload for its declared MINIMUM, BASIC WL, BASIC, EN 16931 or EXTENDED profile. The formal carrier gate checks the PDF/A-3 attachment, metadata, font, Unicode and profile-specific invoice rules before writing; exact-artifact PDF/A and invoice-validator results are still required before claiming conformance.
 
 #### Load and edit existing invoice XML
 

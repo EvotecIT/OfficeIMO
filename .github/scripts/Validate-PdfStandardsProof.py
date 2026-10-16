@@ -29,7 +29,11 @@ PROFILES = {
     "pdfua2": ("ua2",),
     "pdfa2b-ua1": ("2b", "ua1"),
     "pdfa3b-ua1": ("3b", "ua1"),
-    "invoice-pdfa4f": ("4f",),
+    "invoice-minimum-pdfa3b": ("3b",),
+    "invoice-basic-wl-pdfa3b": ("3b",),
+    "invoice-basic-pdfa3b": ("3b",),
+    "invoice-en16931-pdfa3a": ("3a",),
+    "invoice-extended-pdfa3u": ("3u",),
     "invoice-pdfa3b-ua1": ("3b", "ua1"),
 }
 PROFILE_NAMES = {
@@ -107,7 +111,11 @@ def check_mustang(output, is_pdf):
     for section in (("pdf", "xml") if is_pdf else ("xml",)):
         summary = root.find(f"{section}/summary")
         require(summary is not None and summary.get("status") == "valid", f"Mustang {section} validation failed")
-    return {"pdfValidated": is_pdf, "xmlValidated": True}
+    validator = root.find("xml/info/validator")
+    require(validator is not None and validator.get("version") == "2.26.0",
+            "Mustang result did not report validator version 2.26.0")
+    return {"pdfValidated": is_pdf, "xmlValidated": True,
+            "validatorVersion": validator.get("version"), "ruleSet": "ZF_250"}
 
 
 def check_signature(path, timestamped):
@@ -211,8 +219,10 @@ def main():
         require(code == 0 and (output + error).strip(), f"Cannot identify {name}")
         versions[name] = (output + error).strip()
     require(hashlib.sha256(args.mustang.read_bytes()).hexdigest() ==
-            "e4904ffa0afdce3f5836dceb927c440a05ed5d60386fdd37e17a4b2f7652edbf", "Wrong Mustang 2.24.0 artifact")
-    versions["Mustang"] = "2.24.0"
+            "42d7868cb68264874a7b8cab4c3587b03b23ccc7cd72373da917f66758bb9736", "Wrong Mustang 2.26.0 artifact")
+    versions["Mustang"] = "2.26.0"
+    # This hash-pinned CLI selects ZF_250 for all five supported CII profiles.
+    versions["MustangCiiRuleSet"] = "ZF_250"
     versions["pyHanko"] = importlib.metadata.version("pyhanko")
 
     for name, profiles in PROFILES.items():

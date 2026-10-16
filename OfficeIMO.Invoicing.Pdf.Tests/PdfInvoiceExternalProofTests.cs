@@ -1,3 +1,5 @@
+using System.Text;
+using System.Xml.Linq;
 using OfficeIMO.Invoicing.Tests;
 using OfficeIMO.Pdf;
 using OfficeIMO.Tests.Pdf;
@@ -8,13 +10,19 @@ namespace OfficeIMO.Invoicing.Pdf.Tests;
 /// <summary>Exercises the real invoice renderer, rather than a hand-built invoice-shaped PDF.</summary>
 public sealed class PdfInvoiceExternalProofTests {
     [Theory]
-    [InlineData("invoice-pdfa4f", PdfComplianceProfile.PdfA4F, false, 4, "F")]
-    [InlineData("invoice-pdfa3b-ua1", PdfComplianceProfile.PdfA3B, true, 3, "B")]
-    public void HybridInvoicePreservesRequestedProfilesAndExactXml(string name, PdfComplianceProfile archival,
-        bool accessible, int part, string conformance) {
+    [InlineData("invoice-minimum-pdfa3b", InvoiceProfile.Minimum, PdfComplianceProfile.PdfA3B, false, "B")]
+    [InlineData("invoice-basic-wl-pdfa3b", InvoiceProfile.BasicWithoutLines, PdfComplianceProfile.PdfA3B, false, "B")]
+    [InlineData("invoice-basic-pdfa3b", InvoiceProfile.Basic, PdfComplianceProfile.PdfA3B, false, "B")]
+    [InlineData("invoice-en16931-pdfa3a", InvoiceProfile.En16931, PdfComplianceProfile.PdfA3A, false, "A")]
+    [InlineData("invoice-extended-pdfa3u", InvoiceProfile.Extended, PdfComplianceProfile.PdfA3U, false, "U")]
+    [InlineData("invoice-pdfa3b-ua1", InvoiceProfile.En16931, PdfComplianceProfile.PdfA3B, true, "B")]
+    public void HybridInvoicePreservesRequestedProfilesAndExactXml(string name, InvoiceProfile profile, PdfComplianceProfile archival,
+        bool accessible, string conformance) {
         Invoice invoice = InvoiceFixture.Create();
         var contract = new InvoiceXmlOptions(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
-            InvoiceSyntax.Cii, InvoiceProfile.En16931);
+            InvoiceSyntax.Cii, profile,
+            profile is InvoiceProfile.En16931 or InvoiceProfile.Extended
+                ? InvoiceProjectionPolicy.RejectDataLoss : InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, contract);
         byte[] xml = snapshot.ToXmlBytes();
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
@@ -29,14 +37,17 @@ public sealed class PdfInvoiceExternalProofTests {
         byte[] pdf = snapshot.ToPdfBytes(options);
         PdfDocumentInfo info = PdfDocument.Load(pdf).Inspect();
         PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
-        Assert.Equal(part == 4 ? "2.0" : "1.7", info.HeaderVersion);
-        Assert.Equal(part, xmp.PdfAPart);
+        Assert.Equal("1.7", info.HeaderVersion);
+        Assert.Equal(3, xmp.PdfAPart);
         Assert.Equal(conformance, xmp.PdfAConformance);
         Assert.Equal(accessible ? (int?)1 : null, xmp.PdfUaPart);
         PdfDocument saved = PdfDocument.Load(pdf);
         Assert.Equal(xml, Assert.Single(saved.Attachments.Extract()).Bytes);
         PdfComplianceReadinessReport readiness = saved.AssessCompliance(PdfComplianceProfile.FacturX);
         Assert.Empty(readiness.MissingRequirements);
+        Assert.Empty(saved.AssessCompliance(archival).MissingRequirements);
+        Assert.Equal(profile, InvoiceProfileDeclaration.Read(xml).Profile);
+        Assert.Equal(InvoiceProfiles.GetXmpConformanceLevel(profile), xmp.ElectronicInvoiceConformanceLevel);
         foreach (string requirementId in new[] { "readback-pdf-file-version", "readback-pdfa-identification",
             "readback-einvoice-xmp", "readback-associated-invoice-file" }) {
             PdfComplianceRequirement requirement = Assert.IsType<PdfComplianceRequirement>(readiness.FindRequirement(requirementId));
@@ -47,7 +58,8 @@ public sealed class PdfInvoiceExternalProofTests {
         Assert.False(proof.CanClaimConformance); // External proof is collected independently on these exact bytes.
         string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         Assert.Contains(invoice.Number, text);
-        Assert.Contains("Consulting", text);
+        Assert.Equal(profile is not (InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines),
+            text.IndexOf("Consulting", StringComparison.Ordinal) >= 0);
         Assert.Contains("119.00 EUR", text);
 
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT");
@@ -58,8 +70,72 @@ public sealed class PdfInvoiceExternalProofTests {
         File.WriteAllBytes(Path.Combine(output, name + ".xml"), xml);
     }
     [Theory]
-    [InlineData(PdfComplianceProfile.PdfA4F, "PDF/A-4f", "PDF/A-3b")]
+    [InlineData(InvoiceProfile.Minimum, true)]
+    [InlineData(InvoiceProfile.Minimum, false)]
+    [InlineData(InvoiceProfile.BasicWithoutLines, true)]
+    [InlineData(InvoiceProfile.BasicWithoutLines, false)]
+    [InlineData(InvoiceProfile.Basic, true)]
+    [InlineData(InvoiceProfile.Basic, false)]
+    public void StrictLowerProfileGateRejectsMissingGrandTotalOrInconsistentTaxBasis(
+        InvoiceProfile profile, bool missingGrandTotal) {
+        var contract = new InvoiceXmlOptions(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
+            InvoiceSyntax.Cii, profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+        XDocument xml = XDocument.Parse(Encoding.UTF8.GetString(
+            PdfInvoiceDocument.Create(InvoiceFixture.Create(), contract).ToXmlBytes()));
+        XNamespace ram = "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100";
+        XElement totals = Assert.Single(xml.Descendants(ram + "SpecifiedTradeSettlementHeaderMonetarySummation"));
+        string field = missingGrandTotal ? "GrandTotalAmount" : "TaxBasisTotalAmount";
+        XElement amount = Assert.Single(totals.Elements(ram + field));
+        if (missingGrandTotal) amount.Remove();
+        else amount.Value = "101.00";
+
+        byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
+        var options = new PdfOptions().UseFacturX(Encoding.UTF8.GetBytes(xml.ToString()),
+                textFallbacks: PdfTextFallbackFeatures.None)
+            .UsePdfA(PdfComplianceProfile.PdfA3B)
+            .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif");
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => {
+            PdfDocument document = PdfDocument.Create(options);
+            document.Content.Paragraph(p => p.Text("Reduced profile strict gate regression"));
+            document.ToBytes();
+        });
+        Assert.Contains("einvoice-xml-reduced-profile", error.Message);
+        Assert.Contains(field, error.Message);
+    }
+
+    [Fact]
+    public void StrictMinimumGateAcceptsOmittedTaxTotalAndIndependentAmountDue() {
+        var contract = new InvoiceXmlOptions(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
+            InvoiceSyntax.Cii, InvoiceProfile.Minimum, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+        XDocument xml = XDocument.Parse(Encoding.UTF8.GetString(
+            PdfInvoiceDocument.Create(InvoiceFixture.Create(), contract).ToXmlBytes()));
+        XNamespace ram = "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100";
+        XElement totals = Assert.Single(xml.Descendants(ram + "SpecifiedTradeSettlementHeaderMonetarySummation"));
+        Assert.Single(totals.Elements(ram + "TaxTotalAmount")).Remove();
+        Assert.Single(totals.Elements(ram + "DuePayableAmount")).Value = "99.00";
+        Assert.Empty(totals.Elements(ram + "TaxTotalAmount"));
+        Assert.NotEqual(Assert.Single(totals.Elements(ram + "GrandTotalAmount")).Value,
+            Assert.Single(totals.Elements(ram + "DuePayableAmount")).Value);
+
+        byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
+        var options = new PdfOptions().UseFacturX(Encoding.UTF8.GetBytes(xml.ToString()),
+                textFallbacks: PdfTextFallbackFeatures.None)
+            .UsePdfA(PdfComplianceProfile.PdfA3B)
+            .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif");
+        PdfDocument document = PdfDocument.Create(options);
+        document.Content.Paragraph(p => p.Text("MINIMUM optional totals regression"));
+        byte[] pdf = document.ToBytes();
+        PdfDocument saved = PdfDocument.Load(pdf);
+        Assert.Empty(saved.AssessCompliance(PdfComplianceProfile.FacturX).MissingRequirements);
+        Assert.True(saved.AssessComplianceProof(PdfComplianceProfile.FacturX).IsInternallyReady);
+    }
+
+    [Theory]
+    [InlineData(PdfComplianceProfile.PdfA3A, "PDF/A-3a", "PDF/A-3b")]
     [InlineData(PdfComplianceProfile.PdfA3B, "PDF/A-3b", "PDF/A-4f")]
+    [InlineData(PdfComplianceProfile.PdfA3U, "PDF/A-3u", "PDF/A-3b")]
     public void InvoiceProofMatchesTheBackingArchivalProfileForPassedAndFailedResults(
         PdfComplianceProfile archival, string expectedProfile, string wrongProfile) {
         var contract = new InvoiceXmlOptions(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,

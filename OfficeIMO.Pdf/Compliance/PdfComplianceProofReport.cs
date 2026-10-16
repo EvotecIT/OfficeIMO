@@ -405,7 +405,7 @@ public sealed class PdfComplianceProofReport {
             // Invoice packaging proof must use the actual carrier's archival profile.
             // A result for another flavour must neither satisfy nor veto this artifact.
             if (_invoiceArchivalProfile is PdfComplianceProfile.PdfA3A or PdfComplianceProfile.PdfA3B
-                or PdfComplianceProfile.PdfA3U or PdfComplianceProfile.PdfA4F)
+                or PdfComplianceProfile.PdfA3U)
                 yield return _invoiceArchivalProfile.Value.ToString();
             yield break;
         }

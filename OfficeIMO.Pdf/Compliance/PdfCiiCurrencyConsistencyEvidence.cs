@@ -2,12 +2,13 @@ namespace OfficeIMO.Pdf;
 
 internal sealed class PdfCiiCurrencyConsistencyEvidence {
     internal PdfCiiCurrencyConsistencyEvidence(
-        string? invoiceCurrencyCode,
+        string? invoiceCurrencyCode, string? taxCurrencyCode,
         IReadOnlyList<string> amountCurrencyCodes,
         bool hasCurrencyAmount,
         IReadOnlyList<string> amountFieldsWithoutCurrency,
         IReadOnlyList<string> mismatchedAmountCurrencyFields) {
         InvoiceCurrencyCode = invoiceCurrencyCode;
+        TaxCurrencyCode = taxCurrencyCode;
         AmountCurrencyCodes = amountCurrencyCodes;
         HasCurrencyAmount = hasCurrencyAmount;
         AmountFieldsWithoutCurrency = amountFieldsWithoutCurrency;
@@ -15,6 +16,8 @@ internal sealed class PdfCiiCurrencyConsistencyEvidence {
     }
 
     internal string? InvoiceCurrencyCode { get; }
+
+    internal string? TaxCurrencyCode { get; }
 
     internal bool HasInvoiceCurrencyCode => !string.IsNullOrWhiteSpace(InvoiceCurrencyCode);
 

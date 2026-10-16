@@ -4,8 +4,7 @@ internal static partial class PdfComplianceAnalyzer {
 
     private static void AddPdfARequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
         PdfAIdentification? identification = options.PdfAIdentification;
-        (int Part, string? Conformance) target = IsElectronicInvoice(profile) && identification?.Part == 4
-            ? (4, "F") : GetPdfAIdentificationTarget(profile);
+        (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
 
         Add(requirements, "xmp-metadata", "Catalog XMP metadata",
             options.IncludeXmpMetadata || identification != null,
@@ -21,7 +20,16 @@ internal static partial class PdfComplianceAnalyzer {
         Add(requirements, "pdfa-identification", "PDF/A identification XMP",
             hasMatchingIdentification,
             "PDF/A identification metadata matches " + expectedIdentification + ".",
-            "Set PdfOptions.SetPdfAIdentification(...) to " + expectedIdentification + " before claiming this profile.");
+            IsElectronicInvoice(profile)
+                ? "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1."
+                : "Set PdfOptions.SetPdfAIdentification(...) to " + expectedIdentification + " before claiming this profile.");
+
+        if (IsElectronicInvoice(profile)) {
+            Add(requirements, "einvoice-pdfua-profile", "Invoice PDF/UA profile",
+                options.PdfUaIdentification == null || options.PdfUaIdentification.Part == 1,
+                "The invoice has no PDF/UA declaration or declares PDF/UA-1.",
+                "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1; PDF/UA-2 is not supported.");
+        }
 
         requirements.Add(BuildPdfAEncryptionPolicyRequirement(options));
 
@@ -40,7 +48,7 @@ internal static partial class PdfComplianceAnalyzer {
                 "No embedded files are present.",
                 "Use PDF/A-3 or PDF/A-4f for arbitrary embedded files; PDF/A-2 embedded PDF/A validation is not supported by this generation gate.");
         }
-        if (profile == PdfComplianceProfile.PdfA4F || IsElectronicInvoice(profile) && target.Part == 4) {
+        if (profile == PdfComplianceProfile.PdfA4F) {
             Add(requirements, "pdfa4f-embedded-files", "PDF/A-4f embedded files", options.EmbeddedFileSnapshots.Any(),
                 "The catalog EmbeddedFiles tree contains an attachment.",
                 "PDF/A-4f requires an EmbeddedFiles catalog entry. Add at least one embedded file.");
