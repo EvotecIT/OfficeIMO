@@ -687,7 +687,7 @@ namespace OfficeIMO.Excel {
                 ThrowIfPackageMaterializationExceedsLimit(new FileInfo(temporaryPath).Length, options);
                 packageBytes = File.ReadAllBytes(temporaryPath);
 
-                try { _spreadSheetDocument.Dispose(); } catch { }
+                ClosePackageForReload();
                 ReplaceTargetFile(temporaryPath, targetPath);
                 temporaryPath = string.Empty;
                 ClearDirectDataSetSaveCandidate();

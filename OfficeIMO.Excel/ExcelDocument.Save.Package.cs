@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (closeDocument) {
-                try { _spreadSheetDocument.Dispose(); } catch { }
+                ClosePackageForReload();
             }
 
             return new SavePayload(packageBytes, propertiesSnapshot, closeDocument, normalizeContentTypes: !_packageContentTypesKnownNormalized, applyPackageProperties: _packagePropertiesDirty);
@@ -329,7 +329,7 @@ namespace OfficeIMO.Excel {
                 ThrowIfPackageMaterializationExceedsLimit(new FileInfo(temporaryPath).Length, options);
                 packageBytes = File.ReadAllBytes(temporaryPath);
 
-                try { _spreadSheetDocument.Dispose(); } catch { }
+                ClosePackageForReload();
                 ReplaceTargetFile(temporaryPath, targetPath);
                 temporaryPath = string.Empty;
                 ReloadFromBytes(packageBytes, simplePackageContentKnown: true);
@@ -369,7 +369,7 @@ namespace OfficeIMO.Excel {
                 ThrowIfPackageMaterializationExceedsLimit(new FileInfo(temporaryPath).Length, options);
                 packageBytes = File.ReadAllBytes(temporaryPath);
 
-                try { _spreadSheetDocument.Dispose(); } catch { }
+                ClosePackageForReload();
                 ReplaceTargetFile(temporaryPath, targetPath);
                 temporaryPath = string.Empty;
                 ReloadFromBytes(packageBytes, simplePackageContentKnown: true);
@@ -414,6 +414,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ReloadFromBytes(byte[] packageBytes, bool simplePackageContentKnown = false, Stream? reusablePackageStream = null) {
+            var previousSheetParts = _sheetPartsBeforePackageClose ?? CaptureActiveSheetPartsForReload();
             var previousDocument = _spreadSheetDocument;
             var previousPackageStream = _packageStream;
             bool keepPackageStream = _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose;
@@ -465,6 +466,8 @@ namespace OfficeIMO.Excel {
             _cachedSheets = null;
             _sheetCacheDirty = true;
             _packageStream = keepPackageStream ? mem : null;
+            RebindSheetWrappersAfterPackageReload(previousSheetParts);
+            _sheetPartsBeforePackageClose = null;
             ReinitializePackageBoundHelpers();
             MarkPackageClean(reuseOwnedFileBackedStream ? null : packageBytes, simplePackageContentKnown);
 
