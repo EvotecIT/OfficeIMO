@@ -16,7 +16,11 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='margin-right:8px;" + constraints + "'>Next Page</span>"
             + "<svg id='icon' width='20' height='20' viewBox='0 0 20 20' style='flex-shrink:0'"
             + " xmlns='http://www.w3.org/2000/svg'><circle cx='10' cy='10' r='10' fill='red'/></svg></a>";
-        var options = new HtmlToPdfOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlToPdfOptions {
+            ViewportWidth = 400D,
+            Margins = HtmlRenderMargins.All(0D),
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
         HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
         HtmlRenderDocument rendered = result.RenderResult.Document;

@@ -1000,6 +1000,7 @@ public sealed class ReaderPdfModularTests {
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "attachments.pdf");
+        IReadOnlyList<PdfAttachmentInfo> attachmentInventory = PdfDocument.Load(pdf).Reader.AttachmentMetadata();
 
         ReaderChunkDiagnostics diagnostics = Assert.Single(result.Chunks).Diagnostics!;
         Assert.Equal(2, diagnostics.AttachmentCount);
@@ -1009,7 +1010,7 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-count").Value);
         Assert.DoesNotContain(result.Metadata, metadata => metadata.Id == "pdf-attachment-associated-count");
         Assert.Equal(
-            (invoiceXml.Length + sourceBytes.Length).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            attachmentInventory.Sum(attachment => (long)attachment.EncodedSizeBytes).ToString(System.Globalization.CultureInfo.InvariantCulture),
             Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-total-size-bytes").Value);
         Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-relationship-data-count").Value);
         Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-relationship-source-count").Value);
@@ -1028,7 +1029,10 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(nameof(PdfAssociatedFileRelationship.Data), invoice.Attributes["relationship"]);
         Assert.Equal("Names/EmbeddedFiles", invoice.Attributes["source"]);
         Assert.Equal("false", invoice.Attributes["isAssociatedFile"]);
-        Assert.Equal(invoiceXml.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), invoice.Attributes["sizeBytes"]);
+        Assert.Equal(attachmentInventory.Single(attachment => attachment.FileName == "invoice.xml").EncodedSizeBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), invoice.Attributes["sizeBytes"]);
+        Assert.Equal(invoice.Attributes["sizeBytes"], invoice.Attributes["encodedSizeBytes"]);
+        Assert.Equal(invoiceXml.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), invoice.Attributes["declaredSizeBytes"]);
+        Assert.DoesNotContain("decodedSizeBytes", invoice.Attributes.Keys);
         Assert.True(int.Parse(invoice.Attributes["fileSpecObjectNumber"], System.Globalization.CultureInfo.InvariantCulture) > 0);
         Assert.True(int.Parse(invoice.Attributes["embeddedFileObjectNumber"], System.Globalization.CultureInfo.InvariantCulture) > 0);
 
@@ -1036,7 +1040,8 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal("source.txt", source.Name);
         Assert.Equal("text/plain", source.Attributes["mimeType"]);
         Assert.Equal(nameof(PdfAssociatedFileRelationship.Source), source.Attributes["relationship"]);
-        Assert.Equal(sourceBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), source.Attributes["sizeBytes"]);
+        Assert.Equal(attachmentInventory.Single(attachment => attachment.FileName == "source.txt").EncodedSizeBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), source.Attributes["sizeBytes"]);
+        Assert.Equal(sourceBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), source.Attributes["declaredSizeBytes"]);
 
         using JsonDocument document = JsonDocument.Parse(result.ToJson());
         JsonElement jsonAttachment = document.RootElement.GetProperty("metadata").EnumerateArray()

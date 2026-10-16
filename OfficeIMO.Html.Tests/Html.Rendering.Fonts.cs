@@ -671,6 +671,7 @@ public sealed partial class HtmlRenderingTests {
             + ".one{font-family:WebOne}.two{font-family:WebTwo}.serif{font-family:'Times New Roman'}.mono{font-family:Courier}"
             + "</style><p class='one'>Web one</p><p class='two'>Web two</p><p class='serif'>Standard serif</p><p class='mono'>Standard mono</p>";
         HtmlToPdfOptions options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowSystemFontEmbedding = false;
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();

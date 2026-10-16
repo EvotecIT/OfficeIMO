@@ -8,6 +8,22 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PowerPointSaveAsPdfTests {
     [Fact]
+    public void SaveAsPdf_InheritsAuthoredLayoutTextBoxWithoutTreatingItAsAnEditingPrompt() {
+        using var presentation = PowerPointPresentation.Create();
+        PowerPointSlide slide = presentation.AddSlide();
+        PowerPointTextBox text = slide.AddTextBoxPoints("Layout footer", 24, 200, 200, 24);
+        var source = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+            .Elements<DocumentFormat.OpenXml.Presentation.Shape>()
+            .Single(shape => shape.InnerText.Contains("Layout footer", StringComparison.Ordinal));
+        slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!.Append(source.CloneNode(true));
+        text.Remove();
+
+        byte[] pdf = presentation.ToPdfBytes();
+
+        Assert.Contains("Layout footer", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_UnsupportedSvgPictureReportsOmissionWithoutAbortingTheSlide() {
         using var presentation = PowerPointPresentation.Create();
         presentation.SlideSize.SetSizePoints(160, 100);

@@ -567,7 +567,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(summary.HasResourceResolver);
         Assert.True(summary.AllowSystemFontEmbedding);
-        Assert.False(summary.AllowDocumentFontEmbedding);
+        Assert.True(summary.AllowDocumentFontEmbedding);
         Assert.False(summary.AllowLocalFileAccess);
         Assert.False(summary.AllowRemoteResourceResolution);
         Assert.True(summary.AllowDataUris);
@@ -591,6 +591,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault()
         };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = false;
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument
             .Parse("<p style=\"font-family:'" + installedFamily + "'\">Document font boundary</p>")
