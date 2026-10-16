@@ -108,7 +108,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 bool allowInstalledFace = webFonts.AllowInstalledFontFaces
                     && !webFonts.Slots.ContainsKey(fallbackRun.FamilyName);
                 string family = ResolvePdfFontFamilyForText(
-                    fallbackRun.FamilyName,
+                    fallbackRun.FamilyRequest,
                     fallbackRun.Text,
                     visual.Font.IsBold,
                     visual.Font.IsItalic,

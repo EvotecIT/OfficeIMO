@@ -20,7 +20,8 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(permissive.HasLoss);
         HtmlConversionException documentException = Assert.Throws<HtmlConversionException>(() => permissive.RequireNoLoss());
-        Assert.Equal("HTML conversion did not satisfy the required no-loss contract.", documentException.Message);
+        Assert.StartsWith("HTML conversion did not satisfy the required no-loss contract.", documentException.Message, StringComparison.Ordinal);
+        Assert.Contains(HtmlRenderDiagnosticCodes.TransformValueUnsupported, documentException.Message, StringComparison.Ordinal);
         Assert.Contains(documentException.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported);
 
         var strict = new HtmlRenderOptions {

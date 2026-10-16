@@ -334,12 +334,16 @@ internal static partial class HtmlPdfRenderedConverter {
                         PdfCore.PageMargins.Uniform(bleedInset)));
                 }
                 page.Canvas(canvas => {
-                    if (printLayoutScale == 1D) {
-                        AddPageVisuals(canvas, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles);
-                    } else {
-                        canvas.Effect(OfficeTransform.Scale(printLayoutScale, printLayoutScale), 1D,
-                            content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles));
-                    }
+                    // The retained HTML surface already clips its paint at the page edge.
+                    // Keep that source boundary outside print and element transforms.
+                    canvas.SourceClip(0D, 0D, pageWidth, pageHeight, sourcePaint => {
+                        if (printLayoutScale == 1D) {
+                            AddPageVisuals(sourcePaint, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles);
+                        } else {
+                            sourcePaint.Effect(OfficeTransform.Scale(printLayoutScale, printLayoutScale), 1D,
+                                content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles));
+                        }
+                    });
                     AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, printLayoutScale, cancellationToken);
                 });
             });
@@ -425,7 +429,7 @@ internal static partial class HtmlPdfRenderedConverter {
             double bottom = visual.Y + visual.Height;
             if (right <= 0D || bottom <= 0D || visual.X >= surfaceWidth || visual.Y >= surfaceHeight) return;
             var pageClip = new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight);
-            canvas.Clip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, clipped =>
+            canvas.SourceClip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, clipped =>
                 AddVisual(clipped, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
                     interactiveFormControls, cancellationToken, textAsSpan, pageClip, logicalTextOwned, pagePaint));
             return;
@@ -670,7 +674,7 @@ internal static partial class HtmlPdfRenderedConverter {
             return;
         }
         ClipBounds clip = ClipBounds.Intersect(activeClip, new ClipBounds(left, top, right, bottom, constrainToSurface: constrainToSurface));
-        canvas.Clip(
+        canvas.SourceClip(
             left * PointsPerCssPixel,
             top * PointsPerCssPixel,
             (right - left) * PointsPerCssPixel,
@@ -705,7 +709,7 @@ internal static partial class HtmlPdfRenderedConverter {
         double clipX = group.ClipX * PointsPerCssPixel;
         double clipY = group.ClipY * PointsPerCssPixel;
         OfficeClipPath clipPath = group.ClipPath.Scale(PointsPerCssPixel, PointsPerCssPixel);
-        Action<PdfCore.PdfPageCanvas> addClip = target => target.Clip(
+        Action<PdfCore.PdfPageCanvas> addClip = target => target.SourceClip(
             clipX,
             clipY,
             clipPath,
@@ -720,7 +724,7 @@ internal static partial class HtmlPdfRenderedConverter {
         } else if (!activeClip.HasValue
                    && (clipX + clipPath.Width > surfaceWidth * PointsPerCssPixel
                        || clipY + clipPath.Height > surfaceHeight * PointsPerCssPixel)) {
-            canvas.Clip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, addClip);
+            canvas.SourceClip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, addClip);
         } else {
             addClip(canvas);
         }

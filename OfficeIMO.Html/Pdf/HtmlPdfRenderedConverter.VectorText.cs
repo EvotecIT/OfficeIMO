@@ -37,7 +37,7 @@ internal static partial class HtmlPdfRenderedConverter {
             cancellationToken.ThrowIfCancellationRequested();
             if (!webFonts.Faces.TryResolveFaceForText(
                     run.Text,
-                    run.FamilyName,
+                    run.FamilyRequest,
                     requestedStyle,
                     visual.Font.Size,
                     out OfficeFontFace? face)

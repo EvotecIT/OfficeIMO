@@ -711,6 +711,7 @@ internal static partial class PdfWriter {
                     return mapped;
                 });
                 _diagnosticCanvasClips.Add(OfficeTextInkClip.FromFilledContours(diagnosticContours, item.ClipPath.FillRule));
+                _diagnosticCanvasSourceClips.Add(item.PreservesSourceClip);
             }
             _canvasClipDepth++;
             try {
@@ -718,6 +719,7 @@ internal static partial class PdfWriter {
             } finally {
                 _canvasClipDepth--;
                 _diagnosticCanvasClips.RemoveRange(diagnosticClipCount, _diagnosticCanvasClips.Count - diagnosticClipCount);
+                _diagnosticCanvasSourceClips.RemoveRange(diagnosticClipCount, _diagnosticCanvasSourceClips.Count - diagnosticClipCount);
             }
 
             ClipCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.ClipPath);

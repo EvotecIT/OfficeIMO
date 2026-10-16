@@ -894,6 +894,7 @@ internal sealed class PdfCanvasClipItem : PdfCanvasItem {
 
     public IReadOnlyList<PdfCanvasItem> Items { get; }
     public OfficeClipPath ClipPath { get; }
+    internal bool PreservesSourceClip { get; set; }
     public double Width => ClipPath.Width;
     public double Height => ClipPath.Height;
 }
