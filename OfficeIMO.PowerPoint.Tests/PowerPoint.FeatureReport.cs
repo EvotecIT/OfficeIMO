@@ -594,7 +594,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    presentation.AddSlide().AddTextBox("Layout footer");
+                    presentation.AddSlide().AddTextBox("Layout footer").PlaceholderType = null;
                     presentation.Save();
                 }
 

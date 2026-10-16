@@ -67,6 +67,8 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        internal bool HasPlaceholderShape => GetPlaceholderShape() != null;
+
         private PlaceholderShape? GetPlaceholderShape() {
             return Element switch {
                 Shape s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,

@@ -63,6 +63,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide(); presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBoxPoints("Inherited next", 30, 30, 240, 90);
+        box.PlaceholderType = null;
         A.Run run = box.Element.Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();
         run.RunProperties.Append(new A.HyperlinkOnClick {

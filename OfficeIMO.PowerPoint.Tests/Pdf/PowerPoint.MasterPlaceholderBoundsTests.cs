@@ -15,20 +15,25 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
         deck.SlideSize.SetSizePoints(400, 250);
         var slide = deck.AddSlide();
         var tree = slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!;
-        var types = new[] { PlaceholderValues.DateAndTime, PlaceholderValues.Footer, PlaceholderValues.SlideNumber };
+        PlaceholderValues?[] types = { PlaceholderValues.DateAndTime, PlaceholderValues.Footer, PlaceholderValues.SlideNumber, null };
         for (int index = 0; index < types.Length; index++) {
             var prompt = slide.AddTextBoxPoints("TEMPLATE PROMPT " + index, 20, 20 + index * 40, 300, 30);
             Assert.IsType<Shape>(prompt.Element).NonVisualShapeProperties!.ApplicationNonVisualDrawingProperties!
-                .PlaceholderShape = new PlaceholderShape { Type = types[index], Index = (uint)(10 + index) };
+                .PlaceholderShape = types[index].HasValue
+                    ? new PlaceholderShape { Type = types[index]!.Value, Index = (uint)(10 + index) }
+                    : new PlaceholderShape();
             prompt.Element.Remove();
             tree.Append(prompt.Element);
             if (concrete) {
                 var actual = slide.AddTextBoxPoints("ACTUAL FIELD " + index, 20, 20 + index * 40, 300, 30);
                 Assert.IsType<Shape>(actual.Element).NonVisualShapeProperties!.ApplicationNonVisualDrawingProperties!
-                    .PlaceholderShape = new PlaceholderShape { Type = types[index], Index = (uint)(10 + index) };
+                    .PlaceholderShape = types[index].HasValue
+                        ? new PlaceholderShape { Type = types[index]!.Value, Index = (uint)(10 + index) }
+                        : new PlaceholderShape();
             }
         }
         var artwork = slide.AddTextBoxPoints("LAYOUT ARTWORK", 20, 180, 300, 30);
+        artwork.PlaceholderType = null;
         artwork.Element.Remove();
         tree.Append(artwork.Element);
 
@@ -40,7 +45,8 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
         string text = pdf.GetPage(1).Text;
         Assert.DoesNotContain("TEMPLATE PROMPT", text, StringComparison.Ordinal);
         Assert.Contains("LAYOUT ARTWORK", text, StringComparison.Ordinal);
-        Assert.Equal(concrete, text.Contains("ACTUAL FIELD", StringComparison.Ordinal));
+        for (int index = 0; index < types.Length; index++)
+            Assert.Equal(concrete, text.Contains("ACTUAL FIELD " + index, StringComparison.Ordinal));
     }
 
     [Fact]
