@@ -178,6 +178,9 @@ public sealed partial class PdfReadPage {
             invocationTextClippingBudget, patternTextClippingBudget, cancellationToken,
             registeredFonts: registeredFonts, paintedGlyphMaps: paintedGlyphMaps);
         cancellationToken.ThrowIfCancellationRequested();
+        // Replayed forms can merge older copies of the same embedded faces into the page.
+        // Restore exact glyph aliases even when the page has no annotation appearances.
+        ApplyPaintedGlyphMappings(drawing, registeredFonts, paintedGlyphMaps);
 
         reportScaleDependence?.Invoke(pageContentBudget.UsesFunctionShadingScale);
         return drawing;

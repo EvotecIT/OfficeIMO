@@ -641,6 +641,7 @@ public sealed partial class PdfReadPage {
         for (int i = 0; i < elements.Count; i++) {
             AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
         }
+        ApplyPaintedGlyphMappings(drawing, registeredFonts, pageContentBudget.PaintedGlyphMaps);
         return drawing;
     }
 

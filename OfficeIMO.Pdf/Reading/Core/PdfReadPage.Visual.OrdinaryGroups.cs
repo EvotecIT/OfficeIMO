@@ -97,6 +97,7 @@ public sealed partial class PdfReadPage {
         var outputBudget = textOutputBudget ?? CreateTextOutputBudget();
         foreach (var element in elements) AddDrawingElement(drawing, height, transform, element, masks, activeMasks,
             outputBudget, budget, type3GlyphBudget, invocationClipping, patternClipping, cancellationToken: budget.CancellationToken);
+        ApplyPaintedGlyphMappings(drawing, registeredFonts, budget.PaintedGlyphMaps);
         double opacity = invocation.FillOpacity ?? 1D;
         if (opacity == 1D) return drawing;
         var surface = new OfficeDrawing(width, height);

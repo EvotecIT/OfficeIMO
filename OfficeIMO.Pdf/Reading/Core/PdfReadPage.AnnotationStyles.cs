@@ -3,6 +3,17 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    private bool IsNonPaintingLinkWithoutAppearance(PdfDictionary annotation, string subtype) {
+        if (subtype != "Link" || annotation.Items.ContainsKey("AP")) return false;
+        PdfDictionary? borderStyle = ResolveDictionary(annotation.Items.TryGetValue("BS", out PdfObject? style) ? style : null);
+        if (borderStyle != null) {
+            // BS takes precedence over Border; an omitted W defaults to one.
+            return borderStyle.Items.TryGetValue("W", out PdfObject? width)
+                && TryReadNonNegativeFiniteNumber(width, out double value) && value == 0D;
+        }
+        return TryReadAnnotationBorderWidth(annotation) == 0D;
+    }
+
     private void ReadAnnotationVisualStyleMetadata(
         PdfDictionary annotation,
         string subtype,
