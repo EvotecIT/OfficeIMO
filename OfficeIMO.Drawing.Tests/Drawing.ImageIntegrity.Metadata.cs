@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests;
 public partial class DrawingTests {
     [Fact]
     public void PngDecodePreservesEncodedChannelsWithoutClaimingGammaConversion() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(40, 30, OfficeColor.FromRgb(128, 128, 128)));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(40, 30, OfficeColor.FromRgb(128, 128, 128)));
         byte[] gamma = new byte[4];
         WriteBigEndianInt32(gamma, 0, 100000);
         byte[] linear = InsertPngChunkBefore(png, "IDAT", "gAMA", gamma);
@@ -26,7 +26,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngMetadataInspectorMatchesOnlyTheExactInternationalTextXmpKeyword() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] ordinaryInternationalText = Encoding.ASCII.GetBytes("Comment")
             .Concat(new byte[] { 0, 0, 0, 0 })
             .Concat(Encoding.ASCII.GetBytes("XML:com.adobe.xmp"))
@@ -51,7 +51,7 @@ public partial class DrawingTests {
     [InlineData("zTXt")]
     [InlineData("iTXt")]
     public void PngMetadataInspectorRecognizesExactXmpKeywordAcrossTextCarriers(string chunkType) {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(2, 2, OfficeColor.White));
         byte[] xmp = Encoding.UTF8.GetBytes("<x:xmpmeta/>");
         byte[] payload = CreatePngTextPayload(chunkType, "XML:com.adobe.xmp", xmp);
         byte[] withXmp = InsertPngChunkBefore(png, "IDAT", chunkType, payload);
@@ -66,7 +66,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngXmpClassificationFeedsSelectiveCopyLossReporting() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(2, 2, OfficeColor.White));
         byte[] withXmp = InsertPngChunkBefore(
             png,
             "IDAT",
@@ -94,6 +94,17 @@ public partial class DrawingTests {
         Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
     }
 
+    // Metadata-carrier fixtures start from untagged RGBA samples so each test
+    // supplies its own color declaration rather than duplicating encoder defaults.
+    private static byte[] EncodeUntaggedMetadataPng(OfficeRasterImage image) {
+        byte[] pixels = image.GetPixels();
+        int stride = image.Width * 4;
+        var rows = new byte[(stride + 1) * image.Height];
+        for (int y = 0; y < image.Height; y++)
+            Buffer.BlockCopy(pixels, y * stride, rows, y * (stride + 1) + 1, stride);
+        return OfficePngWriter.EncodeScanlines(image.Width, image.Height, 8, 6, rows);
+    }
+
     private static byte[] CreatePngTextPayload(string chunkType, string keyword, byte[] text) {
         byte[] prefix = Encoding.ASCII.GetBytes(keyword).Concat(new byte[] { 0 }).ToArray();
         if (chunkType == "tEXt") return prefix.Concat(text).ToArray();
@@ -105,7 +116,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngContainerRequiresOnePositiveGammaChunkBeforePaletteAndImageData() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] gamma = { 0, 0, 0xB1, 0x8F };
         byte[] withGamma = InsertPngChunkBefore(png, "IDAT", "gAMA", gamma);
         byte[] duplicate = InsertPngChunkBefore(withGamma, "IDAT", "gAMA", gamma);
@@ -126,7 +137,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngContainerRequiresOneCompleteChromaticitiesChunkBeforePaletteAndImageData() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] chromaticities = new byte[32];
         int[] coordinates = { 31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000 };
         for (int index = 0; index < coordinates.Length; index++) {
@@ -164,7 +175,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngStandardRgbRequiresCanonicalGammaAndChromaticitiesInEitherOrder() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] standardGamma = { 0, 0, 0xB1, 0x8F };
         byte[] otherGamma = { 0, 0, 0xB1, 0x90 };
         byte[] standardChromaticities = new byte[32];
@@ -216,7 +227,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngContainerRequiresOneWellFormedIccProfileBeforePaletteAndImageData() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] compressedProfile = OfficeZlibCodec.Compress(CreateMinimalIccProfile());
         byte[] profile = new byte[] { (byte)'P', (byte)'r', (byte)'o', (byte)'f', (byte)'i', (byte)'l', (byte)'e', 0, 0 }
             .Concat(compressedProfile)
@@ -258,7 +269,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngContainerRequiresOneStructurallyValidExifTiffPayload() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] exif = {
             (byte)'I', (byte)'I', 42, 0, 8, 0, 0, 0,
             0, 0,
@@ -285,7 +296,7 @@ public partial class DrawingTests {
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void PngMetadataInspectionDoesNotRetainLargeExifPayloads() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] minimalTiff = {
             (byte)'I', (byte)'I', 42, 0, 8, 0, 0, 0,
             0, 0,
@@ -316,7 +327,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngContainerValidatesTextKeywordsAndCompressedTextStreams() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] compressed = OfficeZlibCodec.Compress(Encoding.UTF8.GetBytes("OfficeIMO"));
         byte[] zText = Encoding.ASCII.GetBytes("Comment")
             .Concat(new byte[] { 0, 0 })
@@ -362,7 +373,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngTextBudgetsRejectOversizedCompressedAndTranslatedTextWithoutThrowing() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] oversized = new byte[1024 * 1024 + 1];
         byte[] compressed = OfficeZlibCodec.Compress(oversized);
         byte[] zText = Encoding.ASCII.GetBytes("Comment")
@@ -383,7 +394,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngContainerRequiresOneValidModificationTime() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] leapSecond = { 0x07, 0xE8, 2, 29, 23, 59, 60 };
         byte[] beforeImageData = InsertPngChunkBefore(png, "IDAT", "tIME", leapSecond);
         byte[] afterImageData = InsertPngChunkBefore(png, "IEND", "tIME", leapSecond);

@@ -40,6 +40,8 @@ public sealed class OfficeRasterEncodingOptions {
         var clone = new OfficeRasterEncodingOptions {
             Png = new OfficePngEncodeOptions {
                 Compression = png.Compression,
+                RequireRgbColorSpace = png.RequireRgbColorSpace,
+                RequireGrayColorSpace = png.RequireGrayColorSpace,
                 DpiX = png.DpiX,
                 DpiY = png.DpiY,
                 WritePhysicalResolution = png.WritePhysicalResolution

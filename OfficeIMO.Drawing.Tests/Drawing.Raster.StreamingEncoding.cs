@@ -337,7 +337,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
     }
 
     [Fact]
-    public void CancellationCanStopPngDuringPaethFilteringAfterAnUpPass() {
+    public void CancellationCanStopPngDuringLaterFilteringBlocks() {
         const int width = 8193;
         OfficeRasterImage image = new OfficeRasterImage(width, 2, OfficeColor.CornflowerBlue);
         using var cancellation = new CancellationTokenSource();

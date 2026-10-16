@@ -57,8 +57,7 @@ public class DrawingPngBilevelWriterTests {
         var image = CreateScan(1025, 4);
         image.SetPixel(image.Width - 1, image.Height - 1, OfficeColor.FromRgba(r, g, b, alpha));
         byte[] png = OfficePngWriter.Encode(image);
-        Assert.Equal(8, png[24]);
-        Assert.Equal(alpha == 255 ? 2 : 6, png[25]);
+        // Exact gray or indexed layouts may now carry these samples too.
         Assert.True(OfficePngReader.TryDecode(png, out var decoded));
         Assert.Equal(image.GetPixels(), decoded!.GetPixels());
     }

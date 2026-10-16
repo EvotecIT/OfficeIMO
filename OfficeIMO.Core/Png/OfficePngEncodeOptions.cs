@@ -2,6 +2,9 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>PNG encoding options.</summary>
 public sealed class OfficePngEncodeOptions {
+    // An RGB ICC profile requires RGB/RGBA or indexed samples, even for gray pixels.
+    internal bool RequireRgbColorSpace { get; set; }
+    internal bool RequireGrayColorSpace { get; set; }
     /// <summary>Zlib compression strategy.</summary>
     public OfficePngCompression Compression { get; set; } = OfficePngCompression.Optimal;
 

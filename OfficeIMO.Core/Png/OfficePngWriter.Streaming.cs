@@ -85,7 +85,7 @@ public static partial class OfficePngWriter {
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
             cancellationToken,
-            checkpointObserver);
+            checkpointObserver, requireRgbColorSpace: options.RequireRgbColorSpace, requireGrayColorSpace: options.RequireGrayColorSpace);
     }
 
 #if NET8_0_OR_GREATER
@@ -120,7 +120,7 @@ public static partial class OfficePngWriter {
         double? dpiY,
         System.Threading.CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null,
-        MemoryStream? ownedOutput = null) {
+        bool requireRgbColorSpace = false, bool requireGrayColorSpace = false) {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateRgba(width, height, rgba);
         OfficeRasterOutput.EnsureWritable(destination);
@@ -128,113 +128,27 @@ public static partial class OfficePngWriter {
             throw new ArgumentOutOfRangeException(nameof(compression));
         }
 
-        int colorType = compression == OfficePngCompression.Optimal
-            ? SelectOptimalColorType(rgba, cancellationToken, checkpointObserver) : 6;
-        bool bilevel = colorType == 0;
-        bool rgb = colorType == 2;
-        destination.Write(PngSignature, 0, PngSignature.Length);
-        WriteChunk(destination, "IHDR", BuildIhdr(width, height, bilevel ? 1 : 8, colorType));
-        if (dpiX.HasValue && dpiY.HasValue) {
-            WriteChunk(destination, "pHYs", BuildPhysicalResolution(dpiX.Value, dpiY.Value));
+        if (compression == OfficePngCompression.Optimal || requireGrayColorSpace) {
+            EncodeAdaptiveRgba(width, height, rgba, destination, dpiX, dpiY,
+                cancellationToken, checkpointObserver, requireRgbColorSpace, requireGrayColorSpace, compression);
+            return;
         }
-
+        destination.Write(PngSignature, 0, PngSignature.Length);
+        WriteChunk(destination, "IHDR", BuildIhdr(width, height, 8, 6));
+        WriteSrgbChunks(destination);
+        if (dpiX.HasValue && dpiY.HasValue)
+            WriteChunk(destination, "pHYs", BuildPhysicalResolution(dpiX.Value, dpiY.Value));
         var idat = new PngIdatChunkStream(destination, StreamingIdatChunkSize);
-        if (compression == OfficePngCompression.Optimal) {
-            if (ownedOutput != null && !bilevel && rgba.Length >= MaterializedProbeMinimumRgbaBytes) {
-                WriteMaterializedOptimalZlib(ownedOutput, idat, width, height, rgba, rgb,
-                    cancellationToken, checkpointObserver);
-            } else {
-                WriteOptimalZlib(idat, width, height, rgba, bilevel, rgb, cancellationToken, checkpointObserver);
-            }
-        } else if (compression == OfficePngCompression.Fastest) {
-            var workspace = new PngFilteringWorkspace(width, bilevel: false, rgb: false);
-            WriteRgbaZlib(idat, height, rgba, workspace, adaptiveFiltering: false, cancellationToken, checkpointObserver, CompressionLevel.Fastest);
+        if (compression == OfficePngCompression.Fastest) {
+            var layout = new PngColorLayout(6, 8);
+            WriteColorZlib(idat, width, height, rgba, null, layout, false,
+                cancellationToken, checkpointObserver, CompressionLevel.Fastest);
         } else {
             WriteStoredZlib(idat, width, height, rgba, cancellationToken, checkpointObserver);
         }
         cancellationToken.ThrowIfCancellationRequested();
         idat.Complete();
         WriteChunk(destination, "IEND", Array.Empty<byte>());
-    }
-
-    private static void WriteOptimalZlib(
-        PngIdatChunkStream destination,
-        int width,
-        int height,
-        byte[] rgba,
-        bool bilevel,
-        bool rgb,
-        System.Threading.CancellationToken cancellationToken,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
-        var workspace = new PngFilteringWorkspace(width, bilevel, rgb);
-        using var adaptiveSize = new PngSizeProbeStream();
-        using var unfilteredSize = new PngSizeProbeStream(destination);
-        WriteRgbaZlib(adaptiveSize, height, rgba, workspace, adaptiveFiltering: true, cancellationToken, checkpointObserver);
-        WriteRgbaZlib(unfilteredSize, height, rgba, workspace, adaptiveFiltering: false, cancellationToken, checkpointObserver);
-        bool adaptiveFiltering = adaptiveSize.Length <= unfilteredSize.Length;
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!adaptiveFiltering && unfilteredSize.FullyCaptured) return;
-        destination.DiscardProbe();
-        WriteRgbaZlib(destination, height, rgba, workspace,
-            adaptiveFiltering, cancellationToken, checkpointObserver);
-    }
-
-    private static void WriteRgbaZlib(
-        Stream destination, int height, byte[] rgba, PngFilteringWorkspace workspace,
-        bool adaptiveFiltering, System.Threading.CancellationToken cancellationToken,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver,
-        CompressionLevel level = CompressionLevel.Optimal) {
-        destination.WriteByte(0x78);
-        destination.WriteByte(0x9C);
-
-        int stride = workspace.Stride;
-        int filteredRowLength = workspace.FilteredRowLength;
-        byte[] filteredRow = workspace.Row;
-        byte[] paethCandidate = workspace.Paeth;
-        byte[] compressionBatch = workspace.Batch;
-        int batchLength = 0;
-        uint adlerA = 1;
-        uint adlerB = 0;
-
-        using (var deflate = new DeflateStream(destination, level, leaveOpen: true)) {
-            for (int y = 0; y < height; y++) {
-                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngCompressionRow);
-                cancellationToken.ThrowIfCancellationRequested();
-                int rowOffset = y * stride;
-                if (workspace.BilevelRows != null) {
-                    FilterBilevelRow(rgba, y * workspace.RgbaStride, workspace,
-                        y, adaptiveFiltering, cancellationToken, checkpointObserver);
-                } else if (!adaptiveFiltering) {
-                    filteredRow[0] = 0;
-                    Buffer.BlockCopy(rgba, rowOffset, filteredRow, 1, stride);
-                } else if (y == 0) {
-                    filteredRow[0] = 1;
-                    FilterFirstRowSub(rgba, rowOffset, stride, filteredRow, 1, cancellationToken, checkpointObserver);
-                } else {
-                    int previousRowOffset = rowOffset - stride;
-                    long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, filteredRow, 1, cancellationToken, checkpointObserver);
-                    long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, paethCandidate, cancellationToken, checkpointObserver);
-                    if (paethScore < upScore) {
-                        filteredRow[0] = 4;
-                        Buffer.BlockCopy(paethCandidate, 0, filteredRow, 1, stride);
-                    } else {
-                        filteredRow[0] = 2;
-                    }
-                }
-
-                if (workspace.Rgb) CompactOpaqueRgbRow(filteredRow, stride, cancellationToken, checkpointObserver);
-                if (filteredRowLength > compressionBatch.Length - batchLength) {
-                    deflate.Write(compressionBatch, 0, batchLength);
-                    batchLength = 0;
-                }
-                Buffer.BlockCopy(filteredRow, 0, compressionBatch, batchLength, filteredRowLength);
-                batchLength += filteredRowLength;
-                UpdateAdler32(filteredRow, 0, filteredRowLength, ref adlerA, ref adlerB, cancellationToken, checkpointObserver);
-            }
-            if (batchLength > 0) deflate.Write(compressionBatch, 0, batchLength);
-        }
-
-        WriteAdler32(destination, (adlerB << 16) | adlerA);
     }
 
     private static void WriteStoredZlib(
@@ -327,42 +241,6 @@ public static partial class OfficePngWriter {
             if (_completed) return;
             FlushChunk();
             _completed = true;
-        }
-
-        // A size probe may retain its candidate in this existing bounded buffer.
-        // It cannot write IDAT bytes to the caller before selection is complete.
-        internal bool TryCaptureProbe(byte[] buffer, int offset, int count) {
-            if (count > _chunkSize - _count) return false;
-            EnsureCapacity(_count + count);
-            Buffer.BlockCopy(buffer, offset, _buffer, _count, count);
-            _count += count;
-            return true;
-        }
-
-        internal bool TryCaptureProbeByte(byte value) {
-            if (_count == _chunkSize) return false;
-            EnsureCapacity(_count + 1);
-            _buffer[_count++] = value;
-            return true;
-        }
-
-#if NET8_0_OR_GREATER
-        internal bool TryCaptureProbe(ReadOnlySpan<byte> buffer) {
-            if (buffer.Length > _chunkSize - _count) return false;
-            EnsureCapacity(_count + buffer.Length);
-            buffer.CopyTo(_buffer.AsSpan(_count));
-            _count += buffer.Length;
-            return true;
-        }
-#endif
-
-        internal void DiscardProbe() => _count = 0;
-
-        // Only an encoder-owned materialized output can rewind a completed candidate.
-        // Keep the bounded unfiltered probe so it can become the selected IDAT payload.
-        internal void ResumeWriting() {
-            if (!_completed) throw new InvalidOperationException("The PNG IDAT candidate is not complete.");
-            _completed = false;
         }
 
         public override void Flush() => _destination.Flush();

@@ -61,6 +61,13 @@ namespace OfficeIMO.Drawing {
             if (!format.IsRaster()) throw new ArgumentException("Metadata-aware encoding requires a managed raster output format.", nameof(format));
             if (effective.Resolution != null) snapshot.Resolution = effective.Resolution;
             effective.Resolution = snapshot.Resolution;
+            if (format == OfficeImageExportFormat.Png) {
+                byte[]? profile = snapshot.IccProfile;
+                effective.Png.RequireRgbColorSpace = profile != null && profile.Length >= 20 &&
+                    profile[16] == (byte)'R' && profile[17] == (byte)'G' && profile[18] == (byte)'B' && profile[19] == (byte)' ';
+                effective.Png.RequireGrayColorSpace = profile != null && profile.Length >= 20 &&
+                    profile[16] == (byte)'G' && profile[17] == (byte)'R' && profile[18] == (byte)'A' && profile[19] == (byte)'Y';
+            }
             // Unitless container density is written by the metadata operation after pixels are encoded.
             if (snapshot.Resolution.Unit == OfficeImageResolutionUnit.AspectRatio && format != OfficeImageExportFormat.Tiff) effective.WriteResolutionMetadata = false;
             return effective;
