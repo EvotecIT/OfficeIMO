@@ -1,5 +1,13 @@
 # Upgrading OfficeIMO
 
+## Office conversion fonts and Word page images
+
+The balanced PDF resource policy embeds installed document fonts by default for Word, Excel and PowerPoint. Fonts supplied by installed Office applications on macOS are discoverable. Output sizes, line breaks and pagination can change as source fonts replace standard Helvetica fallbacks. Review substitution diagnostics and the `font-embedding-cost` entries for the actual font payload cost. Set `ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()` or supply a fixed rendering profile when output must not depend on host fonts.
+
+For Word PNG/JPEG/SVG pages that match the PDF, use `document.ToPdfDocumentResult().ToImages()` or the result's `ExportImages(...)` method. `WordDocument.ToPng` and `ExportImages` remain standalone preview APIs with separate estimated pagination. Their text now inherits heading/character styles and their tables retain direct table borders; existing preview snapshots may change.
+
+Inline header and footer pictures retain their height and reserve body space. Empty table paragraphs retain their mark's minimum line height, including explicit cell margins. Supported non-wrapping floating pictures retain paragraph/margin anchors and signed offsets. Pictures extending beyond a page retain their placement and report clipping instead of entering document flow.
+
 ## PDF text output and embedded fonts
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.

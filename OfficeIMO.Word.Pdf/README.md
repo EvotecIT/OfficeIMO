@@ -112,17 +112,44 @@ still change exact line endings and glyph appearance.
 
 Run kerning (`w:kern`) inherits through document, paragraph, character, and table styles. A positive minimum font size enables kerning at that size and above; zero disables it. Compatible Latin text runs retain pair kerning across color and link changes in paragraphs, table cells, headers, and footers. Font or size changes, disabled kerning, and text separators end that boundary. Numbering labels retain their unkerned advances, including labels with a numbering-level or paragraph-mark kerning setting. Their measurement and rendering use the same feature settings.
 
-### Preserve fonts from a trusted template
+### Preserve document fonts
 
-Balanced conversion substitutes standard PDF fonts for document-selected fonts. This can change line breaks, table text width, and baselines. For a trusted template whose fonts are installed on the host, enable document-font embedding:
+Balanced conversion embeds subsets of installed document fonts by default. Word, Excel and PowerPoint use the same policy. On macOS, discovery includes fonts supplied by installed Microsoft Office applications. Missing Calibri and Cambria prefer Carlito and Caladea; Arial, Times New Roman and Courier New prefer the corresponding Liberation family. Aptos uses a close installed sans-serif alternative. Further installed alternatives precede the final PDF standard-font fallback. Substitution diagnostics name the requested and selected families; compatible-family selection expresses intent, not proof of identical font-version metrics.
+
+The conversion report's `font-embedding-cost` entries record each emitted font program's original, subset and compressed stream sizes. These are font-program payload bytes; PDF dictionaries and character maps add further overhead. No font files are bundled with this package.
+
+For host-independent conversion, provide a fixed rendering profile or select the portable policy:
 
 ```csharp
-var options = new WordToPdfOptions();
-options.ResourcePolicy.AllowDocumentFontEmbedding = true;
-document.SaveAsPdf("template.pdf", options).RequireSuccess();
+var options = new WordToPdfOptions {
+    ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+};
+document.SaveAsPdf("portable.pdf", options).RequireSuccess();
 ```
 
-Both system-font and document-font embedding must be allowed. This setting retains the template's individual font families; `FontFamily` instead selects a conversion-wide default. Substitution warnings identify when the resource policy disables embedding, separately from an unavailable font. Local-file and remote-resource access remain governed by their own policy settings.
+Both system-font and document-font embedding must be allowed to discover installed document families. `FontFamily` selects a conversion-wide default. Local-file and remote-resource access remain separate policy settings.
+
+### Page images with PDF pagination
+
+Render the conversion result when PNG, JPEG or SVG pages must share the PDF's line breaks, tables, fonts and pagination:
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+using OfficeIMO.Word.Pdf;
+
+var conversion = document.ToPdfDocumentResult();
+conversion.Save("document.pdf").RequireSuccess();
+conversion.ToImages(new PdfImageExportOptions { TargetDpi = 144 })
+    .AsPng()
+    .Save("pages");
+```
+
+Use `.AsJpeg()` or `.AsSvg()` for those formats, or `conversion.ExportImages(format, options)` for in-memory results. The shared PDF renderer projects the laid-out pages into Drawing scenes and retains conversion and renderer diagnostics. It does not lay out the Word document again or shorten paragraphs with an ellipsis. Managed PDF rendering still has the [PDF renderer's supported-feature limits](../OfficeIMO.Pdf/README.md).
+
+High-resolution nearest-neighbour pictures can exceed the SVG rectangle-vectorization budget. Use PNG or JPEG for those pages until bounded SVG image fallback is supported.
+
+The standalone `OfficeIMO.Word` image API uses its own preview layout. It retains inherited heading typography and direct table borders, but its estimated pagination can differ from PDF. The PDF-backed route above preserves one layout without adding a PDF dependency to the Word model package.
 
 Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
 
@@ -352,7 +379,7 @@ Use `WordToPdfOptions` when callers need to override page geometry, metadata, pa
 
 ## Current limits
 
-- Floating images outside the supported page-relative placement contract use document flow and report `NativeAnchoredImageFlowed`. Complex wrapping and overlapping-object layout are not reconstructed.
+- Non-wrapping foreground and behind-text images retain supported page, margin, single-column and paragraph-relative anchors, including signed offsets and z-order. Page clipping is reported. Line-relative anchors and unsupported wrap and transform combinations use document flow and report `NativeAnchoredImageFlowed`; tight, square and through wrapping remain approximations.
 - This package does not try to be a full Word renderer with perfect Microsoft Word parity or a fixed-layout PDF-to-DOCX recreation engine.
 - Editable PDF-to-Word import reconstructs parser-supported logical objects. Complex or unsupported PDF image streams, interactive controls, unresolved destinations, and remote or cross-document navigation actions are not reconstructed as native Word objects. Visual pages preserve rendered appearance as images within the managed renderer's support and configured limits. Open reconstruction work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 

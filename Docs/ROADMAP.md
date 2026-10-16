@@ -53,11 +53,17 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## Image engine
 
+- [ ] Export high-resolution nearest-neighbour raster pictures to SVG without exceeding the shared rectangle-vectorization budget. Preserve pixel sampling, clipping, image metadata and bounded output; choose and report any raster-image fallback explicitly instead of silently changing interpolation.
+
 - [ ] Add bounded EMF/WMF rasterization when older Office-document fixtures demonstrate a material fidelity gain. Keep ICO, PCX, BMP/GIF encoding, and uncommon or expensive codecs behind the caller-codec boundary until a first-party consumer justifies ownership.
 - [ ] Add a shared Core "clip by text runs" drawing construct so PDF text clipping render modes 4–7 clip later paths and images in raster output (glyph contours as a clip mask) and SVG output (`<clipPath>` with text). Bring the SVG exporter to the raster renderer's contract: whole-pixel sizing through `OfficeRasterScaleLimiter.CeilingPixels`, soft-mask transfer tables, and stroked text outlines.
 - [ ] Size intermediate effect layers to their content bounds instead of the page, so pages with many blend or soft-mask layers render within the default intermediate-pixel budget. Prove unchanged pixels and lower peak memory on multi-layer producer pages.
 
 ## PDF engine and conversion fidelity
+
+- [ ] Consolidate standalone Word preview pagination, visual snapshots and fragment geometry with the PDF-backed page-image route. Decide the package boundary before moving layout ownership: the Word model package currently has no PDF dependency. Preserve page selection, streaming, cancellation, resource budgets and conversion diagnostics through the shared owner.
+- [ ] Qualify square, tight and through image wrapping and the remaining Word line/paragraph-spacing differences against pinned Microsoft Word exports. Non-wrapping page/margin/paragraph anchors and inline running-story pictures have first-party paths; unsupported wraps still report their document-flow approximation.
+- [ ] Evaluate an optional, pinned OFL font pack for host-independent Office conversion after an explicit licensing and package-size decision. Candidate sources are [Carlito](https://github.com/googlefonts/carlito/blob/main/OFL.txt), [Caladea](https://github.com/googlefonts/caladea/blob/main/OFL.txt) and [Liberation](https://github.com/liberationfonts/liberation-fonts/blob/main/LICENSE). Preserve copyright/license notices and reserved-name conditions, record source hashes and subset/font-program sizes, and qualify both horizontal and vertical metrics for the selected versions. Compatibility intent alone does not prove matching pagination; [Carlito version-specific metric reports](https://github.com/google/fonts/issues/9720) illustrate the qualification need. No font pack is a runtime dependency of the current host-font policy.
 
 - [ ] Qualify the DOC/DOCX/TXT archive workflow with a representative large mixed-format producer corpus, including interruption/restart, source/output integrity, diagnostics, throughput and peak memory. Keep the existing per-file limits separate from archive-capacity claims.
 - [ ] Qualify printer delivery on native macOS and physical Windows/CUPS printers, including duplex, trays, margins and driver failures. Preserve queue acceptance as a separate contract from confirmed physical delivery.
