@@ -56,7 +56,7 @@ namespace OfficeIMO.Word.Pdf {
             return rendering.Drawing;
         }
 
-        private static bool TryCreateNativeWordChartSnapshot(WordChart chart, out OfficeChartSnapshot? snapshot, out string? warning) {
+        internal static bool TryCreateNativeWordChartSnapshot(WordChart chart, out OfficeChartSnapshot? snapshot, out string? warning) {
             snapshot = null;
             warning = null;
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Word.Pdf {
                 (double width, double height) = GetNativeWordChartSizePoints(chart);
                 string? title = GetNativeWordChartTitle(openXmlChart!);
                 string name = GetNativeWordChartName(chart, chartPart, title);
-                OfficeChartStyle? style = CreateNativeWordChartStyle(openXmlChart!, chartElement, plotArea, chartKind, categories.Count, series.Count, themeColors);
+                OfficeChartStyle? style = CreateNativeWordChartStyle(openXmlChart!, chartElement, plotArea, chartKind, categories.Count, series.Count, themeColors, pointColorScheme);
                 OfficeChartLayout? layout = CreateNativeWordChartLayout(openXmlChart!, chartElement, plotArea, chartKind, categories.Count);
                 OfficeChartRadialLayout radialLayout;
                 try {
@@ -128,6 +128,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
+            warning = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.DescribeProjection(chartElement);
             return true;
         }
 
@@ -139,7 +140,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool IsNativeSupportedWordChartElement(OpenXmlElement element) =>
-            element.LocalName is "barChart" or "bar3DChart" or "lineChart" or "line3DChart" or "areaChart" or "area3DChart" or "pieChart" or "pie3DChart" or "doughnutChart" or "scatterChart" or "radarChart";
+            element.LocalName is "barChart" or "bar3DChart" or "lineChart" or "line3DChart" or "stockChart" or "areaChart" or "area3DChart" or "pieChart" or "pie3DChart" or "doughnutChart" or "scatterChart" or "radarChart";
 
         private static bool IsNativeWordChartElement(OpenXmlElement element) =>
             element.LocalName.EndsWith("Chart", StringComparison.Ordinal);
@@ -151,6 +152,9 @@ namespace OfficeIMO.Word.Pdf {
                     bool horizontal = chartElement.GetFirstChild<BarDirection>()?.Val?.Value == BarDirectionValues.Bar;
                     string grouping = chartElement.GetFirstChild<BarGrouping>()?.Val?.Value.ToString() ?? string.Empty;
                     kind = MapNativeWordBarChartKind(horizontal, grouping);
+                    return true;
+                case "stockChart":
+                    kind = OfficeChartKind.Line;
                     return true;
                 case "lineChart":
                 case "line3DChart":
@@ -268,7 +272,7 @@ namespace OfficeIMO.Word.Pdf {
                     .GetBoundedPoints(seriesElement);
                 IReadOnlyList<OfficeColor?>? pointColors = ExtractNativeWordChartPointColors(pointOverrides, values.Count, themeColors);
                 if (pointColors == null && varyColorsByPoint && seriesIndex == 0) {
-                    pointColors = CreateNativeWordChartVaryPointColors(values.Count);
+                    pointColors = CreateNativeWordChartVaryPointColors(chart, values.Count, pointColorScheme);
                 }
 
                 OfficeColor? seriesColor = null;
@@ -285,7 +289,9 @@ namespace OfficeIMO.Word.Pdf {
                     pointColors,
                     !IsNativeWordChartSeriesMarkerHidden(seriesElement),
                     !hiddenLegendIndexes.Contains((uint)originalSeriesIndex),
-                    !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>()))
+                    !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>()),
+                    markerSize: GetNativeWordChartMarkerSize(seriesElement, chartElement, chartKind),
+                    markerShape: GetNativeWordChartMarkerShape(seriesElement, chartElement, chartKind))
                     .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count,
                         pointColorScheme, seriesElement.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true));
                 if (IsNativeWordPieLikeChart(chartKind)) {
@@ -356,10 +362,11 @@ namespace OfficeIMO.Word.Pdf {
             return indexes;
         }
 
-        private static IReadOnlyList<OfficeColor?> CreateNativeWordChartVaryPointColors(int valueCount) {
+        private static IReadOnlyList<OfficeColor?> CreateNativeWordChartVaryPointColors(Chart chart, int valueCount, A.ColorScheme? scheme) {
+            OfficeColor[]? automatic = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ResolvePoints(chart.Parent, valueCount, scheme);
             var colors = new OfficeColor?[valueCount];
             for (int index = 0; index < colors.Length; index++) {
-                colors[index] = OfficeChartStyle.Default.GetSeriesColor(index);
+                colors[index] = automatic?[index] ?? OfficeChartStyle.Default.GetSeriesColor(index);
             }
 
             return colors;
@@ -548,7 +555,7 @@ namespace OfficeIMO.Word.Pdf {
             return (width, height);
         }
 
-        private static OfficeChartStyle? CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount, int seriesCount, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
+        private static OfficeChartStyle? CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount, int seriesCount, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors, A.ColorScheme? scheme) {
             EnsureNativeWordChartPointCount(categoryCount);
             if (seriesCount > MaxNativeWordChartSeries) {
                 throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported series count.");
@@ -559,9 +566,20 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
+            // Series and points without a stored colour take Office's automatic colours from the
+            // chart style and theme; the OfficeIMO palette only covers an unresolvable theme.
             var palette = new List<OfficeColor>(paletteCount);
+            OfficeColor[]? automaticPoints = IsNativeWordPieLikeChart(chartKind)
+                ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ResolvePoints(chart.Parent, paletteCount, scheme)
+                : null;
+            OpenXmlCompositeElement[] automaticSeries = GetNativeWordOrderedSeriesElements(chartElement)
+                .Where(item => IsNativeWordChartSeriesRenderable(item.SeriesElement, chartKind))
+                .Select(item => item.SeriesElement).OfType<OpenXmlCompositeElement>().ToArray();
             for (int index = 0; index < paletteCount; index++) {
-                palette.Add(OfficeChartStyle.Default.GetSeriesColor(index));
+                OfficeColor? automatic = automaticPoints?[index] ?? (index < automaticSeries.Length && !IsNativeWordPieLikeChart(chartKind)
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ResolveSeries(automaticSeries[index], scheme)
+                    : null);
+                palette.Add(automatic ?? OfficeChartStyle.Default.GetSeriesColor(index));
             }
 
             if (IsNativeWordPieLikeChart(chartKind)) {
@@ -966,7 +984,7 @@ namespace OfficeIMO.Word.Pdf {
                 hiddenDataLabelPointIndexes: dataLabels.HiddenPointIndexes,
                 hiddenCategoryLegendIndexes: hiddenCategoryLegendIndexes);
 
-            return layout;
+            return OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartCategoryGeometry.WithCategoryGeometry(layout, plotArea);
         }
 
         private static bool IsNativeWordMarkerOnlyScatter(OpenXmlElement chartElement, OfficeChartKind chartKind) =>
@@ -1207,6 +1225,39 @@ namespace OfficeIMO.Word.Pdf {
 
             return sawSeries && sawHiddenMarker;
         }
+
+        // Stored symbols and sizes win; series without one take Office's automatic marker sequence.
+        private static OfficeChartMarkerShape? GetNativeWordChartMarkerShape(OpenXmlElement seriesElement, OpenXmlElement chartElement, OfficeChartKind chartKind) {
+            if (!IsNativeWordLineLikeChart(chartKind) || IsNativeWordChartSeriesMarkerHidden(seriesElement)) return null;
+            MarkerStyleValues? symbol = seriesElement.GetFirstChild<Marker>()?.Symbol?.Val?.Value;
+            if (symbol.HasValue && symbol.Value != MarkerStyleValues.Auto &&
+                Enum.TryParse(symbol.Value.ToString(), ignoreCase: true, out OfficeChartMarkerShape stored))
+                return stored;
+            return HasNativeWordChartGroupMarkers(chartElement)
+                ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ResolveMarker(
+                    seriesElement.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>()?.Val?.Value ?? 0U)
+                : null;
+        }
+
+        private static int? GetNativeWordChartMarkerSize(OpenXmlElement seriesElement, OpenXmlElement chartElement, OfficeChartKind chartKind) {
+            byte? size = seriesElement.GetFirstChild<Marker>()?.Size?.Val?.Value;
+            if (size.HasValue) return size.Value;
+            MarkerStyleValues? symbol = seriesElement.GetFirstChild<Marker>()?.Symbol?.Val?.Value;
+            return IsNativeWordLineLikeChart(chartKind) && (!symbol.HasValue || symbol.Value == MarkerStyleValues.Auto) &&
+                HasNativeWordChartGroupMarkers(chartElement)
+                ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.AutomaticMarkerSize
+                : null;
+        }
+
+        // Office draws automatic markers on line series without a stored marker even when the
+        // group's c:marker is 0.
+        private static bool HasNativeWordChartGroupMarkers(OpenXmlElement chartElement) => chartElement switch {
+            LineChart => true,
+            ScatterChart scatter => scatter.ScatterStyle?.Val?.Value != ScatterStyleValues.Line &&
+                scatter.ScatterStyle?.Val?.Value != ScatterStyleValues.Smooth,
+            RadarChart radar => radar.RadarStyle?.Val?.Value == RadarStyleValues.Marker,
+            _ => false
+        };
 
         private static bool IsNativeWordChartSeriesMarkerHidden(OpenXmlElement seriesElement) =>
             seriesElement.GetFirstChild<Marker>()?.Symbol?.Val?.Value == MarkerStyleValues.None;

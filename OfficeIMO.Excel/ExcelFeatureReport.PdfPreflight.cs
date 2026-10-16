@@ -256,6 +256,11 @@ namespace OfficeIMO.Excel {
                 case ExcelChartType.PieOfPie:
                 case ExcelChartType.BarOfPie:
                 case ExcelChartType.Doughnut:
+                case ExcelChartType.Stock:
+                case ExcelChartType.Surface:
+                case ExcelChartType.SurfaceWireframe:
+                case ExcelChartType.SurfaceContour:
+                case ExcelChartType.SurfaceContourWireframe:
                     return true;
                 default:
                     return false;

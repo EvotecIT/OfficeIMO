@@ -7,12 +7,13 @@ namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderChart(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointChart chart, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options) {
-        if (!chart.TryGetSnapshot(out PptCore.PowerPointChartSnapshot snapshot)) {
+        if (!chart.TryGetSnapshot(out PptCore.PowerPointChartSnapshot snapshot, out string? failureReason)) {
             AddLayoutWarning(
                 options,
                 slideNumber,
                 "unsupported-chart",
-                "Skipped a PowerPoint chart because its cached chart data could not be read into a first-party PDF snapshot.",
+                "Skipped a PowerPoint chart because the shared chart renderer cannot draw it: " +
+                    (failureReason ?? "the chart could not be projected."),
                 PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
                 "PowerPointChart",
                 "The PowerPoint chart snapshot could not be read into the shared PDF chart renderer.",
@@ -27,6 +28,20 @@ public static partial class PowerPointPdfConverterExtensions {
             OfficeChartSnapshot chartSnapshot = CreateOfficeChartSnapshot(snapshot, width, height, options);
             OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(chartSnapshot);
             AddChartQualityWarning(options, slideNumber, snapshot, rendering.QualityReport, x, y, width, height);
+            if (snapshot.ProjectionNotice != null) {
+                AddLayoutWarning(
+                    options,
+                    slideNumber,
+                    "chart-projected",
+                    snapshot.ProjectionNotice,
+                    PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent,
+                    "PowerPointChart",
+                    "The shared PDF chart renderer drew a flat projection of the native chart family.",
+                    x,
+                    y,
+                    width,
+                    height);
+            }
             canvas.Drawing(
                 rendering.Drawing,
                 x,

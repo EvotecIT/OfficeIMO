@@ -24,7 +24,7 @@ public sealed class WordChartProjectionReviewClosureTests {
         var series = chart.ChartPart!.ChartSpace!.Descendants<OpenXmlCompositeElement>()
             .First(item => item.LocalName == "ser");
         var color = new A.RgbColorModelHex { Val = "123456" };
-        color.Append(new A.HueOffset { Val = 60000 });
+        color.Append(new A.Gamma());
         var shape = new C.ChartShapeProperties(new A.SolidFill(color));
         if (point) series.AddChild(new C.DataPoint(new C.Index { Val = 0U }, shape), true);
         else {

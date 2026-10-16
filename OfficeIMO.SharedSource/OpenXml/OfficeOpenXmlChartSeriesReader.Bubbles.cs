@@ -53,13 +53,20 @@ namespace OfficeIMO.OpenXml.Internal {
                 var fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<SolidFill>(), colorScheme);
                 var stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<SolidFill>(), colorScheme);
                 double? width = outline?.Width?.Value is int emus && emus > 0 ? emus / 12700d : null;
+                bool automaticColor = OfficeOpenXmlChartWriter.HasAutomaticSeriesColor(element);
+                if (!forDataUpdate && fill == null) {
+                    // Office colours bubbles without a stored fill from the chart style and theme.
+                    fill = OfficeOpenXmlChartAutomaticColors.ResolveSeries(element, colorScheme);
+                    if (fill == null) return null;
+                    automaticColor = true;
+                }
                 var data = OfficeChartSeries.CreateBubble(name, x, y, sizes, fill,
                     ReadBubblePointColors(element, x.Count, colorScheme, maximumPointOverrides), markerOutlineColor: stroke,
                     markerOutlineWidth: width, showMarkerOutline: outline?.GetFirstChild<NoFill>() == null)
                     .WithPointStyles(forDataUpdate ? null : OfficeOpenXmlChartPointStyles.Read(
                         OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides), x.Count, colorScheme));
                 series.Add(new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)index,
-                    data, hasAutomaticColor: OfficeOpenXmlChartWriter.HasAutomaticSeriesColor(element)));
+                    data, hasAutomaticColor: automaticColor));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
         }

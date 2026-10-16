@@ -522,40 +522,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FeatureReport_Preflight_BlocksPdfExportForUnsupportedChartTypes() {
-            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.SurfaceChart.xlsx");
-
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Charts");
-                sheet.CellValue(1, 1, "Zone");
-                sheet.CellValue(1, 2, "Low");
-                sheet.CellValue(1, 3, "High");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(2, 3, 15d);
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(3, 2, 12d);
-                sheet.CellValue(3, 3, 18d);
-                sheet.AddChartFromRange("A1:C3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
-                    type: ExcelChartType.Surface, title: "Surface Chart");
-                document.Save();
-            }
-
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelFeatureReport report = document.InspectFeatures();
-
-                Assert.True(report.Can(ExcelPreflightCapability.ReadWorkbookData));
-                Assert.True(report.Can(ExcelPreflightCapability.EditCellValues));
-                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
-
-                string diagnostics = string.Join(Environment.NewLine,
-                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unsupported charts", diagnostics);
-                Assert.Contains("Surface", diagnostics);
-            }
-        }
-
-        [Fact]
         public void FeatureReport_Preflight_AllowsSupportedMixedChartTypes() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ComboChart.xlsx");
 

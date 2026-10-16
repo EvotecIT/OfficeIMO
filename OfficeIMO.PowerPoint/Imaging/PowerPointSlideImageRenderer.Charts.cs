@@ -10,8 +10,9 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            if (!chart.TryGetSnapshot(colorScheme, out PowerPointChartSnapshot snapshot)) {
-                AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because its cached chart data could not be converted into a shared Drawing chart snapshot.");
+            if (!chart.TryGetSnapshot(colorScheme, out PowerPointChartSnapshot snapshot, out string? failureReason)) {
+                AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer cannot draw it: " +
+                    (failureReason ?? "the chart could not be projected."));
                 return;
             }
 
@@ -21,6 +22,12 @@ namespace OfficeIMO.PowerPoint {
                 if (chartDrawing.Width > width || chartDrawing.Height > height) {
                     AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer requires a larger drawing area than the chart frame.");
                     return;
+                }
+
+                if (snapshot.ProjectionNotice != null) {
+                    diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                        PowerPointImageExportDiagnosticCodes.ChartProjected, snapshot.ProjectionNotice, DescribeShape(chart),
+                        OfficeConversionLossKind.Approximation));
                 }
 
                 OfficeImageFrameTransform transform = CreateChartFrameTransform(chart, left, top, width, height);

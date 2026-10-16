@@ -4,6 +4,20 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
+        /// <summary>Describes what a flat projection of a native chart group leaves out, or null when nothing is.</summary>
+        internal static string? DescribeProjection(OpenXmlElement group) {
+            string? omitted = group.LocalName switch {
+                "bar3DChart" or "line3DChart" or "area3DChart" or "pie3DChart" =>
+                    "3-D depth, perspective and lighting",
+                "ofPieChart" => "the secondary pie or bar that details the split slices",
+                "surfaceChart" or "surface3DChart" => "surface bands and their colour scale; the series are drawn as lines",
+                "stockChart" when group.GetFirstChild<C.UpDownBars>() != null => "up and down bars",
+                _ => null
+            };
+            return omitted == null ? null :
+                "The native " + group.LocalName + " is drawn as a flat 2-D chart without " + omitted + ".";
+        }
+
         /// <summary>Reads the shared data family; 3-D groups still require separate projection qualification.</summary>
         internal static bool TryReadKind(OpenXmlElement group, out OfficeChartKind kind) {
             kind = default;
@@ -30,6 +44,8 @@ namespace OfficeIMO.OpenXml.Internal {
                             ? area ? OfficeChartKind.AreaStacked100 : OfficeChartKind.LineStacked100
                             : area ? OfficeChartKind.Area : OfficeChartKind.Line;
                     return true;
+                // A stock chart's high-low-close series project onto a line chart with high-low lines.
+                case "stockChart": kind = OfficeChartKind.Line; return true;
                 case "radarChart": kind = OfficeChartKind.Radar; return true;
                 case "scatterChart": kind = OfficeChartKind.Scatter; return true;
                 case "pieChart":

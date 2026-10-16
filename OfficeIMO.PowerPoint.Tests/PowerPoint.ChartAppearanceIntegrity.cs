@@ -41,7 +41,8 @@ public sealed class PowerPointChartAppearanceIntegrityTests {
         using var reopened = PowerPointPresentation.Load(bytes);
         Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out var snapshot));
         var series = snapshot.Data.Series.Single();
-        Assert.Equal(mode == 2, series.ShowMarkers);
+        // Office draws automatic markers on a line series without its own c:marker, whatever the group flag says.
+        Assert.Equal(mode != 1, series.ShowMarkers);
         Assert.Equal(mode != 2, series.ConnectLine);
         Assert.Empty(reopened.ValidateDocument());
     }

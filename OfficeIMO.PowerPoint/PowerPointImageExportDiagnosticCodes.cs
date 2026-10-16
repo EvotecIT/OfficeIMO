@@ -29,5 +29,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>An authored DrawingML baseline percentage was reduced to the shared superscript or subscript geometry.</summary>
         public const string BaselinePercentApproximated = "powerpoint-baseline-percent-approximated";
+
+        /// <summary>A native chart family without a shared renderer, such as a 3-D chart, was drawn as a flat 2-D projection.</summary>
+        public const string ChartProjected = "powerpoint-chart-projected";
     }
 }

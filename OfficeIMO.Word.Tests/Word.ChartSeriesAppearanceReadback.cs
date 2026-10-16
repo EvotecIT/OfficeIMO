@@ -112,7 +112,8 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
         using var reopened = WordDocument.Load(bytes);
         Assert.True(reopened.Charts.Single().TryGetSnapshot(out var snapshot));
         var series = snapshot.Data.Series.Single().ToOfficeSeries();
-        Assert.Equal(scatter, series.ShowMarkers);
+        // Office draws automatic markers on a line series without its own c:marker, whatever the group flag says.
+        Assert.True(series.ShowMarkers);
         Assert.Equal(!scatter, series.ConnectLine);
         Assert.Empty(reopened.ValidateDocument());
     }

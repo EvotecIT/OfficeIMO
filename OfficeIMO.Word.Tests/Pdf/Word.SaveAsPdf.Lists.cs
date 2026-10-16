@@ -79,7 +79,7 @@ public partial class Word {
         }
 
         string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-        Assert.Contains("0.122 0.306 0.475 rg", content);
+        Assert.Contains(DefaultWordAccentPdfColor(1) + " rg", content);
     }
 
     [Fact]

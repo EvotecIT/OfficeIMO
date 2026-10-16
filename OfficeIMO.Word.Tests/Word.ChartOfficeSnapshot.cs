@@ -120,7 +120,7 @@ public sealed class WordChartOfficeSnapshotTests {
     }
 
     [Fact]
-    public void AuthoredSeriesMaterializesPaletteAndUnknownAutomaticFillFailsStaticProjection() {
+    public void AuthoredSeriesMaterializesPaletteAndAutomaticFillUsesTheTheme() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
@@ -129,7 +129,11 @@ public sealed class WordChartOfficeSnapshotTests {
         var nativeSeries = chart.ChartPart!.ChartSpace!.Descendants<C.BarChartSeries>().Single();
         nativeSeries.GetFirstChild<C.ChartShapeProperties>()!.Remove();
         nativeSeries.GetFirstChild<C.Index>()!.Val = 5;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        // Office colours a series without a stored fill by its c:idx: index 5 is accent 6.
+        Assert.True(chart.TryGetOfficeSnapshot(out var automatic));
+        DocumentFormat.OpenXml.Drawing.ColorScheme scheme = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!;
+        Assert.Equal(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.Resolve(2, 5, 6, scheme, null),
+            automatic.Data.Series.Single().Color);
     }
 
     [Fact]

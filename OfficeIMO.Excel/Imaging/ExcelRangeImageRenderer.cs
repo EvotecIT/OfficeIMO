@@ -597,7 +597,7 @@ namespace OfficeIMO.Excel {
             kind == OfficeChartKind.BarStacked ||
             kind == OfficeChartKind.BarStacked100;
 
-        private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
+        internal static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
             approximation = null;
             switch (type) {
                 case ExcelChartType.ColumnClustered:
@@ -677,12 +677,15 @@ namespace OfficeIMO.Excel {
                     approximation = "Excel 3D area chart is rendered as a 2D area chart.";
                     return true;
                 case ExcelChartType.Stock:
+                    kind = OfficeChartKind.Line;
+                    approximation = "Excel stock chart is rendered as a line chart with high-low lines; up and down bars are not drawn.";
+                    return true;
                 case ExcelChartType.Surface:
                 case ExcelChartType.SurfaceWireframe:
                 case ExcelChartType.SurfaceContour:
                 case ExcelChartType.SurfaceContourWireframe:
                     kind = OfficeChartKind.Line;
-                    approximation = "Excel stock/surface chart is rendered as a line chart approximation.";
+                    approximation = "Excel surface chart is rendered as a line chart without surface bands or their colour scale.";
                     return true;
                 default:
                     kind = OfficeChartKind.ColumnClustered;

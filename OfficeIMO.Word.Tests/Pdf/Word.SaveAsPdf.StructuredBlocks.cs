@@ -22,6 +22,15 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    // Charts without stored colours take the document theme's accents in order, as Word draws them.
+    private static string DefaultWordAccentPdfColor(int accent) {
+        using WordDocument document = WordDocument.Create();
+        A.ColorScheme scheme = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!;
+        string hex = (accent == 1 ? scheme.Accent1Color!.RgbColorModelHex : scheme.Accent2Color!.RgbColorModelHex)!.Val!.Value!;
+        OfficeColor color = OfficeColor.Parse("#" + hex);
+        return string.Join(" ", new[] { color.R, color.G, color.B }.Select(channel =>
+            (channel / 255D).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)));
+    }
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_CoverPage_And_Advances_Toc_PageNumbers() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageToc.docx");
@@ -1254,8 +1263,8 @@ public partial class Word {
         Assert.Contains("After chart", text);
 
         string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-        Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultWordAccentPdfColor(1) + " rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultWordAccentPdfColor(2) + " rg", rawPdf, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -1307,8 +1316,8 @@ public partial class Word {
         Assert.Contains("After inline chart", text);
 
         string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-        Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultWordAccentPdfColor(1) + " rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultWordAccentPdfColor(2) + " rg", rawPdf, StringComparison.Ordinal);
     }
 
     [Theory]
