@@ -30,8 +30,7 @@ namespace OfficeIMO.Html {
                 ? strutAscent : double.NegativeInfinity;
             foreach (InlineSegment segment in line.Segments) {
                 HtmlInlineRun run = segment.Run;
-                if (run.IsFlowMarker || run.PositionedMarkerElement != null
-                    || run.RunningStringElement != null || run.RunningElementAssignment != null) continue;
+                if (!InlineLine.ContributesFlowContent(run)) continue;
                 AddStrut(segment.Text, run.Style);
                 foreach (HtmlRenderBoxStyle style in run.InlineStrutStyles) AddStrut(string.Empty, style);
             }

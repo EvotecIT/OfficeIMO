@@ -78,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         // Out-of-flow markers keep their static position segment without
         // creating an in-flow line box or contributing a font strut.
-        private static bool ContributesFlowContent(HtmlInlineRun run) =>
+        internal static bool ContributesFlowContent(HtmlInlineRun run) =>
             run.RunningStringElement == null && run.RunningElementAssignment == null
             && run.PositionedMarkerElement == null && !run.IsFlowMarker;
 
@@ -92,7 +92,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!HasFlowContent) return 0D;
             double height = fallback;
             for (int i = 0; i < Segments.Count; i++) {
-                if (Segments[i].Run.PositionedMarkerElement != null) continue;
+                if (!ContributesFlowContent(Segments[i].Run)) continue;
                 height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
             }
             if (!HasReplacedImage) {
@@ -103,7 +103,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double textBaseline = 0D;
                     double textDescent = 0D;
                     foreach (InlineSegment segment in Segments) {
-                        if (segment.Run.AtomicBlock == null && segment.Run.PositionedMarkerElement == null) {
+                        if (segment.Run.AtomicBlock == null && ContributesFlowContent(segment.Run)) {
                             textBaseline = Math.Max(textBaseline, segment.Run.Style.Font.Size);
                             textDescent = Math.Max(textDescent, segment.Run.Style.LineHeight - segment.Run.Style.Font.Size);
                         }
@@ -117,7 +117,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double descent = 0D;
             for (int i = 0; i < Segments.Count; i++) {
                 HtmlInlineRun run = Segments[i].Run;
-                if (run.PositionedMarkerElement != null) continue;
+                if (!ContributesFlowContent(run)) continue;
                 if (run.AtomicBlock != null) {
                     double atomicBaseline = Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height));
                     ascent = Math.Max(ascent, atomicBaseline);
@@ -133,7 +133,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal bool HasReplacedImage => Segments.Any(segment => segment.Run.IsReplacedImage);
 
         internal bool HasMixedTextSizes(HtmlRenderBoxStyle paragraphStyle) =>
-            Segments.Any(segment => segment.Run.AtomicBlock == null && segment.Run.PositionedMarkerElement == null
+            Segments.Any(segment => segment.Run.AtomicBlock == null && ContributesFlowContent(segment.Run)
                 && Math.Abs(segment.Run.Style.Font.Size - paragraphStyle.Font.Size) > 0.000001D);
 
         internal double ResolveBaseline(HtmlRenderBoxStyle paragraphStyle) {
@@ -143,7 +143,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // baseline, including the containing paragraph's line strut.
                 double baseline = paragraphStyle.Font.Size;
                 foreach (InlineSegment segment in Segments) {
-                    if (segment.Run.AtomicBlock == null && segment.Run.PositionedMarkerElement == null)
+                    if (segment.Run.AtomicBlock == null && ContributesFlowContent(segment.Run))
                         baseline = Math.Max(baseline, segment.Run.Style.Font.Size);
                 }
                 return baseline;
@@ -151,7 +151,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double ascent = ResolveTextAscent(paragraphStyle);
             for (int i = 0; i < Segments.Count; i++) {
                 HtmlInlineRun run = Segments[i].Run;
-                if (run.PositionedMarkerElement != null) continue;
+                if (!ContributesFlowContent(run)) continue;
                 ascent = Math.Max(ascent, run.AtomicBlock == null
                     ? ResolveTextAscent(run.Style)
                     : Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height)));

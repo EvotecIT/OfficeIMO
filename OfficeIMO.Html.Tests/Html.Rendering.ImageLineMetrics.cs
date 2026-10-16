@@ -77,6 +77,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(Math.Abs(pdfBaselineCss - sceneBaseline), 0D, 0.0005D / 0.75D);
     }
 
+    [Theory]
+    [InlineData("absolute", false)]
+    [InlineData("absolute", true)]
+    [InlineData("fixed", false)]
+    [InlineData("fixed", true)]
+    [InlineData("running(header)", false)]
+    [InlineData("running(header)", true)]
+    public void HtmlImageLine_OutOfFlowMarkersDoNotChangeFollowingFlow(string position, bool floated) {
+        string floatBox = floated ? "<i style='float:left;width:20px;height:160px'></i>" : string.Empty;
+        foreach (string metrics in new[] { "font-size:16px;line-height:0", "font-size:64px;line-height:80px" }) {
+            string marker = "<span style='position:" + position + ";" + metrics
+                + ";left:200px;top:200px'>OUTSIDE</span>";
+            string html = ImageLineSource(floatBox + "<div style='width:200px'>"
+                + NormalLineImage + marker + "</div>" + NormalLineFollowing);
+            HtmlRenderDocument rendered = RenderImageLine(html, ImageLineOptions());
+
+            Assert.Equal(53.9375D, NormalLineImageVisual(rendered).Height, 6);
+            Assert.Equal(74.125D, NormalLineFollowingVisual(rendered).Y, 6);
+        }
+    }
+
     private static readonly string NormalLineImage = "<img id='picture' style='width:64px;height:53.94px;margin-bottom:16px' "
         + "src='data:image/png;base64," + Convert.ToBase64String(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(255, 0, 0)) + "'>";
     private const string NormalLineFollowing = "<div id='following' style='height:2px;background:blue'></div>";
