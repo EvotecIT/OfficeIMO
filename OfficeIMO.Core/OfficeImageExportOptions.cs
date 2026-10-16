@@ -50,6 +50,14 @@ public class OfficeImageExportOptions {
     public OfficeRasterEncodingOptions RasterEncoding { get; set; } = new OfficeRasterEncodingOptions();
 
     /// <summary>
+    /// Exports eligible SVG text as bounded glyph outlines instead of embedding its font.
+    /// The default is false. Single-line horizontal ASCII text with a registered outline face is
+    /// supported; decorated, wrapped, vertical, mixed-fallback and unsupported shaping runs
+    /// retain SVG text and the referenced font. This does not subset retained font programs.
+    /// </summary>
+    public bool SvgTextAsPaths { get; set; }
+
+    /// <summary>
     /// Maximum number of pixels allocated for one raster export. Encoder-specific limits may reduce
     /// the effective ceiling further.
     /// </summary>
@@ -144,6 +152,7 @@ public class OfficeImageExportOptions {
         target.MaximumOutputWidth = MaximumOutputWidth;
         target.MaximumOutputHeight = MaximumOutputHeight;
         target.BackgroundColor = BackgroundColor;
+        target.SvgTextAsPaths = SvgTextAsPaths;
         target.RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions();
         target.MaximumRasterPixels = MaximumRasterPixels;
         target.RasterOverflowBehavior = RasterOverflowBehavior;

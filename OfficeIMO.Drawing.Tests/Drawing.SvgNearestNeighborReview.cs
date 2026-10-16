@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -8,7 +9,7 @@ public partial class DrawingTests {
     [Fact]
     public void OfficeDrawingSvgExporter_DoesNotDiscardSourceSamplesAtScaledOutput() {
         var raster = new OfficeRasterImage(2, 1, OfficeColor.Red);
-        raster.SetPixel(1, 0, OfficeColor.Blue);
+        raster.SetPixel(1, 0, OfficeColor.FromRgba(0, 0, 255, 127));
         byte[] png = OfficePngWriter.Encode(raster);
         var drawing = new OfficeDrawing(1D, 1D);
         drawing.AddImageWithInterpolation(
@@ -19,13 +20,17 @@ public partial class DrawingTests {
 
         string svg = OfficeDrawingSvgExporter.ToSvg(drawing, 2D, OfficeSvgSizeUnit.Pixel);
 
-        Assert.Contains("fill=\"#FF0000\"", svg, StringComparison.Ordinal);
-        Assert.Contains("fill=\"#0000FF\"", svg, StringComparison.Ordinal);
-        Assert.Contains("scale(0.5 1)", svg, StringComparison.Ordinal);
+        XElement image = Assert.Single(XElement.Parse(svg).Descendants().Where(e => e.Name.LocalName == "image"));
+        Assert.Equal("optimizeSpeed", image.Attribute("image-rendering")?.Value);
+        Assert.Equal("image-rendering:pixelated", image.Attribute("style")?.Value);
+        byte[] embedded = Convert.FromBase64String(image.Attribute("href")!.Value.Split(',')[1]);
+        Assert.Equal(png, embedded);
+        Assert.True(OfficePngReader.TryDecode(embedded, out OfficeRasterImage? decoded));
+        Assert.Equal(raster.GetPixels(), decoded!.GetPixels());
     }
 
     [Fact]
-    public void OfficeDrawingSvgExporter_ObservesCancellationDuringNearestNeighborVectorization() {
+    public void OfficeDrawingSvgExporter_ObservesCancellationDuringNearestNeighborTranscoding() {
         var drawing = new OfficeDrawing(20D, 16D);
         drawing.AddImageWithInterpolation(
             new byte[] { 1, 2, 3 },
@@ -60,18 +65,18 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeDrawingSvgExporter_VectorizesOnlyVisibleSourceCrop() {
-        var raster = new OfficeRasterImage(1001, 1000, OfficeColor.Black);
+    public void OfficeDrawingSvgExporter_RetainsSourceCropWhenEmbeddingTranscodedNearestNeighborImage() {
+        var raster = new OfficeRasterImage(4, 2, OfficeColor.Black);
         for (int y = 0; y < raster.Height; y++) {
             for (int x = 1; x < raster.Width; x += 2) raster.SetPixel(x, y, OfficeColor.White);
         }
-        var drawing = new OfficeDrawing(2D, 1000D);
+        var drawing = new OfficeDrawing(2D, 2D);
         drawing.AddImageWithInterpolation(
             new byte[] { 1 },
             "image/x-test",
             new OfficeImageProjection(
-                new OfficeImagePlacement(0D, 0D, 2D, 1000D),
-                new OfficeImageSourceCrop(0.998D, 0D, 0D, 0D)),
+                new OfficeImagePlacement(0D, 0D, 2D, 2D),
+                new OfficeImageSourceCrop(0.5D, 0D, 0D, 0D)),
             interpolate: false);
 
         string svg = OfficeDrawingSvgExporter.ToSvg(
@@ -80,39 +85,15 @@ public partial class DrawingTests {
             OfficeSvgSizeUnit.Pixel,
             new FixedNearestNeighborCodec(raster));
 
-        Assert.Contains("officeimo-image-clip-", svg, StringComparison.Ordinal);
-        Assert.True(CountOccurrences(svg, "<rect") < 10000);
-    }
-
-    [Fact]
-    public void OfficeDrawingSvgExporter_SharesNearestNeighborRectangleBudgetAcrossNestedImages() {
-        var raster = new OfficeRasterImage(2, 1, OfficeColor.Red);
-        raster.SetPixel(1, 0, OfficeColor.Blue);
-        byte[] png = OfficePngWriter.Encode(raster);
-        var nested = new OfficeDrawing(2D, 1D);
-        nested.AddImageWithInterpolation(
-            png,
-            "image/png",
-            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
-            interpolate: false);
-        var drawing = new OfficeDrawing(2D, 2D);
-        drawing.AddImageWithInterpolation(
-            png,
-            "image/png",
-            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
-            interpolate: false);
-        drawing.AddClippedDrawing(nested, 0D, 1D, OfficeClipPath.Rectangle(2D, 1D));
-
-        InvalidOperationException exception = Assert.ThrowsAny<InvalidOperationException>(() => OfficeDrawingSvgExporter.ToSvg(
-            drawing,
-            1D,
-            OfficeSvgSizeUnit.Pixel,
-            imageCodec: null,
-            resourceIdPrefix: null,
-            CancellationToken.None,
-            new SvgNearestNeighborRectangleBudget(3)));
-
-        Assert.Contains("vectorization limit", exception.Message, StringComparison.Ordinal);
+        var root = XElement.Parse(svg);
+        XElement image = Assert.Single(root.Descendants().Where(e => e.Name.LocalName == "image"));
+        Assert.Equal("-2", image.Attribute("x")?.Value);
+        Assert.Equal("4", image.Attribute("width")?.Value);
+        Assert.NotNull(image.Attribute("clip-path"));
+        XElement clip = Assert.Single(root.Descendants().Where(e => e.Name.LocalName == "clipPath"));
+        Assert.Equal("2", Assert.Single(clip.Elements()).Attribute("width")?.Value);
+        Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(image.Attribute("href")!.Value.Split(',')[1]), out OfficeRasterImage? embedded));
+        Assert.Equal(raster.GetPixels(), embedded!.GetPixels());
     }
 
     private sealed class CancelingNearestNeighborCodec : IOfficeRasterImageCodec {
