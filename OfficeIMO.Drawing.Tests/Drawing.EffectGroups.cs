@@ -37,8 +37,11 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeDrawingSvgExporter_VectorizesInexactNearestNeighborScale() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+    public void OfficeDrawingSvgExporter_EmbedsSamplesAtExactAndInexactNearestNeighborScales() {
+        var raster = new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue);
+        raster.SetPixel(0, 0, OfficeColor.Red);
+        raster.SetPixel(1, 1, OfficeColor.FromRgba(0, 255, 0, 127));
+        byte[] png = OfficePngWriter.Encode(raster);
         var inexact = new OfficeDrawing(10D, 10D);
         inexact.AddImageWithInterpolation(
             png,
@@ -55,10 +58,18 @@ public partial class DrawingTests {
         string inexactSvg = OfficeDrawingSvgExporter.ToSvg(inexact);
         string svg = OfficeDrawingSvgExporter.ToSvg(exact);
 
-        Assert.Contains("shape-rendering=\"crispEdges\"", inexactSvg, StringComparison.Ordinal);
-        Assert.Contains("scale(2.5 1.5)", inexactSvg, StringComparison.Ordinal);
-        Assert.DoesNotContain("<image", inexactSvg, StringComparison.Ordinal);
-        Assert.Contains("shape-rendering=\"crispEdges\"", svg, StringComparison.Ordinal);
+        foreach (var exported in new[] { (Markup: inexactSvg, Width: "5", Height: "3"), (Markup: svg, Width: "6", Height: "4") }) {
+            var image = Assert.Single(System.Xml.Linq.XElement.Parse(exported.Markup).Descendants().Where(element => element.Name.LocalName == "image"));
+            Assert.Equal(exported.Width, image.Attribute("width")?.Value);
+            Assert.Equal(exported.Height, image.Attribute("height")?.Value);
+            Assert.Equal("optimizeSpeed", image.Attribute("image-rendering")?.Value);
+            Assert.Equal("image-rendering:pixelated", image.Attribute("style")?.Value);
+            byte[] embedded = Convert.FromBase64String(image.Attribute("href")!.Value.Split(',')[1]);
+            Assert.True(OfficePngReader.TryDecode(embedded, out OfficeRasterImage? decoded));
+            Assert.Equal(raster.Width, decoded!.Width);
+            Assert.Equal(raster.Height, decoded.Height);
+            Assert.Equal(raster.GetPixels(), decoded.GetPixels());
+        }
     }
 
     [Fact]

@@ -25,7 +25,7 @@ public sealed class DrawingJpegStreamingBaselineTests {
             scanlines[y * (stride + 1)] = 123;
             Buffer.BlockCopy(rgba, y * stride, scanlines, y * (stride + 1) + 1, stride);
         }
-        var options = new OfficeJpegEncodeOptions { Quality = 85, Subsampling = subsampling };
+        var options = new OfficeJpegEncodeOptions { Quality = 85, Subsampling = subsampling, OptimizeHuffman = false };
         byte[] baseline = OfficeJpegWriter.WriteRgba(width, height, rgba, stride, options);
         Assert.Equal(baseline, OfficeJpegWriter.WriteRgbaScanlines(width, height, scanlines, stride, options));
         options.OptimizeHuffman = true;

@@ -3971,7 +3971,8 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal("Stroke text", text.Text);
         Assert.Equal(OfficeColor.FromRgba(0, 0, 255, 128), text.Color);
         Assert.Contains("#0000FF", svg, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("fill-opacity", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-opacity", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"none\"", svg, StringComparison.Ordinal);
     }
 
     [Fact]

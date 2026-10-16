@@ -9,10 +9,20 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeDrawingText text,
         OfficeRasterCanvas textMetrics,
         string idPrefix,
-        ref int clipPathId) {
+        ref int clipPathId,
+        bool textAsPaths) {
         using var metricScope = textMetrics.PushFontMetricScale(text.FontMetricScale);
         using var faceScope = textMetrics.PushTextFace(text.Font.Face);
-        if (textMetrics.Fonts is { } fonts && HasSelectedVariableFont(text, fonts)) {
+        if (TryAppendGlyphPaths(sb, text, textMetrics, textAsPaths)) return;
+        if (text.OutlineStrokeColor.HasValue) {
+            var fragment = new StringBuilder(Math.Min(256, sb.MaxCapacity - sb.Length), sb.MaxCapacity - sb.Length);
+            AppendTextContent(fragment, text, textMetrics, idPrefix, ref clipPathId);
+            var painted = new StringBuilder();
+            if (textMetrics.Fonts is { } strokeFonts && HasSelectedVariableFont(text, strokeFonts)) {
+                AppendSelectedVariableFonts(painted, fragment.ToString(), text, strokeFonts, textMetrics.CancellationToken);
+            } else painted.Append(fragment);
+            AppendStrokedSvgText(sb, painted.ToString(), text, textMetrics.CancellationToken);
+        } else if (textMetrics.Fonts is { } fonts && HasSelectedVariableFont(text, fonts)) {
             var fragment = new StringBuilder();
             AppendTextContent(fragment, text, textMetrics, idPrefix, ref clipPathId);
             AppendSelectedVariableFonts(sb, fragment.ToString(), text, fonts, textMetrics.CancellationToken);
@@ -52,7 +62,7 @@ public static partial class OfficeDrawingSvgExporter {
                 text.RasterText,
                 verticalContentX + verticalContentWidth / 2D,
                 verticalContentY,
-                text.Color ?? OfficeColor.Black,
+                ResolveSvgTextFill(text),
                 text.Font.FamilyName,
                 text.Font.Size,
                 text.Font.IsBold,
@@ -98,7 +108,7 @@ public static partial class OfficeDrawingSvgExporter {
             x,
             y,
             lineHeight,
-            text.Color ?? OfficeColor.Black,
+            ResolveSvgTextFill(text),
             text.Font.FamilyName ?? "Arial",
             fontSize,
             text.Alignment,
@@ -181,7 +191,7 @@ public static partial class OfficeDrawingSvgExporter {
             contentY + baselineOffset,
             contentWidth,
             contentHeight,
-            text.Color ?? OfficeColor.Black,
+            ResolveSvgTextFill(text),
             text.Font.FamilyName,
             text.Alignment,
             text.VerticalAlignment,

@@ -103,24 +103,23 @@ public static partial class OfficeSvgImageRenderer {
         string? clipPathId = null,
         OfficeImagePlacement? clipRectangle = null,
         string? preserveAspectRatio = null) =>
-        AppendImageWithSampling(builder, href, projection, true, null, clipPathId, clipRectangle, preserveAspectRatio, default);
+        AppendImageWithSampling(builder, href, projection, true, clipPathId, clipRectangle, preserveAspectRatio, default);
 
     internal static StringBuilder AppendImageWithSampling(
         StringBuilder builder,
         string href,
         OfficeImageProjection projection,
         bool interpolate,
-        OfficeRasterImage? nearestNeighborRaster,
         string? clipPathId = null,
         OfficeImagePlacement? clipRectangle = null,
         string? preserveAspectRatio = null,
-        System.Threading.CancellationToken cancellationToken = default,
-        SvgNearestNeighborRectangleBudget? rectangleBudget = null) {
+        System.Threading.CancellationToken cancellationToken = default) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
 
-        if (interpolate && string.IsNullOrEmpty(href) || projection.Width <= 0D || projection.Height <= 0D) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrEmpty(href) || projection.Width <= 0D || projection.Height <= 0D) {
             return builder;
         }
 
@@ -129,13 +128,6 @@ public static partial class OfficeSvgImageRenderer {
         }
 
         SvgImageLayout layout = CreateLayout(projection, clipRectangle);
-        if (!interpolate) return AppendNearestNeighborRaster(
-            builder,
-            nearestNeighborRaster,
-            layout,
-            clipPathId,
-            cancellationToken,
-            rectangleBudget);
 
         if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
             OfficeImagePlacement clip = layout.EffectiveClip.Value;
@@ -155,7 +147,8 @@ public static partial class OfficeSvgImageRenderer {
             .AppendNumberAttribute("width", layout.ImagePlacement.Width)
             .AppendNumberAttribute("height", layout.ImagePlacement.Height);
         if (!interpolate) {
-            builder.AppendAttribute("style", "image-rendering:pixelated");
+            builder.AppendAttribute("image-rendering", "optimizeSpeed")
+                .AppendAttribute("style", "image-rendering:pixelated");
         }
         if (!layout.TransformCroppedImage) {
             if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
@@ -426,12 +419,20 @@ public static partial class OfficeSvgImageRenderer {
             return false;
         }
 
+        // WebP's alpha payload must pass the managed container policy even when
+        // a trusted MIME label would otherwise allow embedding bytes directly.
+        // This also prevents relabeling malformed WebP as PNG/JPEG to bypass it.
+        if ((OfficeWebpCodec.IsWebp(bytes) || OfficeImageInfo.FromMimeType(declaredContentType) == OfficeImageFormat.Webp) &&
+            !OfficeRasterContainerInspector.TryInspect(bytes, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _)) {
+            return false;
+        }
+
         if (TryResolveEmbeddableContentType(declaredContentType, bytes, fileName, out string contentType)) {
             dataUri = CreateBoundedDataUri(contentType, bytes, maximumCharacters, cancellationToken);
             return true;
         }
 
-        if (TryDecodeRasterForSvg(bytes, declaredContentType, imageCodec, cancellationToken, out OfficeRasterImage? raster) && raster != null) {
+        if (TryDecodeRasterForSvg(bytes, declaredContentType, imageCodec, cancellationToken, out OfficeRasterImage? raster, out _) && raster != null) {
             cancellationToken.ThrowIfCancellationRequested();
             dataUri = CreateBoundedDataUri(
                 "image/png",

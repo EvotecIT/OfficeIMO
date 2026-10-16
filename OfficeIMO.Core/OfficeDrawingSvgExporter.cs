@@ -47,13 +47,20 @@ public static partial class OfficeDrawingSvgExporter {
         StringBuilder sb,
         OfficeFontFaceCollection fonts,
         System.Threading.CancellationToken cancellationToken,
-        string familyPrefix = "") {
+        string familyPrefix = "",
+        ISet<string>? requiredFamilies = null) {
         if (fonts.Faces.Count == 0) {
             return;
         }
 
-        sb.Append("<defs><style type=\"text/css\">");
+        bool started = false;
         foreach (OfficeFontFace face in fonts.Faces) {
+            if (requiredFamilies != null && !requiredFamilies.Contains(face.FamilyName) &&
+                !requiredFamilies.Contains(face.ResourceFamilyName)) continue;
+            if (!started) {
+                sb.Append("<defs><style type=\"text/css\">");
+                started = true;
+            }
             cancellationToken.ThrowIfCancellationRequested();
             AppendEmbeddedFontFace(
                 sb,
@@ -71,7 +78,7 @@ public static partial class OfficeDrawingSvgExporter {
             }
         }
 
-        sb.Append("</style></defs>");
+        if (started) sb.Append("</style></defs>");
     }
 
     private static void AppendEmbeddedFontFace(
@@ -142,7 +149,7 @@ public static partial class OfficeDrawingSvgExporter {
         ref int clipPathId,
         System.Threading.CancellationToken cancellationToken,
         SvgTilingExpansionBudget tilingExpansionBudget,
-        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget, OfficeRasterCanvas textMetrics) {
+        OfficeRasterCanvas textMetrics, bool textAsPaths) {
         for (int i = 0; i < elements.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             switch (elements[i]) {
@@ -174,7 +181,7 @@ public static partial class OfficeDrawingSvgExporter {
                     AppendShape(sb, drawingShape, fillGradientId, strokeGradientId, shapeClipPathId);
                     break;
                 case OfficeDrawingText drawingText:
-                    AppendText(sb, drawingText, textMetrics, idPrefix, ref clipPathId);
+                    AppendText(sb, drawingText, textMetrics, idPrefix, ref clipPathId, textAsPaths);
                     break;
                 case OfficeDrawingRichText drawingRichText:
                     AppendRichText(sb, drawingRichText, textMetrics);
@@ -183,19 +190,19 @@ public static partial class OfficeDrawingSvgExporter {
                     string? imageClipPathId = drawingImage.Projection.HasCrop
                         ? idPrefix + "officeimo-image-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture)
                         : null;
-                    AppendImage(sb, drawingImage, imageClipPathId, imageCodec, cancellationToken, nearestNeighborRectangleBudget);
+                    AppendImage(sb, drawingImage, imageClipPathId, imageCodec, cancellationToken);
                     break;
                 case OfficeDrawingImagePattern imagePattern:
                     AppendImagePattern(sb, imagePattern, imageCodec, idPrefix, ref clipPathId, cancellationToken);
                     break;
                 case OfficeDrawingTilingPattern tilingPattern:
-                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
+                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, textMetrics, textAsPaths);
                     break;
                 case OfficeDrawingGroup drawingGroup:
-                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
+                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, textMetrics, textAsPaths);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
-                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
+                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, textMetrics, textAsPaths);
                     break;
                 case OfficeDrawingLink link:
                     if (!OfficeDrawingLinkPolicy.TryNormalize(link.Uri, out string safeUri)) {
@@ -213,7 +220,7 @@ public static partial class OfficeDrawingSvgExporter {
         }
     }
 
-    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget, OfficeRasterCanvas textMetrics) {
+    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, OfficeRasterCanvas textMetrics, bool textAsPaths) {
         textMetrics = textMetrics.WithDrawingTextProfile(drawingGroup.InnerDrawing);
         string groupClipPathId = idPrefix + "officeimo-group-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         AppendClipPathDefinition(sb, groupClipPathId, drawingGroup.ClipPath);
@@ -234,7 +241,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append(Format(drawingGroup.ContentOffsetY))
                 .Append(")\">");
         }
-        AppendElements(sb, drawingGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
+        AppendElements(sb, drawingGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, textMetrics, textAsPaths);
         if (hasContentOffset) sb.Append("</g>");
         sb.Append("</g>");
     }
@@ -412,26 +419,18 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeDrawingImage drawingImage,
         string? clipPathId,
         IOfficeRasterImageCodec? imageCodec,
-        System.Threading.CancellationToken cancellationToken,
-        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
+        System.Threading.CancellationToken cancellationToken) {
         if (drawingImage.Opacity == 0D) return;
         byte[] bytes = drawingImage.EncodedBytes;
-        string dataUri = string.Empty;
-        OfficeRasterImage? nearestNeighborRaster = null;
-        if (drawingImage.Interpolate) {
-            if (!OfficeSvgImageRenderer.TryCreateDataUri(
-                    drawingImage.ContentType,
-                    bytes,
-                    null,
-                    imageCodec,
-                    sb.MaxCapacity - sb.Length,
-                    cancellationToken,
-                    out dataUri)) {
-                return;
-            }
-        } else if (!OfficeSvgImageRenderer.TryDecodeRasterForSvg(
-                       bytes, drawingImage.ContentType, imageCodec, cancellationToken, out nearestNeighborRaster)) {
-            throw new InvalidOperationException("SVG export cannot preserve nearest-neighbor sampling for an undecodable image.");
+        string dataUri;
+        bool resolved = drawingImage.Interpolate
+            ? OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, imageCodec,
+                sb.MaxCapacity - sb.Length, cancellationToken, out dataUri)
+            : OfficeSvgImageRenderer.TryCreateNearestDataUri(drawingImage.ContentType, bytes, imageCodec,
+                sb.MaxCapacity - sb.Length, cancellationToken, out dataUri);
+        if (!resolved) {
+            if (!drawingImage.Interpolate) throw new InvalidOperationException("SVG export cannot embed the source image.");
+            return;
         }
 
         if (drawingImage.Opacity < 1D) {
@@ -445,12 +444,10 @@ public static partial class OfficeDrawingSvgExporter {
             dataUri,
             drawingImage.Projection,
             drawingImage.Interpolate,
-            nearestNeighborRaster,
             clipPathId,
             drawingImage.Projection.HasCrop ? drawingImage.Projection.Placement : null,
             "none",
-            cancellationToken,
-            nearestNeighborRectangleBudget);
+            cancellationToken);
         if (drawingImage.Opacity < 1D) {
             sb.Append("</g>");
         }

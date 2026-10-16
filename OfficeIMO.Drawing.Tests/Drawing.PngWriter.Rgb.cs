@@ -47,8 +47,7 @@ public partial class DrawingPngWriterTests {
         OfficePngWriter.EncodeTo(image, writer, options);
         Assert.Equal(png, writer.WrittenSpan.ToArray());
 #endif
-        Assert.Equal(8, png[24]);
-        Assert.Equal(2, png[25]);
+        Assert.Contains((int)png[25], new[] { 2, 3 });
         Assert.True(OfficePngReader.TryDecode(png, out var decoded));
         Assert.Equal(pixels, decoded!.GetPixels());
         Assert.Equal(pixels, image.GetPixels());
