@@ -62,7 +62,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "OfficeIMO.Html.Core": "[3.4.5, )",
+          "OfficeIMO.Html.Core": "[3.5.1, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
       },
@@ -151,7 +151,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "OfficeIMO.Html.Core": "[3.4.5, )",
+          "OfficeIMO.Html.Core": "[3.5.1, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
       },
@@ -194,7 +194,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "OfficeIMO.Html.Core": "[3.4.5, )"
+          "OfficeIMO.Html.Core": "[3.5.1, )"
         }
       },
       "officeimo.html.core": {
@@ -236,7 +236,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "OfficeIMO.Html.Core": "[3.4.5, )"
+          "OfficeIMO.Html.Core": "[3.5.1, )"
         }
       },
       "officeimo.html.core": {
