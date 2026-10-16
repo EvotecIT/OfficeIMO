@@ -8,6 +8,9 @@ public partial class PdfPageImageRendererTests {
     [Theory]
     [InlineData("9525 w q .00007874016 0 0 -.00007874016 55 125 cm 0 0 381000 762000 re S Q", 0.75D)]
     [InlineData("q 2 0 0 2 20 20 cm 3 w 0 0 10 10 re S Q", 6D)]
+    [InlineData("1 0 4 1 -190 0 cm 2 w 0 50 m 30 55 60 45 90 50 c S", 2D)]
+    [InlineData("1 0 4 1 -190 0 cm 2 w 0 50 30 10 re S", 2D)]
+    [InlineData("1 0 4 1 -190 0 cm 2 w 0 50 m 90 50 l S", 2D)]
     public void RenderPage_ScalesOrdinaryStrokeWidthAtPaintTime(string content, double expectedWidth) {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(BuildSingleStreamPdf(content));
 

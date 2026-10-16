@@ -1573,29 +1573,6 @@ internal static partial class PdfPageContentVisualParser {
             _unsupportedShadingTransformVisitor?.Invoke();
         }
 
-        private double GetRenderedStrokeWidth((double X, double Y)? direction = null) {
-            double strokeWidth = _state.StrokeWidth;
-            if (double.IsPositiveInfinity(strokeWidth)) return RenderedHairlineStrokeWidth;
-            if (!_scaleStrokeWidthWithTransform || strokeWidth <= 0D) {
-                return strokeWidth;
-            }
-
-            Matrix2D transform = _state.Transform;
-            double determinant = Math.Abs((transform.A * transform.D) - (transform.B * transform.C));
-            if (direction is (double dx, double dy) && determinant > 0D && (dx != 0D || dy != 0D)) {
-                // A user-space pen maps to an ellipse. A single segment's painted width is the pen's
-                // extent perpendicular to its page direction: w * |det| * |M^-1 v| / |v|.
-                double inverseX = (transform.D * dx - transform.C * dy) / determinant;
-                double inverseY = (-transform.B * dx + transform.A * dy) / determinant;
-                double width = strokeWidth * determinant * Math.Sqrt(inverseX * inverseX + inverseY * inverseY) / Math.Sqrt(dx * dx + dy * dy);
-                if (width > 0D && !double.IsNaN(width) && !double.IsInfinity(width)) return width;
-            }
-            // The area-preserving scale is exact for similarity transforms and does not inflate sheared pens.
-            return determinant > 0D && !double.IsNaN(determinant) && !double.IsInfinity(determinant)
-                ? strokeWidth * Math.Sqrt(determinant)
-                : strokeWidth;
-        }
-
         private void AddStrokedPathSegments(IReadOnlyList<OfficePathCommand> pathCommands, double paintOrder) {
             OfficePoint current = default;
             OfficePoint subpathStart = default;
