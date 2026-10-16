@@ -51,7 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double baseline = strut.Baseline;
         double descent = Math.Max(0D, strut.Height - baseline);
         foreach (InlineSegment segment in line.Segments) {
-            if (segment.Run.PositionedMarkerElement != null) continue;
+            if (!InlineLine.ContributesFlowContent(segment.Run)) continue;
             HtmlRenderFlowBlock? atomic = segment.Run.AtomicBlock;
             if (atomic != null && !hasImage) continue;
             InlineTextLineMetrics source = atomic != null

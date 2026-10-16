@@ -26,8 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (paragraphProgram == null || !HasExactRegisteredFace(paragraphProgram, paragraphStyle)) return false;
         foreach (InlineSegment segment in line.Segments) {
             HtmlInlineRun run = segment.Run;
-            if (run.IsFlowMarker || run.PositionedMarkerElement != null
-                || run.RunningStringElement != null || run.RunningElementAssignment != null) continue;
+            if (!InlineLine.ContributesFlowContent(run)) continue;
             if (run.AtomicBlock != null || run.LeaderPattern != null || run.PaintOffsetX != 0D || run.PaintOffsetY != 0D
                 || OfficeTextElements.ContainsRightToLeft(segment.Text)
                 || !HasSameOrdinaryProgram(segment.Text, run.Style)) return false;

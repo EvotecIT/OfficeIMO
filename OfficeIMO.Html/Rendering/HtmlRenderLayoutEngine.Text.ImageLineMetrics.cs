@@ -19,9 +19,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool UsesNormalImageLineMetrics(InlineLine line, HtmlRenderBoxStyle paragraphStyle) =>
         line.HasReplacedImage && paragraphStyle.Font.Size > 0D
         && paragraphStyle.LineHeight >= paragraphStyle.Font.Size
-        && !line.Segments.Any(segment => segment.Run.AtomicBlock == null
+        && !line.Segments.Any(segment => InlineLine.ContributesFlowContent(segment.Run)
+            && segment.Run.AtomicBlock == null
             && segment.Run.Style.LineHeight < segment.Run.Style.Font.Size)
-        && !line.Segments.SelectMany(segment => segment.Run.InlineStrutStyles)
+        && !line.Segments.Where(segment => InlineLine.ContributesFlowContent(segment.Run))
+            .SelectMany(segment => segment.Run.InlineStrutStyles)
             .Any(style => style.LineHeight < style.Font.Size);
 
 }
