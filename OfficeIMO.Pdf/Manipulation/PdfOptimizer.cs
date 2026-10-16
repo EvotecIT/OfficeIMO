@@ -50,7 +50,8 @@ internal static partial class PdfOptimizer {
         var skippedActions = new List<PdfOptimizationSkippedAction>();
         var optimizedObjects = new Dictionary<int, PdfIndirectObject>(objects);
         PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
-        ValidateConformanceSettings(source.UncheckedXmpMetadata, effectiveOptions);
+        ValidateConformanceSettings(source.UncheckedXmpMetadata,
+            source.CatalogDictionary?.Items.ContainsKey("Metadata") == true, effectiveOptions);
         int? infoObjectNumber = probe.Security.InfoObjectNumber;
         HashSet<PdfStream> preservedStreams = FindPreservedStreams(objects, cancellationToken);
         if (effectiveOptions.CompressUnfilteredStreams) {

@@ -162,6 +162,36 @@ public sealed class PdfOptimizerConformanceTests {
         });
     }
 
+    [Theory]
+    [InlineData(PdfOptimizationProfile.MaximumCompression, false)]
+    [InlineData(PdfOptimizationProfile.Custom, false)]
+    [InlineData(PdfOptimizationProfile.Custom, true)]
+    public void Optimize_RefusesStreamLayoutsWhenXmpExceedsReadLimit(PdfOptimizationProfile profile, bool objectStreams) {
+        byte[] original = BuildPdfA1Groundwork();
+        var objects = PdfSyntax.ParseObjects(original).Map;
+        PdfReference reference = Assert.IsType<PdfReference>(Catalog(objects).Items["Metadata"]);
+        PdfStream metadata = Resolve<PdfStream>(objects, reference);
+        byte[] padding = Encoding.UTF8.GetBytes(new string(' ', PdfReadDocument.MaxXmpMetadataBytes));
+        byte[] packet = new byte[metadata.Data.Length + padding.Length];
+        Buffer.BlockCopy(metadata.Data, 0, packet, 0, metadata.Data.Length);
+        Buffer.BlockCopy(padding, 0, packet, metadata.Data.Length, padding.Length);
+        ReplaceStream(objects, reference.ObjectNumber, packet);
+        byte[] source = AssembleFixture(objects, original, PdfFileVersion.Pdf14);
+        PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(PdfInspector.Inspect(source).XmpMetadata);
+        Assert.False(xmp.IsWellFormedXml);
+        Assert.Null(xmp.PdfAPart);
+        PdfOptimizationOptions options = RewriteOptions(profile);
+        if (profile == PdfOptimizationProfile.Custom) {
+            options.UseObjectStreams = objectStreams;
+            options.XrefFormat = objectStreams ? PdfOptimizationXrefFormat.ClassicTable : PdfOptimizationXrefFormat.XrefStream;
+        }
+
+        WithPreservedFiles(source, (input, output) => {
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfOptimizer.Optimize(input, output, options));
+            Assert.Contains("readable XMP", exception.Message, StringComparison.Ordinal);
+        });
+    }
+
 #if NET8_0_OR_GREATER
     [Theory]
     [InlineData(PdfOptimizationProfile.Custom)]

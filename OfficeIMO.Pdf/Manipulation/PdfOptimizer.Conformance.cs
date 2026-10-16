@@ -4,7 +4,11 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfOptimizer {
     /// <summary>Rejects settings that cannot preserve a declared archival profile before serialization.</summary>
-    private static void ValidateConformanceSettings(PdfXmpMetadataInfo? xmp, PdfOptimizationOptions options) {
+    private static void ValidateConformanceSettings(PdfXmpMetadataInfo? xmp, bool hasMetadata, PdfOptimizationOptions options) {
+        if (hasMetadata && (xmp is null || !xmp.IsWellFormedXml) &&
+            (options.UseObjectStreams || options.XrefFormat == PdfOptimizationXrefFormat.XrefStream)) {
+            throw new NotSupportedException("Object streams and cross-reference streams require readable XMP to establish the declared conformance. Use classic cross references or supply metadata within the supported XML read limits.");
+        }
         if (xmp?.PdfAPart == 1 && (options.UseObjectStreams || options.XrefFormat == PdfOptimizationXrefFormat.XrefStream)) {
             throw new NotSupportedException("PDF/A-1 forbids object streams and cross-reference streams. Use Balanced, Archival or Web, or disable UseObjectStreams and select ClassicTable.");
         }

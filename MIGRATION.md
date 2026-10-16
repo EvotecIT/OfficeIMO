@@ -10,7 +10,7 @@ Hybrid invoice generation supports only PDF/A-3a, PDF/A-3b and PDF/A-3u, optiona
 
 ## Lossless PDF optimization
 
-The optimizer preserves XMP packets, embedded-file streams and output-intent ICC streams without changing their encoding or contents, and retains the source Info dictionary only when it exists. PDF/A-1 inputs reject object-stream or xref-stream settings; use `Balanced`, `Archival` or `Web`, or set `UseObjectStreams = false` and `XrefFormat = ClassicTable`. Inputs with filtered XMP metadata are rejected before output is written because the optimizer cannot both remove its filter and preserve the packet encoding. Signed files remain blocked: optimize before signing.
+The optimizer preserves XMP packets, embedded-file streams and output-intent ICC streams without changing their encoding or contents, and retains the source Info dictionary only when it exists. PDF/A-1 inputs reject object-stream or xref-stream settings; use `Balanced`, `Archival` or `Web`, or set `UseObjectStreams = false` and `XrefFormat = ClassicTable`. Inputs with filtered XMP metadata are rejected before output is written because the optimizer cannot both remove its filter and preserve the packet encoding. Object/xref-stream settings also reject unreadable XMP because its declared profile cannot be established safely; use classic cross references or supply metadata within the supported XML read limits. Signed files remain blocked: optimize before signing.
 
 ## PAdES signatures and visible text
 
