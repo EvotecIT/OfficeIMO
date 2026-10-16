@@ -29,6 +29,7 @@ public static partial class MarkdownPdfConverterExtensions {
                         !renderedWithOwner && !(node is ParagraphBlock && node.Parent is ListItem)) owner = childBlock;
                     string? identifier = node.Attributes.ElementId;
                     if (node is HeadingBlock heading) Add(owner, document.GetHeadingAnchor(heading));
+                    if (node is FootnoteDefinitionBlock note) Add(owner, "fn:" + note.Label);
                     Add(owner, identifier);
                     if (node is HtmlRawInline html && TryGetInlineAnchor(html.Html, out string? inlineAnchor)) Add(owner, inlineAnchor);
                     bool flattened = entry.Flattened || node is TableBlock ||

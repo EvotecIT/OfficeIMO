@@ -139,8 +139,8 @@ public sealed partial class PdfOptions {
         }
 
         foreach (PdfTextShapingDiagnostic diagnostic in diagnostics) {
-            if (deferProviderCoverable && ((_textShapingProvider != null && IsProviderCoveredDiagnostic(diagnostic)) ||
-                (_textShapingMode == PdfTextShapingMode.OpenTypeLigatures && diagnostic.Code == "unsupported-font-ligature-substitution"))) {
+            if (deferProviderCoverable && IsProviderCoveredDiagnostic(diagnostic) &&
+                (_textShapingProvider != null || _textShapingMode == PdfTextShapingMode.OpenTypeLigatures)) {
                 continue;
             }
 
@@ -224,12 +224,16 @@ public sealed partial class PdfOptions {
 
         string key = BuildProviderShapedTextRunKey(text, fontName, isOpenTypeCff);
         if (!automaticLatin && _textShapingProvider != null) (_providerShapedTextRuns ??= new HashSet<string>()).Add(key);
+        else if (!automaticLatin) _automaticDirectionalShapedTextRun = key;
         else _automaticLatinShapedTextRun = key;
     }
 
-    // Automatic coverage belongs only to the current encoding attempt; a prior font face
+    // Automatic Latin and directional coverage belong only to the current encoding attempt; a prior font face
     // or feature setting must never hide an unsupported fallback in a later run.
-    internal void BeginTextShapingAttempt() => _automaticLatinShapedTextRun = null;
+    internal void BeginTextShapingAttempt() {
+        _automaticLatinShapedTextRun = null;
+        _automaticDirectionalShapedTextRun = null;
+    }
 
     /// <summary>
     /// Sets or clears the host-provided shaping engine used for generated text written with embedded fonts.
@@ -269,6 +273,7 @@ public sealed partial class PdfOptions {
         _reportedLayoutDiagnostics?.Clear();
         _providerShapedTextRuns?.Clear();
         _automaticLatinShapedTextRun = null;
+        _automaticDirectionalShapedTextRun = null;
         return this;
     }
 
@@ -281,7 +286,9 @@ public sealed partial class PdfOptions {
             (_textShapingProvider != null && IsProviderCoveredDiagnostic(diagnostic) &&
                 _providerShapedTextRuns != null && _providerShapedTextRuns.Contains(BuildProviderShapedTextRunKey(text!, fontName, isOpenTypeCff))) ||
             (string.Equals(diagnostic.Code, "unsupported-font-ligature-substitution", StringComparison.Ordinal) &&
-                _automaticLatinShapedTextRun == BuildProviderShapedTextRunKey(text!, fontName, isOpenTypeCff))));
+                _automaticLatinShapedTextRun == BuildProviderShapedTextRunKey(text!, fontName, isOpenTypeCff)) ||
+            (IsProviderCoveredDiagnostic(diagnostic) &&
+                _automaticDirectionalShapedTextRun == BuildProviderShapedTextRunKey(text!, fontName, isOpenTypeCff))));
 
 
     private static bool IsProviderCoveredDiagnostic(PdfTextShapingDiagnostic diagnostic) =>

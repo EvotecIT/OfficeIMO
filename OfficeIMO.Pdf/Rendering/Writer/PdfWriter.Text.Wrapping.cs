@@ -26,8 +26,8 @@ internal static partial class PdfWriter {
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, PdfLineSpacing? lineSpacing) =>
         WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, lineSpacing: lineSpacing);
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null) {
-        PdfTextWhitespaceMode whitespaceMode = options?.TextWhitespaceMode ?? PdfTextWhitespaceMode.Collapse;
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null) {
+        PdfTextWhitespaceMode whitespaceMode = textWhitespaceMode ?? options?.TextWhitespaceMode ?? PdfTextWhitespaceMode.Collapse;
         bool preserveWhitespace = whitespaceMode != PdfTextWhitespaceMode.Collapse;
         bool preformattedWhitespace = whitespaceMode == PdfTextWhitespaceMode.Preformatted;
         System.Collections.Generic.IReadOnlyList<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs, baseFont, options);
@@ -293,6 +293,17 @@ internal static partial class PdfWriter {
                 return;
             }
 
+            // Commit the previous preserved separator before advancing to the next
+            // tab stop. Otherwise consecutive tabs all resolve from the same x.
+            if (preserveWhitespace && pendingLeadingAdvance > 0D && currentSpaceStyle != null) {
+                if (pendingLeadingIsTab) {
+                    lines[lines.Count - 1].Add(CreatePreservedTabFragment(currentSpaceStyle,
+                        pendingLeadingAdvance, pendingLeadingTabStop, pendingLeadingTabAlignment, pendingLeadingTabLeader));
+                } else {
+                    lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, pendingLeadingAdvance));
+                }
+                lineWidth += pendingLeadingAdvance;
+            }
             PdfTabStop? explicitTabStop = ResolveNextExplicitTabStop();
             pendingSpaceFragments.Clear();
             pendingLeadingSpaceCount = 0;

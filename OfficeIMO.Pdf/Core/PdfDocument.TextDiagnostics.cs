@@ -587,7 +587,7 @@ public sealed partial class PdfDocument {
     }
 
     private static bool ShouldDeferProviderCoveredTextShapingDiagnostics(PdfOptions options, PdfStandardFont font, string text) {
-        if (options.TextShapingProviderSnapshot == null) {
+        if (options.TextShapingProviderSnapshot == null && options.TextShapingModeSnapshot != PdfTextShapingMode.OpenTypeLigatures) {
             return false;
         }
 
