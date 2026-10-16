@@ -8,6 +8,31 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfWhitespaceFlowTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ParagraphWhitespaceOverrideIsSnapshottedAndDoesNotChangeFollowingProse(bool panel) {
+        var options = Options(PdfTextWhitespaceMode.Collapse);
+        options.DefaultFont = PdfStandardFont.Courier;
+        options.PageWidth = 300D;
+        var document = PdfDocument.Create(options);
+        var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Preformatted };
+        if (panel) document.Panel(content => content.Paragraph(p => p.Text("ROOT\n    INDENT\n\t\tTABS"), style: style));
+        else document.Paragraph(p => p.Text("ROOT\n    INDENT\n\t\tTABS"), style: style);
+        style.TextWhitespaceMode = PdfTextWhitespaceMode.Collapse;
+        document.Paragraph(p => p.Text("X  Y"));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var letters = pdf.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
+        var root = letters.First(l => l.Value == "R");
+        var indent = letters.First(l => l.Value == "I");
+        var tabs = letters.First(l => l.Value == "T" && l.StartBaseLine.Y < indent.StartBaseLine.Y);
+        Assert.Equal(28.8D, indent.StartBaseLine.X - root.StartBaseLine.X, 3);
+        Assert.Equal(72D, tabs.StartBaseLine.X - root.StartBaseLine.X, 3);
+        var x = letters.First(l => l.Value == "X");
+        var y = letters.First(l => l.Value == "Y");
+        Assert.Equal(14.4D, y.StartBaseLine.X - x.StartBaseLine.X, 3);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
