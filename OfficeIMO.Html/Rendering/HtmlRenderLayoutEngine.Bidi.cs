@@ -206,7 +206,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return visibleElements;
     }
 
-    private static IReadOnlyList<InlineSegment> BuildResolvedInlineSegments(
+    private IReadOnlyList<InlineSegment> BuildResolvedInlineSegments(
         IReadOnlyList<InlineSegment> sources,
         IReadOnlyList<InlineBidiElement> ordered) {
         var result = new List<InlineSegment>();
@@ -224,12 +224,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(static element => element.LogicalText));
             double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
             int sourceIndex = ordered[start].SourceSegmentIndex;
+            HtmlRenderBoxStyle style = sources[sourceIndex].Run.Style;
+            // Paragraph bidi owns placement, but reordered scalars are not shaped glyphs.
+            // Keep provider input logical so the shared text owner still shapes the run
+            // and reports a provider that accepts measurement but declines painting.
+            bool needsShapingInput = RequiresConfiguredTextShaping(logicalText)
+                || OfficeTextElements.ContainsZeroWidthJoinerSequence(logicalText)
+                || OfficeTextElements.ContainsRightToLeft(logicalText)
+                    && (_options.TextShapingProvider != null || !style.TextFeatureSettings.IsDefault);
             var group = new InlineSegment(
-                text,
+                needsShapingInput ? logicalText : text,
                 segmentWidth,
                 sources[sourceIndex].Run,
                 logicalText,
-                bidiResolved: true,
+                bidiResolved: !needsShapingInput,
                 logicalEndProgress: sources[sourceIndex].LogicalEndProgress);
             result.Add(group);
             firstGroups[sourceIndex] ??= group;

@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
-                options.Language,
+                options.EffectiveTextShapingLanguage,
                 featureSettings,
                 textDirection, preservesPaintedGlyphs);
             if (!options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures && !OfficeUnicodeBidi.ContainsRightToLeft(text)) {
@@ -74,7 +74,7 @@ internal static partial class PdfWriter {
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
-                options.Language,
+                options.EffectiveTextShapingLanguage,
                 featureSettings,
                 textDirection, preservesPaintedGlyphs));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
@@ -156,7 +156,7 @@ internal static partial class PdfWriter {
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
-                options.Language,
+                options.EffectiveTextShapingLanguage,
                 featureSettings,
                 textDirection, preservesPaintedGlyphs);
             if (!options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures && !OfficeUnicodeBidi.ContainsRightToLeft(text)) {
@@ -192,7 +192,7 @@ internal static partial class PdfWriter {
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
-                options.Language,
+                options.EffectiveTextShapingLanguage,
                 featureSettings,
                 textDirection, preservesPaintedGlyphs));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);

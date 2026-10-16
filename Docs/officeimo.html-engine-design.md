@@ -41,7 +41,7 @@ No stage promises all websites or an identical Playwright API. The browser stage
 
 ## Public adoption boundary
 
-The HTML platform is public, MIT-licensed and usable independently of Word, Excel, PowerPoint and PDF. Office document packages are consumers of the same engine; they do not define its API or require a user to adopt the rest of OfficeIMO. Package names may retain the OfficeIMO family identity, but package descriptions, examples and dependency graphs must make standalone use clear.
+The HTML platform is public and MIT-licensed, with its own document and rendering APIs. `OfficeIMO.Html.Core` owns the dependency-free document contracts; `OfficeIMO.Html` uses the first-party PDF owner for page encoding and image replay. Office document packages consume the same HTML engine. Package descriptions, examples and dependency graphs must make standalone HTML use clear.
 
 External consumers can adopt the platform at the smallest layer that owns their outcome:
 

@@ -129,6 +129,7 @@ internal static partial class HtmlPdfRenderedConverter {
             && renderOptions.PrintLayoutWidthCssPixels == null
             && request.Profile == HtmlRenderIntentProfile.PrintPaged;
         PdfCore.PdfOptions measurementOptions = options.PdfOptions.Clone();
+        measurementOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
         renderOptions.AllowSystemFontFallback = renderOptions.AllowSystemFontFallback
@@ -239,6 +240,7 @@ internal static partial class HtmlPdfRenderedConverter {
 
         var conversionReport = new PdfCore.PdfConversionReport();
         PdfCore.PdfOptions documentOptions = options.PdfOptions.Clone();
+        documentOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         documentOptions.UseContentStreamCompressionByDefault();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(documentOptions);
         var mathMlFiles = new HtmlPdfMathMlFiles(options.MathMlSourceModificationDate);

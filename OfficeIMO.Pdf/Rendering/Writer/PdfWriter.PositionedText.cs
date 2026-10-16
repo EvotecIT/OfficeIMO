@@ -59,7 +59,7 @@ internal static partial class PdfWriter {
                 return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
             shapingOptions = PdfTextShapingOptions.ForRendering(
                 namedTrueType.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRunDelegate, options.Language, featureSettings, direction);
+                options.RecordProviderShapedTextRunDelegate, options.EffectiveTextShapingLanguage, featureSettings, direction);
             return namedTrueType.MeasureShapedTextWidth(text, namedTrueType.ShapeText(text, shapingOptions), effectiveFontSize, fontMetricScale, options.UseFontUnitTextLayout);
         }
         if (namedFont.HasValue &&
@@ -69,7 +69,7 @@ internal static partial class PdfWriter {
                 return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
             shapingOptions = PdfTextShapingOptions.ForRendering(
                 namedCff.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRunDelegate, options.Language, featureSettings, direction);
+                options.RecordProviderShapedTextRunDelegate, options.EffectiveTextShapingLanguage, featureSettings, direction);
             PdfGlyphRun run = namedCff.ShapeText(text, shapingOptions);
             return (options.UseFontUnitTextLayout ? namedCff.MeasureFontUnitAdvanceWidth1000(run) : run.TotalAdvanceWidth1000) * effectiveFontSize / 1000D;
         }
@@ -79,7 +79,7 @@ internal static partial class PdfWriter {
                 return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
             shapingOptions = PdfTextShapingOptions.ForRendering(
                 standardTrueType.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRunDelegate, options.Language, featureSettings, direction);
+                options.RecordProviderShapedTextRunDelegate, options.EffectiveTextShapingLanguage, featureSettings, direction);
             return standardTrueType.MeasureShapedTextWidth(text, standardTrueType.ShapeText(text, shapingOptions), effectiveFontSize, fontMetricScale, options.UseFontUnitTextLayout);
         }
         if (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? standardCff) &&
@@ -88,7 +88,7 @@ internal static partial class PdfWriter {
                 return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
             shapingOptions = PdfTextShapingOptions.ForRendering(
                 standardCff.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRunDelegate, options.Language, featureSettings, direction);
+                options.RecordProviderShapedTextRunDelegate, options.EffectiveTextShapingLanguage, featureSettings, direction);
             PdfGlyphRun run = standardCff.ShapeText(text, shapingOptions);
             return (options.UseFontUnitTextLayout ? standardCff.MeasureFontUnitAdvanceWidth1000(run) : run.TotalAdvanceWidth1000) * effectiveFontSize / 1000D;
         }

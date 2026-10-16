@@ -35,12 +35,15 @@ public sealed class HtmlImageFontCoverageTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async System.Threading.Tasks.Task HtmlImages_StrictPolicyRejectsAProviderThatDeclinesPdfPainting(bool pdfRoute) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async System.Threading.Tasks.Task HtmlImages_StrictPolicyRejectsAProviderThatDeclinesPdfPainting(bool pdfRoute, bool styled) {
         const string text = "ܫܠܡ";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
-            "<p style=\"font-family:'OfficeIMO Shaping Test'\">" + text + "</p>");
+            "<p dir='rtl' style=\"font-family:'OfficeIMO Shaping Test'\">"
+            + (styled ? "<span style='color:red'>" + text + " </span><span>" + text + "</span>" : text) + "</p>");
         var provider = new LayoutOnlyShapingProvider();
         var options = new HtmlToPdfOptions {
             AllowSystemFontFallback = false,
@@ -50,7 +53,7 @@ public sealed class HtmlImageFontCoverageTests {
             TextShapingLanguage = "syr"
         };
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
-            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(text.Select(character => (int)character).ToArray()));
+            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs((text + " ").Select(character => (int)character).ToArray()));
 
         HtmlConversionException synchronous = Assert.Throws<HtmlConversionException>(() => {
             if (pdfRoute) document.ToPdfBytes(options);
@@ -69,12 +72,15 @@ public sealed class HtmlImageFontCoverageTests {
         Assert.True(provider.DeclinedPainting);
     }
 
-    [Fact]
-    public void HtmlImages_CallerFontAndShaperCoverJoiningScriptOnBothPdfRoutes() {
-        const string text = "ܫܠܡ";
+    [Theory]
+    [InlineData("ܫܠܡ", false)]
+    [InlineData("ܫܠܡ", true)]
+    [InlineData("אבג", true)]
+    public void HtmlImages_CallerFontAndShaperCoverJoiningScriptOnBothPdfRoutes(string text, bool styled) {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>@page{size:120px 60px;margin:0}body{margin:0}</style>"
-            + "<p dir='rtl' style=\"font-family:'OfficeIMO Shaping Test'\">" + text + "</p>");
+            + "<p dir='rtl' style=\"font-family:'OfficeIMO Shaping Test'\">"
+            + (styled ? "<span style='color:red'>" + text + " </span><span>" + text + "</span>" : text) + "</p>");
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new HtmlToPdfOptions {
             AllowSystemFontFallback = false,
@@ -83,18 +89,22 @@ public sealed class HtmlImageFontCoverageTests {
             TextShapingProvider = provider,
             TextShapingLanguage = "syr"
         };
+        options.PdfOptions.Language = "en-GB";
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
-            ManagedTextShapingTestAssets.CreateFont(text.Select(character => (int)character).ToArray()));
+            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs((text + " ").Select(character => (int)character).ToArray()));
 
         PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
         OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
         OfficeImageExportResult pdfPng = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
             pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
 
+        Assert.Equal("en-GB", pdf.Value.Options.Language);
         Assert.Contains(text, PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText(), StringComparison.Ordinal);
         Assert.Equal(pdfPng.Bytes, png.Bytes);
         Assert.DoesNotContain(png.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         Assert.Contains(provider.Requests, request => request.Text == text && request.Language == "syr");
+        Assert.Contains(provider.Requests, request => request.Text.Trim() == text
+            && request.FontName != ManagedTextShapingTestAssets.FamilyName && request.Language == "syr");
     }
 
     private sealed class LayoutOnlyShapingProvider : IOfficeTextShapingProvider {

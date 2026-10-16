@@ -88,6 +88,7 @@ public sealed partial class PdfOptions {
             TextShapingMode = TextShapingMode,
             DefaultTextFeatureSettings = DefaultTextFeatureSettings,
             TextShapingProvider = TextShapingProvider,
+            TextShapingLanguageOverride = TextShapingLanguageOverride,
             _diagnosticsReport = _diagnosticsReport,
             _diagnosticsConverter = _diagnosticsConverter,
             _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),

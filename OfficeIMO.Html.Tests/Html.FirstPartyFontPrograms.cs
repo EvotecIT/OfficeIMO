@@ -507,7 +507,24 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     private static IEnumerable<OfficeDrawingShape> PaintedShapes(byte[] pdf) =>
-        DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1)).OfType<OfficeDrawingShape>();
+        GlyphShapesOwnedByActualText(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1));
+
+    private static IEnumerable<OfficeDrawingShape> GlyphShapesOwnedByActualText(OfficeDrawing drawing) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingGroup group) {
+                if (group.ActualText != null) {
+                    // Outline paint belongs to its logical replacement; page canvas paint does not.
+                    // Enumerate a nested replacement once through its outer owner.
+                    foreach (OfficeDrawingShape shape in DrawingTestTraversal.Elements(group.Drawing).OfType<OfficeDrawingShape>())
+                        yield return shape;
+                } else {
+                    foreach (OfficeDrawingShape shape in GlyphShapesOwnedByActualText(group.Drawing)) yield return shape;
+                }
+            } else if (element is OfficeDrawingEffectGroup effect) {
+                foreach (OfficeDrawingShape shape in GlyphShapesOwnedByActualText(effect.Drawing)) yield return shape;
+            }
+        }
+    }
 
     private static double OutlinedPathWidth(byte[] pdf) => OutlinedPathWidth(Assert.Single(
         PaintedShapes(pdf)).Shape.PathCommands);
