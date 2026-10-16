@@ -145,7 +145,7 @@ public sealed class PdfConversionTypographyTests {
     [InlineData("excel-to-pdf", "OfficeIMO.Excel.Pdf")]
     [InlineData("markdown-to-pdf", "OfficeIMO.Markdown.Pdf")]
     [InlineData("powerpoint-to-pdf", "OfficeIMO.PowerPoint.Pdf")]
-    public void ConversionAdapters_ReportComplexScriptWarningsForGeneratedText(string conversionPath, string expectedConverter) {
+    public void ConversionAdapters_ReportComplexScriptWarningsWhenAutomaticShapingIsDisabled(string conversionPath, string expectedConverter) {
         PdfCore.PdfConversionReport report = conversionPath switch {
             "word-to-pdf" => CreateWordComplexScriptReport(allowMissingGlyphFailure: true),
             "excel-to-pdf" => CreateExcelComplexScriptReport(allowMissingGlyphFailure: true),
@@ -428,6 +428,7 @@ Zażółć gęślą jaźń
             document.Save();
 
             var options = new WordPdf.WordToPdfOptions {
+                PdfOptions = new PdfCore.PdfOptions { TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar },
                 IncludePageNumbers = false
             };
             PdfCore.PdfDocumentConversionResult? result = null;
@@ -450,6 +451,7 @@ Zażółć gęślą jaźń
             document.Save();
 
             var options = new ExcelToPdfOptions {
+                PdfOptions = new PdfCore.PdfOptions { TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar },
                 IncludeSheetHeadings = false
             };
             PdfCore.PdfDocumentConversionResult? result = null;
@@ -464,6 +466,7 @@ Zażółć gęślą jaźń
 
     private static PdfCore.PdfConversionReport CreateMarkdownComplexScriptReport(string text = "مرحبا", bool allowMissingGlyphFailure = false) {
         var options = new MarkdownToPdfOptions {
+            PdfOptions = new PdfCore.PdfOptions { TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar },
             ApplyDefaultTheme = false
         };
         PdfCore.PdfDocumentConversionResult? result = null;
@@ -478,7 +481,9 @@ Zażółć gęślą jaźń
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(text, 32, 32, 220, 32);
         textBox.FontSize = 14;
 
-        var options = new PowerPointToPdfOptions();
+        var options = new PowerPointToPdfOptions {
+            PdfOptions = new PdfCore.PdfOptions { TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar }
+        };
         PdfCore.PdfDocumentConversionResult? result = null;
         AssertRenderAttempt(() => (result = presentation.ToPdfDocumentResult(options)).ToBytes(), allowMissingGlyphFailure);
         return result?.Report ?? new PdfCore.PdfConversionReport();

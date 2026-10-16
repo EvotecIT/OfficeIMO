@@ -56,6 +56,16 @@ Inline header and footer pictures retain their height and reserve body space. Em
 
 Header/footer SmartArt authoring and reading now use relationships on the containing story for diagram data, layout, colours, quick style and cached drawing. Regenerate DOCX files whose header/footer diagrams were authored with relationships only on the main document part; saving an existing malformed file does not relocate those parts automatically. Body diagrams retain their existing relationship ownership.
 
+## Markdown PDF and page images
+
+Markdown PDF export preserves code-block indentation, including consecutive tabs, and uses the same monospace font selection for inline code and fenced code. Footnote references are superscript internal links; definitions follow the document body. Parent ordered items following nested lists remain separate items in both HTML and PDF output.
+
+`PdfTextFallbackFeatures.Default` includes `MultilingualFonts`. Converters using this shared default can embed installed fallback fonts for Japanese, Chinese, Arabic, and Hebrew under their resource policy. Rebuild consumers that compiled the enum constant into their own options. Select `None`, or individual flags without `MultilingualFonts`, when exact font selection is required. Font coverage still depends on the permitted fonts available to the host.
+
+RTF PDF export exposes `RtfToPdfOptions.TextFallbacks` with the same default. Installed fallback faces cover characters missing from the authored font; system-font access remains controlled by `ResourcePolicy.AllowSystemFontEmbedding`.
+
+`PdfParagraphStyle.TextWhitespaceMode` overrides whitespace handling for one paragraph without changing the document's prose. A null value inherits `PdfOptions.TextWhitespaceMode`.
+
 ## PDF text output and embedded fonts
 
 Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.
