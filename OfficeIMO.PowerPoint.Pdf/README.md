@@ -1,4 +1,4 @@
-# OfficeIMO.PowerPoint.Pdf - PowerPoint to PDF export
+# OfficeIMO.PowerPoint.Pdf - PDF import for PowerPoint
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.PowerPoint.Pdf)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.PowerPoint.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)

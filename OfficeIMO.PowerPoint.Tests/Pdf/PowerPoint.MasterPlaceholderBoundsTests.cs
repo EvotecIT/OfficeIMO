@@ -7,6 +7,42 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointMasterPlaceholderBoundsTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LayoutPlaceholderPromptsAreNotContentAndConcreteSlidePlaceholdersStillRender(bool concrete) {
+        using var deck = PowerPointPresentation.Create();
+        deck.SlideSize.SetSizePoints(400, 250);
+        var slide = deck.AddSlide();
+        var tree = slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!;
+        var types = new[] { PlaceholderValues.DateAndTime, PlaceholderValues.Footer, PlaceholderValues.SlideNumber };
+        for (int index = 0; index < types.Length; index++) {
+            var prompt = slide.AddTextBoxPoints("TEMPLATE PROMPT " + index, 20, 20 + index * 40, 300, 30);
+            Assert.IsType<Shape>(prompt.Element).NonVisualShapeProperties!.ApplicationNonVisualDrawingProperties!
+                .PlaceholderShape = new PlaceholderShape { Type = types[index], Index = (uint)(10 + index) };
+            prompt.Element.Remove();
+            tree.Append(prompt.Element);
+            if (concrete) {
+                var actual = slide.AddTextBoxPoints("ACTUAL FIELD " + index, 20, 20 + index * 40, 300, 30);
+                Assert.IsType<Shape>(actual.Element).NonVisualShapeProperties!.ApplicationNonVisualDrawingProperties!
+                    .PlaceholderShape = new PlaceholderShape { Type = types[index], Index = (uint)(10 + index) };
+            }
+        }
+        var artwork = slide.AddTextBoxPoints("LAYOUT ARTWORK", 20, 180, 300, 30);
+        artwork.Element.Remove();
+        tree.Append(artwork.Element);
+
+        using var saved = new MemoryStream();
+        deck.Save(saved);
+        saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdfBytes());
+        string text = pdf.GetPage(1).Text;
+        Assert.DoesNotContain("TEMPLATE PROMPT", text, StringComparison.Ordinal);
+        Assert.Contains("LAYOUT ARTWORK", text, StringComparison.Ordinal);
+        Assert.Equal(concrete, text.Contains("ACTUAL FIELD", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void TitleWithoutSlideOrLayoutTransformUsesMasterBoundsAfterReopen() {
         using var bytes = new MemoryStream();

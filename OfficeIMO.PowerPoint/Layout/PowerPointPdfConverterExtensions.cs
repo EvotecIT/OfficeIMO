@@ -184,7 +184,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         PptCore.PowerPointSlideBackground background;
         try {
-            background = slide.GetBackground(GetImageReadLimit(options));
+            background = slide.GetBackground(() => GetImageReadLimit(options));
             options.EmbeddedImageBytesRead += background.ImageByteLength;
         } catch (Exception exception) when (exception is InvalidOperationException ||
             exception is InvalidDataException invalid && OfficeIMO.Core.Internal.OfficeStreamReader.IsSizeLimitException(invalid)) {

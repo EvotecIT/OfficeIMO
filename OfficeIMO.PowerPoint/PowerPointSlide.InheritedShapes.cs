@@ -34,7 +34,9 @@ namespace OfficeIMO.PowerPoint {
             }
 
             foreach (PowerPointShape layoutShape in layoutShapes) {
-                if (!slideOverrides.ContainsMatch(layoutShape)) {
+                // Layout placeholders also supply geometry/styles and editing prompts.
+                // A visible field or text placeholder must be instantiated on the slide.
+                if (!IsStructuralPlaceholder(layoutShape) && !slideOverrides.ContainsMatch(layoutShape)) {
                     shapes.Add(layoutShape);
                 }
             }

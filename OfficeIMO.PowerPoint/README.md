@@ -224,7 +224,7 @@ surface charts support in-place data updates when their referenced caches and
 embedded workbook can be changed consistently. `InspectImportedContent()`
 reports the native family and export boundary. Image and PDF export draw these
 families as an explicit flat 2-D projection and report what it leaves out
-(`chart-projected` in PDF, `powerpoint-chart-projected` in images);
+(`chart-projected` in both PDF and images);
 producer-specific storage or chart groups that do not have a safe model remain
 preservation-only. Series and slices that store no colour or marker take the
 colours and markers PowerPoint gives them, from the chart's classic style
@@ -747,6 +747,23 @@ no separate PowerPoint builder vocabulary to learn or keep synchronized.
 
 The concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` types shown here are the supported editing surface. Semantic plans remain optional composition input and do not replace the concrete document model.
 
+## PDF export
+
+Forward PDF conversion is part of `OfficeIMO.PowerPoint`:
+
+```csharp
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Pdf;
+
+using var presentation = PowerPointPresentation.Load("deck.pptx");
+presentation.SaveAsPdf("deck.pdf");
+byte[] pdfBytes = presentation.ToPdfBytes();
+```
+
+Installed document fonts are embedded by default. Inspect `ToPdfDocumentResult().Warnings`
+for substitutions, approximations, and omissions. Add `OfficeIMO.PowerPoint.Pdf` when
+importing PDF content as editable slides.
+
 ## Managed image export
 
 Slides and presentation batches can be exported as PNG, JPEG, TIFF, lossless WebP, or SVG:
@@ -793,13 +810,13 @@ static OfficeProvenanceReport InspectUploadedPowerPoint(byte[] packageBytes) =>
 
 | Package | Use it for |
 | --- | --- |
-| [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Export editable PowerPoint slides to PDF and import PDF tables to PowerPoint. |
+| [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Import PDF text, tables, shapes, and images as editable PowerPoint slides. |
 | [OfficeIMO.Markup.PowerPoint](../OfficeIMO.Markup.PowerPoint/README.md) | Render semantic markup documents to PowerPoint. |
 
 ## Related packages
 
 - `OfficeIMO.PowerPoint` provides editable PowerPoint creation and manipulation.
-- Use `OfficeIMO.PowerPoint.Pdf` for PDF export; it uses the shared `OfficeIMO.Pdf` engine.
+- `OfficeIMO.PowerPoint` exports PDF through `OfficeIMO.Pdf`; add `OfficeIMO.PowerPoint.Pdf` for reverse PDF import.
 - See `OfficeIMO.Examples` for complete showcase decks and design examples.
 
 ## Targets and license
@@ -811,7 +828,7 @@ static OfficeProvenanceReport InspectUploadedPowerPoint(byte[] packageBytes) =>
 ## Dependency footprint
 
 - **External:** Open XML SDK for `.pptx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Core`. The presentation model, composition system, inspection, encryption workflow, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
+- **OfficeIMO:** `OfficeIMO.Core` and `OfficeIMO.Pdf`. The presentation model, composition system, inspection, encryption workflow, PDF layout, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
 - **Security:** Open XML, legacy binary, and VBA signature carriers are inspected and signed-presentation mutations fail safely without a cryptographic dependency. OPC and VBA creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

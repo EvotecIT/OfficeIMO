@@ -10,6 +10,8 @@ DrawingML normal autofit applies stored font scaling and line-spacing reduction,
 
 PDF-to-PowerPoint extension-call syntax is unchanged. Static calls move from `PowerPointPdfConverterExtensions.ToPowerPointPresentation*` and `.SaveAsPowerPoint*` to `PdfPowerPointConverterExtensions`, which remains in `OfficeIMO.PowerPoint.Pdf`.
 
+Layout and master placeholder prompts are not slide content. Create a concrete slide placeholder to display its text or field; it inherits the template's geometry and style. Ordinary layout and master artwork remains visible.
+
 ## Office conversion fonts and Word page images
 
 The balanced PDF resource policy embeds installed document fonts by default for Word, Excel and PowerPoint. Fonts supplied by installed Office applications on macOS are discoverable. Output sizes, line breaks and pagination can change as source fonts replace standard Helvetica fallbacks. Review substitution diagnostics and the `font-embedding-cost` entries for the actual font payload cost. Set `ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()` or supply a fixed rendering profile when output must not depend on host fonts.
@@ -70,7 +72,7 @@ Other native chart geometry now follows Office, so chart renders and baselines c
 - Date category axes format their cached serial numbers with the axis or source-linked number format, such as `m/d/yyyy`.
 - Charts that set `c:plotVisOnly` but carry no workbook at all render from their cached values, as Office does. Charts whose workbook link is external or unresolved still return `false`.
 
-3-D, pie-of-pie and surface charts still render as flat 2-D projections, and now say so: PowerPoint PDF export reports `chart-projected`, image export reports `powerpoint-chart-projected`, Word PDF reports `NativeBodyChartSimplified`, and Excel PDF reports `chart-approximation`. Excel PDF export now draws stock and surface charts this way instead of skipping them. A skipped PowerPoint chart's `unsupported-chart` warning names the actual reason. Reading a chart snapshot no longer hides unexpected exceptions; only document content that cannot be projected returns `false`.
+3-D, pie-of-pie and surface charts still render as flat 2-D projections, and now say so: PowerPoint PDF and image export report `chart-projected`, Word PDF reports `NativeBodyChartSimplified`, and Excel PDF reports `chart-approximation`. Excel PDF export now draws stock and surface charts this way instead of skipping them. A skipped PowerPoint chart's `unsupported-chart` warning names the actual reason. Reading a chart snapshot no longer hides unexpected exceptions; only document content that cannot be projected returns `false`.
 
 PowerPoint SmartArt now renders from the drawing Office caches with the diagram (`ppt/diagrams/drawing*.xml`), so producer layouts keep their shapes, colours and text positions in PDF and image export. When that drawing is missing or no longer matches the diagram text, the existing semantic layout is used; if neither applies, `unsupported-smartart` names both reasons. Worksheet SmartArt is reported as `WorksheetSmartArt` in Excel PDF export instead of being omitted silently.
 

@@ -601,7 +601,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_RendersInheritedLayoutTextThroughSharedDrawing() {
+        public void PowerPointSlide_KeepsLayoutOnlyPlaceholderTextInTheTemplate() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
@@ -626,7 +626,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(slide.Shapes);
             AssertNoUnexpectedDiagnostics(result.Diagnostics);
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
-            Assert.Contains("Inherited layout title", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
+            Assert.DoesNotContain("Inherited layout title", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
             Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
             Assert.Equal(240, image!.Width);
             Assert.Equal(160, image.Height);

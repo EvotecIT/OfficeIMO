@@ -5,6 +5,31 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointSelectedSlideExportTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExhaustedImageBudgetRetainsFollowingSolidAndGradientBackgrounds(bool gradient) {
+        using var deck = PowerPointPresentation.Create();
+        deck.SlideSize.SetSizePoints(100, 60);
+        byte[] picture = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+        deck.AddSlide().AddPicture(new MemoryStream(picture), OfficeImageFormat.Png,
+            PowerPointUnits.FromPoints(10), PowerPointUnits.FromPoints(10),
+            PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+        var background = deck.AddSlide();
+        if (gradient) background.SetBackgroundGradient("123456", "123456", 0);
+        else background.BackgroundColor = "123456";
+        deck.AddSlide().SetBackgroundImage(new MemoryStream(picture), OfficeImageFormat.Png);
+
+        var images = deck.ExportImages(OfficeImageExportFormat.Png, new PowerPointPresentationImageExportOptions {
+            MaximumTotalEmbeddedImageBytes = picture.Length
+        });
+
+        Assert.Equal(3, images.Count);
+        Assert.True(OfficePngReader.TryDecode(images[1].Bytes, out OfficeRasterImage? image));
+        Assert.Equal(OfficeColor.FromRgb(18, 52, 86), image!.GetPixel(5, 5));
+        Assert.Single(images[1].Diagnostics.Where(diagnostic => diagnostic.Code == "embedded-image-limit"));
+    }
+
     [Fact]
     public void MissingSlideBackgroundUsesTheSharedImageExportBackground() {
         using var deck = PowerPointPresentation.Create();
