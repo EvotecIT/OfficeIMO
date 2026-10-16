@@ -1,17 +1,20 @@
 {
   "schema": "officeimo.html.static-rendering-qualification",
-  "qualifiedUtc": "2026-10-16T11:18:11.590711+00:00",
+  "qualifiedUtc": "2026-10-16T12:13:40.741602+00:00",
   "source": {
     "masterBase": "3231c8d3439444bda7917d4300e26a850ef73c00",
-    "implementationHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
+    "implementationHead": "f77fdce2144e1ea30be640e01ae7e632b58600ae",
     "sdk": "10.0.113",
-    "sourceInputs": 5630,
-    "sourceSealSha256": "0ee3b90b9d0b983d21495e54ba28452648753328a3eb47c075d8f3c19c2810f7",
+    "sourceInputs": 5646,
+    "sourceSealSha256": "bc7c1c520ff30630e7c734317e8ec7aad34911ddd350998266efcc15833dd342",
     "retainedProviderVersions": {
       "AngleSharp": "1.8.3",
       "AngleSharp.Css": "1.1.3"
     },
-    "runtimeAndProviderForksIncluded": false
+    "runtimeAndProviderForksIncluded": false,
+    "initialQualificationImplementationHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
+    "initialSourceInputs": 5630,
+    "initialSourceSealSha256": "0ee3b90b9d0b983d21495e54ba28452648753328a3eb47c075d8f3c19c2810f7"
   },
   "host": {
     "os": "macOS27.0.1",
@@ -22,20 +25,20 @@
     {
       "suite": "HTML",
       "framework": "net10.0",
-      "sourceHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
-      "passed": 6459,
+      "sourceHead": "f77fdce2144e1ea30be640e01ae7e632b58600ae",
+      "passed": 6461,
       "skipped": 0,
-      "recordSha256": "2a510f0edce1a65bcbc5c3a683fbe9cf6a06c25afc8e909830ee76b28a572199",
+      "recordSha256": "4b998e5f1c7b7c55a7726296b033188252750fd0bbbd585b6239c2b9e603f175",
       "sourceSealMatched": true,
       "scope": "full correctness suite excluding Category=Performance"
     },
     {
       "suite": "HTML",
       "framework": "net8.0",
-      "sourceHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
-      "passed": 6459,
+      "sourceHead": "f77fdce2144e1ea30be640e01ae7e632b58600ae",
+      "passed": 6461,
       "skipped": 0,
-      "recordSha256": "b88c26a48b83f50b6b668f5b6cd2011b3d8aadb740605ee5477d2d0eff4be194",
+      "recordSha256": "5ecafea752624b813745d5750d0912e4fee1f35a5e02efe93764ba11920da818",
       "sourceSealMatched": true,
       "scope": "full correctness suite excluding Category=Performance"
     },
@@ -541,20 +544,30 @@
     ],
     "matchedOfficeIMODllCopies": 42,
     "matchedOfficialProviderDllCopies": 6,
-    "finalProductionInputsUnchangedDuringRefreshAndConsumers": true
+    "finalProductionInputsUnchangedDuringRefreshAndConsumers": true,
+    "sourceHead": "f77fdce2144e1ea30be640e01ae7e632b58600ae",
+    "retainedUnchangedPackageOwners": 18,
+    "freshHtmlFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "qualificationRecordSha256": "fa31ca21d58cb6672fb2d928c2fb9e77fd38340669b7ccefe1001b2d4b3720bd"
   },
   "nativeAot": {
     "status": "passed",
-    "ownerHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
+    "ownerHead": "f77fdce2144e1ea30be640e01ae7e632b58600ae",
     "sdk": "10.0.113",
     "runtimeIdentifier": "osx-arm64",
     "scenario": "html-pdf-image",
     "publishExitCode": 0,
     "runExitCode": 0,
-    "executableSha256": "5CA8241593E2C51CDE0B1A9BD1ACC30CA12AA786C6DCF81D2AB9FC71CCD23EC3",
+    "executableSha256": "132F2218CF7B17AB17420C273EF7E4258671945F54FD1B03C78C8551D6B27D33",
     "compilerDiagnosticCodes": [],
     "warningLines": [],
-    "rootFinalSourceSealMatches": true
+    "rootFinalSourceSealMatches": true,
+    "qualificationRecordSha256": "5ba45a91cb7e17f66a364176cde322375e5cb4b022f637994b2b63a579c49ee9"
   },
   "lockedRestore": {
     "unixStudioReleaseGraph": "passed unchanged locks",
@@ -565,7 +578,14 @@
     "targetedConfirmation": 1,
     "reproducedFindingsFixed": 2,
     "additionalGuardClosure": "Short no-face fallback placement ignores out-of-flow BaselineOffset; 106 focused checks and 16 public fallback controls pass.",
-    "remainingValidatedFindings": 0
+    "remainingValidatedFindings": 0,
+    "resourceBudgetClosure": {
+      "sourceHead": "f77fdce2144e1ea30be640e01ae7e632b58600ae",
+      "scope": "Newly exposed interrupted-inline retained allocation, copying, recursive composition and cancellation invariant",
+      "actionableFindings": 0,
+      "disposition": "accept as shaped",
+      "confirmationUsed": false
+    }
   },
   "reproduce": {
     "correctness": [
@@ -579,7 +599,10 @@
     "svgFixture": "OfficeIMO.TestAssets/Documents/Html/Qualification/SvgOpenPathFill/open-path-fill.svg",
     "licensedFontFixture": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
     "fontLicense": "OfficeIMO.TestAssets/Fonts/OFL-Carlito.txt",
-    "licensedFontSha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+    "licensedFontSha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+    "boundedInlineWork": [
+      "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net10.0 --filter FullyQualifiedName~HtmlInlineChunkBudgetTests"
+    ]
   },
   "qualificationLimits": [
     "Windows profiling deferred",
@@ -592,5 +615,82 @@
     "Four existing Drawing opt-in evidence cases skipped on each framework.",
     "net472 compilation/package/API validation passed; native Windows execution is separate from this macOS evidence.",
     "No physical print, PDF/X conformance, interactive runtime, or dependency-independence claim."
-  ]
+  ],
+  "unchangedDrawingAndPdfOwnerBindingsScope": "These byte bindings belong to the initial f093 qualification. The final change affects HTML; Core, PDF and the other 18 package owner trees and five shared build/resource inputs remain identical.",
+  "finalProducerReplay": {
+    "sourceHead": "f77fdce2144e1ea30be640e01ae7e632b58600ae",
+    "sourceSealSha256": "bc7c1c520ff30630e7c734317e8ec7aad34911ddd350998266efcc15833dd342",
+    "matchedOwnerProviderDlls": {
+      "net10.0": 8,
+      "net8.0": 8
+    },
+    "staticReplay": {
+      "fixtures": 32,
+      "profiles": 2,
+      "exports": 256,
+      "byteIdenticalToPriorQualification": 256,
+      "archivedSvgSourceHashesVerified": 64,
+      "priorProductionHead": "f09370ab6da2ec0dccefc03278aeb76d56e4bef5",
+      "priorNativeEvidenceArchiveSha256": "2033021376c4c2fc1583c30059da03de76ccd205ed503d2b111f5f0d3a9dc603",
+      "equivalenceReceiptSha256": "bc40da8cdae0509659ede8f46c46841df3f31b5ecc2a1b515b4a466235f742fb",
+      "nativeCapturesReusedOnlyForHashIdenticalSvg": true
+    },
+    "authoredSuite": {
+      "schemaVersion": 1,
+      "caseCount": 2,
+      "pageCount": 3,
+      "comparisons": 15,
+      "allComparisonsPass": true,
+      "resultSha256": "ad00c83a18c1ff8d6b57f46899b6cae9adba6f960ca89590d9b817cc29a47e43",
+      "browserVersion": "151.0.7922.34",
+      "fontSha256": "f5f41dd4cd8281cf151091cef9e9add0cda9b6ccd1db2010f72c3f056f0775fb",
+      "fontHinting": "none",
+      "suiteSha256": "689e687b6db579b500e63853816a947d8715f9a033291eb54710a278406576c8",
+      "noToleranceChanges": true,
+      "primaryArtifactEquivalence": {
+        "losslessAndPdfUnchanged": 14,
+        "jpegBytesDiffer": 3,
+        "jpegVsPngAllPass": true,
+        "decodedJpegMaxChannelDeltaVersusCi": [
+          3,
+          9,
+          6
+        ]
+      }
+    },
+    "freshNativeBaselineControls": {
+      "caseCount": 2,
+      "physicalPages": 3,
+      "domWitnesses": 22,
+      "independentChromiumPdfWitnesses": 22,
+      "allExact": true,
+      "browserVersion": "153.0.8010.12",
+      "receiptSha256": "dc43204ee4531dca782379f26e7b9d9b39fc425ca52ce428f5b43c31920e395c"
+    },
+    "actualVisualInspection": "Three final native-original/PNG/independent SVG contact sheets inspected; selected labels, rows, headings and footers align. Existing spaced-text advance and table-column distribution differences retained.",
+    "staticRuntimeArchiveSha256": "50f6532e43a24a11c8b0915ff55b7391cf926c0a403adb60e9b0d9e901fd1b7f",
+    "consistencyRuntimeArchiveSha256": "489be64c1265d2e2012a74d22dfab89bc4776d137d55f265c7754adbb407fa84",
+    "recordSha256": "91e0a5c522d31744c90917c5273bb00623f6ae750481b518d26cb7961c26d57f"
+  },
+  "boundedInlineWork": {
+    "sourceHead": "f77fdce2144e1ea30be640e01ae7e632b58600ae",
+    "contract": "Reserve the long inline-owner/chunk cross product before bounds-array allocation. Charge retained capture/fragment copies and recursive composition through MaxLayoutOperations; poll cancellation through those paths.",
+    "regression": "Two pinned-font 128-owner inputs rendered at 20,000 operations before the correction and now throw the existing layout-operation limit diagnostic. At 200,000 operations both retain all 128 text runs.",
+    "focusedControlsPassed": 154,
+    "test": "OfficeIMO.Html.Tests/Html.Rendering.InlineChunkBudgets.cs",
+    "independentClosureReview": "Read-only owner, sibling composition/copy and cancellation inspection found no actionable issues. Existing chunk paint order and single positioned/effected envelopes are preserved.",
+    "reviewRecordSha256": "fb083d221a57668b75b5eff08c36f574cca6492585a8b4e8584e24fb80321b08",
+    "limits": [
+      "No OOM-sized experiment.",
+      "Cancellation polling was inspected statically; no timing-dependent test or test-only production hook was added."
+    ]
+  },
+  "deferredBackgroundSubstitution": {
+    "contract": "Background custom-property substitution resolves all eight longhands through the existing deferred shorthand owner, including initial-value resets for invalid computed values.",
+    "existingTestsPassed": 66,
+    "focusedPublicControlsPassed": 20,
+    "productionChangesRequired": false,
+    "cases": "Inline and rule declarations, omitted components, missing/invalid variables, fallback layers, normal/important layer priority and resource discovery.",
+    "recordSha256": "ce390e1efa39dd76480933b74a64d503cc65cd44bba17ca51b490eb2f5fc91da"
+  }
 }
