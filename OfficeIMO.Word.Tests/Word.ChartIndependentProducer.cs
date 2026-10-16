@@ -71,7 +71,8 @@ public sealed class WordChartIndependentProducerTests {
         Assert.Contains(drawing.QualityReport.Issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.UnsupportedAppearance);
         var exported = document.ExportImage(OfficeImageExportFormat.Png,
             new WordImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true, RequireNoFailures = true } });
-        Assert.Contains(exported.Diagnostics, item => item.Code == "ChartPointStylesUnsupported");
+        Assert.Contains(exported.Diagnostics, item => item.Code == "NativeBodyChartQuality"
+            && item.Message.Contains("UnsupportedAppearance", StringComparison.Ordinal));
         Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? raster));
         OfficeColor nativeFill = OfficeColor.Parse("#004586");
         int bluePixels = 0;

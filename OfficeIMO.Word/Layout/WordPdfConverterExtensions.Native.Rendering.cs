@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
             List<WordParagraph> runs = GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
             WordParagraph? currentChartRun = runs.FirstOrDefault(run =>
                 ReferenceEquals(run._run, paragraph._run) && run.Chart != null);
-            RecordNativeBodyParagraphDiagnostics(paragraph, options, "body paragraph", mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
+            RecordNativeBodyParagraphDiagnostics(paragraph, options, "body paragraph", mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true, mapsSmartArt: true);
             IReadOnlyList<W.SdtRun> checkboxControls = nativeDefaults.RunningContentContext == null ? GetNativeCheckBoxControls(paragraph) : Array.Empty<W.SdtRun>();
             IReadOnlyList<W.SdtRun> formFieldControls = nativeDefaults.RunningContentContext == null ? GetNativeFormFieldControls(paragraph) : Array.Empty<W.SdtRun>();
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
@@ -109,7 +109,12 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             List<WordTextBox> textBoxes = GetNativeVisibleTextBoxes(paragraph, runs);
+            List<OfficeDrawing> smartArtDrawings = PrepareNativeRunSmartArt(paragraph, runs, options,
+                nativeDefaults.RunningContentContext == null ? "body paragraph SmartArt" : "header/footer SmartArt",
+                isHeaderFooter: nativeDefaults.RunningContentContext != null,
+                reportDiagnostics: nativeDefaults.RunningContentContext == null);
             if (textBoxes.Count > 0) {
+                RenderNativeSmartArt(pdf, smartArtDrawings, ResolveNativeParagraphAlign(paragraph, allowJustify: false));
                 if (TryRenderNativeAnchoredRunningTextBoxParagraph(pdf, paragraph, runs, marker,
                         footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) return;
                 RenderNativeMixedTextBoxes(pdf, paragraph, runs, marker, getMarker,
@@ -160,6 +165,7 @@ namespace OfficeIMO.Word.Pdf {
 
             int groupedImageCount = 0;
             bool renderedFlowObject = RenderNativeParagraphShapeGroups(pdf, paragraph, runs, objectAlign, options, style, ref groupedImageCount, objectSpacing);
+            renderedFlowObject |= RenderNativeSmartArt(pdf, smartArtDrawings, objectAlign, objectSpacing);
             if (currentShape != null) {
                 renderedFlowObject |= RenderNativeShape(pdf, currentShape, spacingAfter: objectOnly ? 0D : 6D, paragraphSpacing: objectSpacing);
             }

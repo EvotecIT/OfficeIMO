@@ -8,7 +8,9 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     private static bool RequiresNativeRunningStory(WordHeaderFooter? story) => story != null &&
         (story.ChildElements.Any(element => element is W.Table || element.Descendants<W.Table>().Any()) ||
-        NativeRunningStoryUsesSectionPageCount(story));
+        NativeRunningStoryUsesSectionPageCount(story) ||
+        story.ChildElements.Any(element => element.Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>()
+            .Any(data => data.Uri?.Value == "http://schemas.openxmlformats.org/drawingml/2006/diagram")));
 
     private static bool NativeRunningStoryUsesSectionPageCount(WordHeaderFooter? story) => story != null &&
         story.ChildElements.SelectMany(element => element is W.Paragraph paragraph

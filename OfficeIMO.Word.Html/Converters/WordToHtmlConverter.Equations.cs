@@ -187,9 +187,9 @@ namespace OfficeIMO.Word.Html {
                 }
                 if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
                     string? normalizedRunBackground = NormalizeSixDigitHexColor(
-                        WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run));
+                        WordRunFormatting.ResolveRunShadingFillColorHex(run));
                     string? highlight = GetHighlightCss(
-                        WordDocumentImageRenderer.ResolveRunHighlight(run));
+                        WordRunFormatting.ResolveRunHighlight(run));
                     if (!string.IsNullOrEmpty(highlight) &&
                         (!isHtmlMarkedText || normalizedRunBackground != null)) {
                         styles.Add($"background-color:{highlight}");
@@ -258,10 +258,10 @@ namespace OfficeIMO.Word.Html {
             } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase)) {
                 semanticNode = CreateOutputElement(htmlDocument, "mark");
                 string? normalizedRunBackground = includeRunHighlightStyles
-                    ? NormalizeSixDigitHexColor(WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run))
+                    ? NormalizeSixDigitHexColor(WordRunFormatting.ResolveRunShadingFillColorHex(run))
                     : null;
                 string? highlightCss = includeRunHighlightStyles
-                    ? GetHighlightCss(WordDocumentImageRenderer.ResolveRunHighlight(run))
+                    ? GetHighlightCss(WordRunFormatting.ResolveRunHighlight(run))
                     : null;
                 bool isDefaultMarkHighlight = string.Equals(
                     highlightCss,

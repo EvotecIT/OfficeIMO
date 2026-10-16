@@ -359,13 +359,9 @@ namespace OfficeIMO.Word.Pdf {
                     "Word header and footer text boxes without extractable text are not mapped by the OfficeIMO PDF engine yet.");
             }
 
-            if (paragraph.IsSmartArt) {
-                AddNativeExportWarning(
-                    options,
-                    "NativeHeaderFooterSmartArtUnsupported",
-                    source,
-                    "SmartArt in Word headers and footers is not mapped by the OfficeIMO PDF engine yet.");
-            }
+            // Running-story callbacks paint diagrams after the conversion report is captured.
+            // Qualify their semantic projection now so omissions and approximations reach that report.
+            RecordNativeHeaderFooterSmartArtDiagnostics(paragraph, options, source);
 
             if (paragraph.IsEquation && string.IsNullOrWhiteSpace(GetNativeEquationText(paragraph))) {
                 AddNativeExportWarning(
@@ -444,12 +440,12 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RecordNativeBodyParagraphDiagnostics(WordParagraph paragraph, WordToPdfOptions? options, string source, bool mapsCheckBoxes, bool mapsFormFields, bool mapsPictureControls, bool mapsRepeatingSections) {
+        private static void RecordNativeBodyParagraphDiagnostics(WordParagraph paragraph, WordToPdfOptions? options, string source, bool mapsCheckBoxes, bool mapsFormFields, bool mapsPictureControls, bool mapsRepeatingSections, bool mapsSmartArt = false) {
             if (options == null) {
                 return;
             }
 
-            if (paragraph.IsSmartArt) {
+            if (!mapsSmartArt && GetNativeRuns(paragraph).Any(run => run.IsSmartArt)) {
                 AddNativeExportWarning(
                     options,
                     "NativeBodySmartArtUnsupported",
