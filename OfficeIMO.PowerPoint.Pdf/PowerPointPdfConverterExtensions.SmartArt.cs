@@ -9,11 +9,12 @@ public static partial class PowerPointPdfConverterExtensions {
     private static void RenderSmartArt(PdfCore.PdfPageCanvas canvas,
         PptCore.PowerPointSmartArt smartArt, double x, double y,
         double width, double height, int slideNumber,
-        PowerPointToPdfOptions options) {
+        PowerPointToPdfOptions options, string? cachedDrawingFailure) {
         if (!smartArt.TryGetOfficeDiagramSnapshot(
                 out OfficeDiagramSnapshot source)) {
             AddLayoutWarning(options, slideNumber, "unsupported-smartart",
-                "Skipped a PowerPoint SmartArt diagram because its semantic node data could not be read safely.",
+                "Skipped a PowerPoint SmartArt diagram: " + (cachedDrawingFailure ?? "it has no cached drawing.") +
+                    " Its semantic node data has no supported diagram layout either.",
                 PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
                 "PowerPointSmartArt",
                 "The SmartArt semantic model could not be read into the shared PDF diagram renderer.",

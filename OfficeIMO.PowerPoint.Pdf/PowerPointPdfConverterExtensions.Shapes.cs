@@ -70,8 +70,13 @@ public static partial class PowerPointPdfConverterExtensions {
 
         if (shape is PptCore.PowerPointSmartArt smartArt) {
             if (options.IncludeSmartArt) {
-                RenderSmartArt(canvas, smartArt, x, y, width, height,
-                    slideNumber, options);
+                // Office caches the laid-out SmartArt shapes for exactly this purpose.
+                if (smartArt.TryCreateCachedDrawing(out PptCore.PowerPointGroupShape cachedDrawing, out string? cachedDrawingFailure)) {
+                    RenderGroupShape(canvas, cachedDrawing, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
+                } else {
+                    RenderSmartArt(canvas, smartArt, x, y, width, height,
+                        slideNumber, options, cachedDrawingFailure);
+                }
                 RenderShapeSlideLink(canvas, shape, x, y, width, height, slideNumber, options);
             }
             return;

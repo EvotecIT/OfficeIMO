@@ -161,7 +161,12 @@ namespace OfficeIMO.PowerPoint {
                 } else if (shape is PowerPointChart chart) {
                     AddChart(drawing, chart, diagnostics, mapping, colorScheme);
                 } else if (shape is PowerPointSmartArt smartArt) {
-                    AddSmartArt(drawing, smartArt, diagnostics, mapping);
+                    // Office caches the laid-out SmartArt shapes for exactly this purpose.
+                    if (smartArt.TryCreateCachedDrawing(out PowerPointGroupShape cachedDrawing, out string? cachedDrawingFailure)) {
+                        AddGroupShape(drawing, cachedDrawing, diagnostics, mapping, colorScheme, options, imageBudget, groupDepth);
+                    } else {
+                        AddSmartArt(drawing, smartArt, diagnostics, mapping, cachedDrawingFailure);
+                    }
                 } else if (shape is PowerPointTextBox textBox) {
                     AddTextBox(drawing, textBox, diagnostics, mapping, colorScheme);
                 } else if (shape is PowerPointAutoShape autoShape) {

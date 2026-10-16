@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint {
         private static void AddSmartArt(OfficeDrawing drawing,
             PowerPointSmartArt smartArt,
             List<OfficeImageExportDiagnostic> diagnostics,
-            PowerPointShapeBoundsMapping mapping) {
+            PowerPointShapeBoundsMapping mapping, string? cachedDrawingFailure) {
             if (!TryGetBounds(smartArt, drawing, diagnostics, mapping,
                     out double left, out double top, out double width,
                     out double height)) {
@@ -16,7 +16,8 @@ namespace OfficeIMO.PowerPoint {
             if (!smartArt.TryGetOfficeDiagramSnapshot(
                     out OfficeDiagramSnapshot source)) {
                 AddUnsupportedShapeDiagnostic(diagnostics, smartArt,
-                    "Skipped a PowerPoint SmartArt diagram because its semantic node data could not be read safely.");
+                    "Skipped a PowerPoint SmartArt diagram: " + (cachedDrawingFailure ?? "it has no cached drawing.") +
+                    " Its semantic node data has no supported diagram layout either.");
                 return;
             }
 
