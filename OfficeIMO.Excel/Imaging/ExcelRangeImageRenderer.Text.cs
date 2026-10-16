@@ -620,6 +620,7 @@ namespace OfficeIMO.Excel {
         };
 
         private static CellTextViewport ReserveConditionalIconTextSpace(CellTextViewport viewport, ExcelVisualConditionalIcon icon, double scale) {
+            if (icon.Kind == OfficeConditionalIconKind.None) return viewport;
             IconBounds bounds = GetConditionalIconBounds(icon, scale);
             double reservedRight = Math.Min(
                 viewport.X + viewport.Width,

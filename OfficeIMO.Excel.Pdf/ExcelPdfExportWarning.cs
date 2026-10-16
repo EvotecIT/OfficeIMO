@@ -4,7 +4,12 @@ namespace OfficeIMO.Excel.Pdf {
     /// </summary>
     public sealed class ExcelPdfExportWarning {
         /// <summary>Creates a warning for content skipped or simplified during export.</summary>
-        public ExcelPdfExportWarning(string sheetName, string feature, string message) {
+        public ExcelPdfExportWarning(string sheetName, string feature, string message)
+            : this(sheetName, feature, message, OfficeIMO.OfficeConversionLossKind.Approximation) { }
+
+        /// <summary>Creates a warning with an explicit fidelity impact.</summary>
+        public ExcelPdfExportWarning(string sheetName, string feature, string message, OfficeIMO.OfficeConversionLossKind lossKind) {
+            LossKind = lossKind;
             SheetName = sheetName ?? string.Empty;
             Feature = feature ?? string.Empty;
             Message = message ?? string.Empty;
@@ -18,6 +23,9 @@ namespace OfficeIMO.Excel.Pdf {
 
         /// <summary>Human-readable warning message.</summary>
         public string Message { get; }
+
+        /// <summary>Typed fidelity impact retained in the shared conversion report.</summary>
+        public OfficeIMO.OfficeConversionLossKind LossKind { get; }
 
         /// <inheritdoc />
         public override string ToString() {
@@ -48,7 +56,7 @@ namespace OfficeIMO.Excel.Pdf {
                 string.IsNullOrWhiteSpace(Feature) ? "ExcelPdfWarning" : Feature,
                 SheetName,
                 Message,
-                details: details);
+                severity: OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning, lossKind: LossKind, details: details);
         }
     }
 }

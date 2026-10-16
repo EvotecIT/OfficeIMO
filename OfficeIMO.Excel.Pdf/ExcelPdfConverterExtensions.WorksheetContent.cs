@@ -133,6 +133,12 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
+                foreach (var diagnostic in snapshot.Diagnostics.Where(diagnostic =>
+                    diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported ||
+                    diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated)) {
+                    AddWarning(options, sheetName, diagnostic.Code, diagnostic.Message, diagnostic.LossKind);
+                }
+
                 if (!HasRenderableChartData(snapshot)) {
                     AddWarning(
                         options,
@@ -240,8 +246,8 @@ namespace OfficeIMO.Excel.Pdf {
             return string.IsNullOrWhiteSpace(snapshot.Name) ? snapshot.ChartType.ToString() : snapshot.Name;
         }
 
-        private static void AddWarning(ExcelToPdfOptions options, string sheetName, string feature, string message) {
-            var warning = new ExcelPdfExportWarning(sheetName, feature, message);
+        private static void AddWarning(ExcelToPdfOptions options, string sheetName, string feature, string message, OfficeConversionLossKind lossKind = OfficeConversionLossKind.Approximation) {
+            var warning = new ExcelPdfExportWarning(sheetName, feature, message, lossKind);
             options.Warnings.Add(warning);
             options.Report.Add(warning.ToConversionWarning());
         }

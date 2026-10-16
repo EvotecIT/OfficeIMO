@@ -504,7 +504,9 @@ namespace OfficeIMO.Excel {
 
             OfficeChartData data = new OfficeChartData(
                 snapshot.Data.Categories,
-                snapshot.Data.Series.Select(series => new OfficeChartSeries(
+                snapshot.Data.Series.Select(series => snapshot.ChartType == ExcelChartType.Bubble
+                    ? CreateBubbleChartSeries(series)
+                    : new OfficeChartSeries(
                     series.Name,
                     series.Values,
                     series.XValues,
@@ -523,7 +525,7 @@ namespace OfficeIMO.Excel {
                         ? OfficeChartAxisGroup.Secondary
                         : OfficeChartAxisGroup.Primary).WithPointStyles(series.PointStyles)
                             .WithPointExplosions(series.PointExplosions)));
-            officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout, snapshot.RadialLayout);
+            officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
             if (OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(officeSnapshot)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
@@ -646,10 +648,11 @@ namespace OfficeIMO.Excel {
                 case ExcelChartType.Doughnut:
                     kind = OfficeChartKind.Doughnut;
                     return true;
-                case ExcelChartType.Scatter:
                 case ExcelChartType.Bubble:
+                    kind = OfficeChartKind.Bubble;
+                    return true;
+                case ExcelChartType.Scatter:
                     kind = OfficeChartKind.Scatter;
-                    approximation = type == ExcelChartType.Bubble ? "Excel bubble chart is rendered as a scatter chart without bubble-size encoding." : null;
                     return true;
                 case ExcelChartType.Radar:
                     kind = OfficeChartKind.Radar;

@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<string, int> firstStoppingPriorityByCell,
             List<OfficeImageExportDiagnostic> diagnostics) {
             var icons = new List<ExcelVisualConditionalIcon>();
+            var resolvedCells = new HashSet<string>(StringComparer.Ordinal);
             foreach (ExcelConditionalFormattingInfo rule in rules
                 .Where(rule => string.Equals(rule.Type, "IconSet", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(rule => NormalizePriority(rule.Priority))) {
@@ -38,10 +39,8 @@ namespace OfficeIMO.Excel {
                 double min = values.Min();
                 double max = values.Max();
                 foreach (ConditionalNumericCell candidate in candidates) {
-                    int index = ResolveIconIndex(candidate.Value, values, min, max, iconCount, rule.IconSetThresholds);
-                    if (rule.IconSetReverse) {
-                        index = (iconCount - 1) - index;
-                    }
+                    if (!TryResolveConditionalIcon(rule, candidate.Value, values, min, max, out OfficeConditionalIconKind? kind)) continue;
+                    if (!resolvedCells.Add(Key(candidate.Cell.Row, candidate.Cell.Column))) continue;
 
                     icons.Add(new ExcelVisualConditionalIcon(
                         candidate.Cell.Row,
@@ -50,12 +49,39 @@ namespace OfficeIMO.Excel {
                         candidate.Cell.Y,
                         candidate.Cell.Width,
                         candidate.Cell.Height,
-                        MapIconKind(family, index, iconCount),
+                        kind ?? OfficeConditionalIconKind.None,
                         rule.IconSetShowValue));
                 }
             }
 
             return icons;
+        }
+
+        // PDF and image export must evaluate the same thresholds and custom icon substitutions.
+        internal static IReadOnlyList<double> GetIconRuleNumericValues(ExcelSheet sheet, string range) =>
+            GetRuleNumericValues(sheet, range);
+
+        internal static bool TryResolveConditionalIcon(
+            ExcelConditionalFormattingInfo rule, double value, IReadOnlyList<double> values, double min, double max,
+            out OfficeConditionalIconKind? kind) {
+            kind = null;
+            if (values.Count == 0 || !TryGetIconCount(rule, out int count) ||
+                !TryResolveIconSetFamily(rule, count, out ExcelConditionalIconFamily family)) return false;
+
+            int index = ResolveIconIndex(value, values, min, max, count, rule.IconSetThresholds);
+            if (rule.IconSetReverse) index = count - 1 - index;
+            if (rule.CustomIcons.Count == count) {
+                ExcelConditionalFormatIcon custom = rule.CustomIcons[index];
+                if (string.Equals(custom.IconSet, "NoIcons", StringComparison.OrdinalIgnoreCase)) return true;
+                var customRule = new ExcelConditionalFormattingInfo { IconSet = custom.IconSet };
+                if (!TryGetIconCount(customRule, out int customCount) || custom.IconId >= customCount ||
+                    !TryResolveIconSetFamily(customRule, customCount, out family)) return false;
+                kind = MapIconKind(family, (int)custom.IconId, customCount);
+                return true;
+            }
+
+            kind = MapIconKind(family, index, count);
+            return true;
         }
 
         private static bool CanRenderIconSet(ExcelConditionalFormattingInfo rule) =>

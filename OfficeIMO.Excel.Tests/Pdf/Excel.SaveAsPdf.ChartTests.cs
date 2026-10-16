@@ -545,7 +545,6 @@ public partial class Excel {
 
     [Theory]
     [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Scatter)]
-    [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Bubble)]
     [InlineData(ExcelChartType.Scatter, ExcelChartType.ColumnClustered)]
     [InlineData(ExcelChartType.Scatter, ExcelChartType.Line)]
     public void SaveAsPdf_ExcelWorkbook_RejectsMixedCategoryAndScatterAxisModels(

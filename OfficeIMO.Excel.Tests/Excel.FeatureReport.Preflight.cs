@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -854,7 +855,7 @@ namespace OfficeIMO.Tests {
                 string diagnostics = string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
                 Assert.Contains("PDF-unrendered drawing shapes", diagnostics);
-                Assert.Contains("Report callout", diagnostics);
+
                 Assert.Contains("Report connector", diagnostics);
                 Assert.Contains("PDF-unsupported hyperlinks", diagnostics);
                 Assert.Contains("https://example.org/callout", diagnostics);
@@ -862,7 +863,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FeatureReport_Preflight_BlocksPdfExportForRenderableDrawingShapes() {
+        public void FeatureReport_Preflight_AllowsRenderableDrawingShapesAndExportsTheirText() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RenderableDrawingShape.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -876,13 +877,10 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
-                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
-
-                string diagnostics = string.Join(Environment.NewLine,
-                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unrendered drawing shapes", diagnostics);
-                Assert.Contains("Renderable rectangle", diagnostics);
-                Assert.Contains("shape", diagnostics);
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes());
+                Assert.Contains("Visible", string.Concat(pdf.GetPages().Select(page => page.Text)));
+                Assert.Contains("Visible", document["Shapes"].Range("A1:D5").ToSvg());
             }
         }
 
@@ -997,7 +995,8 @@ namespace OfficeIMO.Tests {
                             new Xdr.NonVisualDrawingProperties { Id = 2U, Name = "Renderable rectangle" },
                             new Xdr.NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true })),
                         new Xdr.ShapeProperties(
-                            new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }),
+                            new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle },
+                            new A.SolidFill(new A.RgbColorModelHex { Val = "DDEEFF" })),
                         new Xdr.TextBody(
                             new A.BodyProperties(),
                             new A.ListStyle(),

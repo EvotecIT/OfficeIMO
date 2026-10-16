@@ -179,6 +179,44 @@ The authoring limits bound admitted and emitted payload bytes, not defensive
 copies or peak process memory. See [attachment authoring limits](OfficeIMO.Pdf/README.md#attachment-authoring-limits)
 for configuration and destination-preservation behavior.
 
+## Excel bubble chart snapshots
+
+`ExcelChart.TryGetSnapshot(...)` reads bubble series from worksheet ranges,
+numeric literals, and numeric caches. Each series exposes aligned `XValues`,
+`Values`, and signed source `BubbleSizes`. Unsupported or inconsistent triples fail
+snapshot reading. PDF and image exports render true bubbles through the shared
+Core renderer, preserving `bubbleScale`, area/width `sizeRepresents`, and automatic
+series colours. Snapshots expose `BubbleScalePercent`, `BubbleSizeMode`, and
+`ShowNegativeBubbles`.
+
+Negative sizes remain in the snapshot. When `showNegBubbles` is false, their
+bubbles are omitted as requested. When true, exports still omit negative-size
+bubbles and report `ExcelChartBubbleNegativeSizesUnsupported`; the shared renderer
+cannot paint them. PDF warnings retain this omission classification through
+`ExcelPdfExportWarning.LossKind`. Invalid scale/size settings and 3-D bubble projections report
+`ExcelChartBubbleSettingsApproximated`. Native Excel's absolute bubble diameters
+and printer geometry are not guaranteed.
+
+Worksheet-canvas PDF retains charts anchored above or left of the populated cells
+without expanding the table's cell range. Large leading gaps use the computed
+scene fit even below five percent so retained cells stay inside the page.
+
+## Excel worksheet canvas drawings and print layout
+
+Worksheet-canvas PDF export includes supported drawing shapes and text boxes.
+`UseWorksheetImages` controls these objects along with worksheet pictures.
+Visual snapshots retain `OfficeConditionalIconKind.None` for custom `NoIcons`
+rules so value suppression survives without painted artwork or reserved icon space.
+Feature preflight accepts renderable shapes; unsupported objects and drawing
+hyperlinks remain reported. The flow-table profile reports omitted shapes.
+
+Fit-to-page planning includes retained drawing extents before choosing page
+breaks. Wide banners can therefore reduce the print scale and page count.
+Drawing text sizes retain their authored point units in both PDF and image output.
+Horizontal and vertical print centering apply within print margins, including
+page-aware PNG/SVG export with `SplitByManualPageBreaks = true`. Ordinary range
+and worksheet images remain cropped to the selected cells.
+
 ## Excel worksheet page-fit inspection
 
 `ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,

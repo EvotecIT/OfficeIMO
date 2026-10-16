@@ -21,7 +21,10 @@ namespace OfficeIMO.Excel {
             OfficeChartStyle? style = null,
             OfficeChartLayout? layout = null,
             IReadOnlyList<OfficeImageExportDiagnostic>? diagnostics = null,
-            OfficeChartRadialLayout? radialLayout = null) {
+            OfficeChartRadialLayout? radialLayout = null,
+            double bubbleScalePercent = 100D,
+            OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area,
+            bool showNegativeBubbles = false) {
             Name = name ?? string.Empty;
             Title = title;
             ChartType = chartType;
@@ -36,6 +39,9 @@ namespace OfficeIMO.Excel {
             Layout = layout;
             Diagnostics = diagnostics ?? Array.Empty<OfficeImageExportDiagnostic>();
             RadialLayout = radialLayout ?? OfficeChartRadialLayout.Default;
+            BubbleScalePercent = bubbleScalePercent;
+            BubbleSizeMode = bubbleSizeMode;
+            ShowNegativeBubbles = showNegativeBubbles;
         }
 
         /// <summary>Chart drawing name.</summary>
@@ -76,6 +82,15 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Diagnostics for authored chart features that the shared image renderer approximates or cannot render yet.</summary>
         public IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics { get; }
+
+        /// <summary>Authored bubble diameter scale percentage; defaults to 100.</summary>
+        public double BubbleScalePercent { get; }
+
+        /// <summary>Whether source bubble sizes represent area or width.</summary>
+        public OfficeChartBubbleSizeMode BubbleSizeMode { get; }
+
+        /// <summary>Whether the source requests negative-size bubbles. Unsupported painting is diagnosed.</summary>
+        public bool ShowNegativeBubbles { get; }
 
         /// <summary>Native pie rotation and doughnut hole geometry.</summary>
         public OfficeChartRadialLayout RadialLayout { get; }
