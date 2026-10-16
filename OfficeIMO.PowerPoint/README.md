@@ -769,7 +769,7 @@ presentation.ToImages()
     .Save("slide-previews");
 ```
 
-PowerPoint owns slide semantics and scene construction; `OfficeIMO.Drawing` owns sizing and the common raster encoders. The fluent builder can include or exclude backgrounds, pictures, auto shapes, SmartArt, text boxes, tables, charts, hidden shapes, and hidden slides. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` remain thin wrappers over the shared export builder.
+PowerPoint PDF and slide images use the same layout and font policy through `OfficeIMO.Pdf`; `OfficeIMO.Drawing` owns sizing and the common raster encoders. Set `PowerPointImageExportOptions.LayoutOptions` to configure that layout. `CreateVisualSnapshot().TextSpans` exposes its text geometry. Normal autofit uses stored scaling or shrinks overflowing text, shape autofit grows the exported frame, and fixed frames retain text without ellipses. Tables apply PowerPoint margins and grow rows for their content. The fluent builder can include or exclude backgrounds, pictures, auto shapes, SmartArt, text boxes, tables, charts, hidden shapes, and hidden slides. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` remain thin wrappers over the shared export builder.
 
 ## Content provenance
 

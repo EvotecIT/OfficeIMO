@@ -31,12 +31,16 @@ public static partial class PowerPointPdfConverterExtensions {
 
                 double fallbackFontSize = rowIndex < style.HeaderRowCount ? style.HeaderFontSize ?? bodyFontSize
                     : rowIndex >= table.Rows - style.FooterRowCount ? style.FooterFontSize ?? bodyFontSize : bodyFontSize;
-                pdfCells.Add(CreatePdfTableCell(cell, fallbackFontFamily, fallbackFontSize, slideNumber, options));
+                IReadOnlyList<A.TextCharacterPropertiesType> tableDefaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
+                    ? Array.Empty<A.TextCharacterPropertiesType>()
+                    : CreateTableTextDefaults(table, rowIndex, columnIndex);
+                pdfCells.Add(CreatePdfTableCell(cell, fallbackFontFamily, fallbackFontSize, slideNumber, options, tableDefaults));
             }
 
             rows.Add(pdfCells.ToArray());
         }
 
+        height = FitTableRows(table, rows, style, width, height, slideNumber, options);
         bool reportedCellOverflow = false;
         try {
             canvas.Table(rows, x, y, width, height, style, table.Rotation ?? 0D, diagnostic => {
@@ -80,10 +84,11 @@ public static partial class PowerPointPdfConverterExtensions {
         string? fallbackFontFamily,
         double fallbackFontSize,
         int slideNumber,
-        PowerPointToPdfOptions options) {
+        PowerPointToPdfOptions options,
+        IReadOnlyList<A.TextCharacterPropertiesType> tableDefaults) {
         (int rowSpan, int columnSpan) = cell.Merge;
         return PdfCore.PdfTableCell.Merge(
-            CreatePdfTableCellRuns(cell, fallbackFontFamily, fallbackFontSize, slideNumber, options),
+            CreatePdfTableCellRuns(cell, fallbackFontFamily, fallbackFontSize, slideNumber, options, tableDefaults),
             Math.Max(1, columnSpan),
             Math.Max(1, rowSpan));
     }
@@ -93,7 +98,8 @@ public static partial class PowerPointPdfConverterExtensions {
         string? fallbackFontFamily,
         double fallbackFontSize,
         int slideNumber,
-        PowerPointToPdfOptions options) {
+        PowerPointToPdfOptions options,
+        IReadOnlyList<A.TextCharacterPropertiesType> tableDefaults) {
         var runs = new List<PdfCore.PdfTextRun>();
         A.TextBody? textBody = cell.Cell.TextBody;
         if (textBody != null) {
@@ -108,14 +114,14 @@ public static partial class PowerPointPdfConverterExtensions {
                 var wrapped = new PptCore.PowerPointParagraph(paragraph, cell.SlidePart);
                 if (numbering.CreateMarker(wrapped) is string marker) {
                     runs.Add(CreatePdfTableCellListMarker(cell, wrapped, marker,
-                        fallbackFontFamily, fallbackFontSize, slideNumber, options));
+                        fallbackFontFamily, fallbackFontSize, slideNumber, options, tableDefaults));
                     if (!reportedListLayout) {
                         AddWarning(options, slideNumber, "table-list-layout-approximation",
                             "PowerPoint table list markers and counters are retained as inline text. Paragraph indents, marker positioning and spacing are approximated.");
                         reportedListLayout = true;
                     }
                 }
-                AppendPdfTableCellParagraphRuns(runs, paragraph, cell, fallbackFontFamily, slideNumber, options);
+                AppendPdfTableCellParagraphRuns(runs, paragraph, cell, fallbackFontFamily, slideNumber, options, tableDefaults);
                 hasParagraph = true;
             }
         }
@@ -133,13 +139,14 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointTableCell cell,
         string? fallbackFontFamily,
         int slideNumber,
-        PowerPointToPdfOptions options) {
+        PowerPointToPdfOptions options,
+        IReadOnlyList<A.TextCharacterPropertiesType> tableDefaults) {
         foreach (OpenXmlElement child in paragraph.ChildElements) {
             switch (child) {
                 case A.Run run:
                     foreach (A.Text text in run.Elements<A.Text>()) {
                         runs.Add(CreatePdfTableCellTextRun(
-                            cell, paragraph, run.RunProperties, text.Text ?? string.Empty, fallbackFontFamily, slideNumber, options));
+                            cell, paragraph, run.RunProperties, text.Text ?? string.Empty, fallbackFontFamily, slideNumber, options, tableDefaults));
                     }
 
                     break;
@@ -150,7 +157,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
                     if (!string.IsNullOrEmpty(fieldText)) {
                         runs.Add(CreatePdfTableCellTextRun(
-                            cell, paragraph, field.RunProperties, fieldText, fallbackFontFamily, slideNumber, options));
+                            cell, paragraph, field.RunProperties, fieldText, fallbackFontFamily, slideNumber, options, tableDefaults));
                     }
 
                     break;
@@ -215,14 +222,23 @@ public static partial class PowerPointPdfConverterExtensions {
             return configuredStyle.Clone();
         }
 
-        PdfCore.PdfTableStyle style = PdfCore.TableStyles.Light().Clone();
+        var style = new PdfCore.PdfTableStyle {
+            HeaderFill = null,
+            FooterFill = null,
+            RowStripeFill = null,
+            TextColor = PdfCore.PdfColor.Black,
+            HeaderBold = false,
+            FooterBold = false,
+            LineHeight = 1.2D
+        };
         // Every anchor cell receives its resolved presentation borders. A PDF
         // preset grid would paint over them and restore explicitly hidden edges.
         style.BorderColor = null;
         style.FontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
         style.HeaderFontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
-        style.CellPaddingX = 3.6D;
-        style.CellPaddingY = 1.8D;
+        // DrawingML tcPr defaults: 0.1in on each side and 0.05in above/below.
+        style.CellPaddingX = 7.2D;
+        style.CellPaddingY = 3.6D;
         return style;
     }
 

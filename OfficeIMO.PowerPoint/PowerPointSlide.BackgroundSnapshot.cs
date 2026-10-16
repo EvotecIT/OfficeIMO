@@ -25,9 +25,9 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointSlideBackground GetBackgroundCore(int? maximumImageBytes) {
             (BackgroundProperties? properties, OpenXmlPart? ownerPart) = GetResolvedBackgroundProperties();
             if (properties == null || !properties.HasChildren) {
-                (BackgroundStyleReference? styleReference, OpenXmlPart? styleOwnerPart) = GetResolvedBackgroundStyleReference();
+                BackgroundStyleReference? styleReference = GetResolvedBackgroundStyleReference().StyleReference;
                 return styleReference != null
-                    ? GetBackgroundStyleReference(styleReference, styleOwnerPart ?? _slidePart)
+                    ? GetBackgroundStyleReference(styleReference)
                     : PowerPointSlideBackground.None();
             }
 
@@ -36,8 +36,8 @@ namespace OfficeIMO.PowerPoint {
             A.SolidFill? solidFill = properties.GetFirstChild<A.SolidFill>();
             string? solidColor = null;
             if (solidFill != null) {
-                A.ColorScheme? colorScheme = GetThemePart(ownerPart ?? _slidePart)?.Theme?.ThemeElements?.ColorScheme;
-                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(solidFill, colorScheme);
+                A.ColorScheme? colorScheme = ResolvedColorScheme;
+                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(solidFill, colorScheme, colorMap: ResolvedColorMap);
                 solidColor = color.HasValue ? FormatBackgroundColor(color.Value) : null;
             }
 
@@ -52,22 +52,24 @@ namespace OfficeIMO.PowerPoint {
 
             A.GradientFill? gradientFill = properties.GetFirstChild<A.GradientFill>();
             if (gradientFill != null) {
-                A.ColorScheme? colorScheme = GetThemePart(ownerPart ?? _slidePart)?.Theme?.ThemeElements?.ColorScheme;
-                return GetBackgroundGradient(gradientFill, colorScheme, placeholderColor: null);
+                A.ColorScheme? colorScheme = ResolvedColorScheme;
+                return GetBackgroundGradient(gradientFill, colorScheme, placeholderColor: null, colorMap: ResolvedColorMap);
             }
 
             return PowerPointSlideBackground.Unsupported("The slide background fill type is not currently supported by OfficeIMO exporters.");
         }
 
         private (BackgroundProperties? Properties, OpenXmlPart? OwnerPart) GetResolvedBackgroundProperties() {
-            BackgroundProperties? slideProperties = SlideRoot.CommonSlideData?.Background?.BackgroundProperties;
-            if (slideProperties != null && slideProperties.HasChildren) {
+            Background? slideBackground = SlideRoot.CommonSlideData?.Background;
+            BackgroundProperties? slideProperties = slideBackground?.BackgroundProperties;
+            if (slideBackground?.BackgroundStyleReference != null || slideProperties?.HasChildren == true) {
                 return (slideProperties, _slidePart);
             }
 
             SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
-            BackgroundProperties? layoutProperties = layoutPart?.SlideLayout?.CommonSlideData?.Background?.BackgroundProperties;
-            if (layoutProperties != null && layoutProperties.HasChildren) {
+            Background? layoutBackground = layoutPart?.SlideLayout?.CommonSlideData?.Background;
+            BackgroundProperties? layoutProperties = layoutBackground?.BackgroundProperties;
+            if (layoutBackground?.BackgroundStyleReference != null || layoutProperties?.HasChildren == true) {
                 return (layoutProperties, layoutPart);
             }
 
@@ -101,9 +103,8 @@ namespace OfficeIMO.PowerPoint {
             return (null, null);
         }
 
-        private static PowerPointSlideBackground GetBackgroundStyleReference(BackgroundStyleReference styleReference, OpenXmlPart ownerPart) {
-            ThemePart? themePart = GetThemePart(ownerPart);
-            A.FormatScheme? formatScheme = themePart?.Theme?.ThemeElements?.FormatScheme;
+        private PowerPointSlideBackground GetBackgroundStyleReference(BackgroundStyleReference styleReference) {
+            A.FormatScheme? formatScheme = ResolvedFormatScheme;
             if (formatScheme == null) {
                 return PowerPointSlideBackground.Unsupported("The slide background references a theme background style but no theme format scheme could be resolved.");
             }
@@ -113,10 +114,10 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointSlideBackground.Unsupported("The slide background references a theme background style that could not be resolved.");
             }
 
-            A.ColorScheme? colorScheme = themePart?.Theme?.ThemeElements?.ColorScheme;
+            A.ColorScheme? colorScheme = ResolvedColorScheme;
             OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(
                 fill as A.SolidFill ?? fill.GetFirstChild<A.SolidFill>(),
-                colorScheme, styleReference);
+                colorScheme, styleReference, ResolvedColorMap);
             string? solidColor = color.HasValue ? FormatBackgroundColor(color.Value) : null;
             if (!string.IsNullOrWhiteSpace(solidColor)) {
                 return PowerPointSlideBackground.SolidColor(solidColor!);
@@ -125,39 +126,20 @@ namespace OfficeIMO.PowerPoint {
             A.GradientFill? gradientFill = fill as A.GradientFill ?? fill.GetFirstChild<A.GradientFill>();
             if (gradientFill != null) {
                 return GetBackgroundGradient(gradientFill, colorScheme,
-                    styleReference);
+                    styleReference, ResolvedColorMap);
             }
 
             return PowerPointSlideBackground.Unsupported("The slide background references a theme background fill type that is not currently supported by OfficeIMO exporters.");
         }
 
-        private static ThemePart? GetThemePart(OpenXmlPart ownerPart) {
-            if (ownerPart is SlidePart slidePart) {
-                return slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart;
-            }
-
-            if (ownerPart is SlideLayoutPart layoutPart) {
-                return layoutPart.SlideMasterPart?.ThemePart;
-            }
-
-            return (ownerPart as SlideMasterPart)?.ThemePart;
-        }
-
         private static OpenXmlElement? ResolveThemeBackgroundFill(A.FormatScheme formatScheme, uint? index) {
-            if (!index.HasValue) {
-                return null;
-            }
-
-            if (index.Value >= 1001U) {
-                int backgroundIndex = (int)(index.Value - 1001U);
-                return formatScheme.GetFirstChild<A.BackgroundFillStyleList>()?.ChildElements.ElementAtOrDefault(backgroundIndex);
-            }
-
-            if (index.Value >= 1U) {
-                return formatScheme.GetFirstChild<A.FillStyleList>()?.ChildElements.ElementAtOrDefault((int)index.Value - 1);
-            }
-
-            return null;
+            if (!index.HasValue || index.Value == 0U || index.Value == 1000U) return null;
+            bool background = index.Value >= 1001U;
+            OpenXmlElementList fills = (background
+                ? formatScheme.GetFirstChild<A.BackgroundFillStyleList>()?.ChildElements
+                : formatScheme.GetFirstChild<A.FillStyleList>()?.ChildElements) ?? default;
+            uint zeroBased = index.Value - (background ? 1001U : 1U);
+            return zeroBased < unchecked((uint)fills.Count) ? fills[(int)zeroBased] : null;
         }
 
         private static PowerPointSlideBackground GetBackgroundImage(
@@ -214,7 +196,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointSlideBackground GetBackgroundGradient(
             A.GradientFill gradientFill, A.ColorScheme? colorScheme,
-            OpenXmlElement? placeholderColor) {
+            OpenXmlElement? placeholderColor, OpenXmlElement? colorMap) {
             A.LinearGradientFill? linearGradientFill = gradientFill.GetFirstChild<A.LinearGradientFill>();
             if (linearGradientFill == null) {
                 return PowerPointSlideBackground.Unsupported("The slide background uses a path or radial gradient, which is not currently supported by OfficeIMO exporters.");
@@ -229,8 +211,8 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient has fewer than two stops.");
             }
 
-            OfficeColor? startColor = OfficeOpenXmlThemeColorResolver.ResolveColor(stops[0], colorScheme, placeholderColor);
-            OfficeColor? endColor = OfficeOpenXmlThemeColorResolver.ResolveColor(stops[stops.Length - 1], colorScheme, placeholderColor);
+            OfficeColor? startColor = OfficeOpenXmlThemeColorResolver.ResolveColor(stops[0], colorScheme, placeholderColor, colorMap);
+            OfficeColor? endColor = OfficeOpenXmlThemeColorResolver.ResolveColor(stops[stops.Length - 1], colorScheme, placeholderColor, colorMap);
             if (!startColor.HasValue || !endColor.HasValue) {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient uses colors that could not be resolved.");
             }

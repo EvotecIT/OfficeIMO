@@ -15,9 +15,6 @@ namespace OfficeIMO.PowerPoint {
             Unsupported
         }
 
-        private static bool HasShapeFillGradient(PowerPointShape source) =>
-            TryGetShapeFillGradient(source, out _, out _);
-
         private static ShapeFillGradientProjection ApplyShapeFillGradient(
             OfficeShape target,
             PowerPointShape source,

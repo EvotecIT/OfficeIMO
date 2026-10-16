@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, int groupDepth) {
         foreach (PptCore.PowerPointShape shape in shapes) {
-            if (shape.Hidden) {
+            if (shape.Hidden && !options.IncludeHiddenShapes) {
                 continue;
             }
 

@@ -9,10 +9,10 @@ namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options, bool suppressFrame = false) {
-        if (!suppressFrame) RenderTextBoxFrame(canvas, textBox, x, y, width, height);
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         OfficeDrawing drawing = PptCore.PowerPointSlideImageRenderer.CreateTextBoxDrawing(
             textBox, width, height, diagnostics, options.NativeTextMeasure!, options.NativeTextDefaultFontFamily);
+        if (!suppressFrame) RenderTextBoxFrame(canvas, textBox, x, y, drawing.Width, drawing.Height);
         foreach (OfficeImageExportDiagnostic diagnostic in diagnostics) {
             string code = diagnostic.Code switch {
                 "POWERPOINT_TEXT_OVERFLOW" => "text-box-overflow",
@@ -22,9 +22,9 @@ public static partial class PowerPointPdfConverterExtensions {
                 _ => diagnostic.Code
             };
             if (code == "text-box-overflow") {
-                AddLayoutWarning(options, slideNumber, code, diagnostic.Message,
-                    PdfCore.PdfLayoutDiagnosticKind.ClippedContent, "PowerPointTextBox",
-                    diagnostic.Message, x, y, width, height);
+                AddWarning(options, slideNumber, code, diagnostic.Message,
+                    new PdfCore.PdfLayoutDiagnostic(PdfCore.PdfLayoutDiagnosticKind.Overflow, "PowerPointTextBox",
+                        diagnostic.Message, x, y, width, height), diagnostic.LossKind);
             } else {
                 AddWarning(options, slideNumber, code, diagnostic.Message, lossKind: diagnostic.LossKind);
             }
@@ -35,22 +35,20 @@ public static partial class PowerPointPdfConverterExtensions {
                 ResolveSlideLinkDestination(link, slideNumber, options, "text run");
         }
         RemoveUnavailableDrawingSlideLinks(drawing, options);
-        if (drawing.Elements.Count > 0) canvas.Drawing(drawing, x, y, width, height);
+        // The authored frame is not a clipping boundary for PowerPoint text.
+        // Retain finite overflow coordinates without enlarging or rescaling that frame.
+        if (drawing.Elements.Count > 0) canvas.DrawingForClippedRendering(drawing, x, y, drawing.Width, drawing.Height);
     }
 
     private static void RenderTextBoxFrame(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
-        OfficeColor? fill = textBox.FillTransparency == 100 ? null : ParseOfficeColor(textBox.FillColor);
-        OfficeColor? outline = ParseOfficeColor(textBox.OutlineColor);
+        OfficeColor? fill = textBox.ResolveFillColorForExport();
+        OfficeColor? outline = textBox.ResolveOutlineColorForExport();
         if (!fill.HasValue && !outline.HasValue) {
             return;
         }
 
         OfficeShape frame = OfficeShape.Rectangle(width, height);
         frame.FillColor = fill;
-        if (textBox.FillTransparency.HasValue && textBox.FillTransparency.Value > 0 && textBox.FillTransparency.Value < 100) {
-            frame.FillOpacity = 1D - textBox.FillTransparency.Value / 100D;
-        }
-
         frame.StrokeColor = outline;
         frame.StrokeWidth = outline.HasValue ? textBox.OutlineWidthPoints ?? 0.75D : 0D;
         frame.StrokeDashStyle = MapDash(textBox.OutlineDash.ToOpenXml());

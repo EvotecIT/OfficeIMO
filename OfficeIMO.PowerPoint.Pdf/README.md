@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.PowerPoint.Pdf)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.PowerPoint.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 
-`OfficeIMO.PowerPoint.Pdf` exports `OfficeIMO.PowerPoint` presentations to PDF through the first-party `OfficeIMO.Pdf` engine. In the reverse direction it reconstructs supported text, tables, safe shapes, and images as editable slide objects by default, with explicit visual, hybrid, and tables-only profiles.
+Forward PDF conversion lives in `OfficeIMO.PowerPoint` and keeps the `OfficeIMO.PowerPoint.Pdf` namespace. It uses the same layout as slide image export through the first-party `OfficeIMO.Pdf` engine. The `OfficeIMO.PowerPoint.Pdf` package supplies reverse PDF import. In the reverse direction it reconstructs supported text, tables, safe shapes, and images as editable slide objects by default, with explicit visual, hybrid, and tables-only profiles.
 
 ## Install
 

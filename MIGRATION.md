@@ -1,5 +1,15 @@
 # Upgrading OfficeIMO
 
+## PowerPoint PDF and slide images
+
+PowerPoint PDF and PNG/JPEG/SVG exports share one slide layout. Existing `ToPng`, `ToJpeg`, `ToSvg`, `ExportImage`, `ExportImages`, and fluent builders keep their signatures. The core `OfficeIMO.PowerPoint` package now owns forward PDF conversion and references `OfficeIMO.Pdf`; the `OfficeIMO.PowerPoint.Pdf` namespace is unchanged. Rebuild applications that used the converter types from the former adapter assembly.
+
+`PowerPointImageExportOptions.LayoutOptions` supplies the shared `PowerPointToPdfOptions`, including font policy. Image diagnostics now include the PDF conversion and rendering diagnostics. Code that filters the former image-only diagnostic codes should use the canonical codes, such as `text-box-overflow` and `small-caps-approximation`. `CreateVisualSnapshot().Drawing` contains the PDF page scene, including glyph paths; use the snapshot's `TextSpans` for text and geometry instead of assuming `OfficeDrawingText` or `OfficeDrawingRichText` elements.
+
+DrawingML normal autofit applies stored font scaling and line-spacing reduction, or computes shrinking when the scale is absent. Shape autofit grows the exported frame. Fixed frames retain overflowing text without ellipses and report overflow; the slide edge clips visible painting. Tables use PowerPoint cell insets and grow rows for content. Image output therefore changes from the former preview renderer. Embedded-image byte limits also apply to the PDF layout; the aggregate limit covers the selected conversion, rather than resetting for each rendered image.
+
+PDF-to-PowerPoint extension-call syntax is unchanged. Static calls move from `PowerPointPdfConverterExtensions.ToPowerPointPresentation*` and `.SaveAsPowerPoint*` to `PdfPowerPointConverterExtensions`, which remains in `OfficeIMO.PowerPoint.Pdf`.
+
 ## Office conversion fonts and Word page images
 
 The balanced PDF resource policy embeds installed document fonts by default for Word, Excel and PowerPoint. Fonts supplied by installed Office applications on macOS are discoverable. Output sizes, line breaks and pagination can change as source fonts replace standard Helvetica fallbacks. Review substitution diagnostics and the `font-embedding-cost` entries for the actual font payload cost. Set `ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()` or supply a fixed rendering profile when output must not depend on host fonts.

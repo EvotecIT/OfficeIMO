@@ -18,6 +18,12 @@ public enum PowerPointPdfPageLayout {
 /// Options controlling first-party OfficeIMO PowerPoint-to-PDF export.
 /// </summary>
 public sealed class PowerPointToPdfOptions {
+    /// <summary>Maximum bytes read from a single embedded picture or background.</summary>
+    public int MaximumEmbeddedImageBytes { get; set; } = 64 * 1024 * 1024;
+    /// <summary>Maximum aggregate embedded image bytes read during one conversion.</summary>
+    public long MaximumTotalEmbeddedImageBytes { get; set; } = 256L * 1024 * 1024;
+    internal long EmbeddedImageBytesRead { get; set; }
+
     internal CancellationToken CancellationToken { get; set; }
     internal Func<string?, double, string?, DrawingCore.OfficeFontStyle, double>? NativeTextMeasure { get; set; }
     internal string? NativeTextDefaultFontFamily { get; set; }
@@ -90,6 +96,9 @@ public sealed class PowerPointToPdfOptions {
 
     /// <summary>When true, slides marked hidden in PowerPoint are exported. Defaults to false.</summary>
     public bool IncludeHiddenSlides { get; set; }
+
+    /// <summary>Includes shapes marked hidden when explicitly requested.</summary>
+    public bool IncludeHiddenShapes { get; set; }
 
     /// <summary>Slide, notes-page, or handout PDF composition.</summary>
     public PowerPointPdfPageLayout PageLayout { get; set; } = PowerPointPdfPageLayout.Slides;
@@ -263,7 +272,10 @@ public sealed class PowerPointToPdfOptions {
     }
 
     internal PowerPointToPdfOptions CloneForConversion() {
+        if (MaximumEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumEmbeddedImageBytes));
+        if (MaximumTotalEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumTotalEmbeddedImageBytes));
         var clone = (PowerPointToPdfOptions)MemberwiseClone();
+        clone.EmbeddedImageBytesRead = 0;
         clone.ResourcePolicy = ResourcePolicy.Clone();
         clone.Warnings = new List<PowerPointPdfExportWarning>();
         clone.Report = new PdfCore.PdfConversionReport();

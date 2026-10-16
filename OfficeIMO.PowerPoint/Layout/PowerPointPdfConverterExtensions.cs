@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -322,23 +323,18 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSnapshotThumbnail(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointSlide slide,
         int slideNumber, double x, double y, double width, double height, PowerPointToPdfOptions options) {
-        PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
-            new PptCore.PowerPointImageExportOptions {
-                IncludeSlideBackground = options.IncludeSlideBackgrounds,
-                IncludePictures = options.IncludePictures,
-                IncludeAutoShapes = options.IncludeAutoShapes,
-                IncludeSmartArt = options.IncludeSmartArt,
-                IncludeTextBoxes = options.IncludeTextBoxes,
-                IncludeTables = options.IncludeTables,
-                IncludeCharts = options.IncludeCharts,
-                MaxGroupShapeDepth = options.MaxGroupShapeDepth
-            });
+        var size = slide.OwnerPresentation!.SlideSize;
         canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), x, y);
-        RemoveUnavailableDrawingSlideLinks(snapshot.Drawing, options, slideNumber);
-        canvas.Drawing(snapshot.Drawing, x, y, width, height);
-        foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
-            AddWarning(options, slideNumber, "snapshot-" + diagnostic.Code, diagnostic.Message, lossKind: diagnostic.LossKind);
-        }
+        // Draw the canonical slide directly under a thumbnail transform. Reading
+        // an image snapshot here would discard PDF links and text semantics.
+        canvas.Clip(x, y, width, height, clipped =>
+            clipped.Effect(new OfficeTransform(width / size.WidthPoints, 0D, 0D, height / size.HeightPoints, x, y), 1D, target => {
+                RenderSlideBackground(target, slide, slideNumber, size.WidthPoints, size.HeightPoints, options);
+                RenderShapes(target, slide.GetInheritedShapesForExport(), slideNumber, size.WidthPoints, size.HeightPoints,
+                    options, warnInvalidBounds: false, groupDepth: 0);
+                RenderShapes(target, slide.Shapes, slideNumber, size.WidthPoints, size.HeightPoints,
+                    options, warnInvalidBounds: true, groupDepth: 0);
+            }));
     }
 
     private static List<(PptCore.PowerPointSlide Slide, int Number)> GetVisibleSlides(
@@ -373,7 +369,15 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
 
-        PptCore.PowerPointSlideBackground background = slide.GetBackground();
+        PptCore.PowerPointSlideBackground background;
+        try {
+            background = slide.GetBackground(GetImageReadLimit(options));
+            options.EmbeddedImageBytesRead += background.ImageByteLength;
+        } catch (InvalidOperationException exception) {
+            AddWarning(options, slideNumber, "embedded-image-limit", exception.Message, lossKind: OfficeConversionLossKind.Omission);
+            RenderFallbackBackground(canvas, pageWidth, pageHeight);
+            return;
+        }
         if (background.Kind == PptCore.PowerPointSlideBackgroundKind.SolidColor && !string.IsNullOrWhiteSpace(background.Color)) {
             OfficeColor? color = ParseOfficeColor(background.Color);
             if (color.HasValue) {
@@ -510,7 +514,8 @@ public static partial class PowerPointPdfConverterExtensions {
             }
             string? destination = ResolveSlideLinkDestination(hyperlink, slideNumber, options, "picture");
 
-            byte[] imageBytes = picture.GetImageBytes();
+            byte[] imageBytes = picture.GetImageBytes(GetImageReadLimit(options));
+            options.EmbeddedImageBytesRead += imageBytes.Length;
             AddPowerPointPictureAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
 
             canvas.Image(
@@ -628,12 +633,8 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void ApplyShapeStyle(PptCore.PowerPointShape source, OfficeShape target) {
-        target.FillColor = source.FillTransparency == 100 ? null : ParseOfficeColor(source.FillColor);
-        if (source.FillTransparency.HasValue && source.FillTransparency.Value > 0 && source.FillTransparency.Value < 100) {
-            target.FillOpacity = 1D - source.FillTransparency.Value / 100D;
-        }
-
-        target.StrokeColor = ParseOfficeColor(source.OutlineColor);
+        target.FillColor = source.ResolveFillColorForExport();
+        target.StrokeColor = source.ResolveOutlineColorForExport();
         target.StrokeWidth = source.OutlineWidthPoints ?? (target.StrokeColor.HasValue ? 1D : 0D);
         target.StrokeDashStyle = MapDash(source.OutlineDash.ToOpenXml());
     }

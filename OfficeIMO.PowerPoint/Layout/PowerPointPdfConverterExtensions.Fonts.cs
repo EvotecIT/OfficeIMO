@@ -90,7 +90,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PowerPointToPdfOptions options,
         int groupDepth) {
         foreach (PptCore.PowerPointShape shape in shapes) {
-            if (shape.Hidden) {
+            if (shape.Hidden && !options.IncludeHiddenShapes) {
                 continue;
             }
 
@@ -189,7 +189,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         foreach (PptCore.PowerPointShape shape in shapes) {
-            if (shape.Hidden) {
+            if (shape.Hidden && !options.IncludeHiddenShapes) {
                 continue;
             }
             if (options.IncludeTextBoxes &&
@@ -297,7 +297,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void RegisterPresentationShapeFonts(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointToPdfOptions options, int groupDepth) {
-        if (shape.Hidden) {
+        if (shape.Hidden && !options.IncludeHiddenShapes) {
             return;
         }
 
@@ -318,6 +318,17 @@ public static partial class PowerPointPdfConverterExtensions {
             if (options.IncludeTables) {
                 RegisterPresentationTableFonts(table, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options);
             }
+            return;
+        }
+
+        if (options.IncludeSmartArt && shape is PptCore.PowerPointSmartArt smartArt &&
+            smartArt.TryCreateCachedDrawing(out PptCore.PowerPointGroupShape cached, out _)) {
+            // Cached SmartArt is rendered as ordinary text shapes. Discover the same
+            // families before the PDF measurer is created, including theme defaults.
+            RegisterPresentationShapesFonts(cached.OwnerSlide!.GetGroupChildren(cached), slideNumber,
+                pageWidth, pageHeight, pdfOptions, registeredFamilies, registeredFontSlots, options, groupDepth + 1);
+            RegisterPresentationFontCandidate(PptCore.PowerPointTextDefaults.ResolveBodyLatinFont(cached.OwnerSlide),
+                pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
             return;
         }
 

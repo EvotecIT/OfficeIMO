@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
             AssignSlideToNearestSection(newId, _slides.Count);
             if (savePresentation) PresentationRoot.Save();
 
-            PowerPointSlide slide = new(slidePart);
+            PowerPointSlide slide = new(slidePart, this);
             _slides.Add(slide);
             return slide;
         }
@@ -345,7 +345,7 @@ namespace OfficeIMO.PowerPoint {
             AssignSlideToNearestSection(slideId.Id?.Value ?? throw new InvalidOperationException("Slide ID is missing."),
                 targetIndex);
 
-            PowerPointSlide duplicate = new(slidePart);
+            PowerPointSlide duplicate = new(slidePart, this);
             duplicate.Hidden = sourceSlide.Hidden;
             _slides.Insert(targetIndex, duplicate);
             PresentationRoot.Save();
@@ -419,7 +419,7 @@ namespace OfficeIMO.PowerPoint {
                     SlidePart targetPart = _presentationPart
                         .AddNewPart<SlidePart>(slideRelId);
                     targetPart.Slide = (Slide)sourceRoot.CloneNode(true);
-                    var imported = new PowerPointSlide(targetPart);
+                    var imported = new PowerPointSlide(targetPart, this);
                     int insertionIndex = targetIndex + offset;
                     SlideId slideId = new() { Id = GetNextSlideId() };
                     PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);

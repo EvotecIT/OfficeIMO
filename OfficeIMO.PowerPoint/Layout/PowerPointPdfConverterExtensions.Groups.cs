@@ -35,7 +35,7 @@ public static partial class PowerPointPdfConverterExtensions {
         int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, int groupDepth) {
         IReadOnlyList<PptCore.PowerPointShape> children = groupShape.OwnerSlide!.GetGroupChildren(groupShape);
         foreach (PptCore.PowerPointShape child in children) {
-            if (child.Hidden) {
+            if (child.Hidden && !options.IncludeHiddenShapes) {
                 continue;
             }
 
