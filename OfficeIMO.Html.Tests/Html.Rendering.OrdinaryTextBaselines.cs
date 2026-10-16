@@ -83,6 +83,38 @@ public sealed partial class HtmlRenderingTests {
             double.Parse(text[1].Attribute("y")!.Value, CultureInfo.InvariantCulture), 3);
     }
 
+    [Theory]
+    [InlineData("absolute", false)]
+    [InlineData("absolute", true)]
+    [InlineData("fixed", false)]
+    [InlineData("fixed", true)]
+    [InlineData("running(header)", false)]
+    [InlineData("running(header)", true)]
+    public void HtmlOrdinaryText_OutOfFlowOffsetsDoNotChangeFallbackPlacement(string position, bool floated) {
+        foreach (string leading in new[] { "0", "1.2" }) {
+            HtmlRenderText Render(string marker) {
+                string html = "<!doctype html><style>body{margin:0;font:16px/" + leading
+                    + " Unavailable}</style>" + (floated ? "<i style='float:left;width:20px;height:160px'></i>" : "")
+                    + "<div>BODY" + marker + "</div>";
+                var options = new HtmlRenderOptions {
+                    ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D),
+                    UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, AllowSystemFontFallback = false
+                };
+                HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, options: options)).Document;
+                return Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+                    text => text.Text == "BODY");
+            }
+
+            HtmlRenderText control = Render(string.Empty);
+            HtmlRenderText actual = Render("<span style='position:" + position
+                + ";vertical-align:20px;left:200px;top:200px'>OUTSIDE</span>");
+            Assert.Equal(control.Y, actual.Y, 6);
+            Assert.Equal(control.Height, actual.Height, 6);
+            Assert.Equal(control.LineHeight, actual.LineHeight, 6);
+        }
+    }
+
     private static HtmlRenderOptions OrdinaryBaselineOptions() {
         var options = new HtmlRenderOptions {
             ViewportWidth = 400D, ViewportHeight = 200D,
