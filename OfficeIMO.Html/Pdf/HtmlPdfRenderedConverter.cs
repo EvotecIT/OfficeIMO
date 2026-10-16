@@ -99,10 +99,16 @@ internal static partial class HtmlPdfRenderedConverter {
         return PrepareRequest(request, options).Request.ResolveOptions();
     }
 
-    private static PreparedPdfRequest PrepareRequest(HtmlRenderRequest request, HtmlToPdfOptions options) {
+    // Image encoders use exactly the PDF font measurement and print-fitting policy.
+    // Keep the original request axes and selection; only the encoder changes here.
+    internal static HtmlRenderOptions PrepareImageOptions(HtmlRenderRequest request) =>
+        PrepareRequest(request, new HtmlToPdfOptions(request.Options), allowImageEncoder: true)
+            .Request.ResolveOptions();
+
+    private static PreparedPdfRequest PrepareRequest(HtmlRenderRequest request, HtmlToPdfOptions options, bool allowImageEncoder = false) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (options == null) throw new ArgumentNullException(nameof(options));
-        if (request.Encoder != HtmlRenderEncoder.Pdf) {
+        if (request.Encoder != HtmlRenderEncoder.Pdf && !allowImageEncoder) {
             throw new ArgumentException("HTML-to-PDF conversion requires the Pdf render encoder.", nameof(request));
         }
         HtmlToPdfOptions renderOptions = new HtmlToPdfOptions(request.Options);

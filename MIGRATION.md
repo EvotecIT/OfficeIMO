@@ -460,6 +460,14 @@ Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutra
 
 Connector geometry in saved files now uses its native local transform. Consumers reading XML geometry directly must apply Pin/LocPin/Angle to obtain page coordinates. Reader text represents unattached endpoints with coordinates instead of empty shape IDs. Topology `edge` records append start X/Y and end X/Y columns after the label; absent shape IDs remain empty.
 
+## HTML paged image export and PDF ownership
+
+`HtmlRenderOptions.Mode` defaults to `Paged`. Default HTML image exports return print pages with `@page` margin boxes and the same fonts and layout as HTML-to-PDF. Request `Mode = HtmlRenderMode.Continuous`, `.Continuous()`, or the `ScreenFullPage` profile explicitly to retain one long screenshot.
+
+HTML-to-PDF types and extensions now live in the `OfficeIMO.Html` assembly and retain the `OfficeIMO.Html.Pdf` namespace. Rebuild consumers against the updated packages; `OfficeIMO.Html.Pdf` remains the package for PDF-to-HTML conversion. `OfficeIMO.Html` directly references the first-party `OfficeIMO.Pdf` owner.
+
+Tables with `break-inside:auto` can split at legal row boundaries even when the entire table would fit on a new page. Author `break-inside:avoid` on the table when keeping it together is required.
+
 ## Static HTML rendering and capability profiles
 
 Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.

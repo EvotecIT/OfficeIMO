@@ -271,11 +271,11 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         // The scalar fallback does not perform bidirectional layout. Preserve the
         // caller's logical string as ActualText so readers do not have to guess
         // whether the emitted glyph order is logical or visual.
-        string? actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
+        string? actualText = !options.PreservesPaintedGlyphs && OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
             ? text
             : null;
         return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText, preserveGlyphUnicode:
-            options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text));
+            options.PreservesPaintedGlyphs || options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text));
     }
 
     public double GetAscender(double fontSize) =>

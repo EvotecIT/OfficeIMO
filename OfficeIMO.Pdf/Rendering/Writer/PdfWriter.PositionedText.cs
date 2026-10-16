@@ -16,13 +16,15 @@ internal static partial class PdfWriter {
         double effectiveFontSize = run.FontSize ?? fontSize;
         double measuredWidth = MeasurePositionedTextWidth(
             run.Text, font, namedFont, effectiveFontSize, run.Baseline, options,
-            run.FeatureSettings, run.TextDirection, run.HorizontalTextScaling, run.CharacterSpacing, fontMetricScale);
+            run.FeatureSettings, run.TextDirection, run.HorizontalTextScaling, run.CharacterSpacing, fontMetricScale,
+            run.PreservesPaintedGlyphs);
         return new RichSeg(run.Text, run.Bold, run.Italic, run.Underline, run.Strike,
             run.Color, run.BackgroundColor, run.LinkUri, run.LinkDestinationName, run.LinkContents,
             font, effectiveFontSize, run.Baseline, measuredWidth, namedFont: namedFont,
             underlineStyle: run.UnderlineStyle, strikeStyle: run.StrikeStyle,
             decorationColor: run.DecorationColor, featureSettings: run.FeatureSettings,
-            textDirection: run.TextDirection, horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing, fontMetricScale: fontMetricScale);
+            textDirection: run.TextDirection, horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing, fontMetricScale: fontMetricScale,
+            preservesPaintedGlyphs: run.PreservesPaintedGlyphs);
     }
 
     private static double MeasurePositionedTextWidth(
@@ -34,8 +36,12 @@ internal static partial class PdfWriter {
         PdfOptions options,
         OfficeIMO.Drawing.OfficeTextFeatureSettings featureSettings,
         OfficeIMO.Drawing.OfficeTextDirection direction, double horizontalTextScaling = 100D,
-        double characterSpacing = 0D, double fontMetricScale = 1D) {
+        double characterSpacing = 0D, double fontMetricScale = 1D, bool preservesPaintedGlyphs = false) {
         featureSettings = options.ResolveTextFeatureSettings(featureSettings);
+        if (preservesPaintedGlyphs) {
+            return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings,
+                horizontalTextScaling, characterSpacing, direction, fontMetricScale, preservesPaintedGlyphs: true);
+        }
         if (HasRichTextSpacing(horizontalTextScaling, characterSpacing)) {
             return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings,
                 horizontalTextScaling, characterSpacing, direction, fontMetricScale);

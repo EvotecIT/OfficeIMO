@@ -128,7 +128,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         string directionalText = string.Concat(lines.SelectMany(static line => line).Select(static segment =>
             segment.Text.Length == 0 && segment.LogicalText == "\t" ? "\t" : segment.Text));
-        if (!OfficeTextElements.ContainsBidiControl(directionalText)) return null;
+        // Ordinary RTL words participate in one paragraph even when inline styles or
+        // font fallback split them into separate source runs without bidi controls.
+        if (!OfficeTextElements.ContainsBidiControl(directionalText)
+            && !OfficeTextElements.ContainsRightToLeft(directionalText)) return null;
 
         var visibleLines = new List<IReadOnlyList<InlineBidiElement>>(lines.Count);
         foreach (IReadOnlyList<InlineSegment> line in lines) {

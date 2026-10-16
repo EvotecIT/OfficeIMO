@@ -72,7 +72,7 @@ The package and implementation inventory is grounded in OfficeIMO source `6f5d0a
 | Render result | [`HtmlRenderDocument`](../OfficeIMO.Html/Rendering/HtmlRenderDocument.cs) carries shared pages, fonts, text and diagnostics | Extend its scene and semantic mapping rather than add a PDF-specific layout model |
 | Shared graphics and fonts | [`OfficeIMO.Core`](../OfficeIMO.Core/OfficeIMO.Core.csproj) contains the `OfficeIMO.Drawing` namespace; [`OfficeManagedTextShapingProvider`](../OfficeIMO.Core/OfficeManagedTextShapingProvider.cs) explicitly declines some scripts and features | Keep typography and codecs shared across formats; absence of an external package does not imply full shaping coverage |
 | Optional shaping | [`OfficeIMO.Drawing.HarfBuzz`](../OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj) supplies native shaping dependencies | Retain the existing provider contract while expanding managed shaping |
-| PDF | [`OfficeIMO.Html.Pdf`](../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj) depends on Html, Core and Pdf | HTML owns layout; PDF owns PDF serialization, fonts, tags, security and conformance |
+| PDF | `OfficeIMO.Html` owns HTML-to-PDF generation and references `OfficeIMO.Pdf`; `OfficeIMO.Html.Pdf` owns PDF-to-HTML import | HTML owns layout and output preparation; PDF owns serialization, fonts, tags, security, conformance and page image replay |
 | Browser bridge | [`OfficeIMO.Html.Pdf.Browser`](../OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj) references HtmlTinkerX | Keep external browser execution in this optional direction; never make Html depend on its browser bridge |
 | HtmlTinkerX | Its inspected project already references OfficeIMO.Html and OfficeIMO.Markdown.Html, alongside AngleSharp packages, Jint, Playwright and other tools | Migrate workflows incrementally through the existing consumer relationship; HTML rendering improvements do not remove unrelated HtmlTinkerX dependencies |
 
@@ -90,8 +90,9 @@ flowchart BT
     H --> OC
     A[OfficeIMO.Html.AngleSharp: retained parser provider] --> HC
     H --> A
-    P[OfficeIMO.Html.Pdf: existing adapter] --> H
-    P --> PDF[OfficeIMO.Pdf]
+    H --> PDF[OfficeIMO.Pdf]
+    P[OfficeIMO.Html.Pdf: PDF-to-HTML import] --> H
+    P --> PDF
     PDF --> OC
     T[HtmlTinkerX: extraction and automation workflows] --> H
     R[Optional web runtime and programmatic automation] --> H
@@ -106,8 +107,8 @@ The package roles and supported dependency direction are:
 | --- | --- | --- |
 | `OfficeIMO.Html.Core` | Publishable MIT contract leaf with no package or project dependencies | Standalone owned DOM, source-preserving syntax, query and provider contracts |
 | `OfficeIMO.Html.AngleSharp` | Parser provider over Core | Retained default AngleSharp adapter with qualified package upgrades |
-| `OfficeIMO.Html` | Publishable renderer that currently references AngleSharp, AngleSharp.Css, Core and shared OfficeIMO primitives | Owned CSS, resources, semantics, layout and display list over Core and shared drawing primitives |
-| `OfficeIMO.Html.Pdf` | PDF output adapter over Html and OfficeIMO.Pdf | Same thin output direction, consuming an explicit render profile |
+| `OfficeIMO.Html` | Publishable renderer over AngleSharp, AngleSharp.Css, Core and first-party Pdf for PDF-backed page image export | Owned CSS, resources, semantics, layout and display list over Core and shared drawing primitives |
+| `OfficeIMO.Html.Pdf` | PDF-to-HTML importer over Html and OfficeIMO.Pdf | Keep reverse projection separate from the canonical HTML output owner |
 | `OfficeIMO.Html.Pdf.Browser` | Optional HtmlTinkerX/browser bridge | Explicit external-browser provider outside the default static profile |
 | Optional runtime | Trusted scripted sessions and automation through retained providers | Owned session, capture and action contracts over AngleSharp/AngleSharp.Js/Jint providers |
 | Optional agent/tool adapters | Not yet a separately productized HTML-runtime surface | Thin model, CLI or MCP adapters over structured observations and actions, with no LLM dependency in the runtime |
@@ -640,8 +641,8 @@ The owned document boundary is the stable consumer surface. Continue widening re
 Strengthen style, layout, conversion and runtime components through OfficeIMO-owned contracts while effective upstream providers remain behind them. The lossless CSS syntax tree serves source-preserving consumers alongside retained provider behavior. Prioritize measured conversion gaps, upstream maintenance and releasable owner components. Advance typography in the shared graphics owner with optional shaping providers retained. Treat static rendering, editable reconstruction and selected application profiles as separately qualified outcomes.
 
 The owned render request, six named profiles, explicit page selection and retained
-result now form the common static output boundary. Existing continuous image calls
-map to screen-full-page, paged image calls and existing PDF calls map to print-paged,
+result now form the common static output boundary. Default image and PDF calls
+map to print-paged; explicitly continuous image calls map to screen-full-page,
 and output adapters cannot privately change CSS media or pagination. Executable
 surface views now provide Drawing previews, source-coordinate mapping and bounded
 clip-aware hit testing. PNG/SVG page archives package those same resolved surfaces

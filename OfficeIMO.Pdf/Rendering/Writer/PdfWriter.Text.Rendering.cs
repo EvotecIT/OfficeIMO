@@ -390,7 +390,8 @@ internal static partial class PdfWriter {
                 }
 
                 double segmentStartX = xCursor;
-                PdfTextShowCommand textCommand = s.KerningCommand ?? EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale);
+                PdfTextShowCommand textCommand = s.KerningCommand ?? EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale,
+                    preservesPaintedGlyphs: s.PreservesPaintedGlyphs);
                 // Imported layout uses design-unit advances while PDF widths are
                 // rounded. Anchor each run before those differences accumulate
                 // across paint boundaries or reach later inline decorations.
@@ -470,7 +471,8 @@ internal static partial class PdfWriter {
                             }
                         } else {
                             VisitWordDecorationAdvances(s.Text,
-                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection, s.HorizontalTextScaling, s.CharacterSpacing, s.FontMetricScale),
+                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection, s.HorizontalTextScaling, s.CharacterSpacing, s.FontMetricScale,
+                                    s.PreservesPaintedGlyphs),
                                 (start, end) => underlines.Add((lineXOrigin + segmentStartX + start,
                                     lineXOrigin + segmentStartX + end, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single)));
                         }

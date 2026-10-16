@@ -374,6 +374,8 @@ HtmlRenderArchiveResult archive = retained.ExportArchive(new HtmlRenderArchiveOp
 File.WriteAllBytes("screen-pages.zip", archive.Bytes);
 ```
 
+Default rendering and image export use paged print layout, including `@page` margin boxes. Paged PNG/JPEG/SVG output uses the generated PDF page scene and its embedded fonts. Use `Mode = HtmlRenderMode.Continuous`, `.Continuous()`, or `ScreenFullPage` explicitly for one long screenshot. Both modes use the same font fallback policy.
+
 Named profiles are immutable defaults. Use `WithCssMedia(...)`,
 `WithLayoutSurface(...)`, and `WithPagination(...)` to form a coherent custom
 combination; use `WithLayout(...)` or `WithAxes(...)` when two coupled geometry
@@ -482,7 +484,7 @@ an isolated render clone.
 
 CSS `display: table`, `inline-table`, `table-row`, `table-cell`, and table row groups use the same grid as native HTML tables. Adjacent cells in ordinary block flow receive anonymous table and row boxes; ordinary content inside rows receives anonymous cells. These boxes preserve the original DOM's selectors, inherited text styles and links, and fit beside neighboring floats. An `inline-table` remains an atomic box between surrounding text. CSS presentation alone does not give these boxes accessibility table roles; native elements and explicit ARIA roles retain their semantics.
 
-Paged tables use the same layout and retained scene for PDF, SVG, and raster output. Fitting tables are kept together by default, including with `break-inside:auto`. Normal-flow scroll containers with `overflow:auto` or `scroll` use the same keep policy; oversized boxes can split at legal boundaries.
+Paged tables use the same layout and retained scene for PDF, SVG, and raster output. Tables fragment at legal row boundaries unless whole-table `break-inside:avoid` is authored. Normal-flow scroll containers with `overflow:auto` or `scroll` use the same keep policy; oversized boxes can split at legal boundaries.
 
 With `table-layout:fixed` and a definite table width, absolute column and first-row cell widths remain minimums. With zero borders and spacing, two 80px columns expand a 100px table to 160px. Declared column widths take precedence over cell widths; percentage requests share the space remaining after absolute minimums. Inline placement, centering, clipping and page continuations use the resulting table width. Intrinsic measurement uses the same row order and border insets as painting, keeping following inline content outside the table's used box.
 
@@ -652,13 +654,13 @@ metadata survives page fragmentation without repeating its text label.
 ## Dependency footprint
 
 - **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing; System.Text.Encoding.CodePages for legacy web encodings.
-- **OfficeIMO:** `OfficeIMO.Core`. Resource policy, layout, rendering, and diagnostics are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`, `OfficeIMO.Html.Core`, `OfficeIMO.Html.AngleSharp` and `OfficeIMO.Pdf`. Resource policy, layout, PDF generation, image replay and diagnostics are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
 `ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. Format-specific save methods and the shared `ToImage()` / `ToImages()` fluent builders write to files or caller-owned streams and return the same structured evidence.
 
-Add `OfficeIMO.Html.Pdf` for direct PDF output. `HtmlToPdfOptions` derives from `HtmlRenderOptions`, so the same configured instance can be used for PDF and all five image formats.
+HTML-to-PDF generation is included in `OfficeIMO.Html`. The public types retain the `OfficeIMO.Html.Pdf` namespace. `HtmlToPdfOptions` derives from `HtmlRenderOptions`, so the same configured instance drives PDF and all five image formats. See [HTML to PDF and paged images](PDF.md) for resource policies, fonts, paged-media semantics and complete examples.
 
 ```csharp
 using OfficeIMO.Html.Pdf;
@@ -679,7 +681,7 @@ Install only the bridge required by the application:
 - `OfficeIMO.Html.Rtf` for semantic HTML/RTF conversion.
 - `OfficeIMO.Mhtml` for MHT/MHTML archives and embedded MIME resources.
 - `OfficeIMO.Email.Image` for email-body image rendering.
-- `OfficeIMO.Html.Pdf` for plain HTML/PDF conversion.
+- `OfficeIMO.Html.Pdf` for PDF-to-HTML conversion.
 - `OfficeIMO.Mhtml.Pdf` for MHTML/PDF conversion.
 
 The public HTML/RTF and email-image namespaces remain familiar; the package references now describe the actual cross-format capability.

@@ -3091,8 +3091,9 @@ public sealed partial class HtmlRenderingTests {
         string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
 
         Assert.Equal("גבא", text.Text);
-        Assert.Contains("\u202Dגבא\u202C", svg, StringComparison.Ordinal);
-        Assert.DoesNotContain("\u202Dאבג\u202C", svg, StringComparison.Ordinal);
+        Assert.Contains("גבא", svg, StringComparison.Ordinal);
+        Assert.Contains("unicode-bidi=\"bidi-override\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("\u202D", svg, StringComparison.Ordinal);
     }
 
     [Fact]

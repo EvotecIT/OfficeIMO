@@ -134,7 +134,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     underlineStyle: visual.UnderlineStyle,
                     strikeStyle: visual.StrikethroughStyle,
                     decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
-                    .WithFeatureSettings(visual.FeatureSettings));
+                    .WithFeatureSettings(visual.FeatureSettings)
+                    .WithPaintedGlyphPreservation(visual.PreservesPaintedGlyphs));
             }).ToArray();
         void Paint(PdfCore.PdfPageCanvas target) => target.PositionedText(
             runs,

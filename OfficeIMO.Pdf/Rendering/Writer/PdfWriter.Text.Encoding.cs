@@ -19,7 +19,8 @@ internal static partial class PdfWriter {
 
     private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
-        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D) {
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D,
+        bool preservesPaintedGlyphs = false) {
         options?.BeginTextShapingAttempt();
         featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
         PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
@@ -30,7 +31,7 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
+            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport && !preservesPaintedGlyphs
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             if (options.HasDiagnosticsReport) {
@@ -43,7 +44,7 @@ internal static partial class PdfWriter {
                 options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings,
-                textDirection);
+                textDirection, preservesPaintedGlyphs);
             if (!options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
@@ -64,7 +65,7 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
+            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport && !preservesPaintedGlyphs
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             if (options.HasDiagnosticsReport) {
@@ -77,7 +78,7 @@ internal static partial class PdfWriter {
                 options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings,
-                textDirection));
+                textDirection, preservesPaintedGlyphs));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
             PdfTextShowCommand command = glyphRun.ToTextShowCommand();
             return options.UseFontUnitTextLayout ? command.WithFontUnitLayoutAdvance(
@@ -109,7 +110,8 @@ internal static partial class PdfWriter {
         PdfNamedFontFace? namedFont,
         PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
-        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D) {
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D,
+        bool preservesPaintedGlyphs = false) {
         options?.BeginTextShapingAttempt();
         featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
         if (namedFont.HasValue &&
@@ -122,7 +124,7 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
+            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport && !preservesPaintedGlyphs
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(
@@ -132,7 +134,7 @@ internal static partial class PdfWriter {
                 options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings,
-                textDirection);
+                textDirection, preservesPaintedGlyphs);
             if (!options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
@@ -160,7 +162,7 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
+            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport && !preservesPaintedGlyphs
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
@@ -170,14 +172,15 @@ internal static partial class PdfWriter {
                 options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings,
-                textDirection));
+                textDirection, preservesPaintedGlyphs));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
             PdfTextShowCommand command = glyphRun.ToTextShowCommand();
             return options.UseFontUnitTextLayout ? command.WithFontUnitLayoutAdvance(
                 cffFontProgram.MeasureFontUnitAdvanceWidth1000(glyphRun, layoutHorizontalScaling)) : command;
         }
 
-        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection, fontMetricScale, layoutHorizontalScaling);
+        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection, fontMetricScale, layoutHorizontalScaling,
+            preservesPaintedGlyphs);
     }
 
     private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {

@@ -6,6 +6,10 @@ internal static partial class PdfExternalTextShaper {
     internal static bool TryShapeText(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out PdfGlyphRun glyphRun) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
+        if (options.PreservesPaintedGlyphs) {
+            glyphRun = null!;
+            return false;
+        }
 
         bool automaticLatin = UsesDefaultLatinShaping(text, options);
         if (automaticLatin && options.FeatureSettings.IsDefault) return TryShapeDefaultLatinText(
@@ -56,6 +60,10 @@ internal static partial class PdfExternalTextShaper {
     internal static bool TryShapeText(string text, PdfOpenTypeCffFontProgram font, PdfTextShapingOptions options, out PdfGlyphRun glyphRun) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
+        if (options.PreservesPaintedGlyphs) {
+            glyphRun = null!;
+            return false;
+        }
 
         bool automaticLatin = UsesDefaultLatinShaping(text, options);
         if (automaticLatin && options.FeatureSettings.IsDefault) return TryShapeDefaultLatinText(
