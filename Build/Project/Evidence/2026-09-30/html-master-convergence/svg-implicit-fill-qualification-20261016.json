@@ -1,0 +1,950 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-16T09:24:57.510291+00:00",
+  "source": {
+    "branch": "feature/html-engine",
+    "commit": "0404849f9a238d64a6666a5cd5c829a798f18082",
+    "base": "65adb2c870a546b107a1df1d53444ed097d275ec",
+    "compiledInputSealSha256": "c55093bf83c56dc305d2d4b0bd343cfa6a59dc38ef3523334e85ec2885758717",
+    "compiledInputCount": 3903,
+    "everyCommittedCompiledBlobMatchesSeal": true,
+    "productionChanges": false,
+    "existingFixCommit": "6f01e31c8e57f45fc6183a8846cff7b943742c65",
+    "existingFixIsInFeatureAndAssessedMaster": true,
+    "masterAtAncestryCheck": "a8ca418f88a58b11ca7fecc58e4ddcceeeee67f0",
+    "equivalenceReceipt": {
+      "path": "source-equivalence.json",
+      "sha256": "7f3e53040029c3e64ca2f8e2cd84a87446880fca12027a8f107dfa653c99692c",
+      "bytes": 745
+    }
+  },
+  "scope": {
+    "result": "The existing implicit fill closure and authored open stroke behavior is qualified; no production defect was reproduced.",
+    "changes": [
+      "SVG reader regression coverage for default fill, explicit none, compound fill rules and an open cubic.",
+      "Real inline SVG and data-image HTML PNG/SVG/PDF export coverage replaces direct Core-only coverage in the HTML suite.",
+      "Portable eight-case native fixture and stale roadmap gap retirement."
+    ],
+    "publicApiChange": false,
+    "dependencyChange": false
+  },
+  "standardsContract": {
+    "sources": [
+      {
+        "url": "https://www.w3.org/TR/SVG2/painting.html#FillProperties",
+        "sections": [
+          "13.4.1",
+          "13.4.2"
+        ],
+        "contract": "Default fill is black. Fill coverage treats each open subpath as connected from its last point to its first, then applies nonzero/evenodd across all subpaths."
+      },
+      {
+        "url": "https://www.w3.org/TR/SVG2/paths.html#PathDataClosePathCommand",
+        "section": "9.3.4",
+        "contract": "Explicit closepath changes stroke topology and joins. An open path remains open for stroke even when fill coverage implicitly closes it."
+      },
+      {
+        "url": "https://www.w3.org/TR/SVG2/painting.html#StrokeLinecapProperty",
+        "section": "13.5.4",
+        "contract": "Stroke line caps apply to endpoints of open subpaths."
+      }
+    ],
+    "nativeOracle": "Canonical existing HtmlTinkerX3.0.5/Chromium153 capture; no install or browser download.",
+    "retrievedUtc": "2026-10-16T08:54:17.185704+00:00"
+  },
+  "fixture": {
+    "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/SvgOpenPathFill/open-path-fill.svg",
+    "sha256": "0824a0dd9867d1788fd0c48273c3b208f935784d69c3e3704edce8467622cbc0",
+    "caseManifest": {
+      "task": "Implicit SVG path fill qualification",
+      "baseHead": "65adb2c870a546b107a1df1d53444ed097d275ec",
+      "svgSource": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/inputs/svg-implicit-fill.svg",
+      "svgSourceSha256": "0824a0dd9867d1788fd0c48273c3b208f935784d69c3e3704edce8467622cbc0",
+      "nativeAuthorFixtures": [
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/inputs/svg-implicit-fill-inline.html",
+          "sha256": "d044daed2e09f1c61988ad9161e8b871608252b65eb3a636512f64083ff26b6b"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/inputs/svg-implicit-fill-data.html",
+          "sha256": "1842b03ac27dd3bad68328004e716b3b6f490b1578b34c7b43ab8e97941655d9"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/inputs/svg-implicit-fill-host.html",
+          "sha256": "98134e08c4a8c5f0a93211eb5e9ced34dc1639d3e0e65b61136bc6ae7fb6aaf0"
+        }
+      ],
+      "caseCount": 8,
+      "cases": [
+        {
+          "id": "default-open",
+          "tileBoundsCssPx": {
+            "x": 32,
+            "y": 40,
+            "width": 160,
+            "height": 160
+          },
+          "svgMarkup": "<path id=\"default-open\" data-path-observe=\"true\" d=\"M20 20 L140 20 L80 140\"/>",
+          "witnesses": [
+            {
+              "role": "fill interior / explicit-none control",
+              "localPixel": [
+                80,
+                60
+              ],
+              "expectedRgb": [
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "closed-control",
+          "tileBoundsCssPx": {
+            "x": 260,
+            "y": 40,
+            "width": 160,
+            "height": 160
+          },
+          "svgMarkup": "<path id=\"closed-control\" data-path-observe=\"true\" d=\"M20 20 L140 20 L80 140 Z\"/>",
+          "witnesses": [
+            {
+              "role": "fill interior / explicit-none control",
+              "localPixel": [
+                80,
+                60
+              ],
+              "expectedRgb": [
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fill-and-open-stroke",
+          "tileBoundsCssPx": {
+            "x": 32,
+            "y": 240,
+            "width": 160,
+            "height": 160
+          },
+          "svgMarkup": "<path id=\"fill-and-open-stroke\" data-path-observe=\"true\" d=\"M20 20 L140 20 L140 140\" fill=\"blue\" stroke=\"red\" stroke-width=\"8\"/>",
+          "witnesses": [
+            {
+              "role": "fill interior / explicit-none control",
+              "localPixel": [
+                100,
+                60
+              ],
+              "expectedRgb": [
+                0,
+                0,
+                255
+              ]
+            },
+            {
+              "role": "existing top stroke",
+              "localPixel": [
+                80,
+                20
+              ],
+              "expectedRgb": [
+                255,
+                0,
+                0
+              ]
+            }
+          ],
+          "missingStrokeCorridor": {
+            "line": "x=y",
+            "rangeLocalX": [
+              40,
+              120
+            ],
+            "halfWidthCssPx": 1.5,
+            "forbiddenChannel": "red"
+          }
+        },
+        {
+          "id": "none-open-stroke",
+          "tileBoundsCssPx": {
+            "x": 260,
+            "y": 240,
+            "width": 160,
+            "height": 160
+          },
+          "svgMarkup": "<path id=\"none-open-stroke\" data-path-observe=\"true\" d=\"M20 20 L140 20 L140 140\" fill=\"none\" stroke=\"blue\" stroke-width=\"8\"/>",
+          "witnesses": [
+            {
+              "role": "fill interior / explicit-none control",
+              "localPixel": [
+                100,
+                60
+              ],
+              "expectedRgb": [
+                0,
+                255,
+                0
+              ]
+            },
+            {
+              "role": "existing top stroke",
+              "localPixel": [
+                80,
+                20
+              ],
+              "expectedRgb": [
+                0,
+                0,
+                255
+              ]
+            }
+          ],
+          "missingStrokeCorridor": {
+            "line": "x=y",
+            "rangeLocalX": [
+              40,
+              120
+            ],
+            "halfWidthCssPx": 1.5,
+            "forbiddenChannel": "blue"
+          }
+        },
+        {
+          "id": "compound-evenodd",
+          "tileBoundsCssPx": {
+            "x": 32,
+            "y": 440,
+            "width": 160,
+            "height": 160
+          },
+          "svgMarkup": "<path id=\"compound-evenodd\" data-path-observe=\"true\" d=\"M20 20 H140 V140 H20 M50 50 H110 V110 H50\" fill=\"red\" fill-rule=\"evenodd\"/>",
+          "witnesses": [
+            {
+              "role": "fill interior / explicit-none control",
+              "localPixel": [
+                80,
+                80
+              ],
+              "expectedRgb": [
+                0,
+                255,
+                0
+              ]
+            },
+            {
+              "role": "outer ring fill",
+              "localPixel": [
+                35,
+                80
+              ],
+              "expectedRgb": [
+                255,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "compound-nonzero",
+          "tileBoundsCssPx": {
+            "x": 260,
+            "y": 440,
+            "width": 160,
+            "height": 160
+          },
+          "svgMarkup": "<path id=\"compound-nonzero\" data-path-observe=\"true\" d=\"M20 20 H140 V140 H20 M50 50 H110 V110 H50\" fill=\"red\" fill-rule=\"nonzero\"/>",
+          "witnesses": [
+            {
+              "role": "fill interior / explicit-none control",
+              "localPixel": [
+                80,
+                80
+              ],
+              "expectedRgb": [
+                255,
+                0,
+                0
+              ]
+            },
+            {
+              "role": "outer ring fill",
+              "localPixel": [
+                35,
+                80
+              ],
+              "expectedRgb": [
+                255,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "curved-open",
+          "tileBoundsCssPx": {
+            "x": 32,
+            "y": 640,
+            "width": 160,
+            "height": 160
+          },
+          "svgMarkup": "<path id=\"curved-open\" data-path-observe=\"true\" d=\"M20 120 C20 20 140 20 140 120\" fill=\"blue\" stroke=\"red\" stroke-width=\"8\"/>",
+          "witnesses": [
+            {
+              "role": "fill interior / explicit-none control",
+              "localPixel": [
+                80,
+                90
+              ],
+              "expectedRgb": [
+                0,
+                0,
+                255
+              ]
+            }
+          ],
+          "missingStrokeCorridor": {
+            "line": "y=120",
+            "rangeLocalX": [
+              40,
+              120
+            ],
+            "halfWidthCssPx": 1.5,
+            "forbiddenChannel": "red"
+          }
+        },
+        {
+          "id": "transformed-open",
+          "tileBoundsCssPx": {
+            "x": 260,
+            "y": 640,
+            "width": 160,
+            "height": 160
+          },
+          "svgMarkup": "<g transform=\"translate(10 15) scale(.8)\"><path id=\"transformed-open\" data-path-observe=\"true\" d=\"M20 20 L140 20 L80 140\" fill=\"blue\"/></g>",
+          "witnesses": [
+            {
+              "role": "fill interior / explicit-none control",
+              "localPixel": [
+                74,
+                70
+              ],
+              "expectedRgb": [
+                0,
+                0,
+                255
+              ]
+            }
+          ],
+          "expectedPathGeometryBoundsCssPx": {
+            "x": 286,
+            "y": 671,
+            "width": 96,
+            "height": 96
+          }
+        }
+      ],
+      "viewportCssPx": [
+        816,
+        900
+      ],
+      "nativeMedia": [
+        "print",
+        "screen"
+      ],
+      "contract": "Each open subpath closes only for fill coverage; stroke topology stays open. Fill-rule is applied across all implicitly closed subpaths.",
+      "wholeInteriorPlan": "Retain every160x160tile pixel. Native stable-color masks eroded2px exclude authored AA edges for exact color comparison. Separately test full implicit-edge stroke corridors, where forbidden-channel intrusion must remain0. No generic color tolerance widening.",
+      "windowsProfiling": "deferred",
+      "managedFixture": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/inputs/svg-implicit-fill-data.html",
+      "managedFixtureSha256": "1842b03ac27dd3bad68328004e716b3b6f490b1578b34c7b43ab8e97941655d9",
+      "nativeSourceModes": {
+        "rawSvg": "Exact authoredSVGbytes served image/svg+xml through margin0/imgdisplay:block HTML host, avoiding known retained top-levelSVG FullPage screenshot limitation.",
+        "inlineSvg": "Same8case markup provides native DOM computed fill/stroke/fill-rule/CTM.",
+        "htmlDataUri": "Exact rawSVGbytes base64encoded in HTMLimg; this is the generic managed probe input."
+      },
+      "managedFixtures": [
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/inputs/svg-implicit-fill-inline.html",
+          "sha256": "d044daed2e09f1c61988ad9161e8b871608252b65eb3a636512f64083ff26b6b",
+          "entrypoint": "inline"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/inputs/svg-implicit-fill-data.html",
+          "sha256": "1842b03ac27dd3bad68328004e716b3b6f490b1578b34c7b43ab8e97941655d9",
+          "entrypoint": "data"
+        }
+      ]
+    }
+  },
+  "frameworkValidation": [
+    {
+      "owner": "html",
+      "framework": "net8.0",
+      "passed": 6455,
+      "failed": 0,
+      "skipped": [],
+      "receipt": {
+        "path": "all-html-net8.0-command.json",
+        "sha256": "72febf8554869e96aede560ba9f4a07efad031ef5eb52671415e60e03714ef7d",
+        "bytes": 1786866
+      }
+    },
+    {
+      "owner": "html",
+      "framework": "net10.0",
+      "passed": 6455,
+      "failed": 0,
+      "skipped": [],
+      "receipt": {
+        "path": "all-html-net10.0-command.json",
+        "sha256": "8472d6d3a281875e1e1e70d6671d3ebfa65d1391cbbae424b53a5f333cb1dc39",
+        "bytes": 1786870
+      }
+    },
+    {
+      "owner": "drawing",
+      "framework": "net8.0",
+      "passed": 5610,
+      "failed": 0,
+      "skipped": [
+        {
+          "name": "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+          "outcome": "NotExecuted",
+          "error": "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true."
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+          "outcome": "NotExecuted",
+          "error": "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true."
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+          "outcome": "NotExecuted",
+          "error": "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true."
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+          "outcome": "NotExecuted",
+          "error": "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true."
+        }
+      ],
+      "receipt": {
+        "path": "all-drawing-net8.0-command.json",
+        "sha256": "2bfc67eb92de381ed493e9f06f649996c4857229ea7171779db7bdcd3e951e8a",
+        "bytes": 1598754
+      }
+    },
+    {
+      "owner": "drawing",
+      "framework": "net10.0",
+      "passed": 5610,
+      "failed": 0,
+      "skipped": [
+        {
+          "name": "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+          "outcome": "NotExecuted",
+          "error": "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true."
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+          "outcome": "NotExecuted",
+          "error": "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true."
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+          "outcome": "NotExecuted",
+          "error": "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true."
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+          "outcome": "NotExecuted",
+          "error": "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true."
+        }
+      ],
+      "receipt": {
+        "path": "all-drawing-net10.0-command.json",
+        "sha256": "12577b3d3f14620cebaa4f4fa9a55353d93deea8aaa636ce78e2fc988d11a455",
+        "bytes": 1598758
+      }
+    }
+  ],
+  "focusedHtmlValidation": {
+    "passed": 2,
+    "receipt": {
+      "path": "focused-html-open-fill-net10.0-command.json",
+      "sha256": "95570ce7e586c5de99e18932271c79e5269f086d7d01b47eddf0aa5ca30ee8ee",
+      "bytes": 505344
+    }
+  },
+  "ownerBaselineProof": {
+    "exactRasterComparisons": 32,
+    "focusedPassed": 6,
+    "scope": "Earlier isolated baseline proof; full final-source Drawing gates include the permanent cases.",
+    "receipt": {
+      "path": "owner/owner-qualification.json",
+      "sha256": "9b467bc49e4571fc99dcbf6b851aeeea554d1da8f53448988e54e50227a7f341",
+      "bytes": 3764
+    }
+  },
+  "native": {
+    "status": "Existing fill-closure/open-stroke contract qualified; no production defect reproduced.",
+    "caseCount": 8,
+    "managedEntrypoints": [
+      "inlineSVG",
+      "dataURIimage"
+    ],
+    "profiles": [
+      "print",
+      "screen"
+    ],
+    "viewportCssPx": [
+      816,
+      900
+    ],
+    "contracts": {
+      "defaultSolidFillBlack": true,
+      "implicitClosureForEachOpenSubpath": true,
+      "explicitNonePreserved": true,
+      "strokesRemainOpen": true,
+      "compoundNonzeroEvenoddFillRules": true,
+      "curvedEndpointImplicitChord": true,
+      "translatedScaledOpenPath": true,
+      "guardedExactNativeColorPixels": 2816272,
+      "guardedExactColorMismatchCount": 0,
+      "implicitClosingStrokeCorridorPixels": 17920,
+      "implicitClosingStrokeForbiddenChannelCount": 0,
+      "outer4pxExactLimeEdgePixels": 319488,
+      "outerEdgeMismatchCount": 0,
+      "witnessChecks": 192,
+      "witnessFailures": 0,
+      "pdfDocuments": 4,
+      "pdfImageXObjects": 0,
+      "nativeAuthorModes": [
+        "rawSVGimagehost",
+        "inlineSVGDOM",
+        "HTMLdataURIimage"
+      ],
+      "wholeTileRgbAndErrorHistogramsRetained": true,
+      "colorToleranceExpansion": false
+    },
+    "actualRuntimeBinding": {
+      "all8CopiedOwnerProviderDllsMatchFrozenNormalTestOutput": true,
+      "actualLoadedEngineOwners": 6,
+      "actualLoadedHarnessOwners": 1,
+      "copiedButNotReportedLoaded": [
+        "OfficeIMO.Html.Core.dll",
+        "OfficeIMO.Html.AngleSharp.dll"
+      ],
+      "allLoadedDllHashesMatchPrivateArchive": true
+    },
+    "sourceAndBinaryFreeze": {
+      "sourceBinding": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/final-source-binding.json",
+      "compiledTestInputFileCount": 3903,
+      "allSourceInputsUnchanged": true,
+      "normalOutputFreeze": {
+        "normalProbe": {
+          "allPreExistingFilesUnchanged": true,
+          "allFilesUnchanged": true,
+          "fileCountBefore": 25,
+          "fileCountAfter": 25,
+          "topLevelDllCount": 9,
+          "recursiveDllCount": 9,
+          "missingFiles": [],
+          "changedFiles": [],
+          "addedFiles": []
+        },
+        "normalHtmlNet10Test": {
+          "allPreExistingFilesUnchanged": true,
+          "allFilesUnchanged": false,
+          "fileCountBefore": 366,
+          "fileCountAfter": 368,
+          "topLevelDllCount": 59,
+          "recursiveDllCount": 124,
+          "missingFiles": [],
+          "changedFiles": [],
+          "addedFiles": [
+            {
+              "name": "HtmlAsync/async.html",
+              "bytes": 113,
+              "sha256": "c94f7451d2f2cdba2d74a4c324bcb08864c06ebfe0dc2a165b9010b1bbffa056",
+              "classification": "Known broad-suite HtmlAsync generated Save test fixture; same113bytes/SHA as previous qualified conic output."
+            },
+            {
+              "name": "HtmlAsync/sync.html",
+              "bytes": 113,
+              "sha256": "c94f7451d2f2cdba2d74a4c324bcb08864c06ebfe0dc2a165b9010b1bbffa056",
+              "classification": "Known broad-suite HtmlAsync generated Save test fixture; same113bytes/SHA as previous qualified conic output."
+            }
+          ]
+        }
+      },
+      "wholeGraphFreeze": "Not claimed; Drawing/NET8 additions are outside the supplied directories.",
+      "privateRuntimeFilesUnchanged": true,
+      "archiveReadbackHashesMatchAfterNative": true,
+      "producerArchive": {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/final-qualified-runtime.zip",
+        "bytes": 9004848,
+        "sha256": "aeca93d38d793aa762e012fc5c5dad0fd728c68c02d9d21538f2c5cb30d2191c",
+        "entries": 25,
+        "readbackHashesMatch": true
+      },
+      "tupleSha256Unchanged": true,
+      "nativeSvgSources": 4,
+      "nativeSvgReusedSources": 2,
+      "nativeSvgNewCapturedSources": 2,
+      "nativeSvgBytesUnchanged": true,
+      "nativeBrowserProcessSetRestored": true,
+      "nativeServerClosed": true,
+      "checkedUtc": "2026-10-16T09:12:44.900715+00:00",
+      "windowsProfiling": "deferred"
+    },
+    "nativeResourceRelease": {
+      "finalSvgReceipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/svg-host-final/native-svg-window-receipt.json",
+      "authoredOracleReceipt": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/native-window-receipt.json",
+      "browserProcessSetsRestored": true,
+      "loopbackServersClosed": true,
+      "emittedSvgSources": 4,
+      "newCapturedSvgSources": 2,
+      "byteIdenticalReusedSvgSources": 2,
+      "allAuthorInputsUnchanged": true
+    },
+    "qualificationLimits": [
+      "Guarded color masks exclude2px at native-authored AA boundaries; raw full160x160 RGB/error distributions remain retained.",
+      "Implicit-closing-edge stroke corridors are checked independently, including fill AA boundaries, without numeric color tolerance.",
+      "Bounded8shapes at fixed816x900 on currentMac/Chromium. No broader SVG feature, browser-runtime, timing or cross-platform claim.",
+      "Native PDF physical page rounding may create an extra bottom row; raw dimensions are recorded without rescaling.",
+      "Broad tests, package checks and checkpoint publication are coordinator-owned and not claimed by this native receipt."
+    ]
+  },
+  "nativeReceipt": {
+    "path": "native/final-qualification.json",
+    "sha256": "06c850355dbe94ec28d40cf615d7ba06e2bba8d25fc92c75bc3b0d84017fcd16",
+    "bytes": 9579
+  },
+  "exactProducerArchive": {
+    "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/final-qualified-runtime.zip",
+    "bytes": 9004848,
+    "sha256": "aeca93d38d793aa762e012fc5c5dad0fd728c68c02d9d21538f2c5cb30d2191c",
+    "entries": 25,
+    "readbackHashesMatch": true
+  },
+  "nativeFullComparison": {
+    "path": "native/final-svg-fill-comparison.json",
+    "sha256": "56428fcabf0c6099ec274727f5ed8dc308cec423ab08a12376355c23da5b05e0",
+    "bytes": 874786
+  },
+  "contacts": [
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/final-comparison/svg-implicit-fill-inline-contact.png",
+      "sha256": "d6db71be38ea8e338b80648c09a617d381c5faf0a3292bcf03182eb833202eb1",
+      "visuallyInspected": true
+    },
+    {
+      "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/final-comparison/svg-implicit-fill-data-contact.png",
+      "sha256": "d6db71be38ea8e338b80648c09a617d381c5faf0a3292bcf03182eb833202eb1",
+      "visuallyInspected": true
+    }
+  ],
+  "packages": {
+    "privateQualificationVersion": "3.4.5.1018",
+    "packageSourceCommit": "9d7c3f051880099d28b4707bd7c9cdf33a440e3c",
+    "productionSourceUnchanged": true,
+    "newPackageBuild": false,
+    "consumerExecutions": 2,
+    "htmlProfileExports": 8,
+    "witnessRouteChecks": 288,
+    "matchedOfficeImoDllCopies": 12,
+    "consumers": [
+      {
+        "framework": "net8.0",
+        "result": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/packaged/output/net8.0/result.json",
+        "resultSha256": "d0c7982f353f467aa971f2ffda36ca56886497623e8f37ecc9bc2f87bd10f43f",
+        "htmlProfileExports": 4,
+        "witnessRouteChecks": 144,
+        "matchedPackageDlls": [
+          {
+            "name": "OfficeIMO.Html.Pdf.dll",
+            "sha256": "aeda010e4a33a5d3d900e0787b4c443bafa5a5303d94ef5787dd4f6c82d5813d",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Html.Pdf.3.4.5.1018.nupkg",
+            "nupkgSha256": "33cb7d78d576950108331fcb7fb5e4496bf152dd6b81e0c0fde2a639a115c81d",
+            "member": "lib/net8.0/OfficeIMO.Html.Pdf.dll"
+          },
+          {
+            "name": "OfficeIMO.Html.Core.dll",
+            "sha256": "b8640750a5fca1a967a5b3e36f197bb14b37b6abd01689f4b6f262397b3f83b4",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Html.Core.3.4.5.1018.nupkg",
+            "nupkgSha256": "0ead2ed688cab70a5ffe9399ea7e30263f894875e7dc78e1a8f5433ea2c1e7bb",
+            "member": "lib/net8.0/OfficeIMO.Html.Core.dll"
+          },
+          {
+            "name": "OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "7314e63788a91e7c0d8fc8477203908692e316fae6ce09ac615e471a9eabaa85",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Html.AngleSharp.3.4.5.1018.nupkg",
+            "nupkgSha256": "a0a7fe49d7791ff0f60221044a07df55537720e47bb4dcd6ecc344eee30ee3f1",
+            "member": "lib/net8.0/OfficeIMO.Html.AngleSharp.dll"
+          },
+          {
+            "name": "OfficeIMO.Core.dll",
+            "sha256": "98e776890d50582905f7b885fc2f9ebaadb92b798ccc8e6623f8a90c44ad542a",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Core.3.4.5.1018.nupkg",
+            "nupkgSha256": "e8820917c160e5f71960c71137187ca9b9184f8fb0000475a30d0e0b9bfb8e58",
+            "member": "lib/net8.0/OfficeIMO.Core.dll"
+          },
+          {
+            "name": "OfficeIMO.Pdf.dll",
+            "sha256": "e95c05854ee77b985b80678e0a0d917738003bf8ae7ab00cf8a3007d8fe91004",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Pdf.3.4.5.1018.nupkg",
+            "nupkgSha256": "6aef6546e8ca6032effae1339e87acbb931ae05a6ec5a167fb6673d2fa457cec",
+            "member": "lib/net8.0/OfficeIMO.Pdf.dll"
+          },
+          {
+            "name": "OfficeIMO.Html.dll",
+            "sha256": "22d4a55de9bcca0964bc5f664835f5a62abf479094447c03883acd592cba7609",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Html.3.4.5.1018.nupkg",
+            "nupkgSha256": "b11e6147c8fe9fed964d6b4037666dc3f93aa8794ee658a918570e03fadcd21a",
+            "member": "lib/net8.0/OfficeIMO.Html.dll"
+          }
+        ],
+        "providerHashesMatchQualifiedOfficialAssets": {
+          "AngleSharp.dll": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7",
+          "AngleSharp.Css.dll": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+        }
+      },
+      {
+        "framework": "net10.0",
+        "result": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/packaged/output/net10.0/result.json",
+        "resultSha256": "7439cbeba3f390e5c93303f0969fd0dd81fae1a0e15b33949526d24858227242",
+        "htmlProfileExports": 4,
+        "witnessRouteChecks": 144,
+        "matchedPackageDlls": [
+          {
+            "name": "OfficeIMO.Html.Pdf.dll",
+            "sha256": "2d5384a06162a28a0b041ddb9da3265b26dc838e38bb5ca24cab0beb6b48891f",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Html.Pdf.3.4.5.1018.nupkg",
+            "nupkgSha256": "33cb7d78d576950108331fcb7fb5e4496bf152dd6b81e0c0fde2a639a115c81d",
+            "member": "lib/net10.0/OfficeIMO.Html.Pdf.dll"
+          },
+          {
+            "name": "OfficeIMO.Html.Core.dll",
+            "sha256": "d5f6e358ca174edf7988a8f6a4024b2476b4f59f69c9b914d220cc89d2198cc0",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Html.Core.3.4.5.1018.nupkg",
+            "nupkgSha256": "0ead2ed688cab70a5ffe9399ea7e30263f894875e7dc78e1a8f5433ea2c1e7bb",
+            "member": "lib/net10.0/OfficeIMO.Html.Core.dll"
+          },
+          {
+            "name": "OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "c08fde08457e3bb83b35c79b09b8173191d43fd6097f2c72927db3ea1b94a250",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Html.AngleSharp.3.4.5.1018.nupkg",
+            "nupkgSha256": "a0a7fe49d7791ff0f60221044a07df55537720e47bb4dcd6ecc344eee30ee3f1",
+            "member": "lib/net10.0/OfficeIMO.Html.AngleSharp.dll"
+          },
+          {
+            "name": "OfficeIMO.Core.dll",
+            "sha256": "c85c8ee90d1200992faa61937d1ee96cb0f01e8ea4831a6daf2c670669758121",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Core.3.4.5.1018.nupkg",
+            "nupkgSha256": "e8820917c160e5f71960c71137187ca9b9184f8fb0000475a30d0e0b9bfb8e58",
+            "member": "lib/net10.0/OfficeIMO.Core.dll"
+          },
+          {
+            "name": "OfficeIMO.Pdf.dll",
+            "sha256": "7527b8a9dd895ee1db0e54eab763051c9c2b75200c5893fc3c437f8716474d86",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Pdf.3.4.5.1018.nupkg",
+            "nupkgSha256": "6aef6546e8ca6032effae1339e87acbb931ae05a6ec5a167fb6673d2fa457cec",
+            "member": "lib/net10.0/OfficeIMO.Pdf.dll"
+          },
+          {
+            "name": "OfficeIMO.Html.dll",
+            "sha256": "6e1a0e11ff347dec6f3ac0ec3698bdd96291284db262f4de04a3390920b9c283",
+            "package": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/conic-gradient-seams/packaged/smoke/feed/OfficeIMO.Html.3.4.5.1018.nupkg",
+            "nupkgSha256": "b11e6147c8fe9fed964d6b4037666dc3f93aa8794ee658a918570e03fadcd21a",
+            "member": "lib/net10.0/OfficeIMO.Html.dll"
+          }
+        ],
+        "providerHashesMatchQualifiedOfficialAssets": {
+          "AngleSharp.dll": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911",
+          "AngleSharp.Css.dll": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        }
+      }
+    ],
+    "receipt": {
+      "path": "packaged/qualification.json",
+      "sha256": "44e86e534d660982d952347fd2281e411607a924a2ea4f43a421a4c606881682",
+      "bytes": 11304
+    },
+    "dependencyIsolation": {
+      "path": "packaged/dependency-isolation.json",
+      "sha256": "278309a6508f837ae006c0926deb7e7991e4685b66570bfa4d61fb8f45073aa7",
+      "bytes": 1537
+    },
+    "priorFourTargetPackageQualification": "conic-gradient-qualification-20261016.json"
+  },
+  "testResultsArchive": {
+    "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/framework-test-results.zip",
+    "sha256": "78e2279ee7b003a92a2b6aa33a002feaae38392d7ca7a4b218d2703e6bdd8be2",
+    "bytes": 6740468,
+    "entries": [
+      {
+        "path": "test-results/all-drawing-net10.0.trx",
+        "bytes": 9018519,
+        "sha256": "3cf463ff8ee15bfcd18d76dea008d53b6b0f189d2d29703cf3ae58fcb454194a"
+      },
+      {
+        "path": "test-results/all-drawing-net8.0.trx",
+        "bytes": 9007290,
+        "sha256": "c2f7659066bcd382a06a2a690a24f99c6129f44001cf5680eeb2cb87ac9bb76f"
+      },
+      {
+        "path": "test-results/all-html-net10.0.trx",
+        "bytes": 10369363,
+        "sha256": "dcc4abba42677b84455b20ea546a3ba60bdc63e13d83eca0211a5d126b27aba0"
+      },
+      {
+        "path": "test-results/all-html-net8.0.trx",
+        "bytes": 10356452,
+        "sha256": "e0617e502868bb5d130667ab78541796b315c3d82c1d90c2fe4079012d1995cd"
+      },
+      {
+        "path": "test-results/focused-html-open-fill-net10.0.trx",
+        "bytes": 4661,
+        "sha256": "f20633c06d0611606a0d1df78f7c6385a1c90580e5868121d569e73413a2b9a3"
+      },
+      {
+        "path": "owner/results/owner-open-fill.trx",
+        "bytes": 10951,
+        "sha256": "8faa373da5291293e0fb57693ccc4d3dbbc0b4737478ddb7b4b2722f861cd122"
+      }
+    ],
+    "readbackVerified": true,
+    "receipt": {
+      "path": "test-results-archive.json",
+      "sha256": "dee8e94156e0e1bb34abace1a540111f59cad07d1715a10c7b13eefe6b29a6b3",
+      "bytes": 1347
+    }
+  },
+  "review": {
+    "decision": "No fresh delegated code review required",
+    "reason": "No production/API/dependency change; the narrow existing contract is directly observed by public HTML exports, isolated packaged consumers and independent native-rendering comparison. Coordinator inspected both test owners, source path fill/stroke handling and the actual contacts.",
+    "publicApiChange": false,
+    "dependencyChange": false,
+    "coordinatorDiffReview": "New SVG-reader default/compound/curve cases are distinct from existing transformed/untransformed shape triangles; HTML test now covers actual inline/image exports instead of duplicating direct Core raster proof.",
+    "nativeInspection": "Coordinator viewed baseline and final inline contact; final data contact bytes verified identical to the viewed inline contact. Native agent separately inspected both final contacts.",
+    "noManualHostedReview": true,
+    "contacts": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/final-comparison/svg-implicit-fill-inline-contact.png",
+        "sha256": "d6db71be38ea8e338b80648c09a617d381c5faf0a3292bcf03182eb833202eb1",
+        "visuallyInspected": true
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/final-comparison/svg-implicit-fill-data-contact.png",
+        "sha256": "d6db71be38ea8e338b80648c09a617d381c5faf0a3292bcf03182eb833202eb1",
+        "visuallyInspected": true
+      }
+    ],
+    "candidateFrozen": true,
+    "receipt": {
+      "path": "review-decision.json",
+      "sha256": "d6c06faaea0aa13c11df936007ccaad44322e4e039c962c5e7705fc24ce921bd",
+      "bytes": 1587
+    }
+  },
+  "storage": {
+    "taskRoot": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill",
+    "recordedUtc": "2026-10-16T09:22:55.092991+00:00",
+    "logicalBytesRemoved": 2140092552,
+    "removedTargetCount": 18,
+    "removedTargets": [
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/graph",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/owner/artifacts",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/packaged/graph",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/packaged/packages",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/tmp",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/cli-home",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/packaged/tmp",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/packaged/cli-home",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/baseline-runtime",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/final-runtime",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/runtime",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/svg-host-baseline/runtime",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/svg-host-final/runtime",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/tmp",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/svg-host-baseline/tmp",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native/svg-host-final/tmp",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/test-results",
+      "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/owner/results"
+    ],
+    "allTargetsAbsent": true,
+    "sharedCachesPreserved": true,
+    "all643PreExistingRetainedFilesMatchedBeforeHandoffMetadataUpdates": true,
+    "retainedSnapshotLogicalBytes": 29966580,
+    "retained": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native",
+        "logicalBytes": 13906617,
+        "reason": "Native authored/baseline/final captures, exact final producer ZIP, sources and comparison/freeze receipts."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/packaged",
+        "logicalBytes": 172892,
+        "reason": "Public package consumer sources/results, saved dependency graphs and exact package/provider asset hashes; package feed remains in protected prior checkpoint."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/owner",
+        "logicalBytes": 37638,
+        "reason": "Core baseline probes, source and qualification receipt; build graph and rawTRX retired."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/pr-scope",
+        "logicalBytes": 467833,
+        "reason": "Requested next OfficeIMO PR assessment, coherent source map, current GitHub snapshots and proposed text."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/framework-test-results.zip",
+        "logicalBytes": 6740468,
+        "reason": "Six exact TRX entries with verified readback."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill",
+        "logicalBytes": 8641132,
+        "excludes": [
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/native",
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/packaged",
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/owner",
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/pr-scope",
+          "/Volumes/Samsung/Development/Scratch/html-static-text-table-receiving/feature-integration-storage/svg-implicit-fill/framework-test-results.zip"
+        ],
+        "reason": "Remaining compact source seals, command/review/cleanup receipts, reproducible validation scripts and task state."
+      }
+    ],
+    "freeVolumeBytes": 369058123776,
+    "lockedOrUncertainTargets": [],
+    "executionReceipt": "cleanup-final-execution.json",
+    "recovery": "Six ordinary PowerShell removals returned filesystem errors; fresh per-target checks and guarded DotNet recovery completed each. No pre-execution policy rejection occurred.",
+    "protectedPriorEvidenceUnchanged": true,
+    "receipt": {
+      "path": "storage-result.json",
+      "sha256": "0e4da4ac25ee220b6adad4b52d544aaea5ab978e1e509e2b004cfe0c697bd268",
+      "bytes": 5930
+    }
+  },
+  "remainingLimits": [
+    "Guarded color masks exclude2px at native-authored AA boundaries; raw full160x160 RGB/error distributions remain retained.",
+    "Implicit-closing-edge stroke corridors are checked independently, including fill AA boundaries, without numeric color tolerance.",
+    "Bounded8shapes at fixed816x900 on currentMac/Chromium. No broader SVG feature, browser-runtime, timing or cross-platform claim.",
+    "Native PDF physical page rounding may create an extra bottom row; raw dimensions are recorded without rescaling.",
+    "Broad tests, package checks and checkpoint publication are coordinator-owned and not claimed by this native receipt.",
+    "Whole-page H10, broader SVG features, accessibility and cross-platform budgets remain separate roadmap work. Windows profiling remains deferred."
+  ],
+  "delivery": {
+    "type": "Qualified integration-branch checkpoint",
+    "newPullRequest": false,
+    "releaseOrPackagePublication": false,
+    "hostedHtmlCorrectnessCiClaim": false
+  }
+}
