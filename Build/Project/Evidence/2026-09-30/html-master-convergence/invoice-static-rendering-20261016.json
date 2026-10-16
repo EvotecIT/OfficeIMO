@@ -1,0 +1,500 @@
+{
+  "schema": "officeimo.html.invoice-static-qualification",
+  "qualifiedUtc": "2026-10-16T20:39:47.982906+00:00",
+  "source": {
+    "masterBase": "a861ba765a9fd2b8edcf82e319593c84d6d74d5d",
+    "engineProductionHead": "a7f7492d33727c7b68f62364ffe2af7ce7ff894c",
+    "cliProductionHead": "0a6028d84ed6810e23c33f1a370f44c471291685",
+    "checkpointBeforeReceipt": "326ff23c975ee76e70ffe070a1ff89b98302e1e7",
+    "sdk": "10.0.113",
+    "ownerInputs": 3250,
+    "ownerInputSealSha256": "886b4a6166e57aefb9f08dfe3457982718bd4e9b6743a4c05e30953a5d21f243",
+    "runtimeProviderForksIncluded": false
+  },
+  "alreadyFixedOnMaster": [
+    "No unrequested totals-table borders were reproduced; no border-default patch added.",
+    "Existing flex/grid/cards/gradients/page counters/inline SVG preserved."
+  ],
+  "implemented": [
+    "Row-level table pagination with repeated headers/footer and authored avoidance.",
+    "Intrinsic auto-width flex tables and semantic header font/alignment defaults.",
+    "HTML-owned PDF conversion and canonical paged PNG/JPEG/SVG export with retained/async/archive/CLI consumer migration.",
+    "Shared resource/font/glyph/replay corrections, provider logical input, export diagnostics and mixed Arabic/Hebrew joining classification.",
+    "Shared explicit Unicode fallback font configuration for CLI convert/render; identical paged output with caller-supplied fonts."
+  ],
+  "comparison": {
+    "reference": "Microsoft Edge155, Skia155; captured via HtmlTinkerX3.0.4",
+    "baselineMasterPdfPages": 3,
+    "baselineDefaultPngPages": 1,
+    "edgePages": 2,
+    "finalPdfPages": 2,
+    "finalDefaultPngPages": 2,
+    "pageOneRows": {
+      "officeimo": 17,
+      "edge": 18
+    },
+    "visualInspection": [
+      "Both complete pages against frozen Edge output.",
+      "Poppler PDF raster and shared image output inspected; header/table/totals/gradient/CJK/Hebrew/contextual Arabic retained."
+    ],
+    "candidates": [
+      {
+        "candidate": "candidate-qualified",
+        "pdfPages": 2,
+        "arabicContextForms": 9,
+        "all21RowsRetained": true,
+        "parity": [
+          {
+            "route": "direct/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "direct/PDF",
+            "format": 2,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "direct/PDF",
+            "format": 1,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "retained/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "async/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "archive/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "site-bundle/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          }
+        ],
+        "inputSha256": "cbbe7bf0c1c38a4578c66966df148c28a8c2302d5ea41283222259f219b3c9df",
+        "pdfSha256": "788e431fa8bd6e9c604bd4de72881704d3f6019e65b5c0cfdf6e6e911b70539c",
+        "runtimeHashes": [
+          {
+            "file": "OfficeIMO.Html.Pdf.dll",
+            "sha256": "065f8ff218625703bf48daf2dec5939363449fd9689ec0d2aa3eeedc9700222b"
+          },
+          {
+            "file": "OfficeIMO.Html.Core.dll",
+            "sha256": "9c9ef5732dd67d86b6e46d20d8213428d3d398be40b39388419b153e5b45c0d4"
+          },
+          {
+            "file": "OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "76b5c4593d5be559b13781eee34e10a4924da1a869f227d8d4fe0ddd32b6e503"
+          },
+          {
+            "file": "OfficeIMO.Core.dll",
+            "sha256": "64676e8ed0f4b32e25206a2dba84e94bc2da9b448529001acf4e89b00fd1b675"
+          },
+          {
+            "file": "OfficeIMO.Pdf.dll",
+            "sha256": "2bec42c7b96ea7792e96019e1b1e8f1f013e111f1a3bbe9c80573e2f4bdad0fb"
+          },
+          {
+            "file": "OfficeIMO.Html.dll",
+            "sha256": "3424656d7202a2ff10daf678fcde8820e0b03f8f0753bdc4c67721b84bb03e72"
+          }
+        ],
+        "diagnosticCodes": [
+          "HtmlRenderOpenTypeFeatureUnsupported",
+          "unsupported-bidirectional-text-layout",
+          "unsupported-complex-script-shaping"
+        ],
+        "record": {
+          "file": "candidate-qualified/summary.json",
+          "bytes": 527193,
+          "sha256": "fd99a34b560774ef2f6821d4428fdcb76262cb96c96d8416f98dc42dcf5f334c"
+        }
+      },
+      {
+        "candidate": "candidate-text-qualified",
+        "pdfPages": 2,
+        "arabicContextForms": 9,
+        "all21RowsRetained": true,
+        "parity": [
+          {
+            "route": "direct/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "direct/PDF",
+            "format": 2,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "direct/PDF",
+            "format": 1,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "retained/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "async/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "archive/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          },
+          {
+            "route": "site-bundle/PDF",
+            "format": 0,
+            "pages": 2,
+            "byteIdentical": true
+          }
+        ],
+        "inputSha256": "cbbe7bf0c1c38a4578c66966df148c28a8c2302d5ea41283222259f219b3c9df",
+        "pdfSha256": "c8e5e37ad28c66ff315dc805e799a29ab217bbc19f3ca3480b43a80b8fd0a8c1",
+        "runtimeHashes": [
+          {
+            "file": "OfficeIMO.Html.Pdf.dll",
+            "sha256": "d638095a8c941eb04abb882fcc0dba3a8c94b8154a8857ffcc3ca39188563c0b"
+          },
+          {
+            "file": "OfficeIMO.Html.Core.dll",
+            "sha256": "e4b85601f2bf2bf307bddf5e8411b051147978f285352fe6e0a03fb4c7cfcdb3"
+          },
+          {
+            "file": "OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "c57c08a50b62809944f987867dca3d3d42cc913e8970e89072f3d9fa8063327e"
+          },
+          {
+            "file": "OfficeIMO.Core.dll",
+            "sha256": "fb889c3af99e17c106395d48dbc221dbd864e23327de87e9c47322bb36552e8c"
+          },
+          {
+            "file": "OfficeIMO.Pdf.dll",
+            "sha256": "d49dee7e00c9b81e86fabfc9bf6ad668c14c62626ac80b9bed7b23cccb798608"
+          },
+          {
+            "file": "OfficeIMO.Html.dll",
+            "sha256": "c16f1f0d8eaa2d66e50402b3124e24328b533c81a6227ebb54bdb8b7eae07ec8"
+          }
+        ],
+        "diagnosticCodes": [
+          "HtmlRenderOpenTypeFeatureUnsupported",
+          "unsupported-bidirectional-text-layout",
+          "unsupported-complex-script-shaping"
+        ],
+        "record": {
+          "file": "candidate-text-qualified/summary.json",
+          "bytes": 525017,
+          "sha256": "3ef12d244ebcc5dcd8fd797cb1ecb8b9a74a4cd120859f35944178c982ac2990"
+        }
+      }
+    ]
+  },
+  "pdfTextIntegration": {
+    "upstreamPr": "https://github.com/EvotecIT/OfficeIMO/pull/3105",
+    "upstreamHead": "9608b168e21deccb68dbfa56ee601d93c65287cb",
+    "localValidationHead": "75d13ed5218f4193e69bcf91fdf97bd14cd6bf5f",
+    "publishedOrMerged": false
+  },
+  "managed": [
+    {
+      "name": "integration-html-final-source",
+      "passed": 73,
+      "failed": 0,
+      "total": 73,
+      "file": "trx/integration-html-final-source.trx",
+      "bytes": 111393,
+      "sha256": "3850b27cc76952fc4dbad02ad1975a8d18666427d7e445a6025da6e9a47d225b"
+    },
+    {
+      "name": "integration-pdf-final-source",
+      "passed": 62,
+      "failed": 0,
+      "total": 62,
+      "file": "trx/integration-pdf-final-source.trx",
+      "bytes": 100436,
+      "sha256": "b3caf0d50827c97a4771a4e1f0a71252423880b3b5468b709c834ae05846d070"
+    },
+    {
+      "name": "drawing-core-final-net10",
+      "passed": 31,
+      "failed": 0,
+      "total": 31,
+      "file": "trx/drawing-core-final-net10.trx",
+      "bytes": 49347,
+      "sha256": "2dff4c8c7c427a3d9f2b17e633dcb126ec13b5e72b100b283037226c9151749f"
+    },
+    {
+      "name": "drawing-core-final-net8",
+      "passed": 31,
+      "failed": 0,
+      "total": 31,
+      "file": "trx/drawing-core-final-net8.trx",
+      "bytes": 49284,
+      "sha256": "83665f01b00f0675981532e69853456055458dcb8588cf4d131a4336c0cd06c8"
+    },
+    {
+      "name": "pdf-final-source-net10",
+      "passed": 10782,
+      "failed": 0,
+      "total": 10782,
+      "file": "trx/pdf-final-source-net10.trx",
+      "bytes": 16296685,
+      "sha256": "cd6f4c1f8e4964c86f7001ae33e8434514da8e98eae810ec8db03995a3db3499"
+    },
+    {
+      "name": "html-final-source-net10",
+      "passed": 6562,
+      "failed": 0,
+      "total": 6562,
+      "file": "trx/html-final-source-net10.trx",
+      "bytes": 9991926,
+      "sha256": "3d5406494c36c71511c3ac40546044b56d0a2dfdc7de655410c1924a0528d01e"
+    },
+    {
+      "name": "html-final-source-net8",
+      "passed": 6562,
+      "failed": 0,
+      "total": 6562,
+      "file": "trx/html-final-source-net8.trx",
+      "bytes": 9978801,
+      "sha256": "9ad20f1411e6381a9702a57dbd81048d667a1eb5ac7b59ef7358349fa8ad7350"
+    },
+    {
+      "name": "pdf-final-source-net8",
+      "passed": 10782,
+      "failed": 0,
+      "total": 10782,
+      "file": "trx/pdf-final-source-net8.trx",
+      "bytes": 16275120,
+      "sha256": "9e1118fe4678dd8a6528f0a3f6efc9ca0e8d1f97046e3a56e53db0274740b9eb"
+    },
+    {
+      "name": "tool-html-net10",
+      "passed": 28,
+      "failed": 0,
+      "total": 28,
+      "file": "trx/tool-html-net10.trx",
+      "bytes": 44546,
+      "sha256": "06fc11a8131c0f5d929589635fbabdbcf22bee5158d6e55072077b43006aaf34"
+    },
+    {
+      "name": "tool-html-net8",
+      "passed": 28,
+      "failed": 0,
+      "total": 28,
+      "file": "trx/tool-html-net8.trx",
+      "bytes": 44489,
+      "sha256": "6725cd25a7ce444ff0119a1f6c120e0865d98e4911980d29363804222d791e37"
+    }
+  ],
+  "packages": {
+    "artifacts": [
+      {
+        "file": "OfficeIMO.Html.AngleSharp.99.0.0-html-invoice.nupkg",
+        "bytes": 103830,
+        "sha256": "677cf94ed7e2f7de7f72e1fa2e6c6b28e3c8c4e3350fc8181000b7dd7857c52d",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Core.99.0.0-html-invoice.nupkg",
+        "bytes": 8440906,
+        "sha256": "28551885b2322934622c22913c999f97afd6cc86456ef96889674f03b73f85b0",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Core.dll",
+          "lib/net472/OfficeIMO.Core.dll",
+          "lib/net8.0/OfficeIMO.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Core.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.Core.99.0.0-html-invoice.nupkg",
+        "bytes": 324940,
+        "sha256": "78aa94b4b9f4f12761bcc8f30c9419d771a4ba1eecf87c743cc52b154981b2d6",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.Core.dll",
+          "lib/net472/OfficeIMO.Html.Core.dll",
+          "lib/net8.0/OfficeIMO.Html.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Pdf.99.0.0-html-invoice.nupkg",
+        "bytes": 13040921,
+        "sha256": "b9ba2b0f600e02f68d2aad22c9efd320f0e2f700066dc6fb6c72efbc1474abc0",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Pdf.dll",
+          "lib/net472/OfficeIMO.Pdf.dll",
+          "lib/net8.0/OfficeIMO.Pdf.dll",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.Pdf.99.0.0-html-invoice.nupkg",
+        "bytes": 207669,
+        "sha256": "b9a830b35967c5409a5dad92a22b61e785605473fb191406a95ac14c40a99994",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.Pdf.dll",
+          "lib/net472/OfficeIMO.Html.Pdf.dll",
+          "lib/net8.0/OfficeIMO.Html.Pdf.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.Pdf.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.99.0.0-html-invoice.nupkg",
+        "bytes": 4229796,
+        "sha256": "b3b8730574a116c98d9d0c14553cf3f1c616a725c10769df36359203c2003d10",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.dll",
+          "lib/net472/OfficeIMO.Html.dll",
+          "lib/net8.0/OfficeIMO.Html.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.dll"
+        ]
+      }
+    ],
+    "isolatedConsumerCache": "/Volumes/Samsung/Development/Scratch/html-invoice-static-rendering/package-qualification/packages",
+    "executedConsumers": 4,
+    "compileFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ]
+  },
+  "nativeAot": {
+    "rid": "osx-arm64",
+    "framework": "net10.0",
+    "publish": "pass",
+    "run": "pass",
+    "record": {
+      "file": "logs/aot-run-final.log",
+      "bytes": 39,
+      "sha256": "f1483e7cb5e17a0f4d08a4e4a7f9cd5da047405294119c8ca102ac2b5701c67d"
+    },
+    "executableSha256": "1175056c80e982b9041a689d8517dbd269f95e211cfe03083db2ff4f9b595f99"
+  },
+  "cli": {
+    "pages": 2,
+    "byteIdentical": true,
+    "multilingualTextRetained": true,
+    "profile": "print-paged-v1",
+    "fontPolicy": "Explicit caller-supplied Arial Unicode MS; portable CLI does not access host fonts implicitly.",
+    "pdfSha256": "56dedd4b37da468a0b73e207f0e177c337a73fab1764240c5deb787e2fc1f720",
+    "pageSha256": [
+      "20712aa5e7838b5b553b8737eed316ac272844a5bf502990dcec34eb80420f56",
+      "349dfd524432c89a03a31791b70c4af3133da9a8bf161554adec3135a5637af2"
+    ]
+  },
+  "review": {
+    "fullPass": "independent read-only review at eb8ec29; two reproduced P2 findings fixed",
+    "targetedConfirmation": "670a77b/1d6dfc3: both findings closed, no additional actionable finding",
+    "lateCoreClosure": "a7f7492: direct mixed-script Core/HTML/native regression proof; no repeated full review",
+    "lateCliClosure": "Real invoice and regression reproduce explicit fallback font omission; shared convert/render configuration,28 checks per framework plus final invoice replay."
+  },
+  "limits": [
+    "Normal font/line metrics still differ: 17 vs 18 first-page item rows.",
+    "OpenType numeric-feature fallbacks and conservative writer RTL/shaping warnings remain explicit; this is not full browser typography or script conformance.",
+    "Nonuniform PDF dash-distance projection remains approximate.",
+    "No Windows profiling, cross-platform timing, package publication or external CI qualification for this checkpoint."
+  ],
+  "publication": {
+    "branch": "fix/html-invoice-static-rendering",
+    "pr": "Not authorized for this audit batch",
+    "runtimeProviderBranch": "feature/html-engine",
+    "windowsProfiling": "deferred"
+  },
+  "evidenceRoot": "/Volumes/Samsung/Development/Scratch/html-invoice-static-rendering",
+  "runtimeBindings": [
+    {
+      "file": "OfficeIMO.Html.Pdf.dll",
+      "nativeProbe": "065f8ff218625703bf48daf2dec5939363449fd9689ec0d2aa3eeedc9700222b",
+      "OfficeIMO.Html.Tests": "065f8ff218625703bf48daf2dec5939363449fd9689ec0d2aa3eeedc9700222b",
+      "OfficeIMO.Pdf.Tests": "065f8ff218625703bf48daf2dec5939363449fd9689ec0d2aa3eeedc9700222b",
+      "OfficeIMO.Tool": "065f8ff218625703bf48daf2dec5939363449fd9689ec0d2aa3eeedc9700222b",
+      "same": true
+    },
+    {
+      "file": "OfficeIMO.Html.Core.dll",
+      "nativeProbe": "9c9ef5732dd67d86b6e46d20d8213428d3d398be40b39388419b153e5b45c0d4",
+      "OfficeIMO.Html.Tests": "9c9ef5732dd67d86b6e46d20d8213428d3d398be40b39388419b153e5b45c0d4",
+      "OfficeIMO.Pdf.Tests": "9c9ef5732dd67d86b6e46d20d8213428d3d398be40b39388419b153e5b45c0d4",
+      "OfficeIMO.Tool": "9c9ef5732dd67d86b6e46d20d8213428d3d398be40b39388419b153e5b45c0d4",
+      "same": true
+    },
+    {
+      "file": "OfficeIMO.Html.AngleSharp.dll",
+      "nativeProbe": "76b5c4593d5be559b13781eee34e10a4924da1a869f227d8d4fe0ddd32b6e503",
+      "OfficeIMO.Html.Tests": "76b5c4593d5be559b13781eee34e10a4924da1a869f227d8d4fe0ddd32b6e503",
+      "OfficeIMO.Pdf.Tests": "76b5c4593d5be559b13781eee34e10a4924da1a869f227d8d4fe0ddd32b6e503",
+      "OfficeIMO.Tool": "76b5c4593d5be559b13781eee34e10a4924da1a869f227d8d4fe0ddd32b6e503",
+      "same": true
+    },
+    {
+      "file": "OfficeIMO.Core.dll",
+      "nativeProbe": "64676e8ed0f4b32e25206a2dba84e94bc2da9b448529001acf4e89b00fd1b675",
+      "OfficeIMO.Html.Tests": "64676e8ed0f4b32e25206a2dba84e94bc2da9b448529001acf4e89b00fd1b675",
+      "OfficeIMO.Pdf.Tests": "64676e8ed0f4b32e25206a2dba84e94bc2da9b448529001acf4e89b00fd1b675",
+      "OfficeIMO.Tool": "64676e8ed0f4b32e25206a2dba84e94bc2da9b448529001acf4e89b00fd1b675",
+      "same": true
+    },
+    {
+      "file": "OfficeIMO.Pdf.dll",
+      "nativeProbe": "2bec42c7b96ea7792e96019e1b1e8f1f013e111f1a3bbe9c80573e2f4bdad0fb",
+      "OfficeIMO.Html.Tests": "2bec42c7b96ea7792e96019e1b1e8f1f013e111f1a3bbe9c80573e2f4bdad0fb",
+      "OfficeIMO.Pdf.Tests": "2bec42c7b96ea7792e96019e1b1e8f1f013e111f1a3bbe9c80573e2f4bdad0fb",
+      "OfficeIMO.Tool": "2bec42c7b96ea7792e96019e1b1e8f1f013e111f1a3bbe9c80573e2f4bdad0fb",
+      "same": true
+    },
+    {
+      "file": "OfficeIMO.Html.dll",
+      "nativeProbe": "3424656d7202a2ff10daf678fcde8820e0b03f8f0753bdc4c67721b84bb03e72",
+      "OfficeIMO.Html.Tests": "3424656d7202a2ff10daf678fcde8820e0b03f8f0753bdc4c67721b84bb03e72",
+      "OfficeIMO.Pdf.Tests": "3424656d7202a2ff10daf678fcde8820e0b03f8f0753bdc4c67721b84bb03e72",
+      "OfficeIMO.Tool": "3424656d7202a2ff10daf678fcde8820e0b03f8f0753bdc4c67721b84bb03e72",
+      "same": true
+    }
+  ],
+  "visualEvidence": {
+    "receipt": "final-visual-receipt.json",
+    "sha256": "89390469f2e7482366f1b4c7211dd848161caea2a4ef0f116088be65e2ef2824"
+  },
+  "storage": {
+    "removedLogicalBytes": 9791309976,
+    "retainedEvidenceRoot": "/Volumes/Samsung/Development/Scratch/html-invoice-static-rendering",
+    "retainedLogicalBytesAtCleanup": 156163037,
+    "reasons": "Archived exact packages, runtime8DLLsets, actualTRX, native executable, causal fixtures and decisive all-page captures; generated build/private-cache/temp output removed.",
+    "actualTrxArchive": "edf42a06bb79628bcf8a79d32264416159034d2783d95d0e3deaea2b8eae2741",
+    "runtimeArchive": "d0418f4d76f57d36568dbfe1decea0ea4d533b255b42940efdfd4347419ddb3e"
+  }
+}
