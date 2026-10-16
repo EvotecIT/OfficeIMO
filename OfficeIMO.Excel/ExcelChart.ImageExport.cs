@@ -423,7 +423,9 @@ namespace OfficeIMO.Excel {
             int seriesOrder = 0;
             foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>()
                          .Where(IsSeriesElement)
-                         .OrderBy(item => item.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue)) {
+                         .OrderBy(item => item is C.BubbleChartSeries
+                             ? item.GetFirstChild<C.Order>()?.Val?.Value ?? uint.MaxValue
+                             : item.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue)) {
                 int index = seriesOrder++;
                 if (index < 0 || index >= data.Series.Count) {
                     continue;
@@ -444,7 +446,7 @@ namespace OfficeIMO.Excel {
                 int valueCount = data.Series[index].Values.Count;
                 C.Marker? marker = series.GetFirstChild<C.Marker>();
                 C.ScatterStyleValues? scatterStyle = (series.Parent as C.ScatterChart)?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
-                style.ShowMarkers = GetImageExportShowMarkers(marker, scatterStyle);
+                style.ShowMarkers = series is C.BubbleChartSeries || GetImageExportShowMarkers(marker, scatterStyle);
                 style.MarkerSize = GetImageExportMarkerSize(marker);
                 style.MarkerShape = GetImageExportMarkerShape(marker);
                 style.MarkerOutlineColorArgb = GetImageExportMarkerOutlineColor(marker, workbookPart);
