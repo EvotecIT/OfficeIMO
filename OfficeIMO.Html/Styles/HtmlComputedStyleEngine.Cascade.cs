@@ -85,9 +85,12 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
+        bool expandedBackground = string.Equals(name, "background", StringComparison.OrdinalIgnoreCase)
+            && HtmlCssCustomPropertyResolver.ContainsVarFunction(value);
         if (!HtmlCssCustomPropertyResolver.ContainsVarFunction(value)
             && (valueAlreadyValidated || IsSupportedDeclarationValue(name, value))
             && TryExpandCascadeShorthand(name, value, out IReadOnlyList<KeyValuePair<string, string>> boxLonghands)) {
+            expandedBackground |= string.Equals(name, "background", StringComparison.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, string> longhand in boxLonghands) {
                 ApplyDeclaration(properties, parentProperties, longhand.Key, longhand.Value, isImportant, specificity, order, layerOrder,
                     valueAlreadyValidated: false, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations,
@@ -117,7 +120,7 @@ public static partial class HtmlComputedStyleEngine {
             ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits);
         }
         string imageSourceProperty = GetImageSourcePropertyName(name);
-        if (!string.Equals(imageSourceProperty, name, StringComparison.OrdinalIgnoreCase)
+        if (!expandedBackground && !string.Equals(imageSourceProperty, name, StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, value)) {
             ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits);
         }

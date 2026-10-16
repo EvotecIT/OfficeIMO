@@ -13,7 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && fill.Kind == OfficeShapeKind.Rectangle && !style.HasBorderLayout
         && style.BoxShadowLayerCount == 0 && !style.HasDeclaredBackgroundImage
         && style.BackgroundColorClip == "border-box" && style.ClipPath == "none"
-        && style.Transform == "none" && style.IndividualScale == "none";
+        && style.UsedTransform == "none" && style.UsedIndividualScale == "none";
 
     private void ExtendPagedBodyBackgroundThroughFragmentSlack(
         HtmlRenderFlowBlock block,
@@ -35,8 +35,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || !string.Equals(style.BorderRadius, "0", StringComparison.Ordinal)
             || style.BorderTopLeftRadius.Length > 0 || style.BorderTopRightRadius.Length > 0
             || style.BorderBottomLeftRadius.Length > 0 || style.BorderBottomRightRadius.Length > 0
-            || !string.Equals(style.Transform, "none", StringComparison.Ordinal)
-            || !string.Equals(style.IndividualScale, "none", StringComparison.Ordinal)
+            || !string.Equals(style.UsedTransform, "none", StringComparison.Ordinal)
+            || !string.Equals(style.UsedIndividualScale, "none", StringComparison.Ordinal)
             || !string.Equals(style.ClipPath, "none", StringComparison.Ordinal)
             || Math.Abs(style.MarginLeft) > 0.0001D || Math.Abs(style.MarginRight) > 0.0001D) return;
         if (geometry.PrintProduction != null

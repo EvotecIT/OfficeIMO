@@ -63,14 +63,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool addedObject = false;
         if (bytes != null && bytes.Length > 0 && placement.IsVisible) {
             if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
+                // External SVG without a viewBox keeps its intrinsic user space
+                // and the existing image projection; inline SVG owns a viewport.
+                bool useSvgViewport = IsInlineSvgElement(element) || imageInfo?.HasSvgViewBox == true;
                 if (TryReadSvgDrawing(
                     bytes,
                     hasIntrinsicSize ? intrinsicWidth : 0D,
                     hasIntrinsicSize ? intrinsicHeight : 0D,
                     sourceDescription,
                     out OfficeDrawing? svgDrawing,
-                    viewportWidth: IsInlineSvgElement(element) ? placement.FullWidth : null,
-                    viewportHeight: IsInlineSvgElement(element) ? placement.FullHeight : null) && svgDrawing != null) {
+                    viewportWidth: useSvgViewport ? placement.FullWidth : null,
+                    viewportHeight: useSvgViewport ? placement.FullHeight : null,
+                    requireAuthoredRasterSafety: IsInlineSvgElement(element)) && svgDrawing != null) {
                     AddSvgImageVisual(objectVisuals, svgDrawing, bytes, imageX, imageY, placement, alternativeText,
                         link, sourceDescription);
                     addedObject = true;
@@ -241,7 +245,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string sourceDescription,
         out OfficeDrawing? drawing,
         double? viewportWidth = null,
-        double? viewportHeight = null) {
+        double? viewportHeight = null,
+        bool requireAuthoredRasterSafety = false) {
         var readerOptions = new OfficeSvgDrawingReaderOptions {
             CancellationToken = _cancellationToken,
             ViewportWidth = viewportWidth,
@@ -249,8 +254,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             DefaultFontFamily = _options.DefaultFontFamily,
             FontTextUsageObserver = _fontUsage == null ? null : _fontUsage.Observe
         };
+        // A concrete viewport also belongs to external SVG images. Keep the
+        // authored inline-SVG safety boundary independent of viewport sizing.
         bool canRasterizeSvg = _options.ImageCodec != null
-            && (!viewportWidth.HasValue || OfficeSvgDrawingReader.IsWithinSafetyLimits(bytes, readerOptions));
+            && (!requireAuthoredRasterSafety || OfficeSvgDrawingReader.IsWithinSafetyLimits(bytes, readerOptions));
         readerOptions.Fonts.AddRange(_fonts);
         if (_options.SvgForeignObjectDepth < _options.MaxSvgForeignObjectDepth) {
             readerOptions.ForeignObjectRenderer = RenderSvgForeignObject;

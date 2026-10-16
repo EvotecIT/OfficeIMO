@@ -1,13 +1,95 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
+using System.Linq;
 using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Drawing.Tests;
 
 public sealed class DrawingFontOpticalSizeTests {
     private const string Text = "Variable OfficeIMO";
+
+    [Theory]
+    [InlineData(0.49D, 12F)]
+    [InlineData(0.51D, 12.0000152587890625F)]
+    public void AuthoredOpticalSizeKeepsDoublePrecisionUntilFixedSelection(double fractionalStep, float expectedSize) {
+        double authoredSize = 12D + fractionalStep / 65536D;
+        OfficeFontFaceCollection automatic = Fonts(null);
+        OfficeFontFace selected = Resolve(automatic, authoredSize);
+        OfficeFontFace expected = Assert.Single(Fonts(expectedSize).Faces);
+
+        Assert.Equal(expected.Program.Fingerprint, selected.Program.Fingerprint);
+        Assert.Equal(expected.Program.Measure(Text, authoredSize), selected.Program.Measure(Text, authoredSize));
+        Assert.Equal(expected.Program.GetTextContours(Text, 0D, 0D, authoredSize),
+            selected.Program.GetTextContours(Text, 0D, 0D, authoredSize));
+        Assert.Same(selected, Resolve(automatic, expectedSize));
+    }
+
+    [Theory]
+    [InlineData(512D)]
+    [InlineData(512.0000152587890625D)]
+    public void AutomaticOpticalInstancesKeepCanonicalCoordinatesBeyondFloatPrecision(double defaultSize) {
+        const double step = 1D / 65536D;
+        var fonts = new OfficeFontFaceCollection();
+        Assert.True(fonts.TryAdd("Probe", ManagedTextShapingTestAssets.CreateNormalizationFont(
+            axis: ("opsz", 512D, defaultSize, 512.125D))));
+        OfficeFontFace ResolveProbe(double size) => Resolve(fonts, size, "A");
+        OfficeFontFace original = Assert.Single(fonts.Faces);
+        OfficeFontFace selected = ResolveProbe(defaultSize + step);
+        OfficeFontFace adjacent = ResolveProbe(defaultSize + 2D * step);
+
+        Assert.Same(original, ResolveProbe(defaultSize));
+        Assert.NotSame(original, selected);
+        Assert.NotSame(selected, adjacent);
+        Assert.NotEqual(original.Program.Fingerprint, selected.Program.Fingerprint);
+        Assert.NotEqual(selected.Program.Fingerprint, adjacent.Program.Fingerprint);
+        Assert.Contains("opsz=" + (defaultSize + step).ToString("R", CultureInfo.InvariantCulture), selected.Program.Fingerprint);
+        Assert.Same(selected, ResolveProbe(defaultSize + 1.49D * step));
+        Assert.Same(adjacent, ResolveProbe(defaultSize + 1.51D * step));
+        Assert.Equal(0.03125D, selected.Program.GetTextContours("A", 0D, 0D, selected.Program.UnitsPerEm)
+            .SelectMany(contour => contour).Min(point => point.X));
+        Assert.Equal(0.0625D, adjacent.Program.GetTextContours("A", 0D, 0D, adjacent.Program.UnitsPerEm)
+            .SelectMany(contour => contour).Min(point => point.X));
+        Assert.Equal(502D, selected.Program.Measure("A", selected.Program.UnitsPerEm));
+        Assert.Equal(504D, adjacent.Program.Measure("A", adjacent.Program.UnitsPerEm));
+    }
+
+    [Fact]
+    public void ManagedPositioningRetainsTheSelectedAutomaticOpticalInstance() {
+        const string pair = "\"V";
+        const double size = 512D + 1D / 65536D;
+        byte[] data = ManagedTextShapingTestAssets.WithOpticalSizeRange(
+            File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "RobotoFlex.ttf")), 512D, 512D, size);
+        var fonts = new OfficeFontFaceCollection {
+            FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 700F }
+        };
+        Assert.True(fonts.TryAdd("Probe", data));
+        IOfficeFontProgram selected = Resolve(fonts, size, pair).Program;
+        var features = OfficeTextFeatureSettings.Default.With("kern", 1);
+        // Public requests keep their float contract. An out-of-range float clamps to
+        // the exact authored maximum, providing an independent endpoint reference.
+        var referenceRequest = new OfficeTextShapingRequest(pair, "Probe", data, false, selected.UnitsPerEm,
+            OfficeTextDirection.LeftToRight, "en", default, null,
+            new Dictionary<string, float> { ["wght"] = 700F, ["opsz"] = 513F }, features);
+        OfficeTextShapingResult reference = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(referenceRequest));
+        // This existing internal constructor is the real HTML/raster request seam:
+        // the selected immutable program accompanies its public float projection.
+        var actualRequest = new OfficeTextShapingRequest(pair, "Probe", selected.GetFontDataForShaping(), false,
+            selected.UnitsPerEm, OfficeTextDirection.LeftToRight, "en", default, null,
+            ((IOfficeVariableFontProgram)selected).VariationCoordinatesForShaping,
+            cloneFontData: false, fontProgramCacheKey: selected, featureSettings: features);
+        OfficeTextShapingResult actual = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(actualRequest));
+
+        Assert.Equal(512F, actualRequest.VariationCoordinates["opsz"]);
+        Assert.Equal(2122D, selected.MeasureShapedText(pair, reference, selected.UnitsPerEm));
+        Assert.Equal(selected.MeasureShapedText(pair, reference, selected.UnitsPerEm),
+            selected.MeasureShapedText(pair, actual, selected.UnitsPerEm));
+    }
 
     [Theory]
     [InlineData(10D)]
@@ -106,8 +188,8 @@ public sealed class DrawingFontOpticalSizeTests {
             Text, "Probe", OfficeFontStyle.Regular, size, out _));
     }
 
-    private static OfficeFontFace Resolve(OfficeFontFaceCollection fonts, double size) {
-        Assert.True(fonts.TryResolveFaceForText(Text, "Probe", OfficeFontStyle.Regular, size, out OfficeFontFace? face));
+    private static OfficeFontFace Resolve(OfficeFontFaceCollection fonts, double size, string text = Text) {
+        Assert.True(fonts.TryResolveFaceForText(text, "Probe", OfficeFontStyle.Regular, size, out OfficeFontFace? face));
         return face!;
     }
 

@@ -49,6 +49,11 @@ public sealed partial class HtmlRenderPage {
     private OfficeDrawingQualityReport InspectBounds(IReadOnlyList<HtmlRenderVisual> content,
         double targetLeft, double targetTop, double width, double height, int maximumWidth,
         int maximumHeight, CancellationToken cancellationToken) {
+        // Element containment follows CSS layout rectangles. A positioned text
+        // carrier starts one em above its baseline and can extend outside that
+        // rectangle without its glyph ink overflowing. Keep ink inspection and
+        // actual Drawing/PDF paint on the original scene.
+        content = content.Select(ProjectInspectionBounds).ToArray();
         var bounds = ResolveDrawingBufferBounds(content, Math.Max(0D, targetLeft + width), Math.Max(0D, targetTop + height), _fonts, cancellationToken);
         double left = Math.Min(targetLeft, bounds.Left), top = Math.Min(targetTop, bounds.Top);
         double expandedWidth = Math.Max(targetLeft + width, bounds.Right) - left;
@@ -60,5 +65,18 @@ public sealed partial class HtmlRenderPage {
         OfficeDrawing drawing = expanded.CreateDrawing(cancellationToken);
         return OfficeDrawingQualityAnalyzer.AnalyzeAtOffset(drawing, targetLeft - left, targetTop - top, width, height,
             new OfficeDrawingQualityOptions(detectTextOverlap: false), cancellationToken);
+    }
+
+    private static HtmlRenderVisual ProjectInspectionBounds(HtmlRenderVisual visual) {
+        if (visual is HtmlRenderText text && !text.IsPaintOnly) {
+            return new HtmlRenderText(text.Text, text.X, text.LayoutY + text.RelativePaintOffsetY,
+                text.Width, text.LayoutHeight, text.Font, text.Color, text.Alignment, text.LineHeight,
+                text.PaintOrder, text.LinkUri, text.Source, text.SemanticRole,
+                layoutY: text.LayoutY, semanticNodeId: text.SemanticNodeId,
+                textAdvanceWidth: text.TextAdvanceWidth, layoutHeight: text.LayoutHeight, fontDescriptor: text.FontDescriptor);
+        }
+        return visual.PaintChildren is { } children
+            ? visual.ProjectPaintChildren(children.Select(ProjectInspectionBounds), 0D, 0D, visual.PaintOrder)
+            : visual;
     }
 }

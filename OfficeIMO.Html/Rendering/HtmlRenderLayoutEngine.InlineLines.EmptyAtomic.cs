@@ -15,7 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         foreach (InlineSegment segment in line.Segments) {
             HtmlInlineRun run = segment.Run;
-            if (run.IsFlowMarker) continue;
+            if (run.IsFlowMarker || run.PositionedMarkerElement != null) continue;
             if (run.AtomicBlock != null) {
                 if (!run.HasEmptyInlineBlockBaseline || run.Style.TableVerticalAlignment is not ("baseline" or "top")) return false;
             } else if (!HasSameEmptyAtomicStrutFace(run.Style, paragraphStyle)) return false;
@@ -27,7 +27,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double descent = Math.Max(0D, paragraphStyle.LineHeight - ascent);
         foreach (InlineSegment segment in line.Segments) {
             HtmlInlineRun run = segment.Run;
-            if (run.IsFlowMarker) continue;
+            if (run.IsFlowMarker || run.PositionedMarkerElement != null) continue;
             if (run.AtomicBlock != null) {
                 if (run.Style.TableVerticalAlignment == "baseline") ascent = Math.Max(ascent, run.AtomicBlock.Height);
             } else if (run.RunningStringElement == null && run.RunningElementAssignment == null) {

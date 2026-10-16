@@ -21,21 +21,47 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(40D, image.Height, 3);
     }
 
-    [Fact]
-    public void HtmlSvgOpenPath_ClosesForFillButKeepsTheAuthoredOpenStroke() {
-        const string source = "<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'>"
-            + "<path d='M5 5 L35 5 L5 35' fill='red' stroke='blue' stroke-width='2'/>"
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlSvgOpenPath_PreservesFillAndOpenStrokeAcrossExports(bool imageElement) {
+        const string source = "<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'>"
+            + "<path d='M8 8 H88 V88' fill='red' stroke='blue' stroke-width='4'/>"
             + "</svg>";
-        byte[] sourceBytes = Encoding.UTF8.GetBytes(source);
+        string content = imageElement
+            ? "<img src='data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(source)) + "'>"
+            : source;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>html,body{margin:0}svg,img{display:block;width:96px;height:96px}</style>" + content);
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(1D, 1D),
+            ViewportWidth = 96D,
+            ViewportHeight = 96D,
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.White,
+            ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile()
+        };
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(sourceBytes, out OfficeDrawing? drawing, out int unsupported));
+        OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(png.Bytes, out OfficeRasterImage? raster));
+        OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+        Assert.True(OfficeSvgDrawingReader.TryRead(svg.Bytes, out OfficeDrawing? svgDrawing, out int unsupported));
         Assert.Equal(0, unsupported);
+        byte[] pdf = document.ToPdfBytes(new HtmlToPdfOptions(options));
+        Assert.Empty(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(pdf));
+        OfficeDrawing pdfDrawing = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
 
-        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing!, 1D, OfficeColor.White);
-        Assert.Equal(OfficeColor.Red, image.GetPixel(10, 10));
-
-        OfficeColor implicitClosingEdge = image.GetPixel(5, 20);
-        Assert.True(implicitClosingEdge.B <= implicitClosingEdge.R);
+        Assert.All(new[] { raster!, OfficeDrawingRasterRenderer.Render(svgDrawing!, 1D, OfficeColor.White),
+            OfficeDrawingRasterRenderer.Render(pdfDrawing, 4D / 3D, OfficeColor.White) }, image => {
+            Assert.Equal(96, image.Width);
+            Assert.Equal(96, image.Height);
+            Assert.Equal(OfficeColor.Red, image.GetPixel(64, 32));
+            Assert.Equal(OfficeColor.Blue, image.GetPixel(87, 48));
+            Assert.Equal(OfficeColor.Red, image.GetPixel(48, 47));
+            Assert.Equal(OfficeColor.White, image.GetPixel(32, 64));
+        });
     }
 
     [Fact]

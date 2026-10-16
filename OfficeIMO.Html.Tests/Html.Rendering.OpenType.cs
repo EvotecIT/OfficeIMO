@@ -125,8 +125,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlConversionDocument light = HtmlConversionDocument.Parse("<p style=\"" + shared + "light\">A</p>");
         HtmlConversionDocument dark = HtmlConversionDocument.Parse("<p style=\"" + shared + "dark\">A</p>");
         HtmlRenderDocument lightRendered = HtmlRenderTestDriver.Render(light, options);
-        HtmlRenderText lightVisual = Assert.Single(lightRendered.Pages[0].Visuals.OfType<HtmlRenderText>());
-        OfficeDrawingText lightDrawingText = Assert.Single(lightRendered.Pages[0].CreateDrawing().Elements.OfType<OfficeDrawingText>());
+        HtmlRenderText lightVisual = Assert.Single(EnumerateRenderVisuals(lightRendered.Pages[0].Scene).OfType<HtmlRenderText>());
+        OfficeDrawingText lightDrawingText = Assert.Single(DrawingTestTraversal.Elements(lightRendered.Pages[0].CreateDrawing()).OfType<OfficeDrawingText>());
 
         Assert.Equal("light", lightVisual.FontPalette);
         Assert.Equal("light", lightDrawingText.FontPalette);

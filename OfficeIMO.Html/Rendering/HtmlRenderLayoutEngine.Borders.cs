@@ -14,6 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlResolvedBorderRadii radii,
         IElement source,
         string sourceDescription) {
+        if (width <= 0.0001D || height <= 0.0001D) return;
         if (style.UnsupportedBorderPaint.Length > 0) {
             ReportStrokeFallback(
                 _reportedBorderPaintFallbacks,
@@ -52,6 +53,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void AddOutlinePaint(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlRenderBoxStyle style,
+        double x,
+        double y,
+        double width,
+        double height,
+        HtmlResolvedBorderRadii radii,
+        IElement source,
+        string sourceDescription) {
+        int start = visuals.Count;
+        AddOutlinePaintCore(visuals, style, x, y, width, height, radii, source, sourceDescription);
+        foreach (HtmlRenderVisual visual in visuals.Skip(start)) visual.PaintPhase = HtmlRenderPaintPhase.Outline;
+    }
+
+    private void AddOutlinePaintCore(
         ICollection<HtmlRenderVisual> visuals,
         HtmlRenderBoxStyle style,
         double x,
@@ -184,6 +200,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         shape.StrokeColor = color;
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = MapStrokeDashStyle(style);
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
         visuals.Add(new HtmlRenderShape(shape, x - expansion, y - expansion, visuals.Count, source: source));
     }
 

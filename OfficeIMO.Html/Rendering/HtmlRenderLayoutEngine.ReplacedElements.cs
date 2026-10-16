@@ -81,12 +81,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         double intrinsicWidth,
         double intrinsicHeight,
-        bool hasIntrinsicSize) {
+        bool hasIntrinsicSize,
+        bool useLayoutUnits = true) {
         double intrinsicRatio = intrinsicWidth / intrinsicHeight;
         bool useAuthoredRatio = style.AspectRatio.HasValue && (!style.AspectRatioPrefersIntrinsic || !hasIntrinsicSize);
         double preferredRatio = useAuthoredRatio ? style.AspectRatio!.Value : intrinsicRatio;
-        double? declaredWidth = ResolveReplacedDimension(style.ExplicitWidth, style.PaddingLeft + style.PaddingRight + style.BorderLeftWidth + style.BorderRightWidth, style.BorderBox);
-        double? declaredHeight = ResolveReplacedDimension(style.ExplicitHeight, style.PaddingTop + style.PaddingBottom + style.BorderTopWidth + style.BorderBottomWidth, style.BorderBox);
+        double? declaredWidth = ResolveReplacedDimension(style.ExplicitWidth, style.HorizontalInsets, style.BorderBox, useLayoutUnits);
+        double? declaredHeight = ResolveReplacedDimension(style.ExplicitHeight, style.VerticalInsets, style.BorderBox, useLayoutUnits);
 
         double width;
         double height;
@@ -100,14 +101,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             height = declaredHeight.Value;
             width = height * preferredRatio;
         } else {
-            width = intrinsicWidth;
+            width = useLayoutUnits ? ResolveUsedReplacedDimension(intrinsicWidth) : intrinsicWidth;
             height = useAuthoredRatio ? width / preferredRatio : intrinsicHeight;
         }
 
-        double minimumWidth = ResolveReplacedDimension(style.MinWidth, style.HorizontalInsets, style.BorderBox) ?? 0.01D;
-        double maximumWidth = ResolveReplacedDimension(style.MaxWidth, style.HorizontalInsets, style.BorderBox) ?? double.PositiveInfinity;
-        double minimumHeight = ResolveReplacedDimension(style.MinHeight, style.VerticalInsets, style.BorderBox) ?? 0.01D;
-        double maximumHeight = ResolveReplacedDimension(style.MaxHeight, style.VerticalInsets, style.BorderBox) ?? double.PositiveInfinity;
+        double minimumWidth = ResolveReplacedDimension(style.MinWidth, style.HorizontalInsets, style.BorderBox, useLayoutUnits) ?? 0.01D;
+        double maximumWidth = ResolveReplacedDimension(style.MaxWidth, style.HorizontalInsets, style.BorderBox, useLayoutUnits) ?? double.PositiveInfinity;
+        double minimumHeight = ResolveReplacedDimension(style.MinHeight, style.VerticalInsets, style.BorderBox, useLayoutUnits) ?? 0.01D;
+        double maximumHeight = ResolveReplacedDimension(style.MaxHeight, style.VerticalInsets, style.BorderBox, useLayoutUnits) ?? double.PositiveInfinity;
         if (declaredWidth.HasValue && declaredHeight.HasValue) {
             width = ClampWithMinimumPrecedence(width, minimumWidth, maximumWidth);
             height = ClampWithMinimumPrecedence(height, minimumHeight, maximumHeight);
@@ -121,7 +122,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } else {
             ConstrainProportionalSize(ref width, ref height, minimumWidth, maximumWidth, minimumHeight, maximumHeight);
         }
-        return new ReplacedContentSize(Math.Max(0.01D, width), Math.Max(0.01D, height));
+        return useLayoutUnits
+            ? new ReplacedContentSize(ResolveUsedReplacedDimension(width), ResolveUsedReplacedDimension(height))
+            : new ReplacedContentSize(Math.Max(0.01D, width), Math.Max(0.01D, height));
     }
 
     private ReplacedObjectPlacement ResolveReplacedObjectPlacement(
@@ -197,10 +200,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static double? ResolveReplacedDimension(double? value, double insets, bool borderBox) {
+    private static double? ResolveReplacedDimension(double? value, double insets, bool borderBox, bool useLayoutUnits) {
         if (!value.HasValue) return null;
-        return Math.Max(0.01D, borderBox ? value.Value - insets : value.Value);
+        double content = borderBox ? value.Value - insets : value.Value;
+        return useLayoutUnits ? ResolveUsedReplacedDimension(content) : Math.Max(0.01D, content);
     }
+
+    // Replaced layout consumes used CSS dimensions before resolving the auto
+    // axis. Raw image metadata and the drawing owner's geometry stay unchanged.
+    private static double ResolveUsedReplacedDimension(double value) =>
+        // Subtracting the remainder avoids overflowing a finite authored length
+        // before the existing replaced-surface budget can reject that length.
+        Math.Max(0.01D, value - value % (1D / 64D));
 
     private static double ClampWithMinimumPrecedence(double value, double minimum, double maximum) =>
         Math.Max(minimum, Math.Min(value, maximum));

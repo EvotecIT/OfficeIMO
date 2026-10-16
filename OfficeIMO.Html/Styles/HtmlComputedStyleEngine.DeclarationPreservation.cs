@@ -14,7 +14,8 @@ public static partial class HtmlComputedStyleEngine {
         string? prefix = name.StartsWith(FontDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase)
             ? FontDeclarationSentinelPrefix
             : name.StartsWith(LayoutDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? LayoutDeclarationSentinelPrefix
-            : name.StartsWith(BorderDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? BorderDeclarationSentinelPrefix : null;
+            : name.StartsWith(BorderDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? BorderDeclarationSentinelPrefix
+            : name.StartsWith(BackgroundDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? BackgroundDeclarationSentinelPrefix : null;
         if (prefix == null) return name;
         string suffix = name.Substring(prefix.Length);
         int separator = suffix.IndexOf('-');
@@ -23,7 +24,7 @@ public static partial class HtmlComputedStyleEngine {
 
     // Keep authored order and values where parser expansion loses font syntax,
     // intrinsic dimensions, subgrid tracks, row/column gap order, grid placement shorthands, or
-    // border and text-decoration components. Preserve the whole family: mixing preserved variables
+    // border, background and text-decoration components. Preserve the whole family: mixing preserved variables
     // with parser-collapsed ordinary declarations loses their relative order.
     // A colour-only override must not reset the authored width and style.
     private static string PreserveManagedDeclarations(string css, OfficeIMO.Html.Css.HtmlCssStyleSheet sheet) {
@@ -41,7 +42,8 @@ public static partial class HtmlComputedStyleEngine {
             string? prefix = name == "font" || FontShorthandLonghands.Contains(name)
                 ? FontDeclarationSentinelPrefix
                 : LayoutDeclarationNames.Contains(name) || DimensionDeclarationNames.Contains(name) ? LayoutDeclarationSentinelPrefix
-                : BorderDeclarationNames.Contains(name) ? BorderDeclarationSentinelPrefix : null;
+                : BorderDeclarationNames.Contains(name) ? BorderDeclarationSentinelPrefix
+                : name == "background" || BackgroundLonghands.Contains(name) ? BackgroundDeclarationSentinelPrefix : null;
             if (prefix == null) continue;
             result.Append(css, copied, index - copied).Append(prefix).Append(declarationId++).Append('-').Append(name);
             copied = endName;

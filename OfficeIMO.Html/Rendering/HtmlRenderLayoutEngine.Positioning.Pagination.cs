@@ -20,14 +20,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // An unpainted wrapper can expose its child's sole effect group. Require
         // a successfully resolved transform on the positioned box itself;
         // unsupported transforms also leave descendant paint effects untouched.
-        if (style.Transform == "none") return false;
+        if (style.UsedTransform == "none") return false;
         if (block.Visuals.Count != 1 || block.Visuals[0] is not HtmlRenderEffectGroup effect) return false;
         OfficeTransform transform = effect.Transform;
         if (transform.M11 != 1D || transform.M22 != 1D || transform.M12 != 0D || transform.M21 != 0D) return false;
         double boxWidth = ResolveBoxWidth(Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight), style);
         double boxHeight = Math.Max(0.01D, block.Height - style.MarginTop - style.MarginBottom);
         if (!HtmlCssTransformParser.TryParse(
-                style.Transform, style.TransformOrigin, style.MarginLeft, style.MarginTop,
+                style.UsedTransform, style.TransformOrigin, style.MarginLeft, style.MarginTop,
                 boxWidth, boxHeight, style.Font.Size, _options.DefaultFontSize,
                 _activePageGeometry.Width, _activePageGeometry.Height,
                 style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,

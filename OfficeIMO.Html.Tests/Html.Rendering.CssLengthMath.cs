@@ -90,15 +90,16 @@ public partial class Html {
     [Fact]
     public void HtmlCssLengthMath_ClampsCalculatedContainerDimensionsBeforeQueries() {
         const string html = "<style>"
+            + "#width-item,#max-width-item,#height-item,#max-height-item{background:blue}"
             + "@container (width:0px){#width-item{background:red}}"
             + "@container (width:0px){#max-width-item{background:red}}"
             + "@container (height:0px){#height-item{background:red}}"
             + "@container (height:0px){#max-height-item{background:red}}"
             + "</style>"
-            + "<section style='width:calc(10px - 20px);container-type:inline-size'><div id='width-item' style='width:10px;height:10px;background:blue'></div></section>"
-            + "<section style='width:100px;max-width:calc(10px - 20px);container-type:inline-size'><div id='max-width-item' style='width:10px;height:10px;background:blue'></div></section>"
-            + "<section style='width:100px;height:calc(10px - 20px);container-type:size'><div id='height-item' style='width:10px;height:10px;background:blue'></div></section>"
-            + "<section style='width:100px;height:100px;max-height:calc(10px - 20px);container-type:size'><div id='max-height-item' style='width:10px;height:10px;background:blue'></div></section>";
+            + "<section style='width:calc(10px - 20px);container-type:inline-size'><div id='width-item' style='width:10px;height:10px'></div></section>"
+            + "<section style='width:100px;max-width:calc(10px - 20px);container-type:inline-size'><div id='max-width-item' style='width:10px;height:10px'></div></section>"
+            + "<section style='width:100px;height:calc(10px - 20px);container-type:size'><div id='height-item' style='width:10px;height:10px'></div></section>"
+            + "<section style='width:100px;height:100px;max-height:calc(10px - 20px);container-type:size'><div id='max-height-item' style='width:10px;height:10px'></div></section>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D, ViewportHeight = 300D });
 

@@ -76,16 +76,41 @@ internal readonly struct HtmlResolvedBorderRadii {
             Math.Max(0D, BottomLeftX - left),
             Math.Max(0D, BottomLeftY - bottom)).Normalize(targetWidth, targetHeight);
 
+    /// <summary>Expands rounded axes while preserving zero axes and their square corners.</summary>
     internal HtmlResolvedBorderRadii Expand(double amount, double targetWidth, double targetHeight) =>
         new HtmlResolvedBorderRadii(
-            Math.Max(0D, TopLeftX + amount),
-            Math.Max(0D, TopLeftY + amount),
-            Math.Max(0D, TopRightX + amount),
-            Math.Max(0D, TopRightY + amount),
-            Math.Max(0D, BottomRightX + amount),
-            Math.Max(0D, BottomRightY + amount),
-            Math.Max(0D, BottomLeftX + amount),
-            Math.Max(0D, BottomLeftY + amount)).Normalize(targetWidth, targetHeight);
+            ExpandRadius(TopLeftX, amount),
+            ExpandRadius(TopLeftY, amount),
+            ExpandRadius(TopRightX, amount),
+            ExpandRadius(TopRightY, amount),
+            ExpandRadius(BottomRightX, amount),
+            ExpandRadius(BottomRightY, amount),
+            ExpandRadius(BottomLeftX, amount),
+            ExpandRadius(BottomLeftY, amount)).Normalize(targetWidth, targetHeight);
+
+    private static double ExpandRadius(double radius, double amount) =>
+        radius == 0D ? 0D : Math.Max(0D, radius + amount);
+
+    /// <summary>Applies CSS shadow spread growth, sharpening axes smaller than a positive spread.</summary>
+    internal HtmlResolvedBorderRadii ExpandShadow(double amount, double targetWidth, double targetHeight) =>
+        amount <= 0D ? Expand(amount, targetWidth, targetHeight) : new HtmlResolvedBorderRadii(
+            ExpandShadowRadius(TopLeftX, amount),
+            ExpandShadowRadius(TopLeftY, amount),
+            ExpandShadowRadius(TopRightX, amount),
+            ExpandShadowRadius(TopRightY, amount),
+            ExpandShadowRadius(BottomRightX, amount),
+            ExpandShadowRadius(BottomRightY, amount),
+            ExpandShadowRadius(BottomLeftX, amount),
+            ExpandShadowRadius(BottomLeftY, amount)).Normalize(targetWidth, targetHeight);
+
+    private static double ExpandShadowRadius(double radius, double amount) {
+        if (radius >= amount) return radius + amount;
+
+        // CSS Backgrounds 3, section 6.1.1: grow small corners continuously from
+        // square corners. This also applies to an inner shadow's negative spread.
+        double ratio = radius / amount - 1D;
+        return radius + amount * (1D + ratio * ratio * ratio);
+    }
 
     internal IReadOnlyList<OfficePathCommand> CreatePathCommands(double width, double height) {
         const double kappa = 0.5522847498307936D;
