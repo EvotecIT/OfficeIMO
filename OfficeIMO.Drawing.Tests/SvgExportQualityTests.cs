@@ -103,6 +103,23 @@ public sealed class SvgExportQualityTests {
     }
 
     [Fact]
+    public void PaintedGlyphTextFallbackRetainsLogicalAccessibilityLabel() {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("FixtureFont", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30, new OfficeFontInfo("FixtureFont", 14));
+        drawing.MarkLastTextAsPaintedGlyphs();
+        OfficeDrawingText text = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        text.SetPaintedText("ffi", "A");
+        // A metric-scaled carrier takes the retained-text route rather than outline paths.
+        text.FontMetricScale = 1.1D;
+
+        XElement svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+        XElement carrier = Assert.Single(svg.Descendants().Where(element => element.Name.LocalName == "text"));
+        Assert.Equal("A", carrier.Value);
+        Assert.Equal("ffi", carrier.Attribute("aria-label")?.Value);
+    }
+
+    [Fact]
     public void PaintedGlyphRunsUseBoundedCorePathsAndKeepLogicalText() {
         var drawing = new OfficeDrawing(100, 40);
         drawing.Fonts.Add("FixtureFont", ManagedTextShapingTestAssets.CreateFont('A'));

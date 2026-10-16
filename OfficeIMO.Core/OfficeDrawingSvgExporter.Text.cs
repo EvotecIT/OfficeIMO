@@ -128,7 +128,7 @@ public static partial class OfficeDrawingSvgExporter {
             text.FontPalette,
             OfficeTextShapingBackend.BrowserNative,
             text.PreservesPaintedGlyphs ? OfficeTextDirection.LeftToRight : text.TextDirection,
-            text.PreservesPaintedGlyphs, face: text.Font.Face);
+            text.PreservesPaintedGlyphs, face: text.Font.Face, logicalText: text.Text);
 
         if (useFrameTransform) {
             sb.Append("</g>");
