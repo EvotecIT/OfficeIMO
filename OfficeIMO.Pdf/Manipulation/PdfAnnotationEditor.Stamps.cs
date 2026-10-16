@@ -45,6 +45,10 @@ internal static partial class PdfAnnotationEditor {
             throw new InvalidOperationException("The selected page object is not a dictionary.");
         }
 
+        var catalog = (PdfDictionary)objects[catalogObjectNumber].Value;
+        string? catalogVersion = catalog.Items.TryGetValue("Version", out PdfObject? version) &&
+            PdfObjectLookup.Resolve(objects, version) is PdfName versionName ? versionName.Name : null;
+        PdfFileVersion fileVersion = PdfFileAssembler.ResolveFileVersion(PdfSyntax.GetHeaderVersion(pdf), catalogVersion);
         int nextObjectNumber = NextAnnotationObjectNumber(objects);
         // Reserve every generated object before mutating the graph; post-increment must not wrap.
         _ = checked(nextObjectNumber + (imageStream?.SoftMask is not null ? 4 : 3) + (imageStream?.IccProfile is not null ? 1 : 0));
@@ -61,7 +65,7 @@ internal static partial class PdfAnnotationEditor {
                 objects[number] = new PdfIndirectObject(number, 0, stream);
                 generatedObjects.Add(number);
                 return number;
-            }, PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf)));
+            }, fileVersion);
         }
         int appearanceObjectNumber = nextObjectNumber++;
         int annotationObjectNumber = nextObjectNumber++;
@@ -170,10 +174,12 @@ internal static partial class PdfAnnotationEditor {
         string content;
         if (imageStream is not null) {
             OfficeImagePlacement placement = OfficeImageRenderPlan.CreateBottomLeft(
-                imageStream.PixelWidth, imageStream.PixelHeight, 0D, 0D, options.Width, options.Height, OfficeImageFit.Contain).ImagePlacement;
-            content = "q\n" + FormatStampNumber(placement.Width) + " 0 0 " +
-                FormatStampNumber(placement.Height) + " " + FormatStampNumber(placement.X) + " " +
-                FormatStampNumber(placement.Y) + " cm\n/Im1 Do\nQ\n";
+                imageStream.LayoutPixelWidth, imageStream.LayoutPixelHeight, 0D, 0D, options.Width, options.Height, OfficeImageFit.Contain).ImagePlacement;
+            var paint = new StringBuilder();
+            new ContentStreamBuilder(paint).SaveState()
+                .TransformMatrix(PdfWriter.GetImagePlacementTransform(imageStream, placement))
+                .XObject("Im1").RestoreState();
+            content = paint.ToString();
         } else {
             content = PdfAnnotationDictionaryBuilder.BuildStampAppearanceContent(
                 options.Width,

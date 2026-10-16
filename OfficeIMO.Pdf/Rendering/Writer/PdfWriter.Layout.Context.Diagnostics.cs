@@ -7,9 +7,11 @@ internal static partial class PdfWriter {
             TableCellTextLayout lines, int row, int startLine, int requestedLines, int visibleLines,
             double x, double top, double cellWidth, double cellHeight, double leading,
             double innerWidth, double verticalOffset, bool includeObjects, bool assessPageBounds = true) {
-            if (!currentOpts.HasDiagnosticsReport || cell.Viewport != null || cell.TextRotation != 0) return;
-
+            if (!currentOpts.HasDiagnosticsReport || _diagnosticPaintHidden || !_canvasEffectToPage.TryInvert(out _)) return;
             int expectedLines = Math.Max(0, Math.Min(requestedLines, lines.LineCount - startLine));
+            if (cell.TextRotation == 0 && visibleLines < expectedLines)
+                ReportOmittedInlineImagePaint(cell, lines, row, startLine + visibleLines, startLine + expectedLines, x, top, cellWidth, cellHeight);
+            if (cell.Viewport != null || cell.TextRotation != 0) return;
             if (visibleLines < expectedLines && !string.IsNullOrWhiteSpace(cell.Text)) {
                 ReportAuthoredLayoutDiagnostic("TableCellContentClipped", "PdfTableCell[" + row + "," + cell.Column + "]",
                     "Cell text exceeded the authored cell height and was clipped or omitted.",
@@ -62,12 +64,14 @@ internal static partial class PdfWriter {
             IReadOnlyList<List<RichSeg>> lines, IReadOnlyList<double> heights,
             double firstBaseline, double fontSize, double leading, PdfStandardFont font,
             double clipBottom, double clipHeight, double x, double top, double itemWidth, double itemHeight) {
-            if (!currentOpts.HasDiagnosticsReport) return;
+            if (!currentOpts.HasDiagnosticsReport || _diagnosticPaintHidden || !_canvasEffectToPage.TryInvert(out _)) return;
             double baseline = firstBaseline;
             for (int index = 0; index < lines.Count; index++) {
                 List<RichSeg> line = lines[index];
                 if (line.Any(segment => !segment.IsLineBoxStrut &&
-                    (segment.InlineElement != null || !string.IsNullOrWhiteSpace(segment.Text)))) {
+                    (segment.InlineElement is PdfInlineBox box
+                        ? box.Background.HasValue || box.BorderColor.HasValue && box.BorderWidth > 0D
+                        : segment.InlineElement == null && !string.IsNullOrWhiteSpace(segment.Text)))) {
                     double inkBaseline = AdjustRichLineBaseline(baseline, line, currentOpts, fontSize, font);
                     GetRichLineInkMetrics(line, currentOpts, out double ascent, out double descent);
                     if (inkBaseline + ascent < clipBottom - .001D ||

@@ -38,6 +38,7 @@ internal static partial class PdfStamper {
         double pageHeight,
         int pixelWidth,
         int pixelHeight,
+        OfficeImageOrientation orientation,
         PdfImageStampOptions options,
         bool watermarkDefaults) {
         double imageWidth = options.Width ?? pixelWidth;
@@ -51,6 +52,9 @@ internal static partial class PdfStamper {
             rotationCenterY: y)
             .CreateUnitSquareTransform();
 
+        if (orientation != OfficeImageOrientation.Normal) {
+            imageTransform = PdfWriter.GetImageOrientationTransform(orientation).Then(imageTransform);
+        }
         var sb = new StringBuilder();
         new ContentStreamBuilder(sb)
             .SaveState()

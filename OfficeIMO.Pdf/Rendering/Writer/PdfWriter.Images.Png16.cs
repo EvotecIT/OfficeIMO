@@ -73,6 +73,18 @@ internal static partial class PdfWriter {
             return false;
         }
 
+        if (!hasIntrinsicAlpha && transparency == null) {
+            // Keep the validated source filters and compressed samples when no alpha split is needed.
+            image = new PdfImageStream {
+                Data = compressedData,
+                PixelWidth = width,
+                PixelHeight = height,
+                BitsPerComponent = 16,
+                DictionarySuffix = BuildPngPredictorDictionarySuffix(baseChannels == 1 ? "/DeviceGray" : "/DeviceRGB", baseChannels, width, 16)
+            };
+            return true;
+        }
+
         if (!TryGetPngCheckedLength(width, height, baseChannels * 2, includeFilterByte: true, out int baseRowsLength) ||
             !TryGetPngCheckedLength(width, height, 2, includeFilterByte: true, out int alphaRowsLength)) {
             unsupportedReason = "PNG dimensions exceed supported limits.";

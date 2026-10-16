@@ -31,35 +31,36 @@ public sealed partial class PdfTableCellViewportTests {
     }
 
     [Theory]
-    [InlineData("flow", false)]
-    [InlineData("column", false)]
-    [InlineData("canvas", false)]
-    [InlineData("flow", true)]
-    [InlineData("column", true)]
-    [InlineData("canvas", true)]
-    public void Rotated_ink_outside_the_existing_image_clip_is_omitted_with_its_link(string mode, bool crop) {
-        var imageStyle = new PdfImageStyle { Align = PdfAlign.Center, RotationAngle = 90 };
-        if (crop) imageStyle.SourceCrop = new PdfImageSourceCrop { Bottom = .5 };
-        else imageStyle.ClipPath = OfficeClipPath.Rectangle(12, 12);
+    [InlineData("flow")]
+    [InlineData("column")]
+    [InlineData("canvas")]
+    public void Rotated_ink_outside_the_existing_image_clip_is_omitted_with_its_link(string mode) {
+        var imageStyle = new PdfImageStyle { Align = PdfAlign.Center, RotationAngle = 90,
+            ClipPath = OfficeClipPath.Rectangle(12, 12) };
         using PdfPigDocument fragment = PdfPigDocument.Open(RenderRotatedImage(mode, imageStyle));
         Assert.Empty(fragment.GetPage(1).GetImages());
         Assert.Empty(fragment.GetPage(1).GetHyperlinks());
     }
 
     [Theory]
-    [InlineData("flow")]
-    [InlineData("column")]
-    [InlineData("canvas")]
-    public void Source_crop_is_projected_before_intersecting_rotated_image_links_with_the_fragment(string mode) {
+    [InlineData("flow", false)]
+    [InlineData("column", false)]
+    [InlineData("canvas", false)]
+    [InlineData("flow", true)]
+    [InlineData("column", true)]
+    [InlineData("canvas", true)]
+    public void Source_crop_keeps_the_authored_rotation_pivot_and_rotated_link_bounds(string mode, bool top) {
         var imageStyle = new PdfImageStyle { Align = PdfAlign.Center, RotationAngle = 90,
-            SourceCrop = new PdfImageSourceCrop { Top = .5 } };
+            SourceCrop = top ? new PdfImageSourceCrop { Top = .5 } : new PdfImageSourceCrop { Bottom = .5 } };
         using PdfPigDocument fragment = PdfPigDocument.Open(RenderRotatedImage(mode, imageStyle));
         Assert.Single(fragment.GetPage(1).GetImages());
         var link = Assert.Single(fragment.GetPage(1).GetHyperlinks());
         Assert.Equal(24, link.Bounds.Left, 3);
-        Assert.Equal(64, link.Bounds.Right, 3);
-        Assert.Equal(150, link.Bounds.Bottom, 3);
-        Assert.Equal(156, link.Bounds.Top, 3);
+        // Either source half occupies the same authored 12 by 60 point frame.
+        // Rotation therefore preserves the same physical fragment and link rectangle.
+        Assert.Equal(34, link.Bounds.Right, 3);
+        Assert.Equal(120, link.Bounds.Bottom, 3);
+        Assert.Equal(132, link.Bounds.Top, 3);
     }
 
     private static byte[] RenderRotatedImage(string mode, PdfImageStyle imageStyle, bool fragment = true) {

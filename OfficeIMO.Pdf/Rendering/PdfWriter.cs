@@ -668,6 +668,7 @@ internal static partial class PdfWriter {
                         imageStream.DictionarySuffix += " /Interpolate true";
                         if (imageStream.SoftMask != null) imageStream.SoftMask.DictionarySuffix += " /Interpolate true";
                     }
+                    img.Orientation = imageStream.Orientation;
                     int imgId = EnsureImageXObject(imageStream);
                     if (!pageImageResourceNames.TryGetValue(imgId, out string? name)) {
                         name = "/Im" + (pageImageResourceNames.Count + 1).ToString(CultureInfo.InvariantCulture);
@@ -1774,6 +1775,9 @@ internal static partial class PdfWriter {
                 .EndPath();
         }
 
+        if (img.Orientation != OfficeImageOrientation.Normal) {
+            content.TransformMatrix(GetImageOrientationTransform(img.Orientation));
+        }
         content.XObject(img.Name)
             .RestoreState();
 

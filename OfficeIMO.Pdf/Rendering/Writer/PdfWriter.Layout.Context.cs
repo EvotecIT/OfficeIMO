@@ -227,6 +227,7 @@ internal static partial class PdfWriter {
                 sb.Insert(0, background.ToString());
                 behindTextCanvases.Clear();
             }
+            ReportFreeTextAnnotationDiagnostics();
             currentPage.Content = pageContents.Store(sb);
             pages.Add(currentPage);
             emittedPageGroups.Add(currentPage.PageGroupId);

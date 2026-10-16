@@ -99,6 +99,11 @@ internal static partial class PdfWriter {
                         : RegisterTextStructureElement(structureType, rowStructureElement, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan, logicalOrder: c);
                 }
 
+                if (cell.TextRotation == 0)
+                    ReportRichPaintDiagnostics("TableCell", "PdfTableCell[" + rowIndex + "," + c + "]", paragraph,
+                        visibleLines, visibleHeights, firstBaseline, rowSize, rowLeading, contentFrame.Left + cellPadLeft, innerW,
+                        new TableCellContentFrame(textClipX, inkClip.Top + textClipBleed, textClipWidth, inkClip.Height + 2D * textClipBleed),
+                        alignments: visibleAlignments, offsets: visibleXOffsets, widths: visibleWidths, baselineFont: cellFont);
                 if (cell.Viewport != null || style.PreservePartialCellLines)
                     OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                         paragraph.Align, firstBaseline, contentFrame.Left + cellPadLeft, innerW,

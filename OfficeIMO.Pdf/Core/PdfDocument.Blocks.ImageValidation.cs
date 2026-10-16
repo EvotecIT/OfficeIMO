@@ -202,12 +202,9 @@ public sealed partial class PdfDocument {
             // diagnostic instead of collapsing those payloads into an unknown header.
             if (LooksLikePng(data)) {
                 if (PdfWriter.TryGetPngImageData(data, cancellationToken, out PdfWriter.PdfImageStream pngImage, out string? pngReason)) {
-                    return new PreparedImage(
-                        CloneWithCancellation(data, cancellationToken),
-                        new OfficeImageInfo(OfficeImageFormat.Png, pngImage.PixelWidth, pngImage.PixelHeight),
-                        OfficeImageFormat.Png,
-                        wasTranscoded: false,
-                        pngImage);
+                    return PrepareImageWithOrientation(CloneWithCancellation(data, cancellationToken),
+                        new OfficeImageInfo(OfficeImageFormat.Png, pngImage.PixelWidth, pngImage.PixelHeight), pngImage,
+                        OfficeImageMetadataInspector.Inspect(data, OfficeImageFormat.Png, 0L, cancellationToken).Orientation);
                 }
 
                 string suffix = string.IsNullOrWhiteSpace(pngReason) ? string.Empty : " " + pngReason;
@@ -226,11 +223,6 @@ public sealed partial class PdfDocument {
         if (hasEmbeddedIccProfile && sourceMetadata.Icc == null && sourceInfo.Format != OfficeImageFormat.Png) {
             throw new NotSupportedException(
                 SupportedImageMessage + " The embedded ICC profile cannot be retained or normalized safely.");
-        }
-
-        if (OfficeImageOrientationNormalizer.TryRead(data, cancellationToken, out OfficeImageOrientation orientation) &&
-            orientation != OfficeImageOrientation.Normal) {
-            return PrepareOrientedImage(data, sourceInfo, sourceMetadata, orientation, cancellationToken);
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Jpeg) {
@@ -255,7 +247,9 @@ public sealed partial class PdfDocument {
                         out string? jpegTranscodeLimitReason)) {
                     throw new NotSupportedException(SupportedImageMessage + " " + jpegTranscodeLimitReason);
                 }
-                if (!OfficeImagePngConverter.TryConvertToPng(data, cancellationToken, out byte[] normalizedJpegPng) ||
+                if (!OfficeImagePngConverter.TryConvertToPng(data,
+                        new OfficeRasterDecodeOptions { ApplyExifOrientation = false, CancellationToken = cancellationToken },
+                        out byte[] normalizedJpegPng, out _) ||
                     !OfficeImageReader.TryIdentify(normalizedJpegPng, null, cancellationToken, out OfficeImageInfo normalizedJpegInfo)) {
                     throw new NotSupportedException(SupportedImageMessage + " JPEG data could not be normalized safely for PDF embedding.");
                 }
@@ -267,33 +261,22 @@ public sealed partial class PdfDocument {
                     string suffix = string.IsNullOrWhiteSpace(normalizedJpegReason) ? string.Empty : " " + normalizedJpegReason;
                     throw new NotSupportedException(SupportedImageMessage + " JPEG data could not be normalized safely for PDF embedding." + suffix);
                 }
-                return new PreparedImage(
-                    normalizedJpegPng,
-                    normalizedJpegInfo,
-                    sourceInfo.Format,
-                    wasTranscoded: true,
-                    normalizedJpegStream);
+                return PrepareImageWithOrientation(normalizedJpegPng, normalizedJpegInfo, normalizedJpegStream,
+                    sourceMetadata.Orientation, wasTranscoded: true, sourceInfo.Format);
             }
             if (componentCount != 0 && componentCount != 1 && componentCount != 3) {
                 throw new NotSupportedException(SupportedImageMessage + " JPEG component count is not supported for PDF embedding.");
             }
             byte[] jpegSnapshot = CloneWithCancellation(data, cancellationToken);
-            return new PreparedImage(
-                jpegSnapshot,
-                sourceInfo,
-                sourceInfo.Format,
-                wasTranscoded: false,
-                PdfWriter.CreatePreparedJpegStream(jpegSnapshot, sourceInfo, hasComponentCount ? componentCount : 0, cancellationToken));
+            return PrepareImageWithOrientation(jpegSnapshot, sourceInfo,
+                PdfWriter.CreatePreparedJpegStream(jpegSnapshot, sourceInfo, hasComponentCount ? componentCount : 0, cancellationToken),
+                sourceMetadata.Orientation);
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Png) {
             if (PdfWriter.TryGetPngImageData(data, cancellationToken, out PdfWriter.PdfImageStream sourcePngImage, out string? sourcePngReason)) {
-                return new PreparedImage(
-                    CloneWithCancellation(data, cancellationToken),
-                    sourceInfo,
-                    sourceInfo.Format,
-                    wasTranscoded: false,
-                    sourcePngImage);
+                return PrepareImageWithOrientation(CloneWithCancellation(data, cancellationToken), sourceInfo,
+                    sourcePngImage, sourceMetadata.Orientation);
             }
 
             string suffix = string.IsNullOrWhiteSpace(sourcePngReason) ? string.Empty : " " + sourcePngReason;
@@ -312,7 +295,9 @@ public sealed partial class PdfDocument {
             throw new NotSupportedException(SupportedImageMessage + " " + transcodeLimitReason);
         }
 
-        if (!OfficeImagePngConverter.TryConvertToPng(data, cancellationToken, out byte[] normalizedPng)) {
+        if (!OfficeImagePngConverter.TryConvertToPng(data,
+                new OfficeRasterDecodeOptions { ApplyExifOrientation = false, CancellationToken = cancellationToken },
+                out byte[] normalizedPng, out _)) {
             throw new NotSupportedException(
                 $"{SupportedImageMessage} Detected {sourceInfo.Format} ({sourceInfo.MimeType}), but it could not be normalized.");
         }
@@ -335,12 +320,8 @@ public sealed partial class PdfDocument {
                     normalizedImage.PixelHeight,
                     sourceInfo.DpiX,
                     sourceInfo.DpiY);
-        return new PreparedImage(
-            normalizedPng,
-            normalizedInfo,
-            sourceInfo.Format,
-            wasTranscoded: true,
-            normalizedImage);
+        return PrepareImageWithOrientation(normalizedPng, normalizedInfo, normalizedImage,
+            sourceMetadata.Orientation, wasTranscoded: true, sourceInfo.Format);
     }
 
     private static bool BytesEqual(byte[] left, byte[] right) {

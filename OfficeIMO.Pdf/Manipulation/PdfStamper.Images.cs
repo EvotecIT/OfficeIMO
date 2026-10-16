@@ -98,7 +98,7 @@ internal static partial class PdfStamper {
                 int number = nextObjectNumber++;
                 rewrittenObjects[number] = new PdfIndirectObject(number, 0, stream);
                 return number;
-            }, PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf)));
+            }, PdfFileAssembler.ResolveFileVersion(PdfSyntax.GetHeaderVersion(pdf), document.CatalogVersion));
 
             for (int i = 0; i < document.Pages.Count; i++) {
                 int pageNumber = i + 1;
@@ -115,8 +115,9 @@ internal static partial class PdfStamper {
                         imageResourceName,
                         size.Width,
                         size.Height,
-                        imageStream.PixelWidth,
-                        imageStream.PixelHeight,
+                        imageStream.LayoutPixelWidth,
+                        imageStream.LayoutPixelHeight,
+                        imageStream.Orientation,
                         effectiveOptions,
                         watermarkDefaults));
                 Dictionary<string, PdfObject> pageOverrides = BuildImagePageOverrides(

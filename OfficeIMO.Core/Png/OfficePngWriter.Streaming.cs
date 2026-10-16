@@ -72,28 +72,6 @@ public static partial class OfficePngWriter {
         OfficePngEncodeOptions options,
         System.Threading.CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
-        EncodeToWithColorLayout(image, destination, options, preserveRgbColorSpace: false,
-            checkpointObserver, cancellationToken);
-    }
-
-    /// <summary>Retains RGB samples when the caller will attach an RGB color profile.</summary>
-    /// <remarks>Alpha is retained; opaque monochrome pixels are not reduced to a grayscale PNG.</remarks>
-    internal static void EncodeRgbTo(
-        OfficeRasterImage image,
-        Stream destination,
-        OfficePngEncodeOptions options,
-        System.Threading.CancellationToken cancellationToken) {
-        EncodeToWithColorLayout(image, destination, options, preserveRgbColorSpace: true,
-            checkpointObserver: null, cancellationToken);
-    }
-
-    private static void EncodeToWithColorLayout(
-        OfficeRasterImage image,
-        Stream destination,
-        OfficePngEncodeOptions options,
-        bool preserveRgbColorSpace,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver,
-        System.Threading.CancellationToken cancellationToken) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (options == null) throw new ArgumentNullException(nameof(options));
         ValidateDpi(options.DpiX, nameof(options.DpiX));
@@ -107,8 +85,7 @@ public static partial class OfficePngWriter {
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
             cancellationToken,
-            checkpointObserver,
-            preserveRgbColorSpace: preserveRgbColorSpace);
+            checkpointObserver);
     }
 
 #if NET8_0_OR_GREATER
@@ -143,8 +120,7 @@ public static partial class OfficePngWriter {
         double? dpiY,
         System.Threading.CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null,
-        MemoryStream? ownedOutput = null,
-        bool preserveRgbColorSpace = false) {
+        MemoryStream? ownedOutput = null) {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateRgba(width, height, rgba);
         OfficeRasterOutput.EnsureWritable(destination);
@@ -154,7 +130,6 @@ public static partial class OfficePngWriter {
 
         int colorType = compression == OfficePngCompression.Optimal
             ? SelectOptimalColorType(rgba, cancellationToken, checkpointObserver) : 6;
-        if (preserveRgbColorSpace && colorType == 0) colorType = 2;
         bool bilevel = colorType == 0;
         bool rgb = colorType == 2;
         destination.Write(PngSignature, 0, PngSignature.Length);

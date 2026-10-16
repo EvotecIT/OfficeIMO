@@ -16,11 +16,22 @@ also share storage while retaining each page occurrence. Output keeps classic cr
 tables; compact object/xref streams remain available through `Optimization`.
 
 Supported PNG/JPEG ICC profiles are retained as ICCBased image resources. Indexed PNGs
-keep their palette and transparency mask. EXIF orientation is applied once during shared
-image preparation through the existing eight-bit RGB(A) normalizer. Untransformed
-sixteen-bit PNG colour and alpha samples are retained with PDF 1.5+ output; PDF 1.4
-rounds them to eight bits. JPEG DCT pass-through and repeated-image
-sharing remain available when no orientation or other pixel transform is required.
+keep their palette and transparency mask. EXIF rotation and mirroring use placement matrices, and layout uses the oriented
+dimensions. JPEG DCT payloads, PNG sample depth, profiles, transparency masks and
+repeated-image sharing survive orientation changes. Sixteen-bit PNG colour and alpha
+samples are retained with PDF 1.5+ output; PDF 1.4 rounds them to eight bits. Visible
+signature images use the same image-resource allocator and target-version rules.
+Managed display and PDF-to-drawing replay apply the PDF placement exactly once;
+image extraction retains the original JPEG bytes.
+
+Attach a `PdfConversionReport` through `ReportDiagnosticsTo(...)` to inspect authored
+overflow and clipping in rows, fixed boxes, paragraph frames, rotated and viewport
+cells, free-text annotations, and running content. Paint checks include glyph ink,
+decorations and inline elements. Standard-font checks use Adobe glyph bounds;
+embedded-font checks use the selected outlines. Reports distinguish preserved overflow from clipped
+paint. Bounded inspection reports unassessed geometry when its limits are exceeded
+or nominal standard-font bounds cannot prove loss through a partial path clip. These checks
+do not change layout or text emission.
 
 ## Header and footer content
 

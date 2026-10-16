@@ -8,13 +8,19 @@ internal static partial class PdfWriter {
         private OfficeTransform _canvasEffectToPage = OfficeTransform.Identity;
 
         private void RenderCanvasEffect(PdfCanvasEffectItem item) {
-            if (item.Opacity >= 1D && item.BlendMode == OfficeBlendMode.Normal) {
-                OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight);
-                RenderOpaqueEffectGroupInline(transform, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
-                return;
-            }
+            bool previousHidden = _diagnosticPaintHidden;
+            _diagnosticPaintHidden |= item.Opacity <= 0D;
+            try {
+                if (item.Opacity >= 1D && item.BlendMode == OfficeBlendMode.Normal) {
+                    OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight);
+                    RenderOpaqueEffectGroupInline(transform, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
+                    return;
+                }
 
-            RenderEffectGroup(item.Transform, item.Opacity, item.BlendMode, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
+                RenderEffectGroup(item.Transform, item.Opacity, item.BlendMode, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
+            } finally {
+                _diagnosticPaintHidden = previousHidden;
+            }
         }
 
         private void RenderEffectGroup(OfficeTransform topLeftPageTransform, double opacity, Action renderContent) =>

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PdfAuthoringLayoutDiagnosticsTests {
+public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     [Theory]
     [InlineData("flow", true)]
     [InlineData("column", true)]

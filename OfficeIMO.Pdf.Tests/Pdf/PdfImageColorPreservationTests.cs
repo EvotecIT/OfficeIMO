@@ -54,33 +54,6 @@ public sealed class PdfImageColorPreservationTests {
         Assert.Equal(bits == 16 ? new byte[] { 0, 0x40, 0 } : new byte[] { 0, 64 }, FlateDecoder.Decode(mask.Data));
     }
 
-    [Theory]
-    [InlineData(2, 2, 1)]
-    [InlineData(6, 1, 2)]
-    [InlineData(8, 1, 2)]
-    public void OrdinaryImageUsesSharedExifPreparation(int orientation, int width, int height) {
-        var raster = new OfficeRasterImage(2, 1);
-        raster.SetPixel(0, 0, OfficeColor.Red);
-        raster.SetPixel(1, 0, OfficeColor.Blue);
-        byte[] jpeg = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {
-            Quality = 100,
-            Subsampling = OfficeJpegSubsampling.Y444,
-            Metadata = new OfficeJpegMetadata(exif: new byte[] {
-                (byte)'I', (byte)'I', 42, 0, 8, 0, 0, 0,
-                1, 0, 0x12, 1, 3, 0, 1, 0, 0, 0,
-                (byte)orientation, 0, 0, 0, 0, 0, 0, 0
-            })
-        });
-        Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(jpeg, out byte[] expected, out _));
-        byte[] pdf = PdfDocument.Create().Image(jpeg, 20, 20).ToBytes();
-        var extracted = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
-        Assert.Equal(width, extracted.Width);
-        Assert.Equal(height, extracted.Height);
-        Assert.True(OfficePngReader.TryDecode(expected, out var expectedRaster));
-        Assert.True(OfficePngReader.TryDecode(extracted.Bytes, out var actualRaster));
-        Assert.Equal(expectedRaster!.GetPixels(), actualRaster!.GetPixels());
-    }
-
     [Fact]
     public void PngRejectsIncompatibleProfileInsteadOfMislabelingSamples() {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;

@@ -506,6 +506,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageImage {
+        public OfficeImageOrientation Orientation { get; set; } = OfficeImageOrientation.Normal;
         public bool Interpolate { get; set; }
         public byte[] Data { get; set; } = System.Array.Empty<byte>();
         public OfficeImageInfo Info { get; set; } = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);

@@ -22,6 +22,9 @@ internal static partial class PdfWriter {
         public int PixelWidth { get; set; }
         public int PixelHeight { get; set; }
         public int BitsPerComponent { get; set; } = 8;
+        public OfficeImageOrientation Orientation { get; set; } = OfficeImageOrientation.Normal;
+        internal int LayoutPixelWidth => Orientation >= OfficeImageOrientation.Transpose ? PixelHeight : PixelWidth;
+        internal int LayoutPixelHeight => Orientation >= OfficeImageOrientation.Transpose ? PixelWidth : PixelHeight;
         public PdfImageStream? SoftMask { get; set; }
         public byte[]? IccProfile { get; set; }
         public int IccComponents { get; set; }
@@ -38,6 +41,7 @@ internal static partial class PdfWriter {
             PixelWidth = PixelWidth,
             PixelHeight = PixelHeight,
             BitsPerComponent = BitsPerComponent,
+            Orientation = Orientation,
             IccProfile = IccProfile,
             IccComponents = IccComponents,
             IndexedPalette = IndexedPalette,
@@ -789,11 +793,15 @@ internal static partial class PdfWriter {
         unsupportedReason = null;
 
         if (info.Format == OfficeImageFormat.Png) {
-            return TryGetPngImageData(data, cancellationToken, out image, out unsupportedReason);
+            if (!TryGetPngImageData(data, cancellationToken, out image, out unsupportedReason)) return false;
+            image.Orientation = OfficeImageMetadataInspector.Inspect(data, info.Format, 0L, cancellationToken).Orientation;
+            return true;
         }
 
-        int pixelWidth = info.Width > 0 ? info.Width : Math.Max(1, (int)Math.Round(fallbackWidth));
-        int pixelHeight = info.Height > 0 ? info.Height : Math.Max(1, (int)Math.Round(fallbackHeight));
+        OfficeImageInfo storedInfo = OfficeImageReader.TryIdentify(data, null, cancellationToken, out OfficeImageInfo identified)
+            ? identified : info;
+        int pixelWidth = storedInfo.Width > 0 ? storedInfo.Width : Math.Max(1, (int)Math.Round(fallbackWidth));
+        int pixelHeight = storedInfo.Height > 0 ? storedInfo.Height : Math.Max(1, (int)Math.Round(fallbackHeight));
         string colorSpace = "/DeviceRGB";
         if (TryGetJpegComponentCount(data, cancellationToken, out int componentCount)) {
             if (componentCount == 1) colorSpace = "/DeviceGray";
@@ -808,6 +816,7 @@ internal static partial class PdfWriter {
             Data = data,
             PixelWidth = pixelWidth,
             PixelHeight = pixelHeight,
+            Orientation = OfficeImageMetadataInspector.Inspect(data, OfficeImageFormat.Jpeg, 0L, cancellationToken).Orientation,
             DictionarySuffix = " /ColorSpace " + colorSpace + " /BitsPerComponent 8 /Filter /DCTDecode"
         };
         cancellationToken.ThrowIfCancellationRequested();

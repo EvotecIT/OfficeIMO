@@ -140,8 +140,10 @@ public class PdfSignatureProfileTests {
         Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
         Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
         Assert.Equal("Image", Assert.IsType<PdfName>(embeddedImage.Dictionary.Items["Subtype"]).Name);
-        Assert.Equal(1, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Width"]).Value);
-        Assert.Equal(2, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Height"]).Value);
+        Assert.Equal(2, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Width"]).Value);
+        Assert.Equal(1, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Height"]).Value);
+        Assert.Equal(appearance.ImageBytes, embeddedImage.Data);
+        Assert.Equal("DCTDecode", embeddedImage.Dictionary.Get<PdfName>("Filter")?.Name);
     }
 
     [Fact]
