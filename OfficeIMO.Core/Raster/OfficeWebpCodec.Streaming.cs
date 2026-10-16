@@ -10,13 +10,13 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeWebpCodec {
     private const int LiteralStreamBufferSize = 16 * 1024;
     /// <summary>Encodes an RGBA image directly to a caller-owned writable stream.</summary>
-    /// <remarks>The destination remains open. Direct lossless stream encoding uses a literal VP8L stream with a predictable encoded length.</remarks>
+    /// <remarks>The destination remains open. Uses bounded VP8L compression, with literal fallback when its pixel or memory ceiling is exceeded.</remarks>
     public static void EncodeTo(OfficeRasterImage image, Stream destination) {
         EncodeStreaming(image, destination, includeResolutionMetadata: false, 96D, 96D, CancellationToken.None);
     }
 
     /// <summary>Encodes an RGBA image with Exif resolution metadata directly to a writable stream.</summary>
-    /// <remarks>The destination remains open. Direct lossless stream encoding uses a literal VP8L stream with a predictable encoded length.</remarks>
+    /// <remarks>The destination remains open. Uses bounded VP8L compression, with literal fallback when its pixel or memory ceiling is exceeded.</remarks>
     public static void EncodeTo(
         OfficeRasterImage image,
         Stream destination,
@@ -81,35 +81,40 @@ public static partial class OfficeWebpCodec {
 
         byte[] pixels = image.PixelBuffer;
         bool hasAlpha = HasTransparency(pixels, cancellationToken);
-        int payloadLength = checked(1 + (int)((LiteralHeaderBitCount + pixels.LongLength * 8L + 7L) / 8L));
-        int paddedPayloadLength = checked(payloadLength + (payloadLength & 1));
+        int literalPayloadLength = checked(1 + (int)((LiteralHeaderBitCount + pixels.LongLength * 8L + 7L) / 8L));
         byte[]? exif = includeResolutionMetadata
             ? CreateResolutionExif(image.Width, image.Height, dpiX, dpiY)
             : null;
-        int paddedExifLength = exif == null ? 0 : checked(exif.Length + (exif.Length & 1));
-        int fileLength = exif == null
-            ? checked(20 + paddedPayloadLength)
-            : checked(12 + 18 + 8 + paddedPayloadLength + 8 + paddedExifLength);
-        if (fileLength > OfficeRasterGuards.MaximumEncodedBytes) {
-            throw new ArgumentException("WebP output exceeds encoded-size limits.", nameof(image));
-        }
+        byte[]? compressedPayload;
         try {
-            long outputPeakBytes = OfficeRasterOutput.TryGetMemoryStream(destination, out MemoryStream? outputStream)
-                ? OfficeRasterOutput.GetMemoryStreamBlockWritePeakBytes(outputStream!, fileLength, materializeOutput,
-                    Math.Max(Math.Min(payloadLength - 1, LiteralStreamBufferSize), Math.Max(exif?.Length ?? 0, 8)),
-                    exif == null ? 20 : 38, 1, Math.Min(payloadLength - 1, LiteralStreamBufferSize))
-                : 0L;
-            long peakBytes = checked(
-                additionalRetainedManagedBytes + pixels.LongLength + 24L +
-                outputPeakBytes +
-                (exif?.LongLength ?? 0L) + 24L +
-                LiteralStreamBufferSize + 24L + (exif == null ? 20L : 38L + 8L + 24L) + 24L);
-            if (peakBytes > OfficeRasterGuards.MaximumDecodedBytes) {
-                throw new ArgumentException("WebP encoding exceeds the managed working-set limit.", nameof(image));
-            }
+            // The candidate builder already reserves the source, pixel workspace,
+            // match chains, payload-growth peak, metadata and a materialized output.
+            // Include the caller's existing backing storage and stream headers as well.
+            long retainedOutput = OfficeRasterOutput.TryGetMemoryStream(destination, out MemoryStream? memory)
+                ? checked(OfficeRasterOutput.GetMemoryStreamBackingBytes(memory!) + 24L) : 0L;
+            compressedPayload = TryEncodeCompressedVp8l(image.Width, image.Height, hasAlpha, pixels,
+                GetFileLength(literalPayloadLength, exif?.Length ?? 0), exif?.LongLength ?? 0L,
+                checked(additionalRetainedManagedBytes + retainedOutput + 128L), cancellationToken, checkpointObserver);
         } catch (OverflowException) {
             throw new ArgumentException("WebP encoding exceeds the managed working-set limit.", nameof(image));
         }
+        // Streaming uses compressed VP8L whenever its bounded workspace is available,
+        // including high-entropy images. It never allocates a whole RIFF output buffer.
+        // An actual destination-growth peak can still require the literal fallback.
+        if (compressedPayload != null && !IsVp8lStreamWorkingSetWithinLimit(image, destination,
+                compressedPayload.Length, compressedPayload.LongLength + 24L, exif, materializeOutput,
+                additionalRetainedManagedBytes, compressed: true)) compressedPayload = null;
+        int payloadLength = compressedPayload?.Length ?? literalPayloadLength;
+        int fileLength = GetFileLength(payloadLength, exif?.Length ?? 0);
+        if (fileLength > OfficeRasterGuards.MaximumEncodedBytes) {
+            throw new ArgumentException("WebP output exceeds encoded-size limits.", nameof(image));
+        }
+        if (!IsVp8lStreamWorkingSetWithinLimit(image, destination, payloadLength,
+                compressedPayload == null ? 0L : compressedPayload.LongLength + 24L,
+                exif, materializeOutput, additionalRetainedManagedBytes, compressedPayload != null)) {
+            throw new ArgumentException("WebP encoding exceeds the managed working-set limit.", nameof(image));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
 
         byte[] header;
         if (exif == null) {
@@ -133,7 +138,60 @@ public static partial class OfficeWebpCodec {
             WriteUInt32(header, 34, payloadLength);
         }
         destination.Write(header, 0, header.Length);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (compressedPayload != null) {
+            for (int offset = 0; offset < compressedPayload.Length;) {
+                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.WebpCompressionBlock);
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(LiteralStreamBufferSize, compressedPayload.Length - offset);
+                destination.Write(compressedPayload, offset, count);
+                cancellationToken.ThrowIfCancellationRequested();
+                offset += count;
+            }
+        } else {
+            WriteLiteralVp8lStream(image, destination, hasAlpha, payloadLength, cancellationToken, checkpointObserver);
+        }
+        if ((payloadLength & 1) != 0) destination.WriteByte(0);
 
+        if (exif != null) {
+            var exifHeader = new byte[8];
+            WriteAscii(exifHeader, 0, "EXIF");
+            WriteUInt32(exifHeader, 4, exif.Length);
+            cancellationToken.ThrowIfCancellationRequested();
+            destination.Write(exifHeader, 0, exifHeader.Length);
+            cancellationToken.ThrowIfCancellationRequested();
+            destination.Write(exif, 0, exif.Length);
+            if ((exif.Length & 1) != 0) destination.WriteByte(0);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static bool IsVp8lStreamWorkingSetWithinLimit(OfficeRasterImage image, Stream destination,
+        int payloadLength, long retainedPayloadBytes, byte[]? exif, bool materializeOutput,
+        long additionalRetainedManagedBytes, bool compressed) {
+        try {
+            int fileLength = GetFileLength(payloadLength, exif?.Length ?? 0);
+            if (fileLength > OfficeRasterGuards.MaximumEncodedBytes) return false;
+            int firstPayloadWrite = compressed ? Math.Min(payloadLength, LiteralStreamBufferSize) : 1;
+            int thirdWrite = compressed ? 0 : Math.Min(payloadLength - 1, LiteralStreamBufferSize);
+            int maximumBlock = Math.Max(Math.Min(payloadLength, LiteralStreamBufferSize), Math.Max(exif?.Length ?? 0, 8));
+            long outputPeak = OfficeRasterOutput.TryGetMemoryStream(destination, out MemoryStream? memory)
+                ? OfficeRasterOutput.GetMemoryStreamBlockWritePeakBytes(memory!, fileLength, materializeOutput,
+                    maximumBlock, exif == null ? 20 : 38, firstPayloadWrite, thirdWrite) : 0L;
+            long peak = checked(additionalRetainedManagedBytes + image.PixelBuffer.LongLength + 24L +
+                retainedPayloadBytes + outputPeak + (exif?.LongLength ?? 0L) + 24L +
+                (compressed ? 0L : LiteralStreamBufferSize + 24L) +
+                (exif == null ? 20L : 38L + 8L + 24L) + 24L);
+            return peak <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static void WriteLiteralVp8lStream(OfficeRasterImage image, Stream destination, bool hasAlpha,
+        int payloadLength, CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
+        byte[] pixels = image.PixelBuffer;
         destination.WriteByte(0x2F);
         using var writer = new StreamLsbBitWriter(destination);
         writer.WriteBits((uint)(image.Width - 1), 14);
@@ -161,16 +219,6 @@ public static partial class OfficeWebpCodec {
         writer.Flush();
         if (writer.BytesWritten != payloadLength - 1) {
             throw new InvalidOperationException("The literal WebP payload length calculation is inconsistent.");
-        }
-        if ((payloadLength & 1) != 0) destination.WriteByte(0);
-
-        if (exif != null) {
-            var exifHeader = new byte[8];
-            WriteAscii(exifHeader, 0, "EXIF");
-            WriteUInt32(exifHeader, 4, exif.Length);
-            destination.Write(exifHeader, 0, exifHeader.Length);
-            destination.Write(exif, 0, exif.Length);
-            if ((exif.Length & 1) != 0) destination.WriteByte(0);
         }
     }
 
