@@ -16,7 +16,7 @@ internal static class MarkerImageContract {
             throw new InvalidOperationException("The NativeAOT list and footnote markers lost their generated PNG sources.");
         }
         if (!OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out _)
-            || CountMarkerIslands(OfficeDrawingRasterRenderer.Render(drawing!, 2D, OfficeColor.White)) != 2) {
+            || CountMarkerIslands(OfficeDrawingRasterRenderer.Render(drawing!, 2D, OfficeColor.White), allowWhiteCompositedPaint: true) != 2) {
             throw new InvalidOperationException("The NativeAOT SVG lost visible list or footnote image-marker paint.");
         }
         if (!OfficePngReader.TryDecode(png, out OfficeRasterImage? raster) || CountMarkerIslands(raster!) != 2) {
@@ -24,14 +24,14 @@ internal static class MarkerImageContract {
         }
     }
 
-    private static int CountMarkerIslands(OfficeRasterImage image) {
+    private static int CountMarkerIslands(OfficeRasterImage image, bool allowWhiteCompositedPaint = false) {
         var visited = new bool[checked(image.Width * image.Height)];
         var pending = new Queue<int>();
         int islands = 0;
         for (int y = 0; y < image.Height; y++) {
             for (int x = 0; x < image.Width; x++) {
                 int start = y * image.Width + x;
-                if (visited[start] || image.GetPixel(x, y) != MarkerColor) continue;
+                if (visited[start] || !IsMarkerPaint(image.GetPixel(x, y), allowWhiteCompositedPaint)) continue;
                 visited[start] = true;
                 pending.Enqueue(start);
                 int pixels = 0;
@@ -49,10 +49,21 @@ internal static class MarkerImageContract {
         void Visit(int x, int y) {
             if (x < 0 || y < 0 || x >= image.Width || y >= image.Height) return;
             int pixel = y * image.Width + x;
-            if (visited[pixel] || image.GetPixel(x, y) != MarkerColor) return;
+            if (visited[pixel] || !IsMarkerPaint(image.GetPixel(x, y), allowWhiteCompositedPaint)) return;
             visited[pixel] = true;
             pending.Enqueue(pixel);
         }
+    }
+
+    private static bool IsMarkerPaint(OfficeColor pixel, bool allowWhiteCompositedPaint) {
+        if (pixel == MarkerColor) return true;
+        if (!allowWhiteCompositedPaint || pixel.A != 255) return false;
+        // SVG nearest-neighbor images use adjacent row bands. Their rasterized
+        // edges can blend with white without splitting one visible marker.
+        double coverage = (255D - pixel.G) / (255D - MarkerColor.G);
+        return coverage >= 0.5D && coverage <= 1D
+            && Math.Abs(pixel.R - (255D + (MarkerColor.R - 255D) * coverage)) <= 2D
+            && Math.Abs(pixel.B - (255D + (MarkerColor.B - 255D) * coverage)) <= 2D;
     }
 
     private static IEnumerable<HtmlRenderVisual> Visuals(IEnumerable<HtmlRenderVisual> source) {
