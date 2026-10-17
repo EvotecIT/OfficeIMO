@@ -435,16 +435,19 @@ public sealed partial class OfficeFontFaceCollection {
         var explicitlySelectedFaces = new HashSet<string>(
             OfficeFontFamilyParser.Parse(requestedFamilies),
             StringComparer.OrdinalIgnoreCase);
-        var resolvedFamilies = new Dictionary<string, string>(StringComparer.Ordinal);
+        var resolvedFamilies = new Dictionary<string, (string Family, OfficeFontFace? Face)>(StringComparer.Ordinal);
         var runs = new List<OfficeFontFallbackRun>();
         var currentText = new StringBuilder();
         string? currentFamily = null;
+        OfficeFontFace? currentFace = null;
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             string family;
-            if (CanInheritWhitespace(element, currentFamily, candidates, explicitlySelectedFaces)) {
+            OfficeFontFace? selectedFace;
+            if (CanInheritWhitespace(element, currentFace, explicitlySelectedFaces)) {
                 family = currentFamily!;
+                selectedFace = currentFace;
             } else {
-                if (!resolvedFamilies.TryGetValue(element, out string? resolvedFamily)) {
+                if (!resolvedFamilies.TryGetValue(element, out var selection)) {
                     OfficeFontFace? face = null;
                     for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
                         OfficeFontFace candidate = candidates[candidateIndex];
@@ -453,25 +456,30 @@ public sealed partial class OfficeFontFaceCollection {
                         face = candidate;
                         break;
                     }
-                    resolvedFamily = face?.ResourceFamilyName ??
-                        (OfficeMissingSpaceMetrics.ContainsEmSpace(element)
-                            ? ResolveSynthesizedSpaceFace(element, currentFamily, candidates, explicitlySelectedFaces)?.ResourceFamilyName
-                                ?? requestedFamilies
-                            : requestedFamilies);
+                    bool mappedFace = face != null;
+                    if (face == null && OfficeMissingSpaceMetrics.ContainsEmSpace(element))
+                        face = ResolveSynthesizedSpaceFace(element, currentFace, candidates, explicitlySelectedFaces);
+                    selection = (face?.ResourceFamilyName ?? requestedFamilies, face);
                     // Synthesis follows every mapped-glyph candidate and requires
                     // an eligible face for the complete element. Its preference
                     // for the preceding face depends on position, so do not cache it.
-                    if (face != null || !OfficeMissingSpaceMetrics.ContainsEmSpace(element))
-                        resolvedFamilies.Add(element, resolvedFamily);
+                    if (mappedFace || !OfficeMissingSpaceMetrics.ContainsEmSpace(element))
+                        resolvedFamilies.Add(element, selection);
                 }
-                family = resolvedFamily;
+                family = selection.Family;
+                selectedFace = selection.Face;
             }
-            if (currentFamily != null && !string.Equals(currentFamily, family, StringComparison.OrdinalIgnoreCase)) {
+            // A family can supply different styled faces for adjacent glyphs.
+            // Keep those runs separate so measuring or painting cannot resolve
+            // the merged text to one less-preferred face covering the whole run.
+            if (currentFamily != null && (!string.Equals(currentFamily, family, StringComparison.OrdinalIgnoreCase)
+                || !ReferenceEquals(currentFace, selectedFace))) {
                 runs.Add(new OfficeFontFallbackRun(currentText.ToString(), currentFamily));
                 currentText.Clear();
             }
 
             currentFamily = family;
+            currentFace = selectedFace;
             currentText.Append(element);
         }
 

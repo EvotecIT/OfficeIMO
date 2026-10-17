@@ -222,7 +222,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : double.NaN;
         string fontPalette = ResolveInheritedKeyword(computed.GetValue("font-palette"), parent?.FontPalette, "normal");
 
-        double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent, out double alignmentLineHeight);
+        double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent, out double alignmentLineHeight, out bool usesNaturalLineHeight);
         string verticalAlign = ResolveTextVerticalAlign(pseudoElement ? string.Empty : tag, computed);
         int baselineLevel = ResolveTextBaselineLevel(verticalAlign, parent?.BaselineLevel ?? 0);
         double baselineOffset = ResolveTextBaselineOffset(
@@ -270,6 +270,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
             CharacterAdvance = _activeCharacterAdvance,
             LineHeight = lineHeight,
+            UsesNaturalLineHeight = usesNaturalLineHeight,
             InlineAlignmentLineHeight = alignmentLineHeight,
             LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
@@ -858,7 +859,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.MarginBottom = 8D;
             style.MarginLeft = 8D;
         }
-        if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "table" || tag == "figure" || tag == "ul" || tag == "ol") {
+        if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "figure" || tag == "ul" || tag == "ol"
+            || tag == "table" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Document) {
             style.MarginBottom = fontSize;
         } else if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') {
             style.MarginTop = fontSize * 0.67D;
