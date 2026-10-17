@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   request:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-apple-testflight-request.yml@9c81bfdf8425a65a442aa983e6254747aa1c16c6
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-apple-testflight-request.yml@fb87376415a57747994d85f089d52c979398ad52
     with:
       operation: ${{ inputs.operation }}
       pull_request: ${{ inputs.pull_request }}
