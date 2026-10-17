@@ -95,10 +95,16 @@ Run this probe in a process with an isolated `TMPDIR` (or `TEMP` on Windows),
 without parallel consumers. A custom text handler observes private snapshot files
 while the outer ZIP inspection is alive. The report checks one input-sized
 snapshot for path and stream dispatch, caller stream ownership and position,
-and cleanup after completion, early disposal, cancellation and handler failure.
+and cleanup after completion, cancellation and handler failure.
 The final argument is the expected number of input copies, allowing the same
 probe to reproduce an earlier candidate with two copies. This is opt-in disk
 usage evidence outside correctness CI.
+
+Use `--snapshot-restore-evidence <same ZIP> <JSON report> 0` in the same
+isolated environment to check that synchronous Reader snapshots, asynchronous
+Reader snapshots and traversal release their files when restoring the source
+position fails after a successful copy. The last argument is the expected leaked
+file count per route; use `1` to reproduce an earlier candidate's cleanup defect.
 
 ## Solid-folder read evidence
 

@@ -51,14 +51,17 @@ public static partial class ArchiveReader {
         if (!source.CanSeek) return SnapshotCurrentPosition(source, maximumBytes, cancellationToken);
 
         long originalPosition = source.Position;
+        Stream? snapshot = null;
         try {
             if (source.Length > maximumBytes) {
                 throw new InvalidDataException($"ZIP source exceeds MaxArchiveBytes ({maximumBytes}).");
             }
             source.Position = 0;
-            return SnapshotCurrentPosition(source, maximumBytes, cancellationToken);
+            snapshot = SnapshotCurrentPosition(source, maximumBytes, cancellationToken);
+            return snapshot;
         } finally {
-            source.Position = originalPosition;
+            try { source.Position = originalPosition; }
+            catch { snapshot?.Dispose(); throw; }
         }
     }
 

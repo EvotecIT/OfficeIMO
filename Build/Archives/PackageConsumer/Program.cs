@@ -10,6 +10,8 @@ if (args.Length > 0 && args[0] == "--cab-read-evidence")
     return OfficeIMO.Archives.Qualification.CabinetReadEvidence.Run(args.Skip(1).ToArray());
 if (args.Length > 0 && args[0] == "--reader-snapshot-evidence")
     return OfficeIMO.Archives.Qualification.ReaderSnapshotEvidence.Run(args.Skip(1).ToArray());
+if (args.Length > 0 && args[0] == "--snapshot-restore-evidence")
+    return OfficeIMO.Archives.Qualification.ReaderSnapshotEvidence.RunRestoreFailure(args.Skip(1).ToArray());
 
 // Opt-in consumer of packed public APIs. It does not download or execute archive contents.
 if (args.Length < 3) throw new ArgumentException("Expected: <ZIP corpus> <fresh output directory> <JSON report> [MSI] [independent MSI payload directory] [makecab CAB] [original member]");
