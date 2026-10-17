@@ -234,7 +234,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         depth + 1,
                         carriesContinuation ? continuationTarget : null,
                         carriesContinuation ? continuationLogicalCharacters : 0,
-                        pageBoundary?.Shift(flowHeight),
+                        // Page-aware children use the same collapsed origin as the
+                        // final placement and float context, before freezing bands.
+                        pageBoundary?.Shift(flowHeight - anticipatedMarginAdjustment),
                         activeFloats?.Count > 0 && !EstablishesFloatContainingBlock(childStyle) ? activeFloats.Select(item => item.Shift(
                             -childStyle.MarginLeft - childStyle.BorderLeftWidth - childStyle.PaddingLeft,
                             -flowHeight - childStyle.MarginTop - childStyle.BorderTopWidth - childStyle.PaddingTop)).ToArray() : null,

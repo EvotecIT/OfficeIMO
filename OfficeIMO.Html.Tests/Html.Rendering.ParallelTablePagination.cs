@@ -97,6 +97,69 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
     }
 
+    [Theory]
+    [InlineData("flex", 40, 5)]
+    [InlineData("grid", 40, 5)]
+    [InlineData("flex", -10, 7)]
+    [InlineData("grid", -10, 7)]
+    public void HtmlTables_ParallelBandsUseTheCollapsedMarginOrigin(string display, int margin, int firstPageRows) {
+        string html = ParallelReportStyle(display) + "<style>.intro{margin-bottom:" + margin
+            + "px}.columns{margin-top:" + margin + "px}</style><div class='intro'>Start</div>"
+            + "<div class='columns'>" + ParallelReportTable("Left", 18) + ParallelReportTable("Right", 27)
+            + "</div><div>End</div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(4, rendered.Pages.Count);
+        Assert.Equal(Enumerable.Range(0, firstPageRows).Select(row => "Left" + row.ToString("D2")),
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Select(text => text.Text)
+                .Where(text => IsParallelReportRow(text, "Left")));
+        AssertParallelReportRowsAndSections(rendered, "Left", 18);
+        AssertParallelReportRowsAndSections(rendered, "Right", 27);
+    }
+
+    [Theory]
+    [InlineData("flex", HtmlRenderIntentProfile.PrintPaged, false)]
+    [InlineData("grid", HtmlRenderIntentProfile.PrintPaged, false)]
+    [InlineData("flex", HtmlRenderIntentProfile.ScreenMediaPaged, false)]
+    [InlineData("grid", HtmlRenderIntentProfile.ScreenMediaPaged, false)]
+    [InlineData("flex", HtmlRenderIntentProfile.PrintPaged, true)]
+    [InlineData("grid", HtmlRenderIntentProfile.PrintPaged, true)]
+    [InlineData("flex", HtmlRenderIntentProfile.ScreenMediaPaged, true)]
+    [InlineData("grid", HtmlRenderIntentProfile.ScreenMediaPaged, true)]
+    public void HtmlTables_ParallelItemFooterCannotConsumeNestedNeighborContent(
+        string display, HtmlRenderIntentProfile profile, bool paragraphNeighbor) {
+        string floats = paragraphNeighbor
+            ? "<div class='left'>" + ParallelReportTable("A", 9) + "</div><p class='right'>"
+                + string.Join("<br>", Enumerable.Range(0, 12).Select(row => "Tail" + row.ToString("D2"))) + "</p>"
+            : "<div class='left'>" + ParallelReportTable("A", 3) + "</div><div class='right'>"
+                + ParallelReportTable("B", 9) + "</div>";
+        string html = ParallelReportStyle(display)
+            + "<style>.columns{grid-template-columns:210px 80px}.nested{display:flow-root;width:210px}"
+            + ".left{float:left;width:100px}.right{float:right;width:100px;margin:0}"
+            + "table{width:100px}.other{width:80px}</style><div>Start</div><div class='columns'>"
+            + "<section class='nested'>" + floats + "</section><section class='other'>"
+            + ParallelReportTable("C", 12) + "</section></div><div>End</div>";
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, options)).Document;
+        string[] painted = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderText>().Select(text => text.Text).ToArray();
+        string[] expected = Enumerable.Range(0, paragraphNeighbor ? 9 : 3).Select(row => "A" + row.ToString("D2"))
+            .Concat(Enumerable.Range(0, paragraphNeighbor ? 12 : 9)
+                .Select(row => (paragraphNeighbor ? "Tail" : "B") + row.ToString("D2")))
+            .Concat(Enumerable.Range(0, 12).Select(row => "C" + row.ToString("D2"))).Append("End").ToArray();
+        string pdf = string.Concat(FloatTablePaginationPdfText(html, profile, options));
+        foreach (string marker in expected) {
+            Assert.Single(painted, text => text == marker);
+            Assert.Equal(1, CountFloatPaginationMarker(pdf, marker));
+        }
+        string loss = paragraphNeighbor ? HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed
+            : HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed;
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == loss
+            && diagnostic.LossKind == OfficeIMO.OfficeConversionLossKind.Approximation);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
     private static string ParallelReportStyle(string display) => "<style>@page{size:320px 220px;margin:10px}"
         + "body{margin:0;font-size:12px;line-height:20px}th,td{padding:0;font-weight:normal;height:20px}"
         + "table{border-collapse:collapse;width:140px}section{width:140px}"

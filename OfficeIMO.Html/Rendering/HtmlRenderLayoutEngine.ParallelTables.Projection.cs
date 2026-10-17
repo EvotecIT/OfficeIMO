@@ -8,7 +8,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private bool TryProjectParallelTableBands(IReadOnlyList<HtmlRenderFlowBlock> blocks,
         ParallelTableProjectionContext context, out IReadOnlyList<HtmlRenderFlowBlock> projected) {
         projected = blocks;
-        var cursors = blocks.Select(block => new ParallelTableCursor(block)).ToArray();
+        // A single item may itself contain parallel floats or neighboring text.
+        // Qualify that shared source interval before a footer can consume it.
+        var cursors = blocks.Select(block => new ParallelTableCursor(QualifySharedTableRepetition(block))).ToArray();
         double bandStart = 0D;
         double capacity = context.Boundary.RemainingHeight;
         int band = 0;
@@ -77,6 +79,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 anyProgress |= cursor.Offset > before + 0.0001D;
             }
             if (cursors.All(cursor => cursor.Complete)) break;
+            foreach (ParallelTableCursor cursor in cursors.Where(cursor => !cursor.Complete))
+                cursor.SourceBreaks.Add(cursor.Offset);
             if (!anyProgress && capacity >= context.PageHeight - 0.0001D) return false;
             // Keep the complete nonfinal band, including its blank tail, so a
             // root slice ends at the same boundary for every unfinished item.
@@ -86,8 +90,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             capacity = context.PageHeight;
             band++;
         }
-        foreach (ParallelTableCursor cursor in cursors)
+        foreach (ParallelTableCursor cursor in cursors) {
             foreach (PagedBlockFragment loss in cursor.Losses) ReportPagedFragmentLoss(cursor.Block, loss);
+            foreach (double sourceBreak in cursor.SourceBreaks)
+                ReportSharedTableRepetitionLoss(cursor.Block, sourceBreak);
+        }
         projected = cursors.Select(cursor => new HtmlRenderFlowBlock(
             cursor.Block.Width, cursor.End, cursor.Visuals,
             cursor.Block.BreakBefore, cursor.Block.BreakAfter, cursor.Block.AvoidBreakInside, cursor.Block.Source,
@@ -121,6 +128,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal bool Complete => Offset >= Block.Height - 0.0001D;
         internal List<HtmlRenderVisual> Visuals { get; } = new();
         internal List<double> Breaks { get; } = new();
+        internal List<double> SourceBreaks { get; } = new();
         internal List<HtmlCssRunningStringAssignment> Assignments { get; } = new();
         internal List<PagedBlockFragment> Losses { get; } = new();
     }
