@@ -26,17 +26,12 @@ public sealed partial class OfficeFontFaceCollection {
 
     private static bool CanInheritWhitespace(
         string element,
-        string? currentFamily,
-        IReadOnlyList<OfficeFontFace> candidates,
+        OfficeFontFace? currentFace,
         HashSet<string> explicitlySelectedFaces) {
-        if (currentFamily == null || !IsWhitespace(element)) return false;
+        if (currentFace == null || !IsWhitespace(element)) return false;
         if (!OfficeMissingSpaceMetrics.ContainsEmSpace(element)) return true;
-        foreach (OfficeFontFace candidate in candidates) {
-            if (!string.Equals(candidate.ResourceFamilyName, currentFamily, StringComparison.OrdinalIgnoreCase)) continue;
-            bool explicitlySelected = explicitlySelectedFaces.Contains(candidate.ResourceFamilyName);
-            if (explicitlySelected ? candidate.HasGlyphs(element) : candidate.Covers(element)) return true;
-        }
-        return false;
+        bool explicitlySelected = explicitlySelectedFaces.Contains(currentFace.ResourceFamilyName);
+        return explicitlySelected ? currentFace.HasGlyphs(element) : currentFace.Covers(element);
     }
 
     private static bool IsWhitespace(string value) {

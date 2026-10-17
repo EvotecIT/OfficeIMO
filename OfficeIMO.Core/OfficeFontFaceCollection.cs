@@ -445,7 +445,7 @@ public sealed partial class OfficeFontFaceCollection {
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             string family;
             OfficeFontFace? selectedFace;
-            if (CanInheritWhitespace(element, currentFamily, candidates, explicitlySelectedFaces)) {
+            if (CanInheritWhitespace(element, currentFace, explicitlySelectedFaces)) {
                 family = currentFamily!;
                 selectedFace = currentFace;
             } else {

@@ -6,6 +6,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingFontStyleSelectionTests {
+    [Theory]
+    [InlineData('\u2003')]
+    [InlineData('\u2001')]
+    public void SameFamilyMappedEmSpaceDoesNotReplaceThePrecedingStyledFace(char separator) {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", FontWithAdvance(600, 'A', 'B', separator))
+            .Add("Scoped", FontWithAdvance(900, 'A', 'C'), OfficeFontStyle.Bold);
+
+        Assert.True(fonts.TryMeasureText("A" + separator, 20D, "Scoped", OfficeFontStyle.Bold, out double width));
+        Assert.Equal(30D, width, 6); // Bold A18 + the registered regular separator12.
+    }
+
     [Fact]
     public void SameFamilyStyledGlyphFallbackKeepsTheSelectedFacesDuringMeasurement() {
         var fonts = new OfficeFontFaceCollection()
