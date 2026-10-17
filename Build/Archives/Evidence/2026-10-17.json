@@ -1,17 +1,17 @@
 {
   "date": "2026-10-17",
-  "sourceCandidate": "74ff494394afa874d8a5f2318fb46e2e46901b77",
+  "sourceCandidate": "47de514cd3e92d3a57bd1150fe435e39e13b7b4d",
   "sdk": "10.0.113",
   "host": "macOS 27.0.1 arm64, Apple M4",
   "correctness": [
     {
       "framework": "net8.0",
-      "passed": 637,
+      "passed": 648,
       "failed": 0
     },
     {
       "framework": "net10.0",
-      "passed": 637,
+      "passed": 648,
       "failed": 0
     }
   ],
@@ -116,13 +116,13 @@
     "net472": "Reader.Zip and transitive Archives/Core graph compiled successfully, zero warnings and errors; not executed"
   },
   "packages": {
-    "privateVersion": "3.5.1.907",
+    "privateVersion": "3.5.1.909",
     "signed": false,
     "artifacts": [
       {
-        "file": "OfficeIMO.Archives.3.5.1.907.nupkg",
-        "sha256": "1275206e094ae671506b2cd844e60e8f7ecb3223275842a8b42aa30f9602ff3b",
-        "bytes": 193552,
+        "file": "OfficeIMO.Archives.3.5.1.909.nupkg",
+        "bytes": 194832,
+        "sha256": "2ce0f8b1b4ab0065919f47603e0bcd51c48e8a0fd65d601e5471ce1ce39eb5bf",
         "assets": [
           "lib/net10.0/OfficeIMO.Archives.dll",
           "lib/net8.0/OfficeIMO.Archives.dll",
@@ -131,25 +131,25 @@
         "dependencies": [
           {
             "id": "OfficeIMO.Core",
-            "version": "3.5.1.907",
+            "version": "3.5.1.909",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Core",
-            "version": "3.5.1.907",
+            "version": "3.5.1.909",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Core",
-            "version": "3.5.1.907",
+            "version": "3.5.1.909",
             "exclude": "Build,Analyzers"
           }
         ]
       },
       {
-        "file": "OfficeIMO.Core.3.5.1.907.nupkg",
-        "sha256": "b7f2e9b39ddb27cb14519f7e381d4de480adba29e19db4dd709088ddc17f1999",
-        "bytes": 6362380,
+        "file": "OfficeIMO.Core.3.5.1.909.nupkg",
+        "bytes": 6364133,
+        "sha256": "ec0918047ac4a9bc2ceb25018745b85c9728b5183c9b3a32e72c1418f0a357bb",
         "assets": [
           "lib/net10.0/OfficeIMO.Core.dll",
           "lib/net8.0/OfficeIMO.Core.dll",
@@ -158,9 +158,9 @@
         "dependencies": []
       },
       {
-        "file": "OfficeIMO.Reader.Core.3.5.1.907.nupkg",
-        "sha256": "23ffad91ca750f78e6a5bb842fdcb9edaa9ad7a355fd3040ea631a3a673b8787",
-        "bytes": 1189108,
+        "file": "OfficeIMO.Reader.Core.3.5.1.909.nupkg",
+        "bytes": 1189088,
+        "sha256": "a3cd46874e6d7df8ad72d3d41827b6db9f6b7558996c3169be5ae3b4d2a944a5",
         "assets": [
           "lib/net10.0/OfficeIMO.Reader.Core.dll",
           "lib/net8.0/OfficeIMO.Reader.Core.dll",
@@ -175,9 +175,9 @@
         ]
       },
       {
-        "file": "OfficeIMO.Reader.Zip.3.5.1.907.nupkg",
-        "sha256": "db01e19ba7a03615ab4666eee137ce6ddb1935b37c34a31f4ee36c638c9f18d5",
-        "bytes": 53938,
+        "file": "OfficeIMO.Reader.Zip.3.5.1.909.nupkg",
+        "bytes": 53930,
+        "sha256": "05a3660291aa2244177b134bb8d2bd51d4eeca7a071a7003759ce1354f3382f3",
         "assets": [
           "lib/net10.0/OfficeIMO.Reader.Zip.dll",
           "lib/net8.0/OfficeIMO.Reader.Zip.dll",
@@ -186,32 +186,32 @@
         "dependencies": [
           {
             "id": "OfficeIMO.Archives",
-            "version": "3.5.1.907",
+            "version": "3.5.1.909",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Reader.Core",
-            "version": "3.5.1.907",
+            "version": "3.5.1.909",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Archives",
-            "version": "3.5.1.907",
+            "version": "3.5.1.909",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Reader.Core",
-            "version": "3.5.1.907",
+            "version": "3.5.1.909",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Archives",
-            "version": "3.5.1.907",
+            "version": "3.5.1.909",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Reader.Core",
-            "version": "3.5.1.907",
+            "version": "3.5.1.909",
             "exclude": "Build,Analyzers"
           }
         ]
@@ -221,7 +221,7 @@
       {
         "runtime": ".NET 8.0.23",
         "os": "Darwin 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132",
-        "assembly": "3.5.1.907",
+        "assembly": "3.5.1.909",
         "results": [
           {
             "file": "7zip-utf8.zip",
@@ -274,7 +274,7 @@
       {
         "runtime": ".NET 10.0.13",
         "os": "macOS 27.0.1",
-        "assembly": "3.5.1.907",
+        "assembly": "3.5.1.909",
         "results": [
           {
             "file": "7zip-utf8.zip",
@@ -347,6 +347,13 @@
       "finding": "P1: removed shared LZX array API remained in use by CHM outside the initial sparse checkout. Reproduced CS0117; restored over the same frame decoder with CHM reset-group completion semantics.",
       "confirmationCandidate": "cb3cd0eaf9e2f83a2bd2baf189d50becf51d9cec",
       "verdict": "Targeted confirmation accepted the fix; no remaining actionable finding. Actual CHM project and native hash oracle also qualified."
+    },
+    "stagingCopyPacket": {
+      "candidate": "29edf5319d0ed41b1684a0f5cb3f2d48f570d1f3",
+      "scope": "New private staging-copy/quota/ownership/failure boundary and Windows/net472 qualification harness, excluding previously reviewed unchanged decoder and ZIP contracts",
+      "finding": "P2: asynchronous native Shell ZIP poll must retry InvalidDataException as well as IOException. Fixed and directly caught against incomplete ZIP on macOS.",
+      "confirmationCandidate": "47de514cd3e92d3a57bd1150fe435e39e13b7b4d",
+      "verdict": "Targeted read-only confirmation accepted; no remaining actionable finding. Windows runtime/native producer remain externally held, not inferred from syntax."
     }
   },
   "largeInputEvidence": {
@@ -854,5 +861,244 @@
       "net472"
     ],
     "boundary": "CHM native input and existing CHMLib manifest; shared LZX unchanged by later Reader lifetime fixes. net472 compiled, not executed."
+  },
+  "verifiedCabinetCopy": {
+    "sourceCandidate": "47de514cd3e92d3a57bd1150fe435e39e13b7b4d",
+    "privateVersion": "3.5.1.909",
+    "contract": "Existing CopyTo stages selected ZIP/CAB/embedded MSI members privately under per-copy MaxTemporaryBytes, default256MiB. CAB/MSI verify the complete containing folder before destination receives bytes; no whole selected-member array on copy. Input and in-memory read limits remain.",
+    "before": [
+      {
+        "runtime": ".NET 8.0.23",
+        "assembly": "3.5.1.907",
+        "inputBytes": 33579103,
+        "inputSha256": "4c8b49fdfe8a4443254f17920de8e38944fc796021cfb7ddc693a43360003293",
+        "results": [
+          {
+            "operation": "OpenRead",
+            "allocatedBytes": 33720736,
+            "sha256": "1cbd22e11bc209926b1e050d644779ba4105d7a023109c3b78bb35edf5c7c292",
+            "selectedBytes": 33554432,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          },
+          {
+            "operation": "CopyTo",
+            "allocatedBytes": 33785696,
+            "sha256": "1cbd22e11bc209926b1e050d644779ba4105d7a023109c3b78bb35edf5c7c292",
+            "selectedBytes": 33554432,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          },
+          {
+            "operation": "DestinationFailure",
+            "allocatedBytes": 33786232,
+            "sha256": "4b640d85ab3ba30fd02c9fc9db4a8928f416322ad27022ea58a65aaee68a4df2",
+            "selectedBytes": 65536,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          },
+          {
+            "operation": "DestinationCancellation",
+            "allocatedBytes": 33793368,
+            "sha256": "4b640d85ab3ba30fd02c9fc9db4a8928f416322ad27022ea58a65aaee68a4df2",
+            "selectedBytes": 65536,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          }
+        ],
+        "boundary": "Per-thread managed allocation excludes input inventory; identical complete payload hashes for OpenRead/CopyTo. Not peak/RSS or timing."
+      },
+      {
+        "runtime": ".NET 10.0.13",
+        "assembly": "3.5.1.907",
+        "inputBytes": 33579103,
+        "inputSha256": "4c8b49fdfe8a4443254f17920de8e38944fc796021cfb7ddc693a43360003293",
+        "results": [
+          {
+            "operation": "OpenRead",
+            "allocatedBytes": 33710448,
+            "sha256": "1cbd22e11bc209926b1e050d644779ba4105d7a023109c3b78bb35edf5c7c292",
+            "selectedBytes": 33554432,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          },
+          {
+            "operation": "CopyTo",
+            "allocatedBytes": 33775408,
+            "sha256": "1cbd22e11bc209926b1e050d644779ba4105d7a023109c3b78bb35edf5c7c292",
+            "selectedBytes": 33554432,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          },
+          {
+            "operation": "DestinationFailure",
+            "allocatedBytes": 33775872,
+            "sha256": "4b640d85ab3ba30fd02c9fc9db4a8928f416322ad27022ea58a65aaee68a4df2",
+            "selectedBytes": 65536,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          },
+          {
+            "operation": "DestinationCancellation",
+            "allocatedBytes": 33782248,
+            "sha256": "4b640d85ab3ba30fd02c9fc9db4a8928f416322ad27022ea58a65aaee68a4df2",
+            "selectedBytes": 65536,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          }
+        ],
+        "boundary": "Per-thread managed allocation excludes input inventory; identical complete payload hashes for OpenRead/CopyTo. Not peak/RSS or timing."
+      }
+    ],
+    "after": [
+      {
+        "runtime": ".NET 8.0.23",
+        "assembly": "3.5.1.909",
+        "inputBytes": 33579103,
+        "inputSha256": "4c8b49fdfe8a4443254f17920de8e38944fc796021cfb7ddc693a43360003293",
+        "results": [
+          {
+            "operation": "OpenRead",
+            "allocatedBytes": 33721312,
+            "sha256": "1cbd22e11bc209926b1e050d644779ba4105d7a023109c3b78bb35edf5c7c292",
+            "selectedBytes": 33554432,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          },
+          {
+            "operation": "CopyTo",
+            "allocatedBytes": 318048,
+            "sha256": "1cbd22e11bc209926b1e050d644779ba4105d7a023109c3b78bb35edf5c7c292",
+            "selectedBytes": 33554432,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 33554432,
+            "cleanedUp": true
+          },
+          {
+            "operation": "DestinationFailure",
+            "allocatedBytes": 318056,
+            "sha256": "4b640d85ab3ba30fd02c9fc9db4a8928f416322ad27022ea58a65aaee68a4df2",
+            "selectedBytes": 65536,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 33554432,
+            "cleanedUp": true
+          },
+          {
+            "operation": "DestinationCancellation",
+            "allocatedBytes": 325192,
+            "sha256": "4b640d85ab3ba30fd02c9fc9db4a8928f416322ad27022ea58a65aaee68a4df2",
+            "selectedBytes": 65536,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 33554432,
+            "cleanedUp": true
+          }
+        ],
+        "boundary": "Per-thread managed allocation excludes input inventory; identical complete payload hashes for OpenRead/CopyTo. Not peak/RSS or timing."
+      },
+      {
+        "runtime": ".NET 10.0.13",
+        "assembly": "3.5.1.909",
+        "inputBytes": 33579103,
+        "inputSha256": "4c8b49fdfe8a4443254f17920de8e38944fc796021cfb7ddc693a43360003293",
+        "results": [
+          {
+            "operation": "OpenRead",
+            "allocatedBytes": 33711024,
+            "sha256": "1cbd22e11bc209926b1e050d644779ba4105d7a023109c3b78bb35edf5c7c292",
+            "selectedBytes": 33554432,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 0,
+            "cleanedUp": true
+          },
+          {
+            "operation": "CopyTo",
+            "allocatedBytes": 307304,
+            "sha256": "1cbd22e11bc209926b1e050d644779ba4105d7a023109c3b78bb35edf5c7c292",
+            "selectedBytes": 33554432,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 33554432,
+            "cleanedUp": true
+          },
+          {
+            "operation": "DestinationFailure",
+            "allocatedBytes": 307176,
+            "sha256": "4b640d85ab3ba30fd02c9fc9db4a8928f416322ad27022ea58a65aaee68a4df2",
+            "selectedBytes": 65536,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 33554432,
+            "cleanedUp": true
+          },
+          {
+            "operation": "DestinationCancellation",
+            "allocatedBytes": 313552,
+            "sha256": "4b640d85ab3ba30fd02c9fc9db4a8928f416322ad27022ea58a65aaee68a4df2",
+            "selectedBytes": 65536,
+            "decodedBytes": 33554432,
+            "workBytes": 33579008,
+            "liveSpoolBytes": 33554432,
+            "cleanedUp": true
+          }
+        ],
+        "boundary": "Per-thread managed allocation excludes input inventory; identical complete payload hashes for OpenRead/CopyTo. Not peak/RSS or timing."
+      }
+    ],
+    "stagingWriteFailure": {
+      "mechanism": "macOS child-only RLIMIT_FSIZE=1024 with SIGXFSZ ignored; runtime reports ArgumentOutOfRangeException(value) for file-too-large. Product propagates the runtime error; destination stays untouched and private file is removed.",
+      "runs": [
+        {
+          "stage": "Private CAB spool write",
+          "failureType": "ArgumentOutOfRangeException",
+          "HResult": -2146233086,
+          "destinationBytes": 0,
+          "cleanedUp": true,
+          "runtime": ".NET 8.0.23"
+        },
+        {
+          "stage": "Private CAB spool write",
+          "failureType": "ArgumentOutOfRangeException",
+          "HResult": -2146233086,
+          "destinationBytes": 0,
+          "cleanedUp": true,
+          "runtime": ".NET 10.0.13"
+        }
+      ]
+    },
+    "boundary": "Per-thread allocation excludes input inventory; not peak/RSS or time. Packed copies also match all106 independent MSI hashes and native makecab bytes on both runtimes."
+  },
+  "windowsPackedQualification": {
+    "status": "Pending execution of the new Windows CI lane",
+    "targets": [
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "consumerCompilation": "net472 packed consumer compiled locally, zero warnings/errors; not runtime proof",
+    "nativeProducer": "Windows Shell.Application compressed-folder handler, with exact Windows/zipfldr/Explorer versions, input hash, raw names/flags and admitted code page recorded when executed",
+    "runtimeSourceBaseline": "The earlier 482008f source archive suite ran on Windows net8/net10/net472; new copy/runtime package proof still pending",
+    "boundary": "Interactive Explorer UI is not exercised; native fixture must be retained after successful production. A missing or failed producer report is unqualified."
   }
 }
