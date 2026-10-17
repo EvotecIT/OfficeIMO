@@ -38,6 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                      .Concat(new string?[] { null }).Distinct(StringComparer.Ordinal)) {
             for (int pageNumber = 1; pageNumber <= 3; pageNumber++) {
                 CheckCancellation();
+                ChargeLayoutOperations(2L * _pageRules.RuleCount, "page-margin font rule matching");
                 HtmlCssPageGeometry geometry = _pageRules.ResolveGeometry(pageNumber, pageName, _options);
                 foreach (HtmlCssPageMarginTemplate box in _pageRules.ResolveMarginBoxes(
                              pageNumber, pageName, geometry, _options).Values) {

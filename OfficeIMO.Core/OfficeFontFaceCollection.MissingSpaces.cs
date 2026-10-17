@@ -11,14 +11,14 @@ public sealed partial class OfficeFontFaceCollection {
     /// </summary>
     private static OfficeFontFace? ResolveSynthesizedSpaceFace(
         string element,
-        string? currentFamily,
+        OfficeFontFace? currentFace,
         IReadOnlyList<OfficeFontFace> candidates,
         HashSet<string> explicitlySelectedFaces) {
         OfficeFontFace? firstEligible = null;
         foreach (OfficeFontFace candidate in candidates) {
             bool explicitlySelected = explicitlySelectedFaces.Contains(candidate.ResourceFamilyName);
             if (!CoversPlannedText(candidate, element, requireUnicodeRange: !explicitlySelected, allowSpaceSynthesis: true)) continue;
-            if (string.Equals(candidate.ResourceFamilyName, currentFamily, StringComparison.OrdinalIgnoreCase)) return candidate;
+            if (ReferenceEquals(candidate, currentFace)) return candidate;
             firstEligible ??= candidate;
         }
         return firstEligible;

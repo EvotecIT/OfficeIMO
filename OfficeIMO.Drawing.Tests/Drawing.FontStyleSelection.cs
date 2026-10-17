@@ -6,6 +6,16 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingFontStyleSelectionTests {
+    [Fact]
+    public void SameFamilyMissingEmGraphemeKeepsThePrecedingEligibleStyledFace() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", FontWithAdvance(600, 'B', 0x0301))
+            .Add("Scoped", FontWithAdvance(900, 'A', 0x0301), OfficeFontStyle.Bold);
+
+        Assert.True(fonts.TryMeasureText("B\u2003\u0301A", 20D, "Scoped", OfficeFontStyle.Bold, out double width));
+        Assert.Equal(62D, width, 6); // Regular B12 + EM20 + regular acute12 + bold A18.
+    }
+
     [Theory]
     [InlineData('\u2003')]
     [InlineData('\u2001')]

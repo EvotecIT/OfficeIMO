@@ -460,7 +460,7 @@ public sealed partial class OfficeFontFaceCollection {
                     }
                     bool mappedFace = face != null;
                     if (face == null && OfficeMissingSpaceMetrics.ContainsEmSpace(element))
-                        face = ResolveSynthesizedSpaceFace(element, currentFamily, candidates, explicitlySelectedFaces);
+                        face = ResolveSynthesizedSpaceFace(element, currentFace, candidates, explicitlySelectedFaces);
                     selection = (face?.ResourceFamilyName ?? requestedFamilies, face);
                     // Synthesis follows every mapped-glyph candidate and requires
                     // an eligible face for the complete element. Its preference
