@@ -446,10 +446,10 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 ## Archive containers
 
-- [ ] Assess lazy entry streams only against a real workflow, with explicit owner and disposal contracts; keep application selection in thin consumers.
-- [ ] Add structured verification diagnostics and reported resource usage. Use one cumulative budget for nested containers across inspection, reading and extraction.
-- [ ] Extend independent producer fixtures for ZIP64, streaming descriptors, CAB and MSI across supported runtimes. Define an explicit legacy filename-encoding policy and qualify Polish names from Windows Explorer and 7-Zip without guessing the host code page.
-- [ ] Qualify TAR/GZip when a concrete cross-platform ingestion workflow requires them. Assess archive creation, deterministic bundles, encryption and additional compression providers separately against actual consumers, compatibility and dependency approval.
+- [ ] Qualify a native Windows Explorer archive containing Polish filenames, retaining the producer/Windows version, input hash, raw encoding policy and complete expected member bytes. Keep this distinct from the existing Windows-labelled ASCII corpus and CPython CP1250 fixtures.
+- [ ] Run the packed archive consumer and correctness suite on Windows, including .NET Framework 4.7.2, and extend named native MSI/CAB producer profiles. Retain exact package/fixture hashes and distinguish runtime execution from portable compilation and macOS native-producer checks.
+
+TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split archives and installer execution remain deferred. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval. Lazy member streams and broader solid-folder streaming work need a separate lifetime and verification contract.
 
 ## Email artifacts and archives
 

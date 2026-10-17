@@ -115,13 +115,16 @@ internal static partial class OfficeCabinetArchiveReader {
             int fileTableEnd = directory.FileTableEnd;
             var folderMembers = new List<int>?[folders.Length];
             var selected = new bool[files.Length];
+            long selectedBytes = 0;
             for (int index = 0; index < files.Length; index++) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 FileHeader file = files[index];
                 (folderMembers[file.FolderIndex] ?? (folderMembers[file.FolderIndex] = new List<int>())).Add(index);
                 entryValidator?.Invoke(file.Name, file.Length);
                 selected[index] = entryFilter == null || entryFilter(file.Name);
+                if (selected[index]) selectedBytes = checked(selectedBytes + file.Length);
             }
+            _workBudget.Select(selectedBytes);
             var decodedEntries = new OfficeCabinetEntry?[files.Length];
             for (int folderIndex = 0; folderIndex < folders.Length; folderIndex++) {
                 _cancellationToken.ThrowIfCancellationRequested();

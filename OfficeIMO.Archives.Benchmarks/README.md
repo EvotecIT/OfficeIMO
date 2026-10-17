@@ -32,3 +32,21 @@ writing.
 
 The project stays outside `OfficeIMO.sln` so performance tooling does not affect
 normal restore, build, test, or package dependencies.
+
+## Verified member copying
+
+`VerifiedZipCopy` compares `OpenRead` followed by SHA-256 hashing with `CopyTo`
+into a hashing destination. Both inspect the same 16 MiB Deflate member and
+validate the complete result against its original SHA-256 in setup. Creation is
+outside measurement. `CopyTo` includes private decoded-spool I/O; `OpenRead`
+retains the complete decoded member array. This is an allocation and elapsed-time
+tradeoff, not a peak-RSS bound or a throughput guarantee.
+
+```sh
+dotnet run -c Release -f net10.0 --project OfficeIMO.Archives.Benchmarks -- --filter '*VerifiedZipCopy*' --artifacts "$scratch/verified-copy"
+```
+
+Use a task-owned scratch directory for output and `TMPDIR`/`TEMP` for spool files.
+The short job uses one launch, one warmup and three measured iterations; results
+are workload- and host-specific. The [qualification record](../Build/Archives/README.md)
+links the retained sample evidence.

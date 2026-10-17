@@ -6,6 +6,8 @@ namespace OfficeIMO.Archives;
 /// Describes a warning produced while traversing ZIP entries.
 /// </summary>
 public sealed class ArchiveTraversalWarning {
+    /// <summary>Stable diagnostic identifier when supplied by passive inspection.</summary>
+    public string? Code { get; set; }
     /// <summary>
     /// Entry path related to the warning, when available.
     /// </summary>

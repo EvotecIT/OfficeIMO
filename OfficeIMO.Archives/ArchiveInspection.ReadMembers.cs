@@ -25,6 +25,7 @@ public sealed partial class ArchiveInspection {
         lock (_gate) {
             ThrowIfDisposed(); cancellationToken.ThrowIfCancellationRequested();
             if (ordinals == null) throw new ArgumentNullException(nameof(ordinals));
+            if (Format == ArchiveFormat.Zip) return ReadZipMembers(ordinals, maxSelectedBytes, cancellationToken);
             if (maxSelectedBytes < 0) throw new ArgumentOutOfRangeException(nameof(maxSelectedBytes));
             int count = ordinals.Count;
             if (count > Entries.Count) throw new ArgumentException("The request exceeds the inventory count.", nameof(ordinals));
@@ -53,6 +54,7 @@ public sealed partial class ArchiveInspection {
                 group.Ordinals.Add(entry.CabinetOrdinal!.Value); group.ResultIndexes.Add(index);
             }
             cancellationToken.ThrowIfCancellationRequested();
+            _limits.Operation.Select(selectedBytes);
             var payloads = new byte[count][];
             long workBefore = _limits.DecompressionWork.ConsumedBytes;
             try {

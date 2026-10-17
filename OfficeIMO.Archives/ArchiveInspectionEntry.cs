@@ -1,6 +1,6 @@
 namespace OfficeIMO.Archives;
 
-/// <summary>The declared CAB folder compression, without implying that its payload has been decoded.</summary>
+/// <summary>The declared ZIP member or CAB folder compression, without implying that its payload has been decoded.</summary>
 public enum ArchiveCompression {
     /// <summary>No CAB folder compression applies, for example for external MSI source files.</summary>
     None,
@@ -13,7 +13,9 @@ public enum ArchiveCompression {
     /// <summary>Quantum compression, which is inventoried but cannot be decoded.</summary>
     Quantum,
     /// <summary>An unrecognized or unsupported compression method.</summary>
-    Unknown
+    Unknown,
+    /// <summary>ZIP Deflate compression.</summary>
+    Deflate
 }
 
 /// <summary>A passive inventory diagnostic. Inventory support does not verify payload integrity.</summary>
@@ -25,26 +27,33 @@ public sealed class ArchiveInspectionDiagnostic {
     public string Message { get; }
 }
 
-/// <summary>One authored CAB file record or MSI File row. Names and aliases are never coalesced.</summary>
+/// <summary>One authored ZIP/CAB record or MSI File row. Names and aliases are never coalesced.</summary>
 public sealed class ArchiveInspectionEntry {
     internal ArchiveInspectionEntry(int ordinal, string rawName, string? rawFileName, string? authoredPath,
         long length, string? cabinetName, int? cabinetOrdinal, int? sequence,
         ArchiveCompression compression, ushort? rawCompression, int? folderOrdinal,
         long? folderCompressedBytes, long? folderExpandedBytes, int? folderFrameCount, int? folderChecksumFrameCount,
-        ArchiveInspectionDiagnostic? diagnostic) {
+        ArchiveInspectionDiagnostic? diagnostic, bool isDirectory = false, long? compressedLength = null, System.DateTimeOffset? lastWriteTime = null) {
+        IsDirectory = isDirectory; CompressedLength = compressedLength; LastWriteTime = lastWriteTime;
         Ordinal = ordinal; RawName = rawName; RawFileName = rawFileName; AuthoredPath = authoredPath;
         Length = length; CabinetName = cabinetName; CabinetOrdinal = cabinetOrdinal; Sequence = sequence;
         Compression = compression; RawCompression = rawCompression; FolderOrdinal = folderOrdinal;
         FolderCompressedBytes = folderCompressedBytes; FolderExpandedBytes = folderExpandedBytes; Diagnostic = diagnostic;
         FolderFrameCount = folderFrameCount; FolderChecksumFrameCount = folderChecksumFrameCount;
     }
-    /// <summary>Zero-based CAB CFFILE order or MSI File-table row order, used by OpenRead.</summary>
+    /// <summary>Whether the ZIP record declares a directory. CAB/MSI inventories contain file records.</summary>
+    public bool IsDirectory { get; }
+    /// <summary>Declared ZIP compressed payload bytes; null for shared CAB/MSI folder compression.</summary>
+    public long? CompressedLength { get; }
+    /// <summary>ZIP DOS timestamp interpreted with zero offset, without claiming the producer timezone; null when invalid or absent.</summary>
+    public System.DateTimeOffset? LastWriteTime { get; }
+    /// <summary>Zero-based ZIP central-directory, CAB CFFILE order or MSI File-table row order, used by OpenRead.</summary>
     public int Ordinal { get; }
-    /// <summary>Exact decoded CAB member name or MSI File identifier, without path normalization.</summary>
+    /// <summary>Exact decoded ZIP/CAB member name or MSI File identifier, without path normalization.</summary>
     public string RawName { get; }
-    /// <summary>Exact MSI FileName field, including any authored short/long name pair; null for CAB.</summary>
+    /// <summary>Exact MSI FileName field, including any authored short/long name pair; null for ZIP/CAB.</summary>
     public string? RawFileName { get; }
-    /// <summary>Assembled authored MSI target path, without evaluating installation properties or conditions; null for CAB.</summary>
+    /// <summary>Raw decoded ZIP path or assembled authored MSI target path, without evaluating installation properties or conditions; null for CAB.</summary>
     public string? AuthoredPath { get; }
     /// <summary>Complete declared member size. It is verified again before a member stream is returned.</summary>
     public long Length { get; }
@@ -52,11 +61,11 @@ public sealed class ArchiveInspectionEntry {
     public string? CabinetName { get; }
     /// <summary>CFFILE ordinal within the embedded cabinet; null when no supported embedded source exists.</summary>
     public int? CabinetOrdinal { get; }
-    /// <summary>Authored MSI File.Sequence; null for CAB.</summary>
+    /// <summary>Authored MSI File.Sequence; null for ZIP/CAB.</summary>
     public int? Sequence { get; }
     /// <summary>Declared folder compression.</summary>
     public ArchiveCompression Compression { get; }
-    /// <summary>Raw CAB typeCompress field, including codec parameters; null when no CAB folder exists.</summary>
+    /// <summary>Raw CAB typeCompress field including codec parameters, or ZIP compression method; null when no compressed source exists.</summary>
     public ushort? RawCompression { get; }
     /// <summary>Zero-based folder ordinal in the source cabinet.</summary>
     public int? FolderOrdinal { get; }
