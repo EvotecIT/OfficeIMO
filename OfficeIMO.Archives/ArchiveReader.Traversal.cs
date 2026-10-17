@@ -112,7 +112,7 @@ public static partial class ArchiveReader {
             string normalized = entry.RawName.Replace('\\', '/');
             string name = normalized.Substring(normalized.LastIndexOf('/') + 1);
             entries.Add(new TraversalEntry(entry.RawName, name, entry.Length, entry.CompressedLength ?? 0,
-                entry.LastWriteTime?.UtcDateTime ?? DateTime.MinValue, entry.Diagnostic));
+                TraversalLastWriteUtc(entry.LastWriteTime), entry.Diagnostic));
         }
         return TraverseEntries(entries, Normalize(options), cancellationToken);
     }
@@ -293,6 +293,12 @@ public static partial class ArchiveReader {
         } catch {
             return DateTime.MinValue;
         }
+    }
+
+    private static DateTime TraversalLastWriteUtc(DateTimeOffset? dosTime) {
+        // Inspection preserves the wall-clock fields with a zero offset. Keep traversal's existing
+        // ZipArchive convention: interpret timezone-unspecified DOS fields in the current local zone.
+        return dosTime.HasValue ? new DateTimeOffset(dosTime.Value.DateTime).UtcDateTime : DateTime.MinValue;
     }
 
     private static ArchiveTraversalOptions Normalize(ArchiveTraversalOptions? options) {

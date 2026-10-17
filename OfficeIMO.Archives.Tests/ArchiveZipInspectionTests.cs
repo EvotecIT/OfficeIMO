@@ -3,6 +3,24 @@ using System.IO.Compression;
 namespace OfficeIMO.Archives.Tests;
 
 public sealed class ArchiveZipInspectionTests {
+    [Fact]
+    public void TraversalRetainsThePlatformDosTimeInterpretationAcrossInputOverloads() {
+        using var source = new MemoryStream();
+        var wallTime = new DateTime(2024, 1, 2, 3, 4, 6, DateTimeKind.Unspecified);
+        using (var writer = new ZipArchive(source, ZipArchiveMode.Create, true)) {
+            writer.CreateEntry("member").LastWriteTime = new DateTimeOffset(wallTime, TimeSpan.Zero);
+        }
+        source.Position = 0;
+        using var archive = new ZipArchive(source, ZipArchiveMode.Read, true);
+        DateTime expected = archive.Entries[0].LastWriteTime.UtcDateTime;
+        using var inspection = ArchiveInspector.Open(source);
+        Assert.Equal(wallTime, inspection.Entries[0].LastWriteTime!.Value.DateTime);
+        Assert.Equal(TimeSpan.Zero, inspection.Entries[0].LastWriteTime!.Value.Offset);
+        Assert.Equal(expected, Assert.Single(ArchiveReader.TraverseZip(archive).Entries).LastWriteUtc);
+        Assert.Equal(expected, Assert.Single(ArchiveReader.TraverseZip(inspection).Entries).LastWriteUtc);
+        Assert.Equal(expected, Assert.Single(ArchiveReader.TraverseZip(source).Entries).LastWriteUtc);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData(1250)]
