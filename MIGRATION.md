@@ -632,6 +632,10 @@ Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutra
 
 Connector geometry in saved files now uses its native local transform. Consumers reading XML geometry directly must apply Pin/LocPin/Angle to obtain page coordinates. Reader text represents unattached endpoints with coordinates instead of empty shape IDs. Topology `edge` records append start X/Y and end X/Y columns after the label; absent shape IDs remain empty.
 
+## HTML normal line height
+
+Missing CSS line height and `line-height: normal` use the selected font's metrics when available. Line and table heights can change. To retain a fixed multiplier, assign `DefaultLineHeight = 1.2D` explicitly, or author the required CSS `line-height`; cloning preserves that choice. Browser style mode no longer adds document-style bottom spacing to tables. Author a table margin when that spacing is required.
+
 ## HTML paged image export and PDF ownership
 
 `HtmlRenderOptions.Mode` defaults to `Paged`. Default HTML image exports return print pages with `@page` margin boxes and the same fonts and layout as HTML-to-PDF. Request `Mode = HtmlRenderMode.Continuous`, `.Continuous()`, or the `ScreenFullPage` profile explicitly to retain one long screenshot.

@@ -105,8 +105,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || !TryResolveUsedInlineFontBox(face, out InlineTextLineMetrics fontBox)) return false;
         double ascent = fontBox.Baseline;
         double descent = fontBox.Height - ascent;
-        double usedHeight = style.InlineAlignmentLineHeight
-            ?? HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(style.LineHeight, style.Font.Size);
+        double naturalAdvance = face!.Value.NaturalAdvance ?? face.Value.Height;
+        if (double.IsNaN(naturalAdvance) || double.IsInfinity(naturalAdvance)) naturalAdvance = face.Value.Height;
+        double usedHeight = style.UsesNaturalLineHeight
+            ? fontBox.Height + System.Math.Floor(System.Math.Max(0D,
+                naturalAdvance - face.Value.Height) + 0.5D)
+            : style.InlineAlignmentLineHeight
+                ?? HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(style.LineHeight, style.Font.Size);
         double leadingUnits = (usedHeight - ascent - descent) * 64D;
         // Divide signed fixed units before flooring the ascent share to a whole
         // pixel; the remaining leading belongs below the alphabetic baseline.
@@ -119,7 +124,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IOfficeFontProgram? program = ResolveTextFaceProgram(text, style);
         if (program is IOfficeFontBaselineMetrics baseline) {
             return new HtmlTextFaceMetrics(program.LineHeight(style.Font.Size),
-                baseline.BaselineOffset(style.Font.Size));
+                baseline.BaselineOffset(style.Font.Size), program.LineSpacingRatio * style.Font.Size);
         }
         return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
     }

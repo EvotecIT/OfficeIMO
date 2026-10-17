@@ -141,6 +141,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal HtmlRenderTextIndent? TextIndent;
     internal double CharacterAdvance = double.NaN;
     internal double LineHeight;
+    internal bool UsesNaturalLineHeight;
     // Keep the used alignment height separate from ordinary text paint and the
     // computed CSS value. Cloned styles retain the originating length's units.
     internal double? InlineAlignmentLineHeight;

@@ -875,6 +875,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Font = markerStyle.Font,
             Color = markerStyle.Color,
             LineHeight = markerStyle.LineHeight,
+            UsesNaturalLineHeight = markerStyle.UsesNaturalLineHeight,
             InlineAlignmentLineHeight = markerStyle.InlineAlignmentLineHeight,
             SemanticRole = "list-marker",
             ApplyEmbeddedImageOrientation = listStyle.ApplyEmbeddedImageOrientation,

@@ -8,6 +8,27 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
+    private static HtmlTextFaceMetrics? ResolveStandardFaceMetrics(PdfCore.PdfOptions options,
+        string family, string text, double size, bool bold, bool italic) {
+        PdfCore.PdfStandardFont slot = PdfCore.PdfStandardFontMapper.GetStyledFont(MapStandardFont(family), bold, italic);
+        if (options.TryGetEmbeddedStandardFontProgram(slot, out PdfCore.PdfTrueTypeFontProgram? trueType)
+            && trueType != null && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, trueType).Count == 0) {
+            return FromMetrics(trueType.LineMetrics, trueType.GetAscender(size), trueType.GetDescender(size));
+        }
+        if (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(slot, out PdfCore.PdfOpenTypeCffFontProgram? cff)
+            && cff != null && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cff).Count == 0) {
+            return FromMetrics(cff.LineMetrics, cff.GetAscender(size), cff.GetDescender(size));
+        }
+        return null;
+
+        HtmlTextFaceMetrics FromMetrics(OfficeOpenTypeLineMetrics? metrics, double fallbackAscent, double fallbackDescent) {
+            double ascent = metrics?.HheaAscentRatio * size ?? fallbackAscent;
+            double descent = metrics?.HheaDescentRatio * size ?? fallbackDescent;
+            double gap = metrics?.HheaLineGapRatio * size ?? 0D;
+            return new HtmlTextFaceMetrics(ascent + descent, ascent, ascent + descent + gap);
+        }
+    }
+
     private readonly struct NamedFaceStyleRun {
         internal NamedFaceStyleRun(string text, bool bold, bool italic, bool covered) {
             Text = text;
@@ -117,21 +138,26 @@ internal static partial class HtmlPdfRenderedConverter {
                 NamedFontCoversText(options, family, text, bold, italic)) };
         double ascent = 0D;
         double descent = 0D;
+        double lineGap = 0D;
         foreach (NamedFaceStyleRun run in runs) {
             if (!run.Covered || !options.TryResolveNamedFontFace(family, run.Bold, run.Italic,
                     out PdfCore.PdfNamedFontFace face)) return null;
             if (options.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? trueType)
                 && trueType != null) {
-                ascent = System.Math.Max(ascent, trueType.GetAscender(fontSize));
-                descent = System.Math.Max(descent, trueType.GetDescender(fontSize));
+                AddMetrics(trueType.LineMetrics, trueType.GetAscender(fontSize), trueType.GetDescender(fontSize));
             } else if (options.TryGetNamedOpenTypeCffFontProgram(face,
                            out PdfCore.PdfOpenTypeCffFontProgram? cff) && cff != null) {
-                ascent = System.Math.Max(ascent, cff.GetAscender(fontSize));
-                descent = System.Math.Max(descent, cff.GetDescender(fontSize));
+                AddMetrics(cff.LineMetrics, cff.GetAscender(fontSize), cff.GetDescender(fontSize));
             } else {
                 return null;
             }
         }
-        return ascent > 0D ? new HtmlTextFaceMetrics(ascent + descent, ascent) : null;
+        return ascent > 0D ? new HtmlTextFaceMetrics(ascent + descent, ascent, ascent + descent + lineGap) : null;
+
+        void AddMetrics(OfficeOpenTypeLineMetrics? metrics, double fallbackAscent, double fallbackDescent) {
+            ascent = System.Math.Max(ascent, metrics?.HheaAscentRatio * fontSize ?? fallbackAscent);
+            descent = System.Math.Max(descent, metrics?.HheaDescentRatio * fontSize ?? fallbackDescent);
+            lineGap = System.Math.Max(lineGap, metrics?.HheaLineGapRatio * fontSize ?? 0D);
+        }
     }
 }
