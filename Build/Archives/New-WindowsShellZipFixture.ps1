@@ -28,7 +28,7 @@ try {
             $read = [IO.Compression.ZipFile]::OpenRead($zipPath)
             try { $complete = $read.Entries.Count -eq $names.Count -and @($read.Entries | Where-Object Length -ne $payload.Length).Count -eq 0 }
             finally { $read.Dispose() }
-        } catch [IO.IOException] { $complete = $false }
+        } catch [IO.IOException], [IO.InvalidDataException] { $complete = $false }
     } until ($complete -or [DateTime]::UtcNow -ge $deadline)
     if (-not $complete) { throw 'Native Shell ZIP production did not complete.' }
 } finally {
