@@ -69,10 +69,14 @@ internal static class BundleVerifier {
                     OfficeRasterImage raster;
                     if (artifact.Format == "Svg") {
                         XDocument svg = XDocument.Load(path);
-                        CheckText("SVG", string.Concat(svg.Descendants().Where(node =>
-                            (node.Name.LocalName == "text" || node.Attribute("aria-label") != null) &&
-                            !node.Ancestors().Any(parent => parent.Attribute("aria-label") != null))
-                            .Select(node => node.Attribute("aria-label")?.Value ?? node.Value)), expected, pageErrors);
+                        string[] fragments = svg.Descendants().Where(node => node.Name.LocalName == "text" ||
+                            node.Attribute("aria-label") != null && !node.Descendants().Any(child =>
+                                child.Name.LocalName == "text" || child.Attribute("aria-label") != null))
+                            .Select(node => (node.Attribute("aria-label")?.Value ?? node.Value).Trim()).ToArray();
+                        string adjacent = string.Concat(fragments), words = string.Join(" ", fragments);
+                        foreach (string label in expected.Text)
+                            if (!adjacent.Contains(label, StringComparison.Ordinal) && !words.Contains(label, StringComparison.Ordinal))
+                                pageErrors.Add("SVG is missing labelled text: " + label);
                         double cssWidth = expected.Width * 96D / bundle.Dpi;
                         double cssHeight = expected.Height * 96D / bundle.Dpi;
                         string width = cssWidth.ToString(CultureInfo.InvariantCulture) + "px";

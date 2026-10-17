@@ -67,7 +67,7 @@ public sealed partial class PdfReadPage {
                 y,
                 width,
                 height,
-                new OfficeImageFrameTransform(-span.RotationDegrees, x, baselineY),
+                GetTextFrameTransform(span, x, baselineY),
                 ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
@@ -83,7 +83,7 @@ public sealed partial class PdfReadPage {
                 rotationDegrees: -span.RotationDegrees,
                 rotationCenterX: x,
                 rotationCenterY: baselineY,
-                wrapText: false);
+                wrapText: false, flipVertical: HasReflectedTextMatrix(span));
         }
         MarkPaintedGlyphs(drawing, span);
     }
@@ -150,7 +150,7 @@ public sealed partial class PdfReadPage {
                 clip.X,
                 clip.Y,
                 officeClipPath,
-                new OfficeImageFrameTransform(-span.RotationDegrees, x, baselineY),
+                GetTextFrameTransform(span, x, baselineY),
                 ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
@@ -169,7 +169,7 @@ public sealed partial class PdfReadPage {
                 rotationDegrees: -span.RotationDegrees,
                 rotationCenterX: x,
                 rotationCenterY: baselineY,
-                wrapText: false);
+                wrapText: false, flipVertical: HasReflectedTextMatrix(span));
         }
         MarkPaintedGlyphs(drawing, span);
         return true;
@@ -272,6 +272,13 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
+    private static bool HasReflectedTextMatrix(PdfTextSpan span) =>
+        span.TextToPageTransform is Matrix2D matrix && matrix.A * matrix.D - matrix.B * matrix.C < 0D;
+
+    private static OfficeImageFrameTransform GetTextFrameTransform(PdfTextSpan span, double x, double baseline) =>
+        // Baseline rotation alone loses the sign of the glyph's vertical axis.
+        new(-span.RotationDegrees, x, baseline, flipVertical: HasReflectedTextMatrix(span));
+
     private static (double X, double Y, double Width, double Height) GetTextFrame(
         double pageHeight, double x, double y, double fontSize, int textLength, double advance) =>
         (x, pageHeight - y - fontSize, Math.Max(advance, textLength * fontSize * .55D), Math.Max(1D, fontSize * 1.25D));
@@ -307,7 +314,7 @@ public sealed partial class PdfReadPage {
             advance > 0D ? advance : frame.Width, OfficeTextAlignment.Left, OfficeTextFeatureSettings.Default, "", Math.Max(1D, span.FontSize),
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None);
         if (!bounds.HasInk && !includeEmptyFrame) return (0D, 0D, 0D, 0D);
-        return new OfficeImageFrameTransform(-span.RotationDegrees, frame.X, baseline).CreateDestinationTransform()
+        return GetTextFrameTransform(span, frame.X, baseline).CreateDestinationTransform()
             .TransformRectangleBounds(bounds.Left, bounds.Top, bounds.Right - bounds.Left, bounds.Bottom - bounds.Top);
     }
 

@@ -92,8 +92,8 @@ internal static partial class PdfWriter {
                         (activeColumnFlow == null || activeColumnFlow.ColumnIndex == 0)) continue;
                     // An authored break retains a page occupied by empty-paragraph spacing,
                     // including spacing in a preceding column, even when it has no paint.
-                    bool preservePage = pageBreak.PreserveEmptyPage || HasCurrentPageBodyContent() ||
-                        activeColumnFlow != null && activeColumnFlow.LowestY < activeColumnFlow.Top - .001D;
+                    bool preservePage = pageBreak.PreserveEmptyPage || !pageDirty && (HasCurrentPageBodyContent() ||
+                        activeColumnFlow != null && activeColumnFlow.LowestY < activeColumnFlow.Top - .001D);
                     if (activeColumnFlow != null) AdvanceColumnFrame(forcePhysicalPage: true, preservePage);
                     else NewPage(preservePage);
                     continue;

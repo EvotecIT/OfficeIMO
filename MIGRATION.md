@@ -32,6 +32,8 @@ Authored-layout reports now include glyph and inline paint overhang, rotated and
 
 Supported SVG images embedded in drawings retain vector paths, gradients, clipping and text. Tiling patterns use reusable PDF pattern cells. Expanded link annotations count against a shared generation budget derived from the existing pattern `maximumTileCount` limits, including nested and running content. Canvas gradients interpolate premultiplied colour channels, avoiding dark fringes beside transparent stops; imported SVG/XPS gradients retain their producer's separate colour/alpha interpolation. Regenerate image baselines that relied on the earlier rasterized SVG or canvas-gradient appearance.
 
+PDF page images and SVG exports retain horizontal and vertical text reflection, including inside clips. Regenerate previews of mirrored text that previously disappeared or used only its baseline rotation.
+
 ## Image encoding defaults
 
 PNG and lossless WebP now default to `OfficeImageEncodingEffort.Balanced`. This replaces exhaustive candidate searches with bounded heuristics and one main compression plan. Set `RasterEncoding.Png.Effort` or `RasterEncoding.Webp.Effort` to `Smallest` to select the exhaustive compressor, or to `Fast` for lower encode cost. Direct codec option objects expose the same `Effort` property. Pixels remain lossless at every level; compressed bytes and sizes can change. PNG effort applies to `Compression = Optimal`; explicit `Fastest` and `Stored` compression retain their existing contracts. Lossy WebP quality remains separate.

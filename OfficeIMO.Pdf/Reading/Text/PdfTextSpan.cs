@@ -276,12 +276,14 @@ public sealed partial class PdfTextSpan {
         int characterLength = GlyphCharacterLengths![glyphIndex];
         string text = Text.Substring(characterOffset, characterLength);
         double paintedAdvance = GlyphPaintedAdvances![glyphIndex];
+        Matrix2D? glyphTransform = TextToPageTransform is Matrix2D matrix
+            ? new Matrix2D(matrix.A, matrix.B, matrix.C, matrix.D, x, y) : null;
         var characterAdvances = new double[characterLength];
         for (int index = 0; index < characterLength; index++) characterAdvances[index] = CharacterAdvances![characterOffset + index];
         return new PdfTextSpan(
             text, FontResource, FontSize, x, y, paintedAdvance, Color, IsVisible, RotationDegrees, BaseFont, clipPath ?? ClipPath,
             PaintOrder, DrawingFontFamily, 0, false, false,
-            ContentOrderKey, characterAdvances, TextRenderingMode, false, RestampFontSize, text, true, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, null, VisualPaintIdentity,
+            ContentOrderKey, characterAdvances, TextRenderingMode, false, RestampFontSize, text, true, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, glyphTransform, VisualPaintIdentity,
             new[] { characterLength }, GlyphBytes is null ? null : new[] { GlyphBytes[glyphIndex] }, new[] { paintedAdvance }, CharacterAdvanceDirection, HasActualText, IsType3Font, false, IsArtifactContent, FontWeight, FontDescriptorFlags) {
             DecodingEvidence = DecodingEvidence, _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed,
             LogicalDrawingText = LogicalGlyphTexts is { } logicalGlyphs ? logicalGlyphs[glyphIndex] : LogicalDrawingText?.Length == Text.Length
