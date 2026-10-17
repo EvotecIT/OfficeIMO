@@ -68,6 +68,43 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("cells", 450D, 150D)]
+    [InlineData("columns", 450D, 150D)]
+    [InlineData("mixed-percentages", 450D, 150D)]
+    [InlineData("length", 450D, 150D)]
+    [InlineData("larger-than-table", 579.296875D, 20.703125D)]
+    public void HtmlTables_ConflictingPercentagesPreserveTheTableAndContentMinimums(string constraints, double first, double second) {
+        string columns = constraints == "columns" ? "<colgroup><col span='2' style='width:75%'></colgroup>" : "";
+        string left = constraints == "columns" ? "" : constraints == "larger-than-table" ? "width:120%" : "width:75%";
+        string right = constraints switch {
+            "cells" => "width:75%",
+            "mixed-percentages" => "width:50%",
+            "length" => "width:200px",
+            _ => ""
+        };
+        HtmlRenderSemanticGroup grid = AutoDistributionTable("<table style='width:600px'>" + columns
+            + "<tr><td style='" + left + "'>A</td><td style='" + right + "'>B</td></tr></table>");
+        HtmlRenderSemanticGroup[] cells = AutoDistributionCells(grid);
+
+        Assert.Equal(600D, grid.Width, 6);
+        Assert.Equal(first, cells[0].Width, 6);
+        Assert.Equal(second, cells[1].Width, 6);
+        Assert.Equal(grid.Width, cells.Sum(cell => cell.Width), 6);
+    }
+
+    [Theory]
+    [InlineData("100px", 100D, 500D)]
+    [InlineData("25%", 150D, 450D)]
+    public void HtmlTables_EmptyAutomaticColumnRetainsItsSurplusPriority(string width, double first, double second) {
+        HtmlRenderSemanticGroup grid = AutoDistributionTable("<table style='width:600px'>"
+            + "<tr><td style='padding:0;width:" + width + "'>A</td><td style='padding:0'></td></tr></table>");
+        HtmlRenderSemanticGroup[] cells = AutoDistributionCells(grid);
+
+        Assert.Equal(first, cells[0].Width, 6);
+        Assert.Equal(second, cells[1].Width, 6);
+    }
+
+    [Theory]
     [InlineData("", "123", 0D, 600D)]
     [InlineData("123", "", 600D, 0D)]
     [InlineData("", "", 300D, 300D)]
