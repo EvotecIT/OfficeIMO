@@ -431,6 +431,9 @@ public sealed partial class HtmlRenderingTests {
         }
         IReadOnlyList<OfficeImageExportResult> pages = HtmlConversionDocument.Parse(source)
             .ExportImages(OfficeImageExportFormat.Png, options);
+        Assert.True(OfficePngReader.TryDecode(pages[0].Bytes, out OfficeRasterImage? firstPage));
+        Assert.Equal(OfficeColor.Blue, firstPage!.GetPixel(200, 172));
+        Assert.Equal(OfficeColor.White, firstPage.GetPixel(200, 182));
         for (int index = 2; index < pages.Count; index++) {
             Assert.True(OfficePngReader.TryDecode(pages[index].Bytes, out OfficeRasterImage? raster));
             Assert.Equal(OfficeColor.Red, raster!.GetPixel(200, 43));

@@ -37,9 +37,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     visualBottom = Math.Max(visualBottom, MaximumScrollBottom(visibleVerticalClip.Visuals));
                 }
                 if (visual is HtmlRenderShape { CollapsedBorderBoundaryY: double boundary }
-                    && (Math.Abs(boundary - start) <= 0.0001D || Math.Abs(boundary - end) <= 0.0001D)) {
-                    // A safe grid cut retains every component of a shared rule,
-                    // including strokes wholly on the other side of its center.
+                    && Math.Abs(boundary - start) <= 0.0001D) {
+                    // A resumed fragment retains both sides of its starting rule.
+                    // The preceding fragment clips that rule at its ending centerline.
                     fragment.Add(visual.Translate(0D, -start, fragment.Count));
                     continue;
                 }
