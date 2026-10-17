@@ -1,18 +1,24 @@
 {
   "date": "2026-10-17",
-  "sourceCandidate": "47de514cd3e92d3a57bd1150fe435e39e13b7b4d",
+  "sourceCandidate": "54cf307f10bf2253c8b321043112b307edfe24e5",
   "sdk": "10.0.113",
   "host": "macOS 27.0.1 arm64, Apple M4",
   "correctness": [
     {
       "framework": "net8.0",
-      "passed": 648,
-      "failed": 0
+      "passed": 652,
+      "failed": 0,
+      "skipped": 0,
+      "filter": "Category!=Performance",
+      "timezone": "Europe/Warsaw"
     },
     {
       "framework": "net10.0",
-      "passed": 648,
-      "failed": 0
+      "passed": 652,
+      "failed": 0,
+      "skipped": 0,
+      "filter": "Category!=Performance",
+      "timezone": "Europe/Warsaw"
     }
   ],
   "readerRegression": {
@@ -106,11 +112,10 @@
     "qualificationBoundary": "Retained earlier measurement/proof; not repeated for the CAB/snapshot cleanup milestone."
   },
   "gaps": [
-    "Windows runtime execution including net472",
     "Native Windows Explorer archive containing Polish filenames with producer version and raw encoding evidence",
     "Additional named MSI/CAB producer profiles"
   ],
-  "releaseBoundary": "Unsigned private qualification packages only; no public release or CI result.",
+  "releaseBoundary": "Unsigned private qualification packages only; no public release. Recorded CI evidence applies to its exact context source head and package hashes.",
   "portableCompilation": {
     "netstandard2.0": "Compiled during all four package builds",
     "net472": "Reader.Zip and transitive Archives/Core graph compiled successfully, zero warnings and errors; not executed"
@@ -324,7 +329,8 @@
           }
         ]
       }
-    ]
+    ],
+    "sourceCandidate": "47de514cd3e92d3a57bd1150fe435e39e13b7b4d"
   },
   "independentReview": {
     "candidate": "322ce8993f",
@@ -1090,15 +1096,43 @@
     "boundary": "Per-thread allocation excludes input inventory; not peak/RSS or time. Packed copies also match all106 independent MSI hashes and native makecab bytes on both runtimes."
   },
   "windowsPackedQualification": {
-    "status": "Pending execution of the new Windows CI lane",
-    "targets": [
-      "net8.0",
-      "net10.0",
-      "net472"
+    "status": "Seven packed scenarios passed on each Windows target; native Shell producer timed out",
+    "context": "2026-10-17-windows/context.json",
+    "sourceHead": "df1a61c0489cd600affb37e88e14841f66aae910",
+    "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39066914961",
+    "reports": {
+      "net8.0": "2026-10-17-windows/net8.0.json",
+      "net10.0": "2026-10-17-windows/net10.0.json",
+      "net472": "2026-10-17-windows/net472.json"
+    },
+    "runtimes": {
+      "net8.0": ".NET 8.0.32",
+      "net10.0": ".NET 10.0.13",
+      "net472": ".NET Framework 4.8.9345.0"
+    },
+    "os": "Windows 10.0.26100",
+    "privatePackageVersion": "3.5.1.9999",
+    "scenarios": [
+      "Five independent ZIP fixtures: inventory/read/grouped/verify/copy/extract/Reader",
+      "All106 pinned native MSI payload and verified-copy hashes against independent extraction",
+      "Native makecab full payload, verification and CopyTo"
     ],
-    "consumerCompilation": "net472 packed consumer compiled locally, zero warnings/errors; not runtime proof",
-    "nativeProducer": "Windows Shell.Application compressed-folder handler, with exact Windows/zipfldr/Explorer versions, input hash, raw names/flags and admitted code page recorded when executed",
-    "runtimeSourceBaseline": "The earlier 482008f source archive suite ran on Windows net8/net10/net472; new copy/runtime package proof still pending",
-    "boundary": "Interactive Explorer UI is not exercised; native fixture must be retained after successful production. A missing or failed producer report is unqualified."
+    "nativeProducer": {
+      "status": "Timeout after60seconds; no fixture or native consumer report accepted",
+      "jobUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39066914961/job/117498079028",
+      "boundary": "Actual Shell COM production remains unqualified; interactive Explorer UI and installed Framework4.7.2 are distinct unexercised boundaries."
+    },
+    "qualificationBoundary": "Later Reader timestamp repair and native-helper diagnostics require their own current-head CI; unchanged cabinet copy/runtime contracts retain this evidence."
+  },
+  "readerTimestampCompatibility": {
+    "sourceCandidate": "54cf307f10bf2253c8b321043112b307edfe24e5",
+    "regression": "Reader treated timezone-unspecified DOS wall time as UTC instead of retaining platform ZipArchive interpretation",
+    "before": "All5 focused normal/nested content/read-warning/disabled-nested cases fail by1hour under Europe/Warsaw",
+    "after": {
+      "Europe/Warsaw": "652 non-performance tests each net8/net10",
+      "America/New_York": "5 focused tests net10",
+      "UTC": "5 focused tests net10"
+    },
+    "contract": "Reuse canonical traversal LastWriteUtc for all child and warning metadata; raw inspection wall-time contract unchanged."
   }
 }

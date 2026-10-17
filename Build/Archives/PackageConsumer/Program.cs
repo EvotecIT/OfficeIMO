@@ -67,8 +67,14 @@ foreach (var fixture in manifest.RootElement.GetProperty("fixtures").EnumerateAr
         Name = entry.GetProperty("name").GetString()!, Time = timestampOracle.Entries[index].LastWriteTime.UtcDateTime
     }).ToDictionary(entry => entry.Name, entry => entry.Time, StringComparer.Ordinal);
     foreach (var chunk in chunks) {
-        string memberName = chunk.Location.Path.Substring(chunk.Location.Path.LastIndexOf("::", StringComparison.Ordinal) + 2);
-        Require(chunk.SourceLastWriteUtc == expectedTimes[memberName], "Reader timestamp differs from platform ZipArchive: " + memberName);
+        string virtualPath = chunk.Location.Path ?? throw new InvalidDataException("Reader member path is missing");
+        int separator = virtualPath.LastIndexOf("::", StringComparison.Ordinal);
+        Require(separator >= 0, "Reader member path has no container boundary");
+        string memberName = virtualPath.Substring(separator + 2);
+        DateTime expectedTime = expectedTimes[memberName];
+        // Reader treats UTC years before 1980 as sentinels and uses the archive's source metadata.
+        if (expectedTime.Year < 1980) expectedTime = File.GetLastWriteTimeUtc(path);
+        Require(chunk.SourceLastWriteUtc == expectedTime, "Reader timestamp differs from platform ZipArchive: " + memberName);
     }
     var extracted = ArchiveExtractor.Extract(path, Path.Combine(output, name), new() { ZipLegacyCodePage = codePage });
     Require(extracted.Files.Count == entries.Length, "Extracted count mismatch");
