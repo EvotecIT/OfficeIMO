@@ -156,6 +156,9 @@ internal static partial class HtmlPdfRenderedConverter {
             allowFileUrls: options.ResourcePolicy.AllowLocalFileAccess ||
                 embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources);
         HtmlRenderResourceResolver? hostResolver = renderOptions.ResourceResolver;
+        if (hostResolver != null && hostResolver == options.EmbeddedPackageConfiguredResourceResolver) {
+            hostResolver = options.EmbeddedPackageHostResourceResolver;
+        }
         if (embeddedPackageResolver != null || hostResolver != null) {
             renderOptions.ResourceResolver = async (request, cancellationToken) => {
                 if (embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources) {
@@ -213,6 +216,8 @@ internal static partial class HtmlPdfRenderedConverter {
         target.ResourcePolicy = source.ResourcePolicy.Clone();
         target.EmbeddedPackageResourceResolver = source.EmbeddedPackageResourceResolver;
         target.EmbeddedPackageHostResourceUrlPolicy = source.EmbeddedPackageHostResourceUrlPolicy?.Clone();
+        target.EmbeddedPackageConfiguredResourceResolver = source.EmbeddedPackageConfiguredResourceResolver;
+        target.EmbeddedPackageHostResourceResolver = source.EmbeddedPackageHostResourceResolver;
     }
 
     private readonly struct PreparedPdfRequest {

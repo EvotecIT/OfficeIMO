@@ -28,6 +28,9 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
 
     internal HtmlRenderResourceResolver? EmbeddedPackageResourceResolver { get; set; }
     internal HtmlUrlPolicy? EmbeddedPackageHostResourceUrlPolicy { get; set; }
+    // Retain the container resolver identity so a caller's later replacement remains authoritative.
+    internal HtmlRenderResourceResolver? EmbeddedPackageConfiguredResourceResolver { get; set; }
+    internal HtmlRenderResourceResolver? EmbeddedPackageHostResourceResolver { get; set; }
     internal DrawingCore.OfficePageSize? PrintOutputPageSize { get; set; }
     // One approved library-selected face snapshot supplies both layout and PDF paint.
     internal PdfCore.PdfEmbeddedFontFamily? LibrarySelectedDefaultFontFamily { get; set; }
@@ -177,5 +180,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         ResourcePolicy = source.ResourcePolicy.Clone();
         EmbeddedPackageResourceResolver = source.EmbeddedPackageResourceResolver;
         EmbeddedPackageHostResourceUrlPolicy = source.EmbeddedPackageHostResourceUrlPolicy?.Clone();
+        EmbeddedPackageConfiguredResourceResolver = source.EmbeddedPackageConfiguredResourceResolver;
+        EmbeddedPackageHostResourceResolver = source.EmbeddedPackageHostResourceResolver;
     }
 }
