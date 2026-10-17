@@ -367,6 +367,42 @@ public sealed partial class HtmlRenderingTests {
         }
     }
 
+    [Fact]
+    public void HtmlCollapsedGeometry_PageHeightContinuationPreservesSourceCellInsets() {
+        const string body = "<style>@page{size:320px 200px;margin:10px}@page:first{size:320px 190px}"
+            + "td,th{padding:4px}tr{break-inside:avoid}</style>"
+            + "<div id='spacer' style='height:90px'></div>"
+            + "<table id='grid' style='width:280px;table-layout:fixed;border-collapse:collapse'><thead><tr>"
+            + "<th style='border-bottom:10px solid red'><div class='probe'>Header<br>Detail</div></th>"
+            + "</tr></thead><tbody><tr><td id='first'><div class='probe'>Body01<br>Detail</div></td></tr>"
+            + "<tr><td id='resumed'><div id='resumed-probe' class='probe'>Body02<br>Detail</div></td></tr>"
+            + "<tr><td id='last'><div class='probe'>Body03<br>Detail</div></td></tr></tbody></table>"
+            + CollapsedGeometryFollowing;
+        HtmlRenderOptions options = CollapsedGeometryOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(CollapsedGeometrySource(body), options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal(190D, rendered.Pages[0].Height, 3);
+        Assert.Equal(200D, rendered.Pages[1].Height, 3);
+        Assert.Contains(CollapsedGeometryPageVisuals(rendered.Pages[1]).OfType<HtmlRenderText>(),
+            text => text.Text == "Body02");
+        Assert.All(rendered.Pages, page => Assert.Single(CollapsedGeometryPageVisuals(page).OfType<HtmlRenderText>(),
+            text => text.Text == "Header"));
+        HtmlRenderShape first = TableGeometryShape(rendered, "td#first");
+        HtmlRenderShape resumed = TableGeometryShape(rendered, "td#resumed");
+        HtmlRenderShape probe = TableGeometryShape(rendered, "div#resumed-probe");
+        Assert.Equal(34D, first.Height, 3);
+        Assert.Equal(30D, resumed.Height, 3);
+        Assert.Equal(5D, probe.Y - resumed.Y, 3);
+        Assert.Equal(30D, TableGeometryShape(rendered, "td#last").Y - resumed.Y, 3);
+        HtmlRenderText[] text = rendered.Pages.SelectMany(CollapsedGeometryPageVisuals).OfType<HtmlRenderText>().ToArray();
+        foreach (string label in new[] { "Body01", "Body02", "Body03", "After" }) {
+            Assert.Single(text, item => item.Text == label);
+        }
+        rendered.RequireNoLoss();
+    }
+
     private const string CollapsedGeometryFollowing = "<div id='after' style='height:10px;background:red'>After</div>";
 
     private static string CollapsedGeometrySource(string body) => TableGeometrySource("<style>body{font:9px/10px Witness}"

@@ -140,10 +140,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan) + horizontalSpacing * (columnSpan - 1);
                 HtmlRenderBoxStyle cellStyle = ResolveFormattingCellStyle(cell, cellOuterWidth);
                 ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
-                if (fragmentBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets collapsedInsets) == true) {
-                    cellStyle.TableCollapsedBorderInsets = collapsedInsets;
-                } else if (sourceBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets sourceInsets) == true) {
+                // Repeated groups change fragment paint topology, not the source cell's
+                // authored neighbors or the insets used to size its content.
+                if (sourceBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets sourceInsets) == true) {
                     cellStyle.TableCollapsedBorderInsets = sourceInsets;
+                } else if (fragmentBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets collapsedInsets) == true) {
+                    cellStyle.TableCollapsedBorderInsets = collapsedInsets;
                 }
                 if (rowSpan == 1) cellStyle = PrepareTablePercentageHeight(cellStyle, style);
                 else if (style.ExplicitHeight.HasValue && cellStyle.TablePercentageHeight.Length > 0) {
