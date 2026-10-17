@@ -46,7 +46,8 @@ if ($Role -eq 'all') {
         } else { @('CODE_SIGNING_ALLOWED=NO') }
         Invoke-CaptureXcode -LogPath (Join-Path $WorkRoot "build-$platform.log") -Arguments (
             @('build-for-testing', '-project', $project, '-scheme', "OfficeIMOStudioCapture-$platform", '-configuration', 'Release',
-              '-destination', $destination, '-derivedDataPath', (Join-Path $WorkRoot $platform)) + $signing)
+              '-destination', $destination, '-derivedDataPath', (Join-Path $WorkRoot $platform),
+              '-clonedSourcePackagesDirPath', (Join-Path $WorkRoot 'SourcePackages')) + $signing)
     }
     & $PSCommandPath -Role macos -WorkRoot $WorkRoot
     $receiptRoot = Join-Path $sourceRoot 'build/powerforge/screenshots'
