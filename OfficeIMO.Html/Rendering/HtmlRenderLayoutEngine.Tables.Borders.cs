@@ -24,6 +24,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .OrderBy(pair => pair.Key.Horizontal ? 0 : 1)
             .ThenBy(pair => pair.Key.Boundary)
             .ThenBy(pair => pair.Key.Segment)) {
+            CheckCancellation();
             HtmlRenderBorderSide border = entry.Value.Border;
             if (!border.IsPainted) continue;
             CollapsedBorderKey key = entry.Key;

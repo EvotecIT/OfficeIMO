@@ -354,7 +354,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddCollapsedTableBorders(visuals, table, style, fragmentBorders, rowLayouts, columnWidths, columnOffsets, contentX, tableY + style.BorderTopWidth + style.PaddingTop);
             IReadOnlyList<HtmlRenderVisual> collapsedBorders = visuals.Skip(borderVisualStart).ToArray();
             if (continuationVisuals.Count > 0) {
-                AppendRepeatedCollapsedBorders(continuationVisuals, collapsedBorders,
+                IReadOnlyList<HtmlRenderVisual> headerBorders = collapsedBorders;
+                if (!ReferenceEquals(sourceBorders, fragmentBorders) && sourceBorders != null) {
+                    // A resumed body's winning edge belongs only to that fragment.
+                    // Future headers retain the original source header's grid rules.
+                    var sourceHeaderBorders = new List<HtmlRenderVisual>();
+                    AddCollapsedTableBorders(sourceHeaderBorders, table, style, sourceBorders,
+                        rowLayouts.TakeWhile(row => row.IsHeader).ToArray(), columnWidths, columnOffsets,
+                        contentX, tableY + style.BorderTopWidth + style.PaddingTop);
+                    headerBorders = sourceHeaderBorders;
+                }
+                AppendRepeatedCollapsedBorders(continuationVisuals, headerBorders,
                     headerStart, headerStart + continuationHeight);
             }
             if (trailingVisuals.Count > 0) {

@@ -410,6 +410,36 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Fact]
+    public void HtmlCollapsedGeometry_ResumedBodyBorderDoesNotBecomeAFutureHeaderBorder() {
+        string rows = string.Concat(Enumerable.Range(1, 12).Select(index => "<tr><td"
+            + (index == 2 ? " style='border-top:20px solid blue'" : string.Empty)
+            + "><div class='probe'>Body" + index.ToString("D2") + "<br>Detail</div></td></tr>"));
+        string body = "<style>@page{size:320px 200px;margin:10px}@page:first{size:320px 190px}"
+            + "td,th{padding:4px}tr{break-inside:avoid}</style><div style='height:90px'></div>"
+            + "<table style='width:280px;table-layout:fixed;border-collapse:collapse'><thead><tr>"
+            + "<th style='border-bottom:10px solid red'><div class='probe'>Header<br>Detail</div></th>"
+            + "</tr></thead><tbody>" + rows + "</tbody></table>" + CollapsedGeometryFollowing;
+        string source = CollapsedGeometrySource(body);
+        HtmlRenderOptions options = CollapsedGeometryOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(source, options);
+        Assert.Equal(4, rendered.Pages.Count);
+        HtmlRenderText[] text = rendered.Pages.SelectMany(CollapsedGeometryPageVisuals).OfType<HtmlRenderText>().ToArray();
+        for (int index = 1; index <= 12; index++) {
+            Assert.Single(text, item => item.Text == "Body" + index.ToString("D2"));
+        }
+        IReadOnlyList<OfficeImageExportResult> pages = HtmlConversionDocument.Parse(source)
+            .ExportImages(OfficeImageExportFormat.Png, options);
+        for (int index = 2; index < pages.Count; index++) {
+            Assert.True(OfficePngReader.TryDecode(pages[index].Bytes, out OfficeRasterImage? raster));
+            Assert.Equal(OfficeColor.Red, raster!.GetPixel(200, 43));
+            Assert.Equal(OfficeColor.Black, raster.GetPixel(200, 44));
+            Assert.Equal(OfficeColor.Red, raster.GetPixel(200, 46));
+        }
+        rendered.RequireNoLoss();
+    }
+
     private const string CollapsedGeometryFollowing = "<div id='after' style='height:10px;background:red'>After</div>";
 
     private static string CollapsedGeometrySource(string body) => TableGeometrySource("<style>body{font:9px/10px Witness}"
