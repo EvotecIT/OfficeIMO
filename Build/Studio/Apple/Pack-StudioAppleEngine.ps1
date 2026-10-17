@@ -5,17 +5,25 @@ Packages a built OfficeIMO Apple engine and its exact dependency notices using P
 Build the engine with OfficeIMO.Studio.Native/Build-AppleEngine.ps1 first. This wrapper stages the product's framework
 and license inputs; PowerForge owns notice validation, archive creation, metadata and GitHub release publication.
 Publish requires the source revision used to build the engine and GITHUB_TOKEN. Existing release assets are never replaced.
+PowerForgeModule selects the PSPublishModule assembly built beside the pinned CLI; installed modules are not used.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$EngineDirectory,
     [Parameter(Mandatory)][string]$OutputDirectory,
     [Parameter(Mandatory)][string]$PowerForgeCli,
+    [string]$PowerForgeModule,
     [Parameter(Mandatory)][ValidatePattern('^[a-fA-F0-9]{40}$')][string]$SourceCommit,
     [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.0.0',
     [bool]$Publish = $false
 )
 $ErrorActionPreference = 'Stop'
+if ($Publish) {
+    if ([string]::IsNullOrWhiteSpace($PowerForgeModule)) { throw 'Publish requires the PSPublishModule assembly built from the pinned PowerForge checkout.' }
+    $publisher = Import-Module -Name (Resolve-Path -LiteralPath $PowerForgeModule).Path -PassThru -ErrorAction Stop
+    $publishRelease = $publisher.ExportedCmdlets['Send-GitHubRelease']
+    if ($null -eq $publishRelease) { throw 'The pinned module does not export Send-GitHubRelease.' }
+}
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
 $EngineDirectory = (Resolve-Path $EngineDirectory).Path
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
@@ -46,8 +54,7 @@ Set-Content -LiteralPath "$archive.sha256" -Value "$hash  $([IO.Path]::GetFileNa
 & dotnet $PowerForgeCli dotnet bundle-postprocess --config $config --bundle Studio.Apple.Engine --bundle-root $OutputDirectory --skip-archive @tokens --token "archiveSha256=$hash"
 if ($LASTEXITCODE) { throw 'PowerForge engine provenance metadata failed.' }
 if ($Publish) {
-    Import-Module PSPublishModule -MinimumVersion 3.0.151
-    $release = Send-GitHubRelease -GitHubUsername EvotecIT -GitHubRepositoryName OfficeIMO -GitHubAccessToken $env:GITHUB_TOKEN `
+    $release = & $publishRelease -GitHubUsername EvotecIT -GitHubRepositoryName OfficeIMO -GitHubAccessToken $env:GITHUB_TOKEN `
         -TagName "studio-engine-v$Version" -ReleaseName "OfficeIMO Studio Engine $Version" -Commitish $SourceCommit `
         -IsPreRelease $true -ReleaseNotes "Native Apple engine artifact. Source: $SourceCommit. License: MIT; third-party notices accompany the artifact." `
         -AssetFilePaths @($archive, "$archive.sha256", (Join-Path $OutputDirectory 'engine-package.json'))

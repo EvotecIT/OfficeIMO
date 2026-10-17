@@ -48,9 +48,14 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - name: Build shared packaging CLI
+      - name: Build pinned packaging CLI and publisher
         working-directory: .powerforge-engine-build
-        run: dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0
+        shell: pwsh
+        run: |
+          dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0
+          if ($LASTEXITCODE) { throw 'Pinned packaging CLI build failed.' }
+          dotnet build PSPublishModule/PSPublishModule.csproj -c Release -f net8.0
+          if ($LASTEXITCODE) { throw 'Pinned publisher module build failed.' }
       - name: Build and publish the native engine
         shell: pwsh
         env:
@@ -60,9 +65,10 @@ jobs:
         run: |
           $output = $env:STUDIO_ENGINE_OUTPUT
           $cli = Join-Path $PWD '.powerforge-engine-build/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll'
+          $publisher = Join-Path $PWD '.powerforge-engine-build/PSPublishModule/bin/Release/net8.0/PSPublishModule.dll'
           ./OfficeIMO.Studio.Native/Build-AppleEngine.ps1 -OutputDirectory (Join-Path $output 'engine')
           ./Build/Studio/Apple/Pack-StudioAppleEngine.ps1 -EngineDirectory (Join-Path $output 'engine') `
-            -OutputDirectory (Join-Path $output 'package') -PowerForgeCli $cli `
+            -OutputDirectory (Join-Path $output 'package') -PowerForgeCli $cli -PowerForgeModule $publisher `
             -SourceCommit $env:ENGINE_SOURCE -Version $env:ENGINE_VERSION -Publish $true
       - name: Retain package identity and dependency evidence
         if: always() && env.STUDIO_ENGINE_OUTPUT != ''
