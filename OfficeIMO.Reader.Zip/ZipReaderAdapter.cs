@@ -190,13 +190,15 @@ internal static partial class ZipReaderAdapter {
 
             var entryName = descriptor.FullName;
             var entry = archive.Entries[descriptor.EntryIndex];
+            // Traversal already applies ZipArchive's local-zone interpretation of DOS wall time.
+            var entryLastWriteTime = new DateTimeOffset(descriptor.LastWriteUtc, TimeSpan.Zero);
             // A second container boundary keeps duplicate identities distinct without changing extensions.
             string entryArchivePath = duplicatePathSet.Contains(entryName)
                 ? archivePath + "!/entry-" + descriptor.EntryIndex.ToString("D6", CultureInfo.InvariantCulture)
                 : archivePath;
             if (IsZipEntry(entryName)) {
                 foreach (var nestedChunk in ReadNestedZipEntry(
-                             archive, entry,
+                             archive, entry, entryLastWriteTime,
                              archiveSource,
                              entryArchivePath,
                              entryName,
@@ -223,7 +225,7 @@ internal static partial class ZipReaderAdapter {
                     $"Skipped ZIP entry because it exceeds MaxInputBytes ({descriptor.UncompressedLength} > {readerOptions.MaxInputBytes.Value}).",
                     readerOptions.ComputeHashes,
                     sourceLengthBytes: descriptor.UncompressedLength,
-                    sourceLastWriteTime: (entry.LastWriteTime ?? DateTimeOffset.MinValue));
+                    sourceLastWriteTime: entryLastWriteTime);
                 continue;
             }
 
@@ -236,7 +238,7 @@ internal static partial class ZipReaderAdapter {
                     "Skipped ZIP entry because it is too large to materialize in memory.",
                     readerOptions.ComputeHashes,
                     sourceLengthBytes: descriptor.UncompressedLength,
-                    sourceLastWriteTime: (entry.LastWriteTime ?? DateTimeOffset.MinValue));
+                    sourceLastWriteTime: entryLastWriteTime);
                 continue;
             }
 
@@ -257,7 +259,7 @@ internal static partial class ZipReaderAdapter {
                     readError,
                     readerOptions.ComputeHashes,
                     sourceLengthBytes: descriptor.UncompressedLength,
-                    sourceLastWriteTime: (entry.LastWriteTime ?? DateTimeOffset.MinValue));
+                    sourceLastWriteTime: entryLastWriteTime);
                 continue;
             }
 
@@ -281,13 +283,13 @@ internal static partial class ZipReaderAdapter {
                     parseError,
                     readerOptions.ComputeHashes,
                     sourceLengthBytes: descriptor.UncompressedLength,
-                    sourceLastWriteTime: (entry.LastWriteTime ?? DateTimeOffset.MinValue));
+                    sourceLastWriteTime: entryLastWriteTime);
                 continue;
             }
 
             var virtualPath = BuildVirtualPath(entryArchivePath, entryName);
             DocumentReaderEngine.ApplyExternalSourceMetadata(nestedDocument!, BuildSourceId(virtualPath),
-                NormalizeLastWriteUtc((entry.LastWriteTime ?? DateTimeOffset.MinValue)), descriptor.UncompressedLength, readerOptions.ComputeHashes);
+                NormalizeLastWriteUtc(entryLastWriteTime), descriptor.UncompressedLength, readerOptions.ComputeHashes);
             foreach (var child in chunks!) {
                 var chunk = child.CopyForContainer();
                 cancellationToken.ThrowIfCancellationRequested();
@@ -296,7 +298,7 @@ internal static partial class ZipReaderAdapter {
                     archiveSource,
                     virtualPath,
                     descriptor.UncompressedLength,
-                    (entry.LastWriteTime ?? DateTimeOffset.MinValue),
+                    entryLastWriteTime,
                     readerOptions.ComputeHashes);
                 yield return chunk;
             }
@@ -304,7 +306,7 @@ internal static partial class ZipReaderAdapter {
     }
 
     private static IEnumerable<ReaderChunk> ReadNestedZipEntry(
-        ArchiveInspection archive, ArchiveInspectionEntry entry,
+        ArchiveInspection archive, ArchiveInspectionEntry entry, DateTimeOffset entryLastWriteTime,
         ArchiveSourceMetadata archiveSource,
         string archivePath,
         string entryName,
@@ -315,7 +317,7 @@ internal static partial class ZipReaderAdapter {
         WarningCounter warningCounter,
         CancellationToken cancellationToken) {
         var nestedEntryLength = (long?)entry.Length;
-        var nestedEntryLastWriteTime = (entry.LastWriteTime ?? DateTimeOffset.MinValue);
+        var nestedEntryLastWriteTime = entryLastWriteTime;
 
         if (!readerZipOptions.ReadNestedZipEntries) {
             yield return BuildWarningChunk(

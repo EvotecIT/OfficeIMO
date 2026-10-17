@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.IO.Compression;
 using System.Text.Json;
 using OfficeIMO.Archives;
 using OfficeIMO.Reader;
@@ -60,6 +61,15 @@ foreach (var fixture in manifest.RootElement.GetProperty("fixtures").EnumerateAr
     var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler(new() { ZipLegacyCodePage = codePage }).Build();
     var chunks = reader.Read(path, new() { ComputeHashes = false }).ToArray();
     Require(chunks.Any(c => c.Text.Contains("Zażółć")) && chunks.All(c => !(c.Warnings?.Any() ?? false)), "Reader payload mismatch");
+    using var oracleInput = File.OpenRead(path);
+    using var timestampOracle = new ZipArchive(oracleInput, ZipArchiveMode.Read);
+    var expectedTimes = entries.Select((entry, index) => new {
+        Name = entry.GetProperty("name").GetString()!, Time = timestampOracle.Entries[index].LastWriteTime.UtcDateTime
+    }).ToDictionary(entry => entry.Name, entry => entry.Time, StringComparer.Ordinal);
+    foreach (var chunk in chunks) {
+        string memberName = chunk.Location.Path.Substring(chunk.Location.Path.LastIndexOf("::", StringComparison.Ordinal) + 2);
+        Require(chunk.SourceLastWriteUtc == expectedTimes[memberName], "Reader timestamp differs from platform ZipArchive: " + memberName);
+    }
     var extracted = ArchiveExtractor.Extract(path, Path.Combine(output, name), new() { ZipLegacyCodePage = codePage });
     Require(extracted.Files.Count == entries.Length, "Extracted count mismatch");
     foreach (var expected in entries) {

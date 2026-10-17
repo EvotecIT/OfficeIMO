@@ -57,7 +57,12 @@ foreach ($framework in @('net8.0', 'net10.0', 'net472')) {
 # Native Shell production is separate: a headless producer failure must not prevent the runtime proof above.
 $native = Join-Path $OutputPath 'native'
 & pwsh -NoProfile -STA -File (Join-Path $PSScriptRoot 'New-WindowsShellZipFixture.ps1') -OutputPath $native
-if ($LASTEXITCODE -ne 0) { throw 'Native Windows Shell producer failed; base packed runtime reports are retained.' }
+$nativeExitCode = $LASTEXITCODE
+foreach ($name in @('producer-attempt.json', 'windows-shell-polish.zip')) {
+    $path = Join-Path $native $name
+    if (Test-Path -LiteralPath $path) { Copy-Item -LiteralPath $path -Destination $reports }
+}
+if ($nativeExitCode -ne 0) { throw 'Native Windows Shell producer failed; base packed runtime and producer diagnostics are retained.' }
 $fixture = Get-Content -Raw -LiteralPath (Join-Path $native 'fixture.json') | ConvertFrom-Json
 $nativeCorpus = Join-Path $OutputPath 'native-corpus'
 $null = New-Item -ItemType Directory -Path $nativeCorpus

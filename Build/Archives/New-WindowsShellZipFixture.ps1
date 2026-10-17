@@ -3,6 +3,13 @@ param([Parameter(Mandatory)][string] $OutputPath)
 
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'The native Windows Shell producer requires Windows.' }
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type @'
+using System.Runtime.InteropServices;
+public static class WindowsZipCodePage {
+    [DllImport("kernel32.dll")] public static extern uint GetACP();
+}
+'@
 $OutputPath = [IO.Path]::GetFullPath($OutputPath)
 if (Test-Path -LiteralPath $OutputPath) { throw 'Use a fresh task-owned output path.' }
 $null = New-Item -ItemType Directory -Path $OutputPath
@@ -11,6 +18,23 @@ $null = New-Item -ItemType Directory -Path $source
 $names = @('Zażółć-gęślą-jaźń.txt', 'Łódź.txt')
 $payload = [Text.Encoding]::UTF8.GetBytes('Zażółć gęślą jaźń — native Windows Shell ZIP')
 foreach ($name in $names) { [IO.File]::WriteAllBytes((Join-Path $source $name), $payload) }
+$ansiCodePage = [WindowsZipCodePage]::GetACP()
+[Text.Encoding]::RegisterProvider([Text.CodePagesEncodingProvider]::Instance)
+$ansi = [Text.Encoding]::GetEncoding($ansiCodePage, [Text.EncoderExceptionFallback]::new(), [Text.DecoderExceptionFallback]::new())
+$representable = $true
+try { foreach ($name in $names) { $null = $ansi.GetBytes($name) } }
+catch [Text.EncoderFallbackException] { $representable = $false }
+$attempt = @{
+    windows = [Environment]::OSVersion.VersionString
+    powershell = $PSVersionTable.PSVersion.ToString()
+    apartment = [Threading.Thread]::CurrentThread.GetApartmentState().ToString()
+    userInteractive = [Environment]::UserInteractive
+    systemAnsiCodePage = $ansiCodePage
+    namesRepresentableInSystemAnsi = $representable
+    expectedNames = $names
+    messagePump = $true
+    complete = $false
+}
 $zipPath = Join-Path $OutputPath 'windows-shell-polish.zip'
 [IO.File]::WriteAllBytes($zipPath, [byte[]](0x50, 0x4b, 5, 6) + [byte[]]::new(18))
 $shell = New-Object -ComObject Shell.Application
@@ -23,19 +47,30 @@ try {
     $destination.CopyHere($items, 0x614)
     $deadline = [DateTime]::UtcNow.AddSeconds(60)
     do {
+        # CopyHere is asynchronous; allow this STA to dispatch Shell callbacks while polling.
+        [Windows.Forms.Application]::DoEvents()
         Start-Sleep -Milliseconds 250
         try {
             $read = [IO.Compression.ZipFile]::OpenRead($zipPath)
-            try { $complete = $read.Entries.Count -eq $names.Count -and @($read.Entries | Where-Object Length -ne $payload.Length).Count -eq 0 }
+            try {
+                $attempt.observedNames = @($read.Entries | ForEach-Object FullName)
+                $complete = $read.Entries.Count -eq $names.Count -and @($read.Entries | Where-Object Length -ne $payload.Length).Count -eq 0
+            }
             finally { $read.Dispose() }
-        } catch [IO.IOException], [IO.InvalidDataException] { $complete = $false }
+        } catch [IO.IOException], [IO.InvalidDataException] {
+            $complete = $false
+            $attempt.lastReadError = $_.Exception.GetType().FullName
+        }
     } until ($complete -or [DateTime]::UtcNow -ge $deadline)
+    $attempt.complete = $complete
     if (-not $complete) { throw 'Native Shell ZIP production did not complete.' }
 } finally {
     if ($null -ne $items) { $null = [Runtime.InteropServices.Marshal]::FinalReleaseComObject($items) }
     if ($null -ne $destination) { $null = [Runtime.InteropServices.Marshal]::FinalReleaseComObject($destination) }
     if ($null -ne $folder) { $null = [Runtime.InteropServices.Marshal]::FinalReleaseComObject($folder) }
     $null = [Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)
+    $attempt.zipBytes = (Get-Item -LiteralPath $zipPath).Length
+    $attempt | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $OutputPath 'producer-attempt.json') -Encoding utf8
 }
 
 # Record exact raw central-directory names and choose only an encoding that reproduces all authored names.
@@ -52,10 +87,9 @@ for ($index = 0; $index -lt $names.Count; $index++) {
     $flags += [BitConverter]::ToUInt16($bytes, $offset + 8)
     $offset += 46 + $length + [BitConverter]::ToUInt16($bytes, $offset + 30) + [BitConverter]::ToUInt16($bytes, $offset + 32)
 }
-[Text.Encoding]::RegisterProvider([Text.CodePagesEncodingProvider]::Instance)
 $policy = $null
 $decoded = @()
-foreach ($page in @(65001, [Globalization.CultureInfo]::CurrentCulture.TextInfo.ANSICodePage, 1250) | Select-Object -Unique) {
+foreach ($page in @(65001, $ansiCodePage, 1250) | Select-Object -Unique) {
     $encoding = [Text.Encoding]::GetEncoding($page, [Text.EncoderExceptionFallback]::new(), [Text.DecoderExceptionFallback]::new())
     try { $candidate = @($raw | ForEach-Object { $encoding.GetString([byte[]]$_) }) } catch [Text.DecoderFallbackException] { continue }
     if (@(Compare-Object ($names | Sort-Object) ($candidate | Sort-Object)).Count -eq 0) {
