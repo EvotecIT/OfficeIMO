@@ -11,9 +11,9 @@ permissions:
 
 jobs:
   doctor:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-apple-monitor.yml@4df0e1cb243c884b08a92a141fd248aafb71d7bf
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-apple-monitor.yml@82a8585e83a2065f8c28fe1f398bc3deb025239f
     with:
       source_ref: ${{ github.sha }}
       config_path: Build/Studio/Apple/powerforge.release.json
-      powerforge_ref: 4df0e1cb243c884b08a92a141fd248aafb71d7bf
+      powerforge_ref: 82a8585e83a2065f8c28fe1f398bc3deb025239f
       issue_title: Studio Apple release monitor detected a failure

@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: EvotecIT/PSPublishModule
-          ref: 4df0e1cb243c884b08a92a141fd248aafb71d7bf
+          ref: 82a8585e83a2065f8c28fe1f398bc3deb025239f
           path: .powerforge-engine-build
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
