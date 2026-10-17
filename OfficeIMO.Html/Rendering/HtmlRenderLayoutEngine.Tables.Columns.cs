@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         ResolveAutoTableColumnContributions(rows, table, columnCount, contentWidth, tableStyle, depth, legacyBorderWidth,
             out double[] minimums, out double[] preferred, out bool[] authoredWidths, out double[] percentages,
-            out double[] contentMinimums);
+            out double[] contentMinimums, out bool hasSpanningPercentageWidths);
         double minimumAllowed = tableStyle.MinWidth.HasValue
             ? Math.Max(0.01D, tableStyle.MinWidth.Value - (tableStyle.BorderBox ? tableStyle.HorizontalInsets : 0D))
             : 0.01D;
@@ -21,14 +21,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Percentage requests compete within the used width; they are not
         // unbreakable content and must not force an over-constrained table wider.
         usedWidth = Math.Max(usedWidth, (percentages.Any(value => value > 0D) ? contentMinimums : minimums).Sum());
-        return AllocateAutoColumnWidths(minimums, preferred, authoredWidths, percentages, contentMinimums, usedWidth);
+        return hasSpanningPercentageWidths
+            ? AllocateAutoColumnSizingGuesses(minimums, preferred, authoredWidths, percentages, usedWidth)
+            : AllocateAutoColumnWidths(minimums, preferred, authoredWidths, percentages, contentMinimums, usedWidth);
     }
 
     /// <summary>Collects column constraints once for both table layout and non-paint intrinsic sizing.</summary>
     private void ResolveAutoTableColumnContributions(IReadOnlyList<TableFormattingRow> rows, IElement table,
         int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle, int depth, int legacyBorderWidth,
         out double[] minimums, out double[] preferred, out bool[] authoredWidths, out double[] percentages,
-        out double[] contentMinimums) {
+        out double[] contentMinimums, out bool hasSpanningPercentageWidths) {
         minimums = new double[columnCount];
         preferred = new double[columnCount];
         authoredWidths = new bool[columnCount];
@@ -41,6 +43,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         var spanningCells = new List<(int Column, int Span, double Minimum, double Preferred)>();
         var spanningContent = new List<(int Column, int Span, double Minimum, double Preferred)>();
+        var spanningPercentages = new List<(int Column, int Span, double Percentage)>();
         var occupancy = new int[columnCount];
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             int column = 0;
@@ -64,7 +67,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     contentMinimums[column] = Math.Max(contentMinimums[column], contentMinimum);
                     contentPreferred[column] = Math.Max(contentPreferred[column], contentMaximum);
                 } else {
-                    spanningCells.Add((column, span, minimum, maximum));
+                    if (cellStyle.ExplicitWidthUsesPercentage && cellStyle.ExplicitWidth.HasValue) {
+                        spanningPercentages.Add((column, span,
+                            cellStyle.ExplicitWidth.Value / Math.Max(0.01D, contentWidth)));
+                    } else spanningCells.Add((column, span, minimum, maximum));
                     spanningContent.Add((column, span,
                         cellStyle.ExplicitWidthUsesPercentage ? contentMinimum : minimum, contentMaximum));
                 }
@@ -74,13 +80,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             DecrementOccupancy(occupancy);
         }
+        hasSpanningPercentageWidths = spanningPercentages.Count > 0;
+        if (hasSpanningPercentageWidths) {
+            ApplyTableSpanningPercentageWidths(percentages, contentPreferred, spanningPercentages);
+        }
         double spacing = tableStyle.BorderCollapse == "collapse" ? 0D : tableStyle.BorderSpacingX;
         ApplyTableSpanningContentWidths(contentMinimums, contentPreferred, spanningContent, spacing, authoredWidths, percentages);
-        for (int index = 0; index < columnCount; index++) {
-            minimums[index] = Math.Max(minimums[index], contentMinimums[index]);
-            preferred[index] = Math.Max(preferred[index], contentPreferred[index]);
+        if (hasSpanningPercentageWidths) {
+            // Percentage requests participate in the sizing guesses, rather
+            // than becoming equal fixed minimums before available width is known.
+            minimums = contentMinimums;
+            preferred = contentPreferred;
+        } else {
+            for (int index = 0; index < columnCount; index++) {
+                minimums[index] = Math.Max(minimums[index], contentMinimums[index]);
+                preferred[index] = Math.Max(preferred[index], contentPreferred[index]);
+            }
+            ApplyTableSpanningWidths(minimums, preferred, spanningCells, spacing);
         }
-        ApplyTableSpanningWidths(minimums, preferred, spanningCells, spacing);
     }
 
     /// <summary>Measures a table as one atomic box using source columns, without painting or feeding layout widths back into measurement.</summary>
@@ -102,7 +119,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (columnCount > 0) {
             int legacyBorderWidth = table.LocalName == "table" ? ReadLegacyTableBorderWidth(table) : 0;
             ResolveAutoTableColumnContributions(formatting.Rows, table, columnCount, availableWidth, style, depth, legacyBorderWidth,
-                out double[] minimums, out double[] preferred, out _, out double[] percentages, out double[] contentMinimums);
+                out double[] minimums, out double[] preferred, out _, out double[] percentages, out double[] contentMinimums, out _);
             double spacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX * (columnCount + 1);
             minimum = Math.Max(minimum, (percentages.Any(value => value > 0D) ? contentMinimums : minimums).Sum() + spacing);
             maximum = Math.Max(maximum, preferred.Sum() + spacing);

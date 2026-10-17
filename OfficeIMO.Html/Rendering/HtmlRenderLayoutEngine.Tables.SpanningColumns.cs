@@ -18,9 +18,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double[] upper = columns.Select(index => priorPreferred[index]).ToArray();
                 bool[] constrained = columns.Select(index => authored[index]).ToArray();
                 double[] shares = columns.Select(index => percentages[index]).ToArray();
-                double[] minimum = AllocateSpanningColumnWidths(lower, upper, constrained, shares,
+                double[] minimum = AllocateAutoColumnSizingGuesses(lower, upper, constrained, shares,
                     Math.Max(0D, cell.Minimum - innerSpacing));
-                double[] maximum = AllocateSpanningColumnWidths(minimum, upper, constrained, shares,
+                double[] maximum = AllocateAutoColumnSizingGuesses(minimum, upper, constrained, shares,
                     Math.Max(0D, cell.Preferred - innerSpacing));
                 for (int index = 0; index < columns.Length; index++) {
                     int column = columns[index];
@@ -31,8 +31,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    /// <summary>Fits a span's contribution between content, percentage, specified and preferred width guesses.</summary>
-    private static double[] AllocateSpanningColumnWidths(double[] minimums, double[] preferred,
+    /// <summary>Fits available width between content, percentage, specified and preferred width guesses.</summary>
+    private static double[] AllocateAutoColumnSizingGuesses(double[] minimums, double[] preferred,
         bool[] authored, double[] percentages, double requestedWidth) {
         double width = Math.Max(requestedWidth, minimums.Sum());
         double[] prior = minimums;
