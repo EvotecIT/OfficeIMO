@@ -1,9 +1,34 @@
 using OfficeIMO.Drawing;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Pdf;
 
 internal static class PdfImageExportEngine {
+    // Await each consumer before encoding the next page, retaining the same aggregate
+    // encoding budget, diagnostic policy and timeout as synchronous page export.
+    internal static async Task ExportEachAsync(PdfReadDocument document, OfficeImageExportFormat format,
+        PdfImageExportOptions options, PdfPageSelection? selection, OfficeImageExportAsyncConsumer consumer,
+        IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null, CancellationToken cancellationToken = default) {
+        Guard.NotNull(document, nameof(document));
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(consumer, nameof(consumer));
+        options.Validate();
+        int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection))
+            ?? Enumerable.Range(1, document.Pages.Count).ToArray();
+        var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
+        await OfficeImageExportBatchProcessor.RunAsyncWithPreflight(options,
+            _ => Task.FromResult<int?>(pages.Length),
+            async (accept, token) => {
+                foreach (int pageNumber in pages) {
+                    token.ThrowIfCancellationRequested();
+                    var image = ExportCore(document.Pages[pageNumber - 1], format, options,
+                        pageNumber, initialDiagnostics, encodingBudget, token);
+                    await accept(image, token).ConfigureAwait(false);
+                }
+            }, consumer, cancellationToken).ConfigureAwait(false);
+    }
+
     internal static IReadOnlyList<OfficeImageExportResult> Export(
         Func<CancellationToken, PdfReadDocument> documentFactory,
         OfficeImageExportFormat format,
@@ -178,6 +203,7 @@ internal static class PdfImageExportEngine {
             DiagnosticSink = diagnostics,
             DiagnosticSource = source,
             MaximumRasterPixels = effective.MaximumRasterPixels,
+            PdfRasterConventions = true,
             CancellationToken = cancellationToken
         });
         byte[] bytes = OfficeRasterImageEncoder.Encode(
@@ -317,7 +343,7 @@ internal static class PdfImageExportEngine {
     }
 
     private static int Scaled(double value, double scale) =>
-        Math.Max(1, checked((int)Math.Ceiling(value * scale)));
+        Math.Max(1, checked((int)OfficeRasterScaleLimiter.CeilingPixels(value * scale)));
 
     private static OfficeDrawing AddBackground(OfficeDrawing drawing, OfficeColor color) {
         var composed = new OfficeDrawing(drawing.Width, drawing.Height);

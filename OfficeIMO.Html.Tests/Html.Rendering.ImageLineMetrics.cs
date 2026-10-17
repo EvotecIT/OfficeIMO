@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
@@ -63,9 +62,9 @@ public sealed partial class HtmlRenderingTests {
 
         XElement savedText = Assert.Single(XDocument.Parse(document.ToSvg(options)).Descendants()
             .Where(node => node.Name.LocalName == "text"), node => node.Value == "Hgyp");
-        double savedBaseline = double.Parse(savedText.Attribute("y")!.Value, CultureInfo.InvariantCulture);
+        double savedBaseline = HtmlSvgTestCoordinates.CssValue(savedText, "y");
         double sceneBaseline = image.Y + image.Height + 16D;
-        Assert.Equal(sceneBaseline, savedBaseline, 3);
+        Assert.InRange(Math.Abs(savedBaseline - sceneBaseline), 0D, 0.0005D / 0.75D);
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
         var page = pdf.GetPage(1);
@@ -73,7 +72,7 @@ public sealed partial class HtmlRenderingTests {
         double pdfBaselineCss = (page.Height - first.StartBaseLine.Y) / 0.75D;
         // The PDF writer serializes point coordinates to three decimal places.
         // Bound that half-unit error against the unrounded scene baseline;
-        // SVG has its own independently rounded CSS coordinate serialization.
+        // SVG serializes the same point coordinates inside a CSS-pixel viewport.
         Assert.InRange(Math.Abs(pdfBaselineCss - sceneBaseline), 0D, 0.0005D / 0.75D);
     }
 

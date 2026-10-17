@@ -66,8 +66,10 @@ internal static partial class PdfWriter {
         if (!HasGradientAlpha(shading.Stops) && shading.SpreadMode == OfficeGradientSpreadMode.Pad) return;
         string maskShading = shading.SpreadMode != OfficeGradientSpreadMode.Pad ? string.Empty : shading.IsRadial
             ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(shading.X0, shading.Y0, shading.R0,
-                shading.X1, shading.Y1, shading.R1, shading.Stops, alphaOnly: true)
-            : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(shading.X0, shading.Y0, shading.X1, shading.Y1, shading.Stops, alphaOnly: true);
+                shading.X1, shading.Y1, shading.R1, shading.Stops, alphaOnly: true,
+                functionReferenceResolver: body => PdfSyntaxEscaper.IndirectReference(AddObject(objects, body)))
+            : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(shading.X0, shading.Y0, shading.X1, shading.Y1, shading.Stops, alphaOnly: true,
+                functionReferenceResolver: body => PdfSyntaxEscaper.IndirectReference(AddObject(objects, body)));
         int maskShadingId = shading.SpreadMode != OfficeGradientSpreadMode.Pad
             ? AddRadialSpreadShading(objects, shading, alphaOnly: true) : AddObject(objects, maskShading);
         // Zero-based mask bounds avoid native consumers clipping negative-origin

@@ -122,7 +122,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(
             embeddedLineCount < standardLineCount,
             $"Expected embedded TrueType metrics to wrap fewer narrow-glyph lines than Courier metrics. Standard: {standardLineCount}; embedded: {embeddedLineCount}.");
-        Assert.Contains("/BaseFont /OfficeIMOMetricsFont", embeddedRaw, StringComparison.Ordinal);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOMetricsFont"), embeddedRaw);
         Assert.Contains("/Subtype /Type0", embeddedRaw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", embeddedRaw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", embeddedRaw, StringComparison.Ordinal);
@@ -270,7 +270,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Single(line => line.Text.Contains("ComposeHead", StringComparison.Ordinal));
         double contentCenter = (options.MarginLeft + options.PageWidth - options.MarginRight) / 2;
         double lineCenter = (line.X1 + line.X2) / 2;
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(Math.Abs(contentCenter - lineCenter), 0, 5);
         Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);
@@ -302,7 +302,7 @@ public partial class PdfDocumentVisualQualityTests {
         var page = pdf.GetPage(1);
         double headingEndX = FindWordEndX(page, "ColumnHead");
         double expectedRightEdge = options.PageWidth - options.MarginRight;
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(Math.Abs(expectedRightEdge - headingEndX), 0, 5);
         Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);

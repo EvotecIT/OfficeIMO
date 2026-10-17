@@ -93,8 +93,8 @@ namespace OfficeIMO.PowerPoint {
             Shape shape = new(
                 new NonVisualShapeProperties(
                     new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = name },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
+                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }) { TextBox = true },
+                    new ApplicationNonVisualDrawingProperties()
                 ),
                 new ShapeProperties(
                     new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),

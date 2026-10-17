@@ -104,36 +104,20 @@ internal static partial class PdfStandardSecurityWriter {
         byte[] fileKey,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        int bodyStart = IndexOf(objectBytes, PdfEncoding.Latin1GetBytes("obj\n"), 0, cancellationToken);
-        int bodyEnd = LastIndexOf(objectBytes, PdfEncoding.Latin1GetBytes("endobj\n"), cancellationToken);
-        if (bodyStart < 0 || bodyEnd <= bodyStart) {
-            return objectBytes;
-        }
-
-        bodyStart += 4;
-        var body = new byte[bodyEnd - bodyStart];
-        Buffer.BlockCopy(objectBytes, bodyStart, body, 0, body.Length);
+        byte[] body = ReadSerializedObjectBody(objectBytes, objectNumber);
         cancellationToken.ThrowIfCancellationRequested();
         return PdfObjectBytes.WrapIndirectObject(objectNumber, EncryptObjectBody(body, objectNumber, fileKey, cancellationToken));
     }
 
     private static byte[] EncryptObjectBody(byte[] body, int objectNumber, byte[] fileKey, CancellationToken cancellationToken) {
-        byte[] streamMarker = PdfEncoding.Latin1GetBytes("\nstream\n");
-        byte[] endStreamMarker = PdfEncoding.Latin1GetBytes("\nendstream");
-        int streamMarkerIndex = IndexOf(body, streamMarker, 0, cancellationToken);
-        if (streamMarkerIndex < 0) {
+        StreamLayout? stream = ReadStreamLayout(body, cancellationToken);
+        if (stream == null) {
             return EncryptPdfStrings(body, objectNumber, fileKey, cancellationToken);
         }
 
-        int streamDataStart = streamMarkerIndex + streamMarker.Length;
-        int streamDataEnd = LastIndexOf(body, endStreamMarker, cancellationToken);
-        if (streamDataEnd < streamDataStart) {
-            return EncryptPdfStrings(body, objectNumber, fileKey, cancellationToken);
-        }
-
-        byte[] prefix = Slice(body, 0, streamDataStart);
-        byte[] streamData = Slice(body, streamDataStart, streamDataEnd);
-        byte[] suffix = Slice(body, streamDataEnd, body.Length);
+        byte[] prefix = Slice(body, 0, stream.DataStart);
+        byte[] streamData = Slice(body, stream.DataStart, stream.DataEnd);
+        byte[] suffix = Slice(body, stream.DataEnd, body.Length);
         byte[] encryptedPrefix = EncryptPdfStrings(prefix, objectNumber, fileKey, cancellationToken);
         byte[] encryptedStream = Rc4.Transform(ComputeObjectKey(fileKey, objectNumber, 0), streamData, cancellationToken);
         return PdfObjectBytes.Concat(encryptedPrefix, encryptedStream, suffix);
@@ -149,6 +133,16 @@ internal static partial class PdfStandardSecurityWriter {
         while (index < input.Length) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte current = input[index];
+            if (current == (byte)'%') {
+                int commentEnd = index;
+                while (commentEnd < input.Length && input[commentEnd] != '\r' && input[commentEnd] != '\n') {
+                    if ((commentEnd & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    commentEnd++;
+                }
+                output.Write(input, index, commentEnd - index);
+                index = commentEnd;
+                continue;
+            }
             if (current == (byte)'<' && index + 1 < input.Length && input[index + 1] == (byte)'<') {
                 // Consume the dictionary opener together; its second '<' is not a hex string.
                 output.WriteByte(current);
@@ -412,59 +406,6 @@ internal static partial class PdfStandardSecurityWriter {
         var result = new byte[length];
         Buffer.BlockCopy(source, start, result, 0, length);
         return result;
-    }
-
-    private static int IndexOf(
-        byte[] source,
-        byte[] pattern,
-        int start,
-        CancellationToken cancellationToken = default) {
-        if (pattern.Length == 0) {
-            return start;
-        }
-
-        for (int i = start; i <= source.Length - pattern.Length; i++) {
-            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            bool match = true;
-            for (int j = 0; j < pattern.Length; j++) {
-                if (source[i + j] != pattern[j]) {
-                    match = false;
-                    break;
-                }
-            }
-
-            if (match) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
-    private static int LastIndexOf(
-        byte[] source,
-        byte[] pattern,
-        CancellationToken cancellationToken = default) {
-        if (pattern.Length == 0) {
-            return source.Length;
-        }
-
-        for (int i = source.Length - pattern.Length; i >= 0; i--) {
-            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            bool match = true;
-            for (int j = 0; j < pattern.Length; j++) {
-                if (source[i + j] != pattern[j]) {
-                    match = false;
-                    break;
-                }
-            }
-
-            if (match) {
-                return i;
-            }
-        }
-
-        return -1;
     }
 
     private static bool IsWhiteSpace(byte value) =>

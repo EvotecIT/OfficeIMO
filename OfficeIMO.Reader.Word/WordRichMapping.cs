@@ -53,12 +53,12 @@ internal static class WordRichMapping {
         var metadata = new[] {
             BuildCountMetadataEntry("word-section-count", "word.structure", "SectionCount", snapshot.Sections.Count)
         };
-        IReadOnlyList<OfficeDocumentPage> pages = BuildWordPages(
-            pageSnapshots,
-            blocks,
-            tables,
-            links,
-            result.Source.Path);
+        IReadOnlyList<OfficeDocumentPage> pages = BuildWordPages(pageSnapshots, result.Source.Path);
+        // Rendered lines carry page identity, not source paragraph/table identity. Use the
+        // same instances for searching and page output without guessing source associations.
+        IReadOnlyList<OfficeDocumentBlock> projectedBlocks = options.IncludePageLocations && readerOptions.Projection == ReaderProjection.Full
+            ? pages.SelectMany(static page => page.Blocks).ToArray()
+            : blocks;
         IReadOnlyList<string> capabilities = options.IncludePageLocations && readerOptions.Projection == ReaderProjection.Full
             ? new[] {
                 "officeimo.word.inspection-snapshot",
@@ -72,7 +72,7 @@ internal static class WordRichMapping {
         return DocumentReaderEngine.EnrichDocumentResult(
             result,
             capabilities,
-            blocks,
+            projectedBlocks,
             tables,
             links,
             result.Visuals,
@@ -82,42 +82,44 @@ internal static class WordRichMapping {
 
     private static IReadOnlyList<OfficeDocumentPage> BuildWordPages(
         IReadOnlyList<WordDocumentVisualSnapshot> pageSnapshots,
-        IReadOnlyList<OfficeDocumentBlock> blocks,
-        IReadOnlyList<ReaderTable> tables,
-        IReadOnlyList<OfficeDocumentLink> links,
         string? sourcePath) {
         if (pageSnapshots.Count == 0) {
             return Array.Empty<OfficeDocumentPage>();
         }
 
-        var blocksById = blocks
-            .Where(static block => !string.IsNullOrEmpty(block.Id))
-            .ToDictionary(static block => block.Id, StringComparer.Ordinal);
         var pages = new List<OfficeDocumentPage>(pageSnapshots.Count);
         foreach (WordDocumentVisualSnapshot snapshot in pageSnapshots) {
             int pageNumber = snapshot.PageIndex + 1;
             var pageBlocks = new List<OfficeDocumentBlock>();
-            foreach (IGrouping<(int SectionIndex, int BlockIndex), WordDocumentVisualFragment> group in snapshot.Fragments
-                         .GroupBy(static fragment => (fragment.SectionIndex, fragment.BlockIndex))) {
-                string blockId = "word-section-" +
-                    (group.Key.SectionIndex + 1).ToString("D4", CultureInfo.InvariantCulture) +
-                    "-block-" +
-                    group.Key.BlockIndex.ToString("D4", CultureInfo.InvariantCulture);
-                if (!blocksById.TryGetValue(blockId, out OfficeDocumentBlock? sourceBlock)) {
-                    continue;
-                }
-
-                string visibleText = CombineWordFragmentText(
-                    group.Select(static fragment => fragment.Text));
-                OfficeDocumentRegion? region = CombineWordRegions(group);
-                pageBlocks.Add(CloneWordPageBlock(
-                    sourceBlock,
-                    pageNumber,
-                    visibleText,
-                    region));
+            // Reuse the PDF text compositor so formatting boundaries cannot split
+            // a searchable word or phrase into unrelated Reader blocks.
+            var lines = OfficeIMO.Pdf.TextLayoutEngine.BuildLines(
+                snapshot.TextSpans.Where(span => span.IsVisible).ToArray(),
+                new OfficeIMO.Pdf.TextLayoutEngine.Options { SplitWideSameBaselineRuns = true });
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                var line = lines[lineIndex];
+                if (string.IsNullOrWhiteSpace(line.Text)) continue;
+                string blockId = "word-page-" + pageNumber.ToString("D4", CultureInfo.InvariantCulture) +
+                    "-line-" + lineIndex.ToString("D4", CultureInfo.InvariantCulture);
+                pageBlocks.Add(new OfficeDocumentBlock {
+                    Id = blockId,
+                    Kind = "text-line",
+                    Text = line.Text,
+                    Location = new ReaderLocation {
+                        Path = sourcePath,
+                        Page = pageNumber,
+                        SourceBlockKind = "text-line",
+                        BlockAnchor = blockId
+                    },
+                    Region = new OfficeDocumentRegion {
+                        X = line.XStart,
+                        Y = line.Y,
+                        Width = line.XEnd - line.XStart,
+                        Height = 0D
+                    }
+                });
             }
 
-            string[] blockIds = pageBlocks.Select(static block => block.Id).ToArray();
             pages.Add(new OfficeDocumentPage {
                 Number = pageNumber,
                 Name = "Page " + pageNumber.ToString(CultureInfo.InvariantCulture),
@@ -129,71 +131,11 @@ internal static class WordRichMapping {
                     SourceBlockKind = "page",
                     BlockAnchor = "word-page-" + pageNumber.ToString("D4", CultureInfo.InvariantCulture)
                 },
-                Blocks = pageBlocks.AsReadOnly(),
-                Tables = tables.Where(table =>
-                    table.Location?.BlockAnchor != null &&
-                    blockIds.Contains(table.Location.BlockAnchor, StringComparer.Ordinal)).ToArray(),
-                Links = links.Where(link =>
-                    link.Location.BlockAnchor != null &&
-                    blockIds.Any(blockId => link.Location.BlockAnchor.StartsWith(blockId, StringComparison.Ordinal))).ToArray()
+                Blocks = pageBlocks.AsReadOnly()
             });
         }
 
         return pages.AsReadOnly();
-    }
-
-    internal static string CombineWordFragmentText(IEnumerable<string> fragmentText) {
-        return string.Join(
-            Environment.NewLine,
-            fragmentText.Where(static text => !string.IsNullOrWhiteSpace(text)));
-    }
-
-    private static OfficeDocumentBlock CloneWordPageBlock(
-        OfficeDocumentBlock source,
-        int pageNumber,
-        string text,
-        OfficeDocumentRegion? region) {
-        ReaderLocation location = CloneWordLocation(source.Location, source.Kind, source.Id);
-        location.Page = pageNumber;
-        return new OfficeDocumentBlock {
-            Id = source.Id,
-            Kind = source.Kind,
-            Text = text,
-            Level = source.Level,
-            Marker = source.Marker,
-            ListIndex = source.ListIndex,
-            Location = location,
-            Region = region
-        };
-    }
-
-    private static OfficeDocumentRegion? CombineWordRegions(
-        IEnumerable<WordDocumentVisualFragment> fragments) {
-        bool hasRegion = false;
-        double left = double.MaxValue;
-        double top = double.MaxValue;
-        double right = double.MinValue;
-        double bottom = double.MinValue;
-        foreach (WordDocumentVisualFragment fragment in fragments) {
-            WordDocumentVisualRegion? region = fragment.Region;
-            if (region == null) {
-                continue;
-            }
-            left = Math.Min(left, region.X);
-            top = Math.Min(top, region.Y);
-            right = Math.Max(right, region.X + region.Width);
-            bottom = Math.Max(bottom, region.Y + region.Height);
-            hasRegion = true;
-        }
-
-        return hasRegion
-            ? new OfficeDocumentRegion {
-                X = left,
-                Y = top,
-                Width = Math.Max(0D, right - left),
-                Height = Math.Max(0D, bottom - top)
-            }
-            : null;
     }
 
     private static void ProjectWordNotes(

@@ -14,6 +14,19 @@ internal static partial class ResourceResolver {
             source = PdfTextDecodingSource.PredefinedCMap;
         } else if (UsesNamedCompositeEncoding(font)) {
             source = PdfTextDecodingSource.Unmappable;
+        } else if (font.HasBuiltinEncoding) {
+            source = PdfTextDecodingSource.FontEncoding;
+            string?[]? names = null;
+            foreach (byte code in bytes) {
+                cancellationCheck?.Invoke();
+                if (font.Differences?.TryGetValue(code, out string? difference) == true) {
+                    continue;
+                }
+                names ??= font.BuiltinEncoding;
+                if (names == null || names[code] is not string name || !TryDecodeGlyphName(name, out _)) {
+                    source = PdfTextDecodingSource.WinAnsiFallback;
+                }
+            }
         } else if (font.Encoding is "StandardEncoding" or "MacRomanEncoding" ||
             font.HasDeclaredEncoding && font.Encoding == "WinAnsiEncoding") {
             source = PdfTextDecodingSource.FontEncoding;

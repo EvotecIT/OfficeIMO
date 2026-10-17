@@ -48,74 +48,63 @@ internal static class PdfComplianceValidator {
         Guard.NotNull(options, nameof(options));
         Guard.ComplianceProfile(options.ComplianceProfile, nameof(options.ComplianceProfile));
 
-        if (options.ComplianceProfile == PdfComplianceProfile.None ||
-            options.ComplianceProfile == PdfComplianceProfile.PdfA2B ||
-            options.ComplianceProfile == PdfComplianceProfile.PdfA3B ||
-            options.ComplianceProfile == PdfComplianceProfile.PdfUa1 ||
-            options.ComplianceProfile == PdfComplianceProfile.FacturX ||
-            options.ComplianceProfile == PdfComplianceProfile.Zugferd ||
-            IsPdfX(options.ComplianceProfile)) {
-            return;
+        foreach (PdfComplianceProfile profile in RequestedProfiles(options)) {
+            if (!IsSupported(profile)) throw new NotSupportedException(BuildUnsupportedProfileMessage(profile));
         }
-
-        throw new NotSupportedException(BuildUnsupportedProfileMessage(options.ComplianceProfile));
     }
+
+    // All declared A/UA claims participate in the gate, including combined output.
+    private static IEnumerable<PdfComplianceProfile> RequestedProfiles(PdfOptions options) {
+        if (options.ComplianceProfile == PdfComplianceProfile.None) yield break;
+        var profiles = new HashSet<PdfComplianceProfile> { options.ComplianceProfile };
+        if (options.PdfAIdentification is PdfAIdentification a) {
+            profiles.Add(a.Part switch {
+                2 => a.Conformance == "A" ? PdfComplianceProfile.PdfA2A : a.Conformance == "U" ? PdfComplianceProfile.PdfA2U : PdfComplianceProfile.PdfA2B,
+                3 => a.Conformance == "A" ? PdfComplianceProfile.PdfA3A : a.Conformance == "U" ? PdfComplianceProfile.PdfA3U : PdfComplianceProfile.PdfA3B,
+                _ => a.Conformance == "E" ? PdfComplianceProfile.PdfA4E : a.Conformance == "F" ? PdfComplianceProfile.PdfA4F : PdfComplianceProfile.PdfA4
+            });
+        }
+        if (options.PdfUaIdentification is PdfUaIdentification ua)
+            profiles.Add(ua.Part == 2 ? PdfComplianceProfile.PdfUa2 : PdfComplianceProfile.PdfUa1);
+        if (options.ElectronicInvoiceMetadata != null) profiles.Add(PdfComplianceProfile.FacturX);
+        foreach (PdfComplianceProfile profile in profiles) yield return profile;
+    }
+
+    private static bool IsSupported(PdfComplianceProfile profile) =>
+        profile is PdfComplianceProfile.PdfA2B or PdfComplianceProfile.PdfA2U or PdfComplianceProfile.PdfA2A
+            or PdfComplianceProfile.PdfA3B or PdfComplianceProfile.PdfA3U or PdfComplianceProfile.PdfA3A
+            or PdfComplianceProfile.PdfA4 or PdfComplianceProfile.PdfA4E or PdfComplianceProfile.PdfA4F
+            or PdfComplianceProfile.PdfUa1 or PdfComplianceProfile.PdfUa2
+            or PdfComplianceProfile.FacturX or PdfComplianceProfile.Zugferd
+            or PdfComplianceProfile.PdfX1A2003 or PdfComplianceProfile.PdfX4;
 
     internal static void ValidateGeneratedDocument(PdfOptions options, string? documentTitle, PdfGeneratedDocumentComplianceEvidence evidence) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(evidence, nameof(evidence));
-        if (options.ComplianceProfile != PdfComplianceProfile.PdfA2B &&
-            options.ComplianceProfile != PdfComplianceProfile.PdfA3B &&
-            options.ComplianceProfile != PdfComplianceProfile.PdfUa1 &&
-            options.ComplianceProfile != PdfComplianceProfile.FacturX &&
-            options.ComplianceProfile != PdfComplianceProfile.Zugferd &&
-            !IsPdfX(options.ComplianceProfile)) {
-            return;
+        foreach (PdfComplianceProfile profile in RequestedProfiles(options)) {
+            ThrowForGaps(profile, PdfComplianceAnalyzer.AssessDocument(profile, options, evidence, documentTitle), "generation");
         }
-
-        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessDocument(
-            options.ComplianceProfile,
-            options,
-            evidence,
-            documentTitle);
-        PdfComplianceRequirement[] gaps = readiness.Requirements
-            .Where(requirement =>
-                !PdfComplianceProofReport.IsExternalValidationRequirement(requirement.Id) &&
-                requirement.Status != PdfComplianceRequirementStatus.Satisfied)
-            .ToArray();
-        if (gaps.Length == 0) {
-            return;
-        }
-
-        throw new InvalidOperationException(
-            GetDisplayName(options.ComplianceProfile) + " generation requirements are not satisfied: " +
-            string.Join("; ", gaps.Select(static requirement => requirement.Id + ": " + requirement.Diagnostic)));
     }
 
-    internal static bool RequiresExactArtifactValidation(PdfOptions options) => IsPdfX(options.ComplianceProfile);
+    internal static bool RequiresExactArtifactValidation(PdfOptions options) => options.ComplianceProfile != PdfComplianceProfile.None;
 
     internal static void ValidateGeneratedArtifact(
-        PdfOptions options,
-        byte[] artifact,
+        PdfOptions options, byte[] artifact,
         System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(artifact, nameof(artifact));
         cancellationToken.ThrowIfCancellationRequested();
-        if (!IsPdfX(options.ComplianceProfile)) return;
+        foreach (PdfComplianceProfile profile in RequestedProfiles(options)) {
+            ThrowForGaps(profile, PdfComplianceAnalyzer.AssessReadback(profile, artifact, cancellationToken), "exact-artifact");
+        }
+    }
 
-        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessReadback(
-            options.ComplianceProfile,
-            artifact,
-            cancellationToken);
-        PdfComplianceRequirement[] gaps = readiness.Requirements
-            .Where(requirement =>
-                !PdfComplianceProofReport.IsExternalValidationRequirement(requirement.Id) &&
-                requirement.Status != PdfComplianceRequirementStatus.Satisfied)
-            .ToArray();
+    private static void ThrowForGaps(PdfComplianceProfile profile, PdfComplianceReadinessReport readiness, string stage) {
+        PdfComplianceRequirement[] gaps = readiness.Requirements.Where(requirement =>
+            !PdfComplianceProofReport.IsExternalValidationRequirement(requirement.Id) &&
+            requirement.Status != PdfComplianceRequirementStatus.Satisfied).ToArray();
         if (gaps.Length == 0) return;
-
-        throw new InvalidOperationException(
-            GetDisplayName(options.ComplianceProfile) + " exact-artifact requirements are not satisfied: " +
+        throw new InvalidOperationException(GetDisplayName(profile) + " " + stage + " requirements are not satisfied: " +
             string.Join("; ", gaps.Select(static requirement => requirement.Id + ": " + requirement.Diagnostic)));
     }
 

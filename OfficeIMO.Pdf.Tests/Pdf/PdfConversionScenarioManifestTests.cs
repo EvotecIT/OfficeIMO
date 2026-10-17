@@ -2027,7 +2027,7 @@ public sealed class PdfConversionScenarioManifestTests {
             }).RequireSuccess().Report!;
 
         using var powerPointStream = new MemoryStream();
-        PdfPowerPointConversionReport powerPointReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport powerPointReport = PdfPowerPointConverterExtensions.SaveAsPowerPoint(
             logicalDocument,
             powerPointStream,
             PdfToPowerPointOptions.CreateEditableTables()).RequireSuccess().Report!;
@@ -2500,6 +2500,7 @@ public sealed class PdfConversionScenarioManifestTests {
         slide.SlidePart.Slide.Save();
 
         var options = new PowerPointToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);

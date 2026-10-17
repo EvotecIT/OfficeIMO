@@ -18,7 +18,7 @@ internal sealed class PdfRadialSpreadColors {
 
     internal static PdfRadialSpreadColors Create(IReadOnlyList<OfficeGradientStop> stops,
         OfficeGradientColorInterpolation interpolation, OfficeColor? outside, bool alphaOnly,
-        PdfPrintColorTransform? printTransform = null) {
+        PdfPrintColorTransform? printTransform = null, bool interpolateAlphaSeparately = true) {
         double[] Components(OfficeColor color) {
             if (alphaOnly) return new[] { color.A / 255D };
             if (printTransform != null) {
@@ -32,8 +32,8 @@ internal sealed class PdfRadialSpreadColors {
             return values;
         }
 
-        IReadOnlyList<Sample> samples = printTransform != null && !alphaOnly
-            ? PdfVisualResourceDictionaryBuilder.CreateTransformedGradientSamples(stops, printTransform, interpolation)
+        IReadOnlyList<Sample> samples = !alphaOnly && (printTransform != null || !interpolateAlphaSeparately)
+            ? PdfVisualResourceDictionaryBuilder.CreateTransformedGradientSamples(stops, printTransform, interpolation, interpolateAlphaSeparately)
             : stops.Select(stop => new Sample(stop.Offset, Components(stop.Color))).ToArray();
         return new PdfRadialSpreadColors(samples, Components(outside ?? OfficeColor.Transparent),
             Components(outside ?? stops[stops.Count - 1].Color));

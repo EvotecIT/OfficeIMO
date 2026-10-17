@@ -75,7 +75,7 @@ internal sealed class StudioSingleInstance : IDisposable {
         using var deadline = new CancellationTokenSource(timeout > TimeSpan.Zero ? timeout : TimeSpan.FromMilliseconds(1));
         try {
             return ForwardAsync(payload, deadline.Token).GetAwaiter().GetResult();
-        } catch (Exception error) when (error is IOException or TimeoutException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException) {
+        } catch (Exception error) when (error is IOException or TimeoutException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or ArgumentOutOfRangeException) {
             return false;
         }
     }
@@ -106,32 +106,40 @@ internal sealed class StudioSingleInstance : IDisposable {
     }
 
     private async Task ListenAsync(Func<IReadOnlyList<string>, bool> accept, CancellationToken cancellation) {
-        while (!cancellation.IsCancellationRequested) {
-            NamedPipeServerStream server;
-            try {
-                server = new NamedPipeServerStream(Name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
-                    PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-            } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
-                // Another owner holds the name; later launches will fall back to their own process.
-                return;
-            }
-            await using (server) {
+        NamedPipeServerStream server;
+        try {
+            server = new NamedPipeServerStream(Name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentOutOfRangeException) {
+            // An unavailable or overlong Unix pipe path must also permit an independent launch.
+            // Another owner holds the name; later launches will fall back to their own process.
+            return;
+        }
+        // Disconnect only the accepted client. Recreating the server closes the Unix
+        // listening socket and drops launches already connected to its backlog.
+        await using (server) {
+            while (!cancellation.IsCancellationRequested) {
                 try {
                     await server.WaitForConnectionAsync(cancellation).ConfigureAwait(false);
                     using var read = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
                     read.CancelAfter(ReadTimeout);
                     string[]? paths = await ReadLaunchAsync(server, read.Token).ConfigureAwait(false);
-                    if (paths is null) continue;
-                    bool accepted;
-                    try { accepted = accept(paths); }
-                    catch (Exception error) when (error is not OutOfMemoryException) { accepted = false; }
-                    server.WriteByte(accepted ? Accepted : Rejected);
-                    await server.FlushAsync(cancellation).ConfigureAwait(false);
+                    if (paths is not null) {
+                        bool accepted;
+                        try { accepted = accept(paths); }
+                        catch (Exception error) when (error is not OutOfMemoryException) { accepted = false; }
+                        server.WriteByte(accepted ? Accepted : Rejected);
+                        await server.FlushAsync(cancellation).ConfigureAwait(false);
+                    }
                 } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
                     return;
                 } catch (Exception error) when (error is IOException or OperationCanceledException or JsonException or ObjectDisposedException) {
                     // A broken or malformed client must not stop the listener.
                 }
+                // Broken connections report IsConnected=false but still need resetting
+                // before this server can accept another client.
+                try { server.Disconnect(); }
+                catch (Exception error) when (error is IOException or InvalidOperationException) { return; }
             }
         }
     }

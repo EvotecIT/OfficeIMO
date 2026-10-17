@@ -6,6 +6,8 @@ namespace OfficeIMO.Drawing;
 /// <summary>Shared cmap platform and encoding classification.</summary>
 internal static class OfficeOpenTypeCmap {
     internal const int MaximumSubtables = 64;
+    // Format 4 has a ushort byte length, 16 fixed bytes and 8 bytes per segment.
+    internal const int MaximumFormat4Segments = (ushort.MaxValue - 16) / 8;
     // A synthesized CID drawing cmap can contain one group per decoded code (at most 65,536).
     // A single bounded subtable remains usable by external OpenType consumers.
     internal const uint MaximumFormat12Groups = 65536;
@@ -250,7 +252,7 @@ internal static class OfficeOpenTypeCmap {
             if (relativeValue > (uint)(cmapLength - 2)) continue;
             int table = cmapOffset + (int)relativeValue;
             if (table < cmapOffset || table > cmapEnd - 2 || ReadUInt16(data, table) != 4) continue;
-            if (IsValidFormat4Subtable(data, table, cmapOffset, cmapEnd, maximumSubtables)) valid.Add(table);
+            if (IsValidFormat4Subtable(data, table, cmapOffset, cmapEnd)) valid.Add(table);
         }
         return valid;
     }
@@ -259,14 +261,13 @@ internal static class OfficeOpenTypeCmap {
         byte[] data,
         int table,
         int cmapOffset,
-        int cmapEnd,
-        int maximumSubtables) {
+        int cmapEnd) {
         if (table < cmapOffset || table > cmapEnd - 16) return false;
         int length = ReadUInt16(data, table + 2);
         int segmentCountX2 = ReadUInt16(data, table + 6);
         if (length < 16 || (segmentCountX2 & 1) != 0 || segmentCountX2 == 0 || table > cmapEnd - length) return false;
         int segmentCount = segmentCountX2 / 2;
-        if (segmentCount > maximumSubtables * 16) return false;
+        if (segmentCount > MaximumFormat4Segments) return false;
         int endCodes = table + 14;
         int startCodes = endCodes + segmentCount * 2 + 2;
         int deltas = startCodes + segmentCount * 2;

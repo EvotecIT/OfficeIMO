@@ -29,6 +29,7 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!;
         public System.Collections.Generic.List<double> Heights = null!;
         public string Marker = string.Empty;
+        public ListMarkerFallbackLayout? MarkerFallback;
         public PdfStandardFont MarkerFont;
         public PdfNamedFontFace? MarkerNamedFont;
         public OfficeTextFeatureSettings? MarkerFeatureSettings;
@@ -140,6 +141,7 @@ internal static partial class PdfWriter {
         IReadOnlyDictionary<string, int>? pageNumbers = null;
         var deferredMaterializations = new Dictionary<FlowMaterializationKey, IReadOnlyList<IPdfBlock>>();
         var runningAssets = new RunningContentImageAssets();
+        var drawingPatternAnnotations = new DrawingPatternAnnotationBudget();
         IReadOnlyList<PageNumberInfo>? previousRunningPages = null;
         int previousDocumentPages = 1;
         LayoutResult result = null!;
@@ -148,7 +150,8 @@ internal static partial class PdfWriter {
             result?.Dispose();
             using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations,
                 runningAssets: runningAssets, previousRunningPages: previousRunningPages,
-                previousDocumentPages: previousDocumentPages, cancellationToken: cancellationToken);
+                previousDocumentPages: previousDocumentPages, cancellationToken: cancellationToken,
+                drawingPatternAnnotations: drawingPatternAnnotations);
             result = context.Layout(blockList);
             IReadOnlyList<PageNumberInfo> runningPages = BuildPageNumberInfos(result.Pages);
             bool runningStable = RunningContentContextsMatch(result, runningPages);

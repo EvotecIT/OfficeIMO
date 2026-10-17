@@ -64,14 +64,23 @@ public sealed class DrawingWebpLosslessCancellationTests {
         var options = new OfficeWebpEncodeOptions {
             RetainedManagedBytes = OfficeRasterGuards.MaximumDecodedBytes - 64L * 1024L
         };
+        byte[] original = image.GetPixels();
+        byte[] compressed = OfficeWebpCodec.Encode(image);
         using var stream = new MemoryStream();
-        OfficeWebpCodec.EncodeTo(image, stream);
+        OfficeWebpCodec.EncodeTo(image, stream, options);
         byte[] expected = stream.ToArray();
 
+        Assert.True(expected.Length > compressed.Length);
+        Assert.True(OfficeWebpCodec.IsEncodingWorkingSetWithinLimit(
+            rgbaBytes: original.LongLength,
+            outputBytes: expected.LongLength,
+            compressedCandidateBytes: 0L,
+            metadataBytes: 0L,
+            additionalRetainedManagedBytes: options.RetainedManagedBytes));
         Assert.Equal(expected, OfficeWebpCodec.Encode(image, options));
         Assert.Equal(expected, OfficeWebpCodec.Encode(image, options, CancellationToken.None));
         Assert.True(OfficeWebpCodec.TryDecode(expected, out OfficeRasterImage? decoded));
-        Assert.Equal(OfficeColor.White, decoded!.GetPixel(0, 0));
+        Assert.Equal(original, decoded!.GetPixels());
     }
 
     private static OfficeRasterImage CreateRepeatedImage(bool transparency) {

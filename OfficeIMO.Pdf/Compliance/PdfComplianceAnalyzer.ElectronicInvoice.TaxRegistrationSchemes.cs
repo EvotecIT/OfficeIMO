@@ -19,9 +19,10 @@ internal static partial class PdfComplianceAnalyzer {
             }
 
             var missingFields = new List<string>();
-            if (!evidence!.HasSellerTaxRegistrationId) {
+            if (!evidence!.HasSellerTaxRegistrationId &&
+                !HasOnlyOutsideScopeInvoiceTax(file)) {
                 missingFields.Add("SellerTradeParty SpecifiedTaxRegistration ID");
-            } else if (!evidence.HasSellerTaxRegistrationSchemeId) {
+            } else if (evidence.HasSellerTaxRegistrationId && !evidence.HasSellerTaxRegistrationSchemeId) {
                 missingFields.Add("SellerTradeParty SpecifiedTaxRegistration ID schemeID");
             }
 

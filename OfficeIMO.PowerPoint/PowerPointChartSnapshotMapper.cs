@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
                     renderKind: item.ChartKind.HasValue ? MapKind(item.ChartKind.Value) : null,
                     axisGroup: item.AxisGroup);
             }).Select((series, index) =>
-                series.WithPointStyles(snapshot.Data.Series[index].PointStyles)
+                series.WithSeriesStyle(snapshot.Data.Series[index].SharedAppearance?.SeriesStyle).WithPointStyles(snapshot.Data.Series[index].PointStyles)
                     .WithPointExplosions(snapshot.Data.Series[index].SharedAppearance?.PointExplosions)).ToList();
             return new OfficeChartSnapshot(snapshot.Name, snapshot.Title, MapKind(snapshot.ChartKind),
                 new OfficeChartData(snapshot.Data.Categories, series), width, height,

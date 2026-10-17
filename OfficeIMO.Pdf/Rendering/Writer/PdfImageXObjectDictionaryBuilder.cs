@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfImageXObjectDictionaryBuilder {
-    internal static string BuildStreamDictionary(PdfWriter.PdfImageStream image, int? softMaskObjectId = null) {
+    internal static string BuildStreamDictionary(PdfWriter.PdfImageStream image, int? softMaskObjectId = null, int? iccProfileObjectId = null) {
         ValidateImageStream(image);
         string softMask = softMaskObjectId.HasValue
             ? " /SMask " + PdfSyntaxEscaper.IndirectReference(softMaskObjectId.Value)
@@ -13,14 +13,14 @@ internal static class PdfImageXObjectDictionaryBuilder {
                image.PixelWidth.ToString(CultureInfo.InvariantCulture) +
                " /Height " +
                image.PixelHeight.ToString(CultureInfo.InvariantCulture) +
-               image.DictionarySuffix +
+               ResolveDictionarySuffix(image, iccProfileObjectId) +
                softMask +
                " /Length " +
                image.Data.Length.ToString(CultureInfo.InvariantCulture) +
                " >>";
     }
 
-    internal static PdfStream BuildStreamObject(PdfWriter.PdfImageStream image, int? softMaskObjectNumber = null) {
+    internal static PdfStream BuildStreamObject(PdfWriter.PdfImageStream image, int? softMaskObjectNumber = null, int? iccProfileObjectNumber = null) {
         ValidateImageStream(image);
 
         var dictionary = new PdfDictionary();
@@ -30,12 +30,26 @@ internal static class PdfImageXObjectDictionaryBuilder {
         dictionary.Items["Height"] = new PdfNumber(image.PixelHeight);
         dictionary.Items["BitsPerComponent"] = new PdfNumber(image.BitsPerComponent);
 
-        if (image.DictionarySuffix.Contains("/DeviceGray")) {
-            dictionary.Items["ColorSpace"] = new PdfName("DeviceGray");
-        } else if (image.DictionarySuffix.Contains("/DeviceCMYK")) {
-            dictionary.Items["ColorSpace"] = new PdfName("DeviceCMYK");
+        PdfObject baseColorSpace;
+        if (image.IccProfile != null) {
+            if (!iccProfileObjectNumber.HasValue) throw new InvalidOperationException("An ICC image requires an indirect profile resource.");
+            var icc = new PdfArray();
+            icc.Items.Add(new PdfName("ICCBased"));
+            icc.Items.Add(new PdfReference(iccProfileObjectNumber.Value, 0));
+            baseColorSpace = icc;
         } else {
-            dictionary.Items["ColorSpace"] = new PdfName("DeviceRGB");
+            baseColorSpace = new PdfName(image.DictionarySuffix.Contains("/DeviceGray") ? "DeviceGray" :
+                image.DictionarySuffix.Contains("/DeviceCMYK") ? "DeviceCMYK" : "DeviceRGB");
+        }
+        if (image.IndexedPalette != null) {
+            var indexed = new PdfArray();
+            indexed.Items.Add(new PdfName("Indexed"));
+            indexed.Items.Add(baseColorSpace);
+            indexed.Items.Add(new PdfNumber(image.IndexedPalette.Length / 3 - 1));
+            indexed.Items.Add(new PdfStringObj(image.IndexedPalette));
+            dictionary.Items["ColorSpace"] = indexed;
+        } else {
+            dictionary.Items["ColorSpace"] = baseColorSpace;
         }
 
         if (image.DictionarySuffix.Contains("/FlateDecode")) {
@@ -43,7 +57,7 @@ internal static class PdfImageXObjectDictionaryBuilder {
             var decodeParms = new PdfDictionary();
             decodeParms.Items["Predictor"] = new PdfNumber(15);
             decodeParms.Items["Colors"] = new PdfNumber(
-                image.DictionarySuffix.Contains("/DeviceGray")
+                image.IndexedPalette != null || image.DictionarySuffix.Contains("/DeviceGray")
                     ? 1
                     : image.DictionarySuffix.Contains("/DeviceCMYK") ? 4 : 3);
             decodeParms.Items["BitsPerComponent"] = new PdfNumber(image.BitsPerComponent);
@@ -53,11 +67,20 @@ internal static class PdfImageXObjectDictionaryBuilder {
             dictionary.Items["Filter"] = new PdfName("DCTDecode");
         }
 
+        if (image.DictionarySuffix.Contains("/Interpolate true")) dictionary.Items["Interpolate"] = new PdfBoolean(true);
         if (softMaskObjectNumber.HasValue) {
             dictionary.Items["SMask"] = new PdfReference(softMaskObjectNumber.Value, 0);
         }
 
         return new PdfStream(dictionary, image.Data);
+    }
+
+    private static string ResolveDictionarySuffix(PdfWriter.PdfImageStream image, int? iccProfileObjectId) {
+        if (image.IccProfile == null) return image.DictionarySuffix;
+        if (!iccProfileObjectId.HasValue) throw new InvalidOperationException("An ICC image requires an indirect profile resource.");
+        string alternate = PdfWriter.GetImageIccAlternate(image);
+        return image.DictionarySuffix.Replace(alternate,
+            "[/ICCBased " + PdfSyntaxEscaper.IndirectReference(iccProfileObjectId.Value) + "]");
     }
 
     private static void ValidateImageStream(PdfWriter.PdfImageStream image) {

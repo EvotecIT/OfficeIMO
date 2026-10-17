@@ -50,7 +50,7 @@ public static partial class OfficeMathRenderer {
             if (text.Length == 0) return false;
             foreach (OfficeFontFallbackRun run in _options.Fonts.PlanFallbackRuns(text,
                 _options.Font.FamilyName, _options.Font.Face)) {
-                if (!_options.Fonts.TryResolveFaceForText(run.Text, run.FamilyName,
+                if (!_options.Fonts.TryResolveFaceForText(run.Text, run.FamilyRequest,
                     _options.Font.Face, size, out _)) return false;
             }
             return true;

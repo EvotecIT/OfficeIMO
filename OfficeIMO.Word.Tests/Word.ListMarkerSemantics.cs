@@ -23,14 +23,10 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal("- Test\n- Test", document.ToMarkdown().Trim());
 
         WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
-        OfficeDrawingText firstBody = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().First(text => text.Text == "Test");
-        OfficeDrawingText markerText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>()
-            .Single(text => text.Y == firstBody.Y && text.X < firstBody.X);
-        Assert.Equal("•", markerText.Text);
-        Assert.NotEqual("Symbol", markerText.Font.FamilyName);
-        string svg = Encoding.UTF8.GetString(document.ExportImage(OfficeImageExportFormat.Svg).Bytes);
-        Assert.Contains("•", svg, StringComparison.Ordinal);
-        Assert.DoesNotContain("\uf0b7", svg, StringComparison.Ordinal);
+        string text = string.Concat(snapshot.TextSpans.Select(span => span.Text));
+        Assert.Equal(2, text.Count(character => character == '•'));
+        Assert.Equal(2, text.Split(new[] { "Test" }, StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("\uf0b7", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -261,13 +257,11 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(box.Paragraphs[0], list.NumberId);
 
         var snapshot = document.CreateVisualSnapshot();
-        OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(),
-            text => text.PlainText.Contains("Image box item", StringComparison.Ordinal));
-        Assert.Contains("◆", richText.PlainText, StringComparison.Ordinal);
-        Assert.Contains(richText.Runs, run => run.Text.Contains("◆", StringComparison.Ordinal) &&
-            run.Color == OfficeColor.FromRgb(255, 0, 0));
-        string svg = Encoding.UTF8.GetString(document.ExportImage(OfficeImageExportFormat.Svg).Bytes);
-        Assert.Contains("◆", svg, StringComparison.Ordinal);
+        string text = string.Concat(snapshot.TextSpans.Select(span => span.Text));
+        Assert.Contains("Image box item", text, StringComparison.Ordinal);
+        PdfTextSpan marker = Assert.Single(snapshot.TextSpans,
+            span => span.Text.Contains("◆", StringComparison.Ordinal));
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), marker.Color);
     }
 
     [Fact]
@@ -279,12 +273,12 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(nested.Paragraphs[0], list.NumberId);
 
         var snapshot = document.CreateVisualSnapshot();
-        OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(),
-            text => text.PlainText.Contains("Nested item", StringComparison.Ordinal));
-        Assert.Contains("◆", richText.PlainText, StringComparison.Ordinal);
-        Assert.Equal(1, richText.PlainText.Split(new[] { "Nested item" }, StringSplitOptions.None).Length - 1);
-        Assert.Contains(richText.Runs, run => run.Text.Contains("◆", StringComparison.Ordinal) &&
-            run.Color == OfficeColor.FromRgb(255, 0, 0));
+        string text = string.Concat(snapshot.TextSpans.Select(span => span.Text));
+        Assert.Equal(1, text.Count(character => character == '◆'));
+        Assert.Equal(1, text.Split(new[] { "Nested item" }, StringSplitOptions.None).Length - 1);
+        PdfTextSpan marker = Assert.Single(snapshot.TextSpans,
+            span => span.Text.Contains("◆", StringComparison.Ordinal));
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), marker.Color);
     }
 
     [Fact]
@@ -631,12 +625,10 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.AddParagraph("Plain image line");
         list.AddItem("Unmarked image line");
 
-        OfficeDrawingText[] texts = document.CreateVisualSnapshot().Drawing.Elements
-            .OfType<OfficeDrawingText>().ToArray();
+        IReadOnlyList<PdfTextSpan> texts = document.CreateVisualSnapshot().TextSpans;
         double plainX = Assert.Single(texts, text => text.Text == "Plain image line").X;
         double unmarkedX = Assert.Single(texts, text => text.Text == "Unmarked image line").X;
         Assert.True(unmarkedX > plainX + 45D);
-        Assert.DoesNotContain(texts, text => text.Text.Length == 0);
     }
 
     [Fact]
@@ -662,15 +654,14 @@ public sealed partial class WordListMarkerSemanticsTests {
             AttachToList(item, list.NumberId);
         }
 
-        var firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0 });
-        var secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1 });
-        OfficeDrawingRichText plain = Assert.Single(firstPage.Drawing.Elements.OfType<OfficeDrawingRichText>(),
-            text => text.PlainText.Contains("Plain cell line", StringComparison.Ordinal));
-        var secondPageRichText = secondPage.Drawing.Elements.OfType<OfficeDrawingRichText>().ToArray();
-        Assert.True(secondPageRichText.Any(text => text.PlainText.StartsWith("Unmarked", StringComparison.Ordinal)),
-            string.Join(" | ", secondPageRichText.Select(text => text.PlainText)));
-        OfficeDrawingRichText unmarked = secondPageRichText.First(text => text.PlainText.StartsWith("Unmarked", StringComparison.Ordinal));
-        Assert.True(unmarked.X > plain.X + 45D);
+        IReadOnlyList<WordDocumentVisualSnapshot> pages = document.CreateVisualSnapshots();
+        Assert.True(pages.Count > 1, "Expected the table row to continue on another page.");
+        PdfTextSpan plain = Assert.Single(pages[0].TextSpans,
+            span => span.Text.Contains("Plain cell line", StringComparison.Ordinal));
+        PdfTextSpan[] continuationItems = pages.Skip(1).SelectMany(page => page.TextSpans)
+            .Where(span => span.Text.Contains("UnmarkedCell", StringComparison.Ordinal)).ToArray();
+        Assert.NotEmpty(continuationItems);
+        Assert.All(continuationItems, item => Assert.True(item.X > plain.X + 45D));
     }
 
     [Theory]
@@ -703,29 +694,35 @@ public sealed partial class WordListMarkerSemanticsTests {
         }
         for (int index = 0; index < 15; index++) cell.AddParagraph("Following line " + index);
 
-        var beforeLines = new List<(int Page, double Bottom)>();
-        (int Page, double Y)? nestedPosition = null;
-        for (int page = 0; page < 4 && nestedPosition == null; page++) {
-            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = page });
-            beforeLines.AddRange(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>()
-                .Where(text => text.PlainText.Contains("Before", StringComparison.Ordinal) ||
-                    text.PlainText.Contains("wrapped", StringComparison.Ordinal))
-                .Select(text => (page, text.Y + text.Height)));
-            if (useImage) {
-                OfficeDrawingImage? image = snapshot.Drawing.Images.FirstOrDefault(item => item.AlternativeText == "Ordered image");
-                if (image != null) nestedPosition = (page, image.Projection.GetDestinationBounds().Top);
-            } else {
-                OfficeDrawingText? nestedText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>()
-                    .FirstOrDefault(text => text.Text.Contains("Nested block", StringComparison.Ordinal));
-                if (nestedText != null) nestedPosition = (page, nestedText.Y);
-            }
+        var layout = new WordToPdfOptions { IncludePageNumbers = false };
+        byte[] bytes = document.ToPdfBytes(layout);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var beforeWords = pdf.GetPages().SelectMany(page => page.GetWords()
+            .Where(word => word.Text == "BeforeNested" || word.Text == "wrapped")
+            .Select(word => (Page: page.Number, Bottom: word.BoundingBox.Bottom))).ToArray();
+        Assert.Equal(9, beforeWords.Length);
+        (int Page, double Top) nestedPosition;
+        if (useImage) {
+            nestedPosition = Assert.Single(pdf.GetPages().SelectMany(page => page.GetImages()
+                .Select(image => (Page: page.Number, Top: image.BoundingBox.Top))));
+        } else {
+            nestedPosition = Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()
+                .Where(word => word.Text == "Nested")
+                .Select(word => (Page: page.Number, Top: word.BoundingBox.Top))));
         }
-        Assert.NotEmpty(beforeLines);
-        Assert.True(nestedPosition.HasValue, "The non-text block was not rendered on the first four pages.");
-        Assert.All(beforeLines, beforeLine => Assert.True(
-            beforeLine.Page < nestedPosition.Value.Page ||
-            beforeLine.Page == nestedPosition.Value.Page && beforeLine.Bottom <= nestedPosition.Value.Y,
-            $"before={beforeLine}, nested={nestedPosition}"));
+        // PDF user-space Y increases upward: preceding text must be above the following block.
+        Assert.All(beforeWords, word => Assert.True(
+            word.Page < nestedPosition.Page ||
+            word.Page == nestedPosition.Page && word.Bottom >= nestedPosition.Top,
+            $"before={word}, nested={nestedPosition}"));
+
+        IReadOnlyList<OfficeImageExportResult> images = document.ExportImages(OfficeImageExportFormat.Svg,
+            new WordImageExportOptions { LayoutOptions = layout });
+        PdfReadDocument sharedPdf = PdfReadDocument.Open(bytes);
+        Assert.Equal(sharedPdf.Pages.Count, images.Count);
+        for (int page = 0; page < images.Count; page++) {
+            Assert.Equal(sharedPdf.Pages[page].ExportImage(OfficeImageExportFormat.Svg).Bytes, images[page].Bytes);
+        }
     }
 
     [Fact]

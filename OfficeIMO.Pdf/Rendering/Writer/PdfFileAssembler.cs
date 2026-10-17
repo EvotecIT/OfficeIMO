@@ -531,6 +531,10 @@ internal static class PdfFileAssembler {
         return fileVersion < minimumVersion ? minimumVersion : fileVersion;
     }
 
+    /// <summary>Honours catalog version upgrades while preventing a catalog entry from lowering the header version.</summary>
+    internal static PdfFileVersion ResolveFileVersion(string? headerVersion, string? catalogVersion) =>
+        RequireAtLeast(ParseHeaderVersionOrDefault(headerVersion), ParseHeaderVersionOrDefault(catalogVersion));
+
     internal static PdfFileVersion ParseHeaderVersionOrDefault(string? headerVersion) {
         switch (headerVersion) {
             case "1.5":

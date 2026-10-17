@@ -148,7 +148,8 @@ public class HtmlTextExportConsistencyTests {
     public void LetterSpacingKeepsGlyphPaintWidthSeparateFromAdvance() {
         const string html = "<p style='font-family:Arial;font-size:24px;letter-spacing:8px'>AB</p>";
         var source = HtmlConversionDocument.Parse(html);
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(source);
+        HtmlRenderDocument rendered = source.RenderToPdfResult(HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf)).RenderResult.Document;
         HtmlRenderText[] runs = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
         foreach (var run in runs) _log.WriteLine($"{run.Text}: paint={run.TextPaintWidth} advance={run.TextAdvanceWidth}");
         string svg = source.ToSvg();
@@ -158,7 +159,7 @@ public class HtmlTextExportConsistencyTests {
         Assert.NotEmpty(runs);
         Assert.Equal(runs.Length, textNodes.Length);
         for (int index=0;index<runs.Length;index++) {
-            double writtenWidth = double.Parse(textNodes[index].Attribute("textLength")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+            double writtenWidth = HtmlSvgTestCoordinates.CssValue(textNodes[index], "textLength");
             Assert.InRange(writtenWidth, runs[index].TextPaintWidth!.Value-0.1, runs[index].TextPaintWidth!.Value+0.1);
         }
     }

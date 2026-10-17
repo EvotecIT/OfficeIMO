@@ -81,5 +81,22 @@ public sealed class OfficeDrawingSoftMask {
 
     internal OfficeDrawing InnerDrawing => _drawing;
 
-    internal OfficeDrawingSoftMask Clone() => new OfficeDrawingSoftMask(_drawing, Mode, Transform, BackdropColor, LuminosityStandard);
+    /// <summary>PDF soft-mask transfer function (/TR) sampled at 256 mask values; null is the identity.</summary>
+    internal byte[]? TransferTable { get; }
+
+    private OfficeDrawingSoftMask(OfficeDrawingSoftMask source, byte[]? transferTable) {
+        _drawing = source._drawing;
+        Mode = source.Mode;
+        Transform = source.Transform;
+        BackdropColor = source.BackdropColor;
+        LuminosityStandard = source.LuminosityStandard;
+        TransferTable = transferTable;
+    }
+
+    /// <summary>Shares the mask drawing and replaces the transfer table.</summary>
+    internal OfficeDrawingSoftMask WithTransferTable(byte[]? transferTable) =>
+        ReferenceEquals(transferTable, TransferTable) ? this : new OfficeDrawingSoftMask(this, transferTable);
+
+    internal OfficeDrawingSoftMask Clone() =>
+        new OfficeDrawingSoftMask(_drawing, Mode, Transform, BackdropColor, LuminosityStandard).WithTransferTable(TransferTable);
 }

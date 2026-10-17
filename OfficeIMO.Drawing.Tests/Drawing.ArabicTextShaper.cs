@@ -4,6 +4,16 @@ using Xunit;
 namespace OfficeIMO.Drawing.Tests;
 
 public class DrawingArabicTextShaperTests {
+    [Theory]
+    [InlineData("עברית", true)]
+    [InlineData("Latin العربية نص עברית", true)]
+    [InlineData("بـب עברית", true)]
+    [InlineData("العربية ܫܠܡ עברית", false)]
+    public void ArabicTextShaper_JoiningCapabilityIgnoresOtherRtlScripts(string text, bool supported) {
+        Assert.Equal(supported, OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text));
+        Assert.Equal(text, OfficeArabicTextShaper.ToLogicalText(OfficeArabicTextShaper.Shape(text)));
+    }
+
     [Fact]
     public void ArabicTextShaper_AppliesContextualFormsAndRoundTripsLogicalText() {
         const string logical = "سلام";

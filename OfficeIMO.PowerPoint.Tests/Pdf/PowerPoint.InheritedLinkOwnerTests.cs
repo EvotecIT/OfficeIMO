@@ -17,6 +17,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBoxPoints("Inherited shape", 30, 30, 240, 60);
+        box.PlaceholderType = null;
         OpenXmlPart owner = Owner(first, master);
         owner.AddHyperlinkRelationship(PowerPointHyperlinkResolver.CreatePartRelativeUri(owner, second.SlidePart), false, "inherited-link");
         first.SlidePart.AddHyperlinkRelationship(new Uri("https://example.com/wrong-owner"), true, "inherited-link");
@@ -26,7 +27,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         Tree(owner).Append(box.Element);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        PowerPointShape inherited = Assert.Single(reopened.Slides[0].GetInheritedShapesForExport().Where(shape => shape.Name == box.Name));
+        PowerPointShape inherited = Assert.Single(reopened.Slides[0].GetInheritedShapesForExport(), shape => shape.Name == box.Name);
         Assert.Equal("#slide-2", inherited.Hyperlink?.OriginalString);
         inherited.SetHyperlink(reopened.Slides[1]);
         Assert.Equal("#slide-2", inherited.Hyperlink?.OriginalString);

@@ -456,6 +456,15 @@ public readonly struct OfficeShapedGlyph {
         int offsetX,
         int offsetY) => new OfficeShapedGlyph(glyphId, string.Empty, textIndex, advanceWidth: null, advanceHeight: null, offsetX, offsetY, allowEmptyUnicode: true);
 
+    // Additional glyphs of a multi-glyph cluster: the cluster text belongs to its first glyph.
+    internal static OfficeShapedGlyph CreatePositionedUnicodeContinuation(
+        int glyphId,
+        int textIndex,
+        int advanceWidth,
+        int advanceHeight,
+        int offsetX,
+        int offsetY) => new OfficeShapedGlyph(glyphId, string.Empty, textIndex, advanceWidth, advanceHeight, offsetX, offsetY, allowEmptyUnicode: true);
+
     /// <summary>Font glyph identifier.</summary>
     public int GlyphId { get; }
 

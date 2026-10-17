@@ -249,7 +249,11 @@ public static class HtmlRenderEngine {
     internal static HtmlRenderOptions PrepareOptions(HtmlConversionDocument document, HtmlRenderRequest request) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (request == null) throw new ArgumentNullException(nameof(request));
-        HtmlRenderOptions resolved = request.ResolveOptions();
+        HtmlRenderOptions resolved = request.Encoder is HtmlRenderEncoder.Png or HtmlRenderEncoder.Jpeg
+            or HtmlRenderEncoder.Tiff or HtmlRenderEncoder.Webp or HtmlRenderEncoder.Svg
+            || request.Encoder == HtmlRenderEncoder.DisplayList && request.Options is Pdf.HtmlToPdfOptions
+            ? Pdf.HtmlPdfRenderedConverter.PrepareNonPdfOptions(request)
+            : request.ResolveOptions();
         resolved.BaseUri ??= document.BaseUri;
         ApplyDocumentPolicies(document, resolved);
         resolved.Validate();

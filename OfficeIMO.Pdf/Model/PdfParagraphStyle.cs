@@ -89,6 +89,17 @@ public class PdfParagraphStyle {
     /// <summary>Explicit paragraph tab stops, in points, relative to the paragraph text frame.</summary>
     public System.Collections.Generic.IList<PdfTabStop> TabStops => _tabStops;
 
+    /// <summary>Overrides document whitespace handling for this paragraph. Null uses the document setting.</summary>
+    public PdfTextWhitespaceMode? TextWhitespaceMode {
+        get => _textWhitespaceMode;
+        set {
+            if (value.HasValue && (value.Value < PdfTextWhitespaceMode.Collapse || value.Value > PdfTextWhitespaceMode.Preformatted))
+                throw new System.ArgumentOutOfRangeException(nameof(value));
+            _textWhitespaceMode = value;
+        }
+    }
+    private PdfTextWhitespaceMode? _textWhitespaceMode;
+
     /// <summary>When true, the paragraph starts on a new page instead of splitting across pages.</summary>
     public bool KeepTogether { get; set; }
     /// <summary>Imported document policy when kept or minimum orphan lines exceed a complete continuation frame.</summary>
@@ -126,6 +137,7 @@ public class PdfParagraphStyle {
     public PdfParagraphStyle Clone() {
         var clone = new PdfParagraphStyle {
             AnchoredCanvas = AnchoredCanvas,
+            TextWhitespaceMode = TextWhitespaceMode,
             FontSize = FontSize,
             LineSpacing = LineSpacing,
             LineHeight = LineHeight,

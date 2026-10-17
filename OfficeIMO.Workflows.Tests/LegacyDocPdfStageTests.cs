@@ -57,7 +57,10 @@ public sealed class LegacyDocPdfStageTests {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-legacy-pdf-" + Guid.NewGuid().ToString("N") + ".doc");
         byte[] source;
         try {
-            using var word = WordDocument.Create(); word.AddParagraph("Preserved DOC text"); word.Save(path);
+            using var word = WordDocument.Create();
+            // Force a rendering-stage approximation independently of installed Office fonts.
+            word.AddParagraph("Preserved DOC text").FontFamily = "OfficeIMO Missing Workflow Stage Font";
+            word.Save(path);
             using var package = new MemoryStream();
             package.Write(File.ReadAllBytes(path)); package.Position = 0;
             using (RootStorage root = RootStorage.Open(package, StorageModeFlags.LeaveOpen)) {

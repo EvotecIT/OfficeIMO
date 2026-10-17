@@ -10,7 +10,7 @@ public static partial class OfficeDrawingSvgExporter {
     private static bool HasSelectedVariableFont(OfficeDrawingText text, OfficeFontFaceCollection fonts) {
         double size = (text.Font.Size > 0D ? text.Font.Size : 10D) / text.FontMetricScale;
         foreach (OfficeFontFallbackRun run in fonts.PlanFallbackRuns(text.RasterText, text.Font.FamilyName, text.Font.Face)) {
-            if (fonts.TryResolveFaceForText(run.Text, run.FamilyName, text.Font.Face, size, out OfficeFontFace? face)
+            if (fonts.TryResolveFaceForText(run.Text, run.FamilyRequest, text.Font.Face, size, out OfficeFontFace? face)
                 && face?.VariationCoordinatesForShaping is { Count: > 0 }) return true;
         }
         return false;
@@ -31,10 +31,10 @@ public static partial class OfficeDrawingSvgExporter {
             double size = double.TryParse(sizeValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double renderedSize)
                 && renderedSize > 0D ? renderedSize : text.Font.Size;
             var spans = fonts.PlanFallbackRuns(node.Value, family, text.Font.Face).Select(run => {
-                fonts.TryResolveFaceForText(run.Text, run.FamilyName, text.Font.Face,
+                fonts.TryResolveFaceForText(run.Text, run.FamilyRequest, text.Font.Face,
                     size / text.FontMetricScale, out OfficeFontFace? face);
                 var span = new XElement("tspan", new XAttribute("font-family",
-                    face == null ? run.FamilyName : QuoteCssFamily(face.ResourceFamilyName)), run.Text);
+                    face == null ? run.FamilyRequest : QuoteCssFamily(face.ResourceFamilyName)), run.Text);
                 if (face?.VariationCoordinatesForShaping is { Count: > 0 } coordinates) {
                     string values = string.Join(",", coordinates.OrderBy(item => item.Key, StringComparer.Ordinal)
                         .Select(item => "\"" + EscapeCssString(item.Key) + "\" "

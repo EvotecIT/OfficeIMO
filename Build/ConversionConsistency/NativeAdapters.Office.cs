@@ -86,8 +86,12 @@ internal static partial class NativeAdapters {
 
     // Materialize while the native document is open; do not retain a delegate over a disposed package.
     private static NativeExport Capture(PdfDocumentConversionResult pdf,
-        Func<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>> images, CancellationToken token) =>
-        Capture(pdf.ToBytes(token), images, pdf.Report.Warnings.Select(item => item.Code).ToList(), token);
+        Func<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>> images, CancellationToken token) {
+        byte[] bytes = pdf.ToBytes(token);
+        return Capture(bytes, images, pdf.Report.Warnings.Select(item => item.Code).ToList(), token) with {
+            DiagnosticDetails = pdf.Report.Warnings.Select(item => item.Code + ": " + item.Message + " [" + item.Source + "]").ToList()
+        };
+    }
 
     private static NativeExport Capture(byte[] pdf, Func<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>> images,
         List<string> diagnostics, CancellationToken token) {

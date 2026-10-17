@@ -4,6 +4,9 @@ namespace OfficeIMO.Email;
 
 /// <summary>HTML-backed email image-export options.</summary>
 public sealed class EmailImageExportOptions : HtmlRenderOptions {
+    /// <summary>Creates a continuous message preview; paged output remains available through the shared mode setting.</summary>
+    public EmailImageExportOptions() => Mode = HtmlRenderMode.Continuous;
+
     /// <summary>Renders subject, sender, recipients, and date above the message body.</summary>
     public bool IncludeMessageHeaders { get; set; } = true;
 

@@ -20,7 +20,8 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(permissive.HasLoss);
         HtmlConversionException documentException = Assert.Throws<HtmlConversionException>(() => permissive.RequireNoLoss());
-        Assert.Equal("HTML conversion did not satisfy the required no-loss contract.", documentException.Message);
+        Assert.StartsWith("HTML conversion did not satisfy the required no-loss contract.", documentException.Message, StringComparison.Ordinal);
+        Assert.Contains(HtmlRenderDiagnosticCodes.TransformValueUnsupported, documentException.Message, StringComparison.Ordinal);
         Assert.Contains(documentException.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported);
 
         var strict = new HtmlRenderOptions {
@@ -85,6 +86,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(10, 6);
         int calls = 0;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(8D),
             ResourceResolver = (request, cancellationToken) => {
@@ -104,7 +106,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, calls);
         Assert.Contains(rendered.Pages[0].Visuals, visual => visual is HtmlRenderImage image && image.ContentType == "image/png" && image.Bytes.Length == imageBytes.Length);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
-        Assert.Contains("data:image/png;base64", svg, StringComparison.Ordinal);
+        Assert.True(OfficePngReader.TryDecode(imageBytes, out OfficeRasterImage? sourceRaster));
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.True(ContainsColor(svgRaster, pixel => pixel == sourceRaster!.GetPixel(5, 3)));
+        Assert.True(ContainsColor(svgRaster, pixel => pixel == sourceRaster!.GetPixel(9, 5)));
     }
 
     [Fact]
@@ -149,6 +154,7 @@ public sealed partial class HtmlRenderingTests {
         };
         var requested = new List<string>();
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(8D),
             ResourceResolver = (request, cancellationToken) => {
@@ -361,6 +367,7 @@ public sealed partial class HtmlRenderingTests {
         };
         int calls = 0;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(8D),
             ResourceResolver = (request, cancellationToken) => {
@@ -395,12 +402,14 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<link rel='stylesheet' href='https://assets.example.test/css/top.css'><p class='base-limit'>Limited import</p>";
 
         HtmlRenderDocument depthLimited = await HtmlRenderTestDriver.RenderAsync(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(8D),
             MaxStylesheetImportDepth = 1,
             ResourceResolver = resolver
         });
         HtmlRenderDocument countLimited = await HtmlRenderTestDriver.RenderAsync(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(8D),
             MaxResourceCount = 1,
@@ -416,7 +425,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_ReportsExternalStylesheetPendingForSynchronousRendering() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<link rel='stylesheet' href='https://assets.example.test/theme.css'><p>Pending sheet</p>",
-            new HtmlRenderOptions { ViewportWidth = 240D, Margins = HtmlRenderMargins.All(8D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 240D, Margins = HtmlRenderMargins.All(8D) });
 
         Assert.Contains(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending
@@ -426,6 +435,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public async Task HtmlRenderAsync_RejectsNonCssStylesheetContent() {
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(8D),
             ResourceResolver = (request, cancellationToken) =>
@@ -444,6 +454,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public async Task HtmlRenderAsync_ReportsResolverTimeoutAndHonorsCallerCancellation() {
         var timeoutOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(8D),
             ResourceTimeout = TimeSpan.FromMilliseconds(20D),
@@ -479,6 +490,7 @@ public sealed partial class HtmlRenderingTests {
                 HtmlRenderTestDriver.RenderAsync(
                     document,
                     new HtmlRenderOptions {
+                        Mode = HtmlRenderMode.Continuous,
                         ViewportWidth = 240D,
                         MaxSurfaceHeight = 1_000_000
                     },
@@ -567,7 +579,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(summary.HasResourceResolver);
         Assert.True(summary.AllowSystemFontEmbedding);
-        Assert.False(summary.AllowDocumentFontEmbedding);
+        Assert.True(summary.AllowDocumentFontEmbedding);
         Assert.False(summary.AllowLocalFileAccess);
         Assert.False(summary.AllowRemoteResourceResolution);
         Assert.True(summary.AllowDataUris);
@@ -591,6 +603,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault()
         };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = false;
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument
             .Parse("<p style=\"font-family:'" + installedFamily + "'\">Document font boundary</p>")
@@ -670,6 +683,7 @@ public sealed partial class HtmlRenderingTests {
         const string ftpUri = "ftp://example.test/report";
         const string customUri = "officeimo:report";
         var sharedOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 720D
         };
         var pdfOptions = new HtmlToPdfOptions(sharedOptions);
@@ -943,6 +957,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(10D)
         });
@@ -1307,8 +1322,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
 
         IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
-        Assert.Contains("FirstPage", Encoding.UTF8.GetString(svgPages[0].Bytes), StringComparison.Ordinal);
-        Assert.Contains("L2", Encoding.UTF8.GetString(svgPages[1].Bytes), StringComparison.Ordinal);
+        Assert.Contains("FirstPage", SvgPaintedText.Read(Encoding.UTF8.GetString(svgPages[0].Bytes)), StringComparison.Ordinal);
+        Assert.Contains("L2", SvgPaintedText.Read(Encoding.UTF8.GetString(svgPages[1].Bytes)), StringComparison.Ordinal);
         Assert.Contains("R3", Encoding.UTF8.GetString(svgPages[2].Bytes), StringComparison.Ordinal);
 
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
@@ -1738,7 +1753,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported);
 
         string svg = Encoding.UTF8.GetString(Assert.Single(HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options)).Bytes);
-        foreach (string marker in markers) Assert.Contains(marker, svg, StringComparison.Ordinal);
+        foreach (string marker in markers) Assert.Contains(marker, SvgPaintedText.Read(svg), StringComparison.Ordinal);
 
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions(options);
@@ -1797,12 +1812,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(rendered.Diagnostics);
 
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions(options);
+        pdfOptions.FontFamily = SvgPaintedText.CreatePinnedFamily();
+        pdfOptions.ResourcePolicy.AllowSystemFontEmbedding = false;
         pdfOptions.PdfOptions.CompressContentStreams = false;
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
         string raw = Encoding.ASCII.GetString(pdf);
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).Outlines);
-        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("Chapter Alpha", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("Chapter Beta", pdfText, StringComparison.Ordinal);
         Assert.Contains("First body", pdfText, StringComparison.Ordinal);
@@ -2122,10 +2139,18 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(png.Height, pngInfo.Height);
         string svgText = Encoding.UTF8.GetString(svg.Bytes);
         Assert.Contains("<svg", svgText, StringComparison.Ordinal);
-        Assert.Contains("Image", svgText, StringComparison.Ordinal);
+        Assert.Contains("Image", SvgPaintedText.Read(svgText), StringComparison.Ordinal);
         Assert.Contains("output", svgText, StringComparison.Ordinal);
         Assert.Contains("Alpha", svgText, StringComparison.Ordinal);
-        Assert.Contains("data:image/png;base64", svgText, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svgText);
+        Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? pngRaster));
+        Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(pngData), out OfficeRasterImage? sourceRaster));
+        Assert.Equal(png.Width, svgRaster.Width);
+        Assert.Equal(png.Height, svgRaster.Height);
+        foreach (OfficeColor color in new[] { sourceRaster!.GetPixel(5, 3), sourceRaster.GetPixel(11, 7) }) {
+            Assert.True(ContainsColor(svgRaster, pixel => pixel == color));
+            Assert.True(ContainsColor(pngRaster!, pixel => pixel == color));
+        }
         Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
     }
 
@@ -2134,6 +2159,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>body{margin:0}.card{width:180px;padding:8px;border:2px solid #123456;background:linear-gradient(90deg,#ffffff,#ddeeff)}</style>"
             + "<div class='card'><h2>StableMarker</h2><a href='https://example.test/report'>Report link</a></div>";
         static HtmlRenderOptions ImageOptions() => new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(10D)
         };
@@ -2316,7 +2342,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Empty heading", Assert.Single(info.Outlines[1].Children).Title);
         Assert.Equal("Empty block", info.Outlines[2].Title);
         Assert.Equal("Empty inline", info.Outlines[3].Title);
-        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", raw, StringComparison.Ordinal);
         Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "H2"));
         Assert.DoesNotContain("Decorative note", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(bookmark-level:2)"));
@@ -2386,7 +2412,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(groups, group => group.Role == HtmlRenderSemanticGroupRole.Artifact && group.Source?.Contains("table", StringComparison.OrdinalIgnoreCase) == true);
         Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "H3"));
         Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "H4"));
-        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.DoesNotContain("Decorative table", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "artifact-field");
         Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "field");
@@ -2526,7 +2552,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("Decorative second", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(info.LinkAnnotations);
         Assert.Empty(info.FormFields);
-        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -2805,7 +2831,7 @@ public sealed partial class HtmlRenderingTests {
             group.Role == HtmlRenderSemanticGroupRole.Artifact && group.Source?.Contains("top-left", StringComparison.Ordinal) == true);
 
         Assert.Contains(artifact.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Page 1");
-        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.DoesNotContain("Page 1", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Page 1", PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(rendered.Diagnostics);
@@ -2957,10 +2983,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("\uFEB3\uFEE0\uFE8E\uFEE1", rendered.Text, StringComparison.Ordinal);
         HtmlRenderHeading arabicHeading = Assert.Single(rendered.Headings, heading => heading.Level == 2);
         Assert.Equal("سلام", arabicHeading.Text);
-        Assert.True(HtmlConversionDocument.Parse(html).ToPng().Length > 8);
-        string svg = HtmlConversionDocument.Parse(html).ToSvg();
-        Assert.All("\uFEB3\uFEE0\uFE8E\uFEE1", character => Assert.Contains(character.ToString(), svg, StringComparison.Ordinal));
-
         HtmlRenderLogicalTextGroup controlGroup = Assert.Single(
             EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
             group => group.Text == "abcdef");
@@ -2994,8 +3016,9 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal("Left שלום 42", string.Concat(runs.Select(run => run.Text)));
         Assert.Equal(4, hebrew.Count);
-        Assert.True(left.X < hebrew.Min(run => run.X));
-        Assert.True(number.X > hebrew.Max(run => run.X));
+        // UAX #9: a number after right-to-left text joins that run (W2/N1), so it is painted before the Hebrew.
+        Assert.True(left.X < number.X);
+        Assert.True(number.X < hebrew.Min(run => run.X));
         for (int index = 1; index < hebrew.Count; index++) Assert.True(hebrew[index].X < hebrew[index - 1].X);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         Assert.True(HtmlConversionDocument.Parse(html).ToPng().Length > 8);
@@ -3091,8 +3114,9 @@ public sealed partial class HtmlRenderingTests {
         string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
 
         Assert.Equal("גבא", text.Text);
-        Assert.Contains("\u202Dגבא\u202C", svg, StringComparison.Ordinal);
-        Assert.DoesNotContain("\u202Dאבג\u202C", svg, StringComparison.Ordinal);
+        Assert.Contains("גבא", svg, StringComparison.Ordinal);
+        Assert.Contains("unicode-bidi=\"bidi-override\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("\u202D", svg, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -3145,6 +3169,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:160px'><p id='start' dir='rtl' style='margin:0'>Start</p><p id='end' dir='rtl' style='margin:0;text-align:end'>End</p><p id='left' dir='rtl' style='margin:0;text-align:left'>Left</p></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -3171,6 +3196,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             HtmlConversionDocument.Parse(html),
             new HtmlRenderOptions {
+                Mode = HtmlRenderMode.Continuous,
                 ViewportWidth = 200D,
                 Margins = HtmlRenderMargins.All(0D)
             });
@@ -3192,6 +3218,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             HtmlConversionDocument.Parse(html),
             new HtmlRenderOptions {
+                Mode = HtmlRenderMode.Continuous,
                 ViewportWidth = 200D,
                 Margins = HtmlRenderMargins.All(0D)
             });

@@ -50,6 +50,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
 
             var options = new PdfImageExportOptions {
                 TargetDpi = validated.TargetDpi,
+                RasterEncoding = validated.RasterEncoding,
                 ThumbnailMaxDimension = validated.MaximumDimension,
                 MaximumOutputCount = validated.MaximumPages,
                 MaximumTotalEncodedBytes = validated.Limits.MaximumOutputBytes
@@ -219,6 +220,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             outputDirectory,
             pageSelector,
             request.Format,
+            (request.RasterEncoding ?? throw new ArgumentException("Raster encoding settings cannot be null.", nameof(request))).Clone(),
             request.TargetDpi,
             request.MaximumDimension,
             request.MaximumPages,
@@ -262,6 +264,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         string OutputDirectory,
         PdfPageSelector? PageSelector,
         OfficeImageExportFormat Format,
+        OfficeRasterEncodingOptions RasterEncoding,
         double TargetDpi,
         int? MaximumDimension,
         int MaximumPages,

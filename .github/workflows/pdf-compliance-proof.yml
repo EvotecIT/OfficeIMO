@@ -127,9 +127,9 @@ env:
   VERAPDF_VERSION: 1.30.2
   VERAPDF_INSTALLER_URL: https://software.verapdf.org/releases/1.30/verapdf-greenfield-1.30.2-installer.zip
   VERAPDF_INSTALLER_SHA256: 6cc6341cb1af644044054b81f00a6590a7918abb18f762243de115258bcad838
-  MUSTANG_VERSION: 2.24.0
-  MUSTANG_CLI_URL: https://github.com/ZUGFeRD/mustangproject/releases/download/core-2.24.0/Mustang-CLI-2.24.0.jar
-  MUSTANG_CLI_SHA256: e4904ffa0afdce3f5836dceb927c440a05ed5d60386fdd37e17a4b2f7652edbf
+  MUSTANG_VERSION: 2.26.0
+  MUSTANG_CLI_URL: https://github.com/ZUGFeRD/mustangproject/releases/download/core-2.26.0/Mustang-CLI-2.26.0.jar
+  MUSTANG_CLI_SHA256: 42d7868cb68264874a7b8cab4c3587b03b23ccc7cd72373da917f66758bb9736
 
 jobs:
   pdf-compliance-proof:
@@ -157,13 +157,21 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore OfficeIMO.sln
+        run: dotnet restore OfficeIMO.sln -m:4
 
       - name: Setup Java
         uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Setup Python for independent signature validation
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install independent signature validator
+        run: python -m pip install pyhanko==0.37.0
 
       - name: Install external PDF proof tools
         shell: bash
@@ -291,8 +299,38 @@ jobs:
               --configuration "${BUILD_CONFIGURATION}" \
               --framework net8.0 \
               --no-restore \
+              -m:4 \
               --filter 'FullyQualifiedName~PdfExternalEngineProofTests' \
               --verbosity minimal
+
+      - name: Generate standards real invoice and optimizer proof fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          export OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT="$(pwd)/${PROOF_PATH}"
+          dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj \
+            --configuration "${BUILD_CONFIGURATION}" --framework net8.0 --no-restore -m:4 \
+            --filter 'FullyQualifiedName~PdfStandardsProofTests|FullyQualifiedName~PdfPadesProofTests' \
+            --verbosity minimal
+          dotnet test OfficeIMO.Invoicing.Pdf.Tests/OfficeIMO.Invoicing.Pdf.Tests.csproj \
+            --configuration "${BUILD_CONFIGURATION}" --framework net8.0 --no-restore -m:4 \
+            --filter 'FullyQualifiedName~PdfInvoiceExternalProofTests|FullyQualifiedName~PdfOptimizerExternalProofTests' --verbosity minimal
+
+      - name: Validate exact standards profiles invoices and timestamps
+        shell: bash
+        env:
+          VERAPDF_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.verapdf_path || '' }}
+          MUSTANG_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.mustang_path || '' }}
+        run: |
+          set -euo pipefail
+          python .github/scripts/Validate-PdfStandardsProof.py \
+            --proof "${PROOF_PATH}" \
+            --verapdf "${VERAPDF_PATH:-${OFFICEIMO_VERAPDF_CLI:-}}" \
+            --mustang "${MUSTANG_PATH:-${OFFICEIMO_MUSTANG_JAR:-}}"
+          python .github/scripts/Validate-PdfOptimizerProof.py \
+            --proof "${PROOF_PATH}" \
+            --verapdf "${VERAPDF_PATH:-${OFFICEIMO_VERAPDF_CLI:-}}" \
+            --mustang "${MUSTANG_PATH:-${OFFICEIMO_MUSTANG_JAR:-}}"
 
       - name: Validate browser PDF/A-2B profile externally
         shell: bash
@@ -306,6 +344,7 @@ jobs:
             dotnet test Website/Apps/OfficeIMO.Web.Converter.Tests/OfficeIMO.Web.Converter.Tests.csproj \
               --configuration "${BUILD_CONFIGURATION}" \
               --framework net10.0 \
+              -m:4 \
               --filter 'FullyQualifiedName~HtmlToPdf_ArchivalProfileCreatesInternallyReadyPdfA2BArtifact' \
               --verbosity minimal
 
@@ -398,6 +437,30 @@ jobs:
 
             $lines.Add("| $($profile.displayName) | $($profile.isInternallyReady) | $($profile.hasRequiredExternalValidation) | $($profile.canClaimConformance) | $missingValidators |")
           }
+          $standards = Get-Content -LiteralPath '${{ env.PROOF_PATH }}/standards/proof.json' -Raw | ConvertFrom-Json
+          $lines.Add('')
+          $lines.Add('### Independent standards, invoice and signature checks')
+          $lines.Add('')
+          $lines.Add('| Artifact | Validator | Profile | Result |')
+          $lines.Add('| --- | --- | --- | --- |')
+          foreach ($row in $standards.validations) {
+            $lines.Add("| $($row.artifactFile) | $($row.validator) | $($row.profile) | $($row.status) |")
+          }
+          $lines.Add('')
+          $lines.Add('Signature trust uses ephemeral test roots and does not establish public trust or revocation status.')
+          $optimizer = Get-Content -LiteralPath '${{ env.PROOF_PATH }}/optimizer/measurements.json' -Raw | ConvertFrom-Json
+          $lines.Add('')
+          $lines.Add('### Optimizer sizes and compliance preservation')
+          $lines.Add('')
+          $lines.Add('| Source | Setting | Before bytes | Candidate bytes | Returned bytes | Delta bytes | Returned original |')
+          $lines.Add('| --- | --- | ---: | ---: | ---: | ---: | --- |')
+          foreach ($row in $optimizer.rows) {
+            $lines.Add("| $($row.source) | $($row.setting) | $($row.originalLengthBytes) | $($row.candidateLengthBytes) | $($row.optimizedLengthBytes) | $($row.sizeDeltaBytes) | $($row.returnedOriginal) |")
+          }
+          $lines.Add('')
+          $lines.Add("Optimizer refusal checks: $(@($optimizer.refusals).Count); signed inputs and prohibited PDF/A-1 stream layouts preserve existing destinations and create no output.")
+          $optimizerProof = Get-Content -LiteralPath '${{ env.PROOF_PATH }}/optimizer/proof.json' -Raw | ConvertFrom-Json
+          $lines.Add("Independent optimizer checks: $(@($optimizerProof.validations).Count); all passed: $($optimizerProof.allPassed).")
           $lines | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
 
       - name: Upload PDF compliance proof
@@ -419,3 +482,9 @@ jobs:
             ${{ env.PROOF_PATH }}/engine/*.txt
             ${{ env.PROOF_PATH }}/browser/*.pdf
             ${{ env.PROOF_PATH }}/browser/*.txt
+            ${{ env.PROOF_PATH }}/standards/*.pdf
+            ${{ env.PROOF_PATH }}/standards/*.xml
+            ${{ env.PROOF_PATH }}/standards/*.pem
+            ${{ env.PROOF_PATH }}/standards/*.json
+            ${{ env.PROOF_PATH }}/standards/*.txt
+            ${{ env.PROOF_PATH }}/optimizer/**

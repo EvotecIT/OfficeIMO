@@ -22,7 +22,7 @@ public sealed partial class PdfOptions {
             _maxGeneratedOutputBytes = value;
         }
     }
-    /// <summary>When true, generated page content streams are written with Flate compression.</summary>
+    /// <summary>When true (the default), generated page content streams are written with Flate compression.</summary>
     public bool CompressContentStreams {
         get => _compressContentStreams;
         set {
@@ -30,7 +30,7 @@ public sealed partial class PdfOptions {
             _compressContentStreamsExplicitlyConfigured = true;
         }
     }
-    private bool _compressContentStreams;
+    private bool _compressContentStreams = true;
     private bool _compressContentStreamsExplicitlyConfigured;
 
     /// <summary>Enables compression for conversion output unless the caller explicitly selected a value.</summary>
@@ -645,10 +645,13 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>
-    /// Applies common PDF/UA groundwork for the requested profile.
+    /// Configures PDF/UA generation and enables strict generation and saved-artifact checks.
+    /// Call ConfigurePdfUaGroundwork for metadata-only preparation without the strict gate.
     /// </summary>
     public PdfOptions UsePdfUa(PdfComplianceProfile profile = PdfComplianceProfile.PdfUa1, string language = "en-US") {
-        return ConfigurePdfUaGroundwork(profile, language);
+        ConfigurePdfUaGroundwork(profile, language);
+        if (ComplianceProfile == PdfComplianceProfile.None) ComplianceProfile = profile;
+        return this;
     }
 
     /// <summary>
@@ -695,10 +698,13 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>
-    /// Applies common PDF/A groundwork for the requested profile.
+    /// Configures PDF/A generation and enables strict generation and saved-artifact checks.
+    /// Call ConfigurePdfAGroundwork for metadata-only preparation without the strict gate.
     /// </summary>
     public PdfOptions UsePdfA(PdfComplianceProfile profile = PdfComplianceProfile.PdfA3B, string language = "en-US") {
-        return ConfigurePdfAGroundwork(profile, language);
+        ConfigurePdfAGroundwork(profile, language);
+        ComplianceProfile = profile;
+        return this;
     }
 
     /// <summary>

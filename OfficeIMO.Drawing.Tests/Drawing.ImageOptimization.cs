@@ -1871,7 +1871,7 @@ namespace OfficeIMO.Tests {
         private static byte[] BuildSeparateComponentBaselineJpeg() {
             byte[] seed = OfficeJpegCodec.Encode(
                 new OfficeRasterImage(1, 1, OfficeColor.Red),
-                new OfficeJpegEncodeOptions { Subsampling = OfficeJpegSubsampling.Y444 });
+                new OfficeJpegEncodeOptions { Subsampling = OfficeJpegSubsampling.Y444, OptimizeHuffman = false });
             int firstScan = FindMarker(seed, 0xDA);
             Assert.True(firstScan > 0);
 

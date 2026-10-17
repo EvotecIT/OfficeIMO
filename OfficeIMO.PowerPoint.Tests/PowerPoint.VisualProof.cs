@@ -24,18 +24,20 @@ namespace OfficeIMO.Tests {
             firstSlide.AddRectanglePoints(500, 500, 20, 20, "Outside slide bounds");
 
             PowerPointToHtmlResult first = firstPresentation.ToHtmlResult(options);
-            Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "unsupported-powerpoint-shape");
+            Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds"
+                && diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
             using var secondStream = new MemoryStream();
             using PowerPointPresentation secondPresentation = PowerPointPresentation.Create(secondStream);
-            secondPresentation.AddSlide().AddTextBoxPoints("Clean snapshot", 20, 20, 120, 30);
+            PowerPointTextBox cleanText = secondPresentation.AddSlide()
+                .AddTextBoxPoints("Clean snapshot", 20, 20, 160, 40);
+            cleanText.FontName = "Helvetica";
+            cleanText.FontSize = 12;
             PowerPointToHtmlResult second = secondPresentation.ToHtmlResult(options);
 
-            Assert.DoesNotContain(
-                second.ImageDiagnostics,
-                diagnostic =>
-                    diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted);
-            Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "unsupported-powerpoint-shape");
+            Assert.DoesNotContain(second.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds");
+            Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds"
+                && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
         [Fact]

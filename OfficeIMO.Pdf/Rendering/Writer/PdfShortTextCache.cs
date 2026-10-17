@@ -16,7 +16,7 @@ internal sealed class PdfShortTextCache<T> where T : class {
     private int _glyphs;
 
     internal static bool IsEligible(string text, PdfTextShapingOptions options) {
-        if (text.Length == 0 || text.Length > 256 || options.ShapingProvider != null ||
+        if (text.Length == 0 || text.Length > 256 || options.ShapingProvider != null || options.PreservesPaintedGlyphs ||
             options.ShapingMode != PdfTextShapingMode.OpenTypeLigatures || !options.FeatureSettings.IsDefault ||
             !options.RecordGlyphUsage || !options.ThrowOnMissingGlyph || options.SkipLayoutControls ||
             options.ReportControlCharacters ||

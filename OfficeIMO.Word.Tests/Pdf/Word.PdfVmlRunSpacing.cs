@@ -35,7 +35,11 @@ public partial class Word {
         document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(new Paragraph(new Run(new Picture(shape)))));
         document.AddParagraph("Body");
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        // The expected 9.996-point advance belongs to the portable Helvetica fixture.
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false,
+            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        }));
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "M" || letter.Value == "X").ToArray();
         Assert.Equal("MMMMX", string.Concat(letters.Select(letter => letter.Value)));
         double advance = letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;

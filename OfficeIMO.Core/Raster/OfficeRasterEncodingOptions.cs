@@ -40,6 +40,9 @@ public sealed class OfficeRasterEncodingOptions {
         var clone = new OfficeRasterEncodingOptions {
             Png = new OfficePngEncodeOptions {
                 Compression = png.Compression,
+                Effort = png.Effort,
+                RequireRgbColorSpace = png.RequireRgbColorSpace,
+                RequireGrayColorSpace = png.RequireGrayColorSpace,
                 DpiX = png.DpiX,
                 DpiY = png.DpiY,
                 WritePhysicalResolution = png.WritePhysicalResolution
@@ -66,6 +69,7 @@ public sealed class OfficeRasterEncodingOptions {
             },
             Webp = new OfficeWebpEncodeOptions {
                 Mode = webp.Mode,
+                Effort = webp.Effort,
                 Quality = webp.Quality,
                 DpiX = webp.DpiX,
                 DpiY = webp.DpiY,

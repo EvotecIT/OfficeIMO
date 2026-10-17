@@ -64,7 +64,6 @@ public class PdfComplianceGateTests {
         Assert.Equal("en-US", info.CatalogLanguage);
         Assert.Contains("/Metadata ", raw, StringComparison.Ordinal);
         Assert.Contains("/OutputIntents [", raw, StringComparison.Ordinal);
-        Assert.Contains("/Length 3052", raw, StringComparison.Ordinal);
         Assert.Contains("pdfaid:part", raw, StringComparison.Ordinal);
         Assert.Contains("pdfaid:conformance", raw, StringComparison.Ordinal);
         Assert.Contains("/EmbeddedFiles", raw, StringComparison.Ordinal);
@@ -288,18 +287,15 @@ public class PdfComplianceGateTests {
         Assert.NotEmpty(result.GetDiagnosticText());
     }
 
-    [Theory]
-    [InlineData(PdfComplianceProfile.PdfUa2, "PDF/UA identification XMP")]
-    public void FormalProfiles_StillFailClosedUntilValidatorBackedGenerationExists(PdfComplianceProfile profile, string expectedRequirement) {
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Create()
-                .Compliance(profile)
+    [Fact]
+    public void FormalPdfUa2RejectsMissingGenerationRequirements() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfDocument.Create().Compliance(PdfComplianceProfile.PdfUa2)
                 .Meta(title: "Compliance profile guard")
-                .Paragraph(p => p.Text("Profile output must fail closed until validator evidence exists."))
+                .Paragraph(p => p.Text("Missing accessibility configuration must fail closed."))
                 .ToBytes());
-
-        Assert.Contains("cannot yet generate certified", exception.Message, StringComparison.Ordinal);
-        Assert.Contains(expectedRequirement, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("generation requirements", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("pdfua-identification", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

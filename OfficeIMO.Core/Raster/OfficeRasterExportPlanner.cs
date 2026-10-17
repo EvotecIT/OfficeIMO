@@ -129,8 +129,8 @@ public static class OfficeRasterExportPlanner {
     }
 
     private static long CalculateRequestedPixels(double width, double height, double scale) {
-        double scaledWidth = Math.Ceiling(width * scale);
-        double scaledHeight = Math.Ceiling(height * scale);
+        double scaledWidth = OfficeRasterScaleLimiter.CeilingPixels(width * scale);
+        double scaledHeight = OfficeRasterScaleLimiter.CeilingPixels(height * scale);
         if (double.IsNaN(scaledWidth) || double.IsInfinity(scaledWidth) || scaledWidth > int.MaxValue ||
             double.IsNaN(scaledHeight) || double.IsInfinity(scaledHeight) || scaledHeight > int.MaxValue ||
             scaledWidth <= 0D || scaledHeight <= 0D ||

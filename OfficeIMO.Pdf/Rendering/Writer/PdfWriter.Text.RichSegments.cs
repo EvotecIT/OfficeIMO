@@ -43,7 +43,8 @@ internal static partial class PdfWriter {
             double horizontalTextScaling = 100D,
             double characterSpacing = 0D, double fontMetricScale = 1D,
             int leadingSpaceCount = 1, double leadingSpaceRemainder = 0, double leadingSpaceUnitAdvance = 0,
-            bool contributesLineBoxDescent = true, bool isLineBoxStrut = false) {
+            bool contributesLineBoxDescent = true, bool isLineBoxStrut = false,
+            bool preservesPaintedGlyphs = false) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -90,6 +91,7 @@ internal static partial class PdfWriter {
             FontMetricScale = fontMetricScale;
             ContributesLineBoxDescent = contributesLineBoxDescent;
             IsLineBoxStrut = isLineBoxStrut;
+            PreservesPaintedGlyphs = preservesPaintedGlyphs;
         }
 
         public string Text { get; }
@@ -136,6 +138,7 @@ internal static partial class PdfWriter {
             ContributesLineBoxDescent = source.ContributesLineBoxDescent;
             IsLineBoxStrut = source.IsLineBoxStrut;
             LineAlignmentRise = source.LineAlignmentRise;
+            PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
             return this;
         }
 
@@ -171,6 +174,7 @@ internal static partial class PdfWriter {
         public OfficeTextFeatureSettings FeatureSettings { get; }
 
         public OfficeTextDirection TextDirection { get; }
+        public bool PreservesPaintedGlyphs { get; private set; }
         public double FontMetricScale { get; }
 
         public double HorizontalTextScaling { get; }

@@ -95,7 +95,6 @@ internal static class WordReaderAdapter {
         if (options.IncludePageLocations && !lean) {
             cancellationToken.ThrowIfCancellationRequested();
             WordImageExportOptions layoutOptions = options.PageLocationOptions?.Clone() ?? new WordImageExportOptions();
-            layoutOptions.IncludeDocumentContent = true;
             layoutOptions.PageIndex = 0;
             layoutOptions.PageCount = null;
             pageSnapshots = document.CreateVisualSnapshots(layoutOptions, cancellationToken);

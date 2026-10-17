@@ -203,7 +203,10 @@ internal static partial class TableDetector {
         }
 
         string[] cells = SplitBySplits(line, splits);
-        if (cells.Count(static cell => !string.IsNullOrWhiteSpace(cell)) != 1) {
+        // Producers emit a line as one show operator or one per word; classify by word
+        // positions so a narrative line that wraps across a column split is not a single cell.
+        if (cells.Count(static cell => !string.IsNullOrWhiteSpace(cell)) != 1 ||
+            CountWordColumns(line, splits) > 1) {
             return InterveningBandDecision.Reject;
         }
         bool crossesColumnBoundary = CrossesColumnBoundary(line, splits);
@@ -219,6 +222,33 @@ internal static partial class TableDetector {
         return followsEmphasizedHeader && (hasSectionLabelEvidence || hasCompactRowShape)
             ? InterveningBandDecision.Include
             : InterveningBandDecision.Reject;
+    }
+
+    private static int CountWordColumns(TextLayoutEngine.TextLine line, List<double> splits) {
+        var columns = new HashSet<int>();
+        foreach (PdfTextSpan span in line.Spans) {
+            string text = span.Text ?? string.Empty;
+            IReadOnlyList<double>? advances = span.CharacterAdvances;
+            if (advances == null || advances.Count != text.Length || Math.Abs(span.RotationDegrees) > 0.5D) {
+                columns.Add(ColumnAt(span.X, splits));
+                continue;
+            }
+            double offset = 0D;
+            bool inWord = false;
+            for (int index = 0; index < text.Length; index++) {
+                bool whitespace = char.IsWhiteSpace(text[index]);
+                if (!whitespace && !inWord) columns.Add(ColumnAt(span.X + offset, splits));
+                inWord = !whitespace;
+                offset += advances[index];
+            }
+        }
+        return columns.Count;
+    }
+
+    private static int ColumnAt(double x, List<double> splits) {
+        int column = 0;
+        while (column < splits.Count && x >= splits[column]) column++;
+        return column;
     }
 
     private static bool LooksLikeCompactSpanningRow(

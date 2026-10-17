@@ -185,7 +185,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngContainerRequiresOneWellFormedStandardRgbChunkBeforePaletteAndImageData() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] png = EncodeUntaggedMetadataPng(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] withStandardRgb = InsertPngChunkBefore(png, "IDAT", "sRGB", new byte[] { 0 });
         byte[] wrongLength = InsertPngChunkBefore(png, "IDAT", "sRGB", Array.Empty<byte>());
         byte[] duplicate = InsertPngChunkBefore(withStandardRgb, "IDAT", "sRGB", new byte[] { 1 });

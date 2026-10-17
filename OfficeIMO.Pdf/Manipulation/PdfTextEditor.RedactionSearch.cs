@@ -74,6 +74,7 @@ internal static partial class PdfTextEditor {
         void AddHits(IReadOnlyList<TextSearchHit> hits, string label) {
             foreach (TextSearchHit hit in hits) {
                 int firstArea = areas.Count;
+                PdfTextSpan? previousSpan = null;
                 foreach (TextSourceSegment segment in hit.Segments) {
                     search.CancellationToken.ThrowIfCancellationRequested();
                     PdfTextSpan span = segment.Span;
@@ -102,28 +103,35 @@ internal static partial class PdfTextEditor {
                     }
                     if (!areaKeys.Add((hit.PageNumber, left, bottom, right, top))) continue;
                     // A phrase may cross adjacent native text shows (including explicit spaces).
-                    // Join only touching rectangles with the same vertical extent, never gaps or different lines.
+                    // Small kerning gaps inside one TJ operator belong to the same phrase geometry.
+                    // Independent text operators still have to touch; wide TJ positioning remains separate.
                     // The unselected-glyph sweep above still checks the complete resulting geometry.
-                    if (areas.Count > firstArea && CanJoin(areas[areas.Count - 1], hit.PageNumber, left, bottom, right, top)) {
+                    double joinTolerance = previousSpan?.ContentOrderKey is not null && previousSpan.ContentOrderKey.Equals(span.ContentOrderKey)
+                        ? Math.Max(0.0000001D, Math.Min(previousSpan.FontSize, span.FontSize) * 0.25D) : 0.0000001D;
+                    if (areas.Count > firstArea && CanJoin(areas[areas.Count - 1], hit.PageNumber, left, bottom, right, top, joinTolerance)) {
                         PdfRedactionArea previous = areas[areas.Count - 1];
                         double joinedLeft = Math.Min(previous.X, left);
                         double joinedBottom = Math.Min(previous.Y, bottom);
                         areas[areas.Count - 1] = new PdfRedactionArea(hit.PageNumber, joinedLeft, joinedBottom,
                             Math.Max(previous.Right, right) - joinedLeft, Math.Max(previous.Top, top) - joinedBottom,
                             label, search.ContentScope).RequiringGlyphRewrite();
+                        previousSpan = span;
                         continue;
                     }
                     if (areas.Count >= search.MaximumCandidates) throw new InvalidOperationException("Redaction search exceeded the configured candidate limit.");
                     areas.Add(new PdfRedactionArea(hit.PageNumber, left, bottom, right - left, top - bottom, label, search.ContentScope)
                         .RequiringGlyphRewrite());
+                    previousSpan = span;
                 }
             }
         }
 
-        bool CanJoin(PdfRedactionArea previous, int page, double left, double bottom, double right, double top) =>
-            previous.PageNumber == page && Math.Abs(previous.Y - bottom) < 0.0000001D &&
-            Math.Abs(previous.Top - top) < 0.0000001D &&
-            (Math.Abs(previous.Right - left) < 0.0000001D || Math.Abs(right - previous.X) < 0.0000001D);
+        bool CanJoin(PdfRedactionArea previous, int page, double left, double bottom, double right, double top, double tolerance) =>
+            previous.PageNumber == page && (
+                Math.Abs(previous.Y - bottom) < 0.0000001D && Math.Abs(previous.Top - top) < 0.0000001D &&
+                left <= previous.Right + tolerance && right >= previous.X - tolerance ||
+                Math.Abs(previous.X - left) < 0.0000001D && Math.Abs(previous.Right - right) < 0.0000001D &&
+                bottom <= previous.Top + tolerance && top >= previous.Y - tolerance);
 
         bool IntersectsAreas(IEnumerable<PdfRedactionArea> candidates, PdfTextSpanBounds bounds) {
             foreach (PdfRedactionArea area in candidates) {

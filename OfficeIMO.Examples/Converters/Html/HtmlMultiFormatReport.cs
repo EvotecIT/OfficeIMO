@@ -65,7 +65,7 @@ internal static partial class Html {
         foreach (string extension in new[] { ".html", ".pdf", ".docx", ".xlsx" })
             index.Add("- [" + extension.TrimStart('.').ToUpperInvariant() + "](" + Uri.EscapeDataString(name + extension) + ")");
 
-        // Saved-PDF previews and Office layout previews are labelled separately, with every page retained.
+        // Label each artifact's page images separately, with every page retained.
         void Previews(string label, string route, Action<OfficeImageExportConsumer> export) {
             index.Add(""); index.Add("## " + label); index.Add("");
             int page = 0;
@@ -86,7 +86,7 @@ internal static partial class Html {
         Previews("Word layout pages", "word", consume => word.ExportImages(OfficeImageExportFormat.Png, consume));
         Previews("Excel worksheet layouts", "excel", consume => excel.ExportImages(OfficeImageExportFormat.Png, consume));
         index.Add(""); index.Add("## Conversion notes"); index.Add("");
-        index.Add("Word and Excel exports use their own editable document layouts; page counts can differ from the source report.");
+        index.Add("Word page images use the same layout as Word PDF export. Excel images use worksheet layouts; page counts can differ from the source report.");
         index.Add("");
         foreach (string note in conversionNotes) index.Add("- " + note);
         if (conversionNotes.Count == 0) index.Add("No conversion or preview diagnostics were reported.");

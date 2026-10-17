@@ -157,8 +157,8 @@ namespace OfficeIMO.Excel.Pdf {
         public bool UseWorksheetHyperlinks { get; set; } = true;
 
         /// <summary>
-        /// When true, supported worksheet drawing images are exported at worksheet coordinates
-        /// in canvas mode or as flow images in compatibility mode. Defaults to true.
+        /// When true, supported worksheet pictures, shapes, and text boxes are exported at worksheet
+        /// coordinates in canvas mode. Flow mode exports pictures and reports omitted shapes. Defaults to true.
         /// </summary>
         public bool UseWorksheetImages { get; set; } = true;
 

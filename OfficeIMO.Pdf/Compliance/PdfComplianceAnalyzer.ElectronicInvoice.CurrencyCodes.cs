@@ -40,6 +40,12 @@ internal static partial class PdfComplianceAnalyzer {
                 invalidCurrencyCodes.Add(evidence.InvoiceCurrencyCode!.Trim().ToUpperInvariant());
             }
 
+            if (evidence.TaxCurrencyCode != null &&
+                (!IsKnownElectronicInvoiceCurrencyCode(evidence.TaxCurrencyCode) ||
+                 string.Equals(evidence.TaxCurrencyCode, evidence.InvoiceCurrencyCode, StringComparison.Ordinal))) {
+                invalidCurrencyCodes.Add(evidence.TaxCurrencyCode);
+            }
+
             for (int j = 0; j < evidence.AmountCurrencyCodes.Count; j++) {
                 if (!IsKnownElectronicInvoiceCurrencyCode(evidence.AmountCurrencyCodes[j])) {
                     invalidCurrencyCodes.Add(evidence.AmountCurrencyCodes[j].Trim().ToUpperInvariant());

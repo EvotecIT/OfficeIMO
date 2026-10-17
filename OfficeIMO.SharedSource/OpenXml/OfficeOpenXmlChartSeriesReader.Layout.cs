@@ -35,19 +35,15 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new NotSupportedException("Category-axis label and tick skipping cannot be projected.");
             if (plot?.Descendants<C.LabelAlignment>().Any(alignment => alignment.Val?.Value is C.LabelAlignmentValues value && value != C.LabelAlignmentValues.Center) == true)
                 throw new NotSupportedException("Non-centered category label alignment cannot be projected.");
-            bool area = kind is OfficeChartKind.Area or OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100;
             var chartLayers = plot?.ChildElements.OfType<OpenXmlCompositeElement>()
                 .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).ToArray();
-            bool areaOnly = area && chartLayers?.Length > 0 &&
-                chartLayers.All(element => element.LocalName is "areaChart" or "area3DChart");
-            if (areaOnly && plot!.Elements<C.ValueAxis>()
+            // One shared layout places every category point, so all category value axes must agree.
+            if (chartLayers?.Any(layer => layer is not C.ScatterChart and not C.BubbleChart) == true && plot!.Elements<C.ValueAxis>()
                 .Select(axis => axis.GetFirstChild<C.CrossBetween>()?.Val?.Value ?? C.CrossBetweenValues.Between)
                 .Distinct().Skip(1).Any())
-                throw new NotSupportedException("Independent area-axis cross-between geometry cannot be projected.");
-            if (plot?.Descendants<C.LabelOffset>().Any(offset => offset.Val?.Value is ushort value && value != 100) == true ||
-                plot?.Descendants<C.CrossBetween>().Any(crossing => crossing.Val?.Value is C.CrossBetweenValues value &&
-                    value != C.CrossBetweenValues.Between && !(areaOnly && value == C.CrossBetweenValues.MidpointCategory)) == true)
-                throw new NotSupportedException("Independent category label offsets and cross-between geometry cannot be projected.");
+                throw new NotSupportedException("Independent cross-between geometry on different value axes cannot be projected.");
+            if (plot?.Descendants<C.LabelOffset>().Any(offset => offset.Val?.Value is ushort value && value != 100) == true)
+                throw new NotSupportedException("Independent category label offsets cannot be projected.");
             OpenXmlCompositeElement? horizontal = null, vertical = null;
             if (!radial && plot != null) {
                 var groups = OfficeOpenXmlChartAxisGroups.Create(plot);
@@ -143,7 +139,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 reverseCategoryAxis: categoryAxis is not C.ValueAxis && categoryAxis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin,
                 categoryAxisOrientationSpecified: categoryAxis is not C.ValueAxis && categoryAxis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>() != null)
                 .WithSecondaryValueAxis(OfficeOpenXmlChartSecondaryAxis.Read(plot))
-                .WithDataLabelLeaderLines(labels.LeaderLines);
+                .WithDataLabelLeaderLines(labels.LeaderLines)
+                .WithCategoryGeometry(plot, scheme);
         }
 
         private static void QualifySecondaryLayout(C.PlotArea? plot) {
@@ -190,6 +187,20 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new NotSupportedException("The native axis format cannot be projected.");
             }
             return axis?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
+        }
+
+        /// <summary>Reads the display format of numeric categories, resolving a source-linked format from the category cache.</summary>
+        internal static string? ReadCategoryAxisNumberFormat(OpenXmlCompositeElement? axis) {
+            if (axis is not C.CategoryAxis and not C.DateAxis) return null;
+            C.NumberingFormat? numbering = axis.GetFirstChild<C.NumberingFormat>();
+            string? format = numbering?.FormatCode?.Value;
+            if (numbering?.SourceLinked?.Value == true || string.IsNullOrWhiteSpace(format)) {
+                format = (axis.Parent as C.PlotArea)?.Descendants<C.CategoryAxisData>()
+                    .Select(categories => categories.GetFirstChild<C.NumberReference>()?.NumberingCache?.FormatCode?.Text)
+                    .FirstOrDefault(code => !string.IsNullOrWhiteSpace(code)) ?? format;
+            }
+            return string.IsNullOrWhiteSpace(format) || string.Equals(format, "General", StringComparison.OrdinalIgnoreCase)
+                ? null : format;
         }
 
         private static bool IsClearlyTextualCategoryCache(C.PlotArea? plot) {

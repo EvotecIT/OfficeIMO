@@ -183,10 +183,8 @@ internal sealed class PdfImageColorSpaceNormalization {
             byte magenta = ToByte(ClipComponentToRange(components[1], 1));
             byte yellow = ToByte(ClipComponentToRange(components[2], 2));
             byte black = ToByte(ClipComponentToRange(components[3], 3));
-            color = OfficeColor.FromRgb(
-                ConvertDeviceCmykComponentToRgb(cyan, black),
-                ConvertDeviceCmykComponentToRgb(magenta, black),
-                ConvertDeviceCmykComponentToRgb(yellow, black));
+            OfficeColorSpaceConverter.FromCmykBytes(cyan, magenta, yellow, black, out byte red, out byte green, out byte blue);
+            color = OfficeColor.FromRgb(red, green, blue);
             return true;
         }
         return _colorSpace.TryConvertColor(components, out color);
@@ -211,6 +209,14 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal double MapLookupByteToComponent(int component, byte value) =>
         MapUnitToComponentRange(component, value / 255D);
+
+    /// <summary>Maps a colour-space component into the sample interval used by packed image data.</summary>
+    internal double MapComponentToUnitRange(int component, double value) {
+        double minimum = _componentRanges[component * 2];
+        double maximum = _componentRanges[component * 2 + 1];
+        if (maximum <= minimum) return 0D;
+        return Math.Max(0D, Math.Min(1D, (value - minimum) / (maximum - minimum)));
+    }
 
     private bool HasNonUnitComponentRange() {
         for (int component = 0; component < SourceColorCount; component++) {
@@ -783,8 +789,4 @@ internal sealed class PdfImageColorSpaceNormalization {
     private static byte ToByte(double value) =>
         (byte)Math.Round((value < 0D ? 0D : value > 1D ? 1D : value) * 255D);
 
-    private static byte ConvertDeviceCmykComponentToRgb(byte colorant, byte black) {
-        int ink = colorant + black;
-        return (byte)(255 - (ink > 255 ? 255 : ink));
-    }
 }

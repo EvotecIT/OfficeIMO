@@ -572,12 +572,13 @@ namespace OfficeIMO.Tests {
                 string svg = range.ToSvg(options);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
-                Assert.Equal("FF96B3D7", drawingObject.FillColorArgb);
+                // Accent1 4F81BD, lumMod=60000 then lumOff=40000, rounded after both HSL operations.
+                Assert.Equal("FF95B3D7", drawingObject.FillColorArgb);
                 Assert.Equal("FFC0504D", drawingObject.StrokeColorArgb);
                 Assert.Equal("FF9BBB59", drawingObject.TextColorArgb);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
                 Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
-                Assert.Contains("#96B3D7", svg, StringComparison.Ordinal);
+                Assert.Contains("#95B3D7", svg, StringComparison.Ordinal);
                 Assert.Contains("#C0504D", svg, StringComparison.Ordinal);
                 Assert.Contains("#9BBB59", svg, StringComparison.Ordinal);
 
@@ -676,7 +677,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
-                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                var options = new ExcelImageExportOptions { ShowGridlines = false, BackgroundColor = OfficeColor.White };
                 ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 string svg = range.ToSvg(options);
@@ -684,6 +685,9 @@ namespace OfficeIMO.Tests {
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.NotNull(drawingObject.Glow);
                 Assert.NotNull(drawingObject.Shadow);
+                Assert.Equal(OfficeColor.FromRgb(37, 99, 235), drawingObject.Glow!.Color);
+                Assert.Equal(140D / 255D, drawingObject.Glow.Opacity, precision: 6);
+                Assert.Equal(115D / 255D, drawingObject.Shadow!.Opacity, precision: 6);
                 Assert.Equal(8D, drawingObject.Glow!.Radius);
                 Assert.Equal(5D, drawingObject.Shadow!.BlurRadius);
                 Assert.True(drawingObject.Shadow.OffsetX > 0D);
@@ -693,9 +697,39 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("#2563EB", svg, StringComparison.Ordinal);
                 Assert.Contains("#111827", svg, StringComparison.Ordinal);
 
+                string? evidenceDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_EXCEL_INTEGRATION_EVIDENCE_DIR");
+                if (!string.IsNullOrWhiteSpace(evidenceDirectory)) {
+                    Directory.CreateDirectory(evidenceDirectory);
+                    File.WriteAllBytes(Path.Combine(evidenceDirectory, "shape-effects.png"), png.Bytes);
+                    File.WriteAllText(Path.Combine(evidenceDirectory, "shape-effects.svg"), svg);
+                }
+
                 Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
                 Assert.NotNull(rendered);
-                Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(37, 99, 235)) > 0, "Expected the blue glow to paint into PNG output.");
+                // Sample the top halo at the shape's midpoint, clear of its outline,
+                // cell text, and the shadow displaced down/right (including its blur).
+                int sampleX = (int)Math.Round((drawingObject.X + drawingObject.Width / 2D) * options.Scale);
+                int haloTop = (int)Math.Ceiling((drawingObject.Y - drawingObject.Glow.Radius) * options.Scale);
+                double clearBottom = Math.Min(drawingObject.Y - drawingObject.StrokeWidth / 2D,
+                    drawingObject.Y + drawingObject.Shadow.OffsetY - drawingObject.Shadow.BlurRadius - drawingObject.StrokeWidth / 2D);
+                int haloBottom = (int)Math.Floor(clearBottom * options.Scale) - 1;
+                Assert.InRange(sampleX, 0, rendered!.Width - 1);
+                Assert.InRange(haloTop, 0, haloBottom);
+                Assert.InRange(haloBottom, haloTop, rendered.Height - 1);
+                var strongest = Enumerable.Range(haloTop, haloBottom - haloTop + 1)
+                    .Select(y => (Y: y, Color: rendered.GetPixel(sampleX, y)))
+                    .OrderBy(pixel => pixel.Color.R).First();
+                if (!string.IsNullOrWhiteSpace(evidenceDirectory)) {
+                    File.WriteAllText(Path.Combine(evidenceDirectory, "shape-effects-pixel.txt"),
+                        $"Strongest clear halo pixel ({sampleX},{strongest.Y}): {strongest.Color.ToArgbHex()}\n"
+                        + "Expected RGB over white: 135,169,244 (DrawingML alpha 55000, quantized to 140/255).\n");
+                }
+                // Source-over composition with 140/255 alpha gives RGB(135,169,244).
+                // Two byte levels cover quantization across the layered raster paint.
+                Assert.Equal(255, strongest.Color.A);
+                Assert.InRange((int)strongest.Color.R, 133, 137);
+                Assert.InRange((int)strongest.Color.G, 167, 171);
+                Assert.InRange((int)strongest.Color.B, 242, 246);
                 Assert.True(CountDarkPixels(rendered!) > 0, "Expected the dark shadow to paint into PNG output.");
             }
         }
@@ -1043,7 +1077,7 @@ namespace OfficeIMO.Tests {
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic);
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline);
                 Assert.Contains("font-family=\"Aptos\"", svgText, StringComparison.Ordinal);
-                Assert.Contains("font-size=\"18\"", svgText, StringComparison.Ordinal);
+                Assert.Contains("font-size=\"24\"", svgText, StringComparison.Ordinal);
                 Assert.Contains("font-weight=\"700\"", svgText, StringComparison.Ordinal);
                 Assert.Contains("font-style=\"italic\"", svgText, StringComparison.Ordinal);
                 Assert.Contains("text-decoration=\"underline\"", svgText, StringComparison.Ordinal);

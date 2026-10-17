@@ -8,38 +8,49 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private static readonly SubsetFontFileCache SubsetFileCache = new();
 
     // Content keys permit reuse across font-family snapshots without retaining the original font.
-    internal byte[] BuildSubsetFontFile() => GetSubsetFontFileEntry().Subset;
+    internal byte[] BuildSubsetFontFile() => GetSubsetFontFileEntry(compact: true).Subset;
 
-    /// <summary>Returns the existing subset or its exact zlib payload, sharing one bounded cache.</summary>
+    /// <summary>Subset that keeps original glyph ids, for callers that write an identity CIDToGIDMap.</summary>
+    internal byte[] BuildIdentitySubsetFontFile() => GetSubsetFontFileEntry(compact: false).Subset;
+
+    /// <summary>
+    /// Returns the renumbered generated-document subset or its exact zlib payload, sharing one bounded
+    /// cache. <see cref="BuildCidToGlyphMap"/> maps the document's CIDs into this program.
+    /// </summary>
     internal byte[] BuildSubsetFontFile(bool compress, out int uncompressedLength, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        SubsetCacheEntry entry = GetSubsetFontFileEntry();
+        SubsetCacheEntry entry = GetSubsetFontFileEntry(compact: true);
         uncompressedLength = entry.Subset.Length;
         cancellationToken.ThrowIfCancellationRequested();
         return compress ? SubsetFileCache.GetCompressed(entry, cancellationToken) : entry.Subset;
     }
 
-    private SubsetCacheEntry GetSubsetFontFileEntry() {
+    /// <summary>Original glyph ids in subset order, or null when the program keeps original ids.</summary>
+    internal int[]? GetCompactSubsetGlyphOrder() => GetSubsetFontFileEntry(compact: true).GlyphOrder;
+
+    private SubsetCacheEntry GetSubsetFontFileEntry(bool compact) {
         IReadOnlyList<int> usedGlyphIds = GetUsedGlyphIds();
         int[] glyphIds = usedGlyphIds as int[] ?? System.Linq.Enumerable.ToArray(usedGlyphIds);
-        var key = new SubsetCacheKey(_subsetFontFingerprint, glyphIds);
+        var key = new SubsetCacheKey(_subsetFontFingerprint, glyphIds, compact);
         if (SubsetFileCache.TryGet(key, out SubsetCacheEntry? cached)) {
             return cached!;
         }
 
-        byte[] built = BuildSubsetFontFileUncached(glyphIds);
-        return SubsetFileCache.AddOrGetExisting(key, built);
+        byte[] built = BuildSubsetFontFileUncached(glyphIds, compact, out int[]? glyphOrder);
+        return SubsetFileCache.AddOrGetExisting(key, built, glyphOrder);
     }
 
     private readonly struct SubsetCacheKey : IEquatable<SubsetCacheKey> {
         private readonly SubsetFontFingerprint _fontFingerprint;
         private readonly int[] _glyphIds;
+        private readonly bool _compact;
         private readonly int _hash;
 
-        internal SubsetCacheKey(SubsetFontFingerprint fontFingerprint, int[] glyphIds) {
+        internal SubsetCacheKey(SubsetFontFingerprint fontFingerprint, int[] glyphIds, bool compact) {
             _fontFingerprint = fontFingerprint;
             _glyphIds = glyphIds;
-            int hash = fontFingerprint.GetHashCode();
+            _compact = compact;
+            int hash = fontFingerprint.GetHashCode() * 2 + (compact ? 1 : 0);
             for (int i = 0; i < _glyphIds.Length; i++) {
                 hash = (hash * 31) + _glyphIds[i];
             }
@@ -48,7 +59,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
 
         public bool Equals(SubsetCacheKey other) {
-            if (!_fontFingerprint.Equals(other._fontFingerprint) || _glyphIds.Length != other._glyphIds.Length) {
+            if (_compact != other._compact || !_fontFingerprint.Equals(other._fontFingerprint) || _glyphIds.Length != other._glyphIds.Length) {
                 return false;
             }
 
@@ -122,14 +133,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
             }
         }
 
-        internal SubsetCacheEntry AddOrGetExisting(SubsetCacheKey key, byte[] subset) {
+        internal SubsetCacheEntry AddOrGetExisting(SubsetCacheKey key, byte[] subset, int[]? glyphOrder) {
             lock (_syncRoot) {
                 if (_entries.TryGetValue(key, out LinkedListNode<SubsetCacheEntry>? existing)) {
                     Touch(existing);
                     return existing.Value;
                 }
 
-                var entry = new SubsetCacheEntry(key, subset);
+                var entry = new SubsetCacheEntry(key, subset, glyphOrder);
                 if (subset.LongLength > MaximumCachedSubsetBytes) {
                     return entry;
                 }
@@ -197,13 +208,15 @@ internal sealed partial class PdfTrueTypeFontProgram {
     }
 
     private sealed class SubsetCacheEntry {
-        internal SubsetCacheEntry(SubsetCacheKey key, byte[] subset) {
+        internal SubsetCacheEntry(SubsetCacheKey key, byte[] subset, int[]? glyphOrder) {
             Key = key;
             Subset = subset;
+            GlyphOrder = glyphOrder;
         }
 
         internal SubsetCacheKey Key { get; }
         internal byte[] Subset { get; }
+        internal int[]? GlyphOrder { get; }
         // Read and published only under the owning cache lock.
         internal byte[]? Compressed { get; set; }
     }

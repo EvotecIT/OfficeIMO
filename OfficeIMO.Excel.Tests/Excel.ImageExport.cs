@@ -3273,7 +3273,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportDoesNotInventLineChartMarkersWhenSourceHasNoMarkerElement() {
+        public void ExcelRange_ImageExportDrawsOfficeAutomaticMarkersWhenSourceHasNoMarkerElement() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("NoMarkers");
@@ -3292,7 +3292,11 @@ namespace OfficeIMO.Tests {
             ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:H9").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
 
-            Assert.False(visualChart.Snapshot.Data.Series[0].ShowMarkers);
+            // Office draws automatic markers on line series that store none
+            // (OfficeIMO.TestAssets/Documents/Charts/AutomaticColors/line-markers.pptx).
+            Assert.True(visualChart.Snapshot.Data.Series[0].ShowMarkers);
+            Assert.Equal(OfficeChartMarkerShape.Diamond, visualChart.Snapshot.Data.Series[0].MarkerShape);
+            Assert.Equal(7, visualChart.Snapshot.Data.Series[0].MarkerSize);
         }
 
         [Fact]

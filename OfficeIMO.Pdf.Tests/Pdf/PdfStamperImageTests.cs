@@ -103,7 +103,7 @@ public partial class PdfStamperTests {
         string pdfContent = Encoding.ASCII.GetString(stamped);
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("/SMask", pdfContent);
-        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
+        Assert.Contains("/Indexed", pdfContent);
         Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
         Assert.Contains("/OIMOStampIm", pdfContent);
     }

@@ -211,7 +211,7 @@ public sealed class HtmlApiConsistencyTests {
             .Select(reference => reference.Name ?? string.Empty)
             .ToArray();
 
-        Assert.Contains("OfficeIMO.Html", references);
+        Assert.Equal(typeof(HtmlConversionDocument).Assembly, typeof(HtmlToPdfOptions).Assembly);
         Assert.Contains("OfficeIMO.Core", references);
         Assert.Contains("OfficeIMO.Pdf", references);
         Assert.DoesNotContain("OfficeIMO.Markdown.Html", references);

@@ -97,7 +97,11 @@ public partial class Word {
         cell.Paragraphs[0].Text = styledRuns ? text.Substring(0, 27) : text;
         if (styledRuns) cell.Paragraphs[0].AddText(text.Substring(27)).Bold = true;
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        // This narrow-width fixture pins Base-14 line counts, independently of host fonts.
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false,
+            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(text, string.Concat(letters.Select(letter => letter.Value)));
         Assert.True(letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 2)).Distinct().Count() >= 4);

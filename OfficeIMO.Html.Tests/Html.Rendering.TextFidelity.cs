@@ -12,6 +12,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<p style='margin:0;font:16px Arial'>Before <strong>bold</strong> after <em>italic</em> tail</p>";
 
         IReadOnlyList<HtmlRenderText> text = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 320D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -31,6 +32,7 @@ public sealed partial class HtmlRenderingTests {
             + "<p dir='rtl' style='margin:0;font:14px Arial'>שלום 123</p>"
             + "</body></html>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 320D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D),
@@ -59,7 +61,14 @@ public sealed partial class HtmlRenderingTests {
                 Assert.IsType<double>(drawingText.TextAdvanceWidth),
                 6);
         }
-        Assert.StartsWith("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"480px\" height=\"150px\" viewBox=\"0 0 320 100\"", svg, StringComparison.Ordinal);
+        Assert.Equal("480px", svgDocument.Root!.Attribute("width")!.Value);
+        Assert.Equal("150px", svgDocument.Root.Attribute("height")!.Value);
+        double[] bounds = svgDocument.Root.Attribute("viewBox")!.Value
+            .Split(' ').Select(value => double.Parse(value, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        Assert.Equal(4, bounds.Length);
+        Assert.Equal(0D, bounds[0]);
+        Assert.Equal(0D, bounds[1]);
+        Assert.Equal(320D / 100D, bounds[2] / bounds[3], 6);
         Assert.DoesNotContain("pt\"", svg, StringComparison.Ordinal);
         Assert.All(svgText, text => {
             Assert.NotNull(text.Attribute("textLength"));
@@ -76,6 +85,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='width:20px;white-space:nowrap;font-family:Arial;font-size:100px;line-height:100px'>WW</div>"
             + "</body></html>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 20D,
             ViewportHeight = 120D,
             Margins = HtmlRenderMargins.All(0D)
@@ -102,6 +112,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlText_BreakSpacesWrapsAndRetainsEveryPreservedSpace() {
         const string html = "<p style='margin:0;width:18px;font:16px Arial;line-height:18px'>A<span style='white-space:break-spaces'>     </span>B</p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 120D,
             Margins = HtmlRenderMargins.All(0D)
@@ -122,6 +133,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<p style='margin:0;width:100px;font:16px Arial;line-height:18px'>prefix <span style='white-space:nowrap'>first second</span></p>";
 
         IReadOnlyList<HtmlRenderText> text = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D)
@@ -135,6 +147,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlText_BreakSpacesRetainsPreservedRunsBesideFloats() {
         const string html = "<p style='margin:0;width:36px;font:16px Arial;line-height:18px'><span style='float:left;width:12px;height:12px'></span>A<span style='white-space:break-spaces'>     </span>B</p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 120D,
             Margins = HtmlRenderMargins.All(0D)

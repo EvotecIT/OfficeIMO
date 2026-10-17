@@ -6,6 +6,39 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf {
     public partial class PdfRedactionApplierTests {
         [Theory]
+        [InlineData(false, 30)]
+        [InlineData(true, 30)]
+        [InlineData(false, -20)]
+        [InlineData(true, -20)]
+        public void PreciseSearchJoinsKerningRunsWithinOneMatch(bool regex, int adjustment) {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 12 Tf 72 720 Td [(Before Ale) " + adjustment + " (x after)] TJ ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionSearchOptions options = PreciseOptions();
+            if (regex) options.AddRegex("Al.x"); else options.AddLiteral("Alex");
+            PdfRedactionPlan plan = source.Redactions.Search(options);
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            Assert.Single(plan.Areas);
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string text = result.ToDocument().Read().Text;
+            Assert.DoesNotContain("Alex", text, StringComparison.Ordinal);
+            Assert.Contains("Before", text, StringComparison.Ordinal);
+            Assert.Contains("after", text, StringComparison.Ordinal);
+            Assert.Equal(bytes, source.ToBytes());
+        }
+
+        [Fact]
+        public void PreciseSearchKeepsSeparateMarksAcrossWidePlacementGaps() {
+            PdfDocument source = PdfDocument.Load(BuildTextContentRedactionSource(
+                "BT /F1 12 Tf 72 720 Td [(Al) -1000 (ex)] TJ ET"));
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("Al ex"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            Assert.Equal(2, plan.Areas.Count);
+        }
+
+        [Theory]
         [InlineData("12 0 0 12 72 720", 72D, 717D, 15D)]
         [InlineData("12 0 3 8 72 720", 71.25D, 718D, 10D)]
         public void PreciseSearchTransformsFontHeightAndShearFromTextSpace(string matrix, double left, double bottom, double height) {

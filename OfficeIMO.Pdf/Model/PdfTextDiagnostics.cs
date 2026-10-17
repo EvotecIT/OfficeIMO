@@ -8,7 +8,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 internal static partial class PdfTextDiagnostics {
     private const string WinAnsiEncodingDescription = "PDF WinAnsiEncoding";
-    private const string WinAnsiGlyphRemediation = "Embedded Unicode fonts are required for this text.";
+    private const string WinAnsiGlyphRemediation = "Embedded Unicode fonts are required for this text: call PdfOptions.UseTextFallbacks() (add PdfTextFallbackFeatures.MultilingualFonts for CJK and complex scripts) or UseFontFamily(...).";
     private const string ControlCharacterEncodingDescription = "PDF text output";
     private const string ControlCharacterRemediation = "Use paragraphs, line breaks, tables, or spacing primitives for layout instead of literal control characters.";
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfEmbeddedFontFallbackCandidate, EmbeddedFontFallbackProgramBox> FallbackProgramCache = new();
@@ -1250,15 +1250,8 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static int FindLatinLigatureSequenceIndex(string text) {
-        string[] sequences = { "ffi", "ffl", "ff", "fi", "fl" };
         for (int index = 0; index < text.Length; index++) {
-            for (int sequenceIndex = 0; sequenceIndex < sequences.Length; sequenceIndex++) {
-                string sequence = sequences[sequenceIndex];
-                if (index <= text.Length - sequence.Length &&
-                    string.Compare(text, index, sequence, 0, sequence.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    return index;
-                }
-            }
+            if (OfficeTextLigatures.TryGetLatinPresentationForm(text, index, out _, out _)) return index;
         }
 
         return -1;

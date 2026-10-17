@@ -801,4 +801,10 @@
     <Target>M:OfficeIMO.Pdf.IPdfContextComponent.Compose(OfficeIMO.Pdf.PdfContentBuilder,OfficeIMO.Pdf.PdfFlowContext)</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <!-- Default now opts into multilingual fallback fonts; consumers must rebuild as documented in MIGRATION.md. -->
+  <Suppression>
+    <DiagnosticId>CP0011</DiagnosticId>
+    <Target>F:OfficeIMO.Pdf.PdfTextFallbackFeatures.Default</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>

@@ -220,8 +220,8 @@ public partial class Excel {
         Assert.Contains("NamedHeaderFooterBody", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("/BaseFont /StudioSerif-Bold", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /StudioSerif-Italic", rawPdf, StringComparison.Ordinal);
+        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("StudioSerif-Bold"), rawPdf);
+        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("StudioSerif-Italic"), rawPdf);
         Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetFontSubstitution");
     }
 

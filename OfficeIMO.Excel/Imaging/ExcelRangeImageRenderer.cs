@@ -504,7 +504,9 @@ namespace OfficeIMO.Excel {
 
             OfficeChartData data = new OfficeChartData(
                 snapshot.Data.Categories,
-                snapshot.Data.Series.Select(series => new OfficeChartSeries(
+                snapshot.Data.Series.Select(series => snapshot.ChartType == ExcelChartType.Bubble
+                    ? CreateBubbleChartSeries(series)
+                    : new OfficeChartSeries(
                     series.Name,
                     series.Values,
                     series.XValues,
@@ -521,9 +523,9 @@ namespace OfficeIMO.Excel {
                     renderKind: TryMapSeriesRenderKind(series.ChartType ?? snapshot.ChartType, out OfficeChartKind seriesKind, out _) ? seriesKind : null,
                     axisGroup: series.AxisGroup == OfficeChartAxisGroup.Secondary
                         ? OfficeChartAxisGroup.Secondary
-                        : OfficeChartAxisGroup.Primary).WithPointStyles(series.PointStyles)
+                        : OfficeChartAxisGroup.Primary).WithSeriesStyle(series.SeriesStyle).WithPointStyles(series.PointStyles)
                             .WithPointExplosions(series.PointExplosions)));
-            officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout, snapshot.RadialLayout);
+            officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
             if (OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(officeSnapshot)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
@@ -597,7 +599,7 @@ namespace OfficeIMO.Excel {
             kind == OfficeChartKind.BarStacked ||
             kind == OfficeChartKind.BarStacked100;
 
-        private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
+        internal static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
             approximation = null;
             switch (type) {
                 case ExcelChartType.ColumnClustered:
@@ -646,10 +648,11 @@ namespace OfficeIMO.Excel {
                 case ExcelChartType.Doughnut:
                     kind = OfficeChartKind.Doughnut;
                     return true;
-                case ExcelChartType.Scatter:
                 case ExcelChartType.Bubble:
+                    kind = OfficeChartKind.Bubble;
+                    return true;
+                case ExcelChartType.Scatter:
                     kind = OfficeChartKind.Scatter;
-                    approximation = type == ExcelChartType.Bubble ? "Excel bubble chart is rendered as a scatter chart without bubble-size encoding." : null;
                     return true;
                 case ExcelChartType.Radar:
                     kind = OfficeChartKind.Radar;
@@ -677,12 +680,15 @@ namespace OfficeIMO.Excel {
                     approximation = "Excel 3D area chart is rendered as a 2D area chart.";
                     return true;
                 case ExcelChartType.Stock:
+                    kind = OfficeChartKind.Line;
+                    approximation = "Excel stock chart is rendered as a line chart with high-low lines; up and down bars are not drawn.";
+                    return true;
                 case ExcelChartType.Surface:
                 case ExcelChartType.SurfaceWireframe:
                 case ExcelChartType.SurfaceContour:
                 case ExcelChartType.SurfaceContourWireframe:
                     kind = OfficeChartKind.Line;
-                    approximation = "Excel stock/surface chart is rendered as a line chart approximation.";
+                    approximation = "Excel surface chart is rendered as a line chart without surface bands or their colour scale.";
                     return true;
                 default:
                     kind = OfficeChartKind.ColumnClustered;

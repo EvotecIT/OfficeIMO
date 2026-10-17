@@ -70,6 +70,7 @@ internal static partial class PdfWriter {
         private bool Compatible(RichSeg left, RichSeg right) {
             bool compatible = _options != null
             && left.InlineElement == null && right.InlineElement == null
+            && !left.PreservesPaintedGlyphs && !right.PreservesPaintedGlyphs
             && !left.EndsWithHardBreak && !left.EndsWithTextSeparator && !right.LeadingSpace && !right.LeadingIsTab
             && left.Text.Length > 0 && right.Text.Length > 0
             && !char.IsWhiteSpace(left.Text, left.Text.Length - 1) && !char.IsWhiteSpace(right.Text, 0)
@@ -162,7 +163,7 @@ internal static partial class PdfWriter {
                         advanceWidth1000: command.AdvanceWidth1000 + advanceDelta, wordSpaceCount: command.WordSpaceCount,
                         visualGlyphs: glyphs, tracking: command.Tracking, unitsPerEm: command.UnitsPerEm,
                         trackingBoundaries: command.TrackingBoundaries, negativeTracking: command.NegativeTracking,
-                        fontMetricScale: command.FontMetricScale, glyphCount: command.GlyphCount);
+                        fontMetricScale: command.FontMetricScale, glyphCount: command.GlyphCount, isScalarBidi: command.IsScalarBidi, isolatedRightToLeft: command.IsolatedRightToLeft).WithPinner(command.Pinner);
                 }
             }
             return adjustment;
@@ -172,7 +173,8 @@ internal static partial class PdfWriter {
             _commands ??= new();
             if (!_commands.TryGetValue(segment, out PdfTextShowCommand? command)) {
                 command = EncodeTextShowCommand(segment.Text, segment.Font, segment.NamedFont, _options,
-                    segment.FeatureSettings, segment.TextDirection, segment.FontMetricScale, segment.HorizontalTextScaling);
+                    segment.FeatureSettings, segment.TextDirection, segment.FontMetricScale, segment.HorizontalTextScaling,
+                    segment.PreservesPaintedGlyphs);
                 _commands.Add(segment, command);
             }
             return command;
@@ -212,6 +214,7 @@ internal static partial class PdfWriter {
         return new RichSeg(text, run.Bold, run.Italic, false, false, null, null, null, null, null,
             ResolveFontForRun(run, baseFont), run.FontSize ?? fontSize, run.Baseline, 0D, namedFont: named,
             featureSettings: run.FeatureSettings, textDirection: run.TextDirection,
-            horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing);
+            horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing,
+            preservesPaintedGlyphs: run.PreservesPaintedGlyphs);
     }
 }

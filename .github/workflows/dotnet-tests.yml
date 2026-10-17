@@ -452,6 +452,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
+            'OfficeIMO.Pdf/OfficeIMO.Pdf.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
@@ -486,6 +487,7 @@ jobs:
           $readerEmailVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Email'
           $readerImageVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Image'
           $coreVersion = Get-PackedPackageVersion 'OfficeIMO.Core'
+          $pdfVersion = Get-PackedPackageVersion 'OfficeIMO.Pdf'
           $markdownVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown'
           $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
           $htmlCoreVersion = Get-PackedPackageVersion 'OfficeIMO.Html.Core'
@@ -521,6 +523,7 @@ jobs:
           $localMapping.SetAttribute('key', 'OfficeIMOLocal')
           foreach ($packageId in @(
             'OfficeIMO.Core',
+            'OfficeIMO.Pdf',
             'OfficeIMO.Markdown',
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
@@ -555,6 +558,7 @@ jobs:
             @{ Id = 'officeimo.reader.email'; Version = $readerEmailVersion },
             @{ Id = 'officeimo.reader.image'; Version = $readerImageVersion },
             @{ Id = 'officeimo.core'; Version = $coreVersion },
+            @{ Id = 'officeimo.pdf'; Version = $pdfVersion },
             @{ Id = 'officeimo.markdown'; Version = $markdownVersion },
             @{ Id = 'officeimo.rtf'; Version = $rtfVersion },
             @{ Id = 'officeimo.html.core'; Version = $htmlCoreVersion },

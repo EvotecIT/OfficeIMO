@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
@@ -369,7 +370,8 @@ namespace OfficeIMO.Excel {
                 connectScatterPoints: connectScatterPoints,
                 overlayTitle: IsEnabled(title?.GetFirstChild<C.Overlay>()))
                 .WithSecondaryValueAxis(secondaryValueAxis)
-                .WithDataLabelLeaderLines(IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>()));
+                .WithDataLabelLeaderLines(IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>()))
+                .WithCategoryGeometry(plotArea, _document.WorkbookPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme);
         }
 
         private OfficeChartValueAxisLayout? ReadImageExportSecondaryValueAxis(C.PlotArea plotArea) {
@@ -405,8 +407,8 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
                 if (styles.TryGetValue(i, out ImageExportSeriesStyle? style)) {
-                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth)
-                        .WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions));
+                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth, style.AutomaticColor)
+                        .WithSeriesStyle(style.SeriesStyle).WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions));
                     changed = true;
                 } else {
                     series.Add(current);
@@ -421,7 +423,9 @@ namespace OfficeIMO.Excel {
             int seriesOrder = 0;
             foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>()
                          .Where(IsSeriesElement)
-                         .OrderBy(item => item.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue)) {
+                         .OrderBy(item => item is C.BubbleChartSeries
+                             ? item.GetFirstChild<C.Order>()?.Val?.Value ?? uint.MaxValue
+                             : item.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue)) {
                 int index = seriesOrder++;
                 if (index < 0 || index >= data.Series.Count) {
                     continue;
@@ -431,6 +435,7 @@ namespace OfficeIMO.Excel {
 
                 C.ChartShapeProperties? properties = series.GetFirstChild<C.ChartShapeProperties>();
                 if (properties != null) {
+                    style.SeriesStyle = OfficeOpenXmlChartPointStyles.ReadSeriesStyle(series, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
                     style.SeriesColorArgb = GetImageExportSeriesColor(properties, workbookPart);
                     style.SeriesLineWidth = GetImageExportSeriesLineWidth(properties);
                     style.SeriesLineDashStyle = GetImageExportSeriesLineDashStyle(properties);
@@ -442,11 +447,13 @@ namespace OfficeIMO.Excel {
                 int valueCount = data.Series[index].Values.Count;
                 C.Marker? marker = series.GetFirstChild<C.Marker>();
                 C.ScatterStyleValues? scatterStyle = (series.Parent as C.ScatterChart)?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
-                style.ShowMarkers = GetImageExportShowMarkers(marker, scatterStyle);
+                style.ShowMarkers = series is C.BubbleChartSeries || GetImageExportShowMarkers(marker, scatterStyle);
                 style.MarkerSize = GetImageExportMarkerSize(marker);
                 style.MarkerShape = GetImageExportMarkerShape(marker);
                 style.MarkerOutlineColorArgb = GetImageExportMarkerOutlineColor(marker, workbookPart);
                 style.MarkerOutlineWidth = GetImageExportMarkerOutlineWidth(marker);
+                ApplyImageExportAutomaticAppearance(series, marker, scatterStyle, style,
+                    workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
                 string? markerFill = GetImageExportMarkerFillColor(marker, workbookPart);
                 style.PointColorArgb = GetImageExportPointColors(series, valueCount, markerFill, workbookPart);
                 var pointOverrides = OfficeOpenXmlChartPointStyles.GetBoundedPoints(series);
@@ -458,6 +465,15 @@ namespace OfficeIMO.Excel {
                         throw new NotSupportedException("The native pie or doughnut point explosion cannot be rendered.");
                     style.PointExplosions = explosions;
                 }
+                if (series.Parent is C.Line3DChart) {
+                    var ribbon = OfficeOpenXmlChartPointStyles.ReadRibbonPaint(series,
+                        workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, useSpreadsheetDefaultTheme: true);
+                    style.SeriesStyle = ribbon.Paint;
+                    style.SeriesColorArgb = ribbon.Color?.ToRgbHex();
+                    style.AutomaticColor = ribbon.Automatic;
+                    style.ShowMarkers = false;
+                    style.ConnectLine = ribbon.Paint.ShowOutline != false;
+                }
 
                 if (style.HasAny && !styles.ContainsKey(index)) {
                     styles.Add(index, style);
@@ -465,6 +481,31 @@ namespace OfficeIMO.Excel {
             }
 
             return styles;
+        }
+
+        // Excel colours series without a stored colour from the chart style and theme, and gives
+        // line, scatter and marked radar series without a stored symbol its automatic markers.
+        private static void ApplyImageExportAutomaticAppearance(OpenXmlCompositeElement series, C.Marker? marker,
+            C.ScatterStyleValues? scatterStyle, ImageExportSeriesStyle style, A.ColorScheme? scheme) {
+            if (style.SeriesColorArgb == null && series is not C.PieChartSeries &&
+                OfficeOpenXmlChartAutomaticColors.ResolveSeries(series, scheme, useSpreadsheetDefaultTheme: true) is OfficeColor automatic) {
+                style.SeriesColorArgb = automatic.ToRgbHex();
+                style.AutomaticColor = true;
+            }
+            // Office draws automatic markers on line series without a stored marker even when the
+            // group's c:marker is 0.
+            bool groupMarkers = series.Parent switch {
+                C.LineChart => true,
+                C.ScatterChart => GetImageExportScatterStyleShowMarkers(scatterStyle),
+                C.RadarChart radar => radar.RadarStyle?.Val?.Value == C.RadarStyleValues.Marker,
+                _ => false
+            };
+            C.MarkerStyleValues? symbol = marker?.Symbol?.Val?.Value;
+            if (groupMarkers && (symbol == null || symbol.Value == C.MarkerStyleValues.Auto)) {
+                style.ShowMarkers = true;
+                style.MarkerShape = OfficeOpenXmlChartAutomaticColors.ResolveMarker(series.GetFirstChild<C.Index>()?.Val?.Value ?? 0U);
+                style.MarkerSize ??= OfficeOpenXmlChartAutomaticColors.AutomaticMarkerSize;
+            }
         }
 
         private static bool GetImageExportFillRadarSeries(C.PlotArea plotArea) {
@@ -1548,11 +1589,15 @@ namespace OfficeIMO.Excel {
         private sealed class ImageExportSeriesStyle {
             internal string? SeriesColorArgb { get; set; }
 
+            internal bool AutomaticColor { get; set; }
+
             internal double? SeriesLineWidth { get; set; }
 
             internal OfficeStrokeDashStyle? SeriesLineDashStyle { get; set; }
 
             internal IReadOnlyList<string?>? PointColorArgb { get; set; }
+
+            internal OfficeChartPointStyle? SeriesStyle { get; set; }
 
             internal IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; set; }
 
@@ -1570,7 +1615,7 @@ namespace OfficeIMO.Excel {
 
             internal double? MarkerOutlineWidth { get; set; }
 
-            internal bool HasAny => PointStyles != null || PointExplosions != null || SeriesColorArgb != null || SeriesLineWidth != null || SeriesLineDashStyle != null || PointColorArgb != null || !ShowMarkers || ConnectLine.HasValue || MarkerSize != null || MarkerShape != null || MarkerOutlineColorArgb != null || MarkerOutlineWidth != null;
+            internal bool HasAny => SeriesStyle != null || PointStyles != null || PointExplosions != null || SeriesColorArgb != null || SeriesLineWidth != null || SeriesLineDashStyle != null || PointColorArgb != null || !ShowMarkers || ConnectLine.HasValue || MarkerSize != null || MarkerShape != null || MarkerOutlineColorArgb != null || MarkerOutlineWidth != null;
         }
     }
 }

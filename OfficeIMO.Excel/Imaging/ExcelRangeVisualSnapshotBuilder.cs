@@ -516,42 +516,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                drawingObjects.Add(new ExcelVisualDrawingObject(
-                    drawing.Name,
-                    drawing.Order,
-                    drawing.ShapePresetName,
-                    drawing.ShapeKind.Value,
-                    drawing.HorizontalFlip,
-                    drawing.VerticalFlip,
-                    drawing.RotationDegrees,
-                    x,
-                    y,
-                    width,
-                    height,
-                    drawing.FillColorArgb,
-                    drawing.StrokeColorArgb,
-                    drawing.StrokeWidth,
-                    drawing.StrokeDashStyle,
-                    drawing.StrokeLineCap,
-                    drawing.StrokeLineJoin,
-                    drawing.Text,
-                    drawing.TextAlignment,
-                    drawing.TextVerticalAlignment,
-                    drawing.TextColorArgb,
-                    drawing.TextFontFamily,
-                    drawing.TextFontSize,
-                    drawing.TextFontStyle,
-                    drawing.TextWrap,
-                    drawing.TextShrinkToFit,
-                    drawing.TextResizeShapeToFit,
-                    drawing.TextOrientation,
-                    drawing.TextInsetLeft,
-                    drawing.TextInsetTop,
-                    drawing.TextInsetRight,
-                    drawing.TextInsetBottom,
-                    drawing.Glow,
-                    drawing.Shadow,
-                    GetDrawingDiagnosticSource(sheet, drawing)));
+                drawingObjects.Add(drawing.ToVisual(x, y, width, height, GetDrawingDiagnosticSource(sheet, drawing)));
             }
 
             return drawingObjects;

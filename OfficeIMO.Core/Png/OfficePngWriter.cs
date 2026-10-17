@@ -10,10 +10,9 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public enum OfficePngCompression {
     /// <summary>
-    /// Compress scanlines with the platform deflate implementation. Exact opaque
-    /// black-and-white raster images use one-bit grayscale samples; other opaque
-    /// raster images use eight-bit RGB samples. Raster encoding
-    /// compares adaptive and unfiltered rows and uses the smaller compressed form.
+    /// Select exact grayscale, RGB, RGBA, or indexed samples and compress
+    /// according to the selected encoding effort. All RGBA values,
+    /// including hidden colors under transparent pixels, are preserved.
     /// </summary>
     Optimal,
 
@@ -86,7 +85,7 @@ public static partial class OfficePngWriter {
             width, height, rgba, options.Compression,
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
-            System.Threading.CancellationToken.None);
+            System.Threading.CancellationToken.None, options.RequireRgbColorSpace, options.RequireGrayColorSpace, options.Effort);
     }
 
     /// <summary>

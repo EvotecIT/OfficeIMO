@@ -34,18 +34,16 @@ namespace OfficeIMO.Excel {
         }
 
         private static IconBounds GetConditionalIconBounds(ExcelVisualConditionalIcon icon, double scale) {
+            if (icon.Kind == OfficeConditionalIconKind.None) return new IconBounds(icon.X * scale, icon.Y * scale, 0D);
             double cellX = icon.X * scale;
             double cellY = icon.Y * scale;
-            double cellWidth = icon.Width * scale;
-            double cellHeight = icon.Height * scale;
-            double size = Math.Max(8D * scale, Math.Min(cellHeight * 0.62D, Math.Min(cellWidth * 0.38D, 16D * scale)));
-            double x = cellX + Math.Max(3D * scale, cellWidth * 0.08D);
-            double y = cellY + (cellHeight - size) / 2D;
-            return new IconBounds(x, y, size);
+            var bounds = OfficeConditionalIconRenderer.GetCellBounds(icon.Width, icon.Height, scale);
+            return new IconBounds(cellX + bounds.X, cellY + bounds.Y, bounds.Size);
         }
 
         private static OfficeConditionalIconKind MapConditionalIconKind(OfficeConditionalIconKind kind) =>
             kind switch {
+                OfficeConditionalIconKind.None => OfficeConditionalIconKind.None,
                 OfficeConditionalIconKind.GreenUpArrow => OfficeConditionalIconKind.GreenUpArrow,
                 OfficeConditionalIconKind.YellowUpArrow => OfficeConditionalIconKind.YellowUpArrow,
                 OfficeConditionalIconKind.YellowSideArrow => OfficeConditionalIconKind.YellowSideArrow,

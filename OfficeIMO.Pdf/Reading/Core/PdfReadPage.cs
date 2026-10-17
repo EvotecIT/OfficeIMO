@@ -23,6 +23,7 @@ public sealed partial class PdfReadPage {
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
     private readonly PdfPageOptionalContentVisibility.DocumentState _optionalContentVisibilityState;
     private readonly PdfReadCache<bool> _hasOutputIntentCompositionInteraction = new();
+    private readonly PdfReadCache<PdfDictionary?> _acroForm = new();
 
     internal PdfDictionary PageDictionary => _pageDict;
 
@@ -890,7 +891,7 @@ public sealed partial class PdfReadPage {
     // Differences give; ToUnicode does not select what is painted. Symbolic fonts use built-in encodings
     // except where an explicit Difference replaces a code's glyph.
     private static bool PaintsSubstitutedEncodingGlyphs(PdfFontResource font) {
-        if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null ||
+        if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null || font.HasDeferredDrawing ||
             font.DrawingFontFamily != null || font.Type3 != null ||
             string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal)) return false;
         if (font.IsSymbolicSubstitute) return font.Differences is { Count: > 0 };
@@ -941,7 +942,8 @@ public sealed partial class PdfReadPage {
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
         TextContentParser.MarkedContentState? inheritedActualTextState = null,
         bool preserveGlyphText = false,
-        bool requireMappedText = false) {
+        bool requireMappedText = false,
+        Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1028,7 +1030,7 @@ public sealed partial class PdfReadPage {
         PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
             content, resources, cancellationCheck ?? (Action)pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
-            GetGraphicsStateResources(resources, decoders, widthProviders, fonts);
+            GetGraphicsStateResources(resources, pageContentBudget, decoders, widthProviders, fonts);
         var actualTextForms = new Dictionary<int, TextContentParser.MarkedContentState>();
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -1092,7 +1094,8 @@ public sealed partial class PdfReadPage {
             initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
             initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity,
             inheritedActualTextState: inheritedActualTextState,
-            onActualTextForm: (offset, state) => actualTextForms[offset] = state));
+            onActualTextForm: (offset, state) => actualTextForms[offset] = state,
+            onCompletedDrawingActualText: onCompletedDrawingActualText));
 
         // Text interpretation has already validated the stream and its limits.
         // A missing Do token rules out forms; strings containing Do simply keep
@@ -1169,6 +1172,10 @@ public sealed partial class PdfReadPage {
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex + contentOrderOffset);
                 if (pageContentBudget.HasProjectedTransparencyGroup(formOrderPrefix)) continue;
                 bool effectiveArtifactContent = inheritedArtifactContent || invocation.IsArtifactContent;
+                TextContentParser.MarkedContentState? formActualTextState = inheritedActualTextState;
+                if (actualTextForms.TryGetValue(invocation.SourceOperatorIndex, out var invocationActualText) &&
+                    (formActualTextState == null || onCompletedDrawingActualText != null))
+                    formActualTextState = invocationActualText;
 
                 CollectTextAndForms(
                     formContent,
@@ -1211,10 +1218,10 @@ public sealed partial class PdfReadPage {
                     onTextSpan: onTextSpan,
                     initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
                     initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity,
-                    inheritedActualTextState: inheritedActualTextState ??
-                        (actualTextForms.TryGetValue(invocation.SourceOperatorIndex, out var formActualText) ? formActualText : null),
+                    inheritedActualTextState: formActualTextState,
                     preserveGlyphText: preserveGlyphText,
-                    requireMappedText: requireMappedText);
+                    requireMappedText: requireMappedText,
+                    onCompletedDrawingActualText: onCompletedDrawingActualText);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1280,7 +1287,7 @@ public sealed partial class PdfReadPage {
                      content,
                      baseTransform,
                      pageHeight,
-                     GetGraphicsStateResources(resources),
+                     GetGraphicsStateResources(resources, pageContentBudget),
                      GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                      optionalContentVisibility,
                      initialFillColor,

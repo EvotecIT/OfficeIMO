@@ -127,14 +127,15 @@ public sealed partial class PdfOptions {
                  StringComparison.OrdinalIgnoreCase)) {
             details["substitutionImpact"] = substitution.Impact.ToString();
             details["plannedSubstitution"] = bool.TrueString;
+            details["fontMetricsVerification"] = "NotPerformed";
             PdfConversionWarningSeverity severity =
                 substitution.Impact == PdfFontFamilySubstitutionImpact.Compatible
                     ? PdfConversionWarningSeverity.Information
                     : PdfConversionWarningSeverity.Warning;
             string message = substitution.Impact == PdfFontFamilySubstitutionImpact.Compatible
                 ? "The source font family '" + sourceFontFamily +
-                  "' uses the configured compatible embedded substitute '" +
-                  substitution.TargetFontFamily + "'."
+                  "' uses the configured embedded substitute '" +
+                  substitution.TargetFontFamily + "' with compatibility intent. Exact font-version metrics, including vertical metrics, wrapping, and pagination, have not been verified by this registration."
                 : "The source font family '" + sourceFontFamily +
                   "' uses the configured embedded substitute '" +
                   substitution.TargetFontFamily + "'.";

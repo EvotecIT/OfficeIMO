@@ -12,7 +12,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMargins_ParagraphAdjacentListNegativeTopMarginMovesItsFirstItem() {
         const string before = "<style>body{margin:0}p{margin:16px 0}ul{margin:16px 0;padding-left:40px}p+ul{margin-top:-8px}</style><p>Intro</p><ul><li>Item</li></ul>";
         const string withoutRule = "<style>body{margin:0}p{margin:16px 0}ul{margin:16px 0;padding-left:40px}</style><p>Intro</p><ul><li>Item</li></ul>";
-        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
         HtmlConversionDocument document = HtmlConversionDocument.Parse(before);
         Assert.Equal("-8px", HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("ul")!].GetValue("margin-top"));
         HtmlRenderText withRule = Assert.Single(HtmlRenderTestDriver.Render(before, options).Pages[0].Visuals
@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMargins_NegativeListMarginCollapsesThroughFirstItemsParagraph() {
         const string common = "<style>body{margin:0}p{margin:16px 0}ul{margin:16px 0;padding-left:40px}li{margin-bottom:8px}";
         const string content = "</style><div><p>Intro</p><ul><li><p>Item</p></li></ul></div>";
-        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
         HtmlRenderText withRule = Assert.Single(HtmlRenderTestDriver.Render(common + "p+ul{margin-top:-8px}" + content, options)
             .Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Item");
         HtmlRenderText withoutRule = Assert.Single(HtmlRenderTestDriver.Render(common + content, options)
@@ -41,6 +41,7 @@ public sealed partial class HtmlRenderingTests {
         html.Append("<div id='tail' style='height:1px;margin:0;background:red'></div></div>");
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString(), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 20D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -56,6 +57,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='after-parent' style='width:40px;height:10px;margin:15px 0 0;background:#0000ff'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 55D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D),
@@ -78,6 +80,7 @@ public sealed partial class HtmlRenderingTests {
             + "</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 55D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D),
@@ -99,6 +102,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='tail' style='width:20px;height:10px;margin:0;background:#00ff00'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 30D,
             ViewportHeight = 55D,
             Margins = HtmlRenderMargins.All(0D),
@@ -121,6 +125,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='third' style='width:40px;height:10px;margin:12px 0 0;background:#00ff00;font-size:6px;line-height:8px'>GapPdf</div>"
             + "</div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 55D,
             ViewportHeight = 58D,
             Margins = HtmlRenderMargins.All(0D),
@@ -149,7 +154,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(47D, third.Y, 3);
         Assert.Equal(57D, third.Y + third.Height, 3);
         Assert.True(raster.GetPixel(5, 25).B > raster.GetPixel(5, 25).R);
-        Assert.Contains("y=\"25\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(5, 20));
+        Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(5, 28));
+        Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(5, 40));
         Assert.Contains("GapPdf", pdfText, StringComparison.Ordinal);
         Assert.Single(PdfCore.PdfReadDocument.Open(pdf).Pages);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);

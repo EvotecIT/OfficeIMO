@@ -87,6 +87,7 @@ namespace OfficeIMO.Excel.Pdf {
                     }
                 }
 
+                foreach (var drawing in plan.DrawingObjects) yield return drawing.Text;
                 if (includeHeaderFooterText && plan.HeaderFooter != null) {
                     foreach (string? text in EnumerateHeaderFooterTextZones(plan.HeaderFooter)) {
                         yield return text;
@@ -174,6 +175,13 @@ namespace OfficeIMO.Excel.Pdf {
                                 reportSubstitution: style?.IsFontFamilyExplicit == true || !preserveConfiguredFontSlots);
                         }
                     }
+                }
+            }
+
+            foreach (WorksheetPdfExportPlan plan in exportPlans) {
+                foreach (var drawing in plan.DrawingObjects) {
+                    RegisterWorksheetFontCandidate(drawing.TextFontFamily, pdfOptions, registeredFamilies,
+                        registeredFontSlots, options, plan.SheetName);
                 }
             }
 
@@ -344,6 +352,9 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelSheet? metadataSheet = boundedRead ? null : workbookSheet;
                 ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? metadataSheet?.GetPageSetup() : null;
                 ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? metadataSheet?.GetHeaderFooter() : null;
+                IReadOnlyList<WorksheetChartExportData> worksheetCharts = boundedRead
+                    ? Array.Empty<WorksheetChartExportData>()
+                    : ReadWorksheetCharts(workbookSheet, options, sheetName);
                 foreach (string exportRange in GetExportRanges(sheet, workbookSheet, options)) {
                     string normalizedExportRange = NormalizeA1Range(exportRange);
                     int sourceRows = GetRangeRowCount(normalizedExportRange);
@@ -388,8 +399,9 @@ namespace OfficeIMO.Excel.Pdf {
                         : FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
                     IReadOnlyList<WorksheetChartExportData> charts = boundedRead
                         ? Array.Empty<WorksheetChartExportData>()
-                        : FilterChartsByExportedCells(ReadWorksheetCharts(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
-                    if (!hasTable && images.Count == 0 && charts.Count == 0) {
+                        : FilterChartsByExportedCells(worksheetCharts, exportedCellReferences, filterMediaToExportedCells);
+                    var drawings = ReadWorksheetDrawingObjects(metadataSheet, options, sheetName, exportedCellReferences, filterMediaToExportedCells);
+                    if (!hasTable && images.Count == 0 && charts.Count == 0 && drawings.Count == 0) {
                         continue;
                     }
 
@@ -407,7 +419,10 @@ namespace OfficeIMO.Excel.Pdf {
                         manualColumnBreaks,
                         CreateSheetBookmarkName(sheetName, plans.Count + 1),
                         CreateWorksheetGeometry(metadataSheet, normalizedExportRange, options),
-                        hasPrintArea || options.MaxRowsPerSheet.HasValue));
+                        hasPrintArea || options.MaxRowsPerSheet.HasValue) {
+                            PrintOptions = options.UseWorksheetPageSetup ? metadataSheet?.GetPrintOptions() : null,
+                            DrawingObjects = drawings
+                        });
                 }
             }
 
@@ -415,6 +430,8 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static bool HasWorksheetTableContent(SheetExportData exportData) {
+            if (exportData.ConditionalFills?.Icons.Count > 0 || exportData.ConditionalFills?.DataBars.Count > 0 ||
+                exportData.ConditionalFills?.FillColors.Count > 0) return true;
             object?[,] values = exportData.Values;
             for (int row = 0; row < values.GetLength(0); row++) {
                 for (int column = 0; column < values.GetLength(1); column++) {

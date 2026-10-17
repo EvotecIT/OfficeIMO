@@ -257,7 +257,7 @@ public partial class PdfDocumentVisualQualityTests {
             .PanelParagraph(p => p.Text("PanelSideBorders"))
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
 
         Assert.Equal(red, options.DefaultPanelStyle!.TopBorder!.Color);

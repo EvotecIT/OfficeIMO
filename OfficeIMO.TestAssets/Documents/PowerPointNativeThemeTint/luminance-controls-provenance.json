@@ -1,0 +1,143 @@
+{
+  "producer": "Microsoft PowerPoint 16.113.4",
+  "captured": "2026-10-16",
+  "slide_points": [
+    480,
+    160
+  ],
+  "assets": {
+    "luminance-controls.pptx": {
+      "bytes": 24496,
+      "sha256": "0786d667b41821a2f8cb6360255939cca3b1730336026e204577f8fee26ac097"
+    },
+    "microsoft-powerpoint-16.113.4-luminance-controls.pdf": {
+      "bytes": 4071,
+      "sha256": "f8fdf04fa7131cbe478a0b36e2cc9da3dc3792278b04808b0eb6dc8c11a0c774"
+    },
+    "luminance-controls-native.png": {
+      "bytes": 632,
+      "sha256": "6c48b07029d19925771c6081803df43667875e08b0ae32e539552d330ef2bb1b"
+    }
+  },
+  "preservation": "Verified luminance-controls source deck and complete native PDF copied byte-for-byte, without PDF rewriting. Native PNG supplied by parent from Poppler. Preliminary luminance.pptx/pdf files were not used.",
+  "samples": [
+    {
+      "index": 0,
+      "source_rgb": "4472C4",
+      "ordered_transforms": [],
+      "point": [
+        35,
+        70
+      ],
+      "native_rgb": [
+        68,
+        114,
+        196
+      ]
+    },
+    {
+      "index": 1,
+      "source_rgb": "4472C4",
+      "ordered_transforms": [
+        "lumMod=50000"
+      ],
+      "point": [
+        100,
+        70
+      ],
+      "native_rgb": [
+        32,
+        56,
+        100
+      ]
+    },
+    {
+      "index": 2,
+      "source_rgb": "4472C4",
+      "ordered_transforms": [
+        "lumOff=20000"
+      ],
+      "point": [
+        165,
+        70
+      ],
+      "native_rgb": [
+        146,
+        172,
+        220
+      ]
+    },
+    {
+      "index": 3,
+      "source_rgb": "4472C4",
+      "ordered_transforms": [
+        "lumMod=50000",
+        "lumOff=20000"
+      ],
+      "point": [
+        230,
+        70
+      ],
+      "native_rgb": [
+        56,
+        100,
+        178
+      ]
+    },
+    {
+      "index": 4,
+      "source_rgb": "4472C4",
+      "ordered_transforms": [
+        "lumOff=20000",
+        "lumMod=50000"
+      ],
+      "point": [
+        295,
+        70
+      ],
+      "native_rgb": [
+        44,
+        78,
+        139
+      ]
+    },
+    {
+      "index": 5,
+      "source_rgb": "4472C4",
+      "ordered_transforms": [
+        "lumMod=50000",
+        "alpha=45000",
+        "lumOff=20000"
+      ],
+      "point": [
+        360,
+        70
+      ],
+      "native_rgb": [
+        165,
+        185,
+        220
+      ]
+    },
+    {
+      "index": 6,
+      "source_rgb": "4472C4",
+      "ordered_transforms": [
+        "lumMod=50000",
+        "lumOff=20000",
+        "alpha=45000"
+      ],
+      "point": [
+        425,
+        70
+      ],
+      "native_rgb": [
+        165,
+        185,
+        220
+      ]
+    }
+  ],
+  "acceptance": "Native PNG samples are exact. Native PDF readback and managed PDF require exact opaque RGB; only controls 5 and 6 permit one channel value for eight-bit alpha compositing. Both alpha controls must resolve to RGBA 56,100,178,115 before composition.",
+  "scope": "This control qualifies luminance modulation, luminance offset, both operation orders, and alpha interleaved between HSL operations versus alpha applied last. Other HSL chains and transforms remain outside this finite control."
+}

@@ -21,7 +21,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("Body content stays readable above the watermark."))
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("Watermark proof", text);
@@ -80,7 +80,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("Body content stays readable above the image watermark."))
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
         int imageDraw = stream.IndexOf("/Im", StringComparison.Ordinal);
         int firstTextBlock = stream.IndexOf("BT", StringComparison.Ordinal);

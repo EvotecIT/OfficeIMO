@@ -430,14 +430,7 @@ public partial class HtmlWordGapClosure {
             reloaded.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true }),
             StringComparison.OrdinalIgnoreCase);
 
-        WordDocumentVisualSnapshot snapshot = reloaded.CreateVisualSnapshot();
-        OfficeIMO.Drawing.OfficeDrawingRichText richText = Assert.Single(
-            snapshot.Drawing.Elements.OfType<OfficeIMO.Drawing.OfficeDrawingRichText>());
-        OfficeIMO.Drawing.OfficeRichTextRun renderedRun = Assert.Single(
-            richText.Runs,
-            run => run.Text.Contains("exact", StringComparison.Ordinal));
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"), renderedRun.BackgroundColor);
-        Assert.Contains("#ABCDEF", reloaded.ToSvg(), StringComparison.OrdinalIgnoreCase);
+        AssertRenderedWordBackgrounds(reloaded, OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"));
     }
 
     [Fact]
@@ -458,14 +451,7 @@ public partial class HtmlWordGapClosure {
         Assert.Null(exactRun.Highlight);
         Assert.Equal("ABCDEF", exactRun.RunShadingFillColorHex);
 
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
-        OfficeIMO.Drawing.OfficeRichTextRun renderedRun = Assert.Single(
-            snapshot.Drawing.Elements
-                .OfType<OfficeIMO.Drawing.OfficeDrawingRichText>()
-                .SelectMany(richText => richText.Runs),
-            run => run.Text.Contains("exact", StringComparison.Ordinal));
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"), renderedRun.BackgroundColor);
-        Assert.Contains("#ABCDEF", document.ToSvg(), StringComparison.OrdinalIgnoreCase);
+        AssertRenderedWordBackgrounds(document, OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"), OfficeIMO.Drawing.OfficeColor.Yellow);
         string roundTrip = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
         Assert.Contains("<mark", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("background-color:#abcdef", roundTrip, StringComparison.OrdinalIgnoreCase);

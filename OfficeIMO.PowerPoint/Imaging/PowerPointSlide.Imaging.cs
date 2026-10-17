@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSlideVisualSnapshot CreateVisualSnapshot(PowerPointImageExportOptions? options = null) {
             PowerPointImageExportOptions resolved = NormalizeImageExportOptions(options);
-            return PowerPointSlideImageRenderer.CreateSnapshot(this, resolved);
+            return PowerPointPageImageExport.CreateSnapshot(this, resolved);
         }
 
         /// <summary>
@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
             PowerPointImageExportOptions resolved = NormalizeImageExportOptions(options);
-            return PowerPointSlideImageRenderer.Render(this, format, resolved, cancellationToken);
+            return PowerPointPageImageExport.Render(this, format, resolved, cancellationToken);
         }
 
         /// <summary>

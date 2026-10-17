@@ -129,7 +129,7 @@ public class PdfInlineElementTests {
 
         Assert.Single(PdfImageExtractor.ExtractImages(bytes));
         Assert.Equal(1, CountOccurrences(raw, "/Im1 Do"));
-        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("/Figure << /Alt", raw, StringComparison.Ordinal);
     }
 

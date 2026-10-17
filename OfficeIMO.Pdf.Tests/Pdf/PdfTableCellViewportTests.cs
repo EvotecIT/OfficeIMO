@@ -15,8 +15,8 @@ public sealed partial class PdfTableCellViewportTests {
         void Configure(PdfTableStyle style) => style.CellDataBars = new Dictionary<(int, int), PdfCellDataBar> {
             [(0, 0)] = new PdfCellDataBar { Color = PdfColor.FromRgb(0, 255, 0), Ratio = 0.5 }
         };
-        string first = System.Text.Encoding.ASCII.GetString(Render(mode, left, PdfCellVerticalAlign.Top, Configure));
-        string second = System.Text.Encoding.ASCII.GetString(Render(mode, right, PdfCellVerticalAlign.Top, Configure));
+        string first = PdfTestContentText.ReadDecoded(Render(mode, left, PdfCellVerticalAlign.Top, Configure));
+        string second = PdfTestContentText.ReadDecoded(Render(mode, right, PdfCellVerticalAlign.Top, Configure));
         Assert.Contains("24 132 100 24 re f", first);
         Assert.DoesNotContain("0 1 0 rg", second);
     }
@@ -35,8 +35,8 @@ public sealed partial class PdfTableCellViewportTests {
         }
         byte[] first = Render(mode, left, PdfCellVerticalAlign.Top, Configure);
         byte[] second = Render(mode, right, PdfCellVerticalAlign.Top, Configure);
-        Assert.Contains("0 1 0 rg", System.Text.Encoding.ASCII.GetString(first));
-        Assert.DoesNotContain("0 1 0 rg", System.Text.Encoding.ASCII.GetString(second));
+        Assert.Contains("0 1 0 rg", PdfTestContentText.ReadDecoded(first));
+        Assert.DoesNotContain("0 1 0 rg", PdfTestContentText.ReadDecoded(second));
         using PdfPigDocument firstPdf = PdfPigDocument.Open(first);
         using PdfPigDocument secondPdf = PdfPigDocument.Open(second);
         Assert.DoesNotContain("99", firstPdf.GetPage(1).Text);
@@ -94,7 +94,7 @@ public sealed partial class PdfTableCellViewportTests {
                 Top = false, Right = false, Bottom = false, Left = false, DiagonalDown = true, Width = 1, Color = PdfColor.Black
             } };
         });
-        string content = System.Text.Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("24 156 m 124 108 l S", content);
         Assert.Contains("24 132 100 24 re W n", content);
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);

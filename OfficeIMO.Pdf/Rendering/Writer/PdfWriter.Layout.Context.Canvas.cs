@@ -107,7 +107,7 @@ internal static partial class PdfWriter {
             int highlightAnnotationCount = artifactPage.HighlightAnnotations.Count;
             int formFieldCount = artifactPage.FormFields.Count;
             int bookmarkCount = artifactPage.Bookmarks.Count;
-            sb.Append("/Artifact BMC\n");
+            sb.Append("/Artifact << /Type /Layout >> BDC\n");
             bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
             bool previousStructure = _suppressCanvasStructureRegistration;
             _suppressCanvasAccessibilityWrappers = true;
@@ -304,8 +304,9 @@ internal static partial class PdfWriter {
             string structureType = MapCanvasStructureType(role);
             string headerScope = MapCanvasTableHeaderScope(options.HeaderScope);
             string alternativeText = options.AlternativeText ?? string.Empty;
+            string? language = options.Language ?? _canvasStructureParentElement?.Language ?? currentOpts.Language;
             PageStructElement? structureElement;
-            var structureKey = (options.StructureElementKey ?? string.Empty, structureType, _canvasStructureParentElement, headerScope, options.ColumnSpan, options.RowSpan, alternativeText);
+            var structureKey = (options.StructureElementKey ?? string.Empty, structureType, _canvasStructureParentElement, headerScope, options.ColumnSpan, options.RowSpan, alternativeText, language);
             if (options.StructureElementKey != null && canvasStructureElements.TryGetValue(structureKey, out PageStructElement? existingStructureElement)) {
                 structureElement = existingStructureElement;
                 if (!currentPage!.StructElements.Contains(structureElement)) structureElement.SpansPages = true;
@@ -318,6 +319,7 @@ internal static partial class PdfWriter {
                     options.RowSpan,
                     options.AlternativeText);
                 if (structureElement != null) {
+                    structureElement.Language = language;
                     structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
                     structureElement.LogicalOrder = options.LogicalOrder;
                 }
@@ -349,6 +351,7 @@ internal static partial class PdfWriter {
             if (role == PdfCanvasStructureRole.Caption) return "Caption";
             if (role == PdfCanvasStructureRole.Figure) return "Figure";
             if (role == PdfCanvasStructureRole.TableBody) return "TBody";
+            if (role == PdfCanvasStructureRole.Span) return "Span";
             if (role == PdfCanvasStructureRole.Formula) return "Formula";
             return "Note";
         }
@@ -393,6 +396,13 @@ internal static partial class PdfWriter {
                 return;
             }
 
+            if (!item.PreservePositionedText)
+                ReportFullyClippedFrameLine("CanvasTextContentClipped", "PdfCanvasText",
+                    wrap.Lines, wrap.LineHeights,
+                    FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, currentOpts.PageHeight - item.Y),
+                    size, leading, ChooseNormal(currentOpts.DefaultFont), currentOpts.PageHeight - item.Y - item.Height,
+                    item.Height, item.X, currentOpts.PageHeight - item.Y, item.Width, item.Height);
+
             double scaleX = 1D;
             if (item.PreservePositionedText && item.PositionedAdvanceWidth is double advance && advance > 0D && !double.IsInfinity(advance)) {
                 double writtenWidth = MeasureRichLineWidth(wrap.Lines[0], currentOpts);
@@ -413,6 +423,10 @@ internal static partial class PdfWriter {
             double bottomY = topY - item.Height;
             string? structureType = _suppressCanvasAccessibilityWrappers ? null : MapCanvasTextStructureType(item.StructureRole);
             int? markedContentId = structureType == null ? null : RegisterTextStructureElement(structureType, _canvasStructureParentElement);
+            ReportRichPaintDiagnostics("CanvasText", "PdfCanvasText", block, lines, lineHeights,
+                item.PreservePositionedText ? topY - size : FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, topY),
+                size, leading, item.X, width, new TableCellContentFrame(item.X, topY + item.PositionedClipTopOverflow, width, item.Height + item.PositionedClipTopOverflow),
+                clipsToFrame: !item.PreservePositionedText);
             WriteClippedRichParagraph(
                 sb,
                 block,
@@ -482,6 +496,11 @@ internal static partial class PdfWriter {
             var blockText = new RichParagraphBlock(item.Runs, style.Align, style.TextColor);
             if (prepared.Lines.Count > 0) {
                 double textContentHeight = prepared.ContentHeight;
+                double verticalOffset = GetCanvasTextBoxVerticalOffset(style.VerticalAlign, textHeight, textContentHeight);
+                ReportFullyClippedFrameLine("CanvasTextBoxContentClipped", "PdfCanvasTextBox",
+                    prepared.Lines, prepared.LineHeights,
+                    FirstTextBaselineFromTop(baseFont, size, textTopY - verticalOffset),
+                    size, leading, baseFont, textBottomY, textHeight, item.X, topY, item.Width, item.Height);
                 if (textContentHeight > textHeight + 0.01D) {
                     item.DiagnosticHandler?.Invoke(new PdfLayoutDiagnostic(
                         PdfLayoutDiagnosticKind.ClippedContent,
@@ -493,7 +512,10 @@ internal static partial class PdfWriter {
                         item.Height));
                 }
 
-                double verticalOffset = GetCanvasTextBoxVerticalOffset(style.VerticalAlign, textHeight, textContentHeight);
+                ReportRichPaintDiagnostics("CanvasTextBox", "PdfCanvasTextBox", blockText, prepared.Lines, prepared.LineHeights,
+                    FirstTextBaselineFromTop(baseFont, size, textTopY - verticalOffset), size, leading, textX, textWidth,
+                    new TableCellContentFrame(textX, textTopY, textWidth, textHeight), baselineFont: baseFont,
+                    localTransform: CreateCanvasRotationTransform(item.X, bottomY, item.Width, item.Height, item.RotationAngle));
                 var annotations = rotated ? new System.Collections.Generic.List<LinkAnnotation>() : currentPage!.Annotations;
                 int? markedContentId = _suppressCanvasAccessibilityWrappers ? null : RegisterTextStructureElement("P", _canvasStructureParentElement);
                 WriteClippedRichParagraph(
@@ -636,6 +658,10 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateImageStyleForBox(imageStyle, block.Width, block.Height, nameof(imageStyle.ClipPath));
             PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(imageStyle.Fit));
             double bottomY = currentOpts.PageHeight - item.Y - block.Height;
+            if (block.Info.Format == OfficeIMO.Drawing.OfficeImageFormat.Svg) {
+                RenderCanvasSvgImage(item, imageStyle, bottomY);
+                return;
+            }
             PageImage pageImage = CreatePageImage(block, imageStyle, item.X, bottomY, block.Width, block.Height);
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             pageImage.StructureParentElement = _canvasStructureParentElement;
@@ -644,6 +670,8 @@ internal static partial class PdfWriter {
             pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
             pageImage.IsForeground = item.Foreground;
+            if (item.Foreground) pageImage.ForegroundTransform = _canvasEffectToPage;
+            if (paragraphCanvasTop.HasValue) ReportAnchoredImagePageClipping(item, bottomY);
             pageImage.ForegroundZOrder = item.ForegroundZOrder;
             // Foreground images use a distinct final image layer; ordinary canvas order stays inline.
             if (!item.Foreground) {
@@ -674,11 +702,24 @@ internal static partial class PdfWriter {
             new ContentStreamBuilder(sb).SaveState();
             AppendClipPath(sb, item.ClipPath, item.X, bottomY, item.Height);
 
+            int diagnosticClipCount = _diagnosticCanvasClips.Count;
+            if (currentOpts.HasDiagnosticsReport) {
+                OfficeTransform placement = new OfficeTransform(1D, 0D, 0D, -1D, item.X, bottomY + item.Height).Then(_canvasEffectToPage);
+                var diagnosticContours = OfficeClipPathGeometry.CreateContours(item.ClipPath, points => {
+                    var mapped = new List<OfficePoint>(points.Count);
+                    foreach (OfficePoint point in points) { cancellationToken.ThrowIfCancellationRequested(); mapped.Add(placement.TransformPoint(point)); }
+                    return mapped;
+                });
+                _diagnosticCanvasClips.Add(OfficeTextInkClip.FromFilledContours(diagnosticContours, item.ClipPath.FillRule));
+                _diagnosticCanvasSourceClips.Add(item.PreservesSourceClip);
+            }
             _canvasClipDepth++;
             try {
                 RenderCanvasBlock(new PdfCanvasBlock(item.Items));
             } finally {
                 _canvasClipDepth--;
+                _diagnosticCanvasClips.RemoveRange(diagnosticClipCount, _diagnosticCanvasClips.Count - diagnosticClipCount);
+                _diagnosticCanvasSourceClips.RemoveRange(diagnosticClipCount, _diagnosticCanvasSourceClips.Count - diagnosticClipCount);
             }
 
             ClipCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.ClipPath);

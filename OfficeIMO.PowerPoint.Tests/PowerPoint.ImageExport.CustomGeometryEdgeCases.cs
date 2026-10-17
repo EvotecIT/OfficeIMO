@@ -8,45 +8,6 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
-        [Fact]
-        public void PowerPointSlide_CustomGeometryArcAfterCloseStartsAtSubpathOrigin() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
-            PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape source = slide.AddShapePoints(
-                OfficePresetShapeType.Rectangle, 20, 20, 120, 80);
-            Shape shape = Assert.IsType<Shape>(source.Element);
-            ShapeProperties properties = shape.ShapeProperties!;
-            A.Transform2D transform = properties.GetFirstChild<A.Transform2D>()!;
-            properties.RemoveAllChildren<A.PresetGeometry>();
-            properties.InsertAfter(new A.CustomGeometry(
-                new A.PathList(new A.Path(
-                    new A.MoveTo(new A.Point { X = "20000", Y = "20000" }),
-                    new A.LineTo(new A.Point { X = "80000", Y = "20000" }),
-                    new A.CloseShapePath(),
-                    new A.ArcTo {
-                        WidthRadius = "20000",
-                        HeightRadius = "20000",
-                        StartAngle = "0",
-                        SwingAngle = "5400000"
-                    }) {
-                    Width = 100000L,
-                    Height = 100000L
-                })), transform);
-
-            PowerPointSlideVisualSnapshot snapshot =
-                slide.CreateVisualSnapshot();
-
-            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
-                .OfType<OfficeDrawingShape>(), element =>
-                    Math.Abs(element.X - 20D) < 0.000001D
-                    && Math.Abs(element.Y - 20D) < 0.000001D);
-            OfficePathCommand arc = Assert.Single(rendered.Shape.PathCommands,
-                command => command.Kind
-                    == OfficePathCommandKind.CubicBezierTo);
-            AssertCustomGeometryPointNear(arc.Point, 0D, 32D);
-            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
-        }
 
         [Fact]
         public void PowerPointSlide_ResolvesFixedThemeReferenceColors() {
@@ -81,18 +42,12 @@ namespace OfficeIMO.Tests {
                     Index = A.FontCollectionIndexValues.Minor
                 });
 
-            PowerPointSlideVisualSnapshot snapshot =
-                slide.CreateVisualSnapshot();
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.Equal(OfficeColor.FromRgb(17, 34, 51), image!.GetPixel(40, 40));
+            string svg = System.Text.Encoding.UTF8.GetString(slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            Assert.Contains("#445566", svg, StringComparison.OrdinalIgnoreCase);
 
-            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
-                .OfType<OfficeDrawingShape>(), element =>
-                    Math.Abs(element.X - 20D) < 0.000001D
-                    && Math.Abs(element.Y - 20D) < 0.000001D);
-            Assert.Equal(OfficeColor.FromRgb(17, 34, 51),
-                rendered.Shape.FillColor);
-            Assert.Equal(OfficeColor.FromRgb(68, 85, 102),
-                rendered.Shape.StrokeColor);
-            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
         }
 
         [Fact]

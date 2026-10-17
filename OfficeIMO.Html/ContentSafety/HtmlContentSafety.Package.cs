@@ -198,6 +198,10 @@ public static partial class HtmlContentSafety {
         cancellationToken.ThrowIfCancellationRequested();
 
         HtmlRenderOptions renderOptions = part.RenderOptions.Clone();
+        // Inspection computes screen styles. Discover and apply the same resources,
+        // independently of the document renderer's paged/print default.
+        renderOptions.Mode = HtmlRenderMode.Continuous;
+        renderOptions.CssMediaContextOverride = HtmlCssMediaContext.Screen;
         ApplySafetyLimits(renderOptions, safetyOptions);
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxInputCharacters = Math.Min(limits.MaxInputCharacters ?? int.MaxValue, safetyOptions.MaxCharacters);

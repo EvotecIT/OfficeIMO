@@ -154,14 +154,18 @@ public sealed class PowerPointChartReaderProjectionTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Snapshot_RejectsExplicitMarkerFillWithUnresolvedConnectingLine(bool markersVisible) {
+    public void Snapshot_KeepsExplicitMarkerFillWithAutomaticConnectingLine(bool markersVisible) {
         using var document = PowerPointPresentation.Create();
         var chart = document.AddSlide().AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Line", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, markersVisible) }));
         var series = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.LineChartSeries>().Single();
         series.GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!.GetFirstChild<A.SolidFill>()!.Remove();
         series.GetFirstChild<C.Marker>()!.ChartShapeProperties!.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val = "00FF00";
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        var appearance = snapshot.Data.Series.Single();
+        Assert.Equal(markersVisible, appearance.ShowMarkers);
+        if (markersVisible) Assert.All(appearance.PointColors!, color => Assert.Equal(OfficeColor.Parse("#00FF00"), color));
+        Assert.NotEqual(OfficeColor.Parse("#00FF00"), appearance.Color);
     }
 
     [Fact]

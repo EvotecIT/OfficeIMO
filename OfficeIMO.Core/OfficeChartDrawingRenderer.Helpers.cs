@@ -522,10 +522,10 @@ public static partial class OfficeChartDrawingRenderer {
     private static int GetCategorySlotIndex(int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
         layout.ReverseCategoryAxis ? categoryCount - 1 - categoryIndex : categoryIndex;
 
+    // A horizontal category axis runs bottom-up, as in Office: the first category sits at the
+    // bottom unless the axis is reversed (OOXML maxMin orientation).
     private static int GetHorizontalBarCategorySlotIndex(int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
-        layout.CategoryAxisOrientationSpecified
-            ? GetCategorySlotIndex(categoryIndex, categoryCount, layout)
-            : categoryCount - 1 - categoryIndex;
+        layout.ReverseCategoryAxis ? categoryIndex : categoryCount - 1 - categoryIndex;
 
     private static double GetCategorySlotCenterX(double plotLeft, double slotWidth, int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
         plotLeft + slotWidth * GetCategorySlotIndex(categoryIndex, categoryCount, layout) + slotWidth / 2D;
@@ -535,15 +535,21 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static double GetCartesianCategoryPointX(OfficeChartSnapshot snapshot, double plotLeft, double plotWidth,
         int categoryIndex, int categoryCount, OfficeChartLayout layout) {
-        // A column plot uses category slots. Its line and area companions must
-        // pass through the same slot centers, including on a reversed axis.
-        if (snapshot.Data.Series.Any(series => IsColumnChart(GetEffectiveSeriesKind(snapshot, series)))) {
+        // Points sit in the middle of each category slot (OOXML between), as do the
+        // category labels, unless the axis puts them on its tick marks (midCat).
+        if (!UsesTickMarkCategoryPoints(snapshot, layout)) {
             return GetCategorySlotCenterX(plotLeft, plotWidth / categoryCount, categoryIndex, categoryCount, layout);
         }
 
         double step = categoryCount > 1 ? plotWidth / (categoryCount - 1) : 0D;
         return GetCategoryPointX(plotLeft, step, categoryIndex, categoryCount, layout);
     }
+
+    // A column plot uses category slots, so its line and area companions pass
+    // through the same slot centers, including on a reversed axis.
+    private static bool UsesTickMarkCategoryPoints(OfficeChartSnapshot snapshot, OfficeChartLayout layout) =>
+        layout.CategoryPointsOnTickMarks &&
+        !snapshot.Data.Series.Any(series => IsColumnChart(GetEffectiveSeriesKind(snapshot, series)));
 
     private static ValueRange GetFiniteRange(IReadOnlyList<double> values) {
         bool any = false;

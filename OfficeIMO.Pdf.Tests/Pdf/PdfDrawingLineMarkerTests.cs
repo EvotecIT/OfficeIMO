@@ -320,7 +320,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 1, 1);
         byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 1000, PageHeight = 1000,
             MarginLeft = 10, MarginRight = 10 }).Shape(shape).ToBytes();
-        string text = System.Text.Encoding.ASCII.GetString(bytes);
+        string text = OfficeIMO.Tests.Pdf.PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains(" c", text);
         Assert.DoesNotContain("/Subtype /Image", text);
     }

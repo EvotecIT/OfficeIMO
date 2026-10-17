@@ -1,0 +1,33 @@
+{
+  "input": "p1-tables-charts.pptx",
+  "input_sha256": "c085185372a2c989fb63ee227485e522a848a59279956190032d29b46f5b237c",
+  "reference": "microsoft-powerpoint-16.113.4-tables-charts.pdf",
+  "reference_sha256": "c3701d9376f750703e8ac04e9ec1ce355c56f94e171631b04e7d7e5f2cad00ef",
+  "producer": "Microsoft PowerPoint 16.113.4",
+  "captured": "2026-10-16",
+  "preservation": "Original complete native PDF copied byte-for-byte; no page extraction or PDF rewriting.",
+  "contract": "Page 2: Medium Style 2 - Accent 1 table, accent1=156082, band1H tint=40000. Native second-row background RGB=204,210,216.",
+  "sample": {
+    "page": 2,
+    "x_points": 100,
+    "y_points_from_top": 185,
+    "rgb": [
+      204,
+      210,
+      216
+    ]
+  },
+  "independent_raster_sample": {
+    "producer": "Parent-supplied native PDF raster",
+    "width": 576,
+    "height": 325,
+    "x": 80,
+    "y": 112,
+    "rgb": [
+      204,
+      210,
+      216
+    ]
+  },
+  "limits": "This deck protects table-style inheritance. Compact native tint, shade, ordered-transform and alpha controls are recorded in controls-provenance.json."
+}

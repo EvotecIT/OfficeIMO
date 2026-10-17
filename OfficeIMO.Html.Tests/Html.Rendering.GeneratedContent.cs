@@ -25,6 +25,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument narrow = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 816D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -43,6 +44,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("Scientific Visualization Studio", printedText, StringComparison.Ordinal);
 
         HtmlRenderDocument wide = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 1200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -61,6 +63,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -79,6 +82,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<a href='https://example.com/card'><div>Linked card title</div></a>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -101,6 +105,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -122,6 +127,7 @@ public sealed partial class HtmlRenderingTests {
             + "<ul><li id='first'>First</li><li id='second'>Second</li></ul>"
             + "<p style='margin:0'>Following</p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -157,6 +163,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='positive'></div><div id='relative-positive'></div></div>"
             + "<div class='host' id='after'><div class='flow' id='second-flow'></div><div id='relative-negative'></div></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D)
@@ -193,6 +200,7 @@ public sealed partial class HtmlRenderingTests {
             + "<p><strong><a href='https://example.test'>Tables with one header"
             + "<img alt='' src='data:image/png;base64," + png + "'></a></strong> for rows and columns.</p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 600D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -220,6 +228,7 @@ public sealed partial class HtmlRenderingTests {
             + "' alt='gallery tile'></div></a></div></li></ul>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 400D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -241,6 +250,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -271,6 +281,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -293,6 +304,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -319,6 +331,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -347,6 +360,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -375,6 +389,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -393,6 +408,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlGeneratedContent_FlowsThroughPngSvgAndSearchablePdf() {
         const string html = "<style>.marker::before{content:'Generated\\20';color:#123456}</style><p class='marker' style='margin:0'>BackendMarker</p>";
         var imageOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(8D)
         };
@@ -403,8 +419,8 @@ public sealed partial class HtmlRenderingTests {
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("Generated", svg, StringComparison.Ordinal);
-        Assert.Contains("BackendMarker", svg, StringComparison.Ordinal);
+        Assert.Contains("Generated", SvgPaintedText.Read(svg), StringComparison.Ordinal);
+        Assert.Contains("BackendMarker", SvgPaintedText.Read(svg), StringComparison.Ordinal);
         Assert.Contains("GeneratedBackendMarker", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
@@ -562,6 +578,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 260D,
             Margins = HtmlRenderMargins.All(0D)
         });

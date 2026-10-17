@@ -2,6 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html;
 
+/// <summary>Exports HTML surfaces from the same paged layout and PDF scene as PDF conversion.</summary>
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders one selected surface to the requested image format with dimensions and diagnostics.</summary>
     public static OfficeImageExportResult ExportImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
@@ -84,7 +85,6 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, MapEncoder(format), HtmlRenderPageSet.All());
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
-        var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
         HtmlRenderResult? rendered = null;
         await OfficeImageExportBatchProcessor.RunAsyncWithPreflight(
             resolved,
@@ -94,18 +94,8 @@ public static partial class HtmlImageExportExtensions {
                 return rendered.Document.Pages.Count;
             },
             async (accept, operationCancellationToken) => {
-                HtmlRenderResult completed = rendered!;
-                foreach (HtmlRenderPage page in completed.Document.Pages) {
-                    operationCancellationToken.ThrowIfCancellationRequested();
-                    OfficeImageExportResult result = RenderPage(
-                        page,
-                        format,
-                        resolved,
-                        completed.Document.DiagnosticReport,
-                        operationCancellationToken,
-                        encodingBudget);
-                    await accept(result, operationCancellationToken).ConfigureAwait(false);
-                }
+                await HtmlRenderResultImageExtensions.ExportImagesCoreAsync(
+                    rendered!, format, resolved, accept, operationCancellationToken).ConfigureAwait(false);
             },
             consumer,
             cancellationToken).ConfigureAwait(false);

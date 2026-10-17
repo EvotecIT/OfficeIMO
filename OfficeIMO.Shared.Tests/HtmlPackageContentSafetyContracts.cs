@@ -11,7 +11,7 @@ using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
 
-public sealed class HtmlPackageContentSafetyContractTests {
+public sealed partial class HtmlPackageContentSafetyContractTests {
     [Theory]
     [InlineData("hidden")]
     [InlineData("collapse")]
@@ -1610,6 +1610,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool foreignNamespaceContentSecurityPolicy = false,
         bool topLevelXhtmlComment = false,
         bool inactiveStylesheetMedia = false,
+        bool screenStylesheetMedia = false,
         bool inactiveInlineStyle = false,
         bool missingSecondHtmlResource = false,
         bool foreignNamespaceStylesheet = false,
@@ -1770,7 +1771,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
                   (disabledStylesheet ? " disabled='disabled'" : string.Empty) +
                   (stylesheetIntegrity ? " integrity='sha256-invalid'" : string.Empty) +
                   (nonCssStylesheetType ? " type='text/plain'" : string.Empty) +
-                  (inactiveStylesheetMedia ? " media='print'" : string.Empty) +
+                  (inactiveStylesheetMedia ? " media='print'" : screenStylesheetMedia ? " media='screen'" : string.Empty) +
                   (alternateStylesheet ? " title='dark'" : string.Empty) + "/>";
         if (uppercaseStyleAttribute) {
             chapterBody = "<p STYLE='display:none'>Noncanonical attribute concealed text.</p>";

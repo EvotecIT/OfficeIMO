@@ -251,10 +251,11 @@ internal static partial class PdfWriter {
                         foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
                             fontProgram.RecordGlyphUsage(glyphId, unicodeText);
                         }
-                        fontProgram.MergeAsciiCharacterUsageFrom(otherProgram);
+                        fontProgram.MergeTextPinsFrom(otherProgram);
                     }
 
-                    int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts, cancellationToken);
+                    int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts,
+                        pendingFont.Options, "embedded-font:" + pendingFont.Font, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(fontProgram, fontFileId));
                     byte[]? cidToGlyphMap = fontProgram.BuildCidToGlyphMap();
                     int cidToGlyphMapId = cidToGlyphMap == null ? 0 : opts.CompressEmbeddedFonts
@@ -263,7 +264,7 @@ internal static partial class PdfWriter {
                     int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType2DescendantObject(fontProgram, descriptorId, cidToGlyphMapId));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(fontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(fontProgram, descendantFontId, toUnicodeObjectId));
-                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.FontName, descriptorId, trueType: true);
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.SubsetFontName, descriptorId, trueType: true);
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
                     foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
@@ -277,26 +278,23 @@ internal static partial class PdfWriter {
                         foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
                             cffFontProgram.RecordGlyphUsage(glyphId, unicodeText);
                         }
+                        cffFontProgram.MergeTextPinsFrom(otherProgram);
                     }
 
                     requiresPdf16FileVersion = true;
-                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan();
+                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan(allowCidKeyedCff: true);
                     pendingFont.Options.AddFontDiagnostics(
                         pendingFont.Font,
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font, compactFontFile));
-                    byte[] fontData = compactFontFile.Data;
-                    string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = opts.CompressEmbeddedFonts
-                        ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
-                        : AddStreamObject(
-                            objects,
-                            "<< /Length " + fontData.Length.ToString(CultureInfo.InvariantCulture) + " " + fontFileExtraEntries + " >>",
-                            fontData);
-                    int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId));
-                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId));
+                    string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
+                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds(), compactFontFile.Data) : cffFontProgram.FontName;
+                    int fontFileId = AddOpenTypeCffFontFileObject(objects, cffFontProgram, compactFontFile,
+                        opts.CompressEmbeddedFonts, pendingFont.Options, "embedded-font:" + pendingFont.Font, cancellationToken);
+                    int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId, cffSubsetName));
+                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId, cffSubsetName));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(cffFontProgram));
-                    ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
-                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, cffFontProgram.FontName, descriptorId: descriptorId, descendantId: descendantFontId);
+                    ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId, cffSubsetName));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, cffSubsetName, descriptorId: descriptorId, descendantId: descendantFontId);
                 } else {
                     int toUnicodeObjectId = opts.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())
@@ -309,7 +307,8 @@ internal static partial class PdfWriter {
             foreach (var pendingFont in pendingNamedFontObjects) {
                 if (pendingFont.Options.TryGetNamedFontProgramForGeneration(pendingFont.Font, out PdfTrueTypeFontProgram? fontProgram) &&
                     fontProgram != null) {
-                    int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts, cancellationToken);
+                    int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts,
+                        pendingFont.Options, "named-font:" + pendingFont.Font.FaceKey, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(fontProgram, fontFileId));
                     byte[]? cidToGlyphMap = fontProgram.BuildCidToGlyphMap();
                     int cidToGlyphMapId = cidToGlyphMap == null ? 0 : opts.CompressEmbeddedFonts
@@ -321,22 +320,18 @@ internal static partial class PdfWriter {
                 } else if (pendingFont.Options.TryGetNamedOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                            cffFontProgram != null) {
                     requiresPdf16FileVersion = true;
-                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan();
+                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan(allowCidKeyedCff: true);
                     pendingFont.Options.AddFontDiagnostics(
                         PdfStandardFont.Helvetica,
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "named-font:" + pendingFont.Font.FaceKey, compactFontFile));
-                    byte[] fontData = compactFontFile.Data;
-                    string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = opts.CompressEmbeddedFonts
-                        ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
-                        : AddStreamObject(
-                            objects,
-                            "<< /Length " + fontData.Length.ToString(CultureInfo.InvariantCulture) + " " + fontFileExtraEntries + " >>",
-                            fontData);
-                    int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId));
-                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId));
+                    string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
+                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds(), compactFontFile.Data) : cffFontProgram.FontName;
+                    int fontFileId = AddOpenTypeCffFontFileObject(objects, cffFontProgram, compactFontFile,
+                        opts.CompressEmbeddedFonts, pendingFont.Options, "named-font:" + pendingFont.Font.FaceKey, cancellationToken);
+                    int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId, cffSubsetName));
+                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId, cffSubsetName));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(cffFontProgram));
-                    ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
+                    ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId, cffSubsetName));
                 } else {
                     throw new InvalidOperationException("Named font resource '" + pendingFont.Font.FamilyName + "' could not be materialized.");
                 }
@@ -372,6 +367,7 @@ internal static partial class PdfWriter {
         var optimizedImageCache = new Dictionary<string, OfficeImageOptimizationResult>(StringComparer.Ordinal);
 
         int EnsureImageXObject(PdfImageStream imageStream) {
+            imageStream = PrepareImageStreamForVersion(imageStream, serializationFileVersion, cancellationToken);
             if (imageXObjectIdsByHash == null) {
                 foreach ((PdfImageStream written, int existingImageId) in imageXObjectIds) {
                     if (SameImageStream(written, imageStream)) return existingImageId;
@@ -410,7 +406,9 @@ internal static partial class PdfWriter {
                 softMaskId = AddStreamObject(objects, softMaskDictionary, imageStream.SoftMask.Data);
             }
 
-            string imageDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream, softMaskId);
+            int? iccProfileId = imageStream.IccProfile == null ? null :
+                AddStreamObject(objects, BuildImageIccDictionary(imageStream), imageStream.IccProfile);
+            string imageDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream, softMaskId, iccProfileId);
             int imageId = AddStreamObject(objects, imageDictionary, imageStream.Data);
             imageXObjectIds.Add((imageStream, imageId));
             if (imageXObjectIdsByHash != null) {
@@ -597,14 +595,18 @@ internal static partial class PdfWriter {
                             shading.Y1,
                             shading.R1,
                             shading.Stops,
-                            resourceColorTransform, colorInterpolation: shading.ColorInterpolation)
+                            resourceColorTransform, colorInterpolation: shading.ColorInterpolation,
+                            interpolateAlphaSeparately: shading.InterpolateAlphaSeparately,
+                            functionReferenceResolver: body => PdfSyntaxEscaper.IndirectReference(AddObject(objects, body)))
                         : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
                             shading.X0,
                             shading.Y0,
                             shading.X1,
                             shading.Y1,
                             shading.Stops,
-                            resourceColorTransform, colorInterpolation: shading.ColorInterpolation);
+                            resourceColorTransform, colorInterpolation: shading.ColorInterpolation,
+                            interpolateAlphaSeparately: shading.InterpolateAlphaSeparately,
+                            functionReferenceResolver: body => PdfSyntaxEscaper.IndirectReference(AddObject(objects, body)));
                     int shadingId;
                     if (shading.SpreadMode != OfficeGradientSpreadMode.Pad) {
                         shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false, resourceColorTransform);
@@ -657,6 +659,7 @@ internal static partial class PdfWriter {
                         imageStream.DictionarySuffix += " /Interpolate true";
                         if (imageStream.SoftMask != null) imageStream.SoftMask.DictionarySuffix += " /Interpolate true";
                     }
+                    img.Orientation = imageStream.Orientation;
                     int imgId = EnsureImageXObject(imageStream);
                     if (!pageImageResourceNames.TryGetValue(imgId, out string? name)) {
                         name = "/Im" + (pageImageResourceNames.Count + 1).ToString(CultureInfo.InvariantCulture);
@@ -708,7 +711,9 @@ internal static partial class PdfWriter {
                         FilterPdfResources(effectContent, shadings),
                         effect.StructParentIndex,
                         deviceRgbColorSpace: effect.IsOpacityData);
-                    int effectId = AddStreamObject(objects, dictionary, effectBytes);
+                    int effectId = effect.TilingPattern != null
+                        ? AddTilingPatternForm(objects, effect, effectContent, fontResources, xobjects, graphicsStates, shadings)
+                        : AddStreamObject(objects, dictionary, effectBytes);
                     effect.Name = "/Fx" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
                     effect.ObjectId = effectId;
                     xobjects.Add((effect.Name, effectId));
@@ -750,10 +755,10 @@ internal static partial class PdfWriter {
                 usedShadingResources = FilterPdfResources(pageContentBytes, shadings);
             } else {
                 string pageLayoutContent = layout.ReadContent(page.Content);
-                string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo);
+                string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo, "/Type /Pagination");
                 if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
                     string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources, pageNamedFontResources);
-                    contentStr += WrapArtifactContent(headerContent, markInfo);
+                    contentStr += WrapArtifactContent(headerContent, markInfo, "/Type /Pagination /Subtype /Header");
                 }
                 string pageContent = ReplaceInlineImageDrawTokens(pageLayoutContent, page.Images);
                 contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
@@ -777,7 +782,7 @@ internal static partial class PdfWriter {
                 }
                 if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
                     string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
-                    contentStr += WrapArtifactContent(footer, markInfo);
+                    contentStr += WrapArtifactContent(footer, markInfo, "/Type /Pagination /Subtype /Footer");
                 }
                 contentStr += foregroundImages.ToString();
                 if (flattenVisualAnnotations) {
@@ -1119,7 +1124,7 @@ internal static partial class PdfWriter {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = opts.EmbeddedFileSnapshots;
         List<(string FileName, int FileSpecId)> structureFileEntries = BuildStructureAssociatedFiles(objects, layout.Pages, embeddedFiles, cancellationToken);
         if (markInfo) {
-            BuildGeneratedStructTree(objects, layout.Pages, pageIds, structTreeRootId, opts.Language);
+            BuildGeneratedStructTree(objects, layout.Pages, pageIds, structTreeRootId, opts.Language, pdf20: serializationFileVersion >= PdfFileVersion.Pdf20);
         }
 
         int outlinesId = BuildOutlines(objects, layout.Pages, pageIds, opts.OutlineExpansionLevelSnapshot);
@@ -1240,7 +1245,10 @@ internal static partial class PdfWriter {
             portfolioId,
             optionalContentPropertiesId));
 
-        infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords, opts.TrappingStatus, pdfXIdentification, pdfXProductionMetadata));
+        // PDF/A-4 keeps descriptive metadata exclusively in XMP (ISO 19005-4, 6.1.3).
+        if (pdfAIdentification?.Part != 4) {
+            infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords, opts.TrappingStatus, pdfXIdentification, pdfXProductionMetadata));
+        }
         MaterializePendingFontObjects();
 
         PdfFileVersion effectiveFileVersion = requiresPdf16FileVersion
@@ -1531,12 +1539,12 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static string WrapArtifactContent(string content, bool enabled) {
+    private static string WrapArtifactContent(string content, bool enabled, string properties = "/Type /Layout") {
         if (!enabled || string.IsNullOrEmpty(content)) {
             return content;
         }
 
-        return "/Artifact BMC\n" + content + "EMC\n";
+        return "/Artifact << " + properties + " >> BDC\n" + content + "EMC\n";
     }
 
     private static void AssignFigureMarkedContentIds(LayoutResult.Page page) {
@@ -1717,65 +1725,6 @@ internal static partial class PdfWriter {
             RotationAngle = watermark.RotationAngle,
             GraphicsStateName = stateName
         });
-    }
-
-    private static void AppendPageImageDraw(StringBuilder sb, PageImage img) {
-        if (img.ClipPath != null) {
-            new ContentStreamBuilder(sb)
-                .SaveState();
-            AppendClipPath(sb, img.ClipPath, img.ClipX, img.ClipY, img.ClipHeight);
-        }
-
-        bool hasAlternativeText = !img.SuppressAccessibilityWrapper && !string.IsNullOrWhiteSpace(img.AlternativeText);
-        if (hasAlternativeText) {
-            sb.Append("/Figure << /Alt ")
-                .Append(PdfSyntaxEscaper.TextString(img.AlternativeText!));
-            if (img.MarkedContentId.HasValue) {
-                sb.Append(" /MCID ")
-                    .Append(img.MarkedContentId.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            sb.Append(" >> BDC\n");
-        } else if (!img.SuppressAccessibilityWrapper && img.IsDecorativeArtifact) {
-            sb.Append("/Artifact BMC\n");
-        }
-
-        OfficeTransform imageTransform = new OfficeImageProjection(
-            new OfficeImagePlacement(img.X, img.Y, img.W, img.H),
-            rotationDegrees: img.RotationAngle,
-            rotationCenterX: img.RotationCenterX,
-            rotationCenterY: img.RotationCenterY,
-            flipHorizontal: img.HorizontalFlip,
-            flipVertical: img.VerticalFlip)
-            .CreateUnitSquareTransform();
-
-        var content = new ContentStreamBuilder(sb)
-            .SaveState();
-        if (!string.IsNullOrEmpty(img.GraphicsStateName)) {
-            content.GraphicsState(img.GraphicsStateName!);
-        }
-
-        content
-            .TransformMatrix(imageTransform);
-        if (img.SourceCrop?.HasCrop == true) {
-            double clipWidth = 1D - img.SourceCrop.Left - img.SourceCrop.Right;
-            double clipHeight = 1D - img.SourceCrop.Top - img.SourceCrop.Bottom;
-            content.Rectangle(img.SourceCrop.Left, img.SourceCrop.Bottom, clipWidth, clipHeight)
-                .ClipPath()
-                .EndPath();
-        }
-
-        content.XObject(img.Name)
-            .RestoreState();
-
-        if (hasAlternativeText || !img.SuppressAccessibilityWrapper && img.IsDecorativeArtifact) {
-            sb.Append("EMC\n");
-        }
-
-        if (img.ClipPath != null) {
-            new ContentStreamBuilder(sb)
-                .RestoreState();
-        }
     }
 
     private static void EnsureTextWatermarkFontResources(PdfTextWatermark watermark, PdfOptions options, Func<PdfStandardFont, string, string> ensureFontResource) {

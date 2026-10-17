@@ -27,6 +27,13 @@ internal static class PdfLinearizationPlanner {
             MaterializeInheritedPageValues(pageObjectNumbers[index], objects);
         }
 
+        // Linearized pages must carry their inherited values directly. Keep ancestors intact
+        // until every page has inherited from them, then remove the page-tree attributes.
+        foreach (int objectNumber in pageTreeObjectNumbers) {
+            if (objects[objectNumber].Value is not PdfDictionary pageTree) continue;
+            foreach (string key in InheritedPageKeys) pageTree.Items.Remove(key);
+        }
+
         var reachableByPage = new List<List<int>>(pageObjectNumbers.Count);
         var reachableSets = new List<HashSet<int>>(pageObjectNumbers.Count);
         for (int index = 0; index < pageObjectNumbers.Count; index++) {

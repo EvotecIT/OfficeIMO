@@ -1,7 +1,10 @@
 using System;
+using System.Globalization;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
 using OfficeIMO.Html;
@@ -58,8 +61,8 @@ public sealed class HtmlEmailImageExportTests {
 
         Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
         string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
-        Assert.Contains("Quarterly update", svg);
-        Assert.Contains("Hello,", svg);
+        Assert.Contains("Quarterly update", SvgPaintedText.Read(svg));
+        Assert.Contains("Hello,", SvgPaintedText.Read(svg));
         Assert.DoesNotContain(
             result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_IMAGE_BODY_MISSING");
@@ -80,11 +83,40 @@ public sealed class HtmlEmailImageExportTests {
             OfficeImageExportFormat.Svg,
             options);
 
-        string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
-        Assert.Contains(
-            "font-family=\"" + ManagedTextShapingTestAssets.FamilyName + "\"",
-            svg,
-            StringComparison.Ordinal);
+        XDocument svg = XDocument.Parse(System.Text.Encoding.UTF8.GetString(result.Bytes));
+        XElement[] text = svg.Descendants().Where(element => element.Name.LocalName == "text").ToArray();
+        Assert.Equal(2, text.Length);
+        Assert.All(text, element => Assert.Equal("A", element.Value));
+        XElement subject = text[0];
+        Assert.True(double.Parse(subject.Attribute("y")!.Value, CultureInfo.InvariantCulture)
+            < double.Parse(text[1].Attribute("y")!.Value, CultureInfo.InvariantCulture));
+        string family = subject.Attribute("font-family")!.Value;
+        Assert.NotEqual(family, text[1].Attribute("font-family")!.Value);
+
+        string styles = string.Concat(svg.Descendants().Where(element => element.Name.LocalName == "style").Select(element => element.Value));
+        Match rule = Assert.Single(Regex.Matches(styles, """@font-face\s*\{(?<body>[^{}]+)\}""",
+            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)).Cast<Match>(), match =>
+            Field(match.Groups["body"].Value, """(?:^|;)\s*font-family\s*:\s*"(?<value>[^"]+)"\s*(?:;|$)""") == family);
+        string declarations = rule.Groups["body"].Value;
+        byte[] embedded = Convert.FromBase64String(Field(declarations,
+            """(?:^|;)\s*src\s*:\s*url\(data:font/ttf;base64,(?<value>[A-Za-z0-9+/=]+)\)"""));
+        int weight = int.Parse(Field(declarations, """(?:^|;)\s*font-weight\s*:\s*(?<value>\d+)"""), CultureInfo.InvariantCulture);
+        Assert.Equal(weight, int.Parse(subject.Attribute("font-weight")!.Value, CultureInfo.InvariantCulture));
+        var descriptor = new OfficeFontFaceDescriptor(weight);
+        var fonts = new OfficeFontFaceCollection();
+        Assert.True(fonts.TryAdd(family, embedded, descriptor));
+        Assert.True(fonts.TryResolveFaceForText("A", family, descriptor, out OfficeFontFace? face));
+        Assert.True(face!.Program.TryGetGlyphMetrics('A', out _, out int advance));
+        Assert.Equal(500, advance);
+        Assert.Equal(1000, face.Program.UnitsPerEm);
+        Assert.Equal(0.5D, double.Parse(subject.Attribute("textLength")!.Value, CultureInfo.InvariantCulture)
+            / double.Parse(subject.Attribute("font-size")!.Value, CultureInfo.InvariantCulture), 6);
+
+        static string Field(string declarations, string pattern) {
+            Match match = Regex.Match(declarations, pattern, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+            Assert.True(match.Success, "The exported font face must retain its declared family, embedded data and weight.");
+            return match.Groups["value"].Value;
+        }
     }
 
     [Theory]
@@ -102,10 +134,10 @@ public sealed class HtmlEmailImageExportTests {
         Assert.Equal(format, result.Format);
         Assert.True(result.Bytes.Length > 32);
         if (format == OfficeImageExportFormat.Svg) {
-            string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
-            Assert.Contains("Styled", svg, StringComparison.Ordinal);
-            Assert.Contains("font-style=\"italic\"", svg, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("text-decoration-style=\"wavy\"", svg, StringComparison.OrdinalIgnoreCase);
+            OfficeDrawing drawing = HtmlSvgPaintAssertions.Read(result.Bytes);
+            Assert.Contains(DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>(), text =>
+                text.Text == "Styled" && (text.Font.Style & OfficeFontStyle.Italic) != 0);
+            HtmlSvgPaintAssertions.WavyStrokes(drawing, OfficeColor.FromRgb(0x33, 0x66, 0x99), 2);
         }
     }
 

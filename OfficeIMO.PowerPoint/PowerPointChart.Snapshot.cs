@@ -6,6 +6,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -15,27 +16,36 @@ namespace OfficeIMO.PowerPoint {
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
         internal bool TryGetSnapshot(out PowerPointChartSnapshot snapshot) =>
+            TryGetSnapshot(out snapshot, out _);
+
+        /// <summary>
+        /// Tries to create a dependency-free snapshot and reports why the chart cannot be projected.
+        /// </summary>
+        internal bool TryGetSnapshot(out PowerPointChartSnapshot snapshot, out string? failureReason) =>
             TryGetSnapshotWithOwnerColorScheme(
                 forDataUpdate: false,
-                out snapshot);
+                out snapshot,
+                out failureReason);
 
         private bool TryGetSnapshotForUpdate(out PowerPointChartSnapshot snapshot) =>
             TryGetSnapshotWithOwnerColorScheme(
                 forDataUpdate: true,
-                out snapshot);
+                out snapshot,
+                out _);
 
         private bool TryGetSnapshotWithOwnerColorScheme(
             bool forDataUpdate,
-            out PowerPointChartSnapshot snapshot) {
+            out PowerPointChartSnapshot snapshot,
+            out string? failureReason) {
+            A.ColorScheme? colorScheme;
             try {
-                return TryGetSnapshot(
-                    GetOwnerColorScheme(),
-                    forDataUpdate,
-                    out snapshot);
-            } catch {
+                colorScheme = GetOwnerColorScheme();
+            } catch (Exception exception) when (IsExpectedSnapshotFailure(exception)) {
                 snapshot = null!;
+                failureReason = DescribeSnapshotFailure(exception);
                 return false;
             }
+            return TryGetSnapshot(colorScheme, forDataUpdate, out snapshot, out failureReason);
         }
 
         private A.ColorScheme? GetOwnerColorScheme() {
@@ -73,33 +83,56 @@ namespace OfficeIMO.PowerPoint {
 
         internal bool TryGetSnapshot(A.ColorScheme? colorScheme,
             out PowerPointChartSnapshot snapshot) =>
-            TryGetSnapshot(colorScheme, forDataUpdate: false, out snapshot);
+            TryGetSnapshot(colorScheme, forDataUpdate: false, out snapshot, out _);
+
+        internal bool TryGetSnapshot(A.ColorScheme? colorScheme,
+            out PowerPointChartSnapshot snapshot, out string? failureReason) =>
+            TryGetSnapshot(colorScheme, forDataUpdate: false, out snapshot, out failureReason);
 
         private bool TryGetSnapshot(A.ColorScheme? colorScheme,
-            bool forDataUpdate, out PowerPointChartSnapshot snapshot) {
-            if (!TryReadSnapshot(colorScheme, forDataUpdate, out snapshot)) return false;
-            if (!forDataUpdate && snapshot.Data.Series.Any(series => series.HasUnsupportedSharedAppearance)) {
+            bool forDataUpdate, out PowerPointChartSnapshot snapshot, out string? failureReason) {
+            if (!TryReadSnapshot(colorScheme, forDataUpdate, out snapshot, out failureReason)) return false;
+            PowerPointChartSeries? unsupported = forDataUpdate ? null :
+                snapshot.Data.Series.FirstOrDefault(series => series.UnsupportedSharedAppearance != null);
+            if (unsupported != null) {
+                failureReason = unsupported.UnsupportedSharedAppearance;
                 snapshot = null!;
                 return false;
             }
             return true;
         }
 
+        /// <summary>Exceptions that describe document content the snapshot cannot project.</summary>
+        private static bool IsExpectedSnapshotFailure(Exception exception) =>
+            exception is NotSupportedException or InvalidDataException or ArgumentException or FormatException or
+                OverflowException or InvalidOperationException or KeyNotFoundException or System.Xml.XmlException or
+                OpenXmlPackageException;
+
+        private static string DescribeSnapshotFailure(Exception exception) =>
+            exception is NotSupportedException or InvalidDataException
+                ? exception.Message
+                : exception.GetType().Name + ": " + exception.Message;
+
         private bool TryReadSnapshot(A.ColorScheme? colorScheme,
-            bool forDataUpdate, out PowerPointChartSnapshot snapshot) {
+            bool forDataUpdate, out PowerPointChartSnapshot snapshot, out string? failureReason) {
+            failureReason = null;
+            static bool Fail(out PowerPointChartSnapshot failed) {
+                failed = null!;
+                return false;
+            }
             try {
                 ChartPart chartPart = GetChartPart();
                 C.Chart? chart = chartPart.ChartSpace?.GetFirstChild<C.Chart>();
                 C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
                 if (chart == null || plotArea == null) {
-                    snapshot = null!;
-                    return false;
+                    failureReason = "The chart part has no plot area.";
+                    return Fail(out snapshot);
                 }
 
                 if (!forDataUpdate && OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader
                         .HasUncachedFormulaTitle(chart)) {
-                    snapshot = null!;
-                    return false;
+                    failureReason = "The chart title is a formula without a cached value.";
+                    return Fail(out snapshot);
                 }
 
                 if (!forDataUpdate) {
@@ -110,13 +143,15 @@ namespace OfficeIMO.PowerPoint {
 
                 if (!forDataUpdate
                     && !TryReadSharedTextStyle(chart, out _)) {
-                    snapshot = null!;
-                    return false;
+                    failureReason = "The chart text formatting cannot be projected.";
+                    return Fail(out snapshot);
                 }
 
                 if (HasUnsupportedChartGroupElements(plotArea)) {
-                    snapshot = null!;
-                    return false;
+                    failureReason = "The chart family '" + plotArea.ChildElements.First(element =>
+                        element.LocalName.EndsWith("Chart", StringComparison.Ordinal) && !IsSupportedChartGroup(element)).LocalName +
+                        "' has no shared chart projection.";
+                    return Fail(out snapshot);
                 }
 
                 if (TryCreateAdvancedChartSnapshot(chart, plotArea, colorScheme, forDataUpdate,
@@ -127,126 +162,72 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (CountSupportedChartElements(plotArea) > 1) {
-                    snapshot = null!;
-                    return false;
+                    failureReason = "This combination of chart groups and axes has no shared chart projection.";
+                    return Fail(out snapshot);
                 }
 
+                PowerPointChartData? data = null;
+                PowerPointChartSnapshotKind snapshotKind = PowerPointChartSnapshotKind.ClusteredColumn;
+                OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area;
+                double bubbleScalePercent = 100D;
                 if (plotArea.GetFirstChild<C.BarChart>() is C.BarChart barChart) {
-                    PowerPointChartSnapshotKind kind = GetBarChartSnapshotKind(barChart);
-                    PowerPointChartData? data = ReadCategorySeriesData(barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme, forDataUpdate: forDataUpdate);
-                    if (data == null) {
-                        snapshot = null!;
-                        return false;
-                    }
-
-                    snapshot = CreateSnapshot(chart, kind, data, forDataUpdate: forDataUpdate, colorScheme: colorScheme);
-                    return true;
-                }
-
-                if (plotArea.GetFirstChild<C.LineChart>() is C.LineChart lineChart) {
-                    PowerPointChartSnapshotKind kind = GetLineChartSnapshotKind(lineChart);
-                    PowerPointChartData? data = ReadCategorySeriesData(lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme, forDataUpdate: forDataUpdate);
-                    if (data == null) {
-                        snapshot = null!;
-                        return false;
-                    }
-
-                    snapshot = CreateSnapshot(chart, kind, data, forDataUpdate: forDataUpdate, colorScheme: colorScheme);
-                    return true;
-                }
-
-                if (plotArea.GetFirstChild<C.AreaChart>() is C.AreaChart areaChart) {
-                    PowerPointChartSnapshotKind kind = GetAreaChartSnapshotKind(areaChart);
-                    PowerPointChartData? data = ReadCategorySeriesData(areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme, forDataUpdate: forDataUpdate);
-                    if (data == null) {
-                        snapshot = null!;
-                        return false;
-                    }
-
-                    snapshot = CreateSnapshot(chart, kind, data, forDataUpdate: forDataUpdate, colorScheme: colorScheme);
-                    return true;
-                }
-
-                if (plotArea.GetFirstChild<C.RadarChart>() is C.RadarChart radarChart) {
-                    PowerPointChartData? data = ReadCategorySeriesData(radarChart.Elements<C.RadarChartSeries>().Cast<OpenXmlCompositeElement>(), PowerPointChartSnapshotKind.Radar, colorScheme, forDataUpdate: forDataUpdate);
-                    if (data == null) {
-                        snapshot = null!;
-                        return false;
-                    }
-
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Radar, data, forDataUpdate: forDataUpdate, colorScheme: colorScheme);
-                    return true;
-                }
-
-                if (plotArea.GetFirstChild<C.ScatterChart>() is C.ScatterChart scatterChart) {
-                    PowerPointChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), colorScheme, forDataUpdate: forDataUpdate);
-                    if (data == null) {
-                        snapshot = null!;
-                        return false;
-                    }
-
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Scatter, data, forDataUpdate: forDataUpdate, colorScheme: colorScheme);
-                    return true;
-                }
-
-                if (plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubbleChart) {
+                    snapshotKind = GetBarChartSnapshotKind(barChart);
+                    data = ReadCategorySeriesData(barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), snapshotKind, colorScheme, forDataUpdate: forDataUpdate);
+                } else if (plotArea.GetFirstChild<C.LineChart>() is C.LineChart lineChart) {
+                    snapshotKind = GetLineChartSnapshotKind(lineChart);
+                    data = ReadCategorySeriesData(lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), snapshotKind, colorScheme, forDataUpdate: forDataUpdate);
+                } else if (plotArea.GetFirstChild<C.AreaChart>() is C.AreaChart areaChart) {
+                    snapshotKind = GetAreaChartSnapshotKind(areaChart);
+                    data = ReadCategorySeriesData(areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), snapshotKind, colorScheme, forDataUpdate: forDataUpdate);
+                } else if (plotArea.GetFirstChild<C.RadarChart>() is C.RadarChart radarChart) {
+                    snapshotKind = PowerPointChartSnapshotKind.Radar;
+                    data = ReadCategorySeriesData(radarChart.Elements<C.RadarChartSeries>().Cast<OpenXmlCompositeElement>(), snapshotKind, colorScheme, forDataUpdate: forDataUpdate);
+                } else if (plotArea.GetFirstChild<C.ScatterChart>() is C.ScatterChart scatterChart) {
+                    snapshotKind = PowerPointChartSnapshotKind.Scatter;
+                    data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), colorScheme, forDataUpdate: forDataUpdate);
+                } else if (plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubbleChart) {
+                    snapshotKind = PowerPointChartSnapshotKind.Bubble;
                     if (!forDataUpdate && OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.HasUnsupportedBubblePresentation(
                         chartPart, chart, plotArea, bubbleChart, PowerPointUtils.MaximumSharedChartPoints)) {
-                        snapshot = null!;
-                        return false;
+                        failureReason = "The bubble chart presentation has no shared chart projection.";
+                        return Fail(out snapshot);
                     }
-                    PowerPointChartData? data = ReadBubbleSeriesData(
+                    data = ReadBubbleSeriesData(
                         bubbleChart.Elements<C.BubbleChartSeries>(), colorScheme,
                         forDataUpdate);
-                    if (data == null) {
-                        snapshot = null!;
-                        return false;
-                    }
-
                     uint bubbleScale = bubbleChart.GetFirstChild<C.BubbleScale>()?.Val?.Value ?? 100U;
                     if (bubbleScale > 300U) {
-                        snapshot = null!;
-                        return false;
+                        failureReason = "The bubble scale exceeds 300 percent.";
+                        return Fail(out snapshot);
                     }
-                    OfficeChartBubbleSizeMode bubbleSizeMode =
+                    bubbleScalePercent = bubbleScale;
+                    bubbleSizeMode =
                         bubbleChart.GetFirstChild<C.SizeRepresents>()?.Val?.Value ==
                         C.SizeRepresentsValues.Width
                             ? OfficeChartBubbleSizeMode.Width
                             : OfficeChartBubbleSizeMode.Area;
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Bubble, data,
-                        bubbleSizeMode, bubbleScale, forDataUpdate, colorScheme);
-                    return true;
+                } else if (plotArea.GetFirstChild<C.PieChart>() is C.PieChart pieChart) {
+                    snapshotKind = PowerPointChartSnapshotKind.Pie;
+                    data = ReadCategorySeriesData(pieChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), snapshotKind, colorScheme, forDataUpdate: forDataUpdate);
+                } else if (plotArea.GetFirstChild<C.DoughnutChart>() is C.DoughnutChart doughnutChart) {
+                    snapshotKind = PowerPointChartSnapshotKind.Doughnut;
+                    data = ReadCategorySeriesData(doughnutChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), snapshotKind, colorScheme, forDataUpdate: forDataUpdate);
+                } else {
+                    failureReason = "The chart has no chart group with a shared chart projection.";
+                    return Fail(out snapshot);
                 }
 
-                if (plotArea.GetFirstChild<C.PieChart>() is C.PieChart pieChart) {
-                    PowerPointChartData? data = ReadCategorySeriesData(pieChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), PowerPointChartSnapshotKind.Pie, colorScheme, forDataUpdate: forDataUpdate);
-                    if (data == null) {
-                        snapshot = null!;
-                        return false;
-                    }
-
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Pie, data,
-                        forDataUpdate: forDataUpdate, colorScheme: colorScheme);
-                    return true;
+                if (data == null) {
+                    failureReason = "The chart series have no cached values.";
+                    return Fail(out snapshot);
                 }
 
-                if (plotArea.GetFirstChild<C.DoughnutChart>() is C.DoughnutChart doughnutChart) {
-                    PowerPointChartData? data = ReadCategorySeriesData(doughnutChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), PowerPointChartSnapshotKind.Doughnut, colorScheme, forDataUpdate: forDataUpdate);
-                    if (data == null) {
-                        snapshot = null!;
-                        return false;
-                    }
-
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Doughnut, data,
-                        forDataUpdate: forDataUpdate, colorScheme: colorScheme);
-                    return true;
-                }
-
-                snapshot = null!;
-                return false;
-            } catch {
-                snapshot = null!;
-                return false;
+                snapshot = CreateSnapshot(chart, snapshotKind, data, bubbleSizeMode, bubbleScalePercent,
+                    forDataUpdate, colorScheme);
+                return true;
+            } catch (Exception exception) when (IsExpectedSnapshotFailure(exception)) {
+                failureReason = DescribeSnapshotFailure(exception);
+                return Fail(out snapshot);
             }
         }
 
@@ -279,6 +260,7 @@ namespace OfficeIMO.PowerPoint {
                 .Where(element => element.LocalName == "ser"), kind, colorScheme, forDataUpdate: forDataUpdate);
             if (data == null) return false;
             snapshot = CreateSnapshot(chart, kind, data, forDataUpdate: forDataUpdate, colorScheme: colorScheme);
+            snapshot.ProjectionNotice = OfficeOpenXmlChartSeriesReader.DescribeProjection(groups[0]);
             return true;
         }
 
@@ -301,16 +283,18 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnsupportedChartGroupElements(C.PlotArea plotArea) =>
             plotArea.ChildElements.Any(element =>
-                element.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
-                element is not C.BarChart &&
-                element is not C.LineChart &&
-                element is not C.AreaChart &&
-                element is not C.RadarChart &&
-                element is not C.ScatterChart &&
-                element is not C.BubbleChart &&
-                element is not C.PieChart &&
-                element is not C.DoughnutChart &&
-                !AdvancedChartProjections.ContainsKey(element.LocalName));
+                element.LocalName.EndsWith("Chart", StringComparison.Ordinal) && !IsSupportedChartGroup(element));
+
+        private static bool IsSupportedChartGroup(OpenXmlElement element) =>
+                element is C.BarChart ||
+                element is C.LineChart ||
+                element is C.AreaChart ||
+                element is C.RadarChart ||
+                element is C.ScatterChart ||
+                element is C.BubbleChart ||
+                element is C.PieChart ||
+                element is C.DoughnutChart ||
+                AdvancedChartProjections.ContainsKey(element.LocalName);
 
         private bool TryCreateMixedChartSnapshot(C.Chart chart, C.PlotArea plotArea, A.ColorScheme? colorScheme,
             bool forDataUpdate, out PowerPointChartSnapshot snapshot) {
@@ -682,6 +666,8 @@ namespace OfficeIMO.PowerPoint {
                 dataLabelFontStyle: radialLabels?.FontStyle,
                 categoryAxisTitle: horizontalAxisTitle,
                 valueAxisTitle: verticalAxisTitle,
+                categoryAxisNumberFormat: forDataUpdate ? null :
+                    OfficeOpenXmlChartSeriesReader.ReadCategoryAxisNumberFormat(logicalCategoryAxis),
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,
                 verticalAxisNumberFormat: verticalAxisNumberFormat,
                 horizontalAxisMinimum: horizontalScale?.GetFirstChild<C.MinAxisValue>()?.Val?.Value,
@@ -716,7 +702,8 @@ namespace OfficeIMO.PowerPoint {
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea,
                         () => OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
                             .ResolveSourceLinkedGeneral(GetChartPart())))
-                .WithDataLabelLeaderLines(radialLabels?.LeaderLines == true);
+                .WithDataLabelLeaderLines(radialLabels?.LeaderLines == true)
+                .WithCategoryGeometry(plotArea, GetOwnerColorScheme());
         }
 
         private static OfficeChartAxisTickMark ReadAxisTickMark(
@@ -845,7 +832,7 @@ namespace OfficeIMO.PowerPoint {
                     SourceIndex = item.SourceIndex,
                     SourceOrder = item.SourceOrder,
                     SharedAppearance = item.Data,
-                    HasUnsupportedSharedAppearance = item.HasUnsupportedAppearance,
+                    UnsupportedSharedAppearance = item.UnsupportedAppearance,
                     HasAutomaticSeriesColor = item.HasAutomaticColor
                 }));
 

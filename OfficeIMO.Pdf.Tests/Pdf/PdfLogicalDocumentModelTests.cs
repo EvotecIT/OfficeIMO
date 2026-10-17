@@ -735,7 +735,7 @@ public partial class PdfDocumentReadResultTests {
         Assert.Equal("Invoice XML", attachment.Description);
         Assert.Equal("application/xml", attachment.MimeType);
         Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
-        Assert.Equal(payload.Length, attachment.SizeBytes);
+        Assert.Equal(payload.Length, attachment.DeclaredSizeBytes);
         Assert.Same(attachment, Assert.Single(logical.GetAttachmentsByFileName("invoice.xml")));
         Assert.Same(attachment, Assert.Single(logical.GetAttachmentsBySource("Names/EmbeddedFiles")));
         Assert.Same(attachment, Assert.Single(logical.GetAttachmentsByRelationship(PdfAssociatedFileRelationship.Data)));

@@ -77,16 +77,20 @@ public class PdfShortTextReuseTests {
             Assert.Equal(source.TextIndex, projected.TextIndex);
             Assert.Equal(expected.GetLogicalClusterStart(index), projected.LogicalClusterStart);
             Assert.Equal(getWidth(source.GlyphId), projected.NominalWidth1000);
-            Assert.Equal(projected.NominalWidth1000, projected.AdvanceWidth1000);
-            Assert.False(projected.HasPositioning);
+            // Default runs carry the font's pair kerning with the provider's positioning.
+            Assert.Equal(projected.NominalWidth1000 + Scale(expected.GetAdvanceAdjustment(index), unitsPerEm), projected.AdvanceWidth1000);
+            Assert.Equal(Scale(source.OffsetX, unitsPerEm), projected.OffsetX1000);
         }
-        bool includeActualText = expected.Direction != OfficeTextDirection.LeftToRight || OfficeManagedTextShaper.RequiresComplexLayout(text);
+        bool includeActualText = expected.Direction is not (OfficeTextDirection.LeftToRight or OfficeTextDirection.Auto) || OfficeManagedTextShaper.RequiresComplexLayout(text);
         Assert.Equal(includeActualText ? text : null, actual.ActualText);
         Assert.Equal(!includeActualText, actual.PreserveGlyphUnicode);
         Assert.Equal(expected.Glyphs.Select(glyph => glyph.GlyphId).Distinct().OrderBy(id => id),
             cff ? cffFont!.GetUsedGlyphIds() : trueType!.GetUsedGlyphIds());
         Assert.Equal(2, notifications);
     }
+
+    private static int Scale(int value, int unitsPerEm) =>
+        (int)Math.Round(value * 1000D / unitsPerEm, MidpointRounding.AwayFromZero);
 
     [Theory]
     [InlineData(false)]

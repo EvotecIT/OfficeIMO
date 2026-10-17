@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Pdf;
@@ -64,12 +65,20 @@ public class PdfOpenTypeCffCompactEmbeddingTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
-        int embeddedLength = Assert.Single(ExtractLength1Values(raw));
+        // Used glyphs only, as a CID-keyed bare CFF program whose CIDs are the source glyph ids.
+        Match fontFile = Assert.Single(Regex.Matches(raw, @"<< /Length (\d+) /Subtype /CIDFontType0C >>\s*stream\r?\n").Cast<Match>());
+        int embeddedLength = int.Parse(fontFile.Groups[1].Value, CultureInfo.InvariantCulture);
+        byte[] cff = bytes.Skip(fontFile.Index + fontFile.Length).Take(embeddedLength).ToArray();
 
         Assert.Contains("Compact CFF Łódź", extracted, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
-        Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
-        Assert.InRange(embeddedLength, 1, fontData.Length - 1);
+        Assert.Equal(1, cff[0]);
+        Assert.InRange(embeddedLength, 1, fontData.Length / 4);
+        // The inspector executes every charstring of the CID-keyed program, including subroutine calls.
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(bytes).InspectPrintProductionStructure();
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(0, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
         Assert.DoesNotContain(report.Warnings, item => item.Code == "opentype-cff-charstrings-not-subset");
     }
 
@@ -82,14 +91,5 @@ public class PdfOpenTypeCffCompactEmbeddingTests {
         }
 
         return tags;
-    }
-
-    private static IReadOnlyList<int> ExtractLength1Values(string raw) {
-        var values = new List<int>();
-        foreach (Match match in Regex.Matches(raw, @"/Length1\s+(\d+)")) {
-            values.Add(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
-        }
-
-        return values;
     }
 }

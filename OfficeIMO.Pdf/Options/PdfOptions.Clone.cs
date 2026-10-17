@@ -88,6 +88,7 @@ public sealed partial class PdfOptions {
             TextShapingMode = TextShapingMode,
             DefaultTextFeatureSettings = DefaultTextFeatureSettings,
             TextShapingProvider = TextShapingProvider,
+            TextShapingLanguageOverride = TextShapingLanguageOverride,
             _diagnosticsReport = _diagnosticsReport,
             _diagnosticsConverter = _diagnosticsConverter,
             _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
@@ -212,6 +213,7 @@ public sealed partial class PdfOptions {
         clone._pageSizeConfigurationVersion = _pageSizeConfigurationVersion;
         clone._pageNumberStart = _pageNumberStart;
         clone._hasExplicitPageNumberStart = _hasExplicitPageNumberStart;
+        if (_automaticHyphenation) clone.UseAutomaticHyphenation(_automaticHyphenationLanguage);
         return clone;
     }
 

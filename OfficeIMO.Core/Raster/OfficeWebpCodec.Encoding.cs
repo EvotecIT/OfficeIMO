@@ -16,88 +16,89 @@ public static partial class OfficeWebpCodec {
         int literalFileLength,
         long metadataBytes,
         long additionalRetainedManagedBytes,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null,
+        OfficeImageEncodingEffort effort = OfficeImageEncodingEffort.Balanced) {
         try {
-            // The literal encoder remains available for larger images. Keep the optional
-            // compression candidate below a separate allocation ceiling because it owns
-            // residual pixels and a dynamic bit stream at the same time.
+            // Compression is optional. Keep one pixel workspace, bounded match chains and
+            // transform maps; reject the candidate before allocating if its growth peak
+            // cannot coexist with the source, metadata and caller-retained buffers.
             if (rgba.Length / 4 > Vp8lCompressionMaximumPixels) return null;
             cancellationToken.ThrowIfCancellationRequested();
-            int maximumBitsBytes = checked((int)((rgba.LongLength * 15L + 7L) / 8L) + 4096);
+            int blockCount = checked(DivideRoundUp(width, 32) * DivideRoundUp(height, 32));
+            int maximumBitsBytes = checked((int)((rgba.LongLength * 15L + blockCount * 120L + 7L) / 8L) + 8192);
             int maximumCapacity = Math.Max(128, rgba.Length / 4);
             while (maximumCapacity < maximumBitsBytes) maximumCapacity = checked(maximumCapacity * 2);
-            // Reserve residuals, dictionary growth, Huffman scratch, the bit writer's growth
-            // peak, its final copy, the prefixed payload, and the eventual RIFF output.
-            // Compression is optional: retain the bounded literal path if this conservative
-            // candidate plan cannot coexist with caller-owned buffers.
             long compressionBytes = checked(rgba.LongLength + 24L +
-                Math.Min(rgba.Length / 4, Vp8lMatchTableMaximumEntries) * 64L + 128L * 1024L +
+                Vp8lMatchTableMaximumEntries * 8L + blockCount * 8L + 256L * 1024L +
                 maximumCapacity * 3L + 2L * (maximumBitsBytes + 24L));
             if (!IsEncodingWorkingSetWithinLimit(rgba.LongLength, literalFileLength, compressionBytes,
                     metadataBytes, additionalRetainedManagedBytes)) return null;
-            var residuals = CreateVp8lResiduals(width, height, rgba, cancellationToken);
-            var frequencies = new Vp8lEncodingFrequencies();
-            var lastPosition = new Dictionary<uint, int>();
-            VisitVp8lEncodingTokens(residuals, lastPosition, cancellationToken, (color, length, distance) => {
-                if (distance == 0) {
-                    frequencies.Green[(int)(color >> 8) & 255]++;
-                    frequencies.Red[(int)(color >> 16) & 255]++;
-                    frequencies.Blue[(int)color & 255]++;
-                    frequencies.Alpha[(int)(color >> 24) & 255]++;
-                } else {
-                    GetVp8lPrefix(length, 24, out int prefix, out _, out _);
-                    GetVp8lPrefix(distance + 120, 40, out int distancePrefix, out _, out _);
-                    frequencies.Green[256 + prefix]++;
-                    frequencies.Distance[distancePrefix]++;
+
+            var residuals = new uint[rgba.Length / 4];
+            var matches = new Vp8lEncodingMatches(effort == OfficeImageEncodingEffort.Fast ? 1 : effort == OfficeImageEncodingEffort.Balanced ? 4 : 16);
+            FillVp8lSourcePixels(rgba, residuals, cancellationToken, checkpointObserver);
+            bool usePrediction = false, subtractGreen;
+            int mapWidth = DivideRoundUp(width, 32);
+            uint[] predictors = Array.Empty<uint>(), colors = Array.Empty<uint>();
+            Vp8lEncodingPlan plan;
+            Vp8lEncodingPlan? predictorPlan = null, colorPlan = null;
+            if (effort != OfficeImageEncodingEffort.Smallest) {
+                usePrediction = effort == OfficeImageEncodingEffort.Balanced && ShouldUseVp8lPrediction(width, rgba, cancellationToken);
+                if (usePrediction) {
+                    predictors = CreateVp8lBlockResiduals(width, height, rgba, residuals, cancellationToken, quick: true);
+                    predictorPlan = CreateVp8lEncodingPlan(predictors, mapWidth, matches, 0, cancellationToken);
                 }
-            });
+                subtractGreen = effort == OfficeImageEncodingEffort.Balanced && SelectVp8lSubtractGreen(residuals, cancellationToken);
+                plan = CreateVp8lEncodingPlan(residuals, width, matches, 8, cancellationToken);
+            } else {
+                bool rawSubtractGreen = SelectVp8lSubtractGreen(residuals, cancellationToken);
+                Vp8lEncodingPlan rawPlan = SelectVp8lEncodingPlan(residuals, width, matches, cancellationToken);
+                long rawBits = rawPlan.BitCount + (rawSubtractGreen ? 3 : 0);
+
+                predictors = CreateVp8lBlockResiduals(width, height, rgba, residuals, cancellationToken);
+                subtractGreen = SelectVp8lSubtractGreen(residuals, cancellationToken);
+                colors = SelectVp8lColorTransform(width, height, residuals, cancellationToken);
+                plan = SelectVp8lEncodingPlan(residuals, width, matches, cancellationToken);
+                predictorPlan = CreateVp8lEncodingPlan(predictors, mapWidth, matches, 0, cancellationToken);
+                colorPlan = colors.Length == 0 ? null
+                    : CreateVp8lEncodingPlan(colors, mapWidth, matches, 0, cancellationToken);
+                // Subimages omit the main image's meta-prefix flag (one bit).
+                long transformedBits = plan.BitCount + 6 + predictorPlan.BitCount - 1 +
+                    (subtractGreen ? 3 : 0) + (colorPlan == null ? 0 : 6 + colorPlan.BitCount - 1);
+                usePrediction = transformedBits < rawBits;
+                if (!usePrediction) {
+                    FillVp8lSourcePixels(rgba, residuals, cancellationToken);
+                    if (rawSubtractGreen) ApplyVp8lSubtractGreen(residuals, cancellationToken);
+                    subtractGreen = rawSubtractGreen;
+                    plan = rawPlan;
+                }
+
+            }
+
             var writer = new DynamicLsbBitWriter(Math.Max(128, rgba.Length / 4), maximumBitsBytes);
             writer.WriteBits((uint)(width - 1), 14);
             writer.WriteBits((uint)(height - 1), 14);
             writer.WriteBits(hasAlpha ? 1U : 0U, 1);
             writer.WriteBits(0, 3);
-
-            writer.WriteBits(1, 1);
-            writer.WriteBits(0, 2); // predictor transform
-            const int predictorSizeBits = 9;
-            writer.WriteBits(predictorSizeBits - 2, 3);
-            WriteConstantVp8lImage(writer, 12, 0, 0, 255);
-            writer.WriteBits(1, 1);
-            writer.WriteBits(2, 2); // subtract-green transform
+            if (usePrediction) {
+                writer.WriteBits(1, 1);
+                writer.WriteBits(0, 2); // predictor, applied first during encoding
+                writer.WriteBits(3, 3); // 32 x 32 blocks
+                WriteVp8lEncodingImage(writer, predictors, mapWidth, matches, predictorPlan!, false, cancellationToken);
+            }
+            if (subtractGreen) {
+                writer.WriteBits(1, 1);
+                writer.WriteBits(2, 2);
+            }
+            if (usePrediction && colorPlan != null) {
+                writer.WriteBits(1, 1);
+                writer.WriteBits(1, 2); // cross-color, applied to the residual samples
+                writer.WriteBits(3, 3);
+                WriteVp8lEncodingImage(writer, colors, mapWidth, matches, colorPlan, false, cancellationToken);
+            }
             writer.WriteBits(0, 1); // end transforms
-            writer.WriteBits(0, 1); // no color cache
-            writer.WriteBits(0, 1); // one prefix group
-
-            byte[] greenLengths = OfficeHuffmanCodeLengths.Create(frequencies.Green, 15);
-            byte[] redLengths = OfficeHuffmanCodeLengths.Create(frequencies.Red, 15);
-            byte[] blueLengths = OfficeHuffmanCodeLengths.Create(frequencies.Blue, 15);
-            byte[] alphaLengths = OfficeHuffmanCodeLengths.Create(frequencies.Alpha, 15);
-            byte[] distanceLengths = OfficeHuffmanCodeLengths.Create(frequencies.Distance, 15);
-            WriteVp8lHuffmanTree(writer, greenLengths);
-            WriteVp8lHuffmanTree(writer, redLengths);
-            WriteVp8lHuffmanTree(writer, blueLengths);
-            WriteVp8lHuffmanTree(writer, alphaLengths);
-            WriteVp8lHuffmanTree(writer, distanceLengths);
-            var greenCodes = new Vp8lCodebook(greenLengths);
-            var redCodes = new Vp8lCodebook(redLengths);
-            var blueCodes = new Vp8lCodebook(blueLengths);
-            var alphaCodes = new Vp8lCodebook(alphaLengths);
-            var distanceCodes = new Vp8lCodebook(distanceLengths);
-            VisitVp8lEncodingTokens(residuals, lastPosition, cancellationToken, (color, length, distance) => {
-                if (distance == 0) {
-                    greenCodes.Write(writer, (int)(color >> 8) & 255);
-                    redCodes.Write(writer, (int)(color >> 16) & 255);
-                    blueCodes.Write(writer, (int)color & 255);
-                    alphaCodes.Write(writer, (int)(color >> 24) & 255);
-                } else {
-                    GetVp8lPrefix(length, 24, out int prefix, out int extraBits, out int extraValue);
-                    greenCodes.Write(writer, 256 + prefix);
-                    if (extraBits > 0) writer.WriteBits((uint)extraValue, extraBits);
-                    GetVp8lPrefix(distance + 120, 40, out int distancePrefix, out int distanceExtraBits, out int distanceExtraValue);
-                    distanceCodes.Write(writer, distancePrefix);
-                    if (distanceExtraBits > 0) writer.WriteBits((uint)distanceExtraValue, distanceExtraBits);
-                }
-            });
+            WriteVp8lEncodingImage(writer, residuals, width, matches, plan, true, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bits = writer.Finish();
             cancellationToken.ThrowIfCancellationRequested();
@@ -115,86 +116,6 @@ public static partial class OfficeWebpCodec {
         }
     }
 
-    // Replaying the deterministic match walk avoids a pixel-sized token buffer.
-    // The same bounded dictionary is cleared and reused between frequency and emission passes.
-    private static void VisitVp8lEncodingTokens(uint[] residuals, Dictionary<uint, int> lastPosition,
-        CancellationToken cancellationToken, Action<uint, int, int> visit) {
-        lastPosition.Clear();
-        int position = 0;
-        while (position < residuals.Length) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int matchLength = 0;
-            int matchDistance = 0;
-            uint current = residuals[position];
-            if (lastPosition.TryGetValue(current, out int previous)) {
-                int distance = position - previous;
-                int maximum = Math.Min(4096, residuals.Length - position);
-                while (matchLength < maximum &&
-                       residuals[position + matchLength] == residuals[position + matchLength - distance]) {
-                    if ((matchLength & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                    matchLength++;
-                }
-                if (matchLength >= 3 && CanEncodeVp8lPrefix(checked(distance + 120), 40)) {
-                    matchDistance = distance;
-                }
-            }
-            if (matchDistance > 0) {
-                visit(0, matchLength, matchDistance);
-                for (int index = 0; index < matchLength; index++) {
-                    if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                    RememberVp8lPosition(lastPosition, residuals[position + index], position + index);
-                }
-                position += matchLength;
-                continue;
-            }
-
-            uint color = residuals[position];
-            visit(color, 1, 0);
-            RememberVp8lPosition(lastPosition, color, position++);
-        }
-    }
-
-    private sealed class Vp8lEncodingFrequencies {
-        internal readonly int[] Green = new int[280];
-        internal readonly int[] Red = new int[256];
-        internal readonly int[] Blue = new int[256];
-        internal readonly int[] Alpha = new int[256];
-        internal readonly int[] Distance = new int[40];
-    }
-
-    private static void RememberVp8lPosition(Dictionary<uint, int> lastPosition, uint color, int position) {
-        if (lastPosition.Count >= Vp8lMatchTableMaximumEntries && !lastPosition.ContainsKey(color)) {
-            lastPosition.Clear();
-        }
-        lastPosition[color] = position;
-    }
-
-    private static uint[] CreateVp8lResiduals(int width, int height, byte[] rgba, CancellationToken cancellationToken) {
-        var predicted = new uint[checked(width * height)];
-        for (int y = 0; y < height; y++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            for (int x = 0; x < width; x++) {
-                if ((x & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                int position = y * width + x;
-                int offset = position * 4;
-                uint color = (uint)(rgba[offset + 3] << 24 | rgba[offset] << 16 | rgba[offset + 1] << 8 | rgba[offset + 2]);
-                uint predictor = x == 0 && y == 0
-                    ? 0xFF000000U
-                    : y == 0 ? PackRgba(rgba, offset - 4)
-                    : x == 0 ? PackRgba(rgba, offset - width * 4)
-                    : PredictVp8l(12,
-                        PackRgba(rgba, offset - 4), PackRgba(rgba, offset - width * 4),
-                        PackRgba(rgba, offset - width * 4 - 4), 0U); // mode 12 does not use top-right
-                uint residual = SubtractArgb(color, predictor);
-                int green = (int)(residual >> 8) & 255;
-                int red = (((int)(residual >> 16) & 255) - green) & 255;
-                int blue = (((int)residual & 255) - green) & 255;
-                predicted[position] = (residual & 0xFF00FF00U) | (uint)(red << 16 | blue);
-            }
-        }
-        return predicted;
-    }
-
     private static uint PackRgba(byte[] rgba, int offset) =>
         (uint)(rgba[offset + 3] << 24 | rgba[offset] << 16 | rgba[offset + 1] << 8 | rgba[offset + 2]);
 
@@ -206,49 +127,11 @@ public static partial class OfficeWebpCodec {
         return result;
     }
 
-    private static void WriteConstantVp8lImage(
-        ILsbBitWriter writer,
-        int green,
-        int red,
-        int blue,
-        int alpha) {
-        writer.WriteBits(0, 1); // no cache; subimages do not carry the meta-code flag
-        WriteSingleSymbolTree(writer, green);
-        WriteSingleSymbolTree(writer, red);
-        WriteSingleSymbolTree(writer, blue);
-        WriteSingleSymbolTree(writer, alpha);
-        WriteSingleSymbolTree(writer, 0);
-    }
-
     private static void WriteSingleSymbolTree(ILsbBitWriter writer, int symbol) {
         writer.WriteBits(1, 1);
         writer.WriteBits(0, 1);
         writer.WriteBits(symbol > 1 ? 1U : 0U, 1);
         writer.WriteBits((uint)symbol, symbol > 1 ? 8 : 1);
-    }
-
-    private static void WriteVp8lHuffmanTree(ILsbBitWriter writer, byte[] lengths) {
-        int symbols = 0, singleSymbol = -1;
-        for (int symbol = 0; symbol < lengths.Length; symbol++) if (lengths[symbol] > 0) { symbols++; singleSymbol = symbol; }
-        if (symbols == 1 && singleSymbol <= 255) {
-            WriteSingleSymbolTree(writer, singleSymbol);
-            return;
-        }
-        byte[] codeLengthLengths = CreateMixedDepthLengths(19, 13, 4, 5);
-        var codeLengthCodes = new Vp8lCodebook(codeLengthLengths);
-        writer.WriteBits(0, 1);
-        writer.WriteBits(15, 4);
-        for (int index = 0; index < Vp8lCodeLengthOrder.Length; index++) {
-            writer.WriteBits(codeLengthLengths[Vp8lCodeLengthOrder[index]], 3);
-        }
-        writer.WriteBits(0, 1);
-        for (int index = 0; index < lengths.Length; index++) codeLengthCodes.Write(writer, lengths[index]);
-    }
-
-    private static byte[] CreateMixedDepthLengths(int count, int shorterCount, int shortDepth, int longDepth) {
-        var lengths = new byte[count];
-        for (int index = 0; index < count; index++) lengths[index] = (byte)(index < shorterCount ? shortDepth : longDepth);
-        return lengths;
     }
 
     private static void GetVp8lPrefix(
@@ -273,15 +156,6 @@ public static partial class OfficeWebpCodec {
             }
         }
         throw new ArgumentOutOfRangeException(nameof(value));
-    }
-
-    private static bool CanEncodeVp8lPrefix(int value, int prefixCount) {
-        if (value <= 4) return value >= 1;
-        int prefix = prefixCount - 1;
-        int extraBits = (prefix - 2) >> 1;
-        int first = ((2 + (prefix & 1)) << extraBits) + 1;
-        int last = first + (1 << extraBits) - 1;
-        return value <= last;
     }
 
     private sealed class Vp8lCodebook {

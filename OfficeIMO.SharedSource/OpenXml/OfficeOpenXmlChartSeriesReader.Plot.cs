@@ -19,10 +19,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)), maximumPoints);
             if (layers.Count == 0) return null;
             ValidatePlotBudget(plot, maximumPoints);
-            if (HasUnsupportedBubbleSourceVisibility(part, chart) ||
-                chart.Parent?.ChildElements.Any(element => element.LocalName == "style") == true ||
-                part.Parts.Any(relationship => relationship.OpenXmlPart.ContentType.IndexOf("chartstyle", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    relationship.OpenXmlPart.ContentType.IndexOf("chartcolorstyle", StringComparison.OrdinalIgnoreCase) >= 0)) return null;
+            // The classic c:style number only supplies automatic colours, which the series reader
+            // resolves. Office does not consult the cs:chartStyle and cs:colorStyle parts when it
+            // renders a chart; they only seed later restyling in the Office UI.
+            if (HasUnsupportedBubbleSourceVisibility(part, chart)) return null;
             var axisGroups = OfficeOpenXmlChartAxisGroups.Create(plot);
             if (!HasSupportedProjectionAxisGroups(layers, axisGroups)) return null;
             var projectionBudget = new ProjectionBudget();
@@ -32,7 +32,8 @@ namespace OfficeIMO.OpenXml.Internal {
             for (int index = 0; index < layers.Count; index++) {
                 var layer = layers[index];
                 if (layer is not C.BarChart && layer is not C.LineChart && layer is not C.AreaChart && layer is not C.RadarChart &&
-                    layer is not C.ScatterChart && layer is not C.BubbleChart && layer is not C.PieChart && layer is not C.DoughnutChart) return null;
+                    layer is not C.ScatterChart && layer is not C.BubbleChart && layer is not C.PieChart && layer is not C.DoughnutChart &&
+                    layer is not C.StockChart) return null;
                 if (!TryReadKind(layer, out var layerKind)) return null;
                 // Separate native stacked layers have independent stacks. The flat
                 // chart model groups them by kind and axis, so it cannot preserve both.
@@ -82,7 +83,7 @@ namespace OfficeIMO.OpenXml.Internal {
             bool categoryLegend = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut;
             series = series.Select((item, index) => new Series(item.SourceIndex,
                 item.Data.WithLegendVisibility(legend != null && (categoryLegend ||
-                    !hidden.Contains((uint)index))), item.HasUnsupportedAppearance, item.SourceOrder,
+                    !hidden.Contains((uint)index))), item.UnsupportedAppearance, item.SourceOrder,
                 item.HasAutomaticColor)).ToList();
             var result = new Result(categories, series);
             if (HasSuppressedOverMaximumDataLabels(chart,
@@ -181,14 +182,8 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeChartKind.LineStacked100 or OfficeChartKind.AreaStacked100;
 
         private static bool HasUnsupportedLayerPresentation(OpenXmlCompositeElement layer) {
-            if (layer.Descendants<C.Symbol>().Any(symbol => symbol.Val?.Value == C.MarkerStyleValues.Auto)) return true;
-            bool inheritedMarkers = layer is C.LineChart && layer.GetFirstChild<C.ShowMarker>()?.Val?.Value != false ||
-                layer is C.RadarChart radarMarkers && radarMarkers.RadarStyle?.Val?.Value == C.RadarStyleValues.Marker ||
-                layer is C.ScatterChart scatterMarkers && scatterMarkers.ScatterStyle?.Val?.Value != C.ScatterStyleValues.Line &&
-                    scatterMarkers.ScatterStyle?.Val?.Value != C.ScatterStyleValues.Smooth;
-            if (inheritedMarkers && layer.ChildElements.OfType<OpenXmlCompositeElement>()
-                .Where(element => element.LocalName == "ser").Any(series => series.GetFirstChild<C.Marker>()?.Symbol?.Val == null)) return true;
-            if (layer.Descendants().Any(element => element is C.Trendline or C.ErrorBars or C.DropLines or C.HighLowLines or C.UpDownBars or C.SeriesLines)) return true;
+            if (layer.Descendants().Any(element => element is C.Trendline or C.ErrorBars or C.DropLines or C.UpDownBars or C.SeriesLines ||
+                element is C.HighLowLines && layer is not C.LineChart and not C.StockChart)) return true;
             if (layer is C.BarChart && layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(element => element.LocalName == "ser")
                 .Any(series => series.Descendants<C.InvertIfNegative>().Any(invert => invert.Val?.Value != false) &&
                     series.GetFirstChild<C.Values>()?.Descendants<C.NumericValue>().Any(value =>

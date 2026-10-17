@@ -21,7 +21,7 @@ internal static partial class PdfWriter {
 
         if (!OfficeRasterImageDecoder.TryDecode(
                 sourceBytes,
-                options: null,
+                options: new OfficeRasterDecodeOptions { ApplyExifOrientation = false, CancellationToken = cancellationToken },
                 out OfficeRasterImage? raster,
                 out OfficeRasterDecodeInfo decodeInfo) || raster == null) {
             unsupportedReason = "The raster image decoder could not produce RGBA pixels for CMYK conversion.";
@@ -138,6 +138,8 @@ internal static partial class PdfWriter {
         image.PixelWidth = raster.Width;
         image.PixelHeight = raster.Height;
         image.BitsPerComponent = 8;
+        image.IccProfile = null;
+        image.IndexedPalette = null;
         image.DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceCMYK", 4, raster.Width);
         image.SoftMask = hasTransparency && alphaRows != null
             ? new PdfImageStream {

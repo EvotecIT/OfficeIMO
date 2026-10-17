@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
+using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -377,7 +378,7 @@ public sealed partial class OfficeFontFaceCollection {
 
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
         foreach (OfficeFontFallbackRun run in runs) {
-            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, fontSize, out OfficeFontStyle _);
+            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyRequest, style, fontSize, out OfficeFontStyle _);
             if (font == null) return false;
             width += font.Measure(run.Text, fontSize);
         }
@@ -400,7 +401,7 @@ public sealed partial class OfficeFontFaceCollection {
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
         var resolvedWidths = new List<double>(elements.Count);
         foreach (OfficeFontFallbackRun run in runs) {
-            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, fontSize, out OfficeFontStyle _);
+            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyRequest, style, fontSize, out OfficeFontStyle _);
             if (font == null) return false;
             var runElements = new List<string>();
             foreach (string element in OfficeTextElements.Enumerate(run.Text)) runElements.Add(element);
@@ -432,6 +433,7 @@ public sealed partial class OfficeFontFaceCollection {
         if (candidates.Count == 0) {
             return Array.AsReadOnly(new[] { new OfficeFontFallbackRun(text!, requestedFamilies) });
         }
+        var resolvedFamilyNames = new HashSet<string>(candidates.Select(face => face.ResourceFamilyName), StringComparer.OrdinalIgnoreCase);
         var explicitlySelectedFaces = new HashSet<string>(
             OfficeFontFamilyParser.Parse(requestedFamilies),
             StringComparer.OrdinalIgnoreCase);
@@ -467,7 +469,7 @@ public sealed partial class OfficeFontFaceCollection {
                 family = resolvedFamily;
             }
             if (currentFamily != null && !string.Equals(currentFamily, family, StringComparison.OrdinalIgnoreCase)) {
-                runs.Add(new OfficeFontFallbackRun(currentText.ToString(), currentFamily));
+                runs.Add(new OfficeFontFallbackRun(currentText.ToString(), currentFamily, resolvedFamilyNames.Contains(currentFamily)));
                 currentText.Clear();
             }
 
@@ -475,7 +477,7 @@ public sealed partial class OfficeFontFaceCollection {
             currentText.Append(element);
         }
 
-        if (currentText.Length > 0) runs.Add(new OfficeFontFallbackRun(currentText.ToString(), currentFamily ?? requestedFamilies));
+        if (currentText.Length > 0) runs.Add(new OfficeFontFallbackRun(currentText.ToString(), currentFamily ?? requestedFamilies, currentFamily != null && resolvedFamilyNames.Contains(currentFamily)));
         return runs.AsReadOnly();
     }
 
