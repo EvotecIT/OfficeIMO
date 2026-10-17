@@ -222,23 +222,33 @@ namespace OfficeIMO.OpenXml.Internal {
             Reject(!IsSupportedSeriesShape(properties, scheme, filled, area, connectLine, flatThreeDimensional),
                 "a series fill, line or effect");
             Reject(showMarkers && !IsSupportedSeriesShape(marker?.ChartShapeProperties, scheme, true), "a marker fill or effect");
-            // The shared model has one series colour and straight connecting lines.
-            // Reject appearance that would otherwise be silently flattened in an export.
+            // Curves still require a separate projection contract.
             C.Smooth? smoothing = element.GetFirstChild<C.Smooth>() ?? element.Parent?.GetFirstChild<C.Smooth>();
             bool curved = smoothing != null ? smoothing.Val?.Value != false :
                 scatterStyle == C.ScatterStyleValues.Smooth || scatterStyle == C.ScatterStyleValues.SmoothMarker;
             Reject(connectLine && curved && !ribbon, "smoothed lines");
             Reject(showMarkers && marker?.ChartShapeProperties?.GetFirstChild<A.NoFill>() != null, "unfilled markers");
             Reject(showMarkers && markerOutline?.GetFirstChild<A.NoFill>() != null, "markers without outlines");
-            Reject(!filled && connectLine && markerFill.HasValue &&
-                (!stroke.HasValue || showMarkers && stroke.Value != markerFill.Value), "markers coloured unlike their line");
             OfficeColor? seriesColor = filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
-            bool automaticColor = OfficeOpenXmlChartWriter.HasAutomaticSeriesColor(element);
+            bool automaticColor = OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(element);
             if (!forDataUpdate && seriesColor == null && kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut) {
                 // Office colours series without a stored colour from the chart style and theme.
                 seriesColor = OfficeOpenXmlChartAutomaticColors.ResolveSeries(element, scheme);
                 Reject(seriesColor == null, "an automatic colour whose theme colours cannot be resolved");
                 automaticColor = true;
+            }
+            if (!filled && showMarkers && markerFill.HasValue && markerFill != seriesColor) {
+                // Keep native marker fill separate from the connecting stroke. Existing
+                // point fills take precedence over the series marker's inherited fill.
+                pointColors ??= new OfficeColor?[values.Count];
+                for (int index = 0; index < pointColors.Length; index++) pointColors[index] ??= markerFill;
+            }
+            OfficeChartPointStyle? seriesPaint = OfficeOpenXmlChartPointStyles.ReadSeriesStyle(element, scheme);
+            if (ribbon && !forDataUpdate) {
+                // A 3-D ribbon projects its fill into a flat line. Its native edge's
+                // no-fill controls the ribbon border, not visibility of that projection.
+                seriesPaint = new OfficeChartPointStyle(outlineColor: stroke ?? fill,
+                    outlineWidth: width, showOutline: true);
             }
             bool unsupportedPoints = pointOverrides.Any(point => point.Index?.Val?.Value is uint index && index < values.Count &&
                 (OfficeOpenXmlChartPointStyles.HasUnsupportedPointContent(point) || point.ChartShapeProperties != null &&
@@ -253,7 +263,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 markerSize: markerSize, markerShape: markerShape,
                 markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth,
                 strokeWidth: width, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
-                .WithSeriesStyle(OfficeOpenXmlChartPointStyles.ReadStyle(properties, scheme))
+                .WithSeriesStyle(seriesPaint)
                 .WithPointStyles(styles);
             if (kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
                 if (OfficeOpenXmlChartExplosions.TryRead(element, pointOverrides, values.Count,

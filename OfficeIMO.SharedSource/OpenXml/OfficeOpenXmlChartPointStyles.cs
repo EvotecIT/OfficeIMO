@@ -10,6 +10,13 @@ namespace OfficeIMO.OpenXml.Internal;
 
 /// <summary>Shared native chart point-style codec; Core remains free of OpenXML dependencies.</summary>
 internal static class OfficeOpenXmlChartPointStyles {
+    internal static bool IsSupportedPattern(A.PatternFill pattern, A.ColorScheme? scheme) =>
+        ReadHatch(pattern.Preset?.InnerText).HasValue &&
+        !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(pattern.GetFirstChild<A.ForegroundColor>()) &&
+        !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(pattern.GetFirstChild<A.BackgroundColor>()) &&
+        OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<A.ForegroundColor>(), scheme).HasValue &&
+        OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<A.BackgroundColor>(), scheme).HasValue;
+
     // Preserve each format's point-override budget independently of its cache limit.
     // Count duplicate and invalid records before interpreting appearances.
     internal static IReadOnlyList<C.DataPoint> GetBoundedPoints(OpenXmlElement series, int maximum = 1_000_000) {
@@ -32,11 +39,7 @@ internal static class OfficeOpenXmlChartPointStyles {
                 continue;
             }
             if (child is A.PatternFill pattern) {
-                if (!ReadHatch(pattern.Preset?.InnerText).HasValue ||
-                    OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(pattern.GetFirstChild<A.ForegroundColor>()) ||
-                    OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(pattern.GetFirstChild<A.BackgroundColor>()) ||
-                    !OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<A.ForegroundColor>(), scheme).HasValue ||
-                    !OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<A.BackgroundColor>(), scheme).HasValue) return false;
+                if (!IsSupportedPattern(pattern, scheme)) return false;
                 continue;
             }
             if (child is A.Outline outline) {
@@ -117,6 +120,17 @@ internal static class OfficeOpenXmlChartPointStyles {
             styles[(int)index.Value] = style;
         }
         return styles;
+    }
+
+    internal static OfficeChartPointStyle? ReadSeriesStyle(OpenXmlElement series, A.ColorScheme? scheme) {
+        var style = ReadStyle(series.GetFirstChild<C.ChartShapeProperties>(), scheme);
+        if (style == null || !OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(series) || style.Hatch.HasValue) return style;
+        // The writer stores a concrete default colour for native Office. Keep that
+        // colour on the series, so a caller palette can still replace it; do not
+        // turn the stored default into a second explicit paint override.
+        OfficeColor? automatic = style.FillColor ?? style.OutlineColor;
+        return new OfficeChartPointStyle(null, style.NoFill, outlineColor: style.OutlineColor == automatic ? null : style.OutlineColor,
+            outlineWidth: style.OutlineWidth, showOutline: style.ShowOutline, outlineJoin: style.OutlineJoin);
     }
 
     internal static OfficeChartPointStyle? ReadStyle(C.ChartShapeProperties? properties, A.ColorScheme? scheme) {

@@ -96,6 +96,11 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
             Assert.True(series.SharedAppearance!.ConnectLine);
             Assert.False(series.SharedAppearance.ShowMarkers);
         });
+        OfficeChartSnapshot flatRibbon = PowerPointChartSnapshotMapper.ToOfficeSnapshot(line, 640, 360);
+        OfficeDrawing ribbonDrawing = OfficeChartDrawingRenderer.Render(flatRibbon);
+        foreach (OfficeChartSeries projectedSeries in flatRibbon.Data.Series)
+            Assert.Contains(ribbonDrawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                shape.Shape.StrokeColor == projectedSeries.Color);
         PowerPointChartSnapshot stock = Snapshot(charts, "stockChart");
         Assert.True(stock.Layout.ShowHighLowLines);
         Assert.All(Snapshot(charts, "surfaceChart").Data.Series, series => Assert.False(series.SharedAppearance!.ShowMarkers));

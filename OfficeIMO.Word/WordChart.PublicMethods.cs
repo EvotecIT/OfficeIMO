@@ -425,6 +425,7 @@ namespace OfficeIMO.Word {
             foreach (var s in allSeries) {
                 var idx = s.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>()?.Val?.Value ?? 999999U;
                 if (idx != index) continue;
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(s);
                 var spPr = s.GetFirstChild<ChartShapeProperties>();
                 if (spPr == null) { spPr = AddShapeProperties(color); s.Append(spPr); }
                 else {

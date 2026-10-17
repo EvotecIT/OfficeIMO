@@ -29,6 +29,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             if (child is A.SolidFill && !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(child) &&
                 OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme).HasValue) continue;
             if (child is A.NoFill) continue;
+            if (child is A.PatternFill pattern && filled && OfficeOpenXmlChartPointStyles.IsSupportedPattern(pattern, scheme)) continue;
             if (child is not A.Outline outline) return false;
             // Marker-only series retain native line metadata that has no rendered
             // effect. Filled series still use the outline around their geometry.
@@ -36,7 +37,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             if (outline.Width?.Value == 0 && outline.GetFirstChild<A.NoFill>() == null) return false;
             if (OfficeOpenXmlChartPointStyles.HasUnsupportedLineAttributes(outline) || outline.Width?.Value < 0) return false;
             foreach (var lineChild in outline.ChildElements) {
-                if (lineChild is A.NoFill) continue;
+                if (lineChild is A.NoFill or A.Round or A.LineJoinBevel) continue;
+                if (lineChild is A.Miter miter && !miter.HasAttributes && !miter.HasChildren) continue;
                 if (lineChild is A.SolidFill && !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(lineChild) &&
                     OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
                 if ((!filled || area) && lineChild is A.PresetDash && (!connectLine || ReadDash(outline).HasValue)) continue;

@@ -435,7 +435,7 @@ namespace OfficeIMO.Excel {
 
                 C.ChartShapeProperties? properties = series.GetFirstChild<C.ChartShapeProperties>();
                 if (properties != null) {
-                    style.SeriesStyle = OfficeOpenXmlChartPointStyles.ReadStyle(properties, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+                    style.SeriesStyle = OfficeOpenXmlChartPointStyles.ReadSeriesStyle(series, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
                     style.SeriesColorArgb = GetImageExportSeriesColor(properties, workbookPart);
                     style.SeriesLineWidth = GetImageExportSeriesLineWidth(properties);
                     style.SeriesLineDashStyle = GetImageExportSeriesLineDashStyle(properties);

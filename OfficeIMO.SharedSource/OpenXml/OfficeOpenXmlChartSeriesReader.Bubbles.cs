@@ -53,7 +53,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 var fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<SolidFill>(), colorScheme);
                 var stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<SolidFill>(), colorScheme);
                 double? width = outline?.Width?.Value is int emus && emus > 0 ? emus / 12700d : null;
-                bool automaticColor = OfficeOpenXmlChartWriter.HasAutomaticSeriesColor(element);
+                bool automaticColor = OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(element);
                 if (!forDataUpdate && fill == null) {
                     // Office colours bubbles without a stored fill from the chart style and theme.
                     fill = OfficeOpenXmlChartAutomaticColors.ResolveSeries(element, colorScheme);
@@ -63,7 +63,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 var data = OfficeChartSeries.CreateBubble(name, x, y, sizes, fill,
                     ReadBubblePointColors(element, x.Count, colorScheme, maximumPointOverrides), markerOutlineColor: stroke,
                     markerOutlineWidth: width, showMarkerOutline: outline?.GetFirstChild<NoFill>() == null)
-                    .WithSeriesStyle(OfficeOpenXmlChartPointStyles.ReadStyle(properties, colorScheme))
+                    .WithSeriesStyle(OfficeOpenXmlChartPointStyles.ReadSeriesStyle(element, colorScheme))
                     .WithPointStyles(forDataUpdate ? null : OfficeOpenXmlChartPointStyles.Read(
                         OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides), x.Count, colorScheme));
                 series.Add(new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)index,
@@ -71,10 +71,6 @@ namespace OfficeIMO.OpenXml.Internal {
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
         }
-
-        private static bool HasUnsupportedFill(C.ChartShapeProperties? properties) =>
-            properties?.ChildElements.Any(child =>
-                child is GradientFill or PatternFill or BlipFill or GroupFill) == true;
 
         private static bool HasUnsupportedEffects(C.ChartShapeProperties? properties) =>
             properties?.GetFirstChild<EffectList>()?.ChildElements.Count > 0 ||
@@ -85,9 +81,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool HasUnsupportedSeriesStyle(
             C.ChartShapeProperties? properties) =>
-            HasUnsupportedFill(properties) ||
-            HasUnsupportedEffects(properties) ||
-            HasUnsupportedOutlineFill(properties?.GetFirstChild<Outline>());
+            HasUnsupportedPointStyle(properties);
 
         private static bool HasUnsupportedPointStyle(
             C.ChartShapeProperties? properties) =>
@@ -106,11 +100,15 @@ namespace OfficeIMO.OpenXml.Internal {
              alignment != PenAlignmentValues.Center ||
              outline.CompoundLineType?.Value is CompoundLineValues compoundLine &&
              compoundLine != CompoundLineValues.Single ||
+             outline.GetFirstChild<Miter>() is Miter miter && (miter.HasAttributes || miter.HasChildren) ||
              outline.ChildElements.Any(child =>
-                 child is not SolidFill and not NoFill));
+                 child is not SolidFill and not NoFill and not Round and not LineJoinBevel and not Miter));
 
         private static bool HasUnresolvedSeriesColor(
             C.ChartShapeProperties? properties, ColorScheme? colorScheme) {
+            if (properties?.GetFirstChild<PatternFill>() is PatternFill pattern)
+                return !OfficeOpenXmlChartPointStyles.IsSupportedPattern(pattern, colorScheme) ||
+                    HasUnresolvedPointColor(properties, colorScheme);
             if (properties?.GetFirstChild<NoFill>() == null &&
                 (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(properties?.GetFirstChild<SolidFill>()) ||
                 !OfficeOpenXmlThemeColorResolver.ResolveColor(

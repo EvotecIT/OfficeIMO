@@ -45,6 +45,31 @@ public sealed class WordChartSeriesPaintTests {
         Assert.False(saved.PointStyles[0]!.ShowOutline);
     }
 
+    [Theory]
+    [InlineData(OfficeChartKind.ColumnClustered)]
+    [InlineData(OfficeChartKind.Area)]
+    [InlineData(OfficeChartKind.Bubble)]
+    public void NativeRoundTripKeepsSeriesHatchAndOutlineJoin(OfficeChartKind kind) {
+        var series = kind == OfficeChartKind.Bubble
+            ? OfficeChartSeries.CreateBubble("Paint", new[] { 1d, 2d }, new[] { 2d, 4d }, new[] { 3d, 5d })
+            : new OfficeChartSeries("Paint", new[] { 2d, 4d });
+        series = series.WithSeriesStyle(new OfficeChartPointStyle(fillColor: OfficeColor.White,
+            hatch: OfficeChartHatchPattern.Cross, hatchColor: OfficeColor.Green,
+            outlineColor: OfficeColor.Red, outlineWidth: 3, outlineJoin: OfficeStrokeLineJoin.Round));
+        using var document = WordDocument.Create();
+        document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        stream.Position = 0;
+        using var reopened = WordDocument.Load(stream);
+        Assert.True(reopened.Charts[0].TryGetOfficeSnapshot(out var snapshot));
+        var paint = Assert.Single(snapshot.Data.Series).SeriesStyle!;
+        Assert.Equal(OfficeChartHatchPattern.Cross, paint.Hatch);
+        Assert.Equal(OfficeColor.Green, paint.HatchColor);
+        Assert.Equal(OfficeStrokeLineJoin.Round, paint.OutlineJoin);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
     private static void CheckPaint(OfficeChartSnapshot snapshot, int number) {
         bool fill = number % 4 < 2, outline = number % 2 == 0, line = number >= 12;
         var paint = Assert.Single(snapshot.Data.Series).SeriesStyle;
