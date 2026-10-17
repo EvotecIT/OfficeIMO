@@ -2020,7 +2020,8 @@ internal static partial class PdfPageContentVisualParser {
 
         public PdfPageClipPath? ClipPath { get; }
 
-        public static GraphicsState Default => new GraphicsState(Matrix2D.Identity, OfficeColor.Black, null, OfficeColor.Black, null, PdfPageColorSpaceKind.DeviceGray, PdfPageColorSpaceKind.DeviceGray, 1D, OfficeStrokeDashStyle.Solid, PdfStrokeDashPattern.Solid, null, null, null, null, null);
+        // Resolve the PDF initial cap here before projecting into the drawing renderer.
+        public static GraphicsState Default => new GraphicsState(Matrix2D.Identity, OfficeColor.Black, null, OfficeColor.Black, null, PdfPageColorSpaceKind.DeviceGray, PdfPageColorSpaceKind.DeviceGray, 1D, OfficeStrokeDashStyle.Solid, PdfStrokeDashPattern.Solid, OfficeStrokeLineCap.Butt, null, null, null, null);
 
         public GraphicsState WithTransform(Matrix2D transform) => new GraphicsState(transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
