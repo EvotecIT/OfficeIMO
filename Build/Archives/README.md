@@ -84,3 +84,19 @@ arguments with:
 Reuse the identical ZIP input when comparing candidates. The report retains its
 SHA-256, runtime and assembly version. The probe is outside normal correctness
 CI; allocation totals are neither peak/RSS measurements nor timing guarantees.
+
+## Solid-folder read evidence
+
+Use `--cab-read-evidence <task-owned CAB/MSI path> <JSON report>` after the same
+isolated restore. If the input is absent, the runner creates a reproducible
+32 MiB synthetic LZX folder with two small members, including a range across
+frames. It compares separate `OpenRead` calls with one grouped `ReadMembers`
+call and checks that their complete member hashes agree. An existing native CAB
+or MSI can be supplied instead; its two smallest supported nonempty members are
+selected without executing content.
+
+Reuse the identical input for before/after candidate comparisons. Input inventory
+is outside the measured region. Reports retain the input hash, runtime, package
+identity, member hashes, decoded-byte/work charges and per-thread read allocations.
+This is opt-in allocation evidence, not a timing or peak-memory benchmark. The
+synthetic producer does not establish native CAB compatibility.

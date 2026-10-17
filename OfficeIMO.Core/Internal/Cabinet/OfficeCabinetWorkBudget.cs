@@ -27,13 +27,18 @@ internal sealed class OfficeCabinetWorkBudget {
     /// minimum bounds frame setup; input bytes and MSZIP dictionary replay can increase the charge.
     /// Units describe bounded processing work, rather than exact CPU time or newly expanded content.</summary>
     internal void ConsumeFrame(int compressedLength, int expandedLength, int reserveLength, int dictionaryLength, long offset) {
-        long recordBytes = 8L + reserveLength + compressedLength;
-        long decodedBytes = (long)expandedLength + dictionaryLength;
-        long workBytes = Math.Max(OfficeMsZipDecoder.WindowBytes, Math.Max(recordBytes, decodedBytes));
+        long workBytes = FrameWork(compressedLength, expandedLength, reserveLength, dictionaryLength);
         if (workBytes > _remainingBytes) {
             throw new OfficeCabinetException("CAB_WORK_LIMIT", "CAB frame processing exceeds the configured aggregate decompression-work byte limit.", offset);
         }
         _consumeFrame?.Invoke(workBytes, expandedLength);
         _remainingBytes -= workBytes;
+    }
+
+    /// <summary>The same deterministic frame charge used by passive planning and actual admission.</summary>
+    internal static long FrameWork(int compressedLength, int expandedLength, int reserveLength, int dictionaryLength) {
+        long recordBytes = 8L + reserveLength + compressedLength;
+        long decodedBytes = (long)expandedLength + dictionaryLength;
+        return Math.Max(OfficeMsZipDecoder.WindowBytes, Math.Max(recordBytes, decodedBytes));
     }
 }

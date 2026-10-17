@@ -8,7 +8,7 @@ public sealed class ArchiveInspectionOptions {
     /// the UTF-8 flag always takes precedence. No host-locale inference occurs.</summary>
     public int? ZipLegacyCodePage { get; set; }
 
-    /// <summary>Maximum input size buffered in memory. Defaults to 512 MiB; managed arrays also require an Int32 length.</summary>
+    /// <summary>Maximum input snapshot size. Defaults to 512 MiB. ZIP snapshots spill above 64 MiB; CAB/MSI arrays also require an Int32 length.</summary>
     public long MaxInputBytes { get; set; } = 512L * 1024 * 1024;
     /// <summary>Maximum ZIP/CAB file records or MSI File rows, including unsupported and empty members.</summary>
     public int MaxEntryCount { get; set; } = 200000;

@@ -6,7 +6,7 @@ namespace OfficeIMO.Core.Internal.Cabinet;
 
 internal static partial class OfficeCabinetArchiveReader {
     internal sealed partial class Inspection {
-        /// <summary>Decodes one complete folder once, then copies the selected complete members in request order.</summary>
+        /// <summary>Decodes one complete folder by frames, retaining only selected complete members in request order.</summary>
         internal byte[][] ReadFolderMembers(IReadOnlyList<int> ordinals, long maxExpandedBytes,
             OfficeCabinetWorkBudget workBudget, CancellationToken token) {
             if (ordinals.Count == 0) return Array.Empty<byte[]>();
@@ -22,17 +22,9 @@ internal static partial class OfficeCabinetArchiveReader {
             }
             var reader = new Reader(_data, maxExpandedBytes, _maxEntryBytes, _maxEntries, token, workBudget);
             reader._length = _directory.Length;
-            byte[] folder = reader.DecompressFolder(_directory.Folders[folderIndex], _directory.DataReserve, maxExpandedBytes);
-            var result = new byte[ordinals.Count][];
-            for (int index = 0; index < ordinals.Count; index++) {
-                token.ThrowIfCancellationRequested();
-                FileHeader file = _directory.Files[ordinals[index]];
-                if ((long)file.FolderOffset + file.Length > folder.LongLength)
-                    throw Error("CAB_ENTRY_RANGE", "A CAB member extends beyond its decoded folder.");
-                var bytes = new byte[(int)file.Length];
-                if (bytes.Length != 0) Buffer.BlockCopy(folder, (int)file.FolderOffset, bytes, 0, bytes.Length);
-                result[index] = bytes;
-            }
+            var files = new FileHeader[ordinals.Count];
+            for (int index = 0; index < files.Length; index++) files[index] = _directory.Files[ordinals[index]];
+            byte[][] result = reader.ReadFolderMembers(_directory.Folders[folderIndex], _directory.DataReserve, files, maxExpandedBytes);
             token.ThrowIfCancellationRequested();
             return result;
         }

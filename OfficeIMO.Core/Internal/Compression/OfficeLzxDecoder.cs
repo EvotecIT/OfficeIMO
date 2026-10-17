@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading;
 
 namespace OfficeIMO;
@@ -23,13 +21,17 @@ internal sealed class OfficeLzxDecoder {
     private const int UncompressedBlock = 3;
     private const int MaximumTranslatedFrames = 32768;
 
-    private CancellationToken _cancellationToken;
+    private readonly CancellationToken _cancellationToken;
     private readonly int _windowSize;
     private readonly int[] _positionBase;
     private readonly int[] _positionFooterBits;
     private readonly byte[] _mainPathLengths;
     private readonly byte[] _lengthPathLengths = new byte[LengthTreeSymbols];
-    private readonly byte[] _decoded;
+    private readonly byte[] _history;
+    private readonly byte[] _frame;
+    private readonly int _expectedOutputBytes;
+    private int _frameStart;
+    private int _frameIndex;
     private OfficeLzxHuffmanTree _mainTree = OfficeLzxHuffmanTree.Empty;
     private OfficeLzxHuffmanTree _lengthTree = OfficeLzxHuffmanTree.Empty;
     private OfficeLzxHuffmanTree _alignedTree = OfficeLzxHuffmanTree.Empty;
@@ -44,7 +46,9 @@ internal sealed class OfficeLzxDecoder {
     private bool _uncompressedBlockNeedsPadding;
     private bool _uncompressedPaddingPending;
 
-    private OfficeLzxDecoder(int outputLength, int windowBits) {
+    /// <summary>Keeps untranslated history in a circular window, independently of the reusable output frame.</summary>
+    internal OfficeLzxDecoder(int outputLength, int windowBits, CancellationToken cancellationToken) {
+        if (outputLength < 1) throw new ArgumentOutOfRangeException(nameof(outputLength));
         if (windowBits < 15 || windowBits > 21) {
             throw Error("LZX_WINDOW", "The CAB uses an unsupported LZX window size.");
         }
@@ -52,66 +56,33 @@ internal sealed class OfficeLzxDecoder {
         _windowSize = 1 << windowBits;
         BuildPositionModel(_windowSize, out _positionBase, out _positionFooterBits);
         _mainPathLengths = new byte[LiteralSymbols + PrimaryLengthSymbols * _positionBase.Length];
-        _decoded = new byte[outputLength];
-    }
-
-    internal static byte[] Decompress(
-        IReadOnlyList<byte[]> chunks,
-        IReadOnlyList<int> sizes,
-        int windowBits,
-        long maxOutputBytes,
-        CancellationToken cancellationToken = default,
-        bool requireCompleteBlocks = true) {
-        if (chunks == null) throw new ArgumentNullException(nameof(chunks));
-        if (sizes == null) throw new ArgumentNullException(nameof(sizes));
-        if (chunks.Count != sizes.Count) {
-            throw Error("LZX_BLOCKS", "LZX block metadata is inconsistent.");
-        }
-        if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
-
-        long outputLength = 0;
-        for (int index = 0; index < sizes.Count; index++) {
-            if (chunks[index] == null || sizes[index] < 0 || outputLength > maxOutputBytes - sizes[index]) {
-                throw Error("EXPANDED_LIMIT", "The expanded CAB folder exceeds the configured size limit.");
-            }
-            outputLength += sizes[index];
-        }
-        if (outputLength > int.MaxValue) {
-            throw Error("EXPANDED_LIMIT", "The expanded CAB folder is too large to materialize.");
-        }
-
-        var decoder = new OfficeLzxDecoder((int)outputLength, windowBits);
-        return decoder.Decode(chunks, sizes, cancellationToken, requireCompleteBlocks);
-    }
-
-    private byte[] Decode(IReadOnlyList<byte[]> chunks, IReadOnlyList<int> sizes, CancellationToken cancellationToken, bool requireCompleteBlocks) {
+        int historySize = 1;
+        while (historySize < _windowSize && historySize < outputLength) historySize <<= 1;
+        _history = new byte[historySize];
+        _frame = new byte[Math.Min(32768, outputLength)];
+        _expectedOutputBytes = outputLength;
         _cancellationToken = cancellationToken;
-        var frameStarts = new int[sizes.Count];
-        for (int frame = 0; frame < chunks.Count; frame++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            frameStarts[frame] = _outputOffset;
-            DecodeFrame(chunks[frame], sizes[frame]);
-        }
+    }
 
-        if (_outputOffset != _decoded.Length || (requireCompleteBlocks && _blockBytesRemaining != 0)) {
+    /// <summary>Requires the final CFDATA frame to finish its LZX block and any byte padding.</summary>
+    internal void Complete() {
+        _cancellationToken.ThrowIfCancellationRequested();
+        if (_outputOffset != _expectedOutputBytes || _blockBytesRemaining != 0) {
             throw Error("LZX_CORRUPT", "The LZX stream does not describe the expected expanded size.");
         }
-        if (requireCompleteBlocks && _uncompressedPaddingPending)
+        if (_uncompressedPaddingPending)
             throw Error("LZX_TRUNCATED", "The final LZX uncompressed-block padding byte is missing.");
-
-        byte[] result = _decoded;
-        if (_translationFileSize > 0) {
-            for (int frame = 0; frame < sizes.Count && frame < MaximumTranslatedFrames; frame++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ReverseE8Translation(result, frameStarts[frame], sizes[frame], _translationFileSize);
-            }
-        }
-        return result;
     }
 
-    private void DecodeFrame(byte[] chunk, int expandedSize) {
+    /// <summary>Decodes one complete CFDATA frame. The returned buffer is valid only until the next call.
+    /// E8 reversal affects output only; later dictionary matches see untranslated history.</summary>
+    internal byte[] DecodeFrame(byte[] data, int offset, int count, int expandedSize) {
+        if (expandedSize < 1 || expandedSize > _frame.Length) throw new ArgumentOutOfRangeException(nameof(expandedSize));
+        _cancellationToken.ThrowIfCancellationRequested();
+        _frameStart = _outputOffset;
         int frameEnd = checked(_outputOffset + expandedSize);
-        var reader = new OfficeLzxBitReader(chunk);
+        if (frameEnd > _expectedOutputBytes) throw Error("LZX_CORRUPT", "The LZX frames exceed the declared folder size.");
+        var reader = new OfficeLzxBitReader(data, offset, count);
 
         if (_uncompressedPaddingPending) {
             if (reader.RemainingByteCount < 1) {
@@ -140,6 +111,10 @@ internal sealed class OfficeLzxDecoder {
             throw Error("LZX_CORRUPT", "An LZX token crosses a 32-KB LZX frame boundary.");
         }
         reader.ValidateFrameEnd();
+        if (_translationFileSize > 0 && _frameIndex < MaximumTranslatedFrames)
+            ReverseE8Translation(_frame, _frameStart, expandedSize, _translationFileSize);
+        _frameIndex++;
+        return _frame;
     }
 
     private void ReadBlockHeader(OfficeLzxBitReader reader) {
@@ -193,7 +168,12 @@ internal sealed class OfficeLzxDecoder {
     private void DecodeUncompressedSlice(OfficeLzxBitReader reader, int frameEnd) {
         int availableOutput = frameEnd - _outputOffset;
         int copyLength = Math.Min(_blockBytesRemaining, availableOutput);
-        reader.CopyRawBytes(_decoded, _outputOffset, copyLength);
+        int frameOffset = _outputOffset - _frameStart;
+        reader.CopyRawBytes(_frame, frameOffset, copyLength);
+        int historyOffset = _outputOffset & (_history.Length - 1);
+        int first = Math.Min(copyLength, _history.Length - historyOffset);
+        Buffer.BlockCopy(_frame, frameOffset, _history, historyOffset, first);
+        if (copyLength > first) Buffer.BlockCopy(_frame, frameOffset + first, _history, 0, copyLength - first);
         _outputOffset += copyLength;
         _blockBytesRemaining -= copyLength;
     }
@@ -203,7 +183,7 @@ internal sealed class OfficeLzxDecoder {
             if ((_outputOffset & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
             int symbol = _mainTree.Decode(reader);
             if (symbol < LiteralSymbols) {
-                _decoded[_outputOffset++] = checked((byte)symbol);
+                WriteByte(checked((byte)symbol));
                 _blockBytesRemaining--;
                 continue;
             }
@@ -228,10 +208,16 @@ internal sealed class OfficeLzxDecoder {
 
             int source = _outputOffset - checked((int)matchOffset);
             for (int index = 0; index < matchLength; index++) {
-                _decoded[_outputOffset++] = _decoded[source + index];
+                WriteByte(_history[(source + index) & (_history.Length - 1)]);
             }
             _blockBytesRemaining -= matchLength;
         }
+    }
+
+    private void WriteByte(byte value) {
+        _frame[_outputOffset - _frameStart] = value;
+        _history[_outputOffset & (_history.Length - 1)] = value;
+        _outputOffset++;
     }
 
     private uint DecodeMatchOffset(OfficeLzxBitReader reader, int positionSlot) {
@@ -344,12 +330,12 @@ internal sealed class OfficeLzxDecoder {
 
     private static void ReverseE8Translation(byte[] data, int frameOffset, int frameLength, int fileSize) {
         if (frameOffset >= 0x40000000 || frameLength <= 10) return;
-        int scanEnd = checked(frameOffset + frameLength - 10);
-        for (int cursor = frameOffset; cursor < scanEnd; cursor++) {
+        int scanEnd = frameLength - 10;
+        for (int cursor = 0; cursor < scanEnd; cursor++) {
             if (data[cursor] != 0xE8) continue;
 
             int value = ReadInt32(data, cursor + 1);
-            int currentPointer = cursor;
+            int currentPointer = frameOffset + cursor;
             if (value >= -currentPointer && value < fileSize) {
                 int displacement = value >= 0 ? value - currentPointer : value + fileSize;
                 WriteInt32(data, cursor + 1, displacement);
