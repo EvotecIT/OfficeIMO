@@ -22,15 +22,6 @@ internal sealed class HtmlRenderFontFaceUsage {
         _diagnostics = diagnostics;
     }
 
-    /// <summary>Retains loaded declarations while attributing one layout pass's uses to its own diagnostics.</summary>
-    internal HtmlRenderFontFaceUsage ForDiagnostics(HtmlDiagnosticReport diagnostics) {
-        if (ReferenceEquals(diagnostics, _diagnostics)) return this;
-        var usage = new HtmlRenderFontFaceUsage(_fonts, diagnostics);
-        foreach (var item in _unavailable) usage._unavailable.Add(item.Key, item.Value);
-        foreach (var item in _definitionOrder) usage._definitionOrder.Add(item.Key, item.Value);
-        return usage;
-    }
-
     internal void RegisterAvailable(string family, OfficeFontFaceDescriptor descriptor, OfficeFontUnicodeRangeSet ranges, int order,
         IEnumerable<int> diagnosticIndices) {
         // Earlier rejected candidates do not degrade a face that subsequently loaded successfully.

@@ -5,7 +5,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// First-party browser-free HTML layout entry point shared by image and PDF adapters.
 /// </summary>
-public static partial class HtmlRenderEngine {
+public static class HtmlRenderEngine {
     // Raw text entry points remain internal for renderer-focused tests and low-level package code.
     // They delegate to the native source model so parsing, normalization, trust, and media filtering
     // still have one owner.
@@ -206,17 +206,18 @@ public static partial class HtmlRenderEngine {
         }
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return RenderWithPreparedFontMetrics(resolved, diagnostics, (layoutDiagnostics, refreshStyles) => new HtmlRenderLayoutEngine(
+        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(
             document,
-            refreshStyles ? HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits) : styles,
+            styles,
             resolved,
-            layoutDiagnostics,
+            diagnostics,
             resources,
             pageRules,
             fonts,
             limits: limits,
             operationBudget: operationBudget,
-            cancellationToken: cancellationToken, fontUsage: fontUsage.ForDiagnostics(layoutDiagnostics)).Render(), cancellationToken);
+            cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
+        return CompleteRender(rendered, resolved);
     }
 
     /// <summary>
@@ -385,12 +386,9 @@ public static partial class HtmlRenderEngine {
         }
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return RenderWithPreparedFontMetrics(resolved, diagnostics, (layoutDiagnostics, refreshStyles) =>
-            new HtmlRenderLayoutEngine(document,
-                refreshStyles ? HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits) : styles,
-                resolved, layoutDiagnostics, resources, pageRules, fonts,
-                limits: limits, operationBudget: operationBudget, cancellationToken: cancellationToken,
-                fontUsage: fontUsage.ForDiagnostics(layoutDiagnostics)).Render(), cancellationToken);
+        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
+            limits: limits, operationBudget: operationBudget, cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
+        return CompleteRender(rendered, resolved);
     }
 
     internal static HtmlRenderDocument RenderHtml(this string html, HtmlRenderOptions? options = null) => Render(html, options);

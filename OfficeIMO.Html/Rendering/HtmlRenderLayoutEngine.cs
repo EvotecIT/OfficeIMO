@@ -214,6 +214,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         CheckCancellation();
         IdentifyStaticRadioGroups();
         HtmlRenderDocument rendered = RenderSinglePass();
+        if (_fontLayoutRebuilt) return rendered;
         if (_options.Mode != HtmlRenderMode.Paged) return rendered;
 
         int maximumConvergencePasses = Math.Min(
@@ -252,6 +253,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _pageFloatPlan = pageFloatPlan;
             ResetLayoutPassState();
             rendered = RenderSinglePass();
+            if (_fontLayoutRebuilt) return rendered;
         }
         return rendered;
     }
@@ -288,6 +290,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 blocks = AddDocumentTopDestination(blocks, contentWidth);
             }
         }
+        if (TryRebuildWithPreparedFontMetrics(blocks, out HtmlRenderDocument prepared)) return prepared;
         HtmlRenderDocument rendered = _options.Mode == HtmlRenderMode.Paged
             ? RenderPaged(blocks)
             : RenderContinuous(blocks);

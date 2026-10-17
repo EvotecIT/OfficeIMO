@@ -104,6 +104,28 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(40D, NaturalLineShape(rendered, "div#following").Y, 6);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlNaturalLineHeight_StyledGlyphFallbackCombinesEachFacesOwnLeading(bool documentFonts) {
+        byte[] regular = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(700, -300, 100, 300, 'A', 'B');
+        byte[] bold = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -200, 0, 200, 'A', 'C');
+        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D),
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        if (documentFonts) {
+            options.Fonts.Add("Scoped", regular);
+            options.Fonts.Add("Scoped", bold, OfficeFontStyle.Bold);
+        } else options.PdfOptions.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Scoped", regular, bold));
+        string html = NaturalLineSource("<div id='subject' style='font:20px Scoped;font-weight:bold'>AB</div>");
+        HtmlRenderDocument rendered = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options)).RenderResult.Document;
+
+        // Bold A contributes A16/D4; regular B contributes A15/D7 after
+        // its own 2px gap. Their shared baseline is16 and total height23.
+        Assert.Equal(23D, NaturalLineShape(rendered, "div#subject").Height, 6);
+        Assert.Equal(23D, NaturalLineShape(rendered, "div#following").Y, 6);
+    }
+
     private static HtmlRenderOptions NaturalLineOptions() {
         var options = new HtmlRenderOptions {
             ViewportWidth = 800D, ViewportHeight = 900D,
