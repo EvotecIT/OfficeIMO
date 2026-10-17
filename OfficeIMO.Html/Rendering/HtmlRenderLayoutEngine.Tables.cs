@@ -361,6 +361,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 AppendRepeatedCollapsedBorders(trailingVisuals, collapsedBorders,
                     trailingStart, trailingStart + trailingHeight);
             }
+            // A repeated header and the resumed body each retain their source edge.
+            // Add the body edge after capturing the reusable header, so it is not
+            // incorrectly copied into the next repeated header's paint.
+            if (!ReferenceEquals(sourceBorders, fragmentBorders) && sourceBorders != null
+                && continuationRow?.Cells.FirstOrDefault() is TableFormattingCell resumedCell
+                && sourceBorders.Placements.TryGetValue(resumedCell, out CollapsedTableCellPlacement placement)
+                && rowLayouts.TakeWhile(row => row.IsHeader).Any()) {
+                double boundaryY = tableY + style.BorderTopWidth + style.PaddingTop
+                    + rowLayouts.TakeWhile(row => row.IsHeader).Sum(row => row.Height);
+                AddCollapsedTableHorizontalBoundary(visuals, sourceBorders, placement.RowIndex,
+                    columnWidths, columnOffsets, contentX, boundaryY, style.Direction == "rtl", source);
+            }
         }
         double continuationSourceEnd = headerStart + continuationHeight;
         if (style.BorderCollapse == "collapse") {

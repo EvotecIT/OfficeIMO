@@ -53,6 +53,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    /// <summary>Retains a resumed body's original grid edge alongside a separately repeated row group.</summary>
+    private void AddCollapsedTableHorizontalBoundary(
+        ICollection<HtmlRenderVisual> visuals,
+        CollapsedTableBorderLayout sourceBorders,
+        int boundary,
+        IReadOnlyList<double> columnWidths,
+        IReadOnlyList<double> columnOffsets,
+        double x,
+        double y,
+        bool rtl,
+        string source) {
+        double gridWidth = columnWidths.Sum();
+        for (int segment = 0; segment < columnWidths.Count; segment++) {
+            CheckCancellation();
+            if (!sourceBorders.Winners.TryGetValue(new CollapsedBorderKey(true, boundary, segment),
+                out CollapsedBorderCandidate winner) || !winner.Border.IsPainted) continue;
+            AddCollapsedBorderLine(visuals, horizontal: true,
+                x + (rtl ? gridWidth - columnOffsets[segment] - columnWidths[segment] : columnOffsets[segment]),
+                y, columnWidths[segment], winner.Border,
+                source + ":collapsed-border-h-continuation-" + boundary + "-" + segment);
+        }
+    }
+
     private static void AppendRepeatedCollapsedBorders(
         ICollection<HtmlRenderVisual> repeated,
         IEnumerable<HtmlRenderVisual> borders,

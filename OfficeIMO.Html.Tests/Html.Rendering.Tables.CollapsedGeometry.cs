@@ -400,6 +400,13 @@ public sealed partial class HtmlRenderingTests {
         foreach (string label in new[] { "Body01", "Body02", "Body03", "After" }) {
             Assert.Single(text, item => item.Text == label);
         }
+        IReadOnlyList<OfficeImageExportResult> pages = HtmlConversionDocument.Parse(CollapsedGeometrySource(body))
+            .ExportImages(OfficeImageExportFormat.Png, options);
+        Assert.True(OfficePngReader.TryDecode(pages[1].Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(OfficeColor.Red, raster!.GetPixel(200, 43));
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(200, 44));
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(200, 45));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(200, 46));
         rendered.RequireNoLoss();
     }
 
