@@ -9,7 +9,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         ResolveAutoTableColumnContributions(rows, table, columnCount, contentWidth, tableStyle, depth, legacyBorderWidth,
-            out double[] minimums, out double[] preferred, out bool[] authoredWidths);
+            out double[] minimums, out double[] preferred, out bool[] authoredWidths, out double[] percentages);
         double minimumAllowed = tableStyle.MinWidth.HasValue
             ? Math.Max(0.01D, tableStyle.MinWidth.Value - (tableStyle.BorderBox ? tableStyle.HorizontalInsets : 0D))
             : 0.01D;
@@ -17,17 +17,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         usedWidth = tableStyle.ExplicitWidth.HasValue
             ? contentWidth
             : Math.Min(contentWidth, Math.Max(minimumAllowed, preferred.Sum()));
-        return AllocateAutoColumnWidths(minimums, preferred, authoredWidths, usedWidth);
+        usedWidth = Math.Max(usedWidth, minimums.Sum());
+        return AllocateAutoColumnWidths(minimums, preferred, authoredWidths, percentages, usedWidth);
     }
 
     /// <summary>Collects column constraints once for both table layout and non-paint intrinsic sizing.</summary>
     private void ResolveAutoTableColumnContributions(IReadOnlyList<TableFormattingRow> rows, IElement table,
         int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle, int depth, int legacyBorderWidth,
-        out double[] minimums, out double[] preferred, out bool[] authoredWidths) {
-        minimums = Enumerable.Repeat(1D, columnCount).ToArray();
-        preferred = Enumerable.Repeat(1D, columnCount).ToArray();
+        out double[] minimums, out double[] preferred, out bool[] authoredWidths, out double[] percentages) {
+        minimums = new double[columnCount];
+        preferred = new double[columnCount];
         authoredWidths = new bool[columnCount];
-        ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, minimums, preferred, authoredWidths);
+        percentages = new double[columnCount];
+        ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, minimums, preferred, authoredWidths, percentageRequests: percentages);
         var spanningCells = new List<(int Column, int Span, double Minimum, double Preferred)>();
         var occupancy = new int[columnCount];
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
@@ -39,8 +41,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
                 HtmlRenderBoxStyle cellStyle = ResolveFormattingCellStyle(cell, contentWidth);
                 ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
-                if (span == 1 && cellStyle.ExplicitWidth.HasValue && !cellStyle.ExplicitWidthUsesPercentage) {
-                    authoredWidths[column] = true;
+                if (span == 1 && cellStyle.ExplicitWidth.HasValue) {
+                    if (cellStyle.ExplicitWidthUsesPercentage) {
+                        percentages[column] = Math.Max(percentages[column], cellStyle.ExplicitWidth.Value / Math.Max(0.01D, contentWidth));
+                    } else authoredWidths[column] = true;
                 }
                 ResolveTableCellIntrinsicWidths(cell, cellStyle, contentWidth, depth, out double minimum, out double maximum);
                 if (span == 1) {
@@ -78,7 +82,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (columnCount > 0) {
             int legacyBorderWidth = table.LocalName == "table" ? ReadLegacyTableBorderWidth(table) : 0;
             ResolveAutoTableColumnContributions(formatting.Rows, table, columnCount, availableWidth, style, depth, legacyBorderWidth,
-                out double[] minimums, out double[] preferred, out _);
+                out double[] minimums, out double[] preferred, out _, out _);
             double spacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX * (columnCount + 1);
             minimum = Math.Max(minimum, minimums.Sum() + spacing);
             maximum = Math.Max(maximum, preferred.Sum() + spacing);
@@ -102,7 +106,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return minimum + captionStyle.MarginLeft + captionStyle.MarginRight;
     }
 
-    private void ApplyDeclaredColumnWidths(IElement table, double contentWidth, HtmlRenderBoxStyle tableStyle, double[] minimums, double[] preferred, bool[]? authoredWidths = null, bool[]? declaredWidths = null, bool[]? percentageWidths = null) {
+    private void ApplyDeclaredColumnWidths(IElement table, double contentWidth, HtmlRenderBoxStyle tableStyle, double[] minimums, double[] preferred, bool[]? authoredWidths = null, bool[]? declaredWidths = null, bool[]? percentageWidths = null, double[]? percentageRequests = null) {
         int column = 0;
         foreach (IElement element in table.QuerySelectorAll("col").Where(candidate => BelongsToTableColumn(candidate, table))) {
             int span = Math.Min(ReadSpan(element.GetAttribute("span"), minimums.Length), minimums.Length - column);
@@ -118,6 +122,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (authoredWidths != null && !style.ExplicitWidthUsesPercentage) authoredWidths[column + offset] = true;
                     if (declaredWidths != null) declaredWidths[column + offset] = true;
                     if (percentageWidths != null) percentageWidths[column + offset] = style.ExplicitWidthUsesPercentage;
+                    if (percentageRequests != null && style.ExplicitWidthUsesPercentage) {
+                        percentageRequests[column + offset] = Math.Max(percentageRequests[column + offset], style.ExplicitWidth.Value / Math.Max(0.01D, contentWidth));
+                    }
                 }
             }
             column += span;
@@ -145,10 +152,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runs = NormalizeIntrinsicTextRuns(rawRuns);
         }
         double insets = style.HorizontalInsets;
-        minimum = Math.Max(1D, MeasureMinContentRuns(runs) + insets);
-        preferred = Math.Max(minimum, MeasureMaxContentRuns(runs) + insets);
+        // Empty content contributes only its authored edges, not a synthetic pixel.
+        minimum = Math.Max(0D, (runs.Count == 0 ? 0D : MeasureMinContentRuns(runs)) + insets);
+        preferred = Math.Max(minimum, (runs.Count == 0 ? 0D : MeasureMaxContentRuns(runs)) + insets);
         if (style.ExplicitWidth.HasValue) {
-            double authored = style.ExplicitWidth.Value + (style.BorderBox ? 0D : insets);
+            double authored = style.ExplicitWidth.Value + (style.BorderBox || style.ExplicitWidthUsesPercentage ? 0D : insets);
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
         }
@@ -183,32 +191,41 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static IReadOnlyList<double> AllocateAutoColumnWidths(IReadOnlyList<double> minimums, IReadOnlyList<double> preferred, IReadOnlyList<bool> authoredWidths, double totalWidth) {
+    private static IReadOnlyList<double> AllocateAutoColumnWidths(IReadOnlyList<double> minimums, IReadOnlyList<double> preferred, IReadOnlyList<bool> authoredWidths, IReadOnlyList<double> percentages, double totalWidth) {
         var result = new double[minimums.Count];
         double minimumTotal = minimums.Sum();
         double preferredTotal = preferred.Sum();
         if (totalWidth <= minimumTotal + 0.0001D) {
             double scale = totalWidth / Math.Max(0.01D, minimumTotal);
-            for (int index = 0; index < result.Length; index++) result[index] = Math.Max(0.01D, minimums[index] * scale);
+            for (int index = 0; index < result.Length; index++) result[index] = Math.Max(0D, minimums[index] * scale);
         } else if (totalWidth < preferredTotal - 0.0001D) {
             double progress = (totalWidth - minimumTotal) / Math.Max(0.01D, preferredTotal - minimumTotal);
             for (int index = 0; index < result.Length; index++) result[index] = minimums[index] + (preferred[index] - minimums[index]) * progress;
         } else {
-            int flexibleColumns = authoredWidths.Count(authored => !authored);
-            bool distributeToAll = flexibleColumns == 0;
-            double extra = (totalWidth - preferredTotal) / (distributeToAll ? result.Length : flexibleColumns);
+            // Content-sized columns take surplus first. Explicit lengths follow,
+            // then percentages; scaling every column would grow a reserved share.
+            bool hasContentColumns = Enumerable.Range(0, result.Length).Any(index => !authoredWidths[index] && percentages[index] <= 0D);
+            bool hasNonPercentageColumns = Enumerable.Range(0, result.Length).Any(index => percentages[index] <= 0D);
+            bool Eligible(int index) => hasContentColumns
+                ? !authoredWidths[index] && percentages[index] <= 0D
+                : !hasNonPercentageColumns || percentages[index] <= 0D;
+            double Weight(int index) => hasNonPercentageColumns ? preferred[index] : percentages[index];
+            double weightTotal = Enumerable.Range(0, result.Length).Where(Eligible).Sum(Weight);
+            int count = Enumerable.Range(0, result.Length).Count(Eligible);
+            double extra = totalWidth - preferredTotal;
             for (int index = 0; index < result.Length; index++) {
-                result[index] = preferred[index] + (distributeToAll || !authoredWidths[index] ? extra : 0D);
+                double share = !Eligible(index) ? 0D : weightTotal > 0D ? Weight(index) / weightTotal : 1D / count;
+                result[index] = preferred[index] + extra * share;
             }
         }
-        NormalizeColumnWidthTotal(result, totalWidth);
+        NormalizeColumnWidthTotal(result, totalWidth, allowZeroWidth: true);
         return result;
     }
 
-    private static void NormalizeColumnWidthTotal(double[] widths, double totalWidth) {
+    private static void NormalizeColumnWidthTotal(double[] widths, double totalWidth, bool allowZeroWidth = false) {
         if (widths.Length == 0) return;
         widths[widths.Length - 1] += totalWidth - widths.Sum();
-        widths[widths.Length - 1] = Math.Max(0.01D, widths[widths.Length - 1]);
+        widths[widths.Length - 1] = Math.Max(allowZeroWidth ? 0D : 0.01D, widths[widths.Length - 1]);
     }
 
     private static double[] CreateColumnOffsets(IReadOnlyList<double> widths) {

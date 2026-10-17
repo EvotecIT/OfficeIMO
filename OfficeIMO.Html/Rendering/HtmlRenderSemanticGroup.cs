@@ -80,7 +80,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         string? alternativeText = null,
         HtmlMathMlSource? mathMlSource = null,
         int? logicalOrder = null)
-        : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
+        : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight, allowZeroWidth: true) {
         Role = role;
         AlternativeText = alternativeText;
         MathMlSource = mathMlSource;
@@ -110,7 +110,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         string? alternativeText,
         HtmlMathMlSource? mathMlSource,
         int? logicalOrder)
-        : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
+        : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight, allowZeroWidth: true) {
         Role = role;
         AlternativeText = alternativeText;
         MathMlSource = mathMlSource;

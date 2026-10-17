@@ -4,11 +4,11 @@ namespace OfficeIMO.Html;
 /// Immutable positioned visual emitted by the shared HTML layout engine.
 /// </summary>
 public abstract partial class HtmlRenderVisual {
-    internal HtmlRenderVisual(HtmlRenderVisualKind kind, double x, double y, double width, double height, int paintOrder, string? linkUri, string? source, double? layoutY = null, double? layoutHeight = null) {
+    internal HtmlRenderVisual(HtmlRenderVisualKind kind, double x, double y, double width, double height, int paintOrder, string? linkUri, string? source, double? layoutY = null, double? layoutHeight = null, bool allowZeroWidth = false) {
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));
         ValidateFinite(layoutY ?? y, nameof(layoutY));
-        ValidatePositive(width, nameof(width));
+        if (!allowZeroWidth || width != 0D) ValidatePositive(width, nameof(width));
         ValidatePositive(height, nameof(height));
         ValidatePositive(layoutHeight ?? height, nameof(layoutHeight));
         Kind = kind;
@@ -32,7 +32,7 @@ public abstract partial class HtmlRenderVisual {
     /// <summary>Top coordinate in CSS pixels.</summary>
     public double Y { get; }
 
-    /// <summary>Visual width in CSS pixels.</summary>
+    /// <summary>Visual width in CSS pixels. A semantic container may have zero width.</summary>
     public double Width { get; }
 
     /// <summary>Visual height in CSS pixels.</summary>
