@@ -35,8 +35,14 @@ foreach ($framework in @('net8.0', 'net10.0', 'net472')) {
     else { & dotnet "$binary.dll" @arguments }
     if ($LASTEXITCODE -ne 0) { throw "Packed consumer failed: $framework" }
 }
-@{ checkoutCommit = (& git -C $repo rev-parse HEAD); runUrl = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+@{ checkoutCommit = (& git -C $repo rev-parse HEAD); sourceHead = $env:OFFICEIMO_QUALIFICATION_HEAD
+    runUrl = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
     packageVersion = $Version; os = [Environment]::OSVersion.VersionString
+    packages = @(@('OfficeIMO.Core', 'OfficeIMO.Archives', 'OfficeIMO.Reader.Core', 'OfficeIMO.Reader.Zip') | ForEach-Object {
+        $package = Join-Path $FeedPath "$_.$Version.nupkg"
+        @{ file = [IO.Path]::GetFileName($package); bytes = (Get-Item $package).Length
+            sha256 = (Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant() }
+    })
     boundary = 'Unsigned private package runtime proof; Windows Shell ZIP producer, not interactive Explorer UI automation. No installer or extracted executable run.'
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $reports 'context.json') -Encoding utf8
 

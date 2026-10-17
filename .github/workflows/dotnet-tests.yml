@@ -59,6 +59,8 @@ jobs:
       - name: Qualify unsigned archive packages on Windows
         if: matrix.os == 'windows-latest' && matrix.framework == 'net10.0'
         shell: pwsh
+        env:
+          OFFICEIMO_QUALIFICATION_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           $root = Join-Path $env:RUNNER_TEMP 'officeimo-archives'
           $feed = Join-Path $root 'feed'
