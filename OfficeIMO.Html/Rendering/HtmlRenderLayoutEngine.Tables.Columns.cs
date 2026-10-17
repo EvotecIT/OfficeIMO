@@ -35,6 +35,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         percentages = new double[columnCount];
         contentMinimums = new double[columnCount];
         ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, minimums, preferred, authoredWidths, percentageRequests: percentages);
+        var contentPreferred = new double[columnCount];
+        for (int index = 0; index < columnCount; index++) {
+            if (percentages[index] <= 0D) contentPreferred[index] = preferred[index];
+        }
         var spanningCells = new List<(int Column, int Span, double Minimum, double Preferred)>();
         var spanningContent = new List<(int Column, int Span, double Minimum, double Preferred)>();
         var occupancy = new int[columnCount];
@@ -53,14 +57,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     } else authoredWidths[column] = true;
                 }
                 ResolveTableCellIntrinsicWidths(cell, cellStyle, contentWidth, depth,
-                    out double minimum, out double maximum, out double contentMinimum);
+                    out double minimum, out double maximum, out double contentMinimum, out double contentMaximum);
                 if (span == 1) {
                     minimums[column] = Math.Max(minimums[column], minimum);
                     preferred[column] = Math.Max(preferred[column], maximum);
                     contentMinimums[column] = Math.Max(contentMinimums[column], contentMinimum);
+                    contentPreferred[column] = Math.Max(contentPreferred[column], contentMaximum);
                 } else {
                     spanningCells.Add((column, span, minimum, maximum));
-                    spanningContent.Add((column, span, contentMinimum, contentMinimum));
+                    spanningContent.Add((column, span,
+                        cellStyle.ExplicitWidthUsesPercentage ? contentMinimum : minimum, contentMaximum));
                 }
                 int rowSpan = ReadRowSpan(cell.RowSpan, rows, rowIndex);
                 for (int occupied = column; occupied < column + span; occupied++) occupancy[occupied] = Math.Max(occupancy[occupied], rowSpan);
@@ -68,10 +74,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             DecrementOccupancy(occupancy);
         }
-        ApplyTableSpanningWidths(minimums, preferred, spanningCells,
-            tableStyle.BorderCollapse == "collapse" ? 0D : tableStyle.BorderSpacingX);
-        ApplyTableSpanningWidths(contentMinimums, contentMinimums, spanningContent,
-            tableStyle.BorderCollapse == "collapse" ? 0D : tableStyle.BorderSpacingX);
+        double spacing = tableStyle.BorderCollapse == "collapse" ? 0D : tableStyle.BorderSpacingX;
+        ApplyTableSpanningContentWidths(contentMinimums, contentPreferred, spanningContent, spacing, authoredWidths, percentages);
+        for (int index = 0; index < columnCount; index++) {
+            minimums[index] = Math.Max(minimums[index], contentMinimums[index]);
+            preferred[index] = Math.Max(preferred[index], contentPreferred[index]);
+        }
+        ApplyTableSpanningWidths(minimums, preferred, spanningCells, spacing);
     }
 
     /// <summary>Measures a table as one atomic box using source columns, without painting or feeding layout widths back into measurement.</summary>
@@ -144,7 +153,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ResolveTableCellIntrinsicWidths(TableFormattingCell cell, HtmlRenderBoxStyle style, double containingWidth,
-        int depth, out double minimum, out double preferred, out double contentMinimum) {
+        int depth, out double minimum, out double preferred, out double contentMinimum, out double contentPreferred) {
         if (cell.Nodes == null && IsSpecializedTableCell(cell.Element)) {
             preferred = IsReplacedImageElement(cell.Element) || IsInputType(cell.Element, "image")
                 ? ResolveIntrinsicReplacedImageBoxWidth(cell.Element, style)
@@ -152,6 +161,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             minimum = style.ExplicitWidthUsesPercentage || style.MaxWidthUsesPercentage
                 ? ResolveCompressibleReplacedMinimumWidth(style) : preferred;
             contentMinimum = minimum;
+            contentPreferred = preferred;
             return;
         }
         IReadOnlyList<IntrinsicTextRun> runs;
@@ -169,16 +179,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         minimum = Math.Max(0D, (runs.Count == 0 ? 0D : MeasureMinContentRuns(runs)) + insets);
         contentMinimum = minimum;
         preferred = Math.Max(minimum, (runs.Count == 0 ? 0D : MeasureMaxContentRuns(runs)) + insets);
+        contentPreferred = preferred;
         if (style.ExplicitWidth.HasValue) {
             double authored = style.ExplicitWidth.Value + (style.BorderBox || style.ExplicitWidthUsesPercentage ? 0D : insets);
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
+            if (!style.ExplicitWidthUsesPercentage) contentPreferred = Math.Max(contentPreferred, authored);
         }
         if (style.MinWidth.HasValue) {
             double authoredMinimum = style.MinWidth.Value + (style.BorderBox ? 0D : insets);
             minimum = Math.Max(minimum, authoredMinimum);
             preferred = Math.Max(preferred, authoredMinimum);
             contentMinimum = Math.Max(contentMinimum, authoredMinimum);
+            contentPreferred = Math.Max(contentPreferred, authoredMinimum);
         }
     }
 

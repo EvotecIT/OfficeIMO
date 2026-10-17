@@ -105,6 +105,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("75%", false, 450D, 150D)]
+    [InlineData("25%", false, 150D, 450D)]
+    [InlineData("75%", true, 450D, 150D)]
+    [InlineData("25%", true, 150D, 450D)]
+    public void HtmlTables_SpanningContentPreservesPercentageAndAutoColumnPriorities(string percentage, bool authoredWidth, double first, double second) {
+        string spanningCell = authoredWidth ? "<td colspan='2' style='padding:0;width:600px'></td>"
+            : "<td colspan='2' style='padding:0'><span style='display:inline-block;width:600px;height:10px'></span></td>";
+        HtmlRenderSemanticGroup grid = AutoDistributionTable("<table style='width:600px'>"
+            + "<tr><td style='padding:0;width:" + percentage + "'>A</td><td style='padding:0'>B</td></tr>"
+            + "<tr>" + spanningCell + "</tr></table>");
+        HtmlRenderSemanticGroup[] cells = AutoDistributionCells(grid).Where(cell => cell.ColumnSpan == 1).ToArray();
+
+        Assert.Equal(600D, grid.Width, 6);
+        Assert.Equal(first, cells[0].Width, 6);
+        Assert.Equal(second, cells[1].Width, 6);
+    }
+
+    [Theory]
     [InlineData("", "123", 0D, 600D)]
     [InlineData("123", "", 600D, 0D)]
     [InlineData("", "", 300D, 300D)]
