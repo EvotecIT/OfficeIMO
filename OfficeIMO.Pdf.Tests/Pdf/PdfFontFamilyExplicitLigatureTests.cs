@@ -134,7 +134,7 @@ public class PdfFontFamilyExplicitLigatureTests {
     }
 
     [Fact]
-    public void TextShapingModeLatinLigatures_StillReportsUncoveredOpenTypeLigatureDiagnostics() {
+    public void TextShapingModeLatinLigatures_DoesNotInventUppercaseLigatures() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
 
@@ -153,9 +153,8 @@ public class PdfFontFamilyExplicitLigatureTests {
             .ToBytes();
 
         Assert.NotEmpty(bytes);
-        PdfConversionWarning warning = Assert.Single(report.Warnings, item => item.Code == "unsupported-font-ligature-substitution");
-        Assert.Equal("OpenType GSUB ligature", warning.Details["script"]);
-        Assert.Equal("U+0046", warning.Details["codePoint"]);
+        Assert.DoesNotContain(report.Warnings, item => item.Code == "unsupported-font-ligature-substitution");
+        Assert.Contains("Uppercase ligature probe: FINE", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }
 
     private static string BuildToUnicodeEntry(int glyphId, string text) {

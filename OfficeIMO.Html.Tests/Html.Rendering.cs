@@ -1813,6 +1813,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions(options);
         pdfOptions.FontFamily = SvgPaintedText.CreatePinnedFamily();
+        pdfOptions.ResourcePolicy.AllowSystemFontEmbedding = false;
         pdfOptions.PdfOptions.CompressContentStreams = false;
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
         string raw = Encoding.ASCII.GetString(pdf);

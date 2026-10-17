@@ -119,6 +119,8 @@ PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conve
 
 ## Native chart and SmartArt rendering
 
+PowerPoint cached SmartArt drawings are checked against each source node identity and its exact visible text. `SetNodeText` updates a current producer cache together with the source node, preserving its geometry and text style. Externally edited data whose cache still has old wording or swapped labels is rejected instead of exporting stale labels.
+
 Series fill and outline paint are independent in shared chart snapshots. Use
 `OfficeChartSeries.WithSeriesStyle(OfficeChartPointStyle)` when an unfilled series must retain
 an outline; a transparent `Color` is no longer needed for no-fill. Word, PowerPoint and Excel
@@ -126,6 +128,8 @@ PDF and image exports preserve explicit area, bubble and column outlines indepen
 fill, including point overrides where supported. Bottom-aligned table text also reserves the
 named font's final descent when its line advance is shorter than its font box, preventing
 spreadsheet glyphs from being clipped at a cell or worksheet boundary.
+
+XLSX/ODS conversion retains the workbook default font separately from cell fonts. Column-width measurement after an ODS round trip uses the authored default family, size, bold and italic face instead of resetting to Calibri. Regenerate converted workbooks and previews that depended on the reset.
 
 `WordChart.SetSeriesColor` and series palettes replace the base fill on filled cartesian, filled radar, bubble and 3-D line series, and the connecting stroke on 2-D line, scatter and unfilled radar charts. They replace an existing no-fill choice and preserve independent outlines on filled series. Code inspecting line-chart XML should read the colour from `a:ln/a:solidFill`.
 
@@ -664,7 +668,7 @@ CSS `box-shadow` retains authored zero blur and spread values. Sharp inset shado
 
 ## Static HTML rendering and capability profiles
 
-Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
+Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. For site-bundle image and display-list output, `ResourcePolicy.AllowEmbeddedPackageResources` controls archive reads separately from host reads. Permission changes on request snapshots apply to synchronous and asynchronous rendering. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
 
 `HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
 

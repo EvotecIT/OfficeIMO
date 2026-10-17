@@ -27,12 +27,8 @@ namespace OfficeIMO.PowerPoint {
             try {
                 DiagramDataPart dataPart = GetDiagramDataPart();
                 XDocument dataDocument = LoadDiagramXDocument(dataPart);
-                XElement? extension = dataDocument.Descendants().FirstOrDefault(element =>
-                    element.Name.LocalName == "dataModelExt" && element.Name.NamespaceName == PersistedDiagramNamespace);
-                string? relationshipId = (string?)extension?.Attribute("relId");
-                if (string.IsNullOrWhiteSpace(relationshipId) ||
-                    !_slidePart.TryGetPartById(relationshipId!, out OpenXmlPart? part) ||
-                    part is not DiagramPersistLayoutPart drawingPart) {
+                DiagramPersistLayoutPart? drawingPart = FindCachedDrawingPart(dataDocument);
+                if (drawingPart == null) {
                     failureReason = "The SmartArt diagram has no cached drawing from its producer.";
                     return false;
                 }
@@ -42,7 +38,7 @@ namespace OfficeIMO.PowerPoint {
                     failureReason = "The SmartArt cached drawing has no shape tree.";
                     return false;
                 }
-                if (!MatchesDiagramText(dataDocument, tree)) {
+                if (!MatchesDiagramText(dataDocument, tree, out _)) {
                     failureReason = "The SmartArt cached drawing no longer matches the diagram text.";
                     return false;
                 }
@@ -208,25 +204,64 @@ namespace OfficeIMO.PowerPoint {
                 : throw new InvalidDataException("The SmartArt cached text rectangle is incomplete.");
         }
 
-        // A cached drawing that still shows every node of the data model, and no other text, is current.
-        private static bool MatchesDiagramText(XDocument dataDocument, OpenXmlCompositeElement tree) {
-            XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
-            XNamespace dgm = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
-            List<string> nodes = dataDocument.Descendants(dgm + "pt")
-                .Where(point => ((string?)point.Attribute("type") ?? "node") is "node")
-                .Select(point => point.Element(dgm + "t"))
-                .Where(body => body != null)
-                .Select(body => NormalizeText(string.Concat(body!.Descendants(a + "t").Select(item => item.Value))))
-                .Where(value => value.Length > 0).OrderBy(value => value, StringComparer.Ordinal).ToList();
-            List<string> drawn = tree.Descendants<A.Paragraph>()
-                .GroupBy(paragraph => paragraph.Parent)
-                .Select(body => NormalizeText(string.Concat(body.SelectMany(paragraph => paragraph.Descendants<A.Text>())
-                    .Select(item => item.Text))))
-                .Where(value => value.Length > 0).OrderBy(value => value, StringComparer.Ordinal).ToList();
-            return nodes.SequenceEqual(drawn, StringComparer.Ordinal);
+        private DiagramPersistLayoutPart? FindCachedDrawingPart(XDocument dataDocument) {
+            XElement? extension = dataDocument.Descendants().FirstOrDefault(element =>
+                element.Name.LocalName == "dataModelExt" && element.Name.NamespaceName == PersistedDiagramNamespace);
+            string? id = (string?)extension?.Attribute("relId");
+            return !string.IsNullOrWhiteSpace(id) && _slidePart.TryGetPartById(id!, out OpenXmlPart? part)
+                ? part as DiagramPersistLayoutPart : null;
         }
 
-        private static string NormalizeText(string value) =>
-            string.Concat(value.Where(character => !char.IsWhiteSpace(character)));
+        // Cached shapes reference presentation points, which map back to source nodes.
+        // Comparing a bag of words loses node placement and significant whitespace.
+        private static bool MatchesDiagramText(XDocument dataDocument, OpenXmlCompositeElement tree,
+            out Dictionary<string, string> associations) {
+            XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            XNamespace dgm = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+            var nodes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            associations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (XElement point in dataDocument.Descendants(dgm + "pt")) {
+                string? id = (string?)point.Attribute("modelId");
+                if (string.IsNullOrEmpty(id)) return false;
+                string type = (string?)point.Attribute("type") ?? "node";
+                if (type == "node") {
+                    if (nodes.ContainsKey(id!)) return false;
+                    nodes.Add(id!, ReadVisibleText(point.Element(dgm + "t"), a));
+                } else if (type == "pres") {
+                    string? source = (string?)point.Element(dgm + "prSet")?.Attribute("presAssocID");
+                    if (!string.IsNullOrEmpty(source)) associations[id!] = source!;
+                }
+            }
+            // Some producers express the association through presOf connections.
+            foreach (XElement connection in dataDocument.Descendants(dgm + "cxn")
+                .Where(item => (string?)item.Attribute("type") == "presOf")) {
+                string? source = (string?)connection.Attribute("srcId");
+                string? target = (string?)connection.Attribute("destId");
+                if (string.IsNullOrEmpty(source) || string.IsNullOrEmpty(target)) return false;
+                if (associations.TryGetValue(target!, out string? previous) &&
+                    !string.Equals(previous, source, StringComparison.OrdinalIgnoreCase)) return false;
+                associations[target!] = source!;
+            }
+            var covered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (OpenXmlCompositeElement shape in tree.Descendants<OpenXmlCompositeElement>()
+                .Where(item => item.LocalName == "sp")) {
+                OpenXmlElement? body = shape.ChildElements.FirstOrDefault(item => item.LocalName == "txBody");
+                string text = body == null ? string.Empty : ReadVisibleText(XElement.Parse(body.OuterXml), a);
+                string? id = shape.GetAttributes().FirstOrDefault(item => item.LocalName == "modelId").Value;
+                if (id != null && associations.TryGetValue(id, out string? source)) id = source;
+                if (id != null && nodes.TryGetValue(id, out string? expected)) {
+                    if (!string.Equals(expected, text, StringComparison.Ordinal)) return false;
+                    covered.Add(id);
+                } else if (text.Length != 0) return false;
+            }
+            return nodes.All(node => node.Value.Length == 0 || covered.Contains(node.Key));
+        }
+
+        private static string ReadVisibleText(XElement? body, XNamespace drawingNamespace) => body == null
+            ? string.Empty
+            : string.Join("\n", body.Elements(drawingNamespace + "p").Select(paragraph =>
+                string.Concat(paragraph.Descendants().Where(item => item.Name == drawingNamespace + "t" ||
+                    item.Name == drawingNamespace + "br" || item.Name == drawingNamespace + "tab")
+                    .Select(item => item.Name.LocalName == "br" ? "\n" : item.Name.LocalName == "tab" ? "\t" : item.Value))));
     }
 }

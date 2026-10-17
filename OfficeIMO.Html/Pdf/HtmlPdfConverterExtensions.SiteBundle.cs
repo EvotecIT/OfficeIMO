@@ -23,7 +23,8 @@ public static class HtmlSiteBundlePdfExtensions {
         return bundle.HtmlDocument.RenderToPdfResultAsync(Prepare(bundle, request), cancellationToken);
     }
 
-    private static HtmlRenderRequest Prepare(HtmlSiteBundle bundle, HtmlRenderRequest request) {
+    // Image requests carrying PDF options use the same embedded-package policy boundary.
+    internal static HtmlRenderRequest Prepare(HtmlSiteBundle bundle, HtmlRenderRequest request) {
         var options = new HtmlToPdfOptions(request.Options);
         options.BaseUri ??= bundle.BaseUri;
         options.EmbeddedPackageHostResourceUrlPolicy = options.GetResourceUrlPolicy().Clone();

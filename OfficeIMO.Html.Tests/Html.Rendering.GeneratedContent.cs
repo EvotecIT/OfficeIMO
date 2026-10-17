@@ -420,7 +420,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Contains("Generated", SvgPaintedText.Read(svg), StringComparison.Ordinal);
-        Assert.Contains("BackendMarker", svg, StringComparison.Ordinal);
+        Assert.Contains("BackendMarker", SvgPaintedText.Read(svg), StringComparison.Ordinal);
         Assert.Contains("GeneratedBackendMarker", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }

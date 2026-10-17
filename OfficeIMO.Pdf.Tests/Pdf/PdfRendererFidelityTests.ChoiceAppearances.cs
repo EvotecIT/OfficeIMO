@@ -26,10 +26,17 @@ public sealed partial class PdfRendererFidelityTests {
         Assert.Contains("556E6974656420537461746573", content);
         Assert.Equal(topIndex == 0, content.Contains("4E6F6E65", StringComparison.Ordinal));
         Assert.Equal(2, content.Split(new[] { "0.153 0.392 0.8 rg" }, StringSplitOptions.None).Length - 1);
-        var image = Render(bytes);
+        // Exact glyph-edge assertions require a known face, not the host's
+        // substitute for the widget's unembedded Helvetica resource.
+        var exportOptions = new PdfImageExportOptions { TargetDpi = 72D };
+        exportOptions.Fonts.Add("Helvetica", System.IO.File.ReadAllBytes(System.IO.Path.Combine(
+            RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf")));
+        var image = PdfRendererQualitySupport.Decode(document.Pages[0].ExportImage(
+            OfficeIMO.Drawing.OfficeImageExportFormat.Png, exportOptions).Bytes);
         // Ascenders leave a clear pixel below the widget's inner clip rather than
         // intersecting its top edge. Check both unselected and selected first rows.
-        for (int y = 12; y <= 12; y++) for (int x = 15; x < 80; x++) {
+        for (int x = 15; x < 80; x++) {
+            const int y = 12;
             if (topIndex == 0) AssertColor(image, x, y, 255, 255, 255);
             else AssertColor(image, x, y, 39, 100, 204);
         }

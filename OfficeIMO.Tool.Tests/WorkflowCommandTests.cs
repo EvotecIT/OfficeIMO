@@ -32,6 +32,11 @@ public sealed class WorkflowCommandTests {
         string input = Path.Combine(scope.Path, "source.docx"), output = Path.Combine(scope.Path, "output.docx"), pdf = Path.Combine(scope.Path, "output.pdf");
         using (var word = OfficeIMO.Word.WordDocument.Create()) {
             var image = new OfficeIMO.Drawing.OfficeRasterImage(200, 100, OfficeIMO.Drawing.OfficeColor.Red);
+            // A flat JPEG can already be smaller than its downsampled candidate.
+            // Use reproducible image detail so this workflow exercises actual byte savings.
+            var random = new Random(3105);
+            for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++)
+                image.SetPixel(x, y, new OfficeIMO.Drawing.OfficeColor((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256)));
             using var stream = new MemoryStream(OfficeIMO.Drawing.OfficeJpegCodec.Encode(image));
             word.AddParagraph("Retained text").InsertImage(stream, "picture.jpg", 96, 48);
             word.Save(input);

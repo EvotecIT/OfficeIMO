@@ -11,6 +11,16 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTextQualityReviewRegressionTests {
     [Theory]
+    [InlineData("First FLAG fI", false)]
+    [InlineData("office", true)]
+    public void LigatureDiagnosticsUseTheSameCaseSensitiveInputsAsShaping(string text, bool expected) {
+        byte[] font = File.ReadAllBytes(System.IO.Path.Combine(RepositoryTestPaths.Find(),
+            "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"));
+        var diagnostics = PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, font, "paragraph", "Pinned");
+        Assert.Equal(expected, diagnostics.Any(item => item.Code == "unsupported-font-ligature-substitution"));
+    }
+
+    [Theory]
     [InlineData("abc \u05D0\u05D1\u05D2", true)]
     [InlineData("abc\u05D0\u05D1\u05D2", true)]
     [InlineData("abc\u05D0\u05D1\u05D2123xyz", true)]

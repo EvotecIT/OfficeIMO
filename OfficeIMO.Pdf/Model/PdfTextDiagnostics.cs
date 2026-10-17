@@ -1250,15 +1250,8 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static int FindLatinLigatureSequenceIndex(string text) {
-        string[] sequences = { "ffi", "ffl", "ff", "fi", "fl" };
         for (int index = 0; index < text.Length; index++) {
-            for (int sequenceIndex = 0; sequenceIndex < sequences.Length; sequenceIndex++) {
-                string sequence = sequences[sequenceIndex];
-                if (index <= text.Length - sequence.Length &&
-                    string.Compare(text, index, sequence, 0, sequence.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    return index;
-                }
-            }
+            if (OfficeTextLigatures.TryGetLatinPresentationForm(text, index, out _, out _)) return index;
         }
 
         return -1;
